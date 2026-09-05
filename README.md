@@ -8,29 +8,29 @@
 
 ```mermaid
 graph TD
-    Seq[OEIS Integer Sequence] --> S1[S1: Signed Log-Magnitude]
-    Seq --> S2[S2: 100-Moduli Fourier Phase]
-    Seq --> S3[S3: Differences + p-Adic Valuations]
-    S1 --> FiLM1[Stage 1 FiLM: S2 modulates S1]
+    Seq["OEIS Integer Sequence"] --> S1["S1: Signed Log-Magnitude"]
+    Seq --> S2["S2: 100-Moduli Fourier Phase"]
+    Seq --> S3["S3: Differences + p-Adic Valuations"]
+    S1 --> FiLM1["Stage 1 FiLM: S2 modulates S1"]
     S2 --> FiLM1
-    FiLM1 --> FiLM2[Stage 2 FiLM: S3 modulates H12]
+    FiLM1 --> FiLM2["Stage 2 FiLM: S3 modulates H12"]
     S3 --> FiLM2
-    FiLM2 --> TransEnc[Bidirectional Transformer Encoder (Strict FP32)]
-    TransEnc --> LatentZ[Continuous Latent Representation Z]
+    FiLM2 --> TransEnc["Bidirectional Transformer Encoder (Strict FP32)"]
+    TransEnc --> LatentZ["Continuous Latent Representation Z"]
     
-    LatentZ --> WatDec[Transformer Decoder with llguidance Grammar Masker]
-    WatDec --> WATCode[Synthesized WebAssembly Text]
+    LatentZ --> WatDec["Transformer Decoder with llguidance Grammar Masker"]
+    WatDec --> WATCode["Synthesized WebAssembly Text"]
     
-    WATCode --> SandBox[Native Rust PyO3 Rayon WASM Sandbox (10,000 Fuel Limit)]
-    SandBox --> ExecRes[Execution Output & Divergence Trace]
+    WATCode --> SandBox["Native Rust PyO3 Rayon WASM Sandbox (10,000 Fuel Limit)"]
+    SandBox --> ExecRes["Execution Output & Divergence Trace"]
     
-    ExecRes --> EGCA[EGCA-GRPO RL Optimizer with Asymmetric Weighting]
+    ExecRes --> EGCA["EGCA-GRPO RL Optimizer with Asymmetric Weighting"]
     EGCA --> WatDec
 
-    LatentZ --> VICReg[VICReg Self-Supervised Manifold]
-    VICReg --> UMAP[UMAP / HDBSCAN Clustering]
-    UMAP --> PSLQ[mpmath PSLQ Arbitrary Precision Search (>500 digits)]
-    PSLQ --> SymPy[SymPy Machine-Verified Theorems & Proofs]
+    LatentZ --> VICReg["VICReg Self-Supervised Manifold"]
+    VICReg --> UMAP["UMAP / HDBSCAN Clustering"]
+    UMAP --> PSLQ["mpmath PSLQ Arbitrary Precision Search (>500 digits)"]
+    PSLQ --> SymPy["SymPy Machine-Verified Theorems & Proofs"]
 ```
 
 ---
