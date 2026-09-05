@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/evaluation-protocol.schema.json",
+  "title": "OEIS Learn Evaluation Protocol",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "checkpoint_sha256",
+    "benchmark_manifest_sha256",
+    "observed_horizon",
+    "unseen_horizon",
+    "candidate_budget",
+    "base_seed",
+    "temperature",
+    "top_p",
+    "max_tokens",
+    "constant_resolution",
+    "solver_timeout_ms",
+    "max_placeholders",
+    "fuel_per_invocation",
+    "memory_limit_mib",
+    "mdl_ratio_max",
+    "native_evaluator_required",
+    "code_revision",
+    "environment_fingerprint"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "protocol_id": { "$ref": "#/$defs/hash" },
+    "checkpoint_sha256": { "$ref": "#/$defs/hash" },
+    "benchmark_manifest_sha256": { "$ref": "#/$defs/hash" },
+    "observed_horizon": { "const": 20 },
+    "unseen_horizon": { "const": 100 },
+    "candidate_budget": { "enum": [1, 8, 16] },
+    "base_seed": {
+      "type": "integer",
+      "minimum": -9223372036854775808,
+      "maximum": 9223372036854775807
+    },
+    "temperature": { "type": "number", "minimum": 0 },
+    "top_p": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "max_tokens": { "type": "integer", "minimum": 1, "maximum": 1024 },
+    "constant_resolution": { "type": "boolean" },
+    "solver_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 60000 },
+    "max_placeholders": { "type": "integer", "minimum": 0, "maximum": 16 },
+    "fuel_per_invocation": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "memory_limit_mib": { "type": "integer", "minimum": 1, "maximum": 16 },
+    "mdl_ratio_max": { "type": "number", "exclusiveMinimum": 0, "maximum": 1.2 },
+    "native_evaluator_required": { "const": true },
+    "code_revision": { "type": "string", "minLength": 1 },
+    "environment_fingerprint": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

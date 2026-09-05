@@ -1,0 +1,74 @@
+# WebAssembly Text (WAT) EBNF Grammar for oeis-learn
+# Dynamic Environment-Indexed Grammar Formalization
+
+wat_module      ::= "(" "module" func_def+ ")"
+
+func_def        ::= "(" "func" identifier? export_decl? signature local_decl* instruction+ ")"
+
+export_decl     ::= "(" "export" string_literal ")"
+
+signature       ::= param_decl* result_decl?
+
+param_decl      ::= "(" "param" identifier? valtype ")"
+
+result_decl     ::= "(" "result" valtype ")"
+
+local_decl      ::= "(" "local" identifier? valtype ")"
+
+valtype         ::= "i32" | "i64" | "f32" | "f64"
+
+instruction     ::= plain_instr | folded_instr
+
+plain_instr     ::= var_instr
+                  | const_instr
+                  | arith_instr
+                  | control_instr
+
+# Environment-Indexed Variable Access (Restricted to declared Vars_t)
+var_instr       ::= "local.get" ws index
+                  | "local.set" ws index
+                  | "local.tee" ws index
+
+const_instr     ::= "i32.const" ws integer_literal
+                  | "i64.const" ws integer_literal
+
+arith_instr     ::= "i64.add"
+                  | "i64.sub"
+                  | "i64.mul"
+                  | "i64.div_s"
+                  | "i64.rem_s"
+                  | "i64.and"
+                  | "i64.or"
+                  | "i64.xor"
+                  | "i64.shl"
+                  | "i64.shr_s"
+                  | "i64.eqz"
+                  | "i64.eq"
+                  | "i64.ne"
+                  | "i64.lt_s"
+                  | "i64.gt_s"
+                  | "i64.le_s"
+                  | "i64.ge_s"
+                  | "i32.wrap_i64"
+                  | "i64.extend_i32_s"
+
+control_instr   ::= "nop"
+                  | "unreachable"
+                  | "return"
+                  | "br" ws index
+                  | "br_if" ws index
+
+folded_instr    ::= "(" plain_instr instruction* ")"
+                  | "(" "block" identifier? result_decl? instruction* ")"
+                  | "(" "loop" identifier? result_decl? instruction* ")"
+                  | "(" "if" identifier? result_decl? "(" "then" instruction* ")" ("(" "else" instruction* ")")? ")"
+
+index           ::= identifier | integer_literal
+
+identifier      ::= "$" [a-zA-Z0-9_]+
+
+integer_literal ::= "-"? [0-9]+
+
+string_literal  ::= "\"" [^\"]* "\""
+
+ws              ::= [ \t\n\r]+

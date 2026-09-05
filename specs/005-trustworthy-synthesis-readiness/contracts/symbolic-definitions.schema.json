@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/symbolic-definitions.schema.json",
+  "title": "OEIS Learn Symbolic Definition Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "registry_sha256", "created_at", "definitions"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "registry_id": { "type": "string", "minLength": 1 },
+    "registry_sha256": { "$ref": "#/$defs/hash" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "definitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/definition" }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "sequence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oeis_id", "index_scale", "index_shift"],
+      "properties": {
+        "oeis_id": { "type": "string", "pattern": "^A[0-9]{6}$" },
+        "index_scale": { "type": "integer" },
+        "index_shift": { "type": "integer" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "revision", "content_sha256"],
+      "properties": {
+        "reference": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "content_sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["integer_only", "lower_bound", "upper_bound"],
+      "properties": {
+        "integer_only": { "const": true },
+        "lower_bound": { "type": "integer" },
+        "upper_bound": { "type": ["integer", "null"] }
+      }
+    },
+    "definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["definition_id", "sequence_ref", "kind", "source", "expression", "domain", "assumptions", "parser_version"],
+      "properties": {
+        "definition_id": { "type": "string", "minLength": 1 },
+        "sequence_ref": { "$ref": "#/$defs/sequence_ref" },
+        "kind": { "const": "CLOSED_FORM" },
+        "source": { "$ref": "#/$defs/source" },
+        "expression": { "type": "string", "minLength": 1 },
+        "domain": { "$ref": "#/$defs/domain" },
+        "assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "parser_version": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

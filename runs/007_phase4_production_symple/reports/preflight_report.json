@@ -1,0 +1,59 @@
+{
+  "harness_version": "2.0.0",
+  "timestamp": "2026-09-02T17:12:13.584866+00:00",
+  "overall_passed": true,
+  "max_authorized_tier": 3,
+  "tier_results": [
+    {
+      "tier": 0,
+      "tier_name": "TIER_0_STATIC_UNIT",
+      "latency_seconds": 0.002455513982567936,
+      "passed": true,
+      "metrics": {
+        "trap_latency_ms": 1.6932800062932074,
+        "latency_seconds": 0.002455513982567936
+      },
+      "failure_reasons": []
+    },
+    {
+      "tier": 1,
+      "tier_name": "TIER_1_ORACLE_SFT",
+      "latency_seconds": 1.3780166899960022,
+      "passed": true,
+      "metrics": {
+        "final_oracle_ppl": 1.1347830571969053,
+        "final_loss": 0.12644149363040924,
+        "steps_to_converge": 28.0,
+        "latency_seconds": 1.3780166899960022
+      },
+      "failure_reasons": []
+    },
+    {
+      "tier": 2,
+      "tier_name": "TIER_2_SINGLE_PROMPT_RL",
+      "latency_seconds": 3.067377408995526,
+      "passed": true,
+      "metrics": {
+        "max_pass_rate": 0.0,
+        "final_pass_rate": 0.0,
+        "converged_step": 15.0,
+        "final_acr": 0.0,
+        "latency_seconds": 3.067377408995526
+      },
+      "failure_reasons": []
+    },
+    {
+      "tier": 3,
+      "tier_name": "TIER_3_MICRO_COHORT",
+      "latency_seconds": 10.383427041000687,
+      "passed": true,
+      "metrics": {
+        "micro_cohort_competence": 0.008333333333333333,
+        "final_acr": 0.0,
+        "total_records_evaluated": 12.0,
+        "latency_seconds": 10.383427041000687
+      },
+      "failure_reasons": []
+    }
+  ]
+}

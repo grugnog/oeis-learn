@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OEIS Learn Phase 2 CLI Interface Contract",
+  "description": "Expanded command-line contract for Phase 2 synthesis bootstrapping, progressive testing, and RL exploration",
+  "type": "object",
+  "commands": {
+    "generate-sft": {
+      "description": "Generate synthetic forward-execution demonstration dataset of sequence-program pairs.",
+      "arguments": {
+        "--output-path": {
+          "type": "string",
+          "default": "data/sft_demonstrations.json",
+          "description": "Output path for the generated synthetic dataset"
+        },
+        "--num-samples": {
+          "type": "integer",
+          "default": 5000,
+          "description": "Number of synthetic program-sequence pairs to generate"
+        },
+        "--seed": {
+          "type": "integer",
+          "default": 42,
+          "description": "Random seed for reproducible generation"
+        }
+      }
+    },
+    "warmup-sft": {
+      "description": "Execute Supervised Fine-Tuning (SFT) pretraining on synthetic demonstrations.",
+      "arguments": {
+        "--dataset-path": {
+          "type": "string",
+          "default": "data/sft_demonstrations.json",
+          "description": "Path to synthetic demonstration JSON file"
+        },
+        "--output-checkpoint": {
+          "type": "string",
+          "default": "checkpoints/sft_warmup_best.pt",
+          "description": "Destination path for the warmed-up model checkpoint"
+        },
+        "--epochs": {
+          "type": "integer",
+          "default": 5,
+          "description": "Number of SFT training epochs"
+        },
+        "--lr": {
+          "type": "number",
+          "default": 0.0005,
+          "description": "Initial learning rate"
+        }
+      }
+    },
+    "test-progressive": {
+      "description": "Run the 5-tier progressive validation hierarchy (Tiers 0 through 3) before full training.",
+      "arguments": {
+        "--max-tier": {
+          "type": "integer",
+          "enum": [0, 1, 2, 3],
+          "default": 3,
+          "description": "Highest tier to execute in pre-flight suite"
+        },
+        "--output-report": {
+          "type": "string",
+          "default": "reports/progressive_validation_report.json",
+          "description": "Path to write JSON validation results"
+        }
+      }
+    },
+    "train": {
+      "description": "Train the policy using S-GRPO, trajectory injection, and cosine-decayed reward shaping.",
+      "arguments": {
+        "--config": {
+          "type": "string",
+          "default": "configs/train_tier1.yaml",
+          "description": "Path to YAML training configuration"
+        },
+        "--sft-checkpoint": {
+          "type": "string",
+          "required": false,
+          "description": "Optional warmed-up SFT checkpoint to initialize policy"
+        },
+        "--tier": {
+          "type": "integer",
+          "enum": [1, 2],
+          "default": 1,
+          "description": "Hardware tier (1 = local workstation, 2 = cluster scale-up)"
+        },
+        "--curriculum-stage": {
+          "type": "integer",
+          "default": 1,
+          "description": "Initial curriculum stage"
+        },
+        "--enable-cgi": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Conditional Ground-Truth Trajectory Injection"
+        }
+      }
+    },
+    "synthesize": {
+      "description": "Synthesize a WebAssembly algorithm for a target sequence with extrapolation testing.",
+      "arguments": {
+        "--oeis-id": {
+          "type": "string",
+          "required": false,
+          "description": "Target OEIS sequence ID (e.g., A000045)"
+        },
+        "--terms": {
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated integer terms"
+        },
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint"
+        },
+        "--extrapolate": {
+          "type": "integer",
+          "default": 100,
+          "description": "Number of future terms to verify"
+        }
+      }
+    },
+    "discover": {
+      "description": "Run the self-supervised manifold discovery and PSLQ theorem verification pipeline.",
+      "arguments": {
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint with VICReg embeddings"
+        },
+        "--max-candidates": {
+          "type": "integer",
+          "default": 50,
+          "description": "Maximum number of candidate relations to verify"
+        },
+        "--precision-digits": {
+          "type": "integer",
+          "default": 500,
+          "description": "Decimal precision digits for mpmath sampling"
+        }
+      }
+    }
+  }
+}

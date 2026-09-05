@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OEISLearnPhase4CLIContract",
+  "description": "Command-line interface commands and options for oeis-learn Phase 4",
+  "type": "object",
+  "properties": {
+    "train": {
+      "type": "object",
+      "required": ["config"],
+      "properties": {
+        "--config": { "type": "string", "description": "Path to YAML training configuration file" },
+        "--sft-checkpoint": { "type": "string", "description": "Path to initial SFT pre-warmed checkpoint" },
+        "--tier": { "type": "integer", "enum": [1, 2], "default": 1 },
+        "--epochs": { "type": "integer", "default": 60 },
+        "--enable-symple": { "type": "boolean", "default": true },
+        "--enable-solver": { "type": "boolean", "default": true },
+        "--enable-dce": { "type": "boolean", "default": true },
+        "--run-name": { "type": "string", "default": "006_phase4_decoupled_symple" }
+      }
+    },
+    "solve-constants": {
+      "type": "object",
+      "required": ["wat-file", "terms"],
+      "properties": {
+        "--wat-file": { "type": "string", "description": "Path to input WAT skeleton file with placeholders" },
+        "--terms": { "type": "string", "description": "Comma-separated list of 20 integer sequence terms" },
+        "--timeout-ms": { "type": "integer", "default": 250 },
+        "--output-wat": { "type": "string", "description": "Path to output grounded WAT file" }
+      }
+    },
+    "generate-sft": {
+      "type": "object",
+      "properties": {
+        "--output-path": { "type": "string", "default": "data/sft_demonstrations.json" },
+        "--num-samples": { "type": "integer", "default": 5000 },
+        "--enable-affine-sweeps": { "type": "boolean", "default": true },
+        "--scale-min-pow": { "type": "number", "default": 0.0 },
+        "--scale-max-pow": { "type": "number", "default": 5.0 }
+      }
+    },
+    "discover": {
+      "type": "object",
+      "properties": {
+        "--checkpoint": { "type": "string", "required": true },
+        "--normalize-l2": { "type": "boolean", "default": true },
+        "--distance-threshold": { "type": "number", "default": 0.8 },
+        "--precision-digits": { "type": "integer", "default": 500 },
+        "--max-candidates": { "type": "integer", "default": 50 },
+        "--output-report": { "type": "string", "default": "reports/discovered_theorems.md" }
+      }
+    },
+    "test-progressive": {
+      "type": "object",
+      "properties": {
+        "--max-tier": { "type": "integer", "enum": [0, 1, 2, 3, 4], "default": 3 },
+        "--config": { "type": "string", "default": "configs/train_tier1.yaml" },
+        "--timeout-seconds": { "type": "integer", "default": 30 }
+      }
+    }
+  }
+}

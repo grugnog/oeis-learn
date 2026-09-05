@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ConstantSolverContract",
+  "description": "Interface contract for the fast hybrid Diophantine and SMT constant solver in oeis-learn Phase 4",
+  "type": "object",
+  "definitions": {
+    "SolverRequest": {
+      "type": "object",
+      "required": ["wat_skeleton", "target_terms"],
+      "properties": {
+        "wat_skeleton": {
+          "type": "string",
+          "description": "WebAssembly Text program containing 1 to 4 'i64.const_?' placeholder tokens"
+        },
+        "target_terms": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 20,
+          "maxItems": 20,
+          "description": "Few-shot ground-truth integer sequence terms Y = [y_0, ..., y_19]"
+        },
+        "smt_timeout_ms": {
+          "type": "integer",
+          "default": 250,
+          "minimum": 10,
+          "maximum": 5000,
+          "description": "Maximum execution time allocated to Z3 SMT fallback in milliseconds"
+        },
+        "prefer_diophantine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to attempt fast HNF Diophantine reduction before falling back to SMT"
+        }
+      }
+    },
+    "SolverResponse": {
+      "type": "object",
+      "required": ["is_sat", "solver_type", "solve_duration_ms"],
+      "properties": {
+        "is_sat": {
+          "type": "boolean",
+          "description": "Whether an exact integer constant solution was successfully recovered"
+        },
+        "solver_type": {
+          "type": "string",
+          "enum": ["DIOPHANTINE_HNF", "Z3_SMT", "FAILED", "TIMEOUT"],
+          "description": "Engine utilized to resolve the constants"
+        },
+        "constants": {
+          "type": ["array", "null"],
+          "items": { "type": "integer" },
+          "description": "Recovered concrete 64-bit integer values C* matching placeholders in order"
+        },
+        "grounded_wat": {
+          "type": ["string", "null"],
+          "description": "Complete executable WAT code with solved constants spliced in"
+        },
+        "solve_duration_ms": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Elapsed solver execution time in milliseconds"
+        },
+        "error_message": {
+          "type": ["string", "null"],
+          "description": "Diagnostic message in case of unsatisfiability or timeout"
+        }
+      }
+    }
+  }
+}

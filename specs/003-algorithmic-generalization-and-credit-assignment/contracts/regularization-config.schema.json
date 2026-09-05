@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Anti-Shortcut Regularization & Co-Training Configuration Schema",
+  "description": "Schema for Phase 3 anti-shortcut regularization, potential-based shaping, and demonstration co-training",
+  "type": "object",
+  "required": [
+    "non_triviality_gating",
+    "co_training",
+    "potential_based_shaping",
+    "credit_assignment"
+  ],
+  "properties": {
+    "non_triviality_gating": {
+      "type": "object",
+      "required": ["variance_threshold", "input_sensitivity_check", "penalty_value"],
+      "properties": {
+        "variance_threshold": {
+          "type": "number",
+          "default": 1e-6,
+          "description": "Minimum required output variance for non-constant sequence targets"
+        },
+        "input_sensitivity_check": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require empirical input parameter sensitivity > 0"
+        },
+        "penalty_value": {
+          "type": "number",
+          "default": -0.5,
+          "description": "Penalty score assigned to degenerate constant outputs"
+        },
+        "mi_proxy_temperature": {
+          "type": "number",
+          "default": 0.1,
+          "description": "Softmax temperature for cross-input mutual information proxy"
+        }
+      }
+    },
+    "co_training": {
+      "type": "object",
+      "required": ["beta_sft", "beta_kl", "alpha_ent"],
+      "properties": {
+        "beta_sft": {
+          "type": "number",
+          "default": 0.20,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Weight of blended SFT demonstration loss in total objective"
+        },
+        "beta_kl": {
+          "type": "number",
+          "default": 0.05,
+          "minimum": 0.0,
+          "maximum": 0.5,
+          "description": "Weight of unbiased Schulman reference model KL penalty"
+        },
+        "alpha_ent": {
+          "type": "number",
+          "default": 0.01,
+          "minimum": 0.0,
+          "description": "Policy token entropy regularization bonus"
+        }
+      }
+    },
+    "potential_based_shaping": {
+      "type": "object",
+      "required": ["enabled", "gamma_discount", "phi_comp_scale", "phi_bind_scale"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "gamma_discount": {
+          "type": "number",
+          "default": 0.99,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "phi_comp_scale": {
+          "type": "number",
+          "default": 0.2
+        },
+        "phi_bind_scale": {
+          "type": "number",
+          "default": 0.3
+        }
+      }
+    },
+    "credit_assignment": {
+      "type": "object",
+      "required": ["downstream_zero_masking", "conserve_advantage_mass"],
+      "properties": {
+        "downstream_zero_masking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Zero-mask advantages for tokens occurring after causal divergence step"
+        },
+        "conserve_advantage_mass": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve total sequence advantage sum across localized error window"
+        }
+      }
+    }
+  }
+}

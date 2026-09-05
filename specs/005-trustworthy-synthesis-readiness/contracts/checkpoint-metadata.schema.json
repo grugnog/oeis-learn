@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/checkpoint-metadata.schema.json",
+  "title": "OEIS Learn Checkpoint V2 Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "producer_version",
+    "epoch",
+    "precision",
+    "encoder_config",
+    "decoder_config",
+    "vocabulary_sha256",
+    "state_keys_sha256",
+    "source_checkpoint_sha256"
+  ],
+  "properties": {
+    "format_version": { "const": "2.0" },
+    "producer_version": { "type": "string", "minLength": 1 },
+    "epoch": { "type": "integer", "minimum": 0 },
+    "precision": { "const": "fp32" },
+    "encoder_config": { "$ref": "#/$defs/encoder_config" },
+    "decoder_config": { "$ref": "#/$defs/decoder_config" },
+    "vocabulary_sha256": { "$ref": "#/$defs/hash" },
+    "state_keys_sha256": { "$ref": "#/$defs/hash" },
+    "source_checkpoint_sha256": {
+      "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }]
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "encoder_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["d_model", "n_heads", "n_encoder_layers", "d_ff", "dropout", "primes", "max_valuation", "use_film", "enable_summary_tokens"],
+      "properties": {
+        "d_model": { "type": "integer", "minimum": 1 },
+        "n_heads": { "type": "integer", "minimum": 1 },
+        "n_encoder_layers": { "type": "integer", "minimum": 1 },
+        "d_ff": { "type": "integer", "minimum": 1 },
+        "dropout": { "type": "number", "minimum": 0, "maximum": 1 },
+        "primes": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 2 } },
+        "max_valuation": { "type": "integer", "minimum": 1 },
+        "use_film": { "type": "boolean" },
+        "enable_summary_tokens": { "type": "boolean" }
+      }
+    },
+    "decoder_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["d_model", "n_heads", "n_decoder_layers", "d_ff", "dropout", "vocabulary_size", "max_sequence_length", "supported_result_profiles"],
+      "properties": {
+        "d_model": { "type": "integer", "minimum": 1 },
+        "n_heads": { "type": "integer", "minimum": 1 },
+        "n_decoder_layers": { "type": "integer", "minimum": 1 },
+        "d_ff": { "type": "integer", "minimum": 1 },
+        "dropout": { "type": "number", "minimum": 0, "maximum": 1 },
+        "vocabulary_size": { "type": "integer", "minimum": 1 },
+        "max_sequence_length": { "type": "integer", "minimum": 1 },
+        "supported_result_profiles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["i64_scalar_v1", "i256x4_v1"] }
+        }
+      }
+    }
+  }
+}

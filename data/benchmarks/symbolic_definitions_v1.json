@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "symbolic_definitions_v1",
+  "registry_sha256": "sha256:315a22923c79685e3345430ec441234a6c86d08d2a65a0c4fe282748bd4856cd",
+  "created_at": "2026-09-04T12:00:00Z",
+  "definitions": [
+    {
+      "definition_id": "def_A000012_v1",
+      "sequence_ref": {
+        "oeis_id": "A000012",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A000012",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "1",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    },
+    {
+      "definition_id": "def_A000027_v1",
+      "sequence_ref": {
+        "oeis_id": "A000027",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A000027",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "n",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    },
+    {
+      "definition_id": "def_A000217_v1",
+      "sequence_ref": {
+        "oeis_id": "A000217",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A000217",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "n*(n + 1)/2",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    },
+    {
+      "definition_id": "def_A000290_v1",
+      "sequence_ref": {
+        "oeis_id": "A000290",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A000290",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "n**2",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    },
+    {
+      "definition_id": "def_A100000_v1",
+      "sequence_ref": {
+        "oeis_id": "A100000",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A100000",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "n**2",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    },
+    {
+      "definition_id": "def_A005408_v1",
+      "sequence_ref": {
+        "oeis_id": "A005408",
+        "index_scale": 1,
+        "index_shift": 0
+      },
+      "kind": "CLOSED_FORM",
+      "source": {
+        "reference": "OEIS A005408",
+        "revision": "2026-09-04",
+        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expression": "2*n + 1",
+      "domain": {
+        "integer_only": true,
+        "lower_bound": 0,
+        "upper_bound": null
+      },
+      "assumptions": [
+        "n >= 0"
+      ],
+      "parser_version": "sympy-1.12"
+    }
+  ]
+}

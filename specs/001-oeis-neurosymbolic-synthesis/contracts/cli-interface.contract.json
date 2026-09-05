@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OEIS Learn CLI Command Contract",
+  "description": "Interface specification for the oeis-learn command-line tools",
+  "type": "object",
+  "commands": {
+    "ingest": {
+      "description": "Ingest and index OEIS database records from oeisdata and joeis into local DuckDB / SQLite storage.",
+      "arguments": {
+        "--data-path": {
+          "type": "string",
+          "required": false,
+          "description": "Path to local OEIS stripped/names data files"
+        },
+        "--db-path": {
+          "type": "string",
+          "default": "data/oeis_learn.duckdb",
+          "description": "Target DuckDB/SQLite database path"
+        },
+        "--subset-stage": {
+          "type": "integer",
+          "enum": [1, 2, 3, 4, 5],
+          "required": false,
+          "description": "Extract specific curriculum stage subset"
+        }
+      }
+    },
+    "train": {
+      "description": "Train the Tri-Stream Encoder and Transformer policy using EGCA-GRPO curriculum learning.",
+      "arguments": {
+        "--config": {
+          "type": "string",
+          "default": "configs/train_tier1.yaml",
+          "description": "Path to YAML training configuration"
+        },
+        "--tier": {
+          "type": "integer",
+          "enum": [1, 2],
+          "default": 1,
+          "description": "Hardware tier (1 = local workstation baseline, 2 = cluster scale-up)"
+        },
+        "--curriculum-stage": {
+          "type": "integer",
+          "default": 1,
+          "description": "Initial curriculum stage"
+        },
+        "--num-cpu-threads": {
+          "type": "integer",
+          "default": 8,
+          "description": "Number of Rayon CPU worker threads for WASM execution"
+        }
+      }
+    },
+    "synthesize": {
+      "description": "Synthesize a WebAssembly algorithm for a target sequence or arbitrary integer list.",
+      "arguments": {
+        "--oeis-id": {
+          "type": "string",
+          "required": false,
+          "description": "Target OEIS sequence ID (e.g., A000045)"
+        },
+        "--terms": {
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated integer terms (e.g., 0,1,1,2,3,5,8,13)"
+        },
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint"
+        },
+        "--fuel-budget": {
+          "type": "integer",
+          "default": 10000,
+          "description": "Maximum execution fuel units"
+        },
+        "--extrapolate": {
+          "type": "integer",
+          "default": 100,
+          "description": "Number of future terms to evaluate for generalization"
+        }
+      }
+    },
+    "discover": {
+      "description": "Run the self-supervised manifold discovery and PSLQ theorem verification pipeline.",
+      "arguments": {
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint with VICReg embeddings"
+        },
+        "--max-candidates": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of vector relation candidates to verify"
+        },
+        "--precision-digits": {
+          "type": "integer",
+          "default": 500,
+          "description": "Decimal precision digits for mpmath sampling"
+        },
+        "--output-proofs": {
+          "type": "string",
+          "default": "reports/discovered_proofs.md",
+          "description": "Destination file for verified symbolic proofs"
+        }
+      }
+    }
+  }
+}

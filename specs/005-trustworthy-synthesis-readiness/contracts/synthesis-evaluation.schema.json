@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/synthesis-evaluation.schema.json",
+  "title": "OEIS Learn Synthesis Evaluation Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evaluation_id",
+    "created_at",
+    "protocol",
+    "checkpoint",
+    "target",
+    "candidates",
+    "unique_candidate_count",
+    "qualified_candidate_ids",
+    "status",
+    "duration_ms"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "evaluation_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "protocol": { "$ref": "evaluation-protocol.schema.json" },
+    "checkpoint": { "$ref": "#/$defs/checkpoint" },
+    "target": { "$ref": "#/$defs/target_reference" },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "unique_candidate_count": { "type": "integer", "minimum": 0, "maximum": 16 },
+    "qualified_candidate_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "status": {
+      "enum": ["QUALIFIED_SUCCESS", "COMPLETED_NO_SUCCESS", "REQUEST_ERROR", "EXECUTION_ERROR"]
+    },
+    "duration_ms": { "type": "number", "minimum": 0 }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "decimal_integer": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)$"
+    },
+    "stage_name": {
+      "enum": [
+        "GENERATION",
+        "CONSTANT_RESOLUTION",
+        "CANONICALIZATION",
+        "ASSEMBLY",
+        "EXECUTION",
+        "OBSERVED_MATCH",
+        "EXTRAPOLATION",
+        "COMPACTNESS"
+      ]
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format_version",
+        "checkpoint_sha256",
+        "producer_version",
+        "epoch",
+        "precision",
+        "encoder_config",
+        "decoder_config",
+        "vocabulary_sha256",
+        "runtime_environment"
+      ],
+      "properties": {
+        "format_version": { "const": "2.0" },
+        "checkpoint_sha256": { "$ref": "#/$defs/hash" },
+        "producer_version": { "type": "string", "minLength": 1 },
+        "epoch": { "type": "integer", "minimum": 0 },
+        "precision": { "const": "fp32" },
+        "encoder_config": { "type": "object" },
+        "decoder_config": { "type": "object" },
+        "vocabulary_sha256": { "$ref": "#/$defs/hash" },
+        "source_checkpoint_sha256": {
+          "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }]
+        },
+        "runtime_environment": { "type": "object" }
+      }
+    },
+    "target_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cohort_id", "oeis_id", "offset", "terms_sha256", "result_profile"],
+      "properties": {
+        "cohort_id": { "type": "string", "minLength": 1 },
+        "oeis_id": { "type": "string", "pattern": "^A[0-9]{6}$" },
+        "offset": { "type": "integer" },
+        "terms_sha256": { "$ref": "#/$defs/hash" },
+        "result_profile": { "enum": ["i64_scalar_v1", "i256x4_v1"] }
+      }
+    },
+    "stage_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "status", "duration_ms", "reason_code", "message", "evidence"],
+      "properties": {
+        "stage": { "$ref": "#/$defs/stage_name" },
+        "status": { "enum": ["NOT_RUN", "NOT_REQUIRED", "PASSED", "FAILED", "TIMEOUT"] },
+        "duration_ms": { "type": "number", "minimum": 0 },
+        "reason_code": { "type": ["string", "null"] },
+        "message": { "type": ["string", "null"] },
+        "evidence": { "type": "object" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_index",
+        "candidate_seed",
+        "raw_token_ids",
+        "raw_wat",
+        "resolved_wat",
+        "resolved_constants",
+        "canonical_wat",
+        "canonical_sha256",
+        "duplicate_of",
+        "stage_records",
+        "outputs",
+        "max_fuel",
+        "total_fuel",
+        "peak_memory_mib",
+        "first_observed_divergence",
+        "first_unseen_divergence",
+        "byte_size",
+        "mdl_ratio",
+        "classification",
+        "primary_failure_stage",
+        "secondary_diagnostics"
+      ],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "candidate_index": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "candidate_seed": { "type": "integer" },
+        "raw_token_ids": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "raw_wat": { "type": "string" },
+        "resolved_wat": { "type": ["string", "null"] },
+        "resolved_constants": { "type": "array", "items": { "$ref": "#/$defs/decimal_integer" } },
+        "canonical_wat": { "type": ["string", "null"] },
+        "canonical_sha256": {
+          "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }]
+        },
+        "duplicate_of": { "type": ["string", "null"] },
+        "stage_records": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/stage_record" }
+        },
+        "outputs": {
+          "type": "array",
+          "maxItems": 120,
+          "items": { "$ref": "#/$defs/decimal_integer" }
+        },
+        "max_fuel": { "type": ["integer", "null"], "minimum": 0, "maximum": 10000 },
+        "total_fuel": { "type": ["integer", "null"], "minimum": 0 },
+        "peak_memory_mib": { "type": ["number", "null"], "minimum": 0, "maximum": 16 },
+        "first_observed_divergence": { "type": ["integer", "null"], "minimum": 0, "maximum": 19 },
+        "first_unseen_divergence": { "type": ["integer", "null"], "minimum": 0, "maximum": 99 },
+        "byte_size": { "type": ["integer", "null"], "minimum": 0 },
+        "mdl_ratio": { "type": ["number", "null"], "minimum": 0 },
+        "classification": { "enum": ["EXTRAPOLATING_SUCCESS", "FAILED", "DUPLICATE"] },
+        "primary_failure_stage": {
+          "oneOf": [{ "$ref": "#/$defs/stage_name" }, { "type": "null" }]
+        },
+        "secondary_diagnostics": { "type": "array", "items": { "type": "object" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "classification": { "const": "FAILED" } } },
+          "then": { "properties": { "primary_failure_stage": { "$ref": "#/$defs/stage_name" } } }
+        },
+        {
+          "if": { "properties": { "classification": { "const": "EXTRAPOLATING_SUCCESS" } } },
+          "then": {
+            "properties": {
+              "outputs": { "minItems": 120, "maxItems": 120 },
+              "primary_failure_stage": { "type": "null" },
+              "mdl_ratio": { "type": "number", "minimum": 0, "maximum": 1.2 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

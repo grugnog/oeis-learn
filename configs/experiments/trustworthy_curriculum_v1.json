@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "trustworthy_curriculum_v1",
+  "experiment_type": "TRAINING_ABLATION",
+  "status": "PLANNED",
+  "created_at": "2026-09-04T00:00:00Z",
+  "checkpoint_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "benchmark_manifest_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "seeds": [
+    42,
+    137,
+    2026
+  ],
+  "variants": [
+    {
+      "variant_id": "fixed_uniform",
+      "changed_factor": "TASK_ALLOCATION",
+      "factor_value": "FIXED_UNIFORM",
+      "candidate_cache_id": null,
+      "active_rollout_budget": 32,
+      "replay_budget": 2,
+      "protocol_overrides": {
+        "adaptive_allocation": false
+      }
+    },
+    {
+      "variant_id": "adaptive_symple",
+      "changed_factor": "TASK_ALLOCATION",
+      "factor_value": "ADAPTIVE_SYMPLE",
+      "candidate_cache_id": null,
+      "active_rollout_budget": 32,
+      "replay_budget": 2,
+      "protocol_overrides": {
+        "adaptive_allocation": true
+      }
+    }
+  ],
+  "invariants": {
+    "observed_horizon": 20,
+    "unseen_horizon": 100,
+    "fuel_per_invocation": 10000,
+    "memory_limit_mib": 16,
+    "mdl_ratio_max": 1.2
+  },
+  "decision_schedule": [
+    0,
+    100,
+    200,
+    300,
+    400,
+    500
+  ],
+  "max_trial_hours": 4.0,
+  "max_total_hours": 24.0,
+  "outcomes": []
+}

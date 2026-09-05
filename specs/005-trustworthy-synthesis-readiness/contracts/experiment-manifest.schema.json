@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/experiment-manifest.schema.json",
+  "title": "OEIS Learn Paired Experiment Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "experiment_type",
+    "status",
+    "created_at",
+    "checkpoint_sha256",
+    "benchmark_manifest_sha256",
+    "seeds",
+    "variants",
+    "invariants",
+    "decision_schedule",
+    "max_trial_hours",
+    "max_total_hours",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "experiment_id": { "type": "string", "minLength": 1 },
+    "experiment_type": { "enum": ["INFERENCE_ABLATION", "TRAINING_ABLATION"] },
+    "status": { "enum": ["PLANNED", "RUNNING", "PARTIAL", "COMPLETE", "FAILED"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "checkpoint_sha256": { "$ref": "#/$defs/hash" },
+    "benchmark_manifest_sha256": { "$ref": "#/$defs/hash" },
+    "seeds": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": { "type": "integer" }
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/variant" }
+    },
+    "invariants": {
+      "type": "object",
+      "required": ["observed_horizon", "unseen_horizon", "fuel_per_invocation", "memory_limit_mib", "mdl_ratio_max"],
+      "properties": {
+        "observed_horizon": { "const": 20 },
+        "unseen_horizon": { "const": 100 },
+        "fuel_per_invocation": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "memory_limit_mib": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "mdl_ratio_max": { "type": "number", "maximum": 1.2 }
+      }
+    },
+    "decision_schedule": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "uniqueItems": true
+    },
+    "max_trial_hours": { "type": "number", "exclusiveMinimum": 0, "maximum": 4 },
+    "max_total_hours": { "type": "number", "exclusiveMinimum": 0, "maximum": 24 },
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/outcome" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "experiment_type": { "const": "TRAINING_ABLATION" } } },
+      "then": {
+        "properties": {
+          "decision_schedule": {
+            "const": [0, 100, 200, 300, 400, 500]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id",
+        "changed_factor",
+        "factor_value",
+        "candidate_cache_id",
+        "active_rollout_budget",
+        "replay_budget",
+        "protocol_overrides"
+      ],
+      "properties": {
+        "variant_id": { "type": "string", "minLength": 1 },
+        "changed_factor": { "enum": ["CONSTANT_RESOLUTION", "CANDIDATE_BUDGET", "TASK_ALLOCATION"] },
+        "factor_value": { "type": ["string", "number", "integer", "boolean"] },
+        "candidate_cache_id": { "type": ["string", "null"] },
+        "active_rollout_budget": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "replay_budget": { "type": "integer", "minimum": 0 },
+        "protocol_overrides": { "type": "object" }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variant_id", "seed", "status", "started_at", "finished_at", "wall_hours", "evaluation_count", "metrics", "artifact_ids"],
+      "properties": {
+        "variant_id": { "type": "string", "minLength": 1 },
+        "seed": { "type": "integer" },
+        "status": { "enum": ["COMPLETE", "PARTIAL", "FAILED"] },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": ["string", "null"], "format": "date-time" },
+        "wall_hours": { "type": "number", "minimum": 0, "maximum": 4 },
+        "evaluation_count": { "type": "integer", "minimum": 0 },
+        "metrics": { "type": "object" },
+        "artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

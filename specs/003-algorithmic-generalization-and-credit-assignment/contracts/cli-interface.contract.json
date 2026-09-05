@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OEIS Learn Phase 3 CLI Interface Contract",
+  "description": "Expanded CLI contract for Phase 3 inductive algorithmic generalization, demonstration co-training, anti-shortcut regularization, and fine-grained credit assignment",
+  "type": "object",
+  "commands": {
+    "train": {
+      "description": "Train the policy using EGCA-GRPO with demonstration co-training, non-triviality gating, and potential-based reward shaping.",
+      "arguments": {
+        "--config": {
+          "type": "string",
+          "default": "configs/train_tier1.yaml",
+          "description": "Path to YAML training configuration"
+        },
+        "--sft-checkpoint": {
+          "type": "string",
+          "required": false,
+          "description": "Path to warmed-up SFT checkpoint for initialization and reference KL penalty"
+        },
+        "--tier": {
+          "type": "integer",
+          "enum": [1, 2],
+          "default": 1,
+          "description": "Hardware tier (1 = local workstation, 2 = cluster scale-up)"
+        },
+        "--curriculum-stage": {
+          "type": "integer",
+          "default": 1,
+          "description": "Initial curriculum stage"
+        },
+        "--beta-sft": {
+          "type": "number",
+          "default": 0.20,
+          "description": "Co-training demonstration SFT loss weight"
+        },
+        "--beta-kl": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Schulman reference model KL divergence penalty weight"
+        },
+        "--alpha-ent": {
+          "type": "number",
+          "default": 0.01,
+          "description": "Policy token entropy regularization bonus weight"
+        },
+        "--enable-pbrs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Potential-Based Reward Shaping over AST completion states"
+        },
+        "--enable-lexicase": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable down-sampled lexicase rollout selection"
+        }
+      }
+    },
+    "synthesize": {
+      "description": "Synthesize a WebAssembly algorithm with strict non-triviality verification and extrapolation testing.",
+      "arguments": {
+        "--oeis-id": {
+          "type": "string",
+          "required": false,
+          "description": "Target OEIS sequence ID (e.g., A000045)"
+        },
+        "--terms": {
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated integer terms"
+        },
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint"
+        },
+        "--extrapolate": {
+          "type": "integer",
+          "default": 100,
+          "description": "Number of future terms to verify (default 100)"
+        },
+        "--mdl-max": {
+          "type": "number",
+          "default": 1.20,
+          "description": "Maximum allowed Minimum Description Length ratio"
+        }
+      }
+    },
+    "discover": {
+      "description": "Run the self-supervised manifold discovery and PSLQ theorem verification pipeline with additive homomorphism constraints.",
+      "arguments": {
+        "--checkpoint": {
+          "type": "string",
+          "required": true,
+          "description": "Path to model checkpoint with Kernel VICReg embeddings"
+        },
+        "--max-candidates": {
+          "type": "integer",
+          "default": 50,
+          "description": "Maximum number of candidate relations to verify"
+        },
+        "--precision-digits": {
+          "type": "integer",
+          "default": 500,
+          "description": "Decimal precision digits for mpmath sampling"
+        },
+        "--output-proofs": {
+          "type": "string",
+          "default": "reports/discovered_proofs.md",
+          "description": "Destination markdown file for verified symbolic proofs"
+        }
+      }
+    }
+  }
+}

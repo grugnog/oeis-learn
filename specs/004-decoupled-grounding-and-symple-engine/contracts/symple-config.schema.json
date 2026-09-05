@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SYMPLEConfigurationSchema",
+  "description": "Configuration schema for Phase 4 SYMPLE Multi-Task Engine, Decoupled Constant Solvers, and Parsimony Regularization",
+  "type": "object",
+  "required": ["model", "symple", "solver", "parsimony"],
+  "properties": {
+    "model": {
+      "type": "object",
+      "required": ["d_model", "n_heads", "n_encoder_layers", "n_decoder_layers", "primes"],
+      "properties": {
+        "d_model": { "type": "integer", "enum": [256, 384, 768], "default": 256 },
+        "n_heads": { "type": "integer", "default": 4 },
+        "n_encoder_layers": { "type": "integer", "default": 4 },
+        "n_decoder_layers": { "type": "integer", "default": 4 },
+        "primes": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 16,
+          "maxItems": 16,
+          "default": [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59]
+        },
+        "enable_summary_tokens": { "type": "boolean", "default": true },
+        "lambda_aux_loss": { "type": "number", "default": 0.10 }
+      }
+    },
+    "symple": {
+      "type": "object",
+      "required": ["rollout_budget", "active_prompts", "min_group_size", "max_group_size", "replay_prompts", "beta_sft_replay", "exp3_gamma", "exp3_alpha"],
+      "properties": {
+        "rollout_budget": { "type": "integer", "default": 32, "minimum": 16, "maximum": 128 },
+        "active_prompts": { "type": "integer", "default": 2, "minimum": 1, "maximum": 8 },
+        "min_group_size": { "type": "integer", "default": 8, "minimum": 4 },
+        "max_group_size": { "type": "integer", "default": 16, "maximum": 64 },
+        "replay_prompts": { "type": "integer", "default": 2, "minimum": 1, "maximum": 8 },
+        "beta_sft_replay": { "type": "number", "default": 0.50, "minimum": 0.0, "maximum": 2.0 },
+        "beta_kl_penalty": { "type": "number", "default": 0.02, "minimum": 0.0, "maximum": 0.5 },
+        "exp3_gamma": { "type": "number", "default": 0.15, "minimum": 0.01, "maximum": 0.5 },
+        "exp3_alpha": { "type": "number", "default": 0.05, "minimum": 0.001, "maximum": 0.2 },
+        "competence_window": { "type": "integer", "default": 20, "minimum": 5, "maximum": 100 },
+        "edb_capacity_per_seq": { "type": "integer", "default": 4, "minimum": 1, "maximum": 16 },
+        "enable_virtual_sample_injection": { "type": "boolean", "default": true }
+      }
+    },
+    "solver": {
+      "type": "object",
+      "required": ["enable_diophantine", "enable_smt", "smt_timeout_ms"],
+      "properties": {
+        "enable_diophantine": { "type": "boolean", "default": true },
+        "enable_smt": { "type": "boolean", "default": true },
+        "smt_timeout_ms": { "type": "integer", "default": 250, "minimum": 10, "maximum": 2000 },
+        "max_placeholders": { "type": "integer", "default": 4, "minimum": 1, "maximum": 8 }
+      }
+    },
+    "parsimony": {
+      "type": "object",
+      "required": ["enable_dce", "waste_penalty_weight", "hard_waste_threshold", "alpha_sem_entropy"],
+      "properties": {
+        "enable_dce": { "type": "boolean", "default": true },
+        "waste_penalty_weight": { "type": "number", "default": 0.20, "minimum": 0.0, "maximum": 1.0 },
+        "hard_waste_threshold": { "type": "number", "default": 0.30, "minimum": 0.05, "maximum": 0.90 },
+        "alpha_sem_entropy": { "type": "number", "default": 0.02, "minimum": 0.0, "maximum": 0.2 },
+        "beta_struct_penalty": { "type": "number", "default": 0.05, "minimum": 0.0, "maximum": 0.5 },
+        "temperature_base": { "type": "number", "default": 0.80, "minimum": 0.1, "maximum": 2.0 },
+        "temperature_stack_decay": { "type": "number", "default": 0.60, "minimum": 0.0, "maximum": 1.0 }
+      }
+    }
+  }
+}

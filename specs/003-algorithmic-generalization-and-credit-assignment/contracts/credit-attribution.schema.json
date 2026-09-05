@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Execution-Grounded Credit Assignment (EGCA) Schema",
+  "description": "Schema for localized token-level advantage attribution and trace divergence mapping in Phase 3",
+  "type": "object",
+  "required": ["failure_mode", "total_advantage", "token_count", "advantage_vector"],
+  "properties": {
+    "failure_mode": {
+      "type": "string",
+      "enum": ["SYNTAX", "CONSTRAINT", "LOGIC", "CORRECT"]
+    },
+    "divergence_step": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Earliest sequence term index where candidate output diverged from target"
+    },
+    "causal_span": {
+      "type": "object",
+      "required": ["start_token", "end_token"],
+      "properties": {
+        "start_token": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_token": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "total_advantage": {
+      "type": "number",
+      "description": "Conserved total group-relative advantage sum across sequence"
+    },
+    "token_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "advantage_vector": {
+      "type": "array",
+      "items": { "type": "number" },
+      "description": "Per-token advantage weights a_i,t where downstream tokens t > max T_k* are masked to 0.0"
+    },
+    "coverage_mask": {
+      "type": "array",
+      "items": { "type": "boolean" },
+      "description": "Runtime basic block execution coverage flags per token position"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+.mypy_cache/
+.benchmarks/
+
+# Process & log files
+nohup.out
+*.log
+runs/**/logs/
+
+# Model checkpoints & large weights
+*.pt
+*.pth
+*.ckpt
+*.bin
+checkpoints/
+runs/**/checkpoints/
+
+# Rust / Cargo
+crates/**/target/
+target/
+Cargo.lock
+**/*.rs.bk
+*.rlib
+*.prof*
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Data & Database
+**/*.duckdb
+**/*.duckdb.*
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.wal
+runs/**/sft_demonstrations.json
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env.local
+.env

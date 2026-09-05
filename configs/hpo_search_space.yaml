@@ -1,0 +1,60 @@
+# Hyperparameter Optimization & Mathematical Constant Ablation Search Space
+# Configured for Tier 1 Local Workstation Baseline (4 Cores / 8 Threads, 4GB VRAM)
+
+encoder_constants_ablation:
+  primes_candidates:
+    - name: "primes_6"
+      primes: [2, 3, 5, 7, 11, 13]
+    - name: "primes_8"
+      primes: [2, 3, 5, 7, 11, 13, 17, 19]
+    - name: "primes_10"
+      primes: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+  max_valuation_candidates:
+    - 16
+    - 32
+  moduli_count_candidates:
+    - 50
+    - 100
+    - 150
+
+rl_hyperparameter_search_space:
+  learning_rate:
+    type: "categorical"
+    choices: [1.0e-4, 3.0e-4, 5.0e-4]
+    default: 3.0e-4
+  beta_sft:
+    type: "float"
+    low: 0.10
+    high: 0.35
+    default: 0.20
+  beta_kl:
+    type: "float"
+    low: 0.01
+    high: 0.10
+    default: 0.05
+  alpha_ent:
+    type: "float"
+    low: 0.005
+    high: 0.03
+    default: 0.01
+  gamma_pbrs:
+    type: "categorical"
+    choices: [0.95, 0.99]
+    default: 0.99
+  k_lexicase:
+    type: "categorical"
+    choices: [3, 5, 8]
+    default: 5
+  asymmetric_penalty_weight:
+    type: "float"
+    low: 1.0
+    high: 2.0
+    default: 1.5
+
+evaluation:
+  scoring_weights:
+    w_oracle_ppl: 0.40
+    w_tier2_pass_rate: 0.30
+    w_tier3_competence: 0.30
+    w_acr_penalty: 0.50
+  max_vram_gb: 3.5

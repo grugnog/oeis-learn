@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Progressive Micro-Benchmarking Test Harness Contract",
+  "description": "Interface contract for running and evaluating the 5-tier validation hierarchy (Tiers 0 through 4)",
+  "type": "object",
+  "definitions": {
+    "TierReport": {
+      "type": "object",
+      "required": ["tier", "tier_name", "latency_seconds", "passed", "metrics", "failure_reasons"],
+      "properties": {
+        "tier": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "tier_name": {
+          "type": "string",
+          "enum": [
+            "TIER_0_STATIC_UNIT",
+            "TIER_1_ORACLE_SFT",
+            "TIER_2_SINGLE_PROMPT_RL",
+            "TIER_3_MICRO_COHORT",
+            "TIER_4_FULL_RUN"
+          ]
+        },
+        "latency_seconds": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "failure_reasons": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "properties": {
+    "harness_version": {
+      "type": "string",
+      "enum": ["2.0.0"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "overall_passed": {
+      "type": "boolean"
+    },
+    "max_authorized_tier": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "tier_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TierReport"
+      }
+    }
+  }
+}

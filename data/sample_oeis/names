@@ -1,0 +1,18 @@
+A000012 The simplest sequence of positive integers: the all 1's sequence.
+A000027 The positive integers: a(n) = n.
+A000079 Powers of 2: a(n) = 2^n.
+A000217 Triangular numbers: a(n) = C(n+1,2) = n*(n+1)/2 = 0 + 1 + 2 + ... + n.
+A000290 The squares: a(n) = n^2.
+A000578 The cubes: a(n) = n^3.
+A000045 Fibonacci numbers: F(n) = F(n-1) + F(n-2) with F(0) = 0 and F(1) = 1.
+A000032 Lucas numbers beginning at 2: L(n) = L(n-1) + L(n-2), L(0) = 2, L(1) = 1.
+A000129 Pell numbers: a(0) = 0, a(1) = 1; for n > 1, a(n) = 2*a(n-1) + a(n-2).
+A001045 Jacobsthal sequence: a(n) = a(n-1) + 2*a(n-2), with a(0) = 0, a(1) = 1.
+A000142 Factorial numbers: n! = 1*2*3*4*...*n (with 0! = 1).
+A000108 Catalan numbers: C(n) = binomial(2n,n)/(n+1) = (2n)!/(n!(n+1)!).
+A000166 Subfactorial or rencontres numbers, or derangements: number of permutations of n elements with no fixed points.
+A000040 The prime numbers.
+A000041 a(n) = number of partitions of n (the partition numbers).
+A000005 d(n) (also called tau(n) or sigma_0(n)), the number of divisors of n.
+A003188 Decimal equivalent of Gray code for n.
+A000088 Number of simple graphs on n nodes.

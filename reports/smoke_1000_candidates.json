@@ -1,0 +1,7 @@
+{
+  "total_candidates": 1008,
+  "assembly_validity_rate": 0.49206349206349204,
+  "runtime_trap_rate": 0.002976190476190476,
+  "extrapolating_successes": 48,
+  "elapsed_seconds": 899.5980086529744
+}

@@ -1,0 +1,42 @@
+# OEIS Learn Tier 2 Cluster Scale-Up Training Configuration
+# Hardware Profile: Multi-GPU Cluster (NVIDIA A100/H100), Distributed Data Parallel (DDP)
+
+model:
+  d_model: 768
+  n_heads: 12
+  n_encoder_layers: 12
+  n_decoder_layers: 12
+  d_ff: 3072
+  dropout: 0.1
+  precision: "fp32"       # Strict FP32 for numerical stability
+  max_seq_len: 256
+  n_input_terms: 50
+
+training:
+  tier: 2
+  curriculum_stage: 1
+  batch_size: 64
+  gradient_accumulation_steps: 2
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-2
+  clip_grad_norm: 1.0
+  epochs: 100
+  rollout_group_size: 32
+
+rl:
+  algorithm: "egca-grpo"
+  asymmetric_penalty_weight: 1.5
+  kl_coef: 0.05
+  reward_pass: 1.0
+  reward_fail: -1.0
+
+sandbox:
+  fuel_budget: 10000
+  memory_limit_mib: 16
+  num_cpu_threads: 64
+  extrapolate_terms: 100
+  mdl_threshold: 1.2
+
+data:
+  db_path: "data/oeis_learn_full.duckdb"
+  stage_subset: [1, 2, 3, 4, 5]

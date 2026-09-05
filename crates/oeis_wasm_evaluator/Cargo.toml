@@ -1,0 +1,19 @@
+[package]
+name = "oeis_wasm_evaluator"
+version = "0.1.0"
+edition = "2021"
+description = "High-throughput native WASM evaluator with fuel metering and Rayon parallelism for oeis-learn"
+
+[lib]
+name = "oeis_wasm_evaluator"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+wasmtime = "20.0"
+wat = "1.0"
+rayon = "1.8"
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]

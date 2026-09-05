@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Synthetic Demonstration Dataset Schema",
+  "description": "Schema for synthetic forward-generated sequence-program pairs used during SFT warmup",
+  "type": "object",
+  "required": ["version", "total_samples", "samples"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "total_samples": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sample_id", "family", "terms", "wat_code", "byte_size", "lz_complexity"],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "pattern": "^SYNTH_[A-Z0-9_-]+$"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "POLYNOMIAL_LINEAR",
+              "POLYNOMIAL_QUADRATIC",
+              "POLYNOMIAL_CUBIC",
+              "RECURRENCE_ORDER1",
+              "RECURRENCE_FIBONACCI",
+              "MODULAR_PERIODIC",
+              "FACTORIAL_LOOP"
+            ]
+          },
+          "terms": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "minItems": 20,
+            "description": "Executed integer sequence terms for n = 0..N-1"
+          },
+          "wat_code": {
+            "type": "string",
+            "description": "Compilable WebAssembly Text source code"
+          },
+          "byte_size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lz_complexity": {
+            "type": "number",
+            "minimum": 0.0
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Generator parameters such as coefficients or initial terms"
+          }
+        }
+      }
+    }
+  }
+}

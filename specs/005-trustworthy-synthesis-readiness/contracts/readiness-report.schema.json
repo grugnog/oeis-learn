@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/readiness-report.schema.json",
+  "title": "OEIS Learn Readiness Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "run_id",
+    "created_at",
+    "policy",
+    "gate_results",
+    "overall_passed",
+    "override",
+    "qualification_state"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "report_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "policy": { "$ref": "#/$defs/policy" },
+    "gate_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/gate_result" }
+    },
+    "overall_passed": { "type": "boolean" },
+    "override": {
+      "oneOf": [{ "$ref": "#/$defs/override" }, { "type": "null" }]
+    },
+    "qualification_state": { "enum": ["BLOCKED", "AUTHORIZED", "OVERRIDDEN_UNQUALIFIED"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "qualification_state": { "const": "AUTHORIZED" } } },
+      "then": {
+        "properties": {
+          "overall_passed": { "const": true },
+          "override": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "qualification_state": { "const": "OVERRIDDEN_UNQUALIFIED" } } },
+      "then": {
+        "properties": {
+          "overall_passed": { "const": false },
+          "override": { "$ref": "#/$defs/override" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_id", "metric", "comparator", "threshold", "unit", "source", "non_relaxable"],
+      "properties": {
+        "gate_id": { "type": "string", "minLength": 1 },
+        "metric": { "type": "string", "minLength": 1 },
+        "comparator": { "enum": ["EQ", "GE", "LE"] },
+        "threshold": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "non_relaxable": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "policy_id",
+        "name",
+        "thresholds",
+        "required_experiment_ids",
+        "required_artifacts",
+        "native_evaluator_required"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "policy_id": { "$ref": "#/$defs/hash" },
+        "name": { "type": "string", "minLength": 1 },
+        "thresholds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/threshold" }
+        },
+        "required_experiment_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_artifacts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "native_evaluator_required": { "const": true }
+      }
+    },
+    "evidence_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_sha256"],
+      "properties": {
+        "artifact_id": { "type": "string", "minLength": 1 },
+        "artifact_sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_id", "measured_value", "threshold", "passed", "evaluated_at", "evidence", "diagnostics"],
+      "properties": {
+        "gate_id": { "type": "string", "minLength": 1 },
+        "measured_value": { "type": "number" },
+        "threshold": { "$ref": "#/$defs/threshold" },
+        "passed": { "type": "boolean" },
+        "evaluated_at": { "type": "string", "format": "date-time" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence_reference" }
+        },
+        "diagnostics": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["override_id", "operator", "created_at", "reason", "diagnostic_intent", "failed_gate_ids", "policy_id"],
+      "properties": {
+        "override_id": { "type": "string", "minLength": 1 },
+        "operator": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "minLength": 1 },
+        "diagnostic_intent": { "type": "string", "minLength": 1 },
+        "failed_gate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "policy_id": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

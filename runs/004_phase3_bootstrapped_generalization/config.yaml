@@ -1,0 +1,100 @@
+model:
+  d_model: 256
+  n_heads: 4
+  n_encoder_layers: 4
+  n_decoder_layers: 4
+  d_ff: 1024
+  dropout: 0.1
+  precision: fp32
+  max_seq_len: 128
+  n_input_terms: 20
+  chunk_size: 256
+  primes:
+  - 2
+  - 3
+  - 5
+  - 7
+  - 11
+  - 13
+  - 17
+  - 19
+  max_valuation: 32
+  moduli_count: 50
+sft:
+  epochs: 5
+  learning_rate: 0.0005
+  min_learning_rate: 5.0e-05
+  batch_size: 16
+  weight_decay: 0.01
+  num_demonstrations: 5000
+  dataset_path: data/sft_demonstrations.json
+  checkpoint_path: checkpoints/sft_warmup_best.pt
+training:
+  tier: 1
+  curriculum_stage: 1
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  learning_rate: 0.0005
+  weight_decay: 0.01
+  clip_grad_norm: 1.0
+  epochs: 50
+  rollout_group_size: 8
+  enable_cgi: true
+  acr_threshold: 0.3
+  sampling_temperature_initial: 0.4
+  sampling_temperature_final: 0.2
+  eval_temperature: 0.0
+rl:
+  algorithm: egca-grpo
+  asymmetric_penalty_weight: 1.33
+  beta_sft: 0.166
+  beta_kl: 0.063
+  kl_coef: 0.05
+  alpha_ent: 0.027
+  reward_pass: 1.0
+  reward_fail: -1.0
+  reward_shaping:
+    enabled: true
+    w_comp: 0.2
+    w_prefix: 1.0
+    w_dist: 0.5
+    cosine_anneal_epochs: 25
+  pbrs:
+    enabled: true
+    gamma: 0.99
+    phi_comp_scale: 0.2
+    phi_bind_scale: 0.3
+  lexicase:
+    enabled: true
+    subsample_size: 5
+  non_triviality:
+    variance_threshold: 1.0e-06
+    input_sensitivity_check: true
+    penalty_value: -0.5
+    mi_proxy_temperature: 0.1
+discovery:
+  lambda_invar: 25.0
+  mu_var: 25.0
+  nu_cov: 1.0
+  gamma_target: 1.0
+  lambda_add: 10.0
+  lambda_shift: 5.0
+  precision_digits: 500
+  pslq_max_candidates: 50
+sandbox:
+  fuel_budget: 10000
+  memory_limit_mib: 16
+  num_cpu_threads: 8
+  extrapolate_terms: 100
+  mdl_threshold: 1.2
+data:
+  db_path: data/oeis_learn.duckdb
+  stage_subset:
+  - 1
+  - 2
+benchmark:
+  num_epochs: 60
+  steps_per_epoch: 100
+  sft_samples: 2500
+  sft_epochs: 5
+  skip_preflight: false

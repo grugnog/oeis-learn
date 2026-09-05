@@ -1,0 +1,377 @@
+{
+  "schema_version": "1.0",
+  "report_id": "rep_preflight_1788573332",
+  "run_id": "preflight",
+  "created_at": "2026-09-05T01:55:32.565369+00:00",
+  "policy": {
+    "schema_version": "1.0",
+    "policy_id": "sha256:cfbb7afd87874fa04a56208a8d5433739a165db4ee8a7eb2fa0aa2c8ad9fb4a8",
+    "name": "tier1_readiness_v1",
+    "thresholds": [
+      {
+        "gate_id": "single_prompt_exact_success",
+        "metric": "single_prompt_exact_success_count",
+        "comparator": "GE",
+        "threshold": 1.0,
+        "unit": "count",
+        "source": "spec/FR-012",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "assembly_validity_rate",
+        "metric": "assembly_validity_rate",
+        "comparator": "EQ",
+        "threshold": 1.0,
+        "unit": "ratio",
+        "source": "constitution/II",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "runtime_trap_rate",
+        "metric": "runtime_trap_rate",
+        "comparator": "LE",
+        "threshold": 0.15,
+        "unit": "ratio",
+        "source": "constitution/III",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "stage1_rolling_competence",
+        "metric": "stage1_rolling_competence",
+        "comparator": "GE",
+        "threshold": 0.85,
+        "unit": "score",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "stage1_minimum_coverage",
+        "metric": "stage1_minimum_coverage",
+        "comparator": "GE",
+        "threshold": 0.5,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "stage1_competence_variance",
+        "metric": "stage1_competence_variance",
+        "comparator": "LE",
+        "threshold": 0.01,
+        "unit": "variance",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "stage1_synthesis_pass_rate",
+        "metric": "stage1_synthesis_pass_rate",
+        "comparator": "GE",
+        "threshold": 0.8,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "verified_task_retention_rate",
+        "metric": "verified_task_retention_rate",
+        "comparator": "GE",
+        "threshold": 0.95,
+        "unit": "ratio",
+        "source": "spec/SC-008",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "extrapolation_pass_rate",
+        "metric": "extrapolation_pass_rate",
+        "comparator": "EQ",
+        "threshold": 1.0,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "mdl_ratio_max",
+        "metric": "mdl_ratio_max",
+        "comparator": "LE",
+        "threshold": 1.2,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      {
+        "gate_id": "advantage_collapse_rate",
+        "metric": "advantage_collapse_rate",
+        "comparator": "LE",
+        "threshold": 0.05,
+        "unit": "ratio",
+        "source": "spec/SC-004",
+        "non_relaxable": true
+      }
+    ],
+    "required_experiment_ids": [
+      "trustworthy_inference_v1",
+      "trustworthy_curriculum_v1"
+    ],
+    "required_artifacts": [
+      "synthesis_evaluation",
+      "preflight_report",
+      "ablation_report"
+    ],
+    "native_evaluator_required": true
+  },
+  "gate_results": [
+    {
+      "gate_id": "single_prompt_exact_success",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "single_prompt_exact_success",
+        "metric": "single_prompt_exact_success_count",
+        "comparator": "GE",
+        "threshold": 1.0,
+        "unit": "count",
+        "source": "spec/FR-012",
+        "non_relaxable": true
+      },
+      "passed": false,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_single_prompt_exact_success_count",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": [
+        "Gate 'single_prompt_exact_success' FAILED: single_prompt_exact_success_count=0.0000 did not satisfy GE 1.0"
+      ]
+    },
+    {
+      "gate_id": "assembly_validity_rate",
+      "measured_value": 1.0,
+      "threshold": {
+        "gate_id": "assembly_validity_rate",
+        "metric": "assembly_validity_rate",
+        "comparator": "EQ",
+        "threshold": 1.0,
+        "unit": "ratio",
+        "source": "constitution/II",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_assembly_validity_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "runtime_trap_rate",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "runtime_trap_rate",
+        "metric": "runtime_trap_rate",
+        "comparator": "LE",
+        "threshold": 0.15,
+        "unit": "ratio",
+        "source": "constitution/III",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_runtime_trap_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "stage1_rolling_competence",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "stage1_rolling_competence",
+        "metric": "stage1_rolling_competence",
+        "comparator": "GE",
+        "threshold": 0.85,
+        "unit": "score",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": false,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_stage1_rolling_competence",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": [
+        "Gate 'stage1_rolling_competence' FAILED: stage1_rolling_competence=0.0000 did not satisfy GE 0.85"
+      ]
+    },
+    {
+      "gate_id": "stage1_minimum_coverage",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "stage1_minimum_coverage",
+        "metric": "stage1_minimum_coverage",
+        "comparator": "GE",
+        "threshold": 0.5,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": false,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_stage1_minimum_coverage",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": [
+        "Gate 'stage1_minimum_coverage' FAILED: stage1_minimum_coverage=0.0000 did not satisfy GE 0.5"
+      ]
+    },
+    {
+      "gate_id": "stage1_competence_variance",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "stage1_competence_variance",
+        "metric": "stage1_competence_variance",
+        "comparator": "LE",
+        "threshold": 0.01,
+        "unit": "variance",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_stage1_competence_variance",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "stage1_synthesis_pass_rate",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "stage1_synthesis_pass_rate",
+        "metric": "stage1_synthesis_pass_rate",
+        "comparator": "GE",
+        "threshold": 0.8,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": false,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_stage1_synthesis_pass_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": [
+        "Gate 'stage1_synthesis_pass_rate' FAILED: stage1_synthesis_pass_rate=0.0000 did not satisfy GE 0.8"
+      ]
+    },
+    {
+      "gate_id": "verified_task_retention_rate",
+      "measured_value": 1.0,
+      "threshold": {
+        "gate_id": "verified_task_retention_rate",
+        "metric": "verified_task_retention_rate",
+        "comparator": "GE",
+        "threshold": 0.95,
+        "unit": "ratio",
+        "source": "spec/SC-008",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_verified_task_retention_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "extrapolation_pass_rate",
+      "measured_value": 1.0,
+      "threshold": {
+        "gate_id": "extrapolation_pass_rate",
+        "metric": "extrapolation_pass_rate",
+        "comparator": "EQ",
+        "threshold": 1.0,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_extrapolation_pass_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "mdl_ratio_max",
+      "measured_value": 1.0,
+      "threshold": {
+        "gate_id": "mdl_ratio_max",
+        "metric": "mdl_ratio_max",
+        "comparator": "LE",
+        "threshold": 1.2,
+        "unit": "ratio",
+        "source": "constitution/V",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_mdl_ratio_max",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "gate_id": "advantage_collapse_rate",
+      "measured_value": 0.0,
+      "threshold": {
+        "gate_id": "advantage_collapse_rate",
+        "metric": "advantage_collapse_rate",
+        "comparator": "LE",
+        "threshold": 0.05,
+        "unit": "ratio",
+        "source": "spec/SC-004",
+        "non_relaxable": true
+      },
+      "passed": true,
+      "evaluated_at": "2026-09-05T01:55:32.565369+00:00",
+      "evidence": [
+        {
+          "artifact_id": "metric_advantage_collapse_rate",
+          "artifact_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "overall_passed": false,
+  "override": null,
+  "qualification_state": "BLOCKED"
+}

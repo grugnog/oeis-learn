@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/discovery-report.schema.json",
+  "title": "OEIS Learn Discovery Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "run_id",
+    "created_at",
+    "checkpoint_sha256",
+    "benchmark_manifest_sha256",
+    "protocol",
+    "claims",
+    "candidate_dispositions",
+    "summary",
+    "errors"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "report_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "checkpoint_sha256": { "$ref": "#/$defs/hash" },
+    "benchmark_manifest_sha256": { "$ref": "#/$defs/hash" },
+    "protocol": { "$ref": "#/$defs/protocol" },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "candidate_dispositions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/disposition" }
+    },
+    "summary": { "$ref": "#/$defs/summary" },
+    "errors": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "decimal_integer": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)$"
+    },
+    "sequence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oeis_id", "index_scale", "index_shift"],
+      "properties": {
+        "oeis_id": { "type": "string", "pattern": "^A[0-9]{6}$" },
+        "index_scale": { "type": "integer" },
+        "index_shift": { "type": "integer" }
+      }
+    },
+    "canonical_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_type", "operands", "coefficients", "canonical_expression", "claim_id"],
+      "properties": {
+        "relation_type": { "const": "POINTWISE_INTEGER_LINEAR_V1" },
+        "operands": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sequence_ref" }
+        },
+        "coefficients": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/decimal_integer" }
+        },
+        "canonical_expression": { "type": "string", "minLength": 1 },
+        "claim_id": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "latent_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "checkpoint_sha256", "embedding_version", "vector_distance", "search_parameters", "seed", "backend_versions"],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "checkpoint_sha256": { "$ref": "#/$defs/hash" },
+        "embedding_version": { "type": "string", "minLength": 1 },
+        "vector_distance": { "type": "number", "minimum": 0 },
+        "search_parameters": { "type": "object" },
+        "seed": { "type": "integer" },
+        "backend_versions": { "type": "object" }
+      }
+    },
+    "numerical_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "source_sha256",
+        "search_indices",
+        "validation_indices",
+        "unseen_indices",
+        "coefficient_method",
+        "pslq_precision_digits",
+        "pslq_max_coefficient",
+        "coefficients",
+        "validation_residuals",
+        "unseen_residuals",
+        "matrix_rank",
+        "matrix_nullity",
+        "minimal_support",
+        "first_counterexample"
+      ],
+      "properties": {
+        "outcome": { "enum": ["VERIFIED", "COUNTEREXAMPLE", "TRIVIAL", "INSUFFICIENT_EVIDENCE"] },
+        "source_sha256": { "$ref": "#/$defs/hash" },
+        "search_indices": { "type": "array", "items": { "type": "integer" } },
+        "validation_indices": { "type": "array", "items": { "type": "integer" } },
+        "unseen_indices": { "type": "array", "items": { "type": "integer" } },
+        "coefficient_method": { "type": "string", "minLength": 1 },
+        "pslq_precision_digits": { "type": "integer", "minimum": 500 },
+        "pslq_max_coefficient": { "type": "integer", "minimum": 1 },
+        "coefficients": { "type": "array", "items": { "$ref": "#/$defs/decimal_integer" } },
+        "validation_residuals": { "type": "array", "items": { "$ref": "#/$defs/decimal_integer" } },
+        "unseen_residuals": { "type": "array", "items": { "$ref": "#/$defs/decimal_integer" } },
+        "matrix_rank": { "type": "integer", "minimum": 0 },
+        "matrix_nullity": { "type": "integer", "minimum": 0 },
+        "minimal_support": { "type": "boolean" },
+        "first_counterexample": {
+          "type": ["object", "null"],
+          "properties": {
+            "index": { "type": "integer" },
+            "residual": { "$ref": "#/$defs/decimal_integer" }
+          },
+          "required": ["index", "residual"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "symbolic_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "definition_ids", "definition_hashes", "normalized_identity", "proof_method", "reduced_expression", "domain", "verifier_version", "verified_at", "diagnostic"],
+      "properties": {
+        "outcome": { "enum": ["PROVEN", "COUNTEREXAMPLE", "UNSUPPORTED_DEFINITION", "MISSING_DEFINITION", "DOMAIN_MISMATCH", "INCONCLUSIVE"] },
+        "definition_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "definition_hashes": { "type": "array", "items": { "$ref": "#/$defs/hash" } },
+        "normalized_identity": { "type": "string" },
+        "proof_method": { "type": "string", "minLength": 1 },
+        "reduced_expression": { "type": "string" },
+        "domain": { "type": "object" },
+        "verifier_version": { "type": "string", "minLength": 1 },
+        "verified_at": { "type": "string", "format": "date-time" },
+        "diagnostic": { "type": ["string", "null"] }
+      }
+    },
+    "status_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "created_at", "evidence_type"],
+      "properties": {
+        "status": { "$ref": "#/$defs/claim_status" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "evidence_type": { "type": "string", "minLength": 1 }
+      }
+    },
+    "claim_status": {
+      "enum": ["LATENT_CANDIDATE", "NUMERICALLY_VERIFIED_CONJECTURE", "SYMBOLICALLY_PROVEN_IDENTITY", "REJECTED", "INSUFFICIENT_EVIDENCE"]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "relation", "status", "latent_evidence", "numerical_evidence", "symbolic_evidence", "rejection", "status_history"],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "relation": { "$ref": "#/$defs/canonical_relation" },
+        "status": { "$ref": "#/$defs/claim_status" },
+        "latent_evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/latent_evidence" } },
+        "numerical_evidence": {
+          "oneOf": [{ "$ref": "#/$defs/numerical_evidence" }, { "type": "null" }]
+        },
+        "symbolic_evidence": {
+          "oneOf": [{ "$ref": "#/$defs/symbolic_evidence" }, { "type": "null" }]
+        },
+        "rejection": { "type": ["object", "null"] },
+        "status_history": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/status_event" } }
+      }
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "disposition", "claim_id", "reason_code"],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "disposition": { "enum": ["NEW_CLAIM", "DUPLICATE_OF", "REJECTED_TRIVIAL", "REJECTED_COUNTEREXAMPLE", "INSUFFICIENT_EVIDENCE"] },
+        "claim_id": {
+          "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }]
+        },
+        "reason_code": { "type": ["string", "null"] }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_id", "search_indices", "validation_indices", "unseen_indices", "distance_threshold", "max_candidates", "precision_digits", "seed", "definition_registry_sha256"],
+      "properties": {
+        "protocol_id": { "$ref": "#/$defs/hash" },
+        "search_indices": { "type": "array", "minItems": 1, "items": { "type": "integer" } },
+        "validation_indices": { "type": "array", "minItems": 1, "items": { "type": "integer" } },
+        "unseen_indices": { "type": "array", "minItems": 1, "items": { "type": "integer" } },
+        "distance_threshold": { "type": "number", "minimum": 0 },
+        "max_candidates": { "type": "integer", "minimum": 1 },
+        "precision_digits": { "type": "integer", "minimum": 500 },
+        "seed": { "type": "integer" },
+        "definition_registry_sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latent_candidates", "unique_claims", "duplicate_candidates", "numerical_conjectures", "symbolically_proven", "rejected", "insufficient_evidence"],
+      "properties": {
+        "latent_candidates": { "type": "integer", "minimum": 0 },
+        "unique_claims": { "type": "integer", "minimum": 0 },
+        "duplicate_candidates": { "type": "integer", "minimum": 0 },
+        "numerical_conjectures": { "type": "integer", "minimum": 0 },
+        "symbolically_proven": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 },
+        "insufficient_evidence": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,1012 @@
+{
+  "timestamp": "2026-09-01T15:49:08.566818+00:00",
+  "best_encoder_constants": {
+    "primes": [
+      2,
+      3,
+      5,
+      7,
+      11,
+      13,
+      17,
+      19
+    ],
+    "num_primes": 8,
+    "max_valuation": 32,
+    "moduli_count": 50,
+    "compound_score": 0.31048936966103624
+  },
+  "best_rl_hyperparameters": {
+    "learning_rate": 0.0005,
+    "beta_sft": 0.166,
+    "beta_kl": 0.063,
+    "alpha_ent": 0.027,
+    "gamma_pbrs": 0.99,
+    "k_lexicase": 5,
+    "asymmetric_penalty_weight": 1.33,
+    "enable_pbrs": true
+  },
+  "best_rl_score": 0.10348468805143995,
+  "encoder_ablation_trials": [
+    {
+      "trial_id": 10,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 32,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 1.2882888726164223,
+        "final_loss": 0.25331488251686096,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.6021198670069376,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.31048936966103624,
+      "latency_seconds": 4.44
+    },
+    {
+      "trial_id": 17,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 32,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 1.3321253157601793,
+        "final_loss": 0.2867756485939026,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.543132855494817,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.3002720504352396,
+      "latency_seconds": 3.91
+    },
+    {
+      "trial_id": 14,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 16,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 1.4659513734824183,
+        "final_loss": 0.3825044333934784,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.44069044987360634,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.2728603466906178,
+      "latency_seconds": 3.84
+    },
+    {
+      "trial_id": 13,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 16,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 1.4806862248445871,
+        "final_loss": 0.3925056457519531,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5124703407287597,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.27014501336499164,
+      "latency_seconds": 3.28
+    },
+    {
+      "trial_id": 18,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 32,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 1.487077030512086,
+        "final_loss": 0.39681246876716614,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.44469942649205524,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.26898404843376345,
+      "latency_seconds": 3.17
+    },
+    {
+      "trial_id": 1,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 16,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 1.502536185526246,
+        "final_loss": 0.40715447068214417,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.6747929533322652,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.2662165502922012,
+      "latency_seconds": 5.51
+    },
+    {
+      "trial_id": 7,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 16,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 1.5101516962137562,
+        "final_loss": 0.4122101068496704,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5503349006175995,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.264874052721245,
+      "latency_seconds": 4.17
+    },
+    {
+      "trial_id": 12,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 32,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 1.5626698248346125,
+        "final_loss": 0.44639578461647034,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5971494952837626,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.2559721789229114,
+      "latency_seconds": 4.15
+    },
+    {
+      "trial_id": 11,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 32,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 1.6687225227547726,
+        "final_loss": 0.5120583772659302,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5482173720995586,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.23970432144684495,
+      "latency_seconds": 4.42
+    },
+    {
+      "trial_id": 3,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 16,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 1.6820904797163665,
+        "final_loss": 0.5200373530387878,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.6798050721486409,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.23779933649434115,
+      "latency_seconds": 3.58
+    },
+    {
+      "trial_id": 16,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 32,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 1.743719124162289,
+        "final_loss": 0.5560202598571777,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.4232480198144913,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.22939474279848052,
+      "latency_seconds": 3.55
+    },
+    {
+      "trial_id": 6,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 32,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 1.7809415391087058,
+        "final_loss": 0.5771421790122986,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.6696018874645233,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.2246002977729325,
+      "latency_seconds": 4.49
+    },
+    {
+      "trial_id": 8,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 16,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 1.8239259781774702,
+        "final_loss": 0.6009913086891174,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5741991420586904,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.21930714556721967,
+      "latency_seconds": 3.75
+    },
+    {
+      "trial_id": 9,
+      "type": "encoder_ablation",
+      "primes_name": "primes_8",
+      "num_primes": 8,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19
+      ],
+      "max_valuation": 16,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 1.8808697664420349,
+        "final_loss": 0.631734311580658,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5653117616971334,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.21266756855614932,
+      "latency_seconds": 4.23
+    },
+    {
+      "trial_id": 5,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 32,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 2.089104785576758,
+        "final_loss": 0.7367356419563293,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5855959375699361,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.19146957240326667,
+      "latency_seconds": 4.19
+    },
+    {
+      "trial_id": 2,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 16,
+      "moduli_count": 100,
+      "metrics": {
+        "final_oracle_ppl": 2.14032774589183,
+        "final_loss": 0.7609589695930481,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5970151722431183,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.18688726563852878,
+      "latency_seconds": 3.48
+    },
+    {
+      "trial_id": 4,
+      "type": "encoder_ablation",
+      "primes_name": "primes_6",
+      "num_primes": 6,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13
+      ],
+      "max_valuation": 32,
+      "moduli_count": 50,
+      "metrics": {
+        "final_oracle_ppl": 2.334122979307428,
+        "final_loss": 0.8476362228393555,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.7853657166163127,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.17137057624902288,
+      "latency_seconds": 4.07
+    },
+    {
+      "trial_id": 15,
+      "type": "encoder_ablation",
+      "primes_name": "primes_10",
+      "num_primes": 10,
+      "primes": [
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29
+      ],
+      "max_valuation": 16,
+      "moduli_count": 150,
+      "metrics": {
+        "final_oracle_ppl": 2.4208881365524277,
+        "final_loss": 0.8841344714164734,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.450789737701416,
+        "rank_dispersion_ratio": 0.984375
+      },
+      "compound_score": 0.16522861753110063,
+      "latency_seconds": 3.23
+    }
+  ],
+  "rl_sweep_trials": [
+    {
+      "trial_id": 14,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.166,
+        "beta_kl": 0.063,
+        "alpha_ent": 0.027,
+        "gamma_pbrs": 0.99,
+        "k_lexicase": 5,
+        "asymmetric_penalty_weight": 1.33,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 3.8653061388286627,
+        "final_loss": 1.3520408868789673,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.4300041675567627,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.10348468805143995,
+      "latency_seconds": 6.16
+    },
+    {
+      "trial_id": 10,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.262,
+        "beta_kl": 0.065,
+        "alpha_ent": 0.009,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.48,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.1030951943218525,
+        "final_loss": 1.4117416143417358,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.6426307638486226,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.09748737990616152,
+      "latency_seconds": 6.5
+    },
+    {
+      "trial_id": 2,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.323,
+        "beta_kl": 0.018,
+        "alpha_ent": 0.016,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.33,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.295142453344134,
+        "final_loss": 1.4574847221374512,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.697515590985616,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.0931284594969757,
+      "latency_seconds": 6.25
+    },
+    {
+      "trial_id": 3,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.251,
+        "beta_kl": 0.061,
+        "alpha_ent": 0.023,
+        "gamma_pbrs": 0.99,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.47,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.33878202745823,
+        "final_loss": 1.4675936698913574,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5918416817982991,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.0921917712087349,
+      "latency_seconds": 6.79
+    },
+    {
+      "trial_id": 8,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.157,
+        "beta_kl": 0.036,
+        "alpha_ent": 0.007,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.43,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.348767112963963,
+        "final_loss": 1.4698923826217651,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.4831312437852224,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.09198009219844712,
+      "latency_seconds": 6.39
+    },
+    {
+      "trial_id": 1,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.128,
+        "beta_kl": 0.077,
+        "alpha_ent": 0.011,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 8,
+        "asymmetric_penalty_weight": 1.26,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.354046208155074,
+        "final_loss": 1.4711055755615234,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.4601503570874532,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.09186857026248482,
+      "latency_seconds": 6.97
+    },
+    {
+      "trial_id": 6,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "beta_sft": 0.166,
+        "beta_kl": 0.014,
+        "alpha_ent": 0.016,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 5,
+        "asymmetric_penalty_weight": 1.25,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 4.632059298412932,
+        "final_loss": 1.5330015420913696,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.5090620160102844,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.08635468033344279,
+      "latency_seconds": 6.61
+    },
+    {
+      "trial_id": 15,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0001,
+        "beta_sft": 0.227,
+        "beta_kl": 0.018,
+        "alpha_ent": 0.006,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.58,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 39.14976420833014,
+        "final_loss": 3.6673943996429443,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.25,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 1.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 1.027876349290212,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.08521717520114436,
+      "latency_seconds": 6.77
+    },
+    {
+      "trial_id": 5,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0001,
+        "beta_sft": 0.339,
+        "beta_kl": 0.04,
+        "alpha_ent": 0.007,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 5,
+        "asymmetric_penalty_weight": 1.71,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 53.01652749414807,
+        "final_loss": 3.9706037044525146,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.25,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 6.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 1.4816638628641765,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.08254481703925538,
+      "latency_seconds": 6.27
+    },
+    {
+      "trial_id": 9,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "beta_sft": 0.259,
+        "beta_kl": 0.043,
+        "alpha_ent": 0.014,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 8,
+        "asymmetric_penalty_weight": 1.36,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 8.318049177224133,
+        "final_loss": 2.1184277534484863,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.7614996830622355,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.048088198503953364,
+      "latency_seconds": 6.53
+    },
+    {
+      "trial_id": 11,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "beta_sft": 0.347,
+        "beta_kl": 0.068,
+        "alpha_ent": 0.019,
+        "gamma_pbrs": 0.99,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.34,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 8.368716379613943,
+        "final_loss": 2.1245005130767822,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.9570731043815612,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.04779705534941936,
+      "latency_seconds": 6.52
+    },
+    {
+      "trial_id": 4,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "beta_sft": 0.302,
+        "beta_kl": 0.011,
+        "alpha_ent": 0.025,
+        "gamma_pbrs": 0.99,
+        "k_lexicase": 5,
+        "asymmetric_penalty_weight": 1.37,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 8.536704862251915,
+        "final_loss": 2.1443750858306885,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.8038066824277242,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.04685648695303298,
+      "latency_seconds": 6.7
+    },
+    {
+      "trial_id": 7,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "beta_sft": 0.307,
+        "beta_kl": 0.066,
+        "alpha_ent": 0.027,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 8,
+        "asymmetric_penalty_weight": 1.24,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 8.977256116115457,
+        "final_loss": 2.1946942806243896,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.8077950517336527,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.04455704447174486,
+      "latency_seconds": 6.82
+    },
+    {
+      "trial_id": 13,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "beta_sft": 0.321,
+        "beta_kl": 0.068,
+        "alpha_ent": 0.009,
+        "gamma_pbrs": 0.95,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.65,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 9.937783837377102,
+        "final_loss": 2.296344041824341,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 0.9399207790692647,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.04025042268433691,
+      "latency_seconds": 7.29
+    },
+    {
+      "trial_id": 12,
+      "type": "rl_hyperparameter_sweep",
+      "hyperparameters": {
+        "learning_rate": 0.0001,
+        "beta_sft": 0.301,
+        "beta_kl": 0.046,
+        "alpha_ent": 0.007,
+        "gamma_pbrs": 0.99,
+        "k_lexicase": 3,
+        "asymmetric_penalty_weight": 1.59,
+        "enable_pbrs": true
+      },
+      "metrics": {
+        "final_oracle_ppl": 38.82084105313883,
+        "final_loss": 3.6589572429656982,
+        "steps_to_converge": 20.0,
+        "tier2_max_pass_rate": 0.0,
+        "tier2_final_pass_rate": 0.0,
+        "tier2_converged_step": 15.0,
+        "tier2_final_acr": 0.0,
+        "tier2_mean_loss": 1.2775337060292562,
+        "tier3_competence": 0.0,
+        "tier3_acr": 0.0
+      },
+      "compound_score": 0.010303743791961415,
+      "latency_seconds": 6.9
+    }
+  ]
+}

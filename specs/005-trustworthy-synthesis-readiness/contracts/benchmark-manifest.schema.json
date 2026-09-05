@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.local/contracts/benchmark-manifest.schema.json",
+  "title": "OEIS Learn Frozen Benchmark Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "cohort_id",
+    "manifest_sha256",
+    "source",
+    "observed_horizon",
+    "unseen_horizon",
+    "targets",
+    "exclusions"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "cohort_id": { "type": "string", "minLength": 1 },
+    "manifest_sha256": { "$ref": "#/$defs/hash" },
+    "source": { "$ref": "#/$defs/source" },
+    "observed_horizon": { "const": 20 },
+    "unseen_horizon": { "const": 100 },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/target" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exclusion" }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "decimal_integer": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "revision", "retrieved_at", "content_sha256"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "content_sha256": { "$ref": "#/$defs/hash" },
+        "license_notice": { "type": ["string", "null"] }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oeis_id",
+        "name",
+        "offset",
+        "family",
+        "curriculum_stage",
+        "observed_terms",
+        "unseen_terms",
+        "result_profile",
+        "terms_sha256",
+        "term_fingerprint",
+        "program_fingerprints",
+        "tags"
+      ],
+      "properties": {
+        "oeis_id": { "type": "string", "pattern": "^A[0-9]{6}$" },
+        "name": { "type": "string", "minLength": 1 },
+        "offset": { "type": "integer" },
+        "family": { "type": "string", "minLength": 1 },
+        "curriculum_stage": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "observed_terms": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/decimal_integer" }
+        },
+        "unseen_terms": {
+          "type": "array",
+          "minItems": 100,
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/decimal_integer" }
+        },
+        "result_profile": { "enum": ["i64_scalar_v1", "i256x4_v1"] },
+        "terms_sha256": { "$ref": "#/$defs/hash" },
+        "formula_definition_id": { "type": ["string", "null"] },
+        "term_fingerprint": { "$ref": "#/$defs/hash" },
+        "program_fingerprints": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/hash" }
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oeis_id", "reason_code", "message"],
+      "properties": {
+        "oeis_id": { "type": "string", "pattern": "^A[0-9]{6}$" },
+        "reason_code": {
+          "enum": [
+            "INSUFFICIENT_TERMS",
+            "MISSING_OFFSET",
+            "SOURCE_ERROR",
+            "OUT_OF_RANGE_RESULT_PROFILE",
+            "DUPLICATE_TARGET"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

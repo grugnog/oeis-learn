@@ -1,0 +1,50 @@
+[
+  {
+    "oeis_id": "A000217",
+    "name": "Triangular numbers: a(n) = C(n+1,2) = n*(n+1)/2 = 0 + 1 + 2 + ... + n.",
+    "status": "SUCCESS",
+    "fuel": 220,
+    "extrap_passed": false,
+    "mdl_ratio": 0.18990384615384615
+  },
+  {
+    "oeis_id": "A000079",
+    "name": "Powers of 2: a(n) = 2^n.",
+    "status": "SUCCESS",
+    "fuel": 279,
+    "extrap_passed": false,
+    "mdl_ratio": 0.27801724137931033
+  },
+  {
+    "oeis_id": "A000045",
+    "name": "Fibonacci numbers: F(n) = F(n-1) + F(n-2) with F(0) = 0 and F(1) = 1.",
+    "status": "SUCCESS",
+    "fuel": 240,
+    "extrap_passed": false,
+    "mdl_ratio": 0.14333333333333334
+  },
+  {
+    "oeis_id": "A000032",
+    "name": "Lucas numbers beginning at 2: L(n) = L(n-1) + L(n-2), L(0) = 2, L(1) = 1.",
+    "status": "SUCCESS",
+    "fuel": 300,
+    "extrap_passed": false,
+    "mdl_ratio": 0.21833333333333332
+  },
+  {
+    "oeis_id": "A000129",
+    "name": "Pell numbers: a(0) = 0, a(1) = 1; for n > 1, a(n) = 2*a(n-1) + a(n-2).",
+    "status": "SUCCESS",
+    "fuel": 240,
+    "extrap_passed": false,
+    "mdl_ratio": 0.17372881355932204
+  },
+  {
+    "oeis_id": "A000290",
+    "name": "The squares: a(n) = n^2.",
+    "status": "SUCCESS",
+    "fuel": 240,
+    "extrap_passed": false,
+    "mdl_ratio": 0.19339622641509435
+  }
+]
