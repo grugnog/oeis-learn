@@ -1,0 +1,344 @@
+[
+  {
+    "oeis_id": "A000012",
+    "name": "The all 1's sequence",
+    "status": "FAILED",
+    "fuel": 4,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000027",
+    "name": "Non-negative integers: a(n) = n",
+    "status": "FAILED",
+    "fuel": 5,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A000217",
+    "name": "Triangular numbers: a(n) = n*(n+1)/2",
+    "status": "FAILED",
+    "fuel": 8,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000290",
+    "name": "The squares: a(n) = n^2",
+    "status": "SUCCESS",
+    "fuel": 10,
+    "extrap_passed": true,
+    "mdl_ratio": 0.2537878787878788,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000578",
+    "name": "The cubes: a(n) = n^3",
+    "status": "FAILED",
+    "fuel": 2511,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A005408",
+    "name": "The odd numbers: a(n) = 2*n + 1",
+    "status": "FAILED",
+    "fuel": 2035,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100000",
+    "name": "Polynomial sequence 1n^2 + 0n + 0",
+    "status": "SUCCESS",
+    "fuel": 10,
+    "extrap_passed": true,
+    "mdl_ratio": 0.2537878787878788,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100001",
+    "name": "Polynomial sequence 2n^2 + 2n + 3",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100002",
+    "name": "Polynomial sequence 3n^2 + 4n + 6",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100003",
+    "name": "Polynomial sequence 4n^2 + 6n + 9",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100004",
+    "name": "Polynomial sequence 5n^2 + 1n + 1",
+    "status": "SUCCESS",
+    "fuel": 15,
+    "extrap_passed": true,
+    "mdl_ratio": 0.25,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100005",
+    "name": "Polynomial sequence 1n^2 + 3n + 4",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100006",
+    "name": "Polynomial sequence 2n^2 + 5n + 7",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100007",
+    "name": "Polynomial sequence 3n^2 + 0n + 10",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100008",
+    "name": "Polynomial sequence 4n^2 + 2n + 2",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 3
+  },
+  {
+    "oeis_id": "A100009",
+    "name": "Polynomial sequence 5n^2 + 4n + 5",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100010",
+    "name": "Polynomial sequence 1n^2 + 6n + 8",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100011",
+    "name": "Polynomial sequence 2n^2 + 1n + 0",
+    "status": "SUCCESS",
+    "fuel": 15,
+    "extrap_passed": true,
+    "mdl_ratio": 0.27205882352941174,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100012",
+    "name": "Polynomial sequence 3n^2 + 3n + 3",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100013",
+    "name": "Polynomial sequence 4n^2 + 5n + 6",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100014",
+    "name": "Polynomial sequence 5n^2 + 0n + 9",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100015",
+    "name": "Polynomial sequence 1n^2 + 2n + 1",
+    "status": "SUCCESS",
+    "fuel": 15,
+    "extrap_passed": true,
+    "mdl_ratio": 0.27205882352941174,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100016",
+    "name": "Polynomial sequence 2n^2 + 4n + 4",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100017",
+    "name": "Polynomial sequence 3n^2 + 6n + 7",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100018",
+    "name": "Polynomial sequence 4n^2 + 1n + 10",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100019",
+    "name": "Polynomial sequence 5n^2 + 3n + 2",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100020",
+    "name": "Polynomial sequence 1n^2 + 5n + 5",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100021",
+    "name": "Polynomial sequence 2n^2 + 0n + 8",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A100022",
+    "name": "Polynomial sequence 3n^2 + 2n + 0",
+    "status": "SUCCESS",
+    "fuel": 15,
+    "extrap_passed": true,
+    "mdl_ratio": 0.25,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100023",
+    "name": "Polynomial sequence 4n^2 + 4n + 3",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100024",
+    "name": "Polynomial sequence 5n^2 + 6n + 6",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A100025",
+    "name": "Polynomial sequence 1n^2 + 1n + 9",
+    "status": "FAILED",
+    "fuel": 15,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 4
+  },
+  {
+    "oeis_id": "A000079",
+    "name": "Powers of 2: a(n) = 2^n",
+    "status": "FAILED",
+    "fuel": 1557,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 2
+  },
+  {
+    "oeis_id": "A000045",
+    "name": "Fibonacci numbers: F(n) = F(n-1) + F(n-2)",
+    "status": "FAILED",
+    "fuel": 8,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000032",
+    "name": "Lucas numbers: L(n) = L(n-1) + L(n-2)",
+    "status": "FAILED",
+    "fuel": 2035,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000129",
+    "name": "Pell numbers: P(n) = 2*P(n-1) + P(n-2)",
+    "status": "FAILED",
+    "fuel": 8,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A001045",
+    "name": "Jacobsthal numbers: J(n) = J(n-1) + 2*J(n-2)",
+    "status": "FAILED",
+    "fuel": 8,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  },
+  {
+    "oeis_id": "A000073",
+    "name": "Tribonacci numbers: a(n) = a(n-1) + a(n-2) + a(n-3)",
+    "status": "FAILED",
+    "fuel": 8,
+    "extrap_passed": false,
+    "mdl_ratio": 0.0,
+    "unique_candidates": 1
+  }
+]

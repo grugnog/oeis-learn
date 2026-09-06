@@ -154,10 +154,10 @@ graph TD
 
 ```mermaid
 graph TD
-    TokenGen[Token Emission a_t] --> UpdatePhase[1. Update Structural Phase Phi_t]
-    UpdatePhase --> CheckBind[2. Check Parameter $n Binding]
-    CheckBind --> CalcPotential[3. Compute State Potential Phi(s)]
-    CalcPotential --> ShapingDiff[4. Compute F = gamma*Phi(s') - Phi(s)]
-    ShapingDiff --> Telescope[5. Cumulative Sum Telescopes: gamma^T*Phi(s_T) - Phi(s_0)]
-    Telescope --> PolicyInvariance[6. Guaranteed Policy Invariance Relative to R_exact]
+    TokenGen["Token Emission a_t"] --> UpdatePhase["1. Update Structural Phase Phi_t"]
+    UpdatePhase --> CheckBind["2. Check Parameter $n Binding"]
+    CheckBind --> CalcPotential["3. Compute State Potential Phi(s)"]
+    CalcPotential --> ShapingDiff["4. Compute F = gamma*Phi(s') - Phi(s)"]
+    ShapingDiff --> Telescope["5. Cumulative Sum Telescopes: gamma^T*Phi(s_T) - Phi(s_0)"]
+    Telescope --> PolicyInvariance["6. Guaranteed Policy Invariance Relative to R_exact"]
 ```

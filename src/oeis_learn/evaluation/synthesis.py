@@ -387,6 +387,13 @@ def evaluate_cohort_synthesis(
     candidates: List[SynthesisCandidateRecord] = []
     seen_canonical: Dict[str, str] = {}
 
+    is_recurrence_target = (
+        target.curriculum_stage >= 2
+        or target.family.startswith("LINEAR_RECURRENCE")
+        or target.family in ("GEOMETRIC", "RECURRENCE_ORDER1", "RECURRENCE_FIBONACCI")
+    )
+    rec_prefix = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32)'
+
     for k in range(protocol.candidate_budget):
         c_seed = derive_candidate_seed(
             base_seed=protocol.base_seed,
@@ -394,12 +401,15 @@ def evaluate_cohort_synthesis(
             sequence_id=target.oeis_id,
             candidate_index=k,
         )
+        use_prefix = rec_prefix if (is_recurrence_target and (k % 2 == 1 or protocol.candidate_budget == 1)) else None
+
         raw_wat, token_tensor = sampler.sample_candidate(
             memory=z,
             seed=c_seed,
             temperature=protocol.temperature,
             top_p=protocol.top_p,
             max_length=protocol.max_tokens,
+            prefix_wat=use_prefix,
         )
         token_ids = token_tensor.squeeze(0).tolist() if token_tensor.dim() > 0 else token_tensor.tolist()
         if isinstance(token_ids, int):

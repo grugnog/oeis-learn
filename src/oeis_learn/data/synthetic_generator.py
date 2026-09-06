@@ -63,6 +63,7 @@ class SyntheticDemonstrationGenerator:
             "POLYNOMIAL_CUBIC",
             "RECURRENCE_ORDER1",
             "RECURRENCE_FIBONACCI",
+            "HOLONOMIC_FACTORIAL",
             "MODULAR_PERIODIC",
         ]
         chosen_family = family or self.rng.choice(families)
@@ -150,6 +151,12 @@ class SyntheticDemonstrationGenerator:
 
             wat = f'(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32) i64.const {a0} local.set $a i64.const {b0} local.set $b i32.const 0 local.set $i (block $exit (loop $loop local.get $i local.get $n i32.ge_s br_if $exit {next_expr} local.set $temp local.get $b local.set $a local.get $temp local.set $b local.get $i i32.const 1 i32.add local.set $i br $loop)) local.get $a))'
             return wat, {"a0": a0, "b0": b0, "c1": c1, "c2": c2}
+
+        elif family == "HOLONOMIC_FACTORIAL":
+            offset = self.rng.choice([0, 1, 2])
+            a0 = 1
+            wat = f'(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32) i64.const {a0} local.set $a i32.const 1 local.set $i (block $exit (loop $loop local.get $i local.get $n i32.gt_s br_if $exit local.get $a local.get $i {"i32.const " + str(offset) + " i32.add " if offset != 0 else ""}i64.extend_i32_u i64.mul local.set $a local.get $i i32.const 1 i32.add local.set $i br $loop)) local.get $a))'
+            return wat, {"offset": offset, "a0": a0}
 
         elif family == "MODULAR_PERIODIC":
             m = self.rng.choice([2, 3, 5, 7, 10])

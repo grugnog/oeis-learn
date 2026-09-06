@@ -1,0 +1,18 @@
+{
+  "run_id": "010_overnight_production_curriculum",
+  "name": "overnight_production_curriculum",
+  "created_at": "2026-09-06T07:08:50.267923+00:00",
+  "finished_at": null,
+  "status": "RUNNING",
+  "qualification_state": null,
+  "override": null,
+  "host": {
+    "system": "Linux",
+    "release": "6.8.0-52-lowlatency",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python_version": "3.12.3"
+  },
+  "summary_metrics": {},
+  "manifest_snapshots": {}
+}

@@ -43,3 +43,23 @@ def test_adag_allocates_deeper_for_harder_tasks():
 
     assert sizes["hard_task"] >= sizes["easy_task"]
     assert sum(sizes.values()) <= 24
+
+
+def test_adag_handles_perfect_and_zero_competence():
+    """Verify that p_hat = 1.0 (100% success) does not trigger math domain error."""
+    tasks = ["perfect_task", "zero_task"]
+    bandit = Exp3SBanditScheduler(sequence_ids=tasks)
+    bandit.update_feedback("perfect_task", success_count=20, group_size=20)
+    bandit.update_feedback("zero_task", success_count=0, group_size=20)
+
+    assert bandit.get_competence("perfect_task") == 1.0
+    assert bandit.get_competence("zero_task") == 0.0
+
+    allocator = AdaGGroupAllocator(total_budget=32, min_g=8, max_g=16)
+    sizes = allocator.compute_group_sizes(prompts=tasks, bandit=bandit, total_budget=32)
+
+    assert len(sizes) == 2
+    assert sum(sizes.values()) <= 32
+    for s in sizes.values():
+        assert 8 <= s <= 16
+    assert sizes["zero_task"] >= sizes["perfect_task"]

@@ -51,13 +51,16 @@ class Exp3SBanditScheduler:
     def get_selection_probabilities(self) -> Dict[str, float]:
         """Calculates current probability distribution over the K task arms."""
         total_w = sum(self.weights.values())
-        if total_w <= 0.0:
+        if total_w <= 0.0 or math.isnan(total_w) or math.isinf(total_w):
             total_w = float(self.K)
             self.weights = {sid: 1.0 for sid in self.sequence_ids}
 
         probs = {}
         for sid in self.sequence_ids:
             w_i = self.weights.get(sid, 1.0)
+            if math.isnan(w_i) or math.isinf(w_i) or w_i <= 0.0:
+                w_i = 1.0
+                self.weights[sid] = 1.0
             p_i = (1.0 - self.gamma) * (w_i / total_w) + (self.gamma / self.K)
             probs[sid] = float(p_i)
         return probs
@@ -70,7 +73,11 @@ class Exp3SBanditScheduler:
         probs_dict = self.get_selection_probabilities()
         sids = list(probs_dict.keys())
         p_vals = np.array([probs_dict[sid] for sid in sids], dtype=np.float64)
-        p_vals /= np.sum(p_vals)
+        total_p = np.sum(p_vals)
+        if total_p <= 0 or np.isnan(total_p) or np.isinf(total_p):
+            p_vals = np.ones(len(sids), dtype=np.float64) / len(sids)
+        else:
+            p_vals /= total_p
 
         chosen = np.random.choice(sids, size=batch_size, replace=False, p=p_vals)
         return [str(c) for c in chosen]
@@ -112,15 +119,28 @@ class Exp3SBanditScheduler:
         r_hat = min(10.0, r_feedback / p_i)
 
         # EXP3.S weight update
-        w_old = self.weights[oeis_id]
+        w_old = self.weights.get(oeis_id, 1.0)
         w_new = w_old * math.exp(self.gamma * r_hat / self.K)
         self.weights[oeis_id] = min(1e6, max(1e-4, w_new))
 
         # Uniform mixing across all arms
         total_w = sum(self.weights.values())
+        if total_w <= 0.0 or math.isnan(total_w) or math.isinf(total_w):
+            total_w = float(self.K)
+            self.weights = {sid: 1.0 for sid in self.sequence_ids}
+
         mixing = (math.e * self.alpha / self.K) * total_w
         for sid in self.sequence_ids:
             self.weights[sid] += mixing
+
+        # Renormalize weights so total_w does not explode exponentially over thousands of steps
+        new_total = sum(self.weights.values())
+        if new_total > 0 and not math.isnan(new_total) and not math.isinf(new_total):
+            scale = float(self.K) / new_total
+            for sid in self.sequence_ids:
+                self.weights[sid] *= scale
+        else:
+            self.weights = {sid: 1.0 for sid in self.sequence_ids}
 
 
 class AdaGGroupAllocator:
@@ -158,11 +178,11 @@ class AdaGGroupAllocator:
 
         for pid in sorted(prompts):
             p_hat = bandit.get_competence(pid)
-            effective_p = max(p_hat, self.p_floor)
+            effective_p = min(max(p_hat, self.p_floor), 0.99)
 
-            # G_i = ceil( ln(1 - p_target) / ln(1 - max(p_hat, p_floor)) )
-            log_num = math.log(1.0 - self.p_target)
-            log_den = math.log(1.0 - effective_p)
+            # G_i = ceil( ln(1 - p_target) / ln(1 - effective_p) )
+            log_num = math.log(max(1e-6, 1.0 - self.p_target))
+            log_den = math.log(max(1e-6, 1.0 - effective_p))
             g_ideal = math.ceil(log_num / log_den)
             g_clipped = min(self.max_g, max(self.min_g, g_ideal))
             raw_sizes[pid] = g_clipped

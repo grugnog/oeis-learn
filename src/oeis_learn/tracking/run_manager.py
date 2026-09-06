@@ -246,6 +246,44 @@ class RunManager:
         logger.info(f"Initialized experiment run {allocated_id} at {run_dir}")
         return ctx
 
+    def get_or_create_run(
+        self,
+        run_id: str,
+        name: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+    ) -> RunContext:
+        """Loads an existing run context if present, or creates a new one."""
+        run_name = name or f"run_{run_id}"
+        if name and not run_id.endswith(name):
+            dir_name = f"{run_id}_{name}"
+        else:
+            dir_name = run_id
+
+        run_dir = self.base_dir / dir_name
+        meta_file = run_dir / "metadata.json"
+        if meta_file.exists():
+            with open(meta_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            metadata = RunMetadata(
+                run_id=data.get("run_id", run_id),
+                name=data.get("name", run_name),
+                created_at=data.get("created_at"),
+                finished_at=data.get("finished_at"),
+                status=data.get("status", "INITIALIZED"),
+                qualification_state=data.get("qualification_state"),
+                override=data.get("override"),
+                host=data.get("host", {}),
+                summary_metrics=data.get("summary_metrics", {}),
+                manifest_snapshots=data.get("manifest_snapshots", {}),
+            )
+            ctx = RunContext(run_dir=run_dir, metadata=metadata)
+            if config:
+                ctx.save_config(config)
+            logger.info(f"Resumed experiment run {run_id} at {run_dir}")
+            return ctx
+
+        return self.create_run(run_id=run_id, name=name, config=config)
+
     def list_runs(self) -> List[Dict[str, Any]]:
         """Returns metadata summaries for all recorded runs."""
         runs = []

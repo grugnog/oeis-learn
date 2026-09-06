@@ -78,14 +78,45 @@ def test_environment_tracker_mandatory_header_sequencing():
     assert TOKEN_TO_ID["param"] in valid
 
     tracker.update("param")
-    tracker.update("$n")
-    tracker.update("i32")
-    tracker.update(")")
 
-    # Must declare result next!
-    tracker.update("(")
+
+def test_environment_tracker_min_locals_enforcement():
+    tracker = EnvironmentTracker(min_locals=3)
+    tracker.reset()
+
+    header = ["(", "module", "(", "func", "(", "export", '"compute"', ")", "(", "param", "$n", "i32", ")", "(", "result", "i64", ")"]
+    for tok in header:
+        tracker.update(tok)
+
+    # With min_locals=3, body instructions cannot start yet
     valid = tracker.get_valid_next_tokens()
-    assert TOKEN_TO_ID["result"] in valid
+    assert TOKEN_TO_ID["("] in valid
+    assert TOKEN_TO_ID["local.get"] not in valid
+    assert TOKEN_TO_ID["i64.const"] not in valid
+
+    # Declare local 1: $a
+    for tok in ["(", "local", "$a", "i64", ")"]:
+        tracker.update(tok)
+
+    # 1 local declared, still need 2 more
+    valid = tracker.get_valid_next_tokens()
+    assert TOKEN_TO_ID["local.get"] not in valid
+
+    # Declare local 2: $b
+    for tok in ["(", "local", "$b", "i64", ")"]:
+        tracker.update(tok)
+
+    # Declare local 3: $temp
+    for tok in ["(", "local", "$temp", "i64", ")"]:
+        tracker.update(tok)
+
+    # Now 3 locals declared, body instructions become valid
+    valid = tracker.get_valid_next_tokens()
+    assert TOKEN_TO_ID["local.get"] in valid
+    assert TOKEN_TO_ID["i64.const"] in valid
+    assert "$a" in tracker.declared_vars
+    assert "$b" in tracker.declared_vars
+    assert "$temp" in tracker.declared_vars
 
 
 def test_environment_tracker_stack_type_soundness():

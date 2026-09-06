@@ -74,10 +74,15 @@ class EgcaGrpoTrainer:
         enable_pbrs: bool = True,
         enable_lexicase: bool = True,
         sampling_temperature: float = 0.4,
+        max_program_length: int = 128,
+        encoder_config: Optional[Dict[str, Any]] = None,
+        decoder_config: Optional[Dict[str, Any]] = None,
         device: Optional[torch.device] = None,
     ):
         self.encoder = encoder
         self.decoder = decoder
+        self.encoder_config = encoder_config
+        self.decoder_config = decoder_config
         self.scheduler = scheduler
         self.sampler = sampler
         self.wasm_runner = wasm_runner or WasmRunner(fuel_budget=10000)
@@ -94,6 +99,7 @@ class EgcaGrpoTrainer:
         self.enable_pbrs = enable_pbrs
         self.enable_lexicase = enable_lexicase
         self.sampling_temperature = sampling_temperature
+        self.max_program_length = max_program_length
         self.device = device or torch.device("cpu")
         self.current_epoch = 1
 
@@ -106,7 +112,11 @@ class EgcaGrpoTrainer:
         # Joint AdamW optimizer
         params = list(self.encoder.parameters()) + list(self.decoder.parameters())
         self.optimizer = optim.AdamW(params, lr=lr, weight_decay=weight_decay)
-        self.program_sampler = WatProgramSampler(decoder=self.decoder, max_length=64, temperature=sampling_temperature)
+        self.program_sampler = WatProgramSampler(
+            decoder=self.decoder,
+            max_length=self.max_program_length,
+            temperature=sampling_temperature,
+        )
 
     def train_step_for_prompt(
         self,
@@ -128,9 +138,20 @@ class EgcaGrpoTrainer:
         z = self.encoder.forward_from_sequences(seq_input, device=self.device)  # (1, 20, d_model)
         z_expanded = z.expand(active_g, -1, -1)  # (G, 20, d_model)
 
-        # 2. Sample G candidate programs
+        # 2. Sample G candidate programs (with recurrence accumulator prefix if Stage >= 2)
+        is_rec = (
+            record.curriculum_stage >= 2
+            or any(tag in ("recurrence", "fibonacci", "lucas", "geometric") for tag in record.tags)
+        )
+        rec_prefix = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32)'
+        prefix_wat = rec_prefix if is_rec else None
+
         wat_programs, token_ids = self.program_sampler.sample(
-            z_expanded, temperature=self.sampling_temperature, use_grammar_mask=True
+            z_expanded,
+            temperature=self.sampling_temperature,
+            use_grammar_mask=True,
+            prefix_wat=prefix_wat,
+            max_length=self.max_program_length,
         )
 
         # 2b. Phase 4 Decoupled Constant Solver Dispatch
@@ -326,16 +347,28 @@ class EgcaGrpoTrainer:
         """Saves encoder and decoder weights with training metadata."""
         import os
         os.makedirs(os.path.dirname(os.path.abspath(checkpoint_path)), exist_ok=True)
-        torch.save(
-            {
-                "epoch": epoch,
-                "encoder_state_dict": self.encoder.state_dict(),
-                "decoder_state_dict": self.decoder.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "metadata": metadata or {},
-            },
-            checkpoint_path,
-        )
+        if self.encoder_config and self.decoder_config:
+            from oeis_learn.evaluation.checkpoint import save_checkpoint_v2
+            save_checkpoint_v2(
+                checkpoint_path=checkpoint_path,
+                encoder=self.encoder,
+                decoder=self.decoder,
+                encoder_config=self.encoder_config,
+                decoder_config=self.decoder_config,
+                epoch=epoch,
+                producer_version="oeis-learn-0.1.0",
+            )
+        else:
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "encoder_state_dict": self.encoder.state_dict(),
+                    "decoder_state_dict": self.decoder.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "metadata": metadata or {},
+                },
+                checkpoint_path,
+            )
 
     def load_checkpoint(self, checkpoint_path: str) -> Dict[str, Any]:
         """Loads encoder and decoder weights from a saved checkpoint."""

@@ -42,6 +42,67 @@ def top_p_filtering(
     return logits.masked_fill(indices_to_remove, filter_value)
 
 
+def finalize_wat_tokens(token_ids: List[int], tracker: EnvironmentTracker) -> Tuple[str, List[int]]:
+    """Cleanly balances and soundly closes open paren depth and control frames if generation truncated."""
+    if tracker.paren_depth > 0:
+        if tracker.phase == StructuralPhase.LOCAL_NAME:
+            token_ids.append(TOKEN_TO_ID["$temp"])
+            tracker.update("$temp")
+        if tracker.phase == StructuralPhase.LOCAL_TYPE:
+            token_ids.append(TOKEN_TO_ID["i64"])
+            tracker.update("i64")
+        if tracker.phase == StructuralPhase.LOCAL_CLOSE:
+            token_ids.append(TOKEN_TO_ID[")"])
+            tracker.update(")")
+        if tracker.pending_const_type is not None:
+            token_ids.append(TOKEN_TO_ID["0"])
+            tracker.update("0")
+        if tracker.pending_var_op is not None:
+            token_ids.append(TOKEN_TO_ID["$n"])
+            tracker.update("$n")
+        if tracker.pending_branch_op is not None:
+            token_ids.append(TOKEN_TO_ID["0"])
+            tracker.update("0")
+
+        # Clean up control frames by popping or dropping excess items to match baseline
+        while tracker.control_stack:
+            frame = tracker.control_stack[-1]
+            while len(tracker.operand_stack) > frame.baseline_stack_depth:
+                token_ids.append(TOKEN_TO_ID["drop"])
+                tracker.update("drop")
+            while len(tracker.operand_stack) < frame.baseline_stack_depth:
+                token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
+                tracker.update("i64.const")
+                tracker.update("0")
+            token_ids.append(TOKEN_TO_ID[")"])
+            tracker.update(")")
+
+        # Now in func body (paren_depth == 2)
+        # Drop excess items until 0 or 1
+        while len(tracker.operand_stack) > 1:
+            token_ids.append(TOKEN_TO_ID["drop"])
+            tracker.update("drop")
+
+        if tracker.operand_stack != ["i64"]:
+            if not tracker.operand_stack:
+                token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
+                tracker.update("i64.const")
+                tracker.update("0")
+            elif tracker.operand_stack[-1] == "i32":
+                token_ids.append(TOKEN_TO_ID["i64.extend_i32_u"])
+                tracker.update("i64.extend_i32_u")
+
+        while tracker.paren_depth > 0:
+            token_ids.append(TOKEN_TO_ID[")"])
+            tracker.update(")")
+
+    if EOS_ID in token_ids:
+        eos_idx = token_ids.index(EOS_ID)
+        token_ids = token_ids[:eos_idx]
+    code = decode_wat_tokens(token_ids)
+    return code, token_ids
+
+
 class WatProgramSampler:
     """Generates WAT programs using temperature / nucleus sampling under strict grammar constraints."""
 
@@ -67,6 +128,7 @@ class WatProgramSampler:
         top_p: Optional[float] = None,
         use_grammar_mask: bool = True,
         max_length: Optional[int] = None,
+        prefix_wat: Optional[str] = None,
     ) -> Tuple[str, torch.Tensor]:
         """Samples a single candidate program using a local deterministic generator."""
         self.decoder.eval()
@@ -84,11 +146,22 @@ class WatProgramSampler:
         tracker = EnvironmentTracker()
         tracker.reset()
         tracker.update("<bos>")
-        generated = torch.full((1, 1), BOS_ID, dtype=torch.long, device=device)
+
+        if prefix_wat:
+            from oeis_learn.decoder.wat_grammar import tokenize_wat, UNK_ID
+            p_tokens = tokenize_wat(prefix_wat)
+            p_ids = [TOKEN_TO_ID.get(t, UNK_ID) for t in p_tokens]
+            for t in p_tokens:
+                tracker.update(t)
+            generated = torch.tensor([[BOS_ID] + p_ids], dtype=torch.long, device=device)
+        else:
+            generated = torch.full((1, 1), BOS_ID, dtype=torch.long, device=device)
+
         finished = False
+        start_step = generated.size(1) - 1
 
         with torch.no_grad():
-            for step in range(limit_len):
+            for step in range(start_step, limit_len):
                 logits = self.decoder(generated, memory[:1])
                 next_token_logits = logits[:, -1, :].clone()
 
@@ -116,18 +189,17 @@ class WatProgramSampler:
                     finished = True
                     break
 
-        token_ids = generated[0].tolist()
-        if EOS_ID in token_ids:
-            eos_idx = token_ids.index(EOS_ID)
-            token_ids = token_ids[:eos_idx]
-        code = decode_wat_tokens(token_ids)
-        return code, generated[0]
+        code, final_tokens = finalize_wat_tokens(generated[0].tolist(), tracker)
+        final_tensor = torch.tensor(final_tokens + [EOS_ID], dtype=torch.long, device=device)
+        return code, final_tensor
 
     def sample(
         self,
         memory: torch.Tensor,
         temperature: Optional[float] = None,
         use_grammar_mask: bool = True,
+        prefix_wat: Optional[str] = None,
+        max_length: Optional[int] = None,
     ) -> Tuple[List[str], torch.Tensor]:
         """Autoregressively sample candidate programs for a batch of encoded sequence representations.
 
@@ -135,6 +207,8 @@ class WatProgramSampler:
             memory: (batch, src_len, d_model) encoded latent embeddings
             temperature: Sampling temperature
             use_grammar_mask: Whether to apply dynamic grammar logit masking
+            prefix_wat: Optional WAT prefix to initialize the generation
+            max_length: Optional maximum token length override
 
         Returns:
             Tuple of (generated WAT code strings, generated token IDs tensor)
@@ -143,19 +217,32 @@ class WatProgramSampler:
         device = memory.device
         batch_size = memory.size(0)
         temp = temperature if temperature is not None else self.temperature
+        limit_len = max_length if max_length is not None else self.max_length
 
         # Initialize trackers and generated tokens
         trackers = [EnvironmentTracker() for _ in range(batch_size)]
-        generated = torch.full((batch_size, 1), BOS_ID, dtype=torch.long, device=device)
 
-        for tracker in trackers:
-            tracker.reset()
-            tracker.update("<bos>")
+        if prefix_wat:
+            from oeis_learn.decoder.wat_grammar import tokenize_wat, UNK_ID
+            p_tokens = tokenize_wat(prefix_wat)
+            p_ids = [TOKEN_TO_ID.get(t, UNK_ID) for t in p_tokens]
+            for tracker in trackers:
+                tracker.reset()
+                tracker.update("<bos>")
+                for t in p_tokens:
+                    tracker.update(t)
+            generated = torch.tensor([[BOS_ID] + p_ids] * batch_size, dtype=torch.long, device=device)
+        else:
+            generated = torch.full((batch_size, 1), BOS_ID, dtype=torch.long, device=device)
+            for tracker in trackers:
+                tracker.reset()
+                tracker.update("<bos>")
 
         finished = [False] * batch_size
+        start_step = generated.size(1) - 1
 
         with torch.no_grad():
-            for step in range(self.max_length):
+            for step in range(start_step, limit_len):
                 logits = self.decoder(generated, memory)  # (batch, cur_len, vocab_size)
                 next_token_logits = logits[:, -1, :].clone()  # (batch, vocab_size)
 
@@ -188,72 +275,15 @@ class WatProgramSampler:
                 if all(finished):
                     break
 
-        # Decode token sequences to WAT code strings and construct synchronized token tensor
+        # Decode token sequences to WAT code strings using shared sound closing
         wat_codes = []
         final_token_lists = []
         for b_idx in range(batch_size):
             token_ids = generated[b_idx].tolist()
             tracker = trackers[b_idx]
-
-            # If not cleanly closed, finish with sound closing sequence
-            if tracker.paren_depth > 0:
-                if tracker.phase == StructuralPhase.LOCAL_NAME:
-                    token_ids.append(TOKEN_TO_ID["$temp"])
-                    tracker.update("$temp")
-                if tracker.phase == StructuralPhase.LOCAL_TYPE:
-                    token_ids.append(TOKEN_TO_ID["i64"])
-                    tracker.update("i64")
-                if tracker.phase == StructuralPhase.LOCAL_CLOSE:
-                    token_ids.append(TOKEN_TO_ID[")"])
-                    tracker.update(")")
-                if tracker.pending_const_type is not None:
-                    token_ids.append(TOKEN_TO_ID["0"])
-                    tracker.update("0")
-                if tracker.pending_var_op is not None:
-                    token_ids.append(TOKEN_TO_ID["$n"])
-                    tracker.update("$n")
-                if tracker.pending_branch_op is not None:
-                    token_ids.append(TOKEN_TO_ID["0"])
-                    tracker.update("0")
-
-                # Clean up control frames by popping or dropping excess items to match baseline
-                while tracker.control_stack:
-                    frame = tracker.control_stack[-1]
-                    while len(tracker.operand_stack) > frame.baseline_stack_depth:
-                        token_ids.append(TOKEN_TO_ID["drop"])
-                        tracker.update("drop")
-                    while len(tracker.operand_stack) < frame.baseline_stack_depth:
-                        token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
-                        tracker.update("i64.const")
-                        tracker.update("0")
-                    token_ids.append(TOKEN_TO_ID[")"])
-                    tracker.update(")")
-
-                # Now in func body (paren_depth == 2)
-                # Drop excess items until 0 or 1
-                while len(tracker.operand_stack) > 1:
-                    token_ids.append(TOKEN_TO_ID["drop"])
-                    tracker.update("drop")
-
-                if tracker.operand_stack != ["i64"]:
-                    if not tracker.operand_stack:
-                        token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
-                        tracker.update("i64.const")
-                        tracker.update("0")
-                    elif tracker.operand_stack[-1] == "i32":
-                        token_ids.append(TOKEN_TO_ID["i64.extend_i32_u"])
-                        tracker.update("i64.extend_i32_u")
-
-                while tracker.paren_depth > 0:
-                    token_ids.append(TOKEN_TO_ID[")"])
-                    tracker.update(")")
-
-            if EOS_ID in token_ids:
-                eos_idx = token_ids.index(EOS_ID)
-                token_ids = token_ids[:eos_idx]
-            code = decode_wat_tokens(token_ids)
+            code, final_tokens = finalize_wat_tokens(token_ids, tracker)
             wat_codes.append(code)
-            final_token_lists.append(token_ids + [EOS_ID])
+            final_token_lists.append(final_tokens + [EOS_ID])
 
         max_final_len = max((len(t) for t in final_token_lists), default=1)
         final_generated = torch.full((batch_size, max_final_len), PAD_ID, dtype=torch.long, device=device)

@@ -84,6 +84,7 @@ class EnvironmentTracker:
     pending_const_type: Optional[str] = None
     pending_var_op: Optional[str] = None
     pending_branch_op: Optional[str] = None
+    min_locals: int = 0
 
     def reset(self) -> None:
         self.phase = StructuralPhase.MODULE_START
@@ -126,7 +127,9 @@ class EnvironmentTracker:
             elif self.paren_depth == 1:
                 self.in_func = False
             while self.control_stack and self.control_stack[-1].paren_depth_at_entry > self.paren_depth:
-                self.control_stack.pop()
+                popped = self.control_stack.pop()
+                if popped.label:
+                    self.control_labels.discard(popped.label)
 
         # Phase State Machine Transitions
         if self.phase == StructuralPhase.MODULE_START:
@@ -243,6 +246,9 @@ class EnvironmentTracker:
                 paren_depth_at_entry=self.paren_depth,
             )
             self.control_stack.append(frame)
+        elif self.control_stack and self.control_stack[-1].label is None and token.startswith("$"):
+            self.control_stack[-1].label = token
+            self.control_labels.add(token)
         elif token in OPCODE_SIGNATURES:
             inputs, outputs = OPCODE_SIGNATURES[token]
             for _ in inputs:
@@ -410,11 +416,16 @@ class EnvironmentTracker:
                 valid_ids.add(TOKEN_TO_ID[lit])
             return valid_ids
 
+        allow_body_start = (self.phase != StructuralPhase.LOCAL_OR_BODY) or (
+            len(self.declared_vars) >= (1 + self.min_locals)
+        )
+
         if last == "(":
             if self.phase in (StructuralPhase.LOCAL_OR_BODY, StructuralPhase.LOCAL_START):
                 valid_ids.add(TOKEN_TO_ID["local"])
-                valid_ids.add(TOKEN_TO_ID["block"])
-                valid_ids.add(TOKEN_TO_ID["loop"])
+                if allow_body_start:
+                    valid_ids.add(TOKEN_TO_ID["block"])
+                    valid_ids.add(TOKEN_TO_ID["loop"])
             elif self.phase == StructuralPhase.BODY:
                 valid_ids.add(TOKEN_TO_ID["block"])
                 valid_ids.add(TOKEN_TO_ID["loop"])
@@ -429,12 +440,6 @@ class EnvironmentTracker:
                     valid_ids.add(TOKEN_TO_ID[null_op])
             return valid_ids
 
-        if last in ("$loop", "$exit", "$l", "$block"):
-            for null_op in ["i64.const", "i64.const_?", "i32.const", "local.get", "nop"]:
-                if null_op in TOKEN_TO_ID:
-                    valid_ids.add(TOKEN_TO_ID[null_op])
-            return valid_ids
-
         # General Instruction & Body Context
         baseline = self.control_stack[-1].baseline_stack_depth if self.control_stack else 0
         depth = len(self.operand_stack)
@@ -443,16 +448,17 @@ class EnvironmentTracker:
         top2 = self.operand_stack[-2] if effective_depth >= 2 else None
 
         # 1. Nullary operations (instructions that push constants or load variables)
-        for null_op in ["i64.const", "i64.const_?", "i32.const", "local.get", "nop"]:
-            if null_op in TOKEN_TO_ID:
-                valid_ids.add(TOKEN_TO_ID[null_op])
+        if allow_body_start:
+            for null_op in ["i64.const", "i64.const_?", "i32.const", "local.get", "nop"]:
+                if null_op in TOKEN_TO_ID:
+                    valid_ids.add(TOKEN_TO_ID[null_op])
 
         if not self.control_stack and depth == 1 and top1 == "i64":
             valid_ids.add(TOKEN_TO_ID["return"])
 
         if self.phase == StructuralPhase.LOCAL_OR_BODY:
             valid_ids.add(TOKEN_TO_ID["("])
-        elif self.phase == StructuralPhase.BODY and len(self.control_stack) < 2:
+        elif self.phase == StructuralPhase.BODY and len(self.control_stack) < 4:
             valid_ids.add(TOKEN_TO_ID["("])
 
         # 2. Variable assignments & drops
