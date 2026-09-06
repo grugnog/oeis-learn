@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "report_id": "rep_disc_1788678430",
+  "report_id": "rep_disc_1788710748",
   "run_id": "discovery_run_42",
-  "created_at": "2026-09-06T07:07:10.445609+00:00",
+  "created_at": "2026-09-06T16:05:48.253615+00:00",
   "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
   "benchmark_manifest_sha256": "sha256:eb2a1ed1bfaf72933961cea1f86065744cf54430623b3b006247eb866264b172",
   "protocol": {
@@ -492,24 +492,24 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-06T07:07:10.634931+00:00",
+        "verified_at": "2026-09-06T16:05:48.401474+00:00",
         "diagnostic": null
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         },
         {
           "status": "SYMBOLICALLY_PROVEN_IDENTITY",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "SYMPY_REDUCTION"
         }
       ]
@@ -849,7 +849,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1189,7 +1189,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1529,7 +1529,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1869,7 +1869,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2209,7 +2209,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2549,7 +2549,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2889,7 +2889,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3229,7 +3229,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3569,7 +3569,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3909,7 +3909,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4249,7 +4249,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4589,7 +4589,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4929,7 +4929,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5269,7 +5269,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5609,7 +5609,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5949,7 +5949,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6289,7 +6289,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6629,7 +6629,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6969,7 +6969,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7309,7 +7309,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7649,7 +7649,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7989,7 +7989,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8329,7 +8329,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8669,7 +8669,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9009,7 +9009,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9349,7 +9349,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9689,7 +9689,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10029,7 +10029,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10369,7 +10369,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10709,7 +10709,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11049,7 +11049,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11388,19 +11388,19 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-06T07:07:10.706562+00:00",
+        "verified_at": "2026-09-06T16:05:48.443858+00:00",
         "diagnostic": "Missing definition for operand A100001"
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         }
       ]
@@ -11740,7 +11740,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12080,7 +12080,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12420,7 +12420,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12760,7 +12760,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13100,7 +13100,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13440,7 +13440,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13780,7 +13780,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -14120,7 +14120,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T07:07:10.445609+00:00",
+          "created_at": "2026-09-06T16:05:48.253615+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]

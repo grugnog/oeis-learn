@@ -1,0 +1,621 @@
+{
+  "timestamp": "2026-09-06T17:20:21.008288+00:00",
+  "database_path": "data/oeis_corpus.duckdb",
+  "total_sequences": 399005,
+  "cohorts": {
+    "All Sequences": {
+      "total_sequences": 399005,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 399005,
+          "sequences_with_full_terms": 310348,
+          "percentiles": {
+            "p50": 14.0,
+            "p75": 41.0,
+            "p90": 77.0,
+            "p95": 101.0,
+            "p99": 206.0,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 85.28,
+            "2xi64 (127b)": 97.12,
+            "4xi64 (255b)": 99.52,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 399005,
+          "sequences_with_full_terms": 159375,
+          "percentiles": {
+            "p50": 18.0,
+            "p75": 50.0,
+            "p90": 78.0,
+            "p95": 102.0,
+            "p99": 207.0,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 83.16,
+            "2xi64 (127b)": 97.05,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 399005,
+          "sequences_with_full_terms": 21795,
+          "percentiles": {
+            "p50": 19.0,
+            "p75": 50.0,
+            "p90": 78.0,
+            "p95": 102.0,
+            "p99": 207.0,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 83.15,
+            "2xi64 (127b)": 97.05,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.99
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 49.11,
+        "POLYNOMIAL": 34.35,
+        "MODERATE_EXPONENTIAL": 13.61,
+        "FAST_EXPONENTIAL": 2.31,
+        "HOLONOMIC_FACTORIAL": 0.43,
+        "UNKNOWN": 0.19,
+        "SUPER_EXPONENTIAL": 0.01
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 195940,
+        "POLYNOMIAL": 137056,
+        "MODERATE_EXPONENTIAL": 54310,
+        "FAST_EXPONENTIAL": 9206,
+        "HOLONOMIC_FACTORIAL": 1703,
+        "UNKNOWN": 747,
+        "SUPER_EXPONENTIAL": 43
+      }
+    },
+    "Core / Foundational (core/nice)": {
+      "total_sequences": 279005,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 279005,
+          "sequences_with_full_terms": 211589,
+          "percentiles": {
+            "p50": 17.0,
+            "p75": 50.0,
+            "p90": 80.0,
+            "p95": 103.0,
+            "p99": 206.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 82.74,
+            "2xi64 (127b)": 97.06,
+            "4xi64 (255b)": 99.52,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 279005,
+          "sequences_with_full_terms": 106110,
+          "percentiles": {
+            "p50": 24.0,
+            "p75": 57.0,
+            "p90": 82.0,
+            "p95": 104.0,
+            "p99": 207.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 80.27,
+            "2xi64 (127b)": 97.0,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 279005,
+          "sequences_with_full_terms": 15195,
+          "percentiles": {
+            "p50": 24.0,
+            "p75": 57.0,
+            "p90": 82.0,
+            "p95": 104.0,
+            "p99": 207.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 80.26,
+            "2xi64 (127b)": 97.0,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.99
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 45.12,
+        "POLYNOMIAL": 35.4,
+        "MODERATE_EXPONENTIAL": 16.54,
+        "FAST_EXPONENTIAL": 2.39,
+        "HOLONOMIC_FACTORIAL": 0.43,
+        "UNKNOWN": 0.11,
+        "SUPER_EXPONENTIAL": 0.01
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 125897,
+        "POLYNOMIAL": 98760,
+        "MODERATE_EXPONENTIAL": 46146,
+        "FAST_EXPONENTIAL": 6678,
+        "HOLONOMIC_FACTORIAL": 1200,
+        "UNKNOWN": 304,
+        "SUPER_EXPONENTIAL": 20
+      }
+    },
+    "jOEIS Computable": {
+      "total_sequences": 74986,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 74986,
+          "sequences_with_full_terms": 60641,
+          "percentiles": {
+            "p50": 13.0,
+            "p75": 39.0,
+            "p90": 74.0,
+            "p95": 98.0,
+            "p99": 205.0,
+            "max": 697
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 86.77,
+            "2xi64 (127b)": 96.98,
+            "4xi64 (255b)": 99.57,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 74986,
+          "sequences_with_full_terms": 27960,
+          "percentiles": {
+            "p50": 17.0,
+            "p75": 47.0,
+            "p90": 76.0,
+            "p95": 99.0,
+            "p99": 207.0,
+            "max": 697
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 84.96,
+            "2xi64 (127b)": 96.92,
+            "4xi64 (255b)": 99.56,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 74986,
+          "sequences_with_full_terms": 2482,
+          "percentiles": {
+            "p50": 17.0,
+            "p75": 47.0,
+            "p90": 76.0,
+            "p95": 99.0,
+            "p99": 207.0,
+            "max": 697
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 84.96,
+            "2xi64 (127b)": 96.92,
+            "4xi64 (255b)": 99.56,
+            "8xi64 (511b)": 99.99
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 50.61,
+        "POLYNOMIAL": 34.58,
+        "MODERATE_EXPONENTIAL": 11.77,
+        "FAST_EXPONENTIAL": 2.49,
+        "HOLONOMIC_FACTORIAL": 0.4,
+        "UNKNOWN": 0.14,
+        "SUPER_EXPONENTIAL": 0.01
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 37949,
+        "POLYNOMIAL": 25930,
+        "MODERATE_EXPONENTIAL": 8828,
+        "FAST_EXPONENTIAL": 1869,
+        "HOLONOMIC_FACTORIAL": 299,
+        "UNKNOWN": 102,
+        "SUPER_EXPONENTIAL": 9
+      }
+    },
+    "Closed-Form / Formula": {
+      "total_sequences": 49694,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 49694,
+          "sequences_with_full_terms": 39772,
+          "percentiles": {
+            "p50": 17.0,
+            "p75": 55.0,
+            "p90": 96.0,
+            "p95": 139.0,
+            "p99": 257.0699999999997,
+            "max": 842
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 79.64,
+            "2xi64 (127b)": 94.26,
+            "4xi64 (255b)": 98.93,
+            "8xi64 (511b)": 99.98
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 49694,
+          "sequences_with_full_terms": 19281,
+          "percentiles": {
+            "p50": 25.0,
+            "p75": 61.0,
+            "p90": 97.0,
+            "p95": 140.0,
+            "p99": 258.0,
+            "max": 842
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 76.74,
+            "2xi64 (127b)": 94.19,
+            "4xi64 (255b)": 98.91,
+            "8xi64 (511b)": 99.98
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 49694,
+          "sequences_with_full_terms": 3400,
+          "percentiles": {
+            "p50": 25.0,
+            "p75": 61.0,
+            "p90": 97.70000000000437,
+            "p95": 140.0,
+            "p99": 258.0,
+            "max": 842
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 76.71,
+            "2xi64 (127b)": 94.19,
+            "4xi64 (255b)": 98.91,
+            "8xi64 (511b)": 99.98
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 44.07,
+        "MODERATE_EXPONENTIAL": 17.1,
+        "POLYNOMIAL": 33.36,
+        "HOLONOMIC_FACTORIAL": 0.92,
+        "FAST_EXPONENTIAL": 4.47,
+        "SUPER_EXPONENTIAL": 0.01,
+        "UNKNOWN": 0.08
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 21898,
+        "MODERATE_EXPONENTIAL": 8500,
+        "POLYNOMIAL": 16576,
+        "HOLONOMIC_FACTORIAL": 455,
+        "FAST_EXPONENTIAL": 2219,
+        "SUPER_EXPONENTIAL": 5,
+        "UNKNOWN": 41
+      }
+    },
+    "Stage 1: Polynomials": {
+      "total_sequences": 278485,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 278485,
+          "sequences_with_full_terms": 211810,
+          "percentiles": {
+            "p50": 16.0,
+            "p75": 49.0,
+            "p90": 80.0,
+            "p95": 102.0,
+            "p99": 204.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 82.99,
+            "2xi64 (127b)": 97.13,
+            "4xi64 (255b)": 99.53,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 278485,
+          "sequences_with_full_terms": 105212,
+          "percentiles": {
+            "p50": 23.0,
+            "p75": 57.0,
+            "p90": 81.0,
+            "p95": 103.0,
+            "p99": 206.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 80.56,
+            "2xi64 (127b)": 97.07,
+            "4xi64 (255b)": 99.52,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 278485,
+          "sequences_with_full_terms": 15033,
+          "percentiles": {
+            "p50": 24.0,
+            "p75": 57.0,
+            "p90": 81.0,
+            "p95": 103.0,
+            "p99": 206.0,
+            "max": 899
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 80.55,
+            "2xi64 (127b)": 97.07,
+            "4xi64 (255b)": 99.52,
+            "8xi64 (511b)": 99.99
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 45.23,
+        "POLYNOMIAL": 35.58,
+        "MODERATE_EXPONENTIAL": 16.33,
+        "FAST_EXPONENTIAL": 2.33,
+        "HOLONOMIC_FACTORIAL": 0.42,
+        "UNKNOWN": 0.11,
+        "SUPER_EXPONENTIAL": 0.01
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 125953,
+        "POLYNOMIAL": 99083,
+        "MODERATE_EXPONENTIAL": 45465,
+        "FAST_EXPONENTIAL": 6487,
+        "HOLONOMIC_FACTORIAL": 1178,
+        "UNKNOWN": 299,
+        "SUPER_EXPONENTIAL": 20
+      }
+    },
+    "Stage 2: Linear Recurrences": {
+      "total_sequences": 9136,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 9136,
+          "sequences_with_full_terms": 7805,
+          "percentiles": {
+            "p50": 13.0,
+            "p75": 31.0,
+            "p90": 77.0,
+            "p95": 125.0,
+            "p99": 250.64999999999964,
+            "max": 675
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 87.06,
+            "2xi64 (127b)": 95.07,
+            "4xi64 (255b)": 99.07,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 9136,
+          "sequences_with_full_terms": 3821,
+          "percentiles": {
+            "p50": 22.0,
+            "p75": 42.0,
+            "p90": 79.0,
+            "p95": 126.0,
+            "p99": 250.64999999999964,
+            "max": 675
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 85.68,
+            "2xi64 (127b)": 95.04,
+            "4xi64 (255b)": 99.07,
+            "8xi64 (511b)": 99.99
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 9136,
+          "sequences_with_full_terms": 559,
+          "percentiles": {
+            "p50": 22.0,
+            "p75": 42.0,
+            "p90": 79.0,
+            "p95": 126.0,
+            "p99": 250.64999999999964,
+            "max": 675
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 85.67,
+            "2xi64 (127b)": 95.04,
+            "4xi64 (255b)": 99.07,
+            "8xi64 (511b)": 99.99
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "POLYNOMIAL": 39.45,
+        "BOUNDED_OR_PERIODIC": 46.43,
+        "HOLONOMIC_FACTORIAL": 0.89,
+        "FAST_EXPONENTIAL": 3.81,
+        "MODERATE_EXPONENTIAL": 9.26,
+        "UNKNOWN": 0.15,
+        "SUPER_EXPONENTIAL": 0.01
+      },
+      "growth_profile_counts": {
+        "POLYNOMIAL": 3604,
+        "BOUNDED_OR_PERIODIC": 4242,
+        "HOLONOMIC_FACTORIAL": 81,
+        "FAST_EXPONENTIAL": 348,
+        "MODERATE_EXPONENTIAL": 846,
+        "UNKNOWN": 14,
+        "SUPER_EXPONENTIAL": 1
+      }
+    },
+    "Stage 3: Holonomic / Catalan": {
+      "total_sequences": 3629,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 3629,
+          "sequences_with_full_terms": 2820,
+          "percentiles": {
+            "p50": 20.0,
+            "p75": 57.0,
+            "p90": 96.0,
+            "p95": 144.0,
+            "p99": 235.4399999999996,
+            "max": 422
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 78.42,
+            "2xi64 (127b)": 93.91,
+            "4xi64 (255b)": 99.28,
+            "8xi64 (511b)": 100.0
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 3629,
+          "sequences_with_full_terms": 1413,
+          "percentiles": {
+            "p50": 33.0,
+            "p75": 64.0,
+            "p90": 97.0,
+            "p95": 144.0,
+            "p99": 235.4399999999996,
+            "max": 422
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 74.87,
+            "2xi64 (127b)": 93.88,
+            "4xi64 (255b)": 99.28,
+            "8xi64 (511b)": 100.0
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 3629,
+          "sequences_with_full_terms": 170,
+          "percentiles": {
+            "p50": 33.0,
+            "p75": 64.0,
+            "p90": 97.0,
+            "p95": 144.0,
+            "p99": 235.4399999999996,
+            "max": 422
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 74.87,
+            "2xi64 (127b)": 93.88,
+            "4xi64 (255b)": 99.28,
+            "8xi64 (511b)": 100.0
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "POLYNOMIAL": 34.03,
+        "MODERATE_EXPONENTIAL": 18.79,
+        "FAST_EXPONENTIAL": 5.26,
+        "BOUNDED_OR_PERIODIC": 41.17,
+        "HOLONOMIC_FACTORIAL": 0.61,
+        "UNKNOWN": 0.14
+      },
+      "growth_profile_counts": {
+        "POLYNOMIAL": 1235,
+        "MODERATE_EXPONENTIAL": 682,
+        "FAST_EXPONENTIAL": 191,
+        "BOUNDED_OR_PERIODIC": 1494,
+        "HOLONOMIC_FACTORIAL": 22,
+        "UNKNOWN": 5
+      }
+    },
+    "Stage 4: Primes / Number Theory": {
+      "total_sequences": 91115,
+      "horizons": {
+        "horizon_20": {
+          "sequences_evaluated": 91115,
+          "sequences_with_full_terms": 76721,
+          "percentiles": {
+            "p50": 11.0,
+            "p75": 19.0,
+            "p90": 44.0,
+            "p95": 78.0,
+            "p99": 204.0,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 93.24,
+            "2xi64 (127b)": 97.51,
+            "4xi64 (255b)": 99.54,
+            "8xi64 (511b)": 99.97
+          }
+        },
+        "horizon_50": {
+          "sequences_evaluated": 91115,
+          "sequences_with_full_terms": 44044,
+          "percentiles": {
+            "p50": 13.0,
+            "p75": 23.0,
+            "p90": 53.0,
+            "p95": 81.0,
+            "p99": 207.86000000000058,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 92.17,
+            "2xi64 (127b)": 97.39,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.97
+          }
+        },
+        "horizon_100": {
+          "sequences_evaluated": 91115,
+          "sequences_with_full_terms": 5473,
+          "percentiles": {
+            "p50": 14.0,
+            "p75": 23.0,
+            "p90": 54.0,
+            "p95": 81.0,
+            "p99": 207.86000000000058,
+            "max": 947
+          },
+          "coverage_pct": {
+            "1xi64 (63b)": 92.16,
+            "2xi64 (127b)": 97.39,
+            "4xi64 (255b)": 99.51,
+            "8xi64 (511b)": 99.97
+          }
+        }
+      },
+      "growth_profile_distribution": {
+        "BOUNDED_OR_PERIODIC": 63.11,
+        "POLYNOMIAL": 29.29,
+        "MODERATE_EXPONENTIAL": 4.9,
+        "FAST_EXPONENTIAL": 1.87,
+        "UNKNOWN": 0.42,
+        "HOLONOMIC_FACTORIAL": 0.39,
+        "SUPER_EXPONENTIAL": 0.02
+      },
+      "growth_profile_counts": {
+        "BOUNDED_OR_PERIODIC": 57499,
+        "POLYNOMIAL": 26688,
+        "MODERATE_EXPONENTIAL": 4462,
+        "FAST_EXPONENTIAL": 1700,
+        "UNKNOWN": 387,
+        "HOLONOMIC_FACTORIAL": 357,
+        "SUPER_EXPONENTIAL": 22
+      }
+    }
+  }
+}

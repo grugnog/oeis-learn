@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-09-06T16:55:44.558779+00:00",
+  "total_sequences": 399005,
+  "duration_seconds": 2764.5972578525543,
+  "database_path": "data/oeis_corpus.duckdb",
+  "joeis_implementations": 74986,
+  "joeis_coverage_pct": 18.79,
+  "formula_matches": 49694,
+  "formula_coverage_pct": 12.45,
+  "stage_distribution": {
+    "1": 278485,
+    "2": 9136,
+    "3": 3629,
+    "4": 91115,
+    "5": 16640
+  }
+}
