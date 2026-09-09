@@ -428,4 +428,83 @@ mod tests {
         let res = evaluate_single_program(&engine, wat, 10000, 1);
         assert_eq!(res.status, ExecutionStatus::ExecutionTrap);
     }
+
+    #[test]
+    fn test_preamble_i256_add_and_sub() {
+        let engine = create_fuel_engine().unwrap();
+        let wat = r#"
+            (module
+                (func $i256_add
+                    (param $a0 i64) (param $a1 i64) (param $a2 i64) (param $a3 i64)
+                    (param $b0 i64) (param $b1 i64) (param $b2 i64) (param $b3 i64)
+                    (result i64 i64 i64 i64)
+                    (local $s0 i64) (local $c0 i64)
+                    (local $s1 i64) (local $c1 i64)
+                    (local $s2 i64) (local $c2 i64)
+                    (local $s3 i64)
+                    local.get $a0 local.get $b0 i64.add local.set $s0
+                    local.get $s0 local.get $b0 i64.lt_u i64.extend_i32_u local.set $c0
+                    local.get $a1 local.get $b1 i64.add local.get $c0 i64.add local.set $s1
+                    local.get $a1 local.get $b1 i64.add local.get $b1 i64.lt_u i64.extend_i32_u
+                    local.get $s1 local.get $c0 i64.lt_u i64.extend_i32_u i64.add local.set $c1
+                    local.get $a2 local.get $b2 i64.add local.get $c1 i64.add local.set $s2
+                    local.get $a2 local.get $b2 i64.add local.get $b2 i64.lt_u i64.extend_i32_u
+                    local.get $s2 local.get $c1 i64.lt_u i64.extend_i32_u i64.add local.set $c2
+                    local.get $a3 local.get $b3 i64.add local.get $c2 i64.add local.set $s3
+                    local.get $s0 local.get $s1 local.get $s2 local.get $s3
+                )
+                (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+                    ;; (2^64 - 1) + 1 => should carry to limb 1 = 1, limb 0 = 0
+                    i64.const -1 i64.const 0 i64.const 0 i64.const 0
+                    i64.const 1 i64.const 0 i64.const 0 i64.const 0
+                    call $i256_add
+                )
+            )
+        "#;
+        let res = evaluate_single_program(&engine, wat, 10000, 1);
+        assert_eq!(res.status, ExecutionStatus::Success);
+        assert_eq!(res.wide_output.len(), 1);
+        assert_eq!(res.wide_output[0], [0, 1, 0, 0]);
+        assert!(res.consumed_fuel < 500);
+    }
+
+    #[test]
+    fn test_preamble_mul64_wide() {
+        let engine = create_fuel_engine().unwrap();
+        let wat = r#"
+            (module
+                (func $mul64_wide (param $u i64) (param $v i64) (result i64 i64)
+                    (local $u0 i64) (local $u1 i64)
+                    (local $v0 i64) (local $v1 i64)
+                    (local $w0 i64) (local $k i64)
+                    (local $w1 i64) (local $w2 i64)
+                    (local $lo i64) (local $hi i64)
+                    local.get $u i64.const 4294967295 i64.and local.set $u0
+                    local.get $u i64.const 32 i64.shr_u local.set $u1
+                    local.get $v i64.const 4294967295 i64.and local.set $v0
+                    local.get $v i64.const 32 i64.shr_u local.set $v1
+                    local.get $u0 local.get $v0 i64.mul local.set $w0
+                    local.get $w0 i64.const 32 i64.shr_u local.set $k
+                    local.get $u1 local.get $v0 i64.mul local.get $k i64.add local.set $w1
+                    local.get $w1 i64.const 4294967295 i64.and local.set $k
+                    local.get $w1 i64.const 32 i64.shr_u local.set $w1
+                    local.get $u0 local.get $v1 i64.mul local.get $k i64.add local.set $w2
+                    local.get $w2 i64.const 32 i64.shr_u local.set $k
+                    local.get $u1 local.get $v1 i64.mul local.get $w1 i64.add local.get $k i64.add local.set $hi
+                    local.get $w2 i64.const 32 i64.shl local.get $w0 i64.const 4294967295 i64.and i64.or local.set $lo
+                    local.get $lo local.get $hi
+                )
+                (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+                    ;; 2^32 * 2^32 = 2^64 => lo = 0, hi = 1
+                    i64.const 4294967296 i64.const 4294967296
+                    call $mul64_wide
+                    i64.const 0 i64.const 0
+                )
+            )
+        "#;
+        let res = evaluate_single_program(&engine, wat, 10000, 1);
+        assert_eq!(res.status, ExecutionStatus::Success);
+        assert_eq!(res.wide_output.len(), 1);
+        assert_eq!(res.wide_output[0], [0, 1, 0, 0]);
+    }
 }

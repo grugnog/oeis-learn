@@ -43,7 +43,7 @@ class SyntheticDemonstrationGenerator:
     def __init__(
         self,
         seed: int = 42,
-        fuel_budget: int = 10000,
+        fuel_budget: int = 20000,
         enable_affine_sweeps: bool = True,
         scale_min_pow: float = 0.0,
         scale_max_pow: float = 5.0,
@@ -168,6 +168,217 @@ class SyntheticDemonstrationGenerator:
             c = self.rng.randint(1, 100)
             wat = f'(module (func (export "compute") (param $n i32) (result i64) i64.const {c}))'
             return wat, {"constant": c}
+
+    def generate_multilimb_sample(self, sample_idx: int) -> Optional[SyntheticDemonstrationPair]:
+        """Generates a verified multi-limb demonstration pair with signed coefficients in [-3, 3]."""
+        families = [
+            "MULTILIMB_POLYNOMIAL_SIGNED",
+            "MULTILIMB_ALTERNATING_SIGNED",
+            "MULTILIMB_RECURRENCE_ORDER1",
+            "MULTILIMB_RECURRENCE_ORDER2_SIGNED",
+            "MULTILIMB_RECURRENCE_ORDER3",
+            "MULTILIMB_HOLONOMIC_SIGNED",
+        ]
+        chosen_family = self.rng.choice(families)
+        sample_id = f"SYNTH_MULTILIMB_{sample_idx:06d}"
+
+        if chosen_family == "MULTILIMB_POLYNOMIAL_SIGNED":
+            a = self.rng.choice([-3, -2, -1, 1, 2, 3])
+            b = self.rng.choice([-3, -2, -1, 0, 1, 2, 3])
+            c = self.rng.choice([-5, -3, 0, 1, 4, 7])
+            # a*n^2 + b*n + c with dynamic sign extension
+            wat = f"""(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $n64 i64) (local $val i64) (local $sign i64)
+    local.get $n i64.extend_i32_u local.set $n64
+    local.get $n64 local.get $n64 i64.mul i64.const {a} i64.mul
+    local.get $n64 i64.const {b} i64.mul i64.add i64.const {c} i64.add
+    local.set $val
+    local.get $val i64.const 63 i64.shr_s local.set $sign
+    local.get $val local.get $sign local.get $sign local.get $sign
+  )
+)"""
+            metadata = {"family": chosen_family, "a": a, "b": b, "c": c}
+
+        elif chosen_family == "MULTILIMB_ALTERNATING_SIGNED":
+            # a(n) = (-1)^n * (2n + 1) with dynamic sign extension
+            wat = """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $val i64) (local $sign i64) (local $j i32)
+    local.get $n i64.extend_i32_u i64.const 2 i64.mul i64.const 1 i64.add local.set $val
+    local.get $n i32.const 1 i32.and local.set $j
+    local.get $j
+    if
+      i64.const 0 local.get $val i64.sub local.set $val
+    end
+    local.get $val i64.const 63 i64.shr_s local.set $sign
+    local.get $val local.get $sign local.get $sign local.get $sign
+  )
+)"""
+            metadata = {"family": chosen_family, "pattern": "alternating"}
+
+        elif chosen_family == "MULTILIMB_RECURRENCE_ORDER1":
+            base = self.rng.choice([2, 3, -2])
+            wat = f"""(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $i i32)
+    i256.const 1 local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i64.const {base}
+        i256.mul_scalar
+        local.set $a3 local.set $a2 local.set $a1 local.set $a0
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)"""
+            metadata = {"family": chosen_family, "base": base}
+
+        elif chosen_family == "MULTILIMB_RECURRENCE_ORDER2_SIGNED":
+            # a(n) = c1*a(n-1) + c2*a(n-2) with signed c1, c2 in [-3, 3]
+            c1 = self.rng.choice([1, 1, 2, 3, -1])
+            c2 = self.rng.choice([1, 1, -1, 2])
+            a0 = self.rng.choice([0, 1, 2, 3])
+            b0 = self.rng.choice([1, 1, 2, -1])
+
+            term_b = "local.get $b0 local.get $b1 local.get $b2 local.get $b3"
+            if c1 != 1:
+                term_b += f"\n        i64.const {c1}\n        i256.mul_scalar"
+
+            term_a = "local.get $a0 local.get $a1 local.get $a2 local.get $a3"
+            if c2 != 1:
+                term_a += f"\n        i64.const {c2}\n        i256.mul_scalar"
+
+            wat = f"""(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.const {a0} local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.const {b0} local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        {term_b}
+        {term_a}
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $t0 local.set $b0 local.get $t1 local.set $b1
+        local.get $t2 local.set $b2 local.get $t3 local.set $b3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)"""
+            metadata = {"family": chosen_family, "c1": c1, "c2": c2, "a0": a0, "b0": b0}
+
+        elif chosen_family == "MULTILIMB_RECURRENCE_ORDER3":
+            wat = """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $c0 i64) (local $c1 i64) (local $c2 i64) (local $c3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.zero local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.zero local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    i256.const 1 local.set $c3 local.set $c2 local.set $c1 local.set $c0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $c0 local.get $c1 local.get $c2 local.get $c3
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        i256.add
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $c0 local.set $b0 local.get $c1 local.set $b1
+        local.get $c2 local.set $b2 local.get $c3 local.set $b3
+        local.get $t0 local.set $c0 local.get $t1 local.set $c1
+        local.get $t2 local.set $c2 local.get $t3 local.set $c3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)"""
+            metadata = {"family": chosen_family, "type": "tribonacci"}
+
+        else:
+            # HOLONOMIC
+            wat = """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $i i32)
+    i256.const 1 local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i32.const 1 local.set $i
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.gt_s br_if $exit
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        local.get $i i64.extend_i32_u
+        i256.mul_scalar
+        local.set $a3 local.set $a2 local.set $a1 local.set $a0
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)"""
+            metadata = {"family": chosen_family, "type": "factorial"}
+
+        # Execute in multi-limb profile
+        res = self.wasm_runner.run_single(wat, terms_to_generate=20, result_profile="i256x4_v1")
+        if res.status != "SUCCESS" or len(res.output) < 20:
+            return None
+
+        terms = res.output
+        _, byte_size, lz = self.mdl_verifier.compute_mdl_ratio(wat, terms)
+
+        return SyntheticDemonstrationPair(
+            sample_id=sample_id,
+            family=chosen_family,
+            terms=terms,
+            wat_code=wat,
+            byte_size=byte_size,
+            lz_complexity=lz,
+            metadata=metadata,
+        )
+
+    def generate_multilimb_dataset(self, num_samples: int = 20000) -> SyntheticDemonstrationDataset:
+        """Generates a dataset of verified multi-limb demonstrations balanced across Stages 1-3."""
+        samples: List[SyntheticDemonstrationPair] = []
+        sample_idx = 0
+        attempts = 0
+        max_attempts = num_samples * 2
+
+        while len(samples) < num_samples and attempts < max_attempts:
+            attempts += 1
+            sample = self.generate_multilimb_sample(sample_idx)
+            if sample is not None:
+                samples.append(sample)
+                sample_idx += 1
+
+        return SyntheticDemonstrationDataset(
+            version="1.0.0",
+            total_samples=len(samples),
+            samples=samples,
+        )
 
     def generate_dataset(self, num_samples: int = 5000) -> SyntheticDemonstrationDataset:
         """Generates a comprehensive dataset of synthetic demonstration pairs."""

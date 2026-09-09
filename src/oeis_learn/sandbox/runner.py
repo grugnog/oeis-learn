@@ -22,11 +22,15 @@ def decode_i256_limbs(limbs: Sequence[int]) -> int:
     """Reconstructs signed two's complement 256-bit integer from four 64-bit little-endian limbs."""
     if len(limbs) < 4:
         return 0
-    l0, l1, l2, l3 = limbs[0], limbs[1], limbs[2], limbs[3]
-    u0 = l0 if l0 >= 0 else l0 + (1 << 64)
-    u1 = l1 if l1 >= 0 else l1 + (1 << 64)
-    u2 = l2 if l2 >= 0 else l2 + (1 << 64)
-    return u0 | (u1 << 64) | (u2 << 128) | (l3 << 192)
+    mask64 = (1 << 64) - 1
+    u0 = limbs[0] & mask64
+    u1 = limbs[1] & mask64
+    u2 = limbs[2] & mask64
+    u3 = limbs[3] & mask64
+    u = u0 | (u1 << 64) | (u2 << 128) | (u3 << 192)
+    if u >= (1 << 255):
+        return u - (1 << 256)
+    return u
 
 
 class WasmRunner:
@@ -55,11 +59,16 @@ class WasmRunner:
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
 
+        # Lower macros if present or in multi-limb profile
+        from oeis_learn.sandbox.lowering import lower_macro_wat
+        if "i256." in wat_code or result_profile == "i256x4_v1":
+            wat_code = lower_macro_wat(wat_code)
+
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
             res = oeis_wasm_evaluator.evaluate_wat_single(wat_code, fuel, terms)
             wide_out = getattr(res, "wide_output", [])
             output = res.output
-            if result_profile == "i256x4_v1" and wide_out:
+            if (result_profile == "i256x4_v1" or wide_out) and wide_out:
                 output = [decode_i256_limbs(limbs) for limbs in wide_out]
 
             return ExecutionResult(
@@ -86,13 +95,21 @@ class WasmRunner:
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
 
+        from oeis_learn.sandbox.lowering import lower_macro_wat
+        lowered_programs = []
+        for p in wat_programs:
+            if "i256." in p or result_profile == "i256x4_v1":
+                lowered_programs.append(lower_macro_wat(p))
+            else:
+                lowered_programs.append(p)
+
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            results = oeis_wasm_evaluator.evaluate_wat_batch(list(wat_programs), fuel, terms)
+            results = oeis_wasm_evaluator.evaluate_wat_batch(list(lowered_programs), fuel, terms)
             out = []
             for r in results:
                 wide_out = getattr(r, "wide_output", [])
                 output = r.output
-                if result_profile == "i256x4_v1" and wide_out:
+                if (result_profile == "i256x4_v1" or wide_out) and wide_out:
                     output = [decode_i256_limbs(limbs) for limbs in wide_out]
                 out.append(
                     ExecutionResult(
@@ -116,6 +133,7 @@ class WasmRunner:
         fuel_budget: Optional[int] = None,
         terms_to_generate: Optional[int] = None,
         hard_waste_threshold: float = 0.30,
+        result_profile: str = "i64_scalar_v1",
     ) -> Tuple[ExecutionResult, CanonicalProgramArtifact]:
         """Runs the dead-code elimination & vacuuming pass, then executes the optimized program."""
         artifact = optimize_wat_program(wat_code, hard_waste_threshold=hard_waste_threshold)
@@ -123,6 +141,7 @@ class WasmRunner:
             artifact.opt_wat,
             fuel_budget=fuel_budget,
             terms_to_generate=terms_to_generate,
+            result_profile=result_profile,
         )
         return exec_res, artifact
 
@@ -132,6 +151,7 @@ class WasmRunner:
         fuel_budget: Optional[int] = None,
         terms_to_generate: Optional[int] = None,
         hard_waste_threshold: float = 0.30,
+        result_profile: str = "i64_scalar_v1",
     ) -> List[Tuple[ExecutionResult, CanonicalProgramArtifact]]:
         """Optimizes a batch of WAT programs and executes the optimized modules concurrently."""
         artifacts = [
@@ -143,5 +163,6 @@ class WasmRunner:
             opt_programs,
             fuel_budget=fuel_budget,
             terms_to_generate=terms_to_generate,
+            result_profile=result_profile,
         )
         return list(zip(results, artifacts))

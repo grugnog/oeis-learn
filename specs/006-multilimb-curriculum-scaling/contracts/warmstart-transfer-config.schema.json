@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WarmstartTransferConfigSchema",
+  "description": "Configuration and gate specification for Strategy C Progressive SFT Bridge Transfer.",
+  "type": "object",
+  "required": [
+    "base_checkpoint_path",
+    "strategy",
+    "vocabulary_expansion",
+    "embedding_warmup_phase",
+    "joint_sft_bridge_phase",
+    "transition_gate",
+    "rl_reanchoring_phase"
+  ],
+  "properties": {
+    "base_checkpoint_path": {
+      "type": "string",
+      "description": "Path to Run 010 epoch 50 checkpoint"
+    },
+    "strategy": {
+      "type": "string",
+      "enum": ["STRATEGY_C_PROGRESSIVE_SFT_BRIDGE"]
+    },
+    "vocabulary_expansion": {
+      "type": "object",
+      "required": ["projection_method", "logit_cap_threshold", "norm_calibration"],
+      "properties": {
+        "projection_method": {
+          "type": "string",
+          "enum": ["CONVEX_HULL_SEMANTIC_PROJECTION"]
+        },
+        "logit_cap_threshold": {
+          "type": "number",
+          "default": 30.0,
+          "description": "Hyperbolic tangent soft-capping parameter C_cap"
+        },
+        "norm_calibration": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "embedding_warmup_phase": {
+      "type": "object",
+      "required": ["steps", "learning_rate", "frozen_modules"],
+      "properties": {
+        "steps": { "type": "integer", "default": 1500 },
+        "learning_rate": { "type": "number", "default": 1e-4 },
+        "frozen_modules": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "joint_sft_bridge_phase": {
+      "type": "object",
+      "required": ["steps", "encoder_lr", "decoder_lr", "heads_lr", "dataset_size"],
+      "properties": {
+        "steps": { "type": "integer", "default": 5000 },
+        "encoder_lr": { "type": "number", "default": 1e-5 },
+        "decoder_lr": { "type": "number", "default": 5e-5 },
+        "heads_lr": { "type": "number", "default": 1e-4 },
+        "dataset_size": { "type": "integer", "minimum": 20000 }
+      },
+      "additionalProperties": false
+    },
+    "transition_gate": {
+      "type": "object",
+      "required": [
+        "max_advantage_collapse_rate",
+        "min_grammar_validity",
+        "min_candidate_pass_rate"
+      ],
+      "properties": {
+        "max_advantage_collapse_rate": {
+          "type": "number",
+          "maximum": 0.15,
+          "description": "Maximum allowed advantage collapse rate (15%)"
+        },
+        "min_grammar_validity": {
+          "type": "number",
+          "minimum": 0.985,
+          "description": "Minimum syntactic grammar validity (98.5%)"
+        },
+        "min_candidate_pass_rate": {
+          "type": "number",
+          "minimum": 0.75,
+          "description": "Minimum exact demonstration pass rate (75%)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rl_reanchoring_phase": {
+      "type": "object",
+      "required": ["initial_beta_kl", "target_beta_kl", "bandit_gamma_floor", "seed_edb_with_canaries"],
+      "properties": {
+        "initial_beta_kl": { "type": "number", "default": 0.00 },
+        "target_beta_kl": { "type": "number", "default": 0.04 },
+        "bandit_gamma_floor": { "type": "number", "default": 0.25 },
+        "seed_edb_with_canaries": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

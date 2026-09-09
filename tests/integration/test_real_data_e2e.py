@@ -287,3 +287,72 @@ def test_real_data_end_to_end_progressive():
         assert os.path.exists(report_path)
         assert "A000045" in report_content
         assert "A000217" in report_content
+
+
+def test_real_data_multilimb_execution():
+    """Validates real OEIS sequences evaluated in 4 x i64 (i256x4_v1) multi-limb mode."""
+    loader = RealOeisDataLoader()
+    raw_records = loader.load_local_benchmark_records()
+    seq_dict = {r.oeis_id: r for r in raw_records}
+
+    runner = WasmRunner(fuel_budget=20000)
+
+    # 1. Fibonacci A000045 in 4-limb mode
+    fib_macro = """(module
+      (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+        (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+        (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+        (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+        (local $i i32)
+        i256.zero local.set $a3 local.set $a2 local.set $a1 local.set $a0
+        i256.const 1 local.set $b3 local.set $b2 local.set $b1 local.set $b0
+        (block $exit
+          (loop $loop
+            local.get $i local.get $n i32.ge_s br_if $exit
+            local.get $b0 local.get $b1 local.get $b2 local.get $b3
+            local.get $a0 local.get $a1 local.get $a2 local.get $a3
+            i256.add
+            local.set $t3 local.set $t2 local.set $t1 local.set $t0
+            local.get $b0 local.set $a0 local.get $b1 local.set $a1
+            local.get $b2 local.set $a2 local.get $b3 local.set $a3
+            local.get $t0 local.set $b0 local.get $t1 local.set $b1
+            local.get $t2 local.set $b2 local.get $t3 local.set $b3
+            local.get $i i32.const 1 i32.add local.set $i
+            br $loop
+          )
+        )
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+      )
+    )"""
+    fib_res = runner.run_single(fib_macro, terms_to_generate=30, result_profile="i256x4_v1")
+    assert fib_res.status == "SUCCESS"
+    n_fib = min(len(fib_res.output), len(seq_dict["A000045"].terms))
+    assert fib_res.output[:n_fib] == seq_dict["A000045"].terms[:n_fib]
+
+    # 2. Powers of 2 A000079 in 4-limb mode
+    pow_macro = """(module
+      (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+        (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+        (local $s0 i64) (local $s1 i64) (local $s2 i64) (local $s3 i64)
+        (local $i i32)
+        i64.const 1 local.set $a0 i64.const 0 local.set $a1 i64.const 0 local.set $a2 i64.const 0 local.set $a3
+        (block $exit
+          (loop $loop
+            local.get $i local.get $n i32.ge_s br_if $exit
+            local.get $a0 i64.const 1 i64.shl local.set $s0
+            local.get $a1 i64.const 1 i64.shl local.get $a0 i64.const 63 i64.shr_u i64.or local.set $s1
+            local.get $a2 i64.const 1 i64.shl local.get $a1 i64.const 63 i64.shr_u i64.or local.set $s2
+            local.get $a3 i64.const 1 i64.shl local.get $a2 i64.const 63 i64.shr_u i64.or local.set $s3
+            local.get $s0 local.set $a0 local.get $s1 local.set $a1
+            local.get $s2 local.set $a2 local.get $s3 local.set $a3
+            local.get $i i32.const 1 i32.add local.set $i
+            br $loop
+          )
+        )
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+      )
+    )"""
+    pow_res = runner.run_single(pow_macro, terms_to_generate=30, result_profile="i256x4_v1")
+    assert pow_res.status == "SUCCESS"
+    n_pow = min(len(pow_res.output), len(seq_dict["A000079"].terms))
+    assert pow_res.output[:n_pow] == seq_dict["A000079"].terms[:n_pow]

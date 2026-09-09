@@ -10,26 +10,51 @@ from oeis_learn.decoder.wat_grammar import PAD_ID, VOCAB_SIZE
 
 
 class PositionalEncodingDecoder(nn.Module):
-    """Sinusoidal positional encoding for decoder tokens."""
+    """Sinusoidal positional encoding for decoder tokens with dynamic length headroom."""
 
     pe: torch.Tensor
 
     def __init__(self, d_model: int, max_len: int = 512, dropout: float = 0.1):
         super().__init__()
+        self.d_model = d_model
         self.dropout = nn.Dropout(p=dropout)
+        self._build_pe(max_len)
 
-        pe = torch.zeros(max_len, d_model, dtype=torch.float32)
-        position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
+    def _build_pe(self, length: int, device: Optional[torch.device] = None) -> None:
+        target_device = device or torch.device("cpu")
+        position = torch.arange(0, length, dtype=torch.float32, device=target_device).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, d_model, 2, dtype=torch.float32) * (-math.log(10000.0) / d_model)
+            torch.arange(0, self.d_model, 2, dtype=torch.float32, device=target_device)
+            * (-math.log(10000.0) / self.d_model)
         )
+        pe = torch.zeros(length, self.d_model, dtype=torch.float32, device=target_device)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
+        self.register_buffer("pe", pe.unsqueeze(0))
+
+    def _extend_pe(self, target_len: int, device: torch.device) -> None:
+        current_len = self.pe.size(1) if hasattr(self, "pe") else 0
+        new_len = max(target_len, current_len * 2, 512)
+        self._build_pe(new_len, device=device)
+
+    def _load_from_state_dict(
+        self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+    ):
+        pe_key = prefix + "pe"
+        if pe_key in state_dict:
+            loaded_len = state_dict[pe_key].size(1)
+            target_len = max(self.pe.size(1), loaded_len)
+            self._build_pe(target_len, device=state_dict[pe_key].device)
+            state_dict[pe_key] = self.pe
+        super()._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.pe[:, : x.size(1)]
+        seq_len = x.size(1)
+        if seq_len > self.pe.size(1):
+            self._extend_pe(seq_len, device=x.device)
+        x = x + self.pe[:, :seq_len]
         res: torch.Tensor = self.dropout(x)
         return res
 
@@ -48,12 +73,14 @@ class WatTransformerDecoder(nn.Module):
         max_seq_len: int = 256,
         pad_idx: int = PAD_ID,
         chunk_size: int = 256,
+        logit_cap_threshold: Optional[float] = 30.0,
     ):
         super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.pad_idx = pad_idx
         self.chunk_size = chunk_size
+        self.logit_cap_threshold = logit_cap_threshold
 
         self.token_embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx, dtype=torch.float32)
         self.pos_encoder = PositionalEncodingDecoder(d_model=d_model, max_len=max_seq_len, dropout=dropout)
@@ -126,5 +153,11 @@ class WatTransformerDecoder(nn.Module):
         )
         hidden = self.final_norm(hidden)
         logits = self.project_logits_chunked(hidden)
+
+        # Hyperbolic tangent logit soft-capping (C_cap = 30.0) to stabilize vocabulary expansion
+        if self.logit_cap_threshold is not None and self.logit_cap_threshold > 0:
+            c_cap = float(self.logit_cap_threshold)
+            logits = c_cap * torch.tanh(logits / c_cap)
+
         from typing import cast
         return cast(torch.Tensor, logits)

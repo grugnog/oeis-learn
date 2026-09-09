@@ -125,3 +125,52 @@ def test_inconsistent_linear_diophantine(wasm_runner):
     result = solve_linear_diophantine(skeleton, target_terms, wasm_runner)
     assert result.is_sat is False
     assert result.constants is None
+
+
+def test_multilimb_recurrence_fast_path():
+    from oeis_learn.decoder.constant_solver import solve_constants
+    runner = WasmRunner(fuel_budget=20000)
+
+    wat_order2 = """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.const 0 local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.const 1 local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        i64.const_?
+        i256.mul_scalar
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i64.const_?
+        i256.mul_scalar
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $t0 local.set $b0 local.get $t1 local.set $b1
+        local.get $t2 local.set $b2 local.get $t3 local.set $b3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)"""
+
+    skeleton = parse_ast_placeholders(wat_order2)
+    # A200001: a(n) = 2*a(n-1) + 2*a(n-2)
+    terms = [0, 1, 2, 6, 16, 44, 120, 328]
+    cand = solve_constants(skeleton, terms, runner=runner)
+    assert cand.is_sat is True
+    assert cand.solver_tier == "TIER2_DIXON_LIFTING"
+    assert cand.constants == [2, 2]
+    assert cand.grounded_wat is not None
+
+    res = runner.run_single(cand.grounded_wat, terms_to_generate=8, result_profile="i256x4_v1")
+    assert res.status == "SUCCESS"
+    assert res.output == terms

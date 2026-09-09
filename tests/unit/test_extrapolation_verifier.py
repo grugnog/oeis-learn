@@ -61,3 +61,24 @@ def test_extrapolation_verifier_k100_horizon_and_mdl():
     ratio, byte_size, lz_comp = mdl_verifier.compute_mdl_ratio(wat, ground_truth)
     assert ratio <= 1.20
     assert mdl_verifier.verify(wat, ground_truth) is True
+
+
+def test_flexible_extrapolation_margin():
+    verifier = ExtrapolationVerifier(n_train=20, k_extrapolate=100)
+    wat = """(module
+      (func (export "compute") (param $n i32) (result i64)
+        local.get $n i64.extend_i32_u i64.const 2 i64.mul
+      )
+    )"""
+
+    # 50 terms: 20 observed + 30 unseen. Required margin is max(15, int(0.4 * 50)) = 20. 30 >= 20 -> qualified!
+    truth_50 = [2 * n for n in range(50)]
+    res_50 = verifier.verify_detailed(wat, truth_50)
+    assert res_50.passed is True
+    assert res_50.is_qualified is True
+
+    # 25 terms: 20 observed + 5 unseen. Required margin is max(15, int(0.4 * 25)) = 15. 5 < 15 -> not qualified!
+    truth_25 = [2 * n for n in range(25)]
+    res_25 = verifier.verify_detailed(wat, truth_25)
+    assert res_25.passed is True
+    assert res_25.is_qualified is False

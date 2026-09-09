@@ -52,6 +52,12 @@ class CurriculumScheduler:
             self.register_prompt(oeis_id, stage=self.active_stage)
         self.prompt_histories[oeis_id].append(bool(success))
 
+    def recalibrate_bandit(self, gamma_floor: float = 0.25) -> None:
+        """Recalibrates task selection weights uniformly with exploration floor."""
+        for hist in self.prompt_histories.values():
+            hist.clear()
+        self.epoch_competence_history.clear()
+
     def get_prompt_pass_rate(self, oeis_id: str) -> float:
         """Get rolling pass-rate rho_hat for a given prompt."""
         history = self.prompt_histories.get(oeis_id)

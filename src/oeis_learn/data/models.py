@@ -945,3 +945,202 @@ class DiscoveryClaim:
             "status_history": self.status_history,
         }
 
+
+# ==============================================================================
+# Spec 006: 4 x i64 Multi-Limb & Continual Learning Models
+# ==============================================================================
+
+
+@dataclass(frozen=True)
+class MultiLimbRegisterState:
+    """Represents a 4-limb 255-bit signed integer in two's complement."""
+
+    limbs: Tuple[int, int, int, int]
+
+    @property
+    def signed_value(self) -> int:
+        l0, l1, l2, l3 = self.limbs
+        u0 = l0 if l0 >= 0 else l0 + (1 << 64)
+        u1 = l1 if l1 >= 0 else l1 + (1 << 64)
+        u2 = l2 if l2 >= 0 else l2 + (1 << 64)
+        u3 = l3 if l3 >= 0 else l3 + (1 << 64)
+        u = u0 | (u1 << 64) | (u2 << 128) | (u3 << 192)
+        if u >= (1 << 255):
+            return u - (1 << 256)
+        return u
+
+    @property
+    def is_negative(self) -> bool:
+        return self.signed_value < 0
+
+    @property
+    def bit_length(self) -> int:
+        val = self.signed_value
+        return val.bit_length() if val >= 0 else (-val).bit_length()
+
+    @classmethod
+    def from_int(cls, val: int) -> MultiLimbRegisterState:
+        u = val if val >= 0 else (1 << 256) + val
+        mask64 = (1 << 64) - 1
+        l0 = u & mask64
+        l1 = (u >> 64) & mask64
+        l2 = (u >> 128) & mask64
+        l3 = (u >> 192) & mask64
+        return cls(limbs=(l0, l1, l2, l3))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "limbs": list(self.limbs),
+            "signed_value": self.signed_value,
+            "is_negative": self.is_negative,
+            "bit_length": self.bit_length,
+        }
+
+
+@dataclass
+class MacroSynthesizedProgram:
+    """Synthesized program operating at high-level multi-limb macro abstraction."""
+
+    program_id: str
+    macro_wat: str
+    result_profile: str = "i256x4_v1"
+    token_count: int = 0
+    template_stage: Optional[str] = None
+    lowered_wat: str = ""
+    mdl_ratio: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class StaticArithmeticPreamble:
+    """Pre-compiled verified WebAssembly arithmetic library specification."""
+
+    version: str = "1.0.0"
+    fuel_costs: Dict[str, int] = field(
+        default_factory=lambda: {
+            "i256_add": 55,
+            "i256_sub": 56,
+            "mul64_wide": 60,
+            "i256_mul_scalar": 271,
+        }
+    )
+    memory_limit_bytes: int = 0
+    wat_code: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SymbolicCandidateSkeleton:
+    """Program AST containing numerical constant placeholders (i64.const_?)."""
+
+    raw_wat: str
+    placeholder_count: int = 0
+    placeholder_indices: List[int] = field(default_factory=list)
+    is_linear: bool = True
+    recurrence_order: int = 1
+    basis_signatures: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ModularFilterCertificate:
+    """Finite-field rank analysis certificate from Mersenne-61 fast filter."""
+
+    status: str
+    prime: int = 2305843009213693951
+    augmented_rank: int = 0
+    coefficient_rank: int = 0
+    unknown_count: int = 0
+    elapsed_microseconds: float = 0.0
+    penalty_reward: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class GroundedCandidate:
+    """Candidate program whose constant placeholders have been grounded."""
+
+    skeleton_id: str
+    constants: List[int]
+    solver_tier: str
+    is_sat: bool
+    solve_duration_ms: float
+    grounded_wat: Optional[str] = None
+    certificate: Optional[ModularFilterCertificate] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        if self.certificate is not None:
+            d["certificate"] = self.certificate.to_dict()
+        return d
+
+
+@dataclass
+class ProgressiveTransferState:
+    """Multi-phase continual learning state migrating from scalar checkpoint."""
+
+    base_checkpoint: str
+    current_phase: str
+    step_count: int = 0
+    active_learning_rates: Dict[str, float] = field(default_factory=dict)
+    frozen_modules: List[str] = field(default_factory=list)
+    transition_gate_metrics: Dict[str, float] = field(default_factory=dict)
+    gate_passed: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class CurriculumMacroTemplate:
+    """Structural code scaffold for curriculum stages 1 through 4."""
+
+    stage: str
+    name: str
+    register_layout: Dict[str, str]
+    loop_structure: str
+    supported_orders: List[int]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class CanaryEvaluationRecord:
+    """Evaluation evidence for the 6 landmark canary sequences over 120 terms."""
+
+    sequence_id: str
+    observed_match_20: bool
+    unseen_match_100: bool
+    overflow_detected: bool
+    max_fuel_consumed: int
+    output_limbs_at_100: Tuple[int, int, int, int] = (0, 0, 0, 0)
+    verdict: str = "FAILED_VERIFICATION"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class EliteDemonstrationRecord:
+    """Verified multi-limb trajectory in the Elite Demonstration Buffer."""
+
+    sequence_id: str
+    stage: str
+    token_ids: List[int]
+    reward: float = 1.0
+    source: str = "CANONICAL_SEED"
+    usage_count: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+

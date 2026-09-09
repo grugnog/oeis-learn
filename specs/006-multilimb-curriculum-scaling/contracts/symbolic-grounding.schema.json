@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SymbolicGroundingPipelineSchema",
+  "description": "Interface contract for the three-tier decoupled symbolic grounding pipeline over multi-limb 256-bit skeletons.",
+  "type": "object",
+  "definitions": {
+    "ModularFilterStatus": {
+      "type": "string",
+      "enum": ["CONSISTENT", "INCONSISTENT", "UNDERDETERMINED"]
+    },
+    "SolverTier": {
+      "type": "string",
+      "enum": ["TIER1_MODULAR_M61", "TIER2_DIXON_LIFTING", "TIER3_Z3_QFNIA"]
+    },
+    "ModularFilterCertificate": {
+      "type": "object",
+      "required": [
+        "status",
+        "prime",
+        "augmented_rank",
+        "coefficient_rank",
+        "unknown_count",
+        "elapsed_microseconds",
+        "penalty_reward"
+      ],
+      "properties": {
+        "status": { "$ref": "#/definitions/ModularFilterStatus" },
+        "prime": {
+          "type": "integer",
+          "description": "Mersenne-61 prime: 2305843009213693951"
+        },
+        "augmented_rank": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coefficient_rank": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "elapsed_microseconds": {
+          "type": "number",
+          "description": "Filter duration, must be < 500 microseconds"
+        },
+        "penalty_reward": {
+          "type": "number",
+          "description": "-0.5 for invalid skeletons, 0.0 for consistent"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "skeleton_id",
+    "raw_wat",
+    "placeholder_count",
+    "is_linear",
+    "certificate",
+    "is_sat",
+    "solve_duration_ms"
+  ],
+  "properties": {
+    "skeleton_id": { "type": "string" },
+    "raw_wat": { "type": "string" },
+    "placeholder_count": { "type": "integer", "minimum": 0 },
+    "is_linear": { "type": "boolean" },
+    "certificate": { "$ref": "#/definitions/ModularFilterCertificate" },
+    "is_sat": { "type": "boolean" },
+    "solver_tier": { "$ref": "#/definitions/SolverTier" },
+    "constants": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": -1000, "maximum": 1000 }
+    },
+    "solve_duration_ms": {
+      "type": "number",
+      "description": "Total grounding solve time in milliseconds"
+    },
+    "grounded_wat": {
+      "type": ["string", "null"],
+      "description": "Lowered WAT with grounded constants spliced in"
+    }
+  },
+  "additionalProperties": false
+}

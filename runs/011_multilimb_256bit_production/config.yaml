@@ -1,0 +1,119 @@
+run_id: 011_multilimb_256bit_production
+base_checkpoint: checkpoints/model_epoch_050.v2.pt
+result_profile: i256x4_v1
+model:
+  d_model: 256
+  n_heads: 4
+  n_encoder_layers: 4
+  n_decoder_layers: 4
+  d_ff: 1024
+  dropout: 0.1
+  precision: fp32
+  max_seq_len: 512
+  n_input_terms: 20
+  chunk_size: 256
+  primes:
+  - 3
+  - 5
+  - 7
+  - 11
+  - 13
+  - 17
+  - 19
+  - 23
+  - 29
+  - 31
+  - 37
+  - 41
+  - 43
+  - 47
+  - 53
+  - 59
+  max_valuation: 32
+  enable_summary_tokens: false
+  lambda_aux_loss: 0.1
+  logit_cap_threshold: 30.0
+warmstart:
+  strategy: STRATEGY_C_PROGRESSIVE_SFT_BRIDGE
+  vocabulary_surgery:
+    projection_method: CONVEX_HULL_SEMANTIC_PROJECTION
+    norm_calibration: true
+    logit_cap_threshold: 30.0
+  embedding_warmup:
+    steps: 1500
+    learning_rate: 0.0001
+    batch_size: 16
+    frozen_modules:
+    - encoder
+    - decoder.layers
+  joint_sft_bridge:
+    steps: 5000
+    encoder_lr: 1.0e-05
+    decoder_lr: 5.0e-05
+    heads_lr: 0.0001
+    batch_size: 16
+    dataset_size: 20000
+  transition_gate:
+    max_advantage_collapse_rate: 0.15
+    min_grammar_validity: 0.985
+    min_candidate_pass_rate: 0.75
+  reanchoring:
+    initial_beta_kl: 0.0
+    target_beta_kl: 0.04
+    kl_anneal_steps: 2000
+    bandit_gamma_floor: 0.25
+elite_buffer:
+  enabled: true
+  capacity_per_seq: 4
+  seed_with_canaries: true
+  inject_on_failure: true
+  injection_reward: 1.0
+solver:
+  tier: three_tier_decoupled
+  fuel_budget: 20000
+  enable_m61_filter: true
+  m61_filter_timeout_us: 500
+  enable_dixon_diophantine: true
+  dixon_timeout_ms: 1.0
+  dixon_bound: 1000
+  enable_z3_qfnia: true
+  qfnia_timeout_ms: 240
+  prohibit_qf_bv: true
+  max_placeholders: 4
+canaries:
+  eval_interval_epochs: 5
+  eval_horizon_terms: 120
+  sequences:
+  - A000217
+  - A000290
+  - A000079
+  - A000045
+  - A000032
+  - A000129
+training:
+  tier: 1
+  curriculum_stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  epochs: 60
+  steps_per_epoch: 100
+  learning_rate: 5.0e-05
+  weight_decay: 0.01
+  clip_grad_norm: 1.0
+  sampling_temperature_initial: 0.8
+  sampling_temperature_final: 0.5
+  eval_temperature: 0.5
+  enable_cgi: true
+  max_tokens: 256
+  acr_threshold: 0.15
+rl:
+  algorithm: symple-grpo
+  asymmetric_penalty_weight: 1.5
+  beta_sft: 0.5
+  beta_kl: 0.04
+  alpha_ent: 0.03
+  reward_pass: 1.0
+  reward_fail: -1.0
+  reward_grounding_penalty: -0.5

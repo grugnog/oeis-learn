@@ -85,6 +85,7 @@ class EnvironmentTracker:
     pending_var_op: Optional[str] = None
     pending_branch_op: Optional[str] = None
     min_locals: int = 0
+    result_types: List[str] = field(default_factory=lambda: ["i64"])
 
     def reset(self) -> None:
         self.phase = StructuralPhase.MODULE_START
@@ -102,6 +103,7 @@ class EnvironmentTracker:
         self.pending_const_type = None
         self.pending_var_op = None
         self.pending_branch_op = None
+        self.result_types = ["i64"]
 
     @property
     def stack_depth(self) -> int:
@@ -184,12 +186,21 @@ class EnvironmentTracker:
         elif self.phase == StructuralPhase.RESULT_KW:
             if token == "result":
                 self.phase = StructuralPhase.RESULT_TYPE
+                self.result_types = []
         elif self.phase == StructuralPhase.RESULT_TYPE:
             if token in ("i32", "i64"):
-                self.phase = StructuralPhase.RESULT_CLOSE
+                self.result_types.append(token)
+                if len(self.result_types) >= 4:
+                    self.phase = StructuralPhase.RESULT_CLOSE
+            elif token == ")":
+                self.phase = StructuralPhase.LOCAL_OR_BODY
         elif self.phase == StructuralPhase.RESULT_CLOSE:
             if token == ")":
                 self.phase = StructuralPhase.LOCAL_OR_BODY
+            elif token in ("i32", "i64"):
+                self.result_types.append(token)
+                if len(self.result_types) >= 4:
+                    self.phase = StructuralPhase.RESULT_CLOSE
         elif self.phase == StructuralPhase.LOCAL_OR_BODY:
             if token == "local":
                 self.phase = StructuralPhase.LOCAL_NAME
@@ -240,12 +251,19 @@ class EnvironmentTracker:
         elif self.pending_branch_op is not None and (token.startswith("$") or token.isdigit()):
             self.pending_branch_op = None
         elif token in ("block", "loop", "if"):
+            if token == "if" and self.operand_stack:
+                self.operand_stack.pop()  # consume i32 condition
             frame = ControlFrame(
                 kind=token,
                 baseline_stack_depth=len(self.operand_stack),
                 paren_depth_at_entry=self.paren_depth,
             )
             self.control_stack.append(frame)
+        elif token == "end":
+            if self.control_stack:
+                popped = self.control_stack.pop()
+                if popped.label:
+                    self.control_labels.discard(popped.label)
         elif self.control_stack and self.control_stack[-1].label is None and token.startswith("$"):
             self.control_stack[-1].label = token
             self.control_labels.add(token)
@@ -349,14 +367,24 @@ class EnvironmentTracker:
 
         if self.phase == StructuralPhase.RESULT_TYPE:
             valid_ids.add(TOKEN_TO_ID["i64"])
+            valid_ids.add(TOKEN_TO_ID["i32"])
+            if self.result_types:
+                valid_ids.add(TOKEN_TO_ID[")"])
             return valid_ids
 
         if self.phase == StructuralPhase.RESULT_CLOSE:
             valid_ids.add(TOKEN_TO_ID[")"])
+            if len(self.result_types) < 4:
+                valid_ids.add(TOKEN_TO_ID["i64"])
             return valid_ids
 
         if self.phase == StructuralPhase.LOCAL_NAME:
-            for var in ["$n64", "$a", "$b", "$c", "$d", "$i", "$j", "$k", "$temp", "$val", "$res"]:
+            preferred_vars = [
+                "$n64", "$a", "$b", "$c", "$d", "$i", "$j", "$k", "$temp", "$val", "$res",
+                "$a0", "$a1", "$a2", "$a3", "$b0", "$b1", "$b2", "$b3",
+                "$c0", "$c1", "$c2", "$c3", "$t0", "$t1", "$t2", "$t3", "$sign",
+            ]
+            for var in preferred_vars:
                 if var not in self.declared_vars and var in TOKEN_TO_ID:
                     valid_ids.add(TOKEN_TO_ID[var])
             if not valid_ids:
@@ -411,7 +439,7 @@ class EnvironmentTracker:
                     valid_ids.add(TOKEN_TO_ID["0"])
             return valid_ids
 
-        if last in ("i32.const", "i64.const"):
+        if last in ("i32.const", "i64.const", "i256.const"):
             for lit in LITERAL_TOKENS:
                 valid_ids.add(TOKEN_TO_ID[lit])
             return valid_ids
@@ -441,6 +469,8 @@ class EnvironmentTracker:
             return valid_ids
 
         # General Instruction & Body Context
+        target_types = self.result_types if self.result_types else ["i64"]
+
         baseline = self.control_stack[-1].baseline_stack_depth if self.control_stack else 0
         depth = len(self.operand_stack)
         effective_depth = max(0, depth - baseline)
@@ -449,7 +479,7 @@ class EnvironmentTracker:
 
         # 1. Nullary operations (instructions that push constants or load variables)
         if allow_body_start:
-            for null_op in ["i64.const", "i64.const_?", "i32.const", "local.get", "nop"]:
+            for null_op in ["i64.const", "i64.const_?", "i32.const", "local.get", "nop", "i256.const", "i256.zero"]:
                 if null_op in TOKEN_TO_ID:
                     valid_ids.add(TOKEN_TO_ID[null_op])
 
@@ -475,6 +505,15 @@ class EnvironmentTracker:
                 if op in TOKEN_TO_ID:
                     valid_ids.add(TOKEN_TO_ID[op])
 
+        # Multi-limb macro operations: i256.add, i256.sub, i256.mul_scalar
+        if effective_depth >= 8 and all(x == "i64" for x in self.operand_stack[-8:]):
+            for op in ["i256.add", "i256.sub"]:
+                if op in TOKEN_TO_ID:
+                    valid_ids.add(TOKEN_TO_ID[op])
+        if effective_depth >= 5 and all(x == "i64" for x in self.operand_stack[-5:]):
+            if "i256.mul_scalar" in TOKEN_TO_ID:
+                valid_ids.add(TOKEN_TO_ID["i256.mul_scalar"])
+
         # 4. Binary i32 operations
         if effective_depth >= 2 and top1 == "i32" and top2 == "i32":
             for op in SIG_I32_I32_TO_I32 + ["i32.eq", "i32.ne", "i32.lt_s", "i32.gt_s", "i32.le_s", "i32.ge_s"]:
@@ -491,11 +530,15 @@ class EnvironmentTracker:
             for op in ["i32.eqz", "i64.extend_i32_s", "i64.extend_i32_u"]:
                 if op in TOKEN_TO_ID:
                     valid_ids.add(TOKEN_TO_ID[op])
+            if "if" in TOKEN_TO_ID:
+                valid_ids.add(TOKEN_TO_ID["if"])
             if len(self.control_stack) > 0:
                 valid_ids.add(TOKEN_TO_ID["br_if"])
 
         if len(self.control_stack) > 0:
             valid_ids.add(TOKEN_TO_ID["br"])
+            if effective_depth == 0 and "end" in TOKEN_TO_ID:
+                valid_ids.add(TOKEN_TO_ID["end"])
 
         # Closing Parenthesis Soundness
         if self.paren_depth == 1:
@@ -503,14 +546,16 @@ class EnvironmentTracker:
             if not self.in_func or self.phase in (StructuralPhase.BODY, StructuralPhase.LOCAL_OR_BODY):
                 valid_ids.add(TOKEN_TO_ID[")"])
         elif self.paren_depth == 2:
-            # Closing func is valid ONLY if operand stack satisfies (result i64), i.e. operand_stack == ["i64"] and no open blocks
-            if self.operand_stack == ["i64"] and not self.control_stack:
+            # Closing func is valid ONLY if operand stack satisfies result signature and no open blocks
+            if self.operand_stack == target_types and not self.control_stack:
                 valid_ids.add(TOKEN_TO_ID[")"])
         elif self.paren_depth > 2 and self.control_stack:
             # Inside a block/loop: closing ')' is valid ONLY if relative stack is empty (effective_depth == 0)
             if effective_depth == 0:
                 valid_ids.add(TOKEN_TO_ID[")"])
         elif self.paren_depth > 2:
+            # Closing subexpression / block / local declaration is valid
+            valid_ids.add(TOKEN_TO_ID[")"])
             # Closing subexpression / block / local declaration is valid
             valid_ids.add(TOKEN_TO_ID[")"])
 

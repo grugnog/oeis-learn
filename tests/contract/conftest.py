@@ -16,6 +16,13 @@ CONTRACTS_DIR = (
     / "contracts"
 )
 
+CONTRACTS_006_DIR = (
+    Path(__file__).resolve().parent.parent.parent
+    / "specs"
+    / "006-multilimb-curriculum-scaling"
+    / "contracts"
+)
+
 
 @pytest.fixture(scope="session")
 def contracts_dir() -> Path:
@@ -23,31 +30,54 @@ def contracts_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def schema_registry(contracts_dir: Path) -> Registry:
+def contracts_006_dir() -> Path:
+    return CONTRACTS_006_DIR
+
+
+@pytest.fixture(scope="session")
+def schema_registry(contracts_dir: Path, contracts_006_dir: Path) -> Registry:
     registry = Registry()
-    for schema_file in contracts_dir.glob("*.schema.json"):
-        with open(schema_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        resource = Resource.from_contents(data)
-        if "$id" in data:
-            registry = registry.with_resource(data["$id"], resource)
-        registry = registry.with_resource(schema_file.name, resource)
-        registry = registry.with_resource(str(schema_file), resource)
+    for search_dir in [contracts_dir, contracts_006_dir]:
+        if search_dir.exists():
+            for schema_file in search_dir.glob("*.schema.json"):
+                with open(schema_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                resource = Resource.from_contents(data)
+                if "$id" in data:
+                    registry = registry.with_resource(data["$id"], resource)
+                registry = registry.with_resource(schema_file.name, resource)
+                registry = registry.with_resource(str(schema_file), resource)
     return registry
 
 
 @pytest.fixture(scope="session")
-def load_schema(contracts_dir: Path) -> Callable[[str], Dict[str, Any]]:
+def load_schema(contracts_dir: Path, contracts_006_dir: Path) -> Callable[[str], Dict[str, Any]]:
     def _loader(name: str) -> Dict[str, Any]:
         if not name.endswith(".schema.json"):
             name = f"{name}.schema.json"
         path = contracts_dir / name
         if not path.exists():
-            raise FileNotFoundError(f"Schema not found at {path}")
+            path = contracts_006_dir / name
+        if not path.exists():
+            raise FileNotFoundError(f"Schema not found at {path} (checked {contracts_dir} and {contracts_006_dir})")
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     return _loader
+
+
+@pytest.fixture(scope="session")
+def multi_limb_preamble_wat(contracts_006_dir: Path) -> str:
+    path = contracts_006_dir / "multi-limb-preamble.wat"
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@pytest.fixture(scope="session")
+def macro_instruction_set_md(contracts_006_dir: Path) -> str:
+    path = contracts_006_dir / "macro-instruction-set.md"
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
 
 @pytest.fixture(scope="session")

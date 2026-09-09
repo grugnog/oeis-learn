@@ -71,6 +71,12 @@ graph TD
    - Non-contrastive Kernel VICReg learning with additive homomorphism loss ($\mathcal{L}_{\text{add}}$).
    - Arbitrary-precision ($>500$ digits) `mpmath` sampling with PSLQ integer relation solver ($<10^{-50}$ confidence drop) and SymPy automated symbolic proofs.
 
+8. **4 × i64 Multi-Limb Execution & Decoupled Grounding (`i256x4_v1`)**:
+   - 255-bit signed multi-limb representation covering 99.51% of all OEIS sequences without overflow.
+   - Hybrid macro-synthesized lowering to pure value-stack static arithmetic preamble ($0$ heap memory, $10{,}000$ fuel ceiling).
+   - Three-tier decoupled symbolic grounding (Mersenne-61 fast filter $<0.5\text{ ms} \to$ Dixon Diophantine solver $<1.0\text{ ms} \to$ Z3 tactical QF_NIA $<240\text{ ms}$).
+   - Strategy C continual learning bridge transfer with Transition Gate and Elite Demonstration Buffer anti-collapse injection. See [docs/multi_limb_synthesis.md](docs/multi_limb_synthesis.md).
+
 ---
 
 ## 💻 CLI Usage

@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CanaryBenchmarkSchema",
+  "description": "Evaluation schema for the 6 landmark canary sequences under 4 x i64 multi-limb execution.",
+  "type": "object",
+  "required": [
+    "evaluation_timestamp",
+    "checkpoint_evaluated",
+    "result_profile",
+    "canary_results",
+    "all_canaries_passed"
+  ],
+  "properties": {
+    "evaluation_timestamp": { "type": "string" },
+    "checkpoint_evaluated": { "type": "string" },
+    "result_profile": {
+      "type": "string",
+      "enum": ["i256x4_v1", "i64_scalar_v1"]
+    },
+    "canary_results": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "sequence_id",
+          "name",
+          "scalar_64bit_overflow_term",
+          "observed_matched",
+          "unseen_matched",
+          "overflow_prevented",
+          "fuel_consumed",
+          "verdict"
+        ],
+        "properties": {
+          "sequence_id": {
+            "type": "string",
+            "enum": ["A000217", "A000290", "A000079", "A000045", "A000032", "A000129"]
+          },
+          "name": { "type": "string" },
+          "scalar_64bit_overflow_term": {
+            "type": "integer",
+            "description": "Index at which 64-bit signed scalar arithmetic overflows"
+          },
+          "observed_matched": { "type": "boolean" },
+          "unseen_matched": { "type": "boolean" },
+          "overflow_prevented": { "type": "boolean" },
+          "fuel_consumed": {
+            "type": "integer",
+            "maximum": 20000
+          },
+          "verdict": {
+            "type": "string",
+            "enum": ["EXTRAPOLATING_SUCCESS", "FAILED_VERIFICATION", "OVERFLOW_TRAP", "FUEL_TRAP"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "all_canaries_passed": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

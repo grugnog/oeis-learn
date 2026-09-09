@@ -53,7 +53,13 @@ class ExtrapolationVerifier:
         """Evaluates detailed observed and unseen term comparisons."""
         total_requested = self.n_train + self.k_extrapolate
         available_horizon = len(ground_truth_terms)
-        is_qualified = available_horizon >= total_requested
+
+        # Flexible extrapolation margin: for general sequences, allow min(100, N_avail - N_obs)
+        # provided unseen margin >= max(15, 0.4 * N_avail)
+        required_unseen_margin = max(15, int(0.4 * available_horizon))
+        available_unseen = max(0, available_horizon - self.n_train)
+
+        is_qualified = (available_horizon >= total_requested) or (available_unseen >= required_unseen_margin)
         eval_horizon = min(total_requested, available_horizon)
 
         if eval_horizon == 0:

@@ -27,17 +27,23 @@ INSTRUCTION_TOKENS = [
     "i32.ge_s", "i32.lt_s", "i32.gt_s", "i32.le_s", "i32.eq", "i32.ne", "i32.eqz",
     "i32.wrap_i64", "i64.extend_i32_s", "i64.extend_i32_u",
     "drop", "nop", "unreachable", "return", "br", "br_if",
-    "block", "loop", "if", "then", "else",
+    "block", "loop", "if", "then", "else", "end",
+    "i256.add", "i256.sub", "i256.mul_scalar", "i256.const", "i256.zero", "result_i64_x4",
 ]
 
 IDENTIFIER_TOKENS = [
-    "$n", "$a", "$b", "$c", "$d", "$i", "$j", "$k", "$temp", "$val", "$res", "$n64",
+    "$n", "$a", "$b", "$c", "$d", "$i", "$j", "$k", "$temp", "$val", "$res", "$n64", "$sign",
     "$l", "$exit", "$loop", "$block",
+    "$a0", "$a1", "$a2", "$a3",
+    "$b0", "$b1", "$b2", "$b3",
+    "$c0", "$c1", "$c2", "$c3",
+    "$d0", "$d1", "$d2", "$d3",
+    "$t0", "$t1", "$t2", "$t3",
 ]
 
 LITERAL_TOKENS = [
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "12", "16", "32", "42", "64", "100", "-1", "-2",
+    "12", "16", "32", "42", "63", "64", "100", "-1", "-2", "-3", "-4", "-5",
 ]
 
 WAT_VOCABULARY = SPECIAL_TOKENS + SYNTAX_TOKENS + INSTRUCTION_TOKENS + IDENTIFIER_TOKENS + LITERAL_TOKENS
@@ -102,6 +108,12 @@ OPCODE_SIGNATURES: Dict[str, Tuple[Tuple[str, ...], Tuple[str, ...]]] = {
     "nop": ((), ()),
     "unreachable": ((), ()),
     "return": ((), ()),
+    # Multi-limb macro operations
+    "i256.add": (("i64", "i64", "i64", "i64", "i64", "i64", "i64", "i64"), ("i64", "i64", "i64", "i64")),
+    "i256.sub": (("i64", "i64", "i64", "i64", "i64", "i64", "i64", "i64"), ("i64", "i64", "i64", "i64")),
+    "i256.mul_scalar": (("i64", "i64", "i64", "i64", "i64"), ("i64", "i64", "i64", "i64")),
+    "i256.const": ((), ("i64", "i64", "i64", "i64")),
+    "i256.zero": ((), ("i64", "i64", "i64", "i64")),
 }
 
 # Pre-indexed signature groups

@@ -14,7 +14,9 @@ from oeis_learn.curriculum.scheduler import CurriculumScheduler
 from oeis_learn.curriculum.symple_bandit import AdaGGroupAllocator, Exp3SBanditScheduler
 from oeis_learn.data.models import SequenceRecord
 from oeis_learn.decoder.constant_solver import (
+    abstract_wat_constants,
     parse_ast_placeholders,
+    solve_constants,
     solve_linear_diophantine,
     solve_smt_constants,
     splice_constants_into_wat,
@@ -74,10 +76,11 @@ class EgcaGrpoTrainer:
         enable_pbrs: bool = True,
         enable_lexicase: bool = True,
         sampling_temperature: float = 0.4,
-        max_program_length: int = 128,
+        max_program_length: int = 256,
         encoder_config: Optional[Dict[str, Any]] = None,
         decoder_config: Optional[Dict[str, Any]] = None,
         device: Optional[torch.device] = None,
+        result_profile: str = "i64_scalar_v1",
     ):
         self.encoder = encoder
         self.decoder = decoder
@@ -100,6 +103,7 @@ class EgcaGrpoTrainer:
         self.enable_lexicase = enable_lexicase
         self.sampling_temperature = sampling_temperature
         self.max_program_length = max_program_length
+        self.result_profile = result_profile
         self.device = device or torch.device("cpu")
         self.current_epoch = 1
 
@@ -138,13 +142,30 @@ class EgcaGrpoTrainer:
         z = self.encoder.forward_from_sequences(seq_input, device=self.device)  # (1, 20, d_model)
         z_expanded = z.expand(active_g, -1, -1)  # (G, 20, d_model)
 
-        # 2. Sample G candidate programs (with recurrence accumulator prefix if Stage >= 2)
+        # 2. Sample G candidate programs (with recurrence / holonomic accumulator prefix)
+        is_holonomic = (
+            record.curriculum_stage == 3
+            or "holonomic" in record.name.lower()
+            or any(t in ("holonomic", "factorial") for t in record.tags)
+        )
         is_rec = (
-            record.curriculum_stage >= 2
+            record.curriculum_stage == 2
             or any(tag in ("recurrence", "fibonacci", "lucas", "geometric") for tag in record.tags)
         )
-        rec_prefix = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32)'
-        prefix_wat = rec_prefix if is_rec else None
+        if self.result_profile == "i256x4_v1":
+            if is_holonomic:
+                prefix_wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64) (local $i i32)'
+            elif is_rec:
+                prefix_wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64) (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64) (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64) (local $i i32)'
+            else:
+                prefix_wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) (local $n64 i64) (local $val i64) (local $sign i64)'
+        else:
+            if is_holonomic:
+                prefix_wat = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $i i32)'
+            elif is_rec:
+                prefix_wat = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) (local $b i64) (local $temp i64) (local $i i32)'
+            else:
+                prefix_wat = None
 
         wat_programs, token_ids = self.program_sampler.sample(
             z_expanded,
@@ -154,31 +175,47 @@ class EgcaGrpoTrainer:
             max_length=self.max_program_length,
         )
 
-        # 2b. Phase 4 Decoupled Constant Solver Dispatch
+        # 2b. Decoupled Constant Solver Dispatch
+        target_int_terms = [int(x) for x in record.terms[:20]]
         grounded_wat_programs = []
         for wat in wat_programs:
             if "i64.const_?" in wat:
                 skeleton = parse_ast_placeholders(wat)
-                solver_res = solve_linear_diophantine(skeleton, record.terms[:20], self.wasm_runner)
-                if not solver_res.is_sat and not skeleton.is_linear:
-                    solver_res = solve_smt_constants(skeleton, record.terms[:20], timeout_ms=250, runner=self.wasm_runner)
-                if solver_res.is_sat and solver_res.grounded_wat:
-                    grounded_wat_programs.append(solver_res.grounded_wat)
+                cand = solve_constants(skeleton, target_int_terms, runner=self.wasm_runner)
+                if cand.is_sat and cand.grounded_wat:
+                    grounded_wat_programs.append(cand.grounded_wat)
                     # Ingest grounded program into EDB
                     self.elite_buffer.add_canonical_entry(
                         oeis_id=record.oeis_id,
-                        wat_code=solver_res.grounded_wat,
-                        terms=record.terms[:20],
+                        wat_code=cand.grounded_wat,
+                        terms=target_int_terms,
                         step=self.current_epoch,
                     )
                 else:
                     grounded_wat_programs.append(wat)
             else:
+                # Abstract concrete integer constants into placeholders to ground coefficients
+                abstracted = abstract_wat_constants(wat)
+                if "i64.const_?" in abstracted:
+                    skeleton = parse_ast_placeholders(abstracted)
+                    cand = solve_constants(skeleton, target_int_terms, runner=self.wasm_runner)
+                    if cand.is_sat and cand.grounded_wat:
+                        grounded_wat_programs.append(cand.grounded_wat)
+                        self.elite_buffer.add_canonical_entry(
+                            oeis_id=record.oeis_id,
+                            wat_code=cand.grounded_wat,
+                            terms=target_int_terms,
+                            step=self.current_epoch,
+                        )
+                        continue
                 grounded_wat_programs.append(wat)
 
         # 3. Batch evaluate across CPU worker threads with optional DCE optimization
         opt_artifacts = self.wasm_runner.run_optimized_batch(
-            grounded_wat_programs, fuel_budget=10000, terms_to_generate=len(record.terms[:20])
+            grounded_wat_programs,
+            fuel_budget=self.wasm_runner.fuel_budget,
+            terms_to_generate=len(record.terms[:20]),
+            result_profile=self.result_profile,
         )
         exec_results = [r[0] for r in opt_artifacts]
         artifacts = [r[1] for r in opt_artifacts]
@@ -194,12 +231,13 @@ class EgcaGrpoTrainer:
                 compiler_traps += 1
 
             # Phase 4 Dense Log-Distance Return + Hard Waste Threshold
-            r_dense = compute_dense_log_distance_reward(res.output, record.terms[:20])
+            r_dense = compute_dense_log_distance_reward(res.output, target_int_terms)
             r_val = compute_validity_reward(artifacts[i].waste_ratio, threshold=0.30)
-            if res.status == "SUCCESS" and res.output == record.terms[: len(res.output)]:
+            res_int_output = [int(x) for x in res.output]
+            if res.status == "SUCCESS" and res_int_output == target_int_terms[: len(res_int_output)]:
                 rew = 1.0
                 div_step = None
-                prefix_lengths.append(len(record.terms[:20]))
+                prefix_lengths.append(len(target_int_terms))
             else:
                 rew = r_dense * (0.8 if r_val > 0.0 else 0.0) - 0.2
                 div_step = len(res.output)
@@ -212,7 +250,7 @@ class EgcaGrpoTrainer:
             attr = build_fine_grained_attribution(
                 wat_code=wat_programs[i],
                 exec_result=res,
-                target_terms=record.terms[:20],
+                target_terms=target_int_terms,
                 total_advantage=1.0,
                 total_tokens=token_ids.size(1),
             )
@@ -224,7 +262,7 @@ class EgcaGrpoTrainer:
                 token_masks[i] = cov_vec
 
         rewards_tensor = torch.tensor(rewards, dtype=torch.float32, device=self.device)
-        pass_count = sum(1 for res in exec_results if res.status == "SUCCESS" and res.output == record.terms[: len(res.output)])
+        pass_count = sum(1 for res in exec_results if res.status == "SUCCESS" and [int(x) for x in res.output] == target_int_terms[: len(res.output)])
         pass_rate = pass_count / len(rewards)
 
         # 5. Conditional Ground-Truth Trajectory Injection (CGI) if entire group fails
@@ -234,23 +272,28 @@ class EgcaGrpoTrainer:
         if all_failed and self.enable_cgi:
             elite_entry = self.elite_buffer.get_entry(record.oeis_id)
             if elite_entry is not None:
-                # Inject reference solution
+                # Inject reference solution with safety bounds check
                 ref_encoded = [BOS_ID] + encode_wat(elite_entry.wat_code) + [EOS_ID]
-                max_len = max(token_ids.size(1), len(ref_encoded))
+                if len(ref_encoded) <= 512:
+                    max_len = max(token_ids.size(1), len(ref_encoded))
 
-                if token_ids.size(1) < max_len:
-                    pad_w = max_len - token_ids.size(1)
-                    token_ids = F.pad(token_ids, (0, pad_w), value=PAD_ID)
-                    token_masks = F.pad(token_masks, (0, pad_w), value=0.0)
+                    if token_ids.size(1) < max_len:
+                        pad_w = max_len - token_ids.size(1)
+                        token_ids = F.pad(token_ids, (0, pad_w), value=PAD_ID)
+                        token_masks = F.pad(token_masks, (0, pad_w), value=0.0)
 
-                ref_tensor = torch.full((1, max_len), PAD_ID, dtype=torch.long, device=self.device)
-                ref_tensor[0, : len(ref_encoded)] = torch.tensor(ref_encoded, dtype=torch.long, device=self.device)
+                    ref_tensor = torch.full((1, max_len), PAD_ID, dtype=torch.long, device=self.device)
+                    ref_tensor[0, : len(ref_encoded)] = torch.tensor(ref_encoded, dtype=torch.long, device=self.device)
 
-                token_ids = torch.cat([ref_tensor, token_ids], dim=0)
-                z_expanded = torch.cat([z, z_expanded], dim=0)
-                rewards_tensor = torch.cat([torch.tensor([1.0], device=self.device), rewards_tensor])
-                token_masks = torch.cat([torch.ones((1, max_len), device=self.device), token_masks], dim=0)
-                ref_injected = True
+                    token_ids = torch.cat([ref_tensor, token_ids], dim=0)
+                    z_expanded = torch.cat([z, z_expanded], dim=0)
+                    rewards_tensor = torch.cat([torch.tensor([1.0], device=self.device), rewards_tensor])
+                    token_masks = torch.cat([torch.ones((1, max_len), device=self.device), token_masks], dim=0)
+                    ref_injected = True
+                else:
+                    logger.warning(
+                        f"Skipping CGI injection for {record.oeis_id}: reference program has {len(ref_encoded)} tokens (> 512)."
+                    )
 
         # 6. Compute S-GRPO advantages
         advantages = compute_sgrpo_advantages(
@@ -335,6 +378,7 @@ class EgcaGrpoTrainer:
             "pass_rate": pass_rate,
             "pass_count": pass_count,
             "group_size": active_g,
+            "curriculum_stage": record.curriculum_stage,
             "mean_reward": float(rewards_tensor.mean().item()),
             "entropy": entropy,
             "acr": self.telemetry.current_acr,

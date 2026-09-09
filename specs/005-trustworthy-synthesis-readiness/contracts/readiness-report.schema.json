@@ -102,7 +102,9 @@
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
-        "native_evaluator_required": { "const": true }
+        "native_evaluator_required": { "const": true },
+        "result_profile": { "type": "string" },
+        "execution_limits": { "type": "object" }
       }
     },
     "evidence_reference": {

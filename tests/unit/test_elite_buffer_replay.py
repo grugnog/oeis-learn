@@ -36,3 +36,28 @@ def test_edb_dormancy_sampling():
     assert len(sampled) == 2
     sampled_ids = [s[0] for s in sampled]
     assert len(set(sampled_ids)) == 2
+
+
+def test_edb_injection_and_canary_seeding():
+    edb = EliteSeedDemonstrationBuffer()
+    # Check that canaries are seeded
+    assert edb.has_entry("A000045")
+    assert edb.has_entry("A000032")
+    assert edb.has_entry("A000129")
+
+    # When all rollouts fail (rewards <= 0.0), inject canonical program
+    candidates = ["(bad wat 1)", "(bad wat 2)"]
+    rewards = [-1.0, -1.0]
+
+    updated_cands, updated_rews, was_injected = edb.inject_into_prompt_group("A000045", candidates, rewards)
+    assert was_injected is True
+    assert updated_rews[0] == 1.0
+    assert "i256.add" in updated_cands[0]
+
+    # When at least one rollout succeeded (reward > 0.0), do NOT inject
+    good_cands = ["(good wat)", "(bad wat)"]
+    good_rews = [1.0, -1.0]
+    u_cands, u_rews, was_injected2 = edb.inject_into_prompt_group("A000045", good_cands, good_rews)
+    assert was_injected2 is False
+    assert u_cands == good_cands
+    assert u_rews == good_rews

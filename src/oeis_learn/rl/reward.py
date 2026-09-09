@@ -332,8 +332,8 @@ def compute_composite_reward(
 
 
 def compute_dense_log_distance_reward(
-    outputs: Sequence[int],
-    target_terms: Sequence[int],
+    outputs: Sequence[Union[int, str]],
+    target_terms: Sequence[Union[int, str]],
 ) -> float:
     """Computes continuous dense log-distance return R_dense(P, Y) = 1/20 sum 1 / (1 + log10(|P(n) - y_n| + 1))."""
     check_len = min(len(outputs), len(target_terms)) if outputs else 0
@@ -342,7 +342,7 @@ def compute_dense_log_distance_reward(
 
     scores = []
     for idx in range(check_len):
-        diff = abs(outputs[idx] - target_terms[idx])
+        diff = abs(int(outputs[idx]) - int(target_terms[idx]))
         # log10(diff + 1)
         log_d = math.log10(diff + 1.0)
         score = 1.0 / (1.0 + log_d)

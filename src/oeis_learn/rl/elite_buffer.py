@@ -62,6 +62,10 @@ class EliteSeedDemonstrationBuffer:
     ) -> None:
         """Stores a verified canonical AST program in the sequence archive, bounded by capacity and deduplicated."""
         tokens = tokenize_wat(wat_code)
+        if len(tokens) > 512:
+            logger.warning(f"Rejecting candidate for {oeis_id}: token length {len(tokens)} exceeds maximum limit 512.")
+            return
+
         canonical_str = " ".join(tokens)
         ast_hash = hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
 
@@ -400,3 +404,161 @@ class EliteSeedDemonstrationBuffer:
                 source="CANONICAL_DEFAULT",
             )
         )
+        self.seed_canonical_multilimb_canaries()
+
+    def seed_canonical_multilimb_canaries(self) -> None:
+        """Seeds canonical 4-limb programs for the 6 landmark canaries."""
+        canary_programs = {
+            "A000217": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $n64 i64)
+    local.get $n i64.extend_i32_u local.set $n64
+    local.get $n64 local.get $n64 i64.const 1 i64.add i64.mul i64.const 2 i64.div_u
+    i64.const 0 i64.const 0 i64.const 0
+  )
+)""",
+            "A000290": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $n64 i64)
+    local.get $n i64.extend_i32_u local.set $n64
+    local.get $n64 local.get $n64 i64.mul
+    i64.const 0 i64.const 0 i64.const 0
+  )
+)""",
+            "A000079": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $s0 i64) (local $s1 i64) (local $s2 i64) (local $s3 i64)
+    (local $i i32)
+    i64.const 1 local.set $a0 i64.const 0 local.set $a1 i64.const 0 local.set $a2 i64.const 0 local.set $a3
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $a0 i64.const 1 i64.shl local.set $s0
+        local.get $a1 i64.const 1 i64.shl local.get $a0 i64.const 63 i64.shr_u i64.or local.set $s1
+        local.get $a2 i64.const 1 i64.shl local.get $a1 i64.const 63 i64.shr_u i64.or local.set $s2
+        local.get $a3 i64.const 1 i64.shl local.get $a2 i64.const 63 i64.shr_u i64.or local.set $s3
+        local.get $s0 local.set $a0 local.get $s1 local.set $a1
+        local.get $s2 local.set $a2 local.get $s3 local.set $a3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)""",
+            "A000045": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.zero local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.const 1 local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $t0 local.set $b0 local.get $t1 local.set $b1
+        local.get $t2 local.set $b2 local.get $t3 local.set $b3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)""",
+            "A000032": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.const 2 local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.const 1 local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $t0 local.set $b0 local.get $t1 local.set $b1
+        local.get $t2 local.set $b2 local.get $t3 local.set $b3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)""",
+            "A000129": """(module
+  (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
+    (local $a0 i64) (local $a1 i64) (local $a2 i64) (local $a3 i64)
+    (local $b0 i64) (local $b1 i64) (local $b2 i64) (local $b3 i64)
+    (local $t0 i64) (local $t1 i64) (local $t2 i64) (local $t3 i64)
+    (local $i i32)
+    i256.zero local.set $a3 local.set $a2 local.set $a1 local.set $a0
+    i256.const 1 local.set $b3 local.set $b2 local.set $b1 local.set $b0
+    (block $exit
+      (loop $loop
+        local.get $i local.get $n i32.ge_s br_if $exit
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        local.get $b0 local.get $b1 local.get $b2 local.get $b3
+        i256.add
+        local.get $a0 local.get $a1 local.get $a2 local.get $a3
+        i256.add
+        local.set $t3 local.set $t2 local.set $t1 local.set $t0
+        local.get $b0 local.set $a0 local.get $b1 local.set $a1
+        local.get $b2 local.set $a2 local.get $b3 local.set $a3
+        local.get $t0 local.set $b0 local.get $t1 local.set $b1
+        local.get $t2 local.set $b2 local.get $t3 local.set $b3
+        local.get $i i32.const 1 i32.add local.set $i
+        br $loop
+      )
+    )
+    local.get $a0 local.get $a1 local.get $a2 local.get $a3
+  )
+)""",
+        }
+        for sid, wat in canary_programs.items():
+            self.add_canonical_entry(
+                oeis_id=sid,
+                wat_code=wat,
+                terms=[],
+                fuel=10,
+                step=0,
+            )
+
+    def inject_into_prompt_group(
+        self,
+        oeis_id: str,
+        candidates: List[str],
+        rewards: List[float],
+        injection_reward: float = 1.0,
+    ) -> Tuple[List[str], List[float], bool]:
+        """Injects a verified canonical trajectory if all sampled candidates failed (all rewards <= 0).
+
+        Returns (updated_candidates, updated_rewards, was_injected).
+        """
+        all_failed = all(r <= 0.0 for r in rewards) if rewards else True
+        if all_failed and self.has_entry(oeis_id):
+            entry = self.get_entry(oeis_id)
+            if entry is not None:
+                new_cands = list(candidates)
+                new_rews = list(rewards)
+                if new_cands:
+                    new_cands[0] = entry.wat_code
+                    new_rews[0] = injection_reward
+                else:
+                    new_cands.append(entry.wat_code)
+                    new_rews.append(injection_reward)
+                return new_cands, new_rews, True
+        return candidates, rewards, False

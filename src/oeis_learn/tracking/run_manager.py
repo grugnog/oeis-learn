@@ -95,6 +95,42 @@ class RunContext:
         self.metadata.summary_metrics.update(metrics)
         self._save_metadata()
 
+    def record_multilimb_telemetry(
+        self,
+        epoch: int,
+        step: int,
+        advantage_collapse_rate: float,
+        modular_filter_rejection_rate: float,
+        diophantine_solve_duration_ms: float,
+        stage_competence: Dict[str, float],
+        additional_metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Records multi-limb training telemetry to telemetry.json."""
+        record = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "epoch": epoch,
+            "step": step,
+            "advantage_collapse_rate": advantage_collapse_rate,
+            "modular_filter_rejection_rate": modular_filter_rejection_rate,
+            "diophantine_solve_duration_ms": diophantine_solve_duration_ms,
+            "stage_competence": stage_competence,
+        }
+        if additional_metrics:
+            record.update(additional_metrics)
+
+        history = []
+        if self.telemetry_file.exists():
+            try:
+                with open(self.telemetry_file, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                    if not isinstance(history, list):
+                        history = [history]
+            except Exception:
+                history = []
+        history.append(record)
+        with open(self.telemetry_file, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2)
+
     def save_config(self, config_dict: Dict[str, Any]) -> None:
         """Save a snapshot of the hyperparameters and configuration."""
         with open(self.config_path, "w", encoding="utf-8") as f:

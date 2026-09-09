@@ -42,7 +42,11 @@ def top_p_filtering(
     return logits.masked_fill(indices_to_remove, filter_value)
 
 
-def finalize_wat_tokens(token_ids: List[int], tracker: EnvironmentTracker) -> Tuple[str, List[int]]:
+def finalize_wat_tokens(
+    token_ids: List[int],
+    tracker: EnvironmentTracker,
+    max_length: int = 512,
+) -> Tuple[str, List[int]]:
     """Cleanly balances and soundly closes open paren depth and control frames if generation truncated."""
     if tracker.paren_depth > 0:
         if tracker.phase == StructuralPhase.LOCAL_NAME:
@@ -65,12 +69,12 @@ def finalize_wat_tokens(token_ids: List[int], tracker: EnvironmentTracker) -> Tu
             tracker.update("0")
 
         # Clean up control frames by popping or dropping excess items to match baseline
-        while tracker.control_stack:
+        while tracker.control_stack and len(token_ids) < max_length - 8:
             frame = tracker.control_stack[-1]
-            while len(tracker.operand_stack) > frame.baseline_stack_depth:
+            while len(tracker.operand_stack) > frame.baseline_stack_depth and len(token_ids) < max_length - 8:
                 token_ids.append(TOKEN_TO_ID["drop"])
                 tracker.update("drop")
-            while len(tracker.operand_stack) < frame.baseline_stack_depth:
+            while len(tracker.operand_stack) < frame.baseline_stack_depth and len(token_ids) < max_length - 8:
                 token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
                 tracker.update("i64.const")
                 tracker.update("0")
@@ -78,21 +82,20 @@ def finalize_wat_tokens(token_ids: List[int], tracker: EnvironmentTracker) -> Tu
             tracker.update(")")
 
         # Now in func body (paren_depth == 2)
-        # Drop excess items until 0 or 1
-        while len(tracker.operand_stack) > 1:
+        target_types = tracker.result_types if tracker.result_types else ["i64"]
+        target_len = len(target_types)
+
+        # Drop excess items until matching target_len
+        while len(tracker.operand_stack) > target_len and len(token_ids) < max_length - 8:
             token_ids.append(TOKEN_TO_ID["drop"])
             tracker.update("drop")
 
-        if tracker.operand_stack != ["i64"]:
-            if not tracker.operand_stack:
-                token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
-                tracker.update("i64.const")
-                tracker.update("0")
-            elif tracker.operand_stack[-1] == "i32":
-                token_ids.append(TOKEN_TO_ID["i64.extend_i32_u"])
-                tracker.update("i64.extend_i32_u")
+        while len(tracker.operand_stack) < target_len and len(token_ids) < max_length - 8:
+            token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
+            tracker.update("i64.const")
+            tracker.update("0")
 
-        while tracker.paren_depth > 0:
+        while tracker.paren_depth > 0 and len(token_ids) < max_length:
             token_ids.append(TOKEN_TO_ID[")"])
             tracker.update(")")
 
@@ -110,7 +113,7 @@ class WatProgramSampler:
         self,
         decoder: WatTransformerDecoder,
         grammar_masker: Optional[GrammarMasker] = None,
-        max_length: int = 128,
+        max_length: int = 256,
         temperature: float = 0.8,
         top_p: float = 0.95,
     ):

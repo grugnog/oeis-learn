@@ -1,0 +1,68 @@
+{
+  "evaluation_timestamp": "2026-09-08T22:42:13.133817+00:00",
+  "checkpoint_evaluated": "checkpoints/model_epoch_050.v2.pt",
+  "result_profile": "i256x4_v1",
+  "canary_results": [
+    {
+      "sequence_id": "A000217",
+      "name": "Triangular numbers",
+      "scalar_64bit_overflow_term": 6074001000,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 14,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    },
+    {
+      "sequence_id": "A000290",
+      "name": "The squares",
+      "scalar_64bit_overflow_term": 3037000500,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 10,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    },
+    {
+      "sequence_id": "A000079",
+      "name": "Powers of 2",
+      "scalar_64bit_overflow_term": 63,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 5372,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    },
+    {
+      "sequence_id": "A000045",
+      "name": "Fibonacci numbers",
+      "scalar_64bit_overflow_term": 93,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 11211,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    },
+    {
+      "sequence_id": "A000032",
+      "name": "Lucas numbers",
+      "scalar_64bit_overflow_term": 91,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 11211,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    },
+    {
+      "sequence_id": "A000129",
+      "name": "Pell numbers",
+      "scalar_64bit_overflow_term": 51,
+      "observed_matched": true,
+      "unseen_matched": true,
+      "overflow_prevented": true,
+      "fuel_consumed": 18470,
+      "verdict": "EXTRAPOLATING_SUCCESS"
+    }
+  ],
+  "all_canaries_passed": true
+}

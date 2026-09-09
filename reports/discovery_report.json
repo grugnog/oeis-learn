@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "report_id": "rep_disc_1788710748",
+  "report_id": "rep_disc_1788799710",
   "run_id": "discovery_run_42",
-  "created_at": "2026-09-06T16:05:48.253615+00:00",
-  "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+  "created_at": "2026-09-07T16:48:29.833599+00:00",
+  "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
   "benchmark_manifest_sha256": "sha256:eb2a1ed1bfaf72933961cea1f86065744cf54430623b3b006247eb866264b172",
   "protocol": {
     "search_indices": [
@@ -183,9 +183,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_003",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.28340718150138855,
+          "vector_distance": 0.1828901767730713,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -492,24 +492,24 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-06T16:05:48.401474+00:00",
+        "verified_at": "2026-09-07T16:48:29.958749+00:00",
         "diagnostic": null
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         },
         {
           "status": "SYMBOLICALLY_PROVEN_IDENTITY",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "SYMPY_REDUCTION"
         }
       ]
@@ -547,9 +547,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_005",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4557769298553467,
+          "vector_distance": 0.2540450096130371,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -849,7 +849,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -887,9 +887,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_006",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4972318112850189,
+          "vector_distance": 0.25790461897850037,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -1189,7 +1189,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1227,9 +1227,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_007",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5106959939002991,
+          "vector_distance": 0.24981547892093658,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -1529,7 +1529,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1567,9 +1567,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_008",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4409455955028534,
+          "vector_distance": 0.2409040331840515,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -1869,7 +1869,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1907,9 +1907,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_009",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.44436341524124146,
+          "vector_distance": 0.2756897807121277,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -2209,7 +2209,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2247,9 +2247,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_010",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4773160517215729,
+          "vector_distance": 0.25641319155693054,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -2549,7 +2549,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2587,9 +2587,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_011",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.49637120962142944,
+          "vector_distance": 0.26120761036872864,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -2889,7 +2889,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2927,9 +2927,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_012",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4896729290485382,
+          "vector_distance": 0.3032408654689789,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -3229,7 +3229,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3267,9 +3267,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_013",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5264080762863159,
+          "vector_distance": 0.31609979271888733,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -3569,7 +3569,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3607,9 +3607,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_014",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5595787763595581,
+          "vector_distance": 0.3343680799007416,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -3909,7 +3909,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3947,9 +3947,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_016",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5886321067810059,
+          "vector_distance": 0.3509221076965332,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -4249,7 +4249,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4287,9 +4287,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_017",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5764039158821106,
+          "vector_distance": 0.32711416482925415,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -4589,7 +4589,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4627,9 +4627,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_018",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.6487202644348145,
+          "vector_distance": 0.373628705739975,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -4929,7 +4929,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4967,9 +4967,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_019",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.44438880681991577,
+          "vector_distance": 0.20988446474075317,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -5269,7 +5269,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5307,9 +5307,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_020",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.47170528769493103,
+          "vector_distance": 0.25108039379119873,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -5609,7 +5609,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5647,9 +5647,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_021",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.47621551156044006,
+          "vector_distance": 0.25238335132598877,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -5949,7 +5949,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5987,9 +5987,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_022",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.509570837020874,
+          "vector_distance": 0.27211853861808777,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -6289,7 +6289,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6327,9 +6327,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_023",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.45003053545951843,
+          "vector_distance": 0.25174713134765625,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -6629,7 +6629,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6667,9 +6667,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_024",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4390738010406494,
+          "vector_distance": 0.2900250256061554,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -6969,7 +6969,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7007,9 +7007,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_025",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.43853139877319336,
+          "vector_distance": 0.24612867832183838,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -7309,7 +7309,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7347,9 +7347,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_027",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.525986909866333,
+          "vector_distance": 0.29084426164627075,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -7649,7 +7649,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7687,9 +7687,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_028",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5358757376670837,
+          "vector_distance": 0.3124626874923706,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -7989,7 +7989,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8027,9 +8027,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_029",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5211169719696045,
+          "vector_distance": 0.3248426914215088,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -8329,7 +8329,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8367,9 +8367,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_031",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.33450788259506226,
+          "vector_distance": 0.18417811393737793,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -8669,7 +8669,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8707,9 +8707,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_032",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3678583800792694,
+          "vector_distance": 0.19990834593772888,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -9009,7 +9009,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9047,9 +9047,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_034",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4258113503456116,
+          "vector_distance": 0.23038850724697113,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -9349,7 +9349,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9387,9 +9387,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_035",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3569316267967224,
+          "vector_distance": 0.20292547345161438,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -9689,7 +9689,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9727,9 +9727,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_037",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3440486788749695,
+          "vector_distance": 0.16966311633586884,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -10029,7 +10029,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10067,9 +10067,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_038",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4190058708190918,
+          "vector_distance": 0.24688412249088287,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -10369,7 +10369,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10407,9 +10407,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_039",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.27530142664909363,
+          "vector_distance": 0.18588252365589142,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -10709,7 +10709,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10747,9 +10747,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_040",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3440486788749695,
+          "vector_distance": 0.16966311633586884,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -11049,7 +11049,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11087,9 +11087,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_041",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4113743305206299,
+          "vector_distance": 0.2247721403837204,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -11388,19 +11388,19 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-06T16:05:48.443858+00:00",
+        "verified_at": "2026-09-07T16:48:30.005014+00:00",
         "diagnostic": "Missing definition for operand A100001"
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         }
       ]
@@ -11438,9 +11438,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_042",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3962428569793701,
+          "vector_distance": 0.22860996425151825,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -11740,7 +11740,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11778,9 +11778,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_043",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.48846954107284546,
+          "vector_distance": 0.244175523519516,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -12080,7 +12080,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12118,9 +12118,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_044",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.40499231219291687,
+          "vector_distance": 0.2533164322376251,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -12420,7 +12420,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12458,9 +12458,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_045",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.47162020206451416,
+          "vector_distance": 0.3088952600955963,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -12760,7 +12760,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12798,9 +12798,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_046",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.43078404664993286,
+          "vector_distance": 0.26275911927223206,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -13100,7 +13100,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13138,9 +13138,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_047",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.48954078555107117,
+          "vector_distance": 0.2746672034263611,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -13440,7 +13440,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13478,9 +13478,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_048",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.5027685761451721,
+          "vector_distance": 0.33321207761764526,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -13780,7 +13780,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13818,9 +13818,9 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_049",
-          "checkpoint_sha256": "sha256:d48db3113e74cfd896b058cdf170ed0158d8533f1c070df80c0874dd8acbed43",
+          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.4781780540943146,
+          "vector_distance": 0.3190358877182007,
           "search_parameters": {
             "distance_threshold": 0.8
           },
@@ -14120,7 +14120,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-06T16:05:48.253615+00:00",
+          "created_at": "2026-09-07T16:48:29.833599+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]

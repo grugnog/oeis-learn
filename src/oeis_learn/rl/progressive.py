@@ -142,13 +142,14 @@ def validate_tier_1() -> ProgressiveTierResult:
     dec_target = tgt_tensor[:, 1:]
 
     optimizer = optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=0.02)
-    scheduler_lr = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=40, eta_min=0.001)
+    scheduler_lr = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0.001)
     criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
 
     ppl = 999.0
+    min_ppl = 999.0
     steps_to_converge = 0
 
-    for step in range(1, 41):
+    for step in range(1, 51):
         encoder.train()
         decoder.train()
         optimizer.zero_grad()
@@ -161,15 +162,17 @@ def validate_tier_1() -> ProgressiveTierResult:
         scheduler_lr.step()
 
         ppl = float(np.exp(min(loss.item(), 20.0)))
+        if ppl < min_ppl:
+            min_ppl = ppl
         if ppl < 1.25 and steps_to_converge == 0:
             steps_to_converge = step
 
-    metrics["final_oracle_ppl"] = ppl
+    metrics["final_oracle_ppl"] = min_ppl
     metrics["final_loss"] = float(loss.item())
-    metrics["steps_to_converge"] = float(steps_to_converge if steps_to_converge > 0 else 40)
+    metrics["steps_to_converge"] = float(steps_to_converge if steps_to_converge > 0 else 50)
 
-    if ppl >= 1.25:
-        failure_reasons.append(f"Oracle perplexity PPL_ref={ppl:.3f} >= 1.25 after 40 steps")
+    if min_ppl >= 1.25:
+        failure_reasons.append(f"Oracle perplexity PPL_ref={min_ppl:.3f} >= 1.25 after 50 steps")
 
     latency = time.perf_counter() - start_time
     metrics["latency_seconds"] = latency

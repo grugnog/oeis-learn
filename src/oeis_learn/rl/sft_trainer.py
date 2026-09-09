@@ -32,6 +32,7 @@ class SftTrainer:
         weight_decay: float = 0.01,
         batch_size: int = 16,
         device: Optional[torch.device] = None,
+        multilimb: bool = False,
     ):
         self.dataset_path = dataset_path
         self.output_checkpoint = output_checkpoint
@@ -40,6 +41,7 @@ class SftTrainer:
         self.min_lr = min_lr
         self.weight_decay = weight_decay
         self.batch_size = batch_size
+        self.multilimb = multilimb
         self.device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
 
         # Initialize models (FP32 strict)
@@ -63,9 +65,13 @@ class SftTrainer:
             logger.info(f"Loaded {len(dataset.samples)} SFT demonstration pairs from {self.dataset_path}")
             return dataset.samples
 
-        logger.info(f"Dataset not found at {self.dataset_path}. Generating 1,000 synthetic demonstrations...")
         gen = SyntheticDemonstrationGenerator()
-        dataset = gen.generate_dataset(num_samples=1000)
+        if self.multilimb:
+            logger.info(f"Dataset not found at {self.dataset_path}. Generating 5,000 multi-limb synthetic demonstrations...")
+            dataset = gen.generate_multilimb_dataset(num_samples=5000)
+        else:
+            logger.info(f"Dataset not found at {self.dataset_path}. Generating 1,000 synthetic demonstrations...")
+            dataset = gen.generate_dataset(num_samples=1000)
         gen.save_dataset(dataset, self.dataset_path)
         return dataset.samples
 
@@ -150,6 +156,154 @@ class SftTrainer:
             "epochs_trained": self.epochs,
             "checkpoint": self.output_checkpoint,
         }
+
+    def train_embedding_warmup(
+        self,
+        steps: int = 1500,
+        lr: float = 1.0e-4,
+        batch_size: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Phase 2: Trains only embedding and head weights on demonstrations while backbones are frozen."""
+        bs = batch_size or self.batch_size
+        samples = self.load_or_generate_dataset()
+        logger.info(f"Starting Phase 2 Embedding Warmup ({steps} steps, lr={lr})...")
+
+        # Freeze encoder and decoder transformer layers
+        for param in self.encoder.parameters():
+            param.requires_grad = False
+        for name, param in self.decoder.named_parameters():
+            if "token_embedding" in name or "lm_head" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
+        warmup_params = [p for p in self.decoder.parameters() if p.requires_grad]
+        optimizer = optim.AdamW(warmup_params, lr=lr, weight_decay=self.weight_decay)
+
+        self.encoder.eval()
+        self.decoder.train()
+
+        loss_accum = 0.0
+        import random
+
+        for step in range(1, steps + 1):
+            batch_samples = random.sample(samples, min(bs, len(samples)))
+            seq_list = [s.terms[:20] for s in batch_samples]
+            tgt_token_lists = []
+            for s in batch_samples:
+                encoded = [BOS_ID] + encode_wat(s.wat_code) + [EOS_ID]
+                tgt_token_lists.append(torch.tensor(encoded, dtype=torch.long))
+
+            max_len = max(len(t) for t in tgt_token_lists)
+            tgt_batch = torch.full((len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device)
+            for b_idx, t_tensor in enumerate(tgt_token_lists):
+                tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
+
+            dec_input = tgt_batch[:, :-1]
+            dec_target = tgt_batch[:, 1:]
+
+            optimizer.zero_grad()
+            with torch.no_grad():
+                memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
+
+            pad_mask = (dec_input == PAD_ID)
+            logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
+            loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
+            loss.backward()
+            nn.utils.clip_grad_norm_(warmup_params, max_norm=1.0)
+            optimizer.step()
+
+            loss_accum += loss.item()
+            if step % 250 == 0:
+                logger.info(f"Warmup Step {step:04d}/{steps:04d} | Loss: {loss_accum / 250:.4f}")
+                loss_accum = 0.0
+
+        checkpoint_path = self.output_checkpoint.replace(".pt", "_warmup.pt")
+        self.save_checkpoint(checkpoint_path, epoch=1, loss=loss.item())
+        return {"status": "SUCCESS", "steps": steps, "final_loss": loss.item(), "checkpoint": checkpoint_path}
+
+    def train_joint_bridge(
+        self,
+        steps: int = 5000,
+        encoder_lr: float = 1.0e-5,
+        decoder_lr: float = 5.0e-5,
+        heads_lr: float = 1.0e-4,
+        batch_size: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Phase 3: Joint SFT Bridge training with discriminative learning rates."""
+        bs = batch_size or self.batch_size
+        samples = self.load_or_generate_dataset()
+        logger.info(f"Starting Phase 3 Joint SFT Bridge ({steps} steps)...")
+
+        # Unfreeze top layers of encoder and full decoder
+        enc_params_top2 = []
+        for name, param in self.encoder.named_parameters():
+            if "layers.2" in name or "layers.3" in name or "norm" in name:
+                param.requires_grad = True
+                enc_params_top2.append(param)
+            else:
+                param.requires_grad = False
+
+        dec_backbone_params = []
+        head_params = []
+        for name, param in self.decoder.named_parameters():
+            if "token_embedding" in name or "lm_head" in name:
+                param.requires_grad = True
+                head_params.append(param)
+            else:
+                param.requires_grad = True
+                dec_backbone_params.append(param)
+
+        optimizer = optim.AdamW(
+            [
+                {"params": enc_params_top2, "lr": encoder_lr},
+                {"params": dec_backbone_params, "lr": decoder_lr},
+                {"params": head_params, "lr": heads_lr},
+            ],
+            weight_decay=self.weight_decay,
+        )
+
+        self.encoder.train()
+        self.decoder.train()
+
+        loss_accum = 0.0
+        import random
+
+        for step in range(1, steps + 1):
+            batch_samples = random.sample(samples, min(bs, len(samples)))
+            seq_list = [s.terms[:20] for s in batch_samples]
+            tgt_token_lists = []
+            for s in batch_samples:
+                encoded = [BOS_ID] + encode_wat(s.wat_code) + [EOS_ID]
+                tgt_token_lists.append(torch.tensor(encoded, dtype=torch.long))
+
+            max_len = max(len(t) for t in tgt_token_lists)
+            tgt_batch = torch.full((len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device)
+            for b_idx, t_tensor in enumerate(tgt_token_lists):
+                tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
+
+            dec_input = tgt_batch[:, :-1]
+            dec_target = tgt_batch[:, 1:]
+
+            optimizer.zero_grad()
+            memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
+            pad_mask = (dec_input == PAD_ID)
+            logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
+            loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
+            loss.backward()
+
+            all_params = enc_params_top2 + dec_backbone_params + head_params
+            nn.utils.clip_grad_norm_(all_params, max_norm=1.0)
+            optimizer.step()
+
+            loss_accum += loss.item()
+            if step % 500 == 0:
+                logger.info(f"Joint Bridge Step {step:04d}/{steps:04d} | Loss: {loss_accum / 500:.4f}")
+                loss_accum = 0.0
+
+        checkpoint_path = self.output_checkpoint.replace(".pt", "_bridge.pt")
+        self.save_checkpoint(checkpoint_path, epoch=1, loss=loss.item())
+        return {"status": "SUCCESS", "steps": steps, "final_loss": loss.item(), "checkpoint": checkpoint_path}
 
     def save_checkpoint(self, path: str, epoch: int, loss: float) -> None:
         """Saves encoder & decoder weights to checkpoint."""

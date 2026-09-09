@@ -112,5 +112,11 @@
     "ablation_report"
   ],
   "native_evaluator_required": true,
+  "result_profile": "i256x4_v1",
+  "execution_limits": {
+    "fuel_budget": 10000,
+    "memory_limit_bytes": 0,
+    "zero_linear_memory_enforced": true
+  },
   "policy_id": "sha256:cfbb7afd87874fa04a56208a8d5433739a165db4ee8a7eb2fa0aa2c8ad9fb4a8"
 }

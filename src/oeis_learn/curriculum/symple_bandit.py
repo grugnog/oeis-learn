@@ -19,10 +19,12 @@ class Exp3SBanditScheduler:
         gamma: float = 0.15,
         alpha: float = 0.05,
         competence_window: int = 20,
+        gamma_floor: float = 0.25,
     ):
         self.sequence_ids = list(sequence_ids)
         self.K = max(1, len(self.sequence_ids))
-        self.gamma = gamma
+        self.gamma_floor = gamma_floor
+        self.gamma = max(gamma, gamma_floor)
         self.alpha = alpha
         self.window_size = competence_window
 
@@ -30,6 +32,12 @@ class Exp3SBanditScheduler:
         self.weights: Dict[str, float] = {sid: 1.0 for sid in self.sequence_ids}
         self.histories: Dict[str, List[int]] = {sid: [] for sid in self.sequence_ids}
         self.last_visited: Dict[str, int] = {sid: 0 for sid in self.sequence_ids}
+
+    def recalibrate_uniform(self, gamma_floor: float = 0.25) -> None:
+        """Recalibrates all bandit weights to uniform and updates exploration floor."""
+        self.gamma_floor = gamma_floor
+        self.gamma = max(self.gamma, gamma_floor)
+        self.weights = {sid: 1.0 for sid in self.sequence_ids}
 
     def get_competence(self, oeis_id: str) -> float:
         """Computes rolling pass competence p_hat in [0.0, 1.0]."""
