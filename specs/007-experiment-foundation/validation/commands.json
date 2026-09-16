@@ -1,0 +1,106 @@
+{
+  "repository_baseline": "aa2c8c4579dd74fdd8114ec9456960a98fcf500e",
+  "speckit_version": "1.0.7",
+  "speckit_commit": "fe1d00e3ccaf495880aaf90fb0e17679e82f065b",
+  "commands": [
+    {
+      "command": [
+        "specify",
+        "version"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.165775+00:00",
+      "stdout": "              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557   \u2588\u2588\u2557              \n              \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u255a\u2588\u2588\u2557 \u2588\u2588\u2554\u255d              \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557   \u255a\u2588\u2588\u2588\u2588\u2554\u255d               \n              \u255a\u2550\u2550\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u255d  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255d    \u255a\u2588\u2588\u2554\u255d                \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2551\u2588\u2588\u2551        \u2588\u2588\u2551                 \n              \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d     \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d\u255a\u2550\u255d        \u255a\u2550\u255d                 \n                                                                                \n               GitHub Spec Kit - Spec-Driven Development Toolkit                \n\n\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Specify CLI Information \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502                                                                              \u2502\n\u2502     CLI Version    1.0.7                                                     \u2502\n\u2502                                                                              \u2502\n\u2502          Python    3.12.14                                                   \u2502\n\u2502        Platform    Linux                                                     \u2502\n\u2502    Architecture    x86_64                                                    \u2502\n\u2502      OS Version    #1 SMP Sat Sep 12 15:35:21 UTC 2026                       \u2502\n\u2502                                                                              \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "specify",
+        "integration",
+        "status"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.451794+00:00",
+      "stdout": "Integration status: OK\nDefault integration: codex\nInstalled integrations: codex\nMulti-install safe: yes\nShared templates target alignment: codex\nModified managed files: 0\nMissing managed files: 0\nInvalid manifest paths: 0\nUnchecked manifests: 0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "specify",
+        "check"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.708499+00:00",
+      "stdout": "              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557   \u2588\u2588\u2557              \n              \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u255a\u2588\u2588\u2557 \u2588\u2588\u2554\u255d              \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557   \u255a\u2588\u2588\u2588\u2588\u2554\u255d               \n              \u255a\u2550\u2550\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u255d  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255d    \u255a\u2588\u2588\u2554\u255d                \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2551\u2588\u2588\u2551        \u2588\u2588\u2551                 \n              \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d     \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d\u255a\u2550\u255d        \u255a\u2550\u255d                 \n                                                                                \n               GitHub Spec Kit - Spec-Driven Development Toolkit                \n\nChecking for installed tools...\n\nCheck Available Tools\n\u251c\u2500\u2500 \u25cf Antigravity (not found)\n\u251c\u2500\u2500 \u25cf Alquimia AI (not found)\n\u251c\u2500\u2500 \u25cf Amp (not found)\n\u251c\u2500\u2500 \u25cf Auggie CLI (not found)\n\u251c\u2500\u2500 \u25cb IBM Bob (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Claude Code (not found)\n\u251c\u2500\u2500 \u25cb Cline (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf CodeBuddy (not found)\n\u251c\u2500\u2500 \u25cf Codex CLI (not found)\n\u251c\u2500\u2500 \u25cf Command Code (not found)\n\u251c\u2500\u2500 \u25cb GitHub Copilot (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cb Cursor (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Devin for Terminal (not found)\n\u251c\u2500\u2500 \u25cf Docker Agent (not found)\n\u251c\u2500\u2500 \u25cf Factory Droid (not found)\n\u251c\u2500\u2500 \u25cf DeepSeek Harness (not found)\n\u251c\u2500\u2500 \u25cb Firebender (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Forge (not found)\n\u251c\u2500\u2500 \u25cf Gemini CLI (not found)\n\u251c\u2500\u2500 \u25cf Goose (not found)\n\u251c\u2500\u2500 \u25cf Grok Build (not found)\n\u251c\u2500\u2500 \u25cf Hermes Agent (not found)\n\u251c\u2500\u2500 \u25cf Junie (not found)\n\u251c\u2500\u2500 \u25cb Kilo Code (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Kimi Code (not found)\n\u251c\u2500\u2500 \u25cf Kiro CLI (not found)\n\u251c\u2500\u2500 \u25cb Lingma (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Muse Code (not found)\n\u251c\u2500\u2500 \u25cf Oh My Pi (not found)\n\u251c\u2500\u2500 \u25cf opencode (not found)\n\u251c\u2500\u2500 \u25cf Pi Coding Agent (not found)\n\u251c\u2500\u2500 \u25cf Qoder CLI (not found)\n\u251c\u2500\u2500 \u25cf Qwen Code (not found)\n\u251c\u2500\u2500 \u25cf RovoDev ACLI (not found)\n\u251c\u2500\u2500 \u25cf SHAI (not found)\n\u251c\u2500\u2500 \u25cf Tabnine CLI (not found)\n\u251c\u2500\u2500 \u25cb Trae (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Mistral Vibe (not found)\n\u251c\u2500\u2500 \u25cf ZCode (not found)\n\u251c\u2500\u2500 \u25cb Zed (IDE-based, no CLI check)\n\u251c\u2500\u2500 \u25cf Visual Studio Code (available)\n\u2514\u2500\u2500 \u25cf Visual Studio Code Insiders (not found)\n\nSpecify CLI is ready to use!\nTip: Install a coding agent for the best experience\nTip: Run 'specify self check' to verify you have the latest CLI version\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/setup-plan.sh",
+        "--json"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.731028+00:00",
+      "stdout": "{\"FEATURE_SPEC\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/spec.md\",\"IMPL_PLAN\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/plan.md\",\"FEATURE_DIR\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation\",\"BRANCH\":\"007-experiment-foundation\"}\n",
+      "stderr": "Plan already exists at /workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/plan.md, skipping template copy\n"
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/setup-tasks.sh",
+        "--json"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.769301+00:00",
+      "stderr": "",
+      "stdout_summary": {
+        "FEATURE_DIR": "/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation",
+        "AVAILABLE_DOCS": [
+          "research.md",
+          "data-model.md",
+          "contracts/",
+          "quickstart.md"
+        ],
+        "TASKS_TEMPLATE": "/workspace/scratch/7932b47d0411/oeis-learn/.specify/templates/tasks-template.md",
+        "TASKS_TEMPLATE_SHA256": "b0f527d41e546af0c31903e04f9b20965b6b497b573792198f663a64ce128863",
+        "TASKS_TEMPLATE_CHARACTERS": 9134
+      }
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/check-prerequisites.sh",
+        "--json",
+        "--require-spec",
+        "--require-tasks",
+        "--include-tasks"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.794736+00:00",
+      "stdout": "{\"FEATURE_DIR\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation\",\"AVAILABLE_DOCS\":[\"research.md\",\"data-model.md\",\"contracts/\",\"quickstart.md\",\"tasks.md\"]}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python",
+        "specs/007-experiment-foundation/validate_artifacts.py"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.960371+00:00",
+      "stdout": "{\n  \"status\": \"pass\",\n  \"scope\": \"document structure, links, coverage, dependency graph and schema shapes only\",\n  \"requirements\": 26,\n  \"coverage_percent\": 100,\n  \"tasks\": 52,\n  \"tasks_by_story\": {\n    \"setup_and_foundation\": 8,\n    \"US1\": 11,\n    \"US2\": 10,\n    \"US3\": 8,\n    \"US4\": 12,\n    \"cross_cutting\": 3\n  },\n  \"local_links_checked\": 21,\n  \"positive_schema_fixtures\": 3,\n  \"negative_schema_cases\": 14,\n  \"runtime_gates_executed\": false,\n  \"constitution_adoption_claimed\": false\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "checked_at": "2026-09-16T19:39:34.966925+00:00",
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

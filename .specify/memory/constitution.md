@@ -1,101 +1,51 @@
-<!--
-Sync Impact Report:
-- Version change: Uninitialized → 1.0.0
-- List of modified principles:
-  - I. Exact Multi-Axis Number Representation & Strict FP32 Precision (Added)
-  - II. Provably Sound Grammar-Guided WAT Synthesis (Added)
-  - III. Sandboxed Deterministic Execution & Strict Resource Bounding (Added)
-  - IV. Workstation-First Feasibility & Tiered Architectural Scaling (Added)
-  - V. Rigorous Curriculum Progression & Anti-Memorization Verification (Added)
-  - VI. Localized Execution-Guided Credit Assignment & Non-Contrastive Discovery (Added)
-- Added sections:
-  - Hardware Constraints & Operational Division of Labor
-  - Development Workflow, MVP Acceptance Gates & Quality Standards
-- Removed sections: None
-- Follow-up TODOs: None
--->
-
 # OEIS Learn Constitution
+
+**Amendment status**: Proposed version 2.0.0 on the 007 feature branch. Version 1.0.0 remains the ratified main-branch baseline until maintainers adopt [RFC 007](../../specs/007-experiment-foundation/constitution-rfc.md) with its required feasibility evidence. This file records the proposed rules explicitly so planning can be checked against them; it does not assert approval or completed benchmarks.
 
 ## Core Principles
 
-### I. Exact Multi-Axis Number Representation & Strict FP32 Precision
-The neural encoder MUST process integer sequence terms without unconstrained tokenization, continuous float approximations, or out-of-vocabulary truncation. Integer representations MUST use a Tri-Stream Continuous Neural Architecture combining:
-1. **Magnitude Stream ($S_1$):** Signed logarithmic transformation $v_i = \text{sign}(x_i) \cdot (1 + \log_{10}(|x_i| + 1))$ projected via MLP.
-2. **Modulo-Spectrum Stream ($S_2$):** Continuous sine/cosine Fourier phase embeddings across 100 moduli ($m \in \{2, \dots, 101\}$) to capture periodicity and modular congruences.
-3. **Local Difference & $p$-Adic Stream ($S_3$):** Logarithmic first difference ($\Delta x_i$), second difference ($\Delta^2 x_i$), and ordinal embeddings for $p$-adic valuations ($v_p(x_i)$ for $p \le 13$).
+### I. Exact authoritative data and declared numerical semantics
 
-Streams MUST be unified using Hierarchical Two-Stage FiLM Fusion ($S_2$ modulates $S_1$ to form $H_{12}$; $S_3$ modulates $H_{12}$ to yield final unified embedding $Z_i$).
-All encoder forward passes, backward passes, and intermediate state computations MUST run in strict FP32 precision (no FP16/BF16 mixed precision) to prevent phase function gradient underflow and catastrophic cancellation.
+Sequence source values, program constants and verification results MUST preserve exact integers and source indices. Every executable language profile MUST specify signedness, width, exceptional operations, intermediate limits and return representation. Logical overflow MUST be classified according to that profile, independently of intentional limb carry arithmetic. Training features may be lossy neural representations, but MUST NOT replace authoritative exact values or be described as mathematically injective without proof. Precision and architecture MUST be frozen in each run contract and tested for finite forward/backward behavior.
 
-### II. Provably Sound Grammar-Guided WAT Synthesis
-Program generation MUST directly target WebAssembly Text (WAT) S-expressions rather than unconstrained source code or arbitrary token sequences. Program generation MUST enforce the following constraints:
-- The autoregressive Transformer Decoder MUST condition on latent sequence embeddings $Z$ and be strictly constrained by dynamic Earley-based grammar masking engines (`llguidance` or `XGrammar-2`) operating over byte-level tries.
-- Per-token grammar evaluation latency MUST NOT exceed $100\,\mu\text{s}$.
-- The grammar MUST be Environment-Indexed to maintain lexical scope tracking of declared local variables and evaluation stack depth, guaranteeing 100% syntactically valid WASM compilation and strict No-Ghost Soundness (zero invalid variable references or uninitialized stack operations).
+### II. Supported program languages and independent acceptance
 
-### III. Sandboxed Deterministic Execution & Strict Resource Bounding
-All generated algorithms MUST be compiled and executed within a strictly isolated, deterministic WASM sandbox:
-- In-memory translation from WAT to WASM MUST use `wasmtime` or native Rust `wat::parse_str`.
-- Every module execution MUST be injected with a non-negotiable fuel budget capped at 10,000 instructions and a strict memory ceiling of 16 MiB linear memory to guarantee prompt termination of infinite loops or unbounded memory allocations.
-- WASM evaluations MUST be decoupled from Python's Global Interpreter Lock (GIL) and executed via a native Rust PyO3 extension utilizing Rayon worker pools across CPU cores. Host Python environments MUST never block on or crash from untrusted user/model-generated WAT execution.
+An experiment MUST declare its grammar, available primitives, entry point and complete token/operand encoding. Constrained generation MUST target that declared subset; invalid or unsupported programs MUST be rejected before acceptance. Any transformation or constant grounding MUST be followed by final-source validation and exact execution checks. Independent conformance expectations MUST NOT be computed by the production arithmetic/lowering being tested. A language, grammar library, runtime or helper primitive is an experimental choice and a disclosed prior, not a universal requirement.
 
-### IV. Workstation-First Feasibility & Tiered Architectural Scaling
-System components MUST follow a strict two-tier execution model to ensure full local prototyping, testability, and algorithmic validation before scaling to high-compute clusters:
-- **Tier 1 (Local Workstation Baseline):** Target hardware is bounded to 4 CPU cores / 8 threads (e.g., Intel Xeon E3-1505M v5), 64 GB DDR4 RAM, and 4 GB VRAM (e.g., NVIDIA Quadro M2000M Maxwell). Model backbones MUST use scaled embedding dimensions ($d = 256$ or $d = 384$), context horizons capped at $N = 10 \dots 20$ terms, GPU micro-batches of 4–8, and 100% of WASM executions offloaded to 8 CPU threads.
-- **Tier 2 (High-Performance Scale-Up):** Full dataset expansion (390,000+ OEIS sequences), full hidden dimension ($d = 768$), and multi-GPU cluster training (A100/H100) MUST only be initiated after Tier 1 achieves verified graduation ($>85\%$ pass rate on Curriculum Stage 2).
+### III. Bounded execution and recoverable operation
 
-### V. Rigorous Curriculum Progression & Anti-Memorization Verification
-Data ingestion and model training MUST progress through a 5-stage taxonomy-aligned curriculum derived from `jOEIS` and `oeisdata` metadata:
-1. *Stage 1 (Primitives & Polynomials):* Closed-form polynomials, linear loops (`easy`, `core`, `nonn`).
-2. *Stage 2 (Linear Recurrences & Rational GFs):* Order-$k$ linear recurrences, sliding-window buffers (`core`, `frac`, `cons`, `mult`).
-3. *Stage 3 (Holonomic & D-Finite):* P-finite recurrences, lower-triangular sequence arrays (`nice`, `cofr`, `tabl`, `tabf`).
-4. *Stage 4 (Combinatorics & Number Theory):* Divisor sums, prime factorizations, digital roots (`hard`, `base`, `eigen`).
-5. *Stage 5 (Exhaustive Search & Graph Invariants):* Backtracking searches, dynamic heap allocations, graph algorithms (`hard`, `bref`, `more`).
+Generated programs MUST execute under finite memory, per-call and aggregate work limits plus an external wall-time deadline. Host process isolation and worker recovery MUST contain hangs and runtime crashes. Queue, cache, checkpoint, log and disk budgets MUST be explicit and enforced. The chosen runtime may use isolated processes or qualified native workers; backend changes MUST preserve the declared semantics or create a new profile. Unavailable metrics MUST be marked unavailable, never invented.
 
-Stage graduation MUST satisfy: Rolling Task Competence $C(S_k) \ge 0.85$, Coverage Equilibrium $\min(\hat{\rho}_x) \ge 0.50$, and low epoch variance $\mathbb{Var}[C_e(S_k)] \le \varepsilon_{\text{var}}$.
-Candidates MUST pass Extrapolation Horizon Testing ($N+K$ terms with $N=20, K=100$) and maintain a Minimum Description Length (MDL) ratio $M_{\text{MDL}} \le 1.2$ relative to sequence Lempel-Ziv complexity to eliminate lookup tables and Lagrange polynomial memorization.
+### IV. Workstation feasibility and reproducible experiments
 
-### VI. Localized Execution-Guided Credit Assignment & Non-Contrastive Discovery
-Reinforcement learning and mathematical discovery pipelines MUST enforce deterministic attribution and collapse-free representation learning:
-- Policy optimization MUST use Execution-Guided Credit Assignment GRPO (EGCA-GRPO) with Asymmetric Prompt Weighting and binary reward ($\pm 1$). The execution trace MUST pinpoint the exact token where sequence output deviates from ground truth $A(n)$, concentrating gradients onto localized error windows to prevent zero-advantage collapse on hard prompts.
-- Latent sequence representations MUST be trained using non-contrastive VICReg (Variance-Invariance-Covariance Regularization) over positive sequence transformations (partial sums, first differences, binomial transforms, shift operators).
-- Conjectured latent vector relations ($\vec{v}_A + \vec{v}_B \approx \vec{v}_C$) MUST undergo arbitrary-precision validation via `mpmath`, integer relation discovery via the PSLQ algorithm, and symbolic theorem proving via SymPy or SageMath before acceptance.
+The run contract MUST identify hardware, software, effective configuration, seeds and budget accounting. Accelerator readiness MUST demonstrate real forward/backward parameter updates on the requested device; silent CPU fallback is prohibited. On the user's NixOS workstation, native/toolchain dependencies beyond a simple Python virtual environment MUST run in Docker. Host driver changes require a separate explicit action, not an automatic setup step. Complete checkpoints MUST restore active learning, RNG, data-order and budget state at update boundaries; weights-only artifacts are not resumable runs.
+
+### V. Strict provenance and isolated generalization evaluation
+
+The primary strict track MUST start from random weights and use mechanically generated generic-program demonstrations. Imported OEIS/LODA programs, named sequence-family teachers, metadata-guided scaffolds and unaudited legacy replay are excluded. An assisted track requires an explicit separate decision and distinct provenance. Exact source terms may support frozen evaluation, but hidden evaluation values MUST be inaccessible to learning, candidate generation and selection. Splits MUST keep detectable duplicate/prefix/shift groups together and report limitations. The visible prefix, verification horizon, attempt/time budgets and scoring denominator MUST be frozen before the run. Finite continuation is evidence of finite agreement, not proof of a unique generating rule.
+
+### VI. Honest discovery and scoped proof
+
+Reports MUST distinguish finite matches, conjectures, bounded verification and proved statements. Proof promotion MUST require a sound, replayable certificate with explicit assumptions and domain; unqualified legacy proof labels cannot satisfy this rule. Novelty requires separate comparison with existing knowledge and MUST NOT follow merely from model generation. Program archives MUST retain provenance, numerical/resource profiles and verification scope so later analysis can assess the evidence independently.
 
 ## Hardware Constraints & Operational Division of Labor
 
-The system enforces strict segregation of computational responsibilities between host CPU and GPU devices:
-
-- **GPU Subsystem Scope:** Dedicated exclusively to neural forward and backward passes (Tri-Stream Encoder, Transformer Decoder, and VICReg projection heads). Tensor allocations MUST fit within 4 GB VRAM in Tier 1 via strict micro-batching (4–8) and gradient accumulation.
-- **CPU Subsystem Scope:** Dedicated to data ingestion, feature generation, SQLite/DuckDB index queries, and multithreaded WASM sandbox execution via native Rust Rayon worker pools (8 concurrent worker threads).
-- **Zero-Crash Resilience:** Sandboxed WAT execution MUST handle infinite recursion, runtime traps (division by zero, out-of-bounds memory), and fuel exhaustion gracefully without raising unhandled panics or segfaults in the host Python process.
+The initial new experimental target is AMD Ryzen AI Max+ 395, 128 GB shared RAM and a 2 TB SSD running NixOS. CPU workers perform bounded execution/data checks and a single learner performs neural updates. Actual worker counts, memory partitions, precision and token budgets belong to versioned experiment profiles and MUST be validated on this hardware. The original four-core/4 GB GPU laptop remains a historical and optional diagnostic target, not a mandatory graduation gate for this machine. Docker does not provide missing host kernel/GPU support.
 
 ## Development Workflow, MVP Acceptance Gates & Quality Standards
 
-All development, testing, and contribution activities MUST strictly satisfy the following quality gates prior to integration or promotion:
-
-1. **Test-Driven Foundation (TDD):** Every subsystem (Tri-Stream Encoder, WASM parser/runtime, Rayon worker bridge, and grammar maskers) MUST have comprehensive unit tests validating edge cases and numerical bounds before implementation merges.
-2. **Data Ingestion Gate:** Successful ingestion and indexing of `joeis` and `oeisdata` into local SQLite/DuckDB databases with validated Stage 1 and Stage 2 subsets.
-3. **Encoder Numerical Stability Gate:** The Tri-Stream Encoder MUST process 1,000+ benchmark OEIS sequences spanning values from $-10^6$ to $10^{30}$ in FP32 with 0 NaN, Inf, or gradient underflow/overflow anomalies.
-4. **Grammar Masking Soundness Gate:** 100% of WAT code synthesized under `llguidance` / `XGrammar-2` MUST assemble into valid WASM binaries without syntax or environment errors.
-5. **Execution Sandboxing & Fuel Trap Gate:** Intentional infinite loops and memory hogs generated in WAT MUST terminate within 10,000 fuel units in $<1\,\text{ms}$ without resource leaks or host instability.
-6. **Parallel Execution Throughput Gate:** The native PyO3/Rayon execution engine MUST demonstrate sustained throughput exceeding 500 WASM module evaluations per second across 8 CPU threads on Tier 1 hardware.
-7. **Synthesis Benchmark Gate:** The system MUST achieve $\ge 80\%$ pass rate on Curriculum Stage 1 (polynomials) program synthesis within Tier 1 resource limits.
+1. Specifications MUST state the research decision, permitted information, numeric semantics, measured outcomes and explicit non-goals. Experiments MUST freeze hypotheses, baselines, manifests, seeds, budgets, selection/stopping rules and interpretation of inconclusive results before execution.
+2. Arithmetic, admission, leakage, resume and containment changes MUST have meaningful regression/contract tests before implementation is considered complete. Known counterexamples and independent differential checks are mandatory for acceptance paths.
+3. A qualifying model evaluation MUST load and identify the actual checkpoint. Canonical programs are separately labeled runtime diagnostics.
+4. Long runs MUST wait for the exact acceptance, provenance, checkpoint, containment and real-device gates of their foundation feature. Documentation checks cannot satisfy runtime gates.
+5. Optional unsafe or unqualified subsystems MUST remain disabled until their own validation succeeds. No architecture or algorithm sweep is required without a concrete unresolved research decision.
 
 ## Governance
 
-This Constitution represents the supreme architectural and technical governance document for the `oeis-learn` project. It supersedes all informal architectural proposals, conflicting code conventions, and ad-hoc practices.
+The ratified constitution governs implementation. On a proposal branch, planning MUST explicitly identify the proposed version and outstanding adoption/feasibility gates; successful document validation MUST NOT be described as ratification or hardware readiness. User instructions govern the requested work; new technical defaults MUST be distinguished from user-confirmed decisions.
 
-- **Supremacy & Compliance:** All pull requests, subsystem implementations, and architectural specifications MUST be validated against the principles, constraints, and quality gates defined in this document. Any implementation introducing floating-point shortcuts in the encoder, bypassing grammar masking, removing sandbox fuel limits, or violating Tier 1 hardware bounds MUST be rejected.
-- **Amendment Procedure:** Amendments to this Constitution require:
-  1. A formal written RFC detailing the proposed change and explicit architectural rationale.
-  2. Proof of feasibility or benchmark results on the target hardware tiers.
-  3. Explicit approval and consensus from project maintainers.
-  4. An accompanying migration and backward compatibility plan.
-- **Versioning Policy:** This Constitution adheres to Semantic Versioning (`MAJOR.MINOR.PATCH`):
-  - `MAJOR`: Fundamental redefinition, breaking changes, or removal of core principles/governance rules.
-  - `MINOR`: Addition of new principles, stages, hardware tiers, or significant expansion of architectural guidance.
-  - `PATCH`: Non-semantic clarifications, typographical corrections, or wording refinements.
-- **Runtime Guidance:** Developers and AI agents MUST consult this Constitution and `.specify/templates/` during every phase of specification, design, task planning, and implementation.
+Amendments require a written RFC with rationale, evidence appropriate to the claims, explicit maintainer adoption, and migration/rollback rules. A bounded preflight may gather feasibility evidence before adoption; it does not authorize a multi-day experiment or assert success. New claims about hardware performance require actual measurements on that hardware. Historical artifacts MUST retain their original status.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-30 | **Last Amended**: 2026-08-30
+Versions use Semantic Versioning: major for removed/redefined mandatory principles, minor for compatible additions, patch for clarifications. Contributors MUST read this document and the active Spec Kit templates during specification, design, tasks and review. Templates and upstream skill instructions MUST NOT be altered merely to hide a conflict or make a check pass.
+
+**Version**: 2.0.0 (proposed) | **Original Ratified**: 2026-08-30 | **Amendment Proposed**: 2026-09-16

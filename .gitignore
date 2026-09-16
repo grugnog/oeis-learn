@@ -77,3 +77,7 @@ research/
 # Environment
 .env.local
 .env
+
+# Local Spec Kit installer cache and validation venv
+.specify/integrations/.cache/
+.venv-speckit/
