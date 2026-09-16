@@ -19,3 +19,11 @@
 - [x] All source/runtime implementation tasks remain unchecked.
 
 This review precedes the formal read-only Spec Kit analysis. Validation results and remaining implementation gates are recorded in [validation/report.md](../validation/report.md).
+
+- [x] Original solver/prover/RL/replay/curriculum/discovery entry points have repair tasks, not quarantine-only closure.
+- [x] Formula identity certificates qualify at G7; broader program-class/compiler-link evidence qualifies at G9.
+- [x] Cache equivalence, input round trips and active policy/replay state have independent gates.
+- [x] Streaming exhaustion retries restore state and charge replay work; logical shifts have explicit signed/range semantics.
+- [x] Synthetic holdout eligibility applies to model-generated replay/retrieval and expanded macros.
+- [x] Packaging includes clean-wheel resources and executed native parity CI.
+- [x] Trigger acquisition is budgeted; unmeasured, untriggered and superseded alternatives have distinct truthful dispositions.

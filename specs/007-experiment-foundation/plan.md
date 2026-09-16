@@ -6,15 +6,15 @@
 
 ## Summary
 
-Build a small, trustworthy path from generic program sampling to exact admission, supervised training, complete checkpoints and prefix-only model evaluation. Reuse the existing Python package, encoder/decoder, Wasmtime bindings and CLI. A single versioned execution contract replaces divergent acceptance paths; private evaluator data and immutable manifests prevent accidental answer leakage. Repair only the WAT functionality needed for a credible control, and isolate unqualified solvers, optimizers, replay and proving. This is foundation work, not a training comparison or a new distributed platform.
+Build a small, trustworthy path from generic program sampling to exact admission, supervised training, complete checkpoints and prefix-only model evaluation. Reuse the existing Python package, encoder/decoder, Wasmtime bindings and CLI. A single versioned execution contract replaces divergent acceptance paths; private evaluator data and immutable manifests prevent accidental answer leakage. Repair the owning implementations of all known non-LODA defects, retaining strict isolation until each repair is qualified. Add KV caching, bounded richer WAT profiles and program-derived discovery. Implement uncertain optimizations as controlled variants and qualify them through the bounded protocol, not an automatic sweep.
 
-The next spec can add a native LODA adapter and run one practical paired comparison within the user's 1–3 days per arm. 007 does not choose a winner, build a transpiler, repair every RL algorithm or require performance sweeps.
+The next spec can add a native LODA adapter and run one practical paired comparison within the user's 1–3 days per arm. Only the LODA runtime, cross-language comparison and conditional transpiler are deferred. Non-LODA repairs and conditional measurements remain in this feature; no result or winning variant is assumed.
 
 ## Technical Context
 
 **Language/Version**: Python 3.12 in the chosen Docker image; repository compatibility remains Python >=3.11. Bash host launch scripts use installed Docker/Python only. WAT helpers compile inside the container.
 
-**Primary Dependencies**: Existing PyTorch, Wasmtime Python bindings, NumPy, PyYAML and pytest/jsonschema. Baseline GPU userspace is the versioned AMD image `rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1`, resolved to an immutable digest before use. Pin all resolved Python wheels, transitive versions and hashes in a generated lock during T001; retain the image's tested PyTorch rather than allowing pip to replace it. No unresolved digest is accepted in a qualifying run. Rust/Rayon and LODA are not foundation requirements.
+**Primary Dependencies**: Existing PyTorch, Wasmtime Python bindings, NumPy, PyYAML and pytest/jsonschema. Baseline GPU userspace is the versioned AMD image `rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1`, resolved to an immutable digest before use. Pin all resolved Python wheels, transitive versions and hashes in a generated lock during T001; retain the image's tested PyTorch rather than allowing pip to replace it. No unresolved digest is accepted in a qualifying run. The native parity job builds Rust/Rayon in Docker. Existing SymPy/Z3 and exact linear algebra support the repair slices. LODA is not a 007 dependency.
 
 **Storage**: Content-addressed JSON/JSONL files, immutable program chunks and checkpoint blobs, one controller writer. Existing DuckDB may index source data, but manifests are the reproducibility boundary. No new database/service.
 
@@ -28,7 +28,7 @@ The next spec can add a native LODA adapter and run one practical paired compari
 
 **Constraints**: Twenty visible terms; 100 total; strict random initialization and generic data; checked logical signed-256 macros; exact native bit-vector semantics; initial FP32; at most eight execution workers and 96 GiB declared aggregate container memory. All budgets are enumerated in [execution.md](contracts/execution.md).
 
-**Scale/Scope**: One learner and one WAT backend initially; immutable small diagnostic pool then later experiment-sized pools. Corpus ingestion is streaming/indexed; grouping uses hashed windows and exact confirmation, not an all-pairs corpus scan. Hardware/data budgets can be changed only by making a new frozen profile/run.
+**Scale/Scope**: One learner and one WAT backend in the baseline, followed by explicitly qualified Python/Rust adapters; immutable small diagnostic pool then later experiment-sized pools. Corpus ingestion is streaming/indexed; grouping uses hashed windows and exact confirmation, not an all-pairs corpus scan. Hardware/data budgets can be changed only by making a new frozen profile/run.
 
 ## Constitution Check
 
@@ -39,11 +39,11 @@ The next spec can add a native LODA adapter and run one practical paired compari
 | Proposed principle | Design evidence / implementation gate |
 | --- | --- |
 | I: exact data and declared numerics | Decimal authoritative values, checked macros, independent oracle; G1/G2 below. Existing neural features explicitly may be lossy. |
-| II: supported languages and acceptance | Complete codec/profile; final-source validation; disabled optional paths; G1/G3. |
+| II: supported languages and acceptance | Complete codec/profile; final-source validation; qualified optional paths; G1/G3/G7. |
 | III: bounded recovery | Per-call/aggregate fuel, independent watchdog, cache/queue/file caps; G1/G5. |
 | IV: workstation reproducibility | Digest-pinned Docker, true GPU probe, complete checkpoint and ledger; G4/G5. |
 | V: provenance and isolation | Generic sampler, admission archive, separate process views, frozen cohorts/candidates; G2/G3. |
-| VI: scoped discovery | 007 schema permits only `not_claimed`; no legacy proof promotion; G6. |
+| VI: scoped discovery | Finite CandidateResult permits only `not_claimed`; separate checked proof certificates require scoped evidence; G6/G7/G9. |
 
 ## Project Structure
 
@@ -68,7 +68,7 @@ The next spec can add a native LODA adapter and run one practical paired compari
 
 ## Phase 0: Research decisions
 
-Resolved in [research.md](research.md): arithmetic/independent execution, final acceptance, complete integer codec, frozen 20+80 data, strict generic SFT, external checkpoint hashes, Docker compatibility and proof isolation. No unresolved design placeholder remains. Hardware compatibility and performance are bounded **measurements to perform**, not missing architecture choices: a failed gate reports evidence and stops.
+Resolved in [research.md](research.md): arithmetic/independent execution, final acceptance, complete integer codec, frozen 20+80 data, strict generic SFT, external checkpoint hashes, Docker compatibility and proof isolation. The expanded contracts below settle the repair scope and bounded experiment rules; no experiment winner is assumed. Hardware compatibility and performance are bounded **measurements to perform**, not missing architecture choices: a failed gate reports evidence and stops.
 
 ## Phase 1: Design and implementation slices
 
@@ -80,11 +80,11 @@ T002 attaches this evidence and obtains adoption of the proposed constitution be
 
 ### B. Shared types, profiles and exact runtime (US1)
 
-Implement strict artifact/config validation and immutable identity first. Separate language/numeric/resource profiles from a checkpoint-specific evaluation protocol so candidate generation seeds cannot accidentally depend on hidden truth. Use exact final-source identities and a single prepare/execute/verify service. Adapt current `runner.py` and `fallback_runner.py` into explicit Python/Wasmtime implementation paths; disable auto-native fallback for strict runs. Repair negative scalar multiplication, full signed-256 literal lowering and four-result decoding. Trusted helpers expose an unspoofable overflow marker. Disable the regex optimizer and all placeholder/scaffold/legacy proof branches in this path.
+Implement strict artifact/config validation and immutable identity first. Separate language/numeric/resource profiles from a checkpoint-specific evaluation protocol so candidate generation seeds cannot accidentally depend on hidden truth. Use exact final-source identities and a single prepare/execute/verify service. Adapt current `runner.py` and `fallback_runner.py` into explicit Python/Wasmtime implementation paths; disable auto-native fallback for strict runs. Repair negative scalar multiplication, full signed-256 literal lowering and four-result decoding. Trusted helpers expose an unspoofable overflow marker. The initial smoke disables these paths. US5 repairs solvers, typed optimization and the symbolic prover, then qualifies explicit variant profiles; named-family scaffolds remain prohibited.
 
 Write a small supported-WAT parser/type checker and independent AST interpreter. Share syntax parsing only; arithmetic, native-width semantics and wide logical operators in the oracle use independent Python-int code. Persist production and reference evidence. Compile after macro lowering; current synthesis compiles too early. Reuse one engine per worker and a bounded compiled-module cache; fresh store/instance per index prevents hidden state. Count fuel per call and across the candidate. The controller enforces external wall/memory/request limits and reaps/replaces dead workers, including during compilation/reference execution.
 
-Conformance comprises hand-calculated signed/unsigned boundary vectors, the known defects, 10,000 deterministic randomized arithmetic vectors (seed 7001), and 256 bounded generic structured programs across indices 0–99 (seed 7002). Test intentional wrong arity, traps, loops, worker kill, duplicate messages and aggregate exhaustion. Differential disagreement blocks admission; it is not voted away. No broad Rust rewrite is required.
+Conformance comprises hand-calculated signed/unsigned boundary vectors, the known defects, 10,000 deterministic randomized arithmetic vectors (seed 7001), and 256 bounded generic structured programs across indices 0–99 (seed 7002). Test intentional wrong arity, traps, loops, worker kill, duplicate messages and aggregate exhaustion. Differential disagreement blocks admission; it is not voted away. US5 must repair the existing Rust adapter and execute the same parity corpus in Docker; unsupported profile features remain explicitly unsupported rather than silently falling back.
 
 ### C. Visible data, frozen cohorts and actual model evaluation (US2)
 
@@ -100,13 +100,13 @@ Replace finite integer token enumeration for the strict path with `wat_body_deci
 
 `generic_programs.py` samples a typed statement/expression AST, with no sequence-family branches or target metadata. Initial `generic_sampler_v1`: 1–32 statements; expression depth at most 4; at most 3 nested counted loops and 8 structured levels; 8 four-limb register groups backed by the 32 i64 locals and 8 i32 temporaries. At each statement choose assignment/conditional/counted-loop with probabilities 0.70/0.15/0.15, renormalizing when depth/size makes an option unavailable. Expression leaves choose same-typed local/index/constant uniformly when available; operators choose uniformly from type-compatible profile operations. Counted-loop bounds are sampled nonnegative constants 0–32 or `min(n, 100)`, with fresh counters; loop bodies are generic statements, not named recurrence templates. Integer constants choose uniform -16..16 with probability 7/8, otherwise a uniform signed bit-width from {8,16,32,64,128,256} restricted by operand type. Final output selects one wide register group uniformly. The fixed control skeleton and these priors are recorded; they are not claimed bias-free or complete over every allowed program.
 
-Each sample is serialized, round-tripped, validated, independently executed for 100 terms, checked against reserved prefixes and deduplicated by source/output. Reject unsupported/overlength/limited/disagreeing cases rather than fabricating labels. Publish results in sample-counter order independent of worker completion. Freeze a pool before SFT; no online generator/replay state inside training for 007. Pool construction checkpointing records counter, RNG identity, dedup set/chunks and decisions. A foundation fixture requests 64 unique admitted outputs within 10,000 attempts and five minutes; a shortfall is a diagnostic failure with yield statistics, not permission to inject familiar sequence teachers. Report constant-output fraction and coverage of sampled operators; no language-performance inference follows from this smoke fixture.
+Each sample is serialized, round-tripped, validated, independently executed for 100 terms, checked against reserved prefixes and deduplicated by source/output. Reject unsupported/overlength/limited/disagreeing cases rather than fabricating labels. Publish results in sample-counter order independent of worker completion. Freeze a pool before SFT; no online generator/replay state inside the foundation/v1 smoke. Pool construction checkpointing records counter, RNG identity, dedup set/chunks and decisions. A foundation fixture requests 64 unique admitted outputs within 10,000 attempts and five minutes; a shortfall is a diagnostic failure with yield statistics, not permission to inject familiar sequence teachers. Report constant-output fraction and coverage of sampled operators; no language-performance inference follows from this smoke fixture.
 
 ### E. Complete SFT and recovery (US4)
 
-Reuse the current small tri-stream encoder and Transformer shape (d=256, four encoder/four decoder layers, four heads, feed-forward 1024) with a new codec-sized output layer. Start random, FP32, eager attention, dropout 0.1, FiLM enabled and summary tokens disabled. Freeze explicit modulus/prime lists and every remaining constructor default in the effective model profile; no implicit default can change on resume. Model inputs are twenty exact source values processed by the existing feature pipeline; record that the resulting representation may be lossy. No model redesign or cache optimization is required to validate this foundation.
+Reuse the current small tri-stream encoder and Transformer shape (d=256, four encoder/four decoder layers, four heads, feed-forward 1024) with a new codec-sized output layer. Start random, FP32, eager attention, dropout 0.1, FiLM enabled and summary tokens disabled. Freeze explicit modulus/prime lists and every remaining constructor default in the effective model profile; no implicit default can change on resume. Model inputs are twenty exact source values processed by the existing feature pipeline; record that the resulting representation may be lossy. This is the unchanged smoke control. US6 adds exact-byte conditioning and qualified cache/batching variants; the bounded decision protocol selects the experimental configuration.
 
-Strict SFT consumes only the immutable trainer view; a missing pool fails. Initial objective is the mean of per-program mean next-token cross-entropies over predicted nonpadding tokens including EOS, followed by the batch mean; this avoids changing sample weight merely because a language spelling is longer. AdamW, learning rate 3e-4, weight decay 0.01, gradient norm cap 1.0; smoke uses batch four and three updates, with scheduler/scaler disabled explicitly. 008 may freeze a longer schedule before its experiment. This does not repair or enable the legacy RL probability/masking path.
+Strict SFT consumes only the immutable trainer view; a missing pool fails. Initial objective is the mean of per-program mean next-token cross-entropies over predicted nonpadding tokens including EOS, followed by the batch mean; this avoids changing sample weight merely because a language spelling is longer. AdamW, learning rate 3e-4, weight decay 0.01, gradient norm cap 1.0; smoke uses batch four and three updates, with scheduler/scaler disabled explicitly. US6 repairs the legacy RL path and adds a separately versioned objective profile with complete active state. SFT remains the baseline; repaired RL need not win the conditional pilot to count as correctly implemented.
 
 At completed updates, atomically persist all active states and an external final-byte hash manifest. Named RNG streams isolate initialization, data order and candidate sampling. The frozen pool/permutation/cursor makes asynchronous prefetch disposable; rerunning prefetched work must not change order. Maintain the independent heartbeat/budget ledger so a rollback cannot refund spent time; conservatively charge an unobserved crash gap through recovery and label the uncertainty. Deterministic CPU testing injects clock/crash boundaries and compares complete state, not just model weights. GPU continuation records determinism settings and environment; no cross-device/version bitwise guarantee is claimed.
 
@@ -114,7 +114,7 @@ Metrics are measured in the phase that owns them: generation attempts/yield, ref
 
 ### F. Integration and handoff
 
-Expose the documented foundation CLI; legacy canaries explicitly say reference-runtime diagnostics. Quarantine proof promotion at the result/archive boundary; the known shifted-identity false-proof example is a negative gate, not a requirement to repair all symbolic mathematics now. Run the complete acceptance suite and the bounded workstation smoke, retain evidence and record remaining limitations. Only then can 008 use these profiles as an experimental foundation. Changes suggested by failed gates are focused fixes followed by the affected checks, not automatic new experiment arms.
+Expose the documented foundation CLI; legacy canaries explicitly say reference-runtime diagnostics. Retain the finite-result proof boundary and require the repaired original prover to pass its shifted-identity counterexample before architectural experiments. General proofs are restricted to explicitly supported certificates; UNKNOWN is a valid outcome outside those classes. Run the complete acceptance suite and the bounded workstation smoke, retain evidence and record remaining limitations. Only then can 008 use these profiles as an experimental foundation. Changes suggested by failed gates are focused fixes followed by the affected checks, not automatic new experiment arms.
 
 ## Validation gates and stop rules
 
@@ -128,7 +128,7 @@ Expose the documented foundation CLI; legacy canaries explicitly say reference-r
 | G5 | Real strict-model GPU updates, worker kill/recovery, quota stops and truthful resource evidence | Ryzen readiness / 008 |
 | G6 | `PROVEN` and novelty labels cannot enter foundation artifacts | Archive/discovery handoff |
 
-No gate substitutes a reference program, synthetic metric or CPU fallback. If source snapshots/hardware are unavailable, software tests may pass independently, but those runtime gates remain pending. No 24–72-hour training is part of this plan's validation.
+No gate substitutes a reference program, synthetic metric or CPU fallback. If source snapshots/hardware are unavailable, software tests may pass independently, but those runtime gates remain pending. No 24–72-hour language-comparison training is part of this plan. Non-LODA diagnostics and at most one targeted paired pilot per the experiment contract are bounded within 007.
 
 ## Complexity Tracking
 
@@ -139,4 +139,44 @@ No gate substitutes a reference program, synthetic metric or CPU fallback. If so
 | Independent bounded reference execution | Production helper errors previously passed self-generated labels | Reusing Wasmtime/helpers as the only oracle reproduces the same defect. |
 | Container/process boundaries | Candidate failure and evaluator truth require enforceable separation | Threads and omitted dictionary fields cannot contain native crashes or prevent accidental truth access. |
 
-No additional microservice, general compiler, database migration platform or full proof engine is introduced.
+No additional microservice, universal compiler, database migration platform or unrestricted theorem prover is introduced. Richer profiles and certificate checkers have finite, enumerated scope.
+
+## Expanded implementation slices — supersede the initial narrow scope
+
+The user's latest instruction requires actual repairs, not permanent quarantine. The `foundation/v1` SFT smoke remains a fixed control. `qualified/v1` extension profiles are additional explicit modes in 007, with distinct codec/model/objective/runtime identities and mandatory qualification. Historical teacher data and unqualified proof labels never become allowed. Only LODA work moves to 008.
+
+### G. Repair owning synthesis/proof implementations (US5, P0 correctness)
+
+Implement [repairs.md](contracts/repairs.md): conservative typed parameter-dependence analysis, exact linear/integer algebra, genuine bounded nonlinear dispatch, structural recurrence recognition, measured solver outcomes and final verification. Replace both training/evaluation dispatch paths with the shared service. Repair local.tee-sensitive optimization using typed liveness/effects, and qualify Rust/Python arity/state/resource parity in Docker. Proof repair uses controlled symbols, domains/poles and real witnesses in both old public APIs. These repairs may start immediately after US1, in parallel with US2–US4; they must finish before any architectural experiment. A small polynomial identity certificate checker is sufficient to repair initial false promotion; US7 broadens supported certificate classes.
+
+### H. Correct learning, faster generation and complete state (US6)
+
+Implement [learning.md](contracts/learning.md) as explicit variants: prefill/decode self/cross KV caches, batched masks/buffers, exact signed-byte input, structural generic splits, real behavior-policy probabilities, complete frozen references, mode restoration and honest trace evidence. Repair all archive admission paths, CGI length handling, active replay and per-visit adaptive curriculum. Add bounded beam/repair search and verified round-based self-training using training-only continuations, with no development/final hidden feedback. Extend resumable state for every active replay/scheduler/reference/search component. Implement pluggable sinusoidal/RoPE/prefix-ancestor positions and one 25M-class model constructor; conditional comparison selects at most one challenger. Correctness is required even if the baseline wins.
+
+### I. Broader WAT and generated-program discovery (US7)
+
+Add a typed logical WAT IR without changing the baseline body codec silently. Separate checked-wide/array/streaming profiles declare exact arithmetic, memory, reset and cost semantics; Python reference and Rust adapters qualify each advertised profile. Unsupported arbitrary programs remain explicit failures. Archive multiple implementations and retain long verified source outside the trainer context. Derive program/dataflow features and bounded transform proposals, exact multi-index relation validation, class-specific certificates and post-seal novelty evidence. Typed macro mining and one bounded value-guided repair proposer use only permitted training archives; compiled expansion receives the same final checks. Certificate claims never conflate a mathematical identity with a machine theorem or an OEIS definition.
+
+### J. Packaging, source policy and bounded decisions (US8)
+
+Repair horizon-specific census and source metadata/eligibility; freeze the final cohort only after affine/shift grouping and structural split rules are installed. Build the wheel and native extension in Docker; clean-install CPU and actual native CI exercise resources and parity, rejecting unexpected skips. Consolidate historical launchers, extraction/census and qualification into shared services while preserving diagnostic provenance and exact configuration. Archive redundant wrappers only after parity fixtures pass.
+
+Run the single consolidated engineering session and at most one bounded learning comparison in [experiments.md](contracts/experiments.md). All numerical thresholds there are frozen planning defaults, not claimed prior user approvals. The total cap is two engineering hours plus six training hours, not another set of multi-day arms. Make every not-triggered or inconclusive decision explicit. No script starts these experiments merely because document validation passes.
+
+### Additional source targets
+
+- Existing repairs: `decoder/{constant_solver,dixon_solver,qfnia_solver,mersenne61_filter}.py`, `sandbox/optimizer.py`, `crates/oeis_wasm_evaluator/src/sandbox.rs`, `discovery/{symbolic_prover,pipeline,vector_search,pslq_solver,numerical_validator,relation_identity}.py`, `data/symbolic_definitions.py`.
+- New services: `decoder/grounding.py`, `experiments/{qualified_models,decisions}.py`, `encoder/integer_bytes.py`, `data/structural_splits.py`, `evaluation/{search,experiment_runner}.py`, `sandbox/{logical_ir,streaming}.py`, `rl/self_training.py`.
+- Discovery: `discovery/{program_archive,program_features,transforms,certificates,certificate_checker,polynomial_certificate,recurrence_certificate,state_certificate,loop_certificate,macro_mining,novelty}.py`.
+- Integration: `configs/foundation/{qualified,experiments}.yaml`, `scripts/foundation/test_wheel.sh`, `.github/workflows/foundation.yml`, `tests/{unit,integration,contract}/test_foundation_*.py`.
+
+### Additional acceptance gates
+
+| Gate | Required evidence | Blocks |
+| --- | --- | --- |
+| G7 | Owning solver/prover/optimizer counterexamples repaired; exact statuses and Rust/Python parity; no imported-label promotion | Architectural measurements and activation of repaired services |
+| G8 | Cache equivalence, exact input round trips, analytic policy correctness, archive/replay/curriculum and complete active-state resume | Qualified learning/search modes |
+| G9 | Wide/array/streaming independent parity; ranked relation negatives; replayable supported certificates and immutable novelty boundary | Rich profile and discovery claims |
+| G10 | Clean-wheel CPU and real native CI; metadata/census/wrapper parity; bounded measurement decision records; complete review traceability | Full 007 completion and LODA handoff |
+
+G0–G6 establish baseline readiness only. Full 007 requires G7–G10 as well; an implementation cannot mark 007 complete by leaving faulty extensions disabled. Conditional non-LODA experiment branches may finish with a justified not-triggered result, but mandatory interface implementations/tests and known repairs still must pass.

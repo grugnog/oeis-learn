@@ -1,0 +1,117 @@
+{
+  "scope": "Expanded design and regenerated tasks; documentation checks only",
+  "upstream_version": "1.0.7",
+  "extension_hooks_present": false,
+  "commands": [
+    {
+      "command": [
+        "/workspace/scratch/7932b47d0411/speckit-venv/bin/specify",
+        "version"
+      ],
+      "checked_at": "2026-09-16T20:35:08.268851+00:00",
+      "exit_code": 0,
+      "stdout": "              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557   \u2588\u2588\u2557              \n              \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d\u255a\u2588\u2588\u2557 \u2588\u2588\u2554\u255d              \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557   \u255a\u2588\u2588\u2588\u2588\u2554\u255d               \n              \u255a\u2550\u2550\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u255d  \u2588\u2588\u2551     \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255d    \u255a\u2588\u2588\u2554\u255d                \n              \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2551\u2588\u2588\u2551        \u2588\u2588\u2551                 \n              \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d     \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d\u255a\u2550\u255d        \u255a\u2550\u255d                 \n                                                                                \n               GitHub Spec Kit - Spec-Driven Development Toolkit                \n\n\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Specify CLI Information \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\n\u2502                                                                              \u2502\n\u2502     CLI Version    1.0.7                                                     \u2502\n\u2502                                                                              \u2502\n\u2502          Python    3.12.14                                                   \u2502\n\u2502        Platform    Linux                                                     \u2502\n\u2502    Architecture    x86_64                                                    \u2502\n\u2502      OS Version    #1 SMP Sat Sep 12 15:35:21 UTC 2026                       \u2502\n\u2502                                                                              \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/workspace/scratch/7932b47d0411/speckit-venv/bin/specify",
+        "integration",
+        "status"
+      ],
+      "checked_at": "2026-09-16T20:35:08.549654+00:00",
+      "exit_code": 0,
+      "stdout": "Integration status: OK\nDefault integration: codex\nInstalled integrations: codex\nMulti-install safe: yes\nShared templates target alignment: codex\nModified managed files: 0\nMissing managed files: 0\nInvalid manifest paths: 0\nUnchecked manifests: 0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/setup-plan.sh",
+        "--json"
+      ],
+      "checked_at": "2026-09-16T20:35:08.574496+00:00",
+      "exit_code": 0,
+      "stdout": "{\"FEATURE_SPEC\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/spec.md\",\"IMPL_PLAN\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/plan.md\",\"FEATURE_DIR\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation\",\"BRANCH\":\"007-experiment-foundation\"}\n",
+      "stderr": "Plan already exists at /workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation/plan.md, skipping template copy\n"
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/setup-tasks.sh",
+        "--json"
+      ],
+      "checked_at": "2026-09-16T20:35:08.606590+00:00",
+      "exit_code": 0,
+      "stdout": "{\"FEATURE_DIR\": \"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation\", \"AVAILABLE_DOCS\": [\"research.md\", \"data-model.md\", \"contracts/\", \"quickstart.md\"], \"TASKS_TEMPLATE\": \"/workspace/scratch/7932b47d0411/oeis-learn/.specify/templates/tasks-template.md\", \"TASKS_TEMPLATE_CONTENT_SHA256\": \"b0f527d41e546af0c31903e04f9b20965b6b497b573792198f663a64ce128863\", \"TASKS_TEMPLATE_CONTENT_BYTES\": 9171}",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        ".specify/scripts/bash/check-prerequisites.sh",
+        "--json",
+        "--require-spec",
+        "--require-tasks",
+        "--include-tasks"
+      ],
+      "checked_at": "2026-09-16T20:35:08.632875+00:00",
+      "exit_code": 0,
+      "stdout": "{\"FEATURE_DIR\":\"/workspace/scratch/7932b47d0411/oeis-learn/specs/007-experiment-foundation\",\"AVAILABLE_DOCS\":[\"research.md\",\"data-model.md\",\"contracts/\",\"quickstart.md\",\"tasks.md\"]}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/workspace/scratch/7932b47d0411/speckit-venv/bin/python",
+        "specs/007-experiment-foundation/validate_artifacts.py"
+      ],
+      "checked_at": "2026-09-16T20:35:08.780526+00:00",
+      "exit_code": 0,
+      "stdout": "{\n  \"status\": \"pass\",\n  \"scope\": \"document structure, links, coverage, dependency graph and schema shapes only\",\n  \"requirements\": 52,\n  \"coverage_percent\": 100,\n  \"tasks\": 105,\n  \"tasks_by_story\": {\n    \"setup_and_foundation\": 8,\n    \"US1\": 11,\n    \"US2\": 10,\n    \"US3\": 8,\n    \"US4\": 12,\n    \"US5\": 12,\n    \"US6\": 18,\n    \"US7\": 13,\n    \"US8\": 10,\n    \"cross_cutting\": 3\n  },\n  \"review_decision_items\": 68,\n  \"deferred_items\": [\n    \"D06\",\n    \"D07\",\n    \"D08\"\n  ],\n  \"local_links_checked\": 43,\n  \"positive_schema_fixtures\": 3,\n  \"negative_schema_cases\": 14,\n  \"runtime_gates_executed\": false,\n  \"constitution_adoption_claimed\": false\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "checked_at": "2026-09-16T20:35:08.787697+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/workspace/scratch/7932b47d0411/speckit-venv/bin/python",
+        "specs/007-experiment-foundation/validate_artifacts.py"
+      ],
+      "checked_at": "2026-09-16T20:37:28.270624+00:00",
+      "exit_code": 0,
+      "stdout": "{\n  \"status\": \"pass\",\n  \"scope\": \"document structure, links, coverage, dependency graph and schema shapes only\",\n  \"requirements\": 52,\n  \"coverage_percent\": 100,\n  \"tasks\": 105,\n  \"tasks_by_story\": {\n    \"setup_and_foundation\": 8,\n    \"US1\": 11,\n    \"US2\": 10,\n    \"US3\": 8,\n    \"US4\": 12,\n    \"US5\": 12,\n    \"US6\": 18,\n    \"US7\": 13,\n    \"US8\": 10,\n    \"cross_cutting\": 3\n  },\n  \"review_decision_items\": 68,\n  \"deferred_items\": [\n    \"D06\",\n    \"D07\",\n    \"D08\"\n  ],\n  \"local_links_checked\": 42,\n  \"positive_schema_fixtures\": 3,\n  \"negative_schema_cases\": 14,\n  \"runtime_gates_executed\": false,\n  \"constitution_adoption_claimed\": false\n}\n",
+      "stderr": "",
+      "phase": "final after report refresh"
+    }
+  ],
+  "design_hashes": {
+    "checklists/design.md": "dc76fde245e501cbf207288644a960e33ade7aa991ac537d1c3007a57db0f9a8",
+    "checklists/requirements.md": "1743b022fe7e8cf29f5f16f6f247189b2111d268d3fedec1cf08f3bbf6c11e39",
+    "constitution-rfc.md": "7133bbb1b8a522f95bbf001b7e0aa4a2f80b44b29cab29f215ae1f244d66fba7",
+    "contracts/artifacts.schema.json": "b3ac8f72351c7b60511ba8cbc6b135c7273c24fd7535675f1bef57e295d71170",
+    "contracts/cli.md": "9fa56a3b317fab21ba93b96b02d7b6249b8a937e56a21ff27bf7c0c38dca05f2",
+    "contracts/evaluation.md": "7d8493922bc2901f588c7a551aeb20503774a55c04742de11c95247d1a2ae87c",
+    "contracts/execution.md": "69addad4ea2a05ab2a4f1d023725f262d9a17a3463661875680354717aee92a2",
+    "contracts/experiments.md": "3e42b152230aba97dcab3001c86d96125e974e3c2b697bd68b62540f5abb2bcb",
+    "contracts/learning.md": "d63136cf2fe545ac632237bda48e2c8b79ce70b01efee4e4a18fc9bf62a34c1b",
+    "contracts/repairs.md": "d5d5ede124bdd650b1af855bb2d2745e8c8cb5607cd132df3ea8c1f553cd57a6",
+    "contracts/schema-examples.json": "41fe17e700be2614e6062706e12cc7c0d506c9a898c42a1085995bd4ffc69c61",
+    "data-model.md": "547a81388340817c58bdd530736898ab782fa74423173415c8ad95ed21ed7c46",
+    "plan.md": "ccf6d54903be02c89ef69da730b9cea0f3072a86faf5216d577e983e57857400",
+    "quickstart.md": "24b69a72b5a73d1e799a003d5c597800d3ea1647cdfea5db7f25c88bbc9f8890",
+    "research.md": "d2a06582e063aa2d9a8d6ad5ddb8d66f27e76aace52aaddff84e80b7b74c1fbc",
+    "review-coverage.md": "ce1e078c98218687d4028743e414256d3d118e4a72dea00d966cb1249b78b6d9",
+    "spec.md": "d8a09e3487304beff1c07455c9d11e9a83057e0433b1d0912bdfdfd7be6a5627",
+    "tasks.md": "6c93fde84c1228d3c0ab91d2ae479b04d6c9b09b9854de9c55b18bc1c5b96aab",
+    "validate_artifacts.py": "f9ab527d3fa5d8083f646a8565f2d7e680a3f8a7be5dc80802578b4988f9d19b"
+  }
+}

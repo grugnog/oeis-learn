@@ -26,7 +26,7 @@ The project installs upstream skills under `.agents/skills/`. New agent sessions
 
 ## Implementation order and prerequisites
 
-Follow [tasks.md](tasks.md). T001 is a standalone Docker/device feasibility probe; T002 records actual evidence and maintainer adoption of the [constitution proposal](constitution-rfc.md). All later strict implementation promotion requires that adoption. No long training job is part of 007 acceptance.
+Follow [tasks.md](tasks.md). T001 is a standalone Docker/device feasibility probe; T002 records actual evidence and maintainer adoption of the [constitution proposal](constitution-rfc.md). All later strict implementation promotion requires that adoption. No multi-day language comparison is part of007 acceptance. Expanded acceptance includes a bounded two-hour engineering session and at most six hours for a diagnostic plus one conditional paired learning comparison.
 
 On Ryzen, prerequisites are the user's existing Python and Docker, permission to run Docker, sufficient free disk, and existing AMDGPU/KFD/render-node support. No host compiler, ROCm package installation or NixOS reconfiguration is prescribed. A failed GPU gate reports exact missing capabilities for a separate decision. Image download/build time is measured separately from the ten-minute execution probe.
 
@@ -109,6 +109,44 @@ Use the deterministic CPU integration fixture for interruption equivalence. It c
 
 Try wrong hashes, unknown/inactive options, a weights-only checkpoint, a missing pool/checkpoint, a truth field injected into a visible prompt, repeated finalization with a changed candidate list, a full-match record with fewer than 100 values, and a `PROVEN` status. Each must fail before qualification. Resource tests hang/kill workers and exhaust queue/cache/disk allowances in temporary directories; they never deliberately exhaust the real host.
 
+## Expanded repair and release acceptance (G7–G10)
+
+After implementing the relevant tasks, run the owning-path regressions first, then qualify extensions. The initial formula checker is a G7 requirement; richer program-class checkers are G9.
+
+```bash
+bash scripts/foundation/run_container.sh test -- \
+  python -m pytest tests/unit/test_foundation_grounding.py \
+  tests/unit/test_foundation_symbolic.py \
+  tests/integration/test_foundation_native_optimizer.py \
+  tests/unit/test_foundation_cache.py \
+  tests/unit/test_foundation_policy.py \
+  tests/unit/test_foundation_archive_curriculum.py \
+  tests/unit/test_foundation_integer_features.py \
+  tests/unit/test_foundation_structural_splits.py \
+  tests/integration/test_foundation_qualified_resume.py \
+  tests/unit/test_foundation_extended_wat.py \
+  tests/integration/test_foundation_discovery.py \
+  tests/unit/test_foundation_source_policy.py -q
+bash scripts/foundation/test_wheel.sh
+bash scripts/foundation/run_container.sh controller -- \
+  oeis-learn foundation qualify --config configs/foundation/qualified.yaml \
+  --output runs/007-acceptance/qualified --json
+```
+
+Expected: repaired original APIs, no false UNSAT/proof labels, actual native parity rather than skipped tests, logit/support equivalence, exact input and split eligibility, complete active-state resume, atomic stream retries, replayed certificate mutations, installed package resources and all source-policy denominators. CandidateResult remains finite evidence; separate checked certificates expose domain/assumptions.
+
+The implementation creates a frozen measurement manifest from `configs/foundation/experiments.yaml`, recording actual permitted fixture/checkpoint/source hashes. Use the path returned by that preparation as `MEASUREMENT_MANIFEST`; do not invent a manifest or reuse a fixture identity as real evidence.
+
+```bash
+bash scripts/foundation/run_container.sh controller -- \
+  oeis-learn foundation measure --manifest "$MEASUREMENT_MANIFEST" \
+  --output runs/007-measurement --dry-run --json
+```
+
+Inspect the emitted schedule/limits, then execute the same command without `--dry-run` after all required gates pass. The manifest runs one engineering session and a30-minute diagnostic; it may select one55-minute-per-arm comparison, up to three paired seeds within six total training hours. Missing trigger evidence is inconclusive, not permission for another run. No final truth is mounted. See [experiment contract](contracts/experiments.md) for effect/stop rules and measured-versus-planned distinctions.
+
+The native CI job builds its extension inside Docker and verifies test execution counts; CPU wheel CI and actual GPU evidence are separate gates. Do not mark full007 complete from the earlier baseline smoke alone.
+
 ## Handoff
 
-Store gate reports, runtime locks, immutable profiles, cohort/pool hashes and the complete smoke run manifest. Mark hardware/qualification gates passed only from actual evidence. At that point, draft/finalize 008's native LODA adapter and paired experiment protocol using these interfaces. The 007 quickstart does not launch either multi-day arm or authorize host changes.
+Store all G0–G10 gate reports, runtime locks, immutable profiles, cohort/pool hashes and the complete smoke run manifest. Mark hardware/qualification gates passed only from actual evidence. At that point, draft/finalize 008's native LODA adapter and paired experiment protocol using these interfaces. The 007 quickstart does not launch either multi-day arm or authorize host changes.

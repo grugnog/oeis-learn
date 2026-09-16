@@ -36,7 +36,7 @@
 - [ ] T012 [US1] Implement `src/oeis_learn/sandbox/wat_ast.py` with the frozen parser, type/return/scope validation and lossless canonical source emission. Forbid guest imports/memory/globals/calls and reserved helper namespace, enforce 32 i64/8 i32 fixed locals and depth limits, and accept no opcode outside the hashed inventory. (FR-001, FR-004, FR-006, FR-013)
 - [ ] T013 [US1] Repair `src/oeis_learn/sandbox/{lowering,preamble}.py` and `sandbox/preamble.wat` for full signed-256 constants and exact checked add/sub/scalar multiplication; emit valid i64 limb literals and an unspoofable helper overflow marker, without treating native carries as overflow. Remove hardcoded helper fuel values from measured-cost fields. Depends on T009/T012. (FR-002–003, FR-016, SC-001)
 - [ ] T014 [US1] Implement the bounded independent interpreter in `src/oeis_learn/sandbox/reference.py` using Python exact integers and separately written native-width rules; sharing AST parsing is permitted, calling production helpers/lowering/Wasmtime for expected values is not. Persist exact outputs, steps and failure reasons. Depends on T010/T012. (FR-003, FR-005–006, SC-001)
-- [ ] T015 [US1] Implement prepare/execute/verify orchestration in `src/oeis_learn/sandbox/pipeline.py`, always validating final source and lowering before compilation. Enforce stage/outcome constraints, required independent evidence, full output counts and exact comparisons; reject test-injected false solver certificates and unsafe transformed source. Disable strict optional paths rather than repairing all legacy algorithms. Depends on T012–T014. (FR-003–005, FR-011, FR-013, SC-001–002)
+- [ ] T015 [US1] Implement prepare/execute/verify orchestration in `src/oeis_learn/sandbox/pipeline.py`, always validating final source and lowering before compilation. Enforce stage/outcome constraints, required independent evidence, full output counts and exact comparisons; reject test-injected false solver certificates and unsafe transformed source. Disable unqualified paths in the smoke; US5 repairs their owning implementations and G7 qualifies explicit extensions. Depends on T012–T014. (FR-003–005, FR-011, FR-013, SC-001–002)
 - [ ] T016 [US1] Implement bounded workers/cache/watchdogs in `src/oeis_learn/sandbox/worker_pool.py`: fresh store/instance per term, reusable engine/module cache, exact cache keys, 32-request queue/1 MiB messages, per-call/aggregate work limits, two-second candidate deadline and reclamation within two more seconds. Kill/replace blocked workers; persist idempotent outcomes. Container isolation is integrated in T046. (FR-006, FR-016, FR-018, SC-001, SC-005)
 - [ ] T017 [US1] Adapt `src/oeis_learn/sandbox/{runner,fallback_runner}.py` to the shared preparation/result contract for single and batch paths, including exactly four little-endian limbs and no `int(list)`/silent-zero coercion. Strict runtime selection is explicit Python/Wasmtime; mark the unqualified Rust adapter unavailable and prohibit auto-fallback. Depends on T015/T016. (FR-001, FR-004–006, SC-001)
 - [ ] T018 [US1] Add `tests/integration/test_foundation_proof_boundary.py` and enforce result/archive checks in `src/oeis_learn/experiments/models.py` and `sandbox/pipeline.py`: "`proof_status` is exactly `not_claimed`". Reject the legacy shifted-identity false-proof label and imported `PROVEN`; finite matches remain finite evidence. (FR-019, SC-006)
@@ -72,8 +72,8 @@
 - [ ] T030 [P] [US3] Add `tests/unit/test_foundation_admission.py` for imported OEIS/LODA programs, named teachers, old replay/weights, unknown/truncated tokens, missing conditioning, mismatched independent outputs, reserved-prefix collisions and cyclic/stale identities. Verify rejection reveals no matched target ID or continuation. (FR-012–013, SC-003)
 - [ ] T031 [P] [US3] Add `tests/unit/test_foundation_pool.py` for deterministic sample counters, the declared generic sampler priors, source/output deduplication, shortest-then-hash representative selection, out-of-order worker completion, pool-build interruption/resume and bounded yield failure. (FR-001, FR-012–014, FR-016, SC-003–004)
 - [ ] T032 [US3] Implement `src/oeis_learn/data/generic_programs.py` and `configs/foundation/generic_sampler.yaml` exactly from plan slice D: typed generic assignments/conditionals/counted loops, frozen probabilities/constants/depths/register counts and seed/counter provenance, with no named-family or target metadata branch. Emit the complete codec and report sampled priors/operator coverage. (FR-012–013, FR-016)
-- [ ] T033 [US3] Implement `src/oeis_learn/data/program_admission.py` over T015 with exact100 production/reference agreement, token/source round trips, source/output limits and evaluator-owned prefix membership. "`origin` is exactly `generic_sample` for admitted 007 records." Hash the explicitly enumerated immutable program core; store evidence and AdmissionDecision separately referencing that ID, and never embed a decision reference in its own identity. (FR-001, FR-003–004, FR-012–013, SC-003)
-- [ ] T034 [US3] Implement `src/oeis_learn/data/program_pool.py`: order decisions by sample counter, deduplicate sources and exact100-output fingerprints, archive rejected reasons/yields, checkpoint builder RNG/cursor/dedup/chunks, and publish an immutable manifest only after all admitted references verify. Frozen pool training uses no online generator/reservoir/replay. (FR-012–014, FR-016, SC-003–004)
+- [ ] T033 [US3] Implement `src/oeis_learn/data/program_admission.py` over T015 with exact100 production/reference agreement, token/source round trips, source/output limits and evaluator-owned prefix membership. "`origin` is exactly `generic_sample` for foundation/v1 smoke records." Hash the explicitly enumerated immutable program core; store evidence and AdmissionDecision separately referencing that ID, and never embed a decision reference in its own identity. (FR-001, FR-003–004, FR-012–013, SC-003)
+- [ ] T034 [US3] Implement `src/oeis_learn/data/program_pool.py`: order decisions by sample counter, deduplicate sources and exact100-output fingerprints, archive rejected reasons/yields, checkpoint builder RNG/cursor/dedup/chunks, and publish an immutable manifest only after all admitted references verify. Frozen baseline training uses no online generator/reservoir/replay; qualified extensions add their state explicitly. (FR-012–014, FR-016, SC-003–004)
 - [ ] T035 [US3] Add the narrow trainer view and strict loader in `src/oeis_learn/data/program_pool.py`: program/codec IDs, exactly20 conditioning integers and valid body tokens only. Reject absent/unverified/mismatched pools; do not call `SftTrainer.load_or_generate_dataset` or the old named generator. Keep `data/synthetic_generator.py` labeled as a legacy/fixture path. (FR-008, FR-012–013, SC-003)
 - [ ] T036 [US3] Implement `foundation build-pool` in `src/oeis_learn/cli/foundation.py`, isolating admission's membership access from the learner. Enforce the fixture's 64 unique outputs / 10,000 attempts / five-minute cap, and report constant fraction and rejection reasons on shortfall without adding teachers. (FR-012–013, FR-016, FR-018, SC-003)
 - [ ] T037 [US3] Run the negative admission and pool-order tests plus the isolated generic pool fixture through `tests/integration/test_foundation_bootstrap.py`; verify every admitted record's provenance, evidence and round trip before releasing the pool. (FR-003, FR-012–013, SC-003)
@@ -97,73 +97,186 @@
 - [ ] T046 [US4] Complete `docker/foundation/compose.yaml` and `scripts/foundation/run_container.sh` with fixed role mounts, networking disabled, device exposure only to learner/preflight, no Docker socket in workloads, separate truth/generation/learner views, at most8 one-GiB workers and an88GiB learner/controller, swap/PID/cache/queue/disk limits and host/GPU memory monitoring. Controller launcher must kill/reclaim hung workloads within declared deadlines. (FR-006, FR-008, FR-017–018, SC-005)
 - [ ] T047 [US4] Run the hardware-marked tests and end-to-end strict pool/model smoke via `tests/integration/test_foundation_gpu.py`, recording real runtime image/lock, finite three-update parameter changes, timings/resources and fault containment. Keep failed host compatibility or numerical probes visible; never turn CPU diagnostics into a hardware pass. (FR-017–018, SC-005)
 - [ ] T048 [US4] Run interrupted/resumed CPU and corrupt-checkpoint recovery through `tests/integration/test_foundation_resume.py`, demonstrate equal next samples/update/budget under its deterministic clock, and report GPU nondeterminism limits separately in `docs/foundation.md`. Resolve concrete mismatches before claiming resume. (FR-014, FR-016, SC-004)
-- [ ] T049 [US4] Integrate foundation readiness in `src/oeis_learn/evaluation/readiness.py` and `tracking/run_manager.py`: require adopted contract, exact/provenance/isolation/resume/device/containment/proof-boundary evidence for qualification. A fixture/override/legacy run remains diagnostic; failed/incomplete gate cannot be hidden by a final score. (FR-011, FR-015–020, SC-001–006)
+- [ ] T049 [US4] Integrate foundation readiness in `src/oeis_learn/evaluation/readiness.py` and `tracking/run_manager.py`: require adopted contract and exact/provenance/isolation/resume/device/containment/proof-boundary evidence for baseline readiness; full 007 release additionally requires G7–G10. A fixture/override/legacy run remains diagnostic; failed/incomplete gate cannot be hidden by a final score. (FR-011, FR-015–020, SC-001–006)
 
 **Checkpoint**: US4 proves bounded real-device operation and honest continuation; it does not establish useful learning from a three-update model.
 
-## Phase 7: Cross-cutting validation and handoff
 
-- [ ] T050 [P] Document implemented CLI, isolation, numerical scope, migration/rollback, evidence interpretation and recovery in `docs/foundation.md` and update `README.md`; reconcile `specs/007-experiment-foundation/quickstart.md` with actual command behavior, including measured versus pending gates and no automatic008 launch. (FR-002, FR-011, FR-014–020)
-- [ ] T051 Run all new foundation tests and affected existing arithmetic/lowering/codec/synthesis/checkpoint suites, record exact commands/environment and any pre-existing failures in `specs/007-experiment-foundation/validation/implementation-results.md`, and resolve introduced failures. Re-run official Spec Kit prerequisites plus `specs/007-experiment-foundation/validate_artifacts.py` and perform read-only cross-artifact analysis after code-driven design changes. Documentation checks cannot substitute for runtime gates. (FR-001–020, SC-001–006)
-- [ ] T052 Execute the implemented `specs/007-experiment-foundation/quickstart.md` scenarios, archive all G0–G6 evidence/immutable identities, and create `specs/007-experiment-foundation/validation/handoff.md` identifying passed/pending gates and the precise interface for008. Stop on an unresolved acceptance gate; hand off only the qualified WAT foundation and recorded limits, with native LODA/comparison training/proof expansion still deferred. (FR-001–020, SC-001–006)
+## Phase 7: User Story 5 - Repair synthesis and proof soundness
+
+**Goal**: Repair synthesis and proof soundness.
+
+**Independent test**: Run original-entry-point counterexamples, exact statuses, native parity and contained workers.
+
+- [ ] T050 [P] [US5] Add original-entry-point grounding regressions in `tests/unit/test_foundation_grounding.py`: C*C target4, >2^53/signed coefficients, rank-deficient solvable systems, unlucky primes/pivots, nonintegral unique solution, parameter-dependent control, no-placeholder mismatch and timeout versus UNKNOWN. Assert training/evaluation use the same service. (FR-021, FR-003, FR-004, SC-007)
+- [ ] T051 [P] [US5] Add both-prover-API regressions in `tests/unit/test_foundation_symbolic.py`: same-spelling symbols with different assumptions, false shifts, negative/zero scales, empty domains, original denominator poles, unknown residual, concrete witnesses, invalid registry hash and worker timeout. (FR-022, FR-019, SC-007)
+- [ ] T052 [P] [US5] Add `tests/integration/test_foundation_native_optimizer.py` and Rust fixtures under `crates/oeis_wasm_evaluator/tests/` for local.tee liveness, traps/effects, exact four-result/single-batch parity, fresh state and matching classifications without fallback or skipped native execution. (FR-023, FR-004, FR-006, SC-007)
+- [ ] T053 [US5] Implement `src/oeis_learn/experiments/qualified_models.py` and `tests/contract/test_foundation_qualified.py` from all data-model extension tables. Enforce "unknown fields/versions fail", "track=`strict_generic`", allowed origins/objectives/status discriminators, exact integers, scoped evidence and acyclic identities. Add kind-specific positive and adversarial fixtures; CandidateResult remains not_claimed. Profile gates must be validated before activation. (FR-001, FR-021, FR-022, FR-027, FR-028, FR-032, SC-007, SC-009, SC-011)
+- [ ] T054 [US5] Implement typed parameter-dependence and exact affine algebra in `src/oeis_learn/decoder/grounding.py` and repair `decoder/constant_solver.py`: conservative affine/nonlinear classification, exact coefficient/RHS extraction, rational/integer consistency and no float64/HNF least-squares shortcut. Bound parameters8, coefficients±1000 and worker2s; report unsupported/unknown distinctly. (FR-021, FR-003, SC-007)
+- [ ] T055 [US5] Repair `src/oeis_learn/decoder/{dixon_solver,qfnia_solver,mersenne61_filter}.py`: actual pivot maps, bounded prime retries, exact reconstruction/checking, real Z3 Int dispatch and separately named faithful bit-vector tier. Scoped UNSAT requires complete supported constraints or exhaustive finite domain, never unlucky prime, rank deficiency or timed-out enumeration. (FR-021, FR-005, SC-007)
+- [ ] T056 [US5] Recognize recurrence state/order/initial conditions and cache exact lag systems in `src/oeis_learn/decoder/grounding.py`; adapt `rl/trainer.py` and `evaluation/synthesis.py` to shared solver dispatch and final-source verification, including no-placeholder paths. Measure solver durations and enforce effective settings; hidden continuations never enter grounding. (FR-021, FR-004, FR-008, FR-016, SC-007)
+- [ ] T057 [US5] Repair `src/oeis_learn/discovery/symbolic_prover.py`, `data/symbolic_definitions.py` and report consumers: bounded allowlisted parse with one canonical symbol table; shifted-domain intersection retaining poles before cancellation; exact polynomial/rational identity certificates and their independent initial checker/report at G7 without depending on T089; checked counterexample witnesses; UNKNOWN/empty-domain/timeouts otherwise. Both public APIs must stop emitting unqualified PROVEN. Keep external definitions as explicit assumptions. (FR-022, FR-019, FR-032, SC-007)
+- [ ] T058 [US5] Replace regex-only elimination with typed local/control/effect liveness in `src/oeis_learn/sandbox/optimizer.py`; retain local.tee definitions, traps and observable ordering. Reparse/revalidate transformed source and require independent regression plus supported-domain rewrite evidence; unsupported transforms return unchanged source. (FR-023, FR-004, SC-007)
+- [ ] T059 [US5] Repair `crates/oeis_wasm_evaluator/src/{sandbox,lib}.rs` and Python adapters in `src/oeis_learn/sandbox/{runner,fallback_runner}.py` for explicit profile identity, four-limb decoding, lowering before compilation, fresh instance and aggregate/per-call accounting. Build in Docker and execute mandatory Rust/Python conformance; no auto-fallback can hide a native defect. (FR-023, FR-003, FR-006, FR-017, SC-007)
+- [ ] T060 [US5] Add qualified-service activation/configuration in `src/oeis_learn/experiments/{config,qualified_models}.py` and `cli/foundation.py`: initial smoke stays fixed; solvers/typed optimizer/native/prover require concrete G7 evidence. Negative configuration tests reject missing gates and legacy labels; disabled means pending, not repaired. (FR-001, FR-015, FR-021, FR-022, FR-023, FR-038, SC-007, SC-014)
+- [ ] T061 [US5] Run owning-module regressions, solver/proof worker containment and native parity via `tests/integration/test_foundation_repair_gate.py`; persist G7 report in the run reports directory. Make `evaluation/readiness.py` require this gate before any architecture/learning measurement, independently of US4 smoke completion. (FR-021, FR-022, FR-023, FR-038, SC-007, SC-014)
+
+## Phase 8: User Story 6 - Correct and efficient learning/search
+
+**Goal**: Correct and efficient learning/search.
+
+**Independent test**: Run cached logits, analytic policy, exact-byte/splits and deterministic active-state replay/resume fixtures.
+
+- [ ] T062 [P] [US6] Add `tests/unit/test_foundation_cache.py`: full-prefix versus cached logits at1/2/513/1024 tokens, atol1e-5/rtol1e-4, exact legal masks, padded/finished rows, beam reorder, capacity and invalidation on weights/prompt/device/dtype/position changes. (FR-025, SC-008)
+- [ ] T063 [P] [US6] Add `tests/unit/test_foundation_policy.py`: enumerate a two-step masked policy, behavior/current ratios after weight changes, analytic and finite-difference gradients, forced/PAD/EOS treatment, safe entropy, zero-variance groups, frozen encoder+decoder reference and restoration of every module mode on failure. (FR-027, SC-009)
+- [ ] T064 [P] [US6] Add `tests/unit/test_foundation_archive_curriculum.py` for atomic legacy/canonical admission, no fabricated continuation, retained over-context source, CGI eligibility, actual replay updates, reordered visit equivalence and adaptive budget sum/caps. Add active-state resume fixtures. (FR-028, FR-029, FR-014, SC-009)
+- [ ] T065 [P] [US6] Add `tests/unit/test_foundation_integer_features.py` and `test_foundation_structural_splits.py`: signed256 min/max/neighbors, byte round trip, wider exact differences, zero valuations, rebased index masks, no future AST/metadata input, structural/parameter/operator holdout disjointness and active-head finite gradients. (FR-024, FR-026, SC-010)
+- [ ] T066 [US6] Implement prefill/decode_step and bounded self/cross K/V in `src/oeis_learn/decoder/{wat_decoder,transformer_decoder,sampler}.py`: explicit cache identity, per-row lengths, reorder/reset and invalidation. Preserve uncached teacher-forced training, dropout/mode behavior and independent per-candidate RNG streams. (FR-025, FR-014, SC-008)
+- [ ] T067 [US6] Implement preallocated batched static-plus-dynamic masks, prompt/length buckets and qualified eager/SDPA paths in `src/oeis_learn/decoder/{grammar_masker,environment_tracker,sampler}.py`; size masks from vocabulary and remove avoidable per-token device synchronization. Execute cache/mask equivalence before performance claims. (FR-025, FR-035, SC-008)
+- [ ] T068 [US6] Implement `src/oeis_learn/encoder/integer_bytes.py` and adapt `encoder/{tri_stream_encoder,magnitude_stream,modulo_stream,difference_stream,heads}.py`: sign+32 magnitude bytes, exact rebased index/length masks, parity/powers-of-two and explicit zero valuation, exact wider-derived features or range masks. Remove dormant heads/options; preserve the old declared lossy control without an injectivity claim. (FR-026, FR-015, SC-010)
+- [ ] T069 [US6] Implement `src/oeis_learn/data/structural_splits.py` and integrate `generic_programs.py`/`program_pool.py`: alpha-normalized dependency-preserving structural groups,80/10/10 hash splits before parameter sampling, reserved high-width parameter and operator-composition diagnostics. Preserve multiple source algorithms in archive while controlling sampling weights; immutable reports separate each denominator. (FR-024, FR-029, FR-012, SC-010)
+- [ ] T070 [US6] Repair `src/oeis_learn/rl/{trainer,egca_grpo,reward,telemetry}.py` and `decoder/sampler.py` per learning contract: store true behavior logs/support, top-p1/no top-k, dropout-off scoring, forced/PAD exclusion, sampled EOS, fresh REINFORCE and clipped GRPO epsilon0.2, full frozen reference, explicit KL0.01/entropy0 defaults and actual group variance. Preserve SFT control and restore modes. (FR-027, FR-016, SC-009)
+- [ ] T071 [US6] Replace textual causal proxies in `src/oeis_learn/sandbox/tracer.py` with explicit lowered instruction/basic-block maps and real reference/runtime events; unsupported trace modes report unsupported. Default to whole-trajectory reward; add source-map/trace fixtures proving actual execution attribution in `tests/unit/test_foundation_trace.py`. (FR-027, FR-016, FR-035, SC-009)
+- [ ] T072 [US6] Repair `src/oeis_learn/curriculum/{symple_bandit,orchestrator,scheduler,sampler}.py`: aggregate one VisitObservation, sample-count/cost/uncertainty estimates, explicit25% uniform exploration, recorded correct selection probabilities. Four active prompts,2..16 candidates each,total32; exact caps/redistribution and insufficient-prompt behavior. Persist sufficient statistics/RNG. (FR-028, FR-014, SC-009)
+- [ ] T073 [US6] Implement multi-program content-addressed archive/admission in `src/oeis_learn/discovery/program_archive.py` and repair `rl/elite_buffer.py`/`rl/trainer.py`: validate before all mutations; no fake terms/extrapolation, up to4 Pareto training implementations, full quota-bounded long-source retention with training_eligible=false. Replace CGI hardcoded512 with common codec/BOS/EOS eligibility. Apply expanded structural/parameter/composition holdout checks to every training/retrieval admission, including model-generated programs. (FR-028, FR-029, FR-013, SC-009)
+- [ ] T074 [US6] Connect configured replay to actual SFT gradients in `src/oeis_learn/rl/{trainer,sft_trainer,elite_buffer}.py`; use frozen per-round archive view and25% replay fraction, count examples only after committed updates and preserve strict origin checks. Implement deterministic replay cursor and nonzero-gradient regression. (FR-028, FR-029, FR-027, SC-009)
+- [ ] T075 [US6] Implement `src/oeis_learn/evaluation/search.py` over the shared pipeline: bounded greedy/stochastic, beam/best-first and typed local repair; model-only versus model+search labels; shared attempt/expansion/time ledger; source dedup, permitted training retrieval, visible-only counterexamples and no unsound prefix-fingerprint pruning. Portfolio32=16 stochastic+8 beam+8 repair, or explicit baseline16; compare only matched totals. (FR-029, FR-008, FR-010, SC-009)
+- [ ] T076 [US6] Implement round-based `src/oeis_learn/rl/self_training.py`: freeze archive before each round, search only training prefixes, independently verify using training-only continuations, training-only near-miss lookup, canonical expanded holdout checks on every replay/macro source, preserve multiple implementations and reverify on semantics/compiler changes. Add leakage/round-boundary integration fixtures; never admit evaluation feedback. (FR-029, FR-012, FR-013, SC-009, SC-010)
+- [ ] T077 [US6] Extend `src/oeis_learn/tracking/training_checkpoint.py` for QualifiedCheckpoint: active reference encoder+decoder, archive/replay cursor, round, scheduler statistics/RNG, search frontier/sampler state and active scaler. Add interrupted/uninterrupted policy/replay/search fixtures in `tests/integration/test_foundation_qualified_resume.py`; all inactive fields explicit null. (FR-014, FR-027, FR-028, FR-029, SC-009)
+- [ ] T078 [US6] Implement explicit qualified model/objective constructors in `src/oeis_learn/experiments/profiles.py` and `configs/foundation/qualified.yaml`, plus sinusoidal/RoPE/prefix-ancestor position adapters in `decoder/wat_decoder.py` and one d384/four-encoder/six-decoder/six-head/FF1536 model (record actual parameter count; target25M class). Correct cache offsets, encoder/code axes and future-AST exclusion; add forward/backward fixtures for each supported variant. (FR-025, FR-026, FR-036, SC-008, SC-010, SC-013)
+- [ ] T079 [US6] Integrate qualified train/search commands and G8 in `src/oeis_learn/cli/foundation.py` and `evaluation/readiness.py`; execute cache/policy/mode/encoder/family/replay/curriculum/resume suites. Require actual original-path repairs even when the SFT baseline remains selected. Resolve any architectural variant count versus memory cap before declaring readiness. (FR-025, FR-026, FR-027, FR-028, FR-029, FR-038, SC-008, SC-009, SC-010, SC-014)
+
+## Phase 9: User Story 7 - Broader WAT and program-based discovery
+
+**Goal**: Broader WAT and program-based discovery.
+
+**Independent test**: Run independent array/streaming/wide semantics, planted/negative relations and fresh certificate mutation checks.
+
+- [ ] T080 [P] [US7] Add `tests/unit/test_foundation_extended_wat.py` for full signed256 mul/div/rem/comparisons/shifts, min/-1/zero exceptions, array bounds/alias/zeroing, stream reset/resume and pure/streaming parity at20/50/100/120, plus independent hand vectors and bounded generated cases. (FR-030, FR-003, SC-011)
+- [ ] T081 [P] [US7] Add `tests/integration/test_foundation_discovery.py` for two implementations, ranked retrieval independent of traversal order, one-index coincidence, nonempty/disjoint partitions, actual rank/nullity, planted/negative transforms and sealed novelty. Add mutations for each supported certificate class. (FR-031, FR-032, FR-033, SC-011)
+- [ ] T082 [US7] Implement typed logical WAT IR and separate complete codec in `src/oeis_learn/sandbox/logical_ir.py`, `decoder/program_codec.py` and `sandbox/{lowering,preamble,reference}.py`: typed wide expressions/slots and structured dataflow, deterministic checked lowering, all extended operators and independent expectations. Version every profile/codec; reject logical shifts>=256 and false range proofs. (FR-030, FR-021, FR-003, SC-011)
+- [ ] T083 [US7] Implement bounded arrays and `init(start_index)`/`next()` stream state in `src/oeis_learn/sandbox/streaming.py`, worker/runner and Rust adapters. Maximum1024 signed256 cells in one64KiB page with no memory.grow; bounded next_block(1..120), checked byte offsets, zero initialization, per-candidate reset, pre-next rollback or charged reset/replay on retry, per-next/aggregate costs and atomically committed checkpoint index/state; pure random access remains distinct. Execute all advertised-profile parity, including stream interruption/resume. (FR-030, FR-006, FR-023, SC-011)
+- [ ] T084 [US7] Implement normalized typed subtree/dataflow/recurrence features in `src/oeis_learn/discovery/program_features.py` over T073 archive and logical IR; add hash/semantics-gated indexing with bounded memory and stable alpha-renaming. Preserve multiple implementations and genealogy; finite fingerprints propose but do not prove equivalence. (FR-031, FR-033, FR-029, SC-011)
+- [ ] T085 [US7] Repair `src/oeis_learn/discovery/{vector_search,pslq_solver,numerical_validator,relation_identity}.py`: blockwise ranked top-k, bounded arity/proposals, exact multi-index integer matrix/nullspace, gcd/sign normalization, honest support/rank/nullity and incomplete-search UNKNOWN. Reject empty/overlapping/missing partitions and length-mismatch zip truncation; PSLQ only under an explicit approximate-real contract, never sequence proof. (FR-031, FR-032, SC-011)
+- [ ] T086 [US7] Wire `src/oeis_learn/discovery/pipeline.py` to actual generated program/decoder provenance and add `discovery/transforms.py`: bounded shift/reindex, difference, sum/product, interleave, convolution and composition with domain/cost checks. Add positive/adversarial cases per transform; seal coefficients/proposal before validation and record hand-specified operator priors. (FR-031, FR-033, SC-011)
+- [ ] T087 [US7] Implement exact extraction/checking in `src/oeis_learn/discovery/{certificates,polynomial_certificate,recurrence_certificate}.py`: scoped polynomial/rational coefficient identities and recognized constant-coefficient recurrence/state invariants with initial conditions. Link program/IR/domain hashes and explicitly separate mathematical identities from checked-machine safe ranges. (FR-032, FR-022, SC-011)
+- [ ] T088 [US7] Implement `src/oeis_learn/discovery/{state_certificate,loop_certificate}.py`: bounded reachable-state closure/cycles, affine/polynomial template invariants and ranking functions, exact obligations, plus bounded enumeration/SMT machine claims. Cap reachable states10000, loop templates64 and proof worker10s/1GiB; incomplete search returns UNKNOWN without claiming universal termination. (FR-032, FR-030, SC-011)
+- [ ] T089 [US7] Implement isolated certificate replay and compiler-link validation in `src/oeis_learn/discovery/certificate_checker.py`: no model access, mutation rejection, declared assumptions, helper/control translation obligations and separate finite compiled conformance if formal linkage is absent. Add one positive/mutated fixture per supported family; expose check-certificate CLI without generic PROVEN. (FR-032, FR-019, SC-011)
+- [ ] T090 [US7] Implement bounded typed macro mining in `src/oeis_learn/discovery/macro_mining.py` and value-guided repair in `evaluation/search.py`: training-only archive, acyclic expanded dependencies, verified trap-aware rewrites, positive description-length benefit and cost accounting. Fixed proposer cap64 macros/32 expansions, training-only value targets; fixture-test modules regardless of whether the conditional pilot selects them. (FR-033, FR-029, FR-036, SC-011, SC-013)
+- [ ] T091 [US7] Implement post-seal `src/oeis_learn/discovery/novelty.py` and analysis-role mounts/reporting: external knowledge has no path into strict learner/search; distinguish rediscovery, new implementation, empirical/certified relation and novelty_unknown. Frozen proposal hashes cannot change after lookup; add negative information-flow tests. (FR-033, FR-012, FR-019, SC-011)
+- [ ] T092 [US7] Execute G9 via `tests/integration/test_foundation_discovery.py` and `test_foundation_extended_wat.py`, including source/semantic hash invalidation, stream state, proof mutation and relation negative controls; wire full readiness in `evaluation/readiness.py` with unavailable/unsupported capability reporting distinct from failed required cases. (FR-030, FR-031, FR-032, FR-033, FR-038, SC-011, SC-014)
+
+## Phase 10: User Story 8 - Release and bounded optimization decisions
+
+**Goal**: Release and bounded optimization decisions.
+
+**Independent test**: Install wheel outside checkout, execute native CI and dry-run plus bounded actual decision protocol.
+
+- [ ] T093 [P] [US8] Repair source/census tooling in `src/oeis_learn/evaluation/foundation_cohort.py` and `scripts/analyze_oeis_corpus_precision.py`, adding `tests/unit/test_foundation_source_policy.py`: exact20/50/100/120 denominators, explicit database path, offsets/finite/table/keywords, full-series descriptive growth and exact affine+shift grouping/membership. Freeze real release cohorts only after these rules and structural splits pass. (FR-024, FR-007, FR-009, SC-010, SC-012)
+- [ ] T094 [P] [US8] Add `.github/workflows/foundation.yml`, `scripts/foundation/test_wheel.sh` and packaging fixes in `pyproject.toml`: build wheel in Docker, install outside checkout with PYTHONPATH unset, import packaged WAT and run CPU regressions; separate Docker Rust build executes native parity without fallback or unintended skips. Keep live GPU acceptance separate from ordinary CI. (FR-034, FR-023, FR-017, SC-012)
+- [ ] T095 [US8] Migrate launch/extraction/evaluation wrappers in `src/oeis_learn/cli/{train_run008,train_run009,train_run010,train_run011,train_warmstart,evaluate_canaries}.py` and relevant `scripts/` to shared services using an explicit existing-file inventory. Preserve historical configs/status; fix repeated-family warmstart and unconditional qualification in owning supported commands. Add parity fixtures before archiving obsolete wrappers; do not create missing historical filenames just to satisfy the list. (FR-034, FR-011, FR-020, SC-012)
+- [ ] T096 [US8] Extend `src/oeis_learn/tracking/foundation_metrics.py`, `sandbox/pipeline.py` and `configs/foundation/experiments.yaml`: actual synchronized phase timings, real entropy/reward/solver traces, p50/p95/max/aggregate fuel, configurable75% near-limit counts, thermal/power availability and deterministic100k/250k/1M escalation within total50M/time caps. All attempts/retries remain charged before selection. (FR-035, FR-016, FR-018, SC-013)
+- [ ] T097 [US8] Implement `src/oeis_learn/evaluation/overflow_diagnostics.py` and `tests/integration/test_foundation_overflow_diagnostics.py` per experiments contract: frozen separate strata<=256 each, independently traced logical intermediates with4096-bit wider-reference cap, paired in-range checked/unchecked timings, exact rescued-candidate and unique development-group counts. Benchmark-only unchecked modules can never enter admission. (FR-037, FR-002, FR-003, FR-008, SC-013)
+- [ ] T098 [US8] Implement `src/oeis_learn/experiments/decisions.py`, `evaluation/experiment_runner.py` and measure CLI: immutable manifests, exact trigger priority/metrics/effect thresholds, two-hour engineering cap and one six-hour diagnostic-plus-paired pilot, no Cartesian sweep. Add dry-run/clock/failure/zero-baseline/not-triggered/inconclusive tests; missing final truth must be structural, not convention. (FR-036, FR-038, FR-014, FR-016, SC-013, SC-014)
+- [ ] T099 [US8] Run the frozen engineering protocol via `src/oeis_learn/evaluation/experiment_runner.py`: warmed cache/batch/grammar/SDPA, FP32/qualified AMP,4/8 workers,10-minute steady-state and relation scaling; persist semantic equivalence, phase/thermal/resource and practical-effect evidence. Stop at correctness disagreement or two-hour cap, with no unsupported speedup promises. (FR-025, FR-035, FR-036, FR-037, SC-008, SC-013)
+- [ ] T100 [US8] Evaluate all non-LODA trigger decisions and, only if one triggers, run the single capped SFT/encoder/objective/search/position/capacity contrast via `src/oeis_learn/evaluation/experiment_runner.py`; implement three paired-seed schedule and threshold/inconclusive rules exactly. At most six total training hours; do not launch LODA or a second contrast. Store measured not_triggered, higher-priority baseline_retained, or missing-evidence inconclusive dispositions accurately for every unselected branch. Charge the30-minute diagnostic and55-minute paired arms to the six-hour cap. (FR-026, FR-027, FR-028, FR-029, FR-033, FR-036, SC-013)
+- [ ] T101 [US8] Generate review/decision disposition and source-policy release reports in `docs/foundation.md` and `specs/007-experiment-foundation/validation/implementation-results.md`, linking each requirement and input finding to actual test/decision evidence. Unsupported/already-fixed claims retain rationale; no disabled bug is marked repaired and only LODA is deferred. (FR-024, FR-034, FR-036, FR-038, SC-012, SC-013, SC-014)
+- [ ] T102 [US8] Run installed-wheel end-to-end qualified train/search/resume/discover/check-certificate/measure fixtures through `tests/contract/test_foundation_qualified_cli.py`, then combine G0–G10 in `evaluation/readiness.py`. Expose baseline-ready versus full-release-qualified states; missing mandatory repairs or evidence prevents007 completion. (FR-034, FR-038, FR-014, FR-019, SC-009, SC-011, SC-012, SC-014)
+
+## Phase 11: Cross-cutting validation and handoff
+
+**Goal**: Cross-cutting validation and handoff.
+
+**Independent test**: Require all mandatory gates and a disposition for every input finding.
+
+- [ ] T103 Update `docs/foundation.md`, `README.md` and `specs/007-experiment-foundation/quickstart.md` to actual implemented behavior, all profiles/roles, migration/recovery, certificate limits, measurement dispositions and LODA-only handoff. Preserve user-confirmed choices versus planning defaults. (FR-020, FR-038, SC-014)
+- [ ] T104 Run all affected suites, clean-wheel/native CI-equivalent commands and official Spec Kit prerequisites; execute `specs/007-experiment-foundation/validate_artifacts.py` and read-only semantic analysis. Record exact commands and known external limitations in `validation/implementation-results.md` under the feature directory; fix introduced failures without weakening gates. (FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-016, FR-017, FR-018, FR-019, FR-020, FR-021, FR-022, FR-023, FR-024, FR-025, FR-026, FR-027, FR-028, FR-029, FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-036, FR-037, FR-038, SC-001, SC-002, SC-003, SC-004, SC-005, SC-006, SC-007, SC-008, SC-009, SC-010, SC-011, SC-012, SC-013, SC-014)
+- [ ] T105 Execute every implemented quickstart slice and archive G0–G10, immutable identities and experiment decisions in `specs/007-experiment-foundation/validation/handoff.md`. Reconcile the complete input inventory, report any failed runtime gate honestly, and hand off only LODA-specific runtime/comparison/transcoding questions to008. (FR-038, FR-020, SC-014)
 
 ## Dependencies & Execution Order
 
-- **Setup**: T001 → T002. Adoption is a real gate, not an assumed task completion.
-- **Foundation**: T003 and T006 can run in parallel after setup; T004 follows T003; T005 follows T004; T007 follows T004/T006; T008 follows T003–T005. Finish the phase before story implementation is integrated.
-- **US1**: T009/T010/T011 are parallel regression work. T012–T017 build parser, arithmetic/reference, pipeline and workers in that dependency order; T013 and T014 can proceed separately once T012 exists and their regressions fail for the expected reason; both must pass before T015 integration. T018 proof boundary and T019 conformance close G1/G6.
-- **US2**: T020/T021 are independent tests. T022 and T023 can develop independently, then T024 → T025 → T026. T027/T028 integrate reporting/CLI; T029 closes the slice. US1 is required for production qualification; model fixtures avoid depending on successful training.
-- **US3**: T030/T031 are parallel tests. T032 and T033 are independent once US1/codec contracts exist; T034 → T035/T036 → T037 freezes and qualifies the pool. It can be developed alongside US2 with a private membership fixture, but real pool publication requires T022's frozen cohort.
-- **US4**: T038/T039/T040 are parallel tests. T041/T042/T043 feed T044; T045/T046 integrate lifecycle and containers; T047/T048 collect device/resume evidence; T049 combines gates. Strict SFT requires US3's admitted pool. Evaluation from its real checkpoints requires US2.
-- **Finish**: T050 can be prepared alongside validation once command contracts stabilize; T051 then T052. Do not start008's long experiment merely because document scripts return zero.
+The machine-readable [task-dependencies.json](validation/task-dependencies.json) is authoritative. Numeric order is topological; unrelated stories may interleave at their dependency joins. Every marked [P] task writes independent files after its listed prerequisites; do not concurrently integrate shared CLI/profile/runner files.
 
-The smallest useful MVP is US1 after setup/foundation. US2 adds trustworthy diagnostic synthesis; US3 adds a strict pool; US4 makes the complete path resumable and workstation-qualified. Isolated component tests may use declared fixtures; those fixtures never qualify real experimental results.
+- Setup T001–002: bounded feasibility then explicit adoption; no fabricated approval.
+- Foundation T003–008 precedes US1. US1 T009–019 is the smallest functional MVP.
+- **US5 T050–061 starts directly after US1, alongside US2/US3.** Do not postpone the known proof/solver fixes until performance experiments. G7 blocks US6 activation and every measurement.
+- US2 T020–029 provides frozen visible/private evaluation and actual checkpoint scoring. US3 T030–037 provides generic admission. US4 T038–049 adds a baseline SFT/resume/device path. Baseline-ready is not full007 completion.
+- US6 T062–079 shares US1/US3 contracts; its final integration joins G7, exact conditioning, cache, policy, archive and full active-state checkpoints.
+- US7 T080–092 joins repaired proof semantics, archive and logical IR for bounded expressiveness/discovery. US8 T093–102 can prepare source policy and CI independently, then joins all modes for measurements and release.
+- Final T103–105 requires all eight stories. Only LODA-specific work remains outside007. A conditional experiment may be not triggered; a mandatory repair may not.
 
 ## Parallel examples
 
-| Ready phase | Independent work | Join condition |
+| Story | Safe independent tasks after prerequisites | Join |
 | --- | --- | --- |
-| Foundation | T003 artifact tests and T006 codec tests | Their implementation dependencies complete before T007/T008 integration. |
-| US1 | T009 arithmetic, T010 reference and T011 worker/parity regressions | T015 requires corrected helpers and independent reference. |
-| US2 | T020 cohort tests and T021 checkpoint/leakage tests | T024 requires actual loader plus private/visible views. |
-| US3 | T030 admission tests and T031 sampler/pool tests | T034 requires valid generation and admission. |
-| US4 | T038 resume, T039 metrics/config and T040 GPU/resource tests | T049 requires all runtime gates. |
-
-Do not concurrently edit shared `cli/foundation.py`, `experiments/models.py` or `evaluation/readiness.py` from different slices without sequencing their integration. `[P]` is a file-independence hint, not permission for conflicting edits.
+| US1 | T009 arithmetic, T010 reference, T011 execution regressions | T012–019 |
+| US2 | T020 cohort and T021 real-model evaluation tests | T024–029 |
+| US3 | T030 admission and T031 pool tests | T034–037 |
+| US4 | T038 resume, T039 metrics, T040 resources tests | T044–049 |
+| US5 | T050 solver, T051 prover, T052 native/optimizer tests | T053–061 |
+| US6 | T062 cache, T063 policy, T064 archive, T065 features tests | T066–079 |
+| US7 | T080 runtime and T081 discovery fixtures | T082–092 |
+| US8 | T093 source/census and T094 wheel/native CI | T095–102 |
 
 ## Requirement and success-criterion coverage
 
-Mappings identify substantive implementation/test work; the final aggregate validation tasks are additional coverage, not the sole implementation of a requirement.
+Each row names substantive test/implementation work as well as final release checks. Source-input coverage is separately enumerated in [review-coverage.md](review-coverage.md); internal requirement coverage alone cannot establish completeness against the reviews.
 
 | Requirement | Task IDs | Acceptance gate |
 | --- | --- | --- |
-| FR-001 | T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041 | G1–G4 |
-| FR-002 | T004, T009, T010, T013, T050 | G1 |
-| FR-003 | T009, T010, T013, T014, T015, T019, T033, T037 | G1/G3 |
-| FR-004 | T006, T007, T011, T012, T015, T017, T019, T033 | G1/G3 |
-| FR-005 | T003, T004, T011, T014, T015, T017, T019, T025 | G1/G2 |
-| FR-006 | T010, T011, T012, T014, T016, T017, T019, T040, T046 | G1/G5 |
-| FR-007 | T003, T004, T020, T022, T028, T029 | G2 |
-| FR-008 | T003, T004, T021, T022, T024, T025, T028, T029, T035, T046 | G2/G3 |
-| FR-009 | T020, T021, T022, T025, T026, T028, T029 | G2 |
-| FR-010 | T020, T021, T022, T025, T026, T028, T029 | G2 |
-| FR-011 | T008, T015, T021, T023, T024, T025, T026, T027, T028, T029, T045, T049, T050 | G2 |
-| FR-012 | T004, T005, T024, T030, T031, T032, T033, T034, T035, T036, T037, T044 | G3 |
-| FR-013 | T006, T007, T012, T015, T022, T030, T031, T032, T033, T034, T035, T036, T037 | G3 |
-| FR-014 | T003, T008, T023, T026, T031, T034, T038, T041, T042, T044, T045, T048, T050 | G4 |
-| FR-015 | T005, T008, T027, T028, T039, T043, T044, T045, T049, T050 | G4/G5 |
-| FR-016 | T013, T016, T019, T025, T027, T031, T032, T034, T036, T038, T039, T042, T043, T044, T048, T049, T050 | G4/G5 |
-| FR-017 | T001, T005, T040, T045, T046, T047, T049, T050 | G0/G5 |
-| FR-018 | T004, T005, T011, T016, T036, T039, T040, T041, T042, T043, T046, T047, T049, T050 | G1/G5 |
-| FR-019 | T003, T004, T018, T021, T027, T049, T050 | G6 |
-| FR-020 | T002, T008, T027, T049, T050, T051, T052 | G0/handoff |
-| SC-001 | T009, T010, T011, T013, T014, T015, T016, T017, T019, T049 | G1 |
-| SC-002 | T015, T020, T021, T023, T024, T025, T026, T027, T029, T049 | G2 |
-| SC-003 | T030, T031, T033, T034, T035, T036, T037, T044, T049 | G3 |
-| SC-004 | T031, T034, T038, T039, T041, T042, T044, T045, T048, T049 | G4 |
-| SC-005 | T001, T016, T040, T043, T045, T046, T047, T049 | G0/G5 |
-| SC-006 | T018, T021, T027, T049 | G6 |
+| FR-001 | T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041, T053, T060, T104 | Mapped story gate; G10 release |
+| FR-002 | T004, T009, T010, T013, T097, T104 | Mapped story gate; G10 release |
+| FR-003 | T009, T010, T013, T014, T015, T019, T033, T037, T050, T054, T059, T080, T082, T097, T104 | Mapped story gate; G10 release |
+| FR-004 | T006, T007, T011, T012, T015, T017, T019, T033, T050, T052, T056, T058, T104 | Mapped story gate; G10 release |
+| FR-005 | T003, T004, T011, T014, T015, T017, T019, T025, T055, T104 | Mapped story gate; G10 release |
+| FR-006 | T010, T011, T012, T014, T016, T017, T019, T040, T046, T052, T059, T083, T104 | Mapped story gate; G10 release |
+| FR-007 | T003, T004, T020, T022, T028, T029, T093, T104 | Mapped story gate; G10 release |
+| FR-008 | T003, T004, T021, T022, T024, T025, T028, T029, T035, T046, T056, T075, T097, T104 | Mapped story gate; G10 release |
+| FR-009 | T020, T021, T022, T025, T026, T028, T029, T093, T104 | Mapped story gate; G10 release |
+| FR-010 | T020, T021, T022, T025, T026, T028, T029, T075, T104 | Mapped story gate; G10 release |
+| FR-011 | T008, T015, T021, T023, T024, T025, T026, T027, T028, T029, T045, T049, T095, T104 | Mapped story gate; G10 release |
+| FR-012 | T004, T005, T024, T030, T031, T032, T033, T034, T035, T036, T037, T044, T069, T076, T091, T104 | Mapped story gate; G10 release |
+| FR-013 | T006, T007, T012, T015, T022, T030, T031, T032, T033, T034, T035, T036, T037, T073, T076, T104 | Mapped story gate; G10 release |
+| FR-014 | T003, T008, T023, T026, T031, T034, T038, T041, T042, T044, T045, T048, T064, T066, T072, T077, T098, T102, T104 | Mapped story gate; G10 release |
+| FR-015 | T005, T008, T027, T028, T039, T043, T044, T045, T049, T060, T068, T104 | Mapped story gate; G10 release |
+| FR-016 | T013, T016, T019, T025, T027, T031, T032, T034, T036, T038, T039, T042, T043, T044, T048, T049, T056, T070, T071, T096, T098, T104 | Mapped story gate; G10 release |
+| FR-017 | T001, T005, T040, T045, T046, T047, T049, T059, T094, T104 | Mapped story gate; G10 release |
+| FR-018 | T004, T005, T011, T016, T036, T039, T040, T041, T042, T043, T046, T047, T049, T096, T104 | Mapped story gate; G10 release |
+| FR-019 | T003, T004, T018, T021, T027, T049, T051, T057, T089, T091, T102, T104 | Mapped story gate; G10 release |
+| FR-020 | T002, T008, T027, T049, T095, T103, T104, T105 | Mapped story gate; G10 release |
+| FR-021 | T050, T053, T054, T055, T056, T060, T061, T082, T104 | Mapped story gate; G10 release |
+| FR-022 | T051, T053, T057, T060, T061, T087, T104 | Mapped story gate; G10 release |
+| FR-023 | T052, T058, T059, T060, T061, T083, T094, T104 | Mapped story gate; G10 release |
+| FR-024 | T065, T069, T093, T101, T104 | Mapped story gate; G10 release |
+| FR-025 | T062, T066, T067, T078, T079, T099, T104 | Mapped story gate; G10 release |
+| FR-026 | T065, T068, T078, T079, T100, T104 | Mapped story gate; G10 release |
+| FR-027 | T053, T063, T070, T071, T074, T077, T079, T100, T104 | Mapped story gate; G10 release |
+| FR-028 | T053, T064, T072, T073, T074, T077, T079, T100, T104 | Mapped story gate; G10 release |
+| FR-029 | T064, T069, T073, T074, T075, T076, T077, T079, T084, T090, T100, T104 | Mapped story gate; G10 release |
+| FR-030 | T080, T082, T083, T088, T092, T104 | Mapped story gate; G10 release |
+| FR-031 | T081, T084, T085, T086, T092, T104 | Mapped story gate; G10 release |
+| FR-032 | T053, T057, T081, T085, T087, T088, T089, T092, T104 | Mapped story gate; G10 release |
+| FR-033 | T081, T084, T086, T090, T091, T092, T100, T104 | Mapped story gate; G10 release |
+| FR-034 | T094, T095, T101, T102, T104 | Mapped story gate; G10 release |
+| FR-035 | T067, T071, T096, T099, T104 | Mapped story gate; G10 release |
+| FR-036 | T078, T090, T098, T099, T100, T101, T104 | Mapped story gate; G10 release |
+| FR-037 | T097, T099, T104 | Mapped story gate; G10 release |
+| FR-038 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105 | Mapped story gate; G10 release |
+| SC-001 | T009, T010, T011, T013, T014, T015, T016, T017, T019, T049, T104 | Mapped story gate; G10 release |
+| SC-002 | T015, T020, T021, T023, T024, T025, T026, T027, T029, T049, T104 | Mapped story gate; G10 release |
+| SC-003 | T030, T031, T033, T034, T035, T036, T037, T044, T049, T104 | Mapped story gate; G10 release |
+| SC-004 | T031, T034, T038, T039, T041, T042, T044, T045, T048, T049, T104 | Mapped story gate; G10 release |
+| SC-005 | T001, T016, T040, T043, T045, T046, T047, T049, T104 | Mapped story gate; G10 release |
+| SC-006 | T018, T021, T027, T049, T104 | Mapped story gate; G10 release |
+| SC-007 | T050, T051, T052, T053, T054, T055, T056, T057, T058, T059, T060, T061, T104 | Mapped story gate; G10 release |
+| SC-008 | T062, T066, T067, T078, T079, T099, T104 | Mapped story gate; G10 release |
+| SC-009 | T053, T063, T064, T070, T071, T072, T073, T074, T075, T076, T077, T079, T102, T104 | Mapped story gate; G10 release |
+| SC-010 | T065, T068, T069, T076, T078, T079, T093, T104 | Mapped story gate; G10 release |
+| SC-011 | T053, T080, T081, T082, T083, T084, T085, T086, T087, T088, T089, T090, T091, T092, T102, T104 | Mapped story gate; G10 release |
+| SC-012 | T093, T094, T095, T101, T102, T104 | Mapped story gate; G10 release |
+| SC-013 | T078, T090, T096, T097, T098, T099, T100, T101, T104 | Mapped story gate; G10 release |
+| SC-014 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105 | Mapped story gate; G10 release |
 
 ## Implementation strategy
 
-Deliver each story as a reviewed increment, preserve failed-gate evidence and fix the concrete cause before expanding runs. Keep all 52 tasks unchecked until their implementation/evidence exists. The 1–3-day language arms, native LODA runtime and any later architectural experiments are not tasks in007. A gate failure changes the implementation work needed; it does not silently authorize a teacher, wider numerical backend, new host dependency or additional experiment arm.
+Deliver reviewed story increments with expected failing regressions before fixes and passing evidence before activation. All105 implementation checkboxes remain unchecked in this planning change. G0/adoption is preserved, and G7 restores immediate proof/solver repair sequencing. Scope is expanded but experiments remain bounded: two engineering hours plus at most one six-hour paired pilot. Runtime evidence, not document validation, establishes completion. No LODA runtime, paired language training or transcoder is launched here.

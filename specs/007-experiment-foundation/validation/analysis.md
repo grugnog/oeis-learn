@@ -1,53 +1,53 @@
-# Spec Kit cross-artifact analysis
+# Spec Kit cross-artifact analysis — expanded 007
 
-**Date**: 2026-09-16. **Workflow**: installed `speckit-analyze` v1.0.7, read-only review of specification, plan, tasks, contracts and constitution after task generation. This is an agent-performed semantic review, not a nonexistent CLI semantic-validation command. Inputs were not edited during this final analysis; earlier research-review findings were corrected before it.
+**Date**: 2026-09-16. Followed installed `speckit-analyze` v1.0.7 after regenerating tasks with `speckit-tasks`. The analysis phase was read-only; this file records its output afterward as a requested deliverable. Earlier findings were corrected under the user's explicit instruction before the final analysis. This is semantic review, not an upstream command that proves the design correct.
 
 ## Findings
 
-**Subsequent audit notice:** The earlier analysis below checked internal consistency against 007's selected scope. The user subsequently supplied the review and decision attachments for explicit reconciliation. [The input-coverage audit](../review-coverage.md) identifies GAP-01 (immediate false-proof repair was replaced by quarantine) and other missing/partial obligations. Its findings qualify the earlier statements of completeness and no further clarification. No implementation task or user decision has been silently changed by this audit.
-
-| ID | Category | Severity | Location | Finding / disposition |
+| ID | Category | Severity | Location | Disposition |
 | --- | --- | --- | --- | --- |
-| GOV-001 | Constitution activation | CRITICAL implementation gate | `constitution-rfc.md`; plan Constitution Check; T001–T002 | The ratified 1.0.0 rules conflict with this architecture. A complete, separately proposed 2.0.0 revision is included, but adoption and the old procedure's feasibility evidence are not complete. Run the bounded standalone preflight and record maintainer adoption before implementation promotion beyond that gate. No script exit code waives this requirement. |
+| GOV-001 | Constitution activation | CRITICAL implementation gate | `constitution-rfc.md`, T001–T002 | Proposed2.0.0 is not ratified. Gather actual standalone device feasibility and record adoption before implementation promotion beyond that gate. No script exit code or scope update waives it. |
 
-No unresolved design inconsistency or uncovered requirement was found against the **proposed** 2.0.0 rules. GOV-001 is deliberately retained rather than calling an unratified proposal active. The documents are complete; this does not mean all implementation gates have passed.
+No further HIGH/CRITICAL cross-document inconsistency was identified in the reviewed design. This does not establish implemented correctness, hardware feasibility or mathematical completeness. Unknown proof classes and inconclusive experiments are specified outcomes, not fabricated successes.
+
+## Coverage
+
+| Inventory | Covered / total | Evidence |
+| --- | --- | --- |
+| Functional requirements | 38/38 | Substantive task mapping in tasks.md |
+| Measurable success criteria | 14/14 | Story-level implementation and tests, not final aggregate checks alone |
+| User stories | 8/8 | Independent acceptance fixtures and dependency joins |
+| Implementation tasks | 105/105 | Ordered IDs, concrete paths, story labels, requirement links and acyclic dependency graph |
+| External review/decision items | 68/68 dispositions | 20 independent recommendations,19 architecture proposals,17 performance proposals and12 grouped session decisions |
+
+Only three decision rows defer work: native LODA, conditional LODA-to-WASM and the paired language comparison. Unsupported embedding-corruption claims and optional additional CLI aliases are not adopted with recorded reasons. Already-fixed positional buffering retains regression coverage. Every other review item maps to concrete non-final tasks. [The complete input map](../review-coverage.md) and [machine inventory](review-inputs.json) are separate from internal requirement coverage.
 
 ## Detection passes
 
-- **Duplication**: Execution correctness, model scoring, provenance and continuation requirements have distinct acceptance boundaries. Their use of shared hashes/profiles is intentional; no conflicting duplicate requirement remains.
-- **Ambiguity**: Input count, total horizon, signed range, native wrapping, opcode/codec scope, state reset, grouping, denominator, seed projection, selection, finalization, resource limits and restart accounting are explicit. Hardware outcomes are future measurements with fixed pass/fail behavior, not unspecified design decisions.
-- **Underspecification**: Planned modules are distinguished from existing APIs; CLI inputs/outputs/exit codes and acceptance scenarios have tasks. Standalone preflight uses its own module/config before the later command group exists.
-- **Constitution alignment**: Explicit amendment and migration map exist; exact data, constrained acceptance, bounded execution, provenance and scoped proof are preserved. Proposed architecture changes cannot be silently treated as adopted; GOV-001 remains the activation gate.
-- **Coverage**: All 20 FRs and six buildable success criteria have substantive task mappings, beyond aggregate final testing. Every task maps to a requirement. Four stories have independent test criteria and dependency joins.
-- **Consistency**: Task IDs/order, stories, numerical/horizon/profile names and future quickstart commands agree. GPU tests use the GPU-enabled learner role; ordinary tests use a role without GPU access. No foundation task launches the LODA comparison.
+- **Duplication:** Initial `foundation/v1` SFT control and `qualified/v1` extension modes are explicit; initial disabled paths do not satisfy mandatory repairs. Shared immutable identities and isolation rules apply to both.
+- **Ambiguity:** Twenty visible terms is confirmed. Horizon, checked arithmetic and experimental numerical thresholds remain explicit planning defaults. Bounded certificate families specify UNKNOWN outside support. Unmeasured and untriggered optimization branches have different dispositions.
+- **Underspecification:** Contracts enumerate repaired algorithms, profile semantics, entity fields, CLI boundaries, budgets and meaningful negative fixtures. New modules are implementation targets, not claimed existing functionality.
+- **Constitution:** The proposal preserves exact authoritative data, independent acceptance, bounded work, reproducibility, strict provenance and scoped evidence. Ratification/feasibility remains GOV-001.
+- **Coverage:** Every actionable non-LODA recommendation has a concrete task/test or a bounded conditional decision; disabling a known defective subsystem cannot mark its repair complete.
+- **Consistency:** Source, codec, objective, active checkpoint state, proof scope, streaming retry, split membership and experiment budgets align. G0–G6 mean baseline readiness; G7–G10 are mandatory for full007 completion.
 
-## Coverage summary
+## Material corrections made during this expansion
 
-The complete row-by-row mapping is in [tasks.md](../tasks.md#requirement-and-success-criterion-coverage), and the acyclic execution graph is [task-dependencies.json](task-dependencies.json).
-
-| Inventory | Covered | Total | Result |
-| --- | --- | --- | --- |
-| Functional requirements | 20 | 20 | 100% |
-| Buildable success criteria | 6 | 6 | 100% |
-| User stories | 4 | 4 | Independent test and implementation slice for each |
-| Implementation tasks | 52 | 52 | No unmapped tasks; all remain unchecked |
-
-**Metrics**: 26 requirements/criteria; 52 tasks; 100% coverage; zero unresolved ambiguity findings; zero conflicting-duplication findings; one explicit CRITICAL governance activation gate; no other unresolved HIGH/CRITICAL design findings.
-
-## Research-review corrections made before final analysis
-
-| Finding | Correction |
+| Earlier issue | Correction |
 | --- | --- |
-| Program/admission digest cycle | Program ID hashes an enumerated immutable core; separate admission/evidence records point to it and the pool links both. |
-| Finalization required candidates before generating them | Separate immutable decision lock, visible-only proposal phase and per-target seal before hidden scoring. |
-| One-second lease could undercount a long crashed operation | Independent durable heartbeat and external arm watchdog; conservatively charge the entire unobserved crash gap and label it estimated. |
-| Whole protocol hash could seed generation from hidden-derived data | Public sampling projection explicitly excludes private/transitively hidden hashes. |
-| Blob publication order incomplete | Rename/fsync the final immutable blob before manifest/latest publication. |
-| Duplicate grouping could store quadratic edges | Persist verified component witness edges and representative unions, not every duplicate pair. |
-| Early preflight invoked a later CLI/config | Standalone module plus preflight-only configuration in T001. |
-| GPU tests launched without GPU device access | Run hardware tests through the learner role with bounded fixture mounts. |
-| Regression tests required to pass before their fixes | Require expected failing regressions first; pass before pipeline integration. |
+| Quarantine replaced immediate proof repair | Both original APIs repaired in T057; original counterexample tests T051; G7 before measurements. |
+| Formula certificates accidentally gated on late discovery | Initial formula checker/report explicitly at G7; richer program-class/compiler linkage at G9. |
+| Generic-only rule conflicted with model self-training | Generic bootstrap/control remains strict; qualified model discoveries from training-only prefixes use explicit provenance and admission rules. |
+| Global no-replay/no-RL statements contradicted new tasks | Scoped those statements to the fixed foundation/v1 smoke; qualified active state is separately specified. |
+| Trigger acquisition had no budget | One30-minute diagnostic is charged within six training hours, with55-minute paired arms; absent evidence is inconclusive. |
+| Unselected triggered branches labeled not-triggered | Use baseline_retained with higher-priority-selection reason; reserve not_triggered for measured false conditions. |
+| Self-training could bypass synthetic holdouts | Canonical expanded structure/parameter/composition checks cover replay, retrieval and macros for every origin. |
+| Stateful fuel retries could reuse partially mutated memory | Restore pre-next state or reset/replay with charged work; checkpoint committed transitions only. |
+| Streaming and shift semantics ambiguous | next emits the sequence value; block adapter bounded; negative/large shifts rejected and logical left shift checked. |
+| Internal coverage confused with input completeness | Separate68-item hashed-source inventory and validator checks; explicit resolved-gap map. |
+
+The nine original design corrections remain: acyclic admission IDs; final decision/seal ordering; crash-gap charging; visible-only seed projection; final-blob publication ordering; nonquadratic group witnesses; standalone preflight; correct GPU test role; and failing-before-fixed regression sequencing.
 
 ## Next actions
 
-The immediate implementation scope is T001, the standalone feasibility probe. Then complete T002's adoption record. After that gate, use `$speckit-implement` against the complete dependency-ordered backlog. G1–G6 must pass before 008 can use the foundation for the paired experiment. No additional clarification is required to finish these design documents; no hardware outcome or approval is invented.
+Implement T001's bounded feasibility probe, then record T002 adoption. US1 is the first functional MVP; US5 repairs can start immediately after US1 alongside the data/operation slices. Do not defer known proof/solver repairs until architecture experiments. All105 implementation boxes remain unchecked. Full runtime acceptance and the capped measurements belong to implementation; this document update ran neither training nor GPU/native application tests.

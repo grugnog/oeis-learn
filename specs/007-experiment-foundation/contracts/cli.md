@@ -30,3 +30,19 @@ For experiment data, `--cohort DIR` is resolved by the evaluator/controller. Onl
 `docker/foundation/compose.yaml` will expose only the existing `/dev/kfd` and selected render node to the learner/preflight process, using existing numeric device group IDs. No privileged mode, host networking/IPC, driver installation, architecture-spoofing override or broad host mount. It constrains the learner/controller to 88 GiB and each of up to eight worker containers to 1 GiB, for at most 96 GiB total declared container memory; identical memory/swap limits disable swap. Shared APU memory is monitored separately as described in the execution contract. GPU workers and evaluator/generator/trainer mounts remain distinct.
 
 Workers use bounded local request/result IPC, not an external service. Controller creates workers, schedules requests and kills/replaces a stuck worker. Docker socket access, if the host launcher uses it, remains with that launcher; it is never mounted into learner or candidate containers. Build may access the network to resolve dependencies; execution containers have networking disabled.
+
+## Qualified extension commands (implemented in 007)
+
+All use the common exit codes, explicit profile hashes and role isolation above. Qualified commands load `qualified/v1` contracts; they cannot reinterpret a baseline schema in place.
+
+| Command | Contract |
+| --- | --- |
+| `foundation qualify --config FILE --output DIR` | Run owning solver/proof/optimizer, native parity, cache/policy and richer-profile gates; emits passed/pending per capability. No disabled subsystem is counted repaired. |
+| `foundation census --source DIR --config FILE --output DIR` | Independent 20/50/100/120 denominators and source/finite/table/growth metadata; read-only source. |
+| `foundation train --qualified-config FILE --pool DIR --run-dir DIR` | Mutually exclusive with --config; explicit repaired objective/model/replay variants, same information boundary and complete qualified checkpoint. |
+| `foundation search --checkpoint MANIFEST --prompts FILE --config FILE --output DIR` | Prefix-only bounded proposals and seals. No hidden-truth path argument accepted. |
+| `foundation discover --archive DIR --config FILE --output DIR` | Analysis-role program-derived hypotheses and exact independent relation validation; immutable proposals before optional novelty lookup. |
+| `foundation check-certificate --certificate FILE --profile FILE --output DIR` | Fresh checker process, no weights, explicit domain/semantics/result; finite match cannot invoke proof promotion. |
+| `foundation measure --manifest FILE --output DIR` | Execute frozen engineering/pilot decision graph with cumulative caps, selected branch and stop records; --dry-run validates identities and schedule without training. |
+
+Legacy launch/census/evaluation wrappers delegate to these shared services only after parity fixtures. Preserve a machine-readable historical config and `legacy_unverified` status; corrected services must never rewrite old results as strict successes. CLI aliases beyond `oeis-learn foundation` are optional and are not a required improvement.

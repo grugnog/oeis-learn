@@ -27,9 +27,9 @@ Dedicated tokens encode syntax, allowed instructions and fixed local names. A nu
 
 ## Shared interfaces
 
-`prepare(source, profile) -> PreparedCandidate | Failure` parses and validates the allowed source, applies only explicitly enabled transformations, revalidates the final source, canonicalizes it losslessly, lowers it, and compiles it. Strict 007 disables constant placeholders/solvers, regex optimizers, recurrence scaffolds and legacy proof hooks. Test injections may supply a proposed grounded/transformed source to demonstrate that final checking rejects it.
+`prepare(source, profile) -> PreparedCandidate | Failure` parses and validates the allowed source, applies only explicitly enabled transformations, revalidates the final source, canonicalizes it losslessly, lowers it, and compiles it. The foundation/v1 smoke disables constant solvers/optimization. US5 repairs their owning modules and enables only tested extension profiles. Regex optimization, family scaffolds and unqualified proof hooks remain prohibited. Test injections may supply a proposed grounded/transformed source to demonstrate that final checking rejects it.
 
-`execute(prepared, indices, limits) -> ExecutionEvidence` runs terms in ascending requested order, starting a fresh store/instance for every term. Compiled code/engine may be cached, but mutable instance state must not be reused. A runtime-neutral adapter exposes prepare/execute/identity; 007 implements Python/Wasmtime only. The Rust adapter is explicitly unavailable for qualifying 007 runs until the same tests qualify it. Backend auto-selection is prohibited.
+`execute(prepared, indices, limits) -> ExecutionEvidence` runs terms in ascending requested order, starting a fresh store/instance for every term. Compiled code/engine may be cached, but mutable instance state must not be reused. A runtime-neutral adapter exposes prepare/execute/identity; The baseline implements Python/Wasmtime; US5 repairs and qualifies the Rust adapter with the same executable corpus. Rust remains unavailable until that mandatory parity gate passes. Backend auto-selection is prohibited.
 
 `verify(evidence, expected_terms, scope) -> CandidateResult` requires complete exact outputs, every required evidence identity and resource compliance. Admission compares production outputs with the independent reference; benchmark verification compares to exact source truth and independent execution. A disagreement is an internal validation failure and cannot produce a match. Prefix verification runs only indices 0–19; full verification runs fresh indices 0–99 after candidate selection is frozen. Reusing prefix results to conceal state-reset differences is prohibited.
 
@@ -49,7 +49,7 @@ The independent evaluator uses Python integers plus separately written native-wi
 | `prefix_match` | All 20 visible values agree; no statement about hidden values. |
 | `full_horizon_match` | All 100 values agree with exact truth and independent execution within all limits. |
 
-Stop at the first failure in term order. Preserve outputs/cost up to failure and its index. A prefix match later failing is retained as prefix evidence but the full verification outcome is the failure. `proof_status` is always `not_claimed` in 007; `PROVEN` is not in its result schema. Result delivery is idempotent by attempt/stage identity. A duplicate candidate still consumes its generation attempt; cached exact execution cannot add a second success.
+Stop at the first failure in term order. Preserve outputs/cost up to failure and its index. A prefix match later failing is retained as prefix evidence but the full verification outcome is the failure. `proof_status` is always `not_claimed` in CandidateResult; `PROVEN` is not in that finite-result schema. Separate certificate records in the repair contract carry scoped checked claims. Result delivery is idempotent by attempt/stage identity. A duplicate candidate still consumes its generation attempt; cached exact execution cannot add a second success.
 
 ## Resources: `ryzen_foundation_v1`
 

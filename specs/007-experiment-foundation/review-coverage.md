@@ -1,118 +1,112 @@
-# Coverage audit against the earlier reviews and decisions
+# Review and decision coverage — expanded 007
 
-Date: 2026-09-16. Audited PR head: `1a764eb6909ea7dc99a5033763a2307a75028024`.
+**Status:** Design coverage updated under the user's explicit instruction to fix all known issues; implementation and runtime evidence remain pending. Only LODA runtime/comparison/conditional transcoding are deferred. KV caching is included. A mandatory repair cannot be closed by disabling its subsystem; a speculative optimization may finish with an evidence-backed conditional decision.
 
-**Conclusion: 007 does not include every earlier concrete fix.** It specifies a substantial correctness and measurement foundation. Some defects are contained by excluding their subsystems, some improvements are deliberately deferred, and several details were not explicitly carried into the backlog. The earlier validator's 26/26 coverage measures requirements already written in 007; it does not measure coverage of the input reviews. Nothing in this document claims implementation is complete.
+This supersedes the narrower audit at commit `9be610f5f13410dfde1729426232b56293a861b9`. It maps all20 independent recommendations, A01–A19, P01–P17 and12 grouped decision-session obligations. Exact attachment hashes and machine-readable task references are in [review-inputs.json](validation/review-inputs.json). Source proposals are traced through their individually assessed entries in the independent review; no original probe or new training result is claimed here.
 
-Inputs: the user-supplied `oeis-learn-independent-review(1).md` (20 recommendations, LODA follow-up, A01–A19 and P01–P17 proposal assessments); `oeis-learn-spec-decisions(1).md`; later visible user decisions; and 007's spec, plan, research, contracts, tasks and validation analysis. The proposal tables below trace the bundled documents through their individually validated entries in the independent review. They are not a new execution of the original probes.
+## Closure of the six audit gaps
 
-**Status meanings:** Included = a concrete implementation/test obligation exists. Contained = the faulty path cannot qualify under 007, but its implementation is not repaired. Partial = only part of the recommendation is included. Deferred = outside 007, not a claim of completed work. Not adopted = rejected, optional or already addressed in the reviewed source. Task references are to [tasks.md](tasks.md).
-
-## Material discrepancies and recommended disposition
-
-| ID | Finding | Consequence / recommended disposition |
-| --- | --- | --- |
-| GAP-01 | The decision record explicitly requires immediate repair of known false-proof defects. R7, FR-019 and T018 instead quarantine the legacy prover and defer its repair. | **Unresolved sequencing divergence.** Keep quarantine and add a narrowly scoped repair of symbol identity, valid domains and evidence-backed counterexample status before architectural experiments. This is distinct from building a general proof system. Do not describe the current deferral as user-approved. |
-| GAP-02 | Constant-grounding, RL, curriculum/replay and discovery defects are excluded from the strict path, not repaired. | Acceptable containment for an SFT foundation, but each must have a repair/conformance gate before re-enablement. The inventory below preserves the concrete fixes; there are no implementation tasks for most of them yet. |
-| GAP-03 | The review requests clean-wheel/resource packaging and actual CI enforcement. T051 runs regression checks but does not explicitly add these deliverables. | Add a CPU CI gate installing the built wheel outside the source tree and exercising packaged WAT resources and foundation regressions. A native-enabled CI job is conditional on enabling that backend. |
-| GAP-04 | Multi-horizon census, finite/table metadata policy, growth-label correction and broader synthetic-family/transformation holdouts are not fully specified. | Define source eligibility before freezing the comparison. Preserve the 100-term primary denominator; add separate 20/50/100/120 descriptive denominators if retaining A08. Do not claim all-OEIS or unseen-family coverage from the current split. |
-| GAP-05 | Near-limit resource summaries, legacy wrapper migration and retaining valid over-context programs have no complete tasks. | Track these explicitly for operational follow-up; do not count generic logging, new strict admission or disabling old replay as the corresponding repairs. |
-| GAP-06 | The requested LODA comparison and overflow/expressiveness measurements are only a handoff to 008. | Write their bounded protocol before either long training arm. Include budgets, outcome thresholds, attribution limits and inconclusive handling. They are not a completed experiment specification in 007. |
-
-These findings amend the earlier broad claim that no further design clarification was needed. This audit records discrepancies; it does not silently expand the 52 implementation tasks or treat proposed repairs as accepted amendments.
-
-## Independent review: all twenty recommendations
-
-| Review | 007 coverage and concrete remaining work | Status |
-| --- | --- | --- |
-| 1. Exact integer arithmetic | FR-002/003; T009, T013/014, T019 repair negative scalar multiplication, full-width literals, carry/sign boundaries, checked logical overflow and independent reference labels. | Included for the declared WAT subset |
-| 2. Genuine qualification | T021, T023–029 and T049 require actual checkpoint generation, hidden continuations, top-one versus any-of-budget and truthful readiness. Reference canaries become diagnostics. Historical warmstart/Run011 launchers are not all rewritten. | Included on the strict path; legacy behavior contained |
-| 3. Sound constant grounding | T011/T015 reject the C*C false assignment through final execution. Placeholder solving is disabled. Dependency classification, nonlinear handling, rank-deficient recurrence systems, integer-safe HNF, honest solver statuses, routing and matrix caching remain unimplemented. | Contained, not repaired |
-| 4. Shared execution | T012–017 provide typed parsing, lowering before compilation, four-result decoding, single/batch parity, fresh state and common budgets. Regex optimization and unqualified native paths are disabled. Rust parity and migration of every legacy entry point remain later work. | Included for enabled paths; other paths contained |
-| 5. False symbolic proofs | T018 rejects imported/legacy PROVEN in foundation evidence. It does not repair assumption-bearing symbol identity, shifted-domain intersection, singularities, or the requirement for an actual counterexample witness. Formula equality, program correctness and OEIS identity remain distinct claims. | Contained; **GAP-01** |
-| 6. Data and evaluation | T020–029 preserve exact indexed terms, complete-100 eligibility, signed range, frozen development/final groups, duplicate/prefix/limited-shift handling, hidden truth and synthetic provenance. Broader transformed/family holdouts, finite/table policy, growth labels and multi-horizon census are incomplete. | Partial; **GAP-04** |
-| 7. RL probability correctness | T044 selects SFT; the plan explicitly does not repair legacy RL. Before reuse: stored behavior probabilities with the actual mask/temperature/support, scaffold exclusion, frozen encoder+decoder reference, module-mode restoration, valid entropy/reward variance and truthful trace attribution. | Contained; deferred repair |
-| 8. Reproducibility and orchestration | T005, T023, T038–049 cover active-state checkpoints, external hashes, exact CPU resume, effective config, budgets, real metrics, Docker and shared services. Clean-wheel packaged-resource tests, CI enforcement and wholesale legacy launcher consolidation are not explicit. | Partial; **GAP-03/05** |
-| 9. Decoding velocity | T006/007 avoid fixed 128-bit mask width and enforce dynamic grammar correctness. Prefill/decode self- and cross-attention caches, cache invalidation, equivalence tests, batched prompts, preallocation, synchronization reduction and measured attention backend improvements are deferred. | Partial; performance work deferred |
-| 10. Complete program representation | T006/007/T012 define a complete literal/local codec, typed WAT parser, EOS/length contract and lossless admission. Compact learned IR/LODA is later. Legacy elite insertion leakage and CGI hardcoded limits are excluded, not repaired; valid over-context archive retention is not specified. | Partial; **GAP-05** |
-| 11. Diverse bootstrap and self-training | T030–037 implement mechanically generated, independently verified, frozen generic data. Broader structural/parameter holdouts, verified self-training, multiple implementations per sequence, Pareto replay, near-miss reuse and archive revalidation are deferred. Current output deduplication retains one preferred program, not a multi-implementation archive. | Bootstrap included; other work deferred |
-| 12. Search | T024/025 specify bounded greedy-plus-seeded sampling, deduplication, prefix-only selection and fixed attempts. Beam/best-first/repair portfolios, skeleton reuse, retrieval, sound partial pruning and counterexample-guided search are deferred. | Minimal baseline included |
-| 13. Curriculum and replay | T030/T033/T035 reject missing prefixes, fabricated continuations and unaudited replay. They do not repair successes-then-failures bandit ordering, fixed allocations, dormant replay updates or visit-level uncertainty/cost accounting. | Contained; deferred repair |
-| 14. Runtime expressiveness and fuel | T016 and execution contracts specify per-call/aggregate limits, fresh state and exhaustion outcomes. Streaming/block interfaces, bounded arrays, broader wide arithmetic, adaptive fuel tiers and near-limit summaries are not implemented by this plan. | Resource correctness included; expansion deferred; **GAP-05** |
-| 15. Exact neural conditioning | Exact integers are authoritative in artifacts, but the plan explicitly retains the potentially lossy tri-stream neural encoder. Lossless sign/byte features, parity/powers-of-two features, inactive-head cleanup and variable-prefix ablations are deferred. Exact program tokenization does not solve this input-encoding issue. | Deferred |
-| 16. Ryzen deployment | T001/T040/T046/047 qualify the actual AMD GPU, pinned Docker userspace, FP32 updates, shared-memory budgets and no CPU substitution. Sustained thermal/power testing, validated mixed precision and worker/batch sweeps remain later measurements. | Readiness included; tuning deferred |
-| 17. Program-based discovery | Artifact provenance and finite-evidence boundaries are included. Decoder-program-driven relation proposals, normalized program/subprogram graphs, multiple implementations, semantic rewrites and posthoc novelty analysis are deferred. | Interfaces only; system deferred |
-| 18. Relation-search correctness | No tasks repair first-50 versus ranked retrieval, cubic enumeration, single-index PSLQ, unused configuration, exact multi-index nullspaces, independent validation indices, empty validations or misleading rank/nullity metrics. The discovery path is not used by 007. | Deferred, with concrete repair gate required |
-| 19. Scoped proofs | FR-019/SC-006 prevent finite matches from becoming theorem/novelty claims. Polynomial/recurrence certificates, bounded-machine claims, finite-state proofs, invariants, termination/range arguments and translation validation are deferred. | Evidence boundary included; proof capabilities deferred |
-| 20. Positions and capacity | The small-model control is retained and length behavior tested. RoPE, structural positions, larger models and controlled length/capacity ablations are deferred. No unsupported positional-corruption or guaranteed-extrapolation claim is adopted. | Deliberately deferred |
-
-## Bundled architecture proposals: A01–A19
-
-| ID | Disposition in 007 |
+| Gap | Required design correction now included |
 | --- | --- |
-| A01 | Not adopted: embedding corruption was not established. |
-| A02 | Already addressed in the reviewed source by dynamic positional-buffer extension; do not invent another crash fix. |
-| A03 | RoPE remains a later measured ablation. |
-| A04 | No unlimited-length or extrapolation guarantee adopted; explicit budgets remain. |
-| A05 | Tree-RoPE deferred; depth/sibling coordinates alone do not establish binding. |
-| A06 | Shared strict lifecycle/resume/real evaluation included; migration of every historical launcher deferred. |
-| A07 | Exact indexed extraction, manifests, source identities and grouping included in T020–022. |
-| A08 | Only primary complete-100 census included; separate 20/50/100/120 reports missing, GAP-04. |
-| A09 | Strict evaluation CLI and actual qualification included in T024–029/T049. |
-| A10 | Corrected design adopted: reusable services with thin CLI adapters, not all business logic under CLI classes. |
-| A11 | Optional aliases not adopted; use the existing command namespace. |
-| A12 | Historical-wrapper retirement after parity remains future work, GAP-05. |
-| A13 | Unified strict length contract included; RoPE is not treated as removing limits. |
-| A14 | Body/EOS/wrapper accounting included; the old 85+160 estimate is not a universal threshold. |
-| A15 | Strict admission avoids legacy elite insertion, but does not fix that old entry path or preserve all valid long programs. |
-| A16 | CGI is inactive; its hardcoded legacy limit is not repaired. |
-| A17 | Actual fuel accounting required; static helper instruction estimates cannot populate measured fields. |
-| A18 | Insufficient 25–50k thresholds not adopted; finite higher limits declared. Calibrated escalation tiers are deferred. |
-| A19 | Resource metrics included, but configurable near-limit threshold/count summaries are not explicit, GAP-05. |
+| GAP-01 immediate proof repair | T051/T057 repair both original proof APIs; T061 gates experiments. Quarantine remains defense in depth, not the repair. |
+| GAP-02 disabled faulty subsystems | T050–061 solvers/optimizer/native; T063/T070–077 RL/replay/curriculum; T081/T084–092 discovery. Each has original-path regression and activation evidence. |
+| GAP-03 package/CI | T094 clean wheel outside checkout, packaged WAT, Docker native build and actual parity execution; T102 installed CLI integration. |
+| GAP-04 dataset/census | T065/T069 structural and parameter holdouts; T093 all horizons, affine/shift grouping and finite/table/growth/source policy before real cohort freeze. |
+| GAP-05 operational details | T073 long-program/Pareto archive and CGI eligibility; T095 wrapper parity; T096 real near-limit/cost telemetry and bounded tiers. |
+| GAP-06 experiment protocols | T097–100 implement bounded non-LODA numerical/engineering/learning protocol. LODA-specific comparison alone remains008. |
 
-## Bundled performance proposals: P01–P17
+Task IDs link conceptually to [tasks.md](tasks.md); their detailed contracts are [repairs](contracts/repairs.md), [learning](contracts/learning.md) and [experiments](contracts/experiments.md). Unsupported claims are corrected/rejected rather than turned into speculative requirements.
 
-| ID | Disposition in 007 |
-| --- | --- |
-| P01 | Historical generation bottleneck remains evidence, not a Ryzen forecast or new task. |
-| P02 | KV and encoder-projection caching explicitly deferred; no implementation task. |
-| P03 | Correct complexity distinction retained by deferring the optimization without promising linear total attention. |
-| P04 | No unmeasured 3–5x cache speedup promised. |
-| P05 | Grammar correctness covered; its isolated allocation/CPU cost is not yet measured. |
-| P06 | Fixed uint128 rejected; T006/007 explicitly cover vocabularies above 128 IDs. |
-| P07 | Dynamic legality included; preallocated vectorized grammar-mask performance work deferred. |
-| P08 | No unmeasured 1.5–2x grammar speedup promised. |
-| P09 | AMD-compatible Docker/PyTorch qualification included; NVIDIA CUDA wheels are not the target deployment. |
-| P10 | Actual resource measurement included; weight size is not treated as peak training memory. |
-| P11 | No unsupported GPU speedup or sub-50ms claim adopted. |
-| P12 | Misleading metric fields prohibited; RL disabled. The historical causal claim remains unestablished. |
-| P13 | Fixed baseline sampling is specified; optimal temperature/schedule tuning deferred. |
-| P14 | Entropy-bonus tuning irrelevant to initial SFT; any future RL objective must first repair probability/entropy accounting. |
-| P15 | Initial top-p 1 avoids a nucleus-support complication; 0.95 is not assumed to guarantee useful diversity. |
-| P16 | Final execution verification included; recurrence solver disabled and its speed/generalization claim not adopted. |
-| P17 | Typed parsing and final verification included; polynomial/recurrence signature recovery and solver dispatch deferred. |
+## Independent review
 
-## Decision-session reconciliation
+| ID | Topic | Disposition | Tasks | Concrete coverage / rationale |
+| --- | --- | --- | --- | --- |
+| R01 | Exact integer arithmetic | included | T009, T013, T014, T019, T082, T097 | Negative scalar correction, full literals, independent oracle, checked logical overflow and wider-intermediate diagnostic. |
+| R02 | Genuine checkpoint qualification | included | T021, T023, T024, T025, T027, T029, T049, T095 | Actual weights, full length, selected top-one/any scores, original launcher qualification and warmstart repair; historical evidence stays diagnostic. |
+| R03 | Constant grounding | included | T050, T054, T055, T056, T061 | Exact affine/nonlinear classification, modular pivots and rank deficiency, genuine QF_NIA/BV distinction, recurrence structure/cache, measured outcomes and final verification. |
+| R04 | Common execution | included | T012, T015, T017, T052, T058, T059, T083 | Lower before compile, four results, pure/batch/native parity and typed optimizer local.tee/control/trap correctness. |
+| R05 | Immediate symbolic proof soundness | included | T051, T053, T057, T061 | Repair both existing APIs, controlled symbol table, shifted domains/poles, scoped certificates and concrete disproof witnesses before experiments. |
+| R06 | Data eligibility and isolation | included | T020, T022, T024, T065, T069, T093 | Exact indexed truth, finite/table/growth metadata, separate horizons, affine/shift grouping, synthetic structure/parameter/operator holdouts. |
+| R07 | RL policy mathematics | included | T063, T070, T071, T077, T079 | Real behavior probabilities/support, frozen encoder+decoder, forced-action exclusion, module modes, entropy/variance and real trace evidence. |
+| R08 | Reproducibility and infrastructure | included | T005, T038, T041, T042, T043, T077, T094, T095, T096 | Complete active checkpoints, truthful metrics/config, external hashes, clean wheel/resources, actual native CI and shared lifecycle. |
+| R09 | Generation performance | included | T062, T066, T067, T099 | KV and cross-projection caches, batching/buffers, dynamic masks, invalidation and equivalence; actual end-to-end timings. |
+| R10 | Typed representation and complete codec | included | T006, T007, T012, T073, T082 | Complete constants/locals, typed logical WAT, consistent EOS/wrapper/length, atomic elite/CGI eligibility and long-program archive. |
+| R11 | Generic data and self-training | included | T030, T032, T033, T065, T069, T073, T076 | Diverse generic constructs, parameter/family isolation, multiple implementations/Pareto archive, near-miss training reuse and revalidation. |
+| R12 | Bounded search | included | T056, T075, T076, T090, T100 | Sampling/beam/repair, skeleton cache, sound pruning, visible counterexamples and permitted retrieval; equal-budget selection. |
+| R13 | Curriculum/replay defects | included | T064, T072, T073, T074, T077 | Per-visit observations, actual adaptive allocations, uncertainty/cost/exploration, nonzero replay gradients and complete state. |
+| R14 | Runtime expressiveness and resource calibration | included | T080, T082, T083, T096 | Pure plus streaming/block and arrays, full wide ops, reset/state parity, calibrated bounded fuel tiers and near-limit counts. |
+| R15 | Exact input representation | included | T065, T068, T078, T100 | Signed bytes and rebased indices, exact differences/residues, parity/powers-of-two, active heads and bounded prefix/encoder comparisons. |
+| R16 | Ryzen configuration | included | T001, T040, T046, T047, T096, T099 | Actual GPU updates, Docker AMD identity/shared-memory accounting, synchronized sustained timing, finite AMP and bounded4/8-worker comparisons. |
+| R17 | Generated-program discovery | included | T073, T084, T086, T090, T091 | Archive-derived graph/features/transforms, multiple implementations, checked typed rewrites/learned macros and post-seal novelty. |
+| R18 | Relation-search defects | included | T081, T085, T086, T099 | Ranked bounded retrieval, actual configured multi-index exact nullspace, nonempty disjoint validation, honest metrics and negative controls. |
+| R19 | Scoped proof capabilities | included | T053, T057, T087, T088, T089, T092 | Polynomial/rational, recurrence, finite-state, restricted-loop and bounded-machine certificates with domain/compiler-link limits and independent replay. |
+| R20 | Position and capacity decisions | included | T062, T078, T098, T100 | Keep sinusoidal baseline, fixture-test RoPE/ancestor-path/25M-class options, select at most one triggered paired contrast; no future AST leakage or assumed superiority. |
 
-| Decision / constraint | Coverage and provenance |
-| --- | --- |
-| D001 generic bootstrap, random weights, no imported solutions or named teachers | FR-012/013 and T030–037/T044 include this. Legacy weights/replay remain historical. Assisted learning requires a later separate decision. |
-| Provisional package sequence | 007 combines research contract, trusted strict execution and reproducible infrastructure, plus bounded GPU feasibility. Later package numbers were not reserved in the attachment. The immediate proof repair requirement was not preserved: GAP-01. |
-| Per-experiment scientific standard | 007 supplies infrastructure contracts; 008 still needs the complete hypothesis, contrasts, seeds, budgets, minimum useful effect, stopping and inconclusive rules. Do not claim those experiment specs exist. |
-| Spec, research and plan-phase notes | 007 has a completed plan.md and research.md instead of preliminary plan-notes.md. That is a completed-plan replacement, not missing implementation planning. |
-| D002 overflow decision | The attached record explicitly says unconfirmed. Checked signed-256 in 007 is labeled a planning default, not a user-confirmed answer. Logical checks versus intentional limb wrap and finite LODA capacity remain distinct. |
-| Overflow-cost and wider-intermediate measurements | The fixed-program provenance strata, logical-range/magnitude traces, paired uninstrumented timing, fuel, rescued correct candidates and unique-target gains are not fully specified in 007. Carry these into a bounded 008 diagnostic; do not infer intermediate range from output census. |
-| Native LODA C++ first | Later user messages supersede the earlier compiler-first review recommendation. 007 defers the native runtime implementation to 008 and defines shared interfaces only. |
-| LODA-to-WASM | Conditional on a demonstrated issue under the later user direction; not a prerequisite or already-authorized compiler project. Any future compiler still requires semantic conformance. |
-| Minimal comparison and primitive trade-offs | Initial paired comparison is intended, not a broad experiment matrix. Token/action length, primitive inventory, throughput and held-out solves must be measured; native-runtime comparison combines language, primitives, arithmetic and runtime effects. A targeted follow-up contrast is conditional on a decision it can resolve. |
-| LODA corpus and seq | No imported solution corpus in strict training. 008 must pin a subset and runtime semantics, bound memory/numbers, and disable seq initially or define an allowed learned dependency closure without access to held-out solutions. Native runtime reuse avoids inventing loop semantics but does not remove these boundaries. |
-| Hardware and dependency boundary | Ryzen AI Max+ 395, 128 GB, 2 TB, NixOS/Python/Docker and beyond-venv dependencies in Docker included in FR-017 and workstation tasks. Actual readiness is unmeasured. |
-| Roughly 1–3 days per arm | Recorded as user guidance for the later comparison; 007 does not launch it or silently convert the range into an approved exact schedule. |
-| Twenty observed terms | Included as the confirmed input count. 100 total / 80 hidden terms, rebased indices and initial SFT are separately labeled planning defaults. |
-| Restart compatibility | Fresh random weights and a new codec are explicitly allowed; old weights cannot masquerade as strict continuation. |
+## Bundled architecture proposals
 
-## Other review inputs and validation limits
+| ID | Topic | Disposition | Tasks | Concrete coverage / rationale |
+| --- | --- | --- | --- | --- |
+| A01 | Sinusoidal corruption | not_adopted | — | Unsupported defect diagnosis; no such claim adopted. |
+| A02 | Fixed positional-buffer crash | already_present | T062, T078 | Dynamic extension already exists; retain long-length regression instead of inventing a missing fix. |
+| A03 | RoPE | included | T062, T078, T100 | Implemented selectable variant, cache-offset tests and bounded conditional comparison. |
+| A04 | Unconstrained RoPE extrapolation | corrected | T062, T078 | Reject guarantee; explicit length/cache/memory limits and held-out length evidence. |
+| A05 | Depth/sibling Tree-RoPE | corrected | T065, T078, T100 | Replace colliding coordinates with generated-prefix ancestor paths; binding remains statically checked. |
+| A06 | Consolidated lifecycle | included | T041, T045, T077, T095 | Shared launch/resume/canaries/stages plus original-wrapper parity. |
+| A07 | Extraction/manifests | included | T022, T069, T093, T095 | Indexed sources, checksums, synthetic identity, group split and shared extraction. |
+| A08 | Four-horizon census | included | T093 | Separate20/50/100/120 complete denominators and exact signed range. |
+| A09 | Qualification CLI | included | T024, T027, T028, T049, T095 | Actual checkpoint synthesis and machine-readable gates; reference diagnostics separate. |
+| A10 | All logic in CLI classes | corrected | T008, T045, T095 | Reusable services with thin CLI adapters; classes only for stateful needs. |
+| A11 | Additional command aliases | not_adopted | — | Existing oeis-learn command namespace suffices; optional names are not a defect. |
+| A12 | Retire obsolete wrappers | included | T095 | Archive after parity with original configs and evidence preserved. |
+| A13 | 512 default or RoPE removes limits | corrected | T006, T007, T062, T078 | Existing dynamic buffer plus one explicit context contract; no unlimited length claim. |
+| A14 | 85+160 universal token minimum | corrected | T006, T007, T073 | Actual body/wrapper/BOS/EOS accounting; fixed benchmark estimate is not universal. |
+| A15 | Elite canonical limit | included | T064, T073 | Repair legacy insertion-before-validation and retain valid long programs outside training. |
+| A16 | CGI length guard | corrected | T064, T073 | Existing guard becomes profile-derived with common eligibility, not hardcoded512. |
+| A17 | Static helper fuel estimates | corrected | T013, T096, T097 | Actual per-call and aggregate fuel measured; no copied instruction estimate. |
+| A18 | 25k–50k fuel thresholds | corrected | T080, T083, T096 | Insufficient thresholds rejected; bounded100k/250k/1M tiers and aggregate accounting. |
+| A19 | 75% fuel warnings | included | T096 | Configurable near-limit counts and summaries, not a learned optimum. |
 
-The nine design-review corrections already listed in [validation/analysis.md](validation/analysis.md) are present: digest-cycle removal; finalization ordering; crash-gap budget accounting; visible-only seed projection; blob-before-manifest publication; nonquadratic grouping evidence; standalone preflight dependencies; correct GPU test role; and failing-before-fixed regression sequencing. They do not substitute for the independent review inventory above.
+## Bundled performance proposals
 
-Priority: reconcile GAP-01 and make the packaging/CI obligation explicit before describing 007 as covering all immediate repairs. Keep disabled-subsystem fixes gated before re-enablement. Resolve dataset eligibility and write the bounded 008 protocol before freezing the comparison. Cache optimization remains the leading deferred performance improvement; proof expansion, broader search, encoding and capacity changes remain conditional follow-ups rather than additional mandatory training arms.
+| ID | Topic | Disposition | Tasks | Concrete coverage / rationale |
+| --- | --- | --- | --- | --- |
+| P01 | Historical generation timings | corrected | T096, T099 | Historical G16 bottleneck is evidence; actual Ryzen phase timings still required. |
+| P02 | KV caching | included | T062, T066, T067, T099 | Include self/cross caches with bounded state/equivalence and measured benefit. |
+| P03 | Attention complexity | corrected | T066, T099 | Correct aggregate dense attention O(T^3) to O(T^2), not O(T^2) to O(T); no universal speed promise. |
+| P04 | 3–5x cache speedup | corrected | T099 | Unverified projection rejected; use measured practical-effect rule. |
+| P05 | Grammar allocation work | corrected | T067, T096, T099 | Instrument actual sets/loops/synchronization; do not assert143 checks per step universally. |
+| P06 | uint128 masks | corrected | T006, T007, T067 | Reject insufficient width; sized boolean/word masks cover the full vocabulary. |
+| P07 | Batched grammar masks | included | T067 | Preallocated static components plus dynamic stack/local/scope state. |
+| P08 | 1.5–2x grammar gain | corrected | T099 | Measure end-to-end and phase costs without multiplying speculative gains. |
+| P09 | CUDA deployment | corrected | T001, T046, T047 | AMD-compatible Docker runtime and actual HIP tensors, not NVIDIA wheels. |
+| P10 | Weight/VRAM size | corrected | T040, T043, T078, T099 | Record actual parameters and peak shared-host/device memory; weight storage is not full footprint. |
+| P11 | GPU 10x/sub50ms claim | corrected | T099 | Unsupported bound rejected; synchronized steady-state end-to-end measurements. |
+| P12 | Entropy/ACR causal claim | corrected | T063, T070, T071, T096 | Repair unrestricted entropy/proxy fields and measure actual group variance; no invented historical causality. |
+| P13 | Temperature lower bound | corrected | T070, T098, T100 | 0.8 explicit baseline, not an established optimum; changing schedule requires one selected contrast. |
+| P14 | Entropy coefficient0.03 | corrected | T063, T070, T098 | No evidence for optimum; repaired legal entropy with explicit0 default and bounded objective contrast. |
+| P15 | top_p0.95 diversity | corrected | T063, T070, T075 | Top-p1 policy baseline; legality and useful diversity measured, unsupported truncated policy rejected. |
+| P16 | Recurrence speed/100% claim | corrected | T050, T054, T055, T056, T096 | Exact solver and final checks; actual time and independent continuation evidence, no unsupported rate. |
+| P17 | AST solver routing | included | T054, T056 | Verified dependency/recurrence structure and exact cached systems; unsupported/rank-deficient not automatically UNSAT. |
+
+## Decision session
+
+| ID | Topic | Disposition | Tasks | Concrete coverage / rationale |
+| --- | --- | --- | --- | --- |
+| D01 | Generic bootstrap and no imported teachers | included | T030, T032, T033, T035, T069, T076 | D001 preserved: random roots, mechanically generated bootstrap and later admitted generated hypotheses; no imported solutions/metadata guidance. |
+| D02 | Immediate proof/arith repairs | included | T013, T051, T057, T061 | Original decision sequencing restored; owning prover/solver defects fixed before architectural measurements. |
+| D03 | Per-experiment contract | included | T098, T099, T100 | Frozen question/hypothesis/baseline/variants/manifests/seeds/budgets/metric/effect/stop/inconclusive rules; no final tuning. |
+| D04 | Spec/plan notes/research | included | T103, T104 | Completed plan.md replaces preliminary plan-notes; research and contracts distinguish decisions from outcomes. |
+| D05 | Unconfirmed overflow semantics | included | T009, T013, T097 | D002 is not falsely labeled approved. Checked256 is a planning default; independently measure cost/intermediate range and unique rescues. |
+| D06 | Native LODA C++ first | deferred_loda | — | Only deferred package: pin native interpreter/subset and data boundaries in008. Later user direction supersedes compiler-first proposal. |
+| D07 | Conditional LODA-to-WASM | deferred_loda | — | Transcoder only if a demonstrated issue justifies it; no mandatory compiler assumed. |
+| D08 | Minimal language comparison | deferred_loda | — | 008 specifies native LODA versus WAT at roughly1–3 days each, token/primitive/runtime attribution and effect/stopping rules. |
+| D09 | NixOS/Python/Docker/Ryzen | included | T001, T046, T047, T094 | Beyond-venv dependencies and native builds in Docker, actual device feasibility, no automatic host changes. |
+| D10 | Twenty observed terms | included | T004, T021, T024, T068 | 20 is confirmed;100 total and rebased indices remain explicit planning defaults, diagnostic5/10 prefixes use separate manifests. |
+| D11 | Fresh weights/breaking compatibility | included | T007, T023, T033, T044, T078 | New codecs/models may break compatibility; old weights remain diagnostic, strict parent chains root at random. |
+| D12 | Only LODA deferred; KV discretionary | included | T061, T066, T079, T092, T101, T105 | Latest instruction supersedes containment-only scope. KV included. Known defects require repair; uncertain optimizations have bounded decisions within007. |
+
+## Other design-review inputs
+
+Preserve the nine earlier design corrections: acyclic program/admission identities; final decision lock before target seals/scoring; conservatively charged crash gaps; visible-only seed projection; blob-before-manifest publication; nonquadratic witness grouping; standalone preflight; correct GPU test role; and expected-failing-before-fixed regressions. T008/T022/T025/T026/T041/T042/T046 and their tests retain these obligations.
+
+Coverage means an explicit requirement, design and task disposition, not executed repairs. Full release requires G0–G10. The proposed constitution still needs its recorded feasibility/adoption process; document scripts cannot ratify it or demonstrate Ryzen compatibility. No scope amendment changes the confirmed information boundary or makes final-test feedback available to learning.

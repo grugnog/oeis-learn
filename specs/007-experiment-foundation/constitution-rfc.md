@@ -14,15 +14,15 @@ The proposal keeps exact data, constrained languages, bounded execution, provena
 
 | Old obligation | Proposed rule and rationale | Effect |
 | --- | --- | --- |
-| Exact tri-stream FiLM; FP32 forever | Preserve exact source integers; declare/test neural features and precision | Current encoder reused; no injectivity claim. Specs 001/003 remain historical. |
+| Exact tri-stream FiLM; FP32 forever | Preserve exact source integers; declare/test neural features and precision | Current encoder control plus an exact-byte input variant; no neural injectivity claim. Specs 001/003 remain historical. |
 | WAT only; particular grammar engines/latency | Freeze supported language/grammar; reject invalid candidates | WAT in 007; native LODA in 008; no corpus calls. |
-| Rust/Rayon only; 10k fuel; 16 MiB | Enforce declared finite profiles and worker recovery; measure throughput | Isolated Python/Wasmtime permitted; Rust optional after parity. |
+| Rust/Rayon only; 10k fuel; 16 MiB | Enforce declared finite profiles and worker recovery; measure throughput | Isolated Python/Wasmtime permitted; Rust adapter repaired and qualified through Docker parity tests. |
 | Laptop graduation before workstation | Validate actual declared hardware before budgeted runs | Ryzen requires real GPU updates, not inference from laptop results. |
 | Named curricula and 20+100 | Strict generic bootstrap and explicit frozen horizons/groups | 007 uses 20+80; 005/006 evidence is not automatically migrated. |
-| EGCA-GRPO and VICReg mandatory | Objectives/representations are experimental choices | Verified SFT first; RL/discovery work deferred. |
-| Finite/PSLQ/SymPy acceptance | Scope empirical evidence; require sound replayable certificates for proof | Fail closed now; full proof repair later. |
+| EGCA-GRPO and VICReg mandatory | Objectives/representations are experimental choices | Verified SFT baseline; repaired RL and program-based discovery qualified in 007. |
+| Finite/PSLQ/SymPy acceptance | Scope empirical evidence; require sound replayable certificates for proof | Fail closed, repair known prover defects immediately, then use scoped certificates in 007. |
 
-Specs 002/004 teachers, placeholder solvers, optimizer and replay remain legacy interfaces, unreachable from the strict profile. Reuse their code only through the new admission contract. Specs 005/006 offer useful data/checkpoint vocabulary; specification existence does not establish implementation correctness. Mark historical artifacts `legacy_unverified`, never manufacture missing evidence, and never turn weights-only files into resumable checkpoints by adding a label.
+Specs 002/004 teachers remain diagnostic and prohibited in strict learning. Solvers, optimizer and replay implementations are repaired in 007 and may run only under qualified versioned profiles and the new admission contract. Specs 005/006 offer useful data/checkpoint vocabulary; specification existence does not establish implementation correctness. Mark historical artifacts `legacy_unverified`, never manufacture missing evidence, and never turn weights-only files into resumable checkpoints by adding a label.
 
 ## Adoption and feasibility
 

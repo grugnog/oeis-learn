@@ -27,7 +27,9 @@ def require(condition: bool, message: str) -> None:
 def main() -> dict:
     required = [
         "spec.md", "plan.md", "tasks.md", "research.md", "data-model.md",
-        "quickstart.md", "constitution-rfc.md", "contracts/execution.md",
+        "quickstart.md", "constitution-rfc.md", "review-coverage.md", "contracts/execution.md",
+        "contracts/repairs.md", "contracts/learning.md", "contracts/experiments.md",
+        "validation/review-inputs.json",
         "contracts/evaluation.md", "contracts/cli.md", "contracts/artifacts.schema.json",
         "contracts/schema-examples.json", "checklists/requirements.md",
         "checklists/design.md", "validation/report.md", "validation/task-dependencies.json",
@@ -38,10 +40,10 @@ def main() -> dict:
     spec = (ROOT / "spec.md").read_text()
     tasks = (ROOT / "tasks.md").read_text()
     requirements = re.findall(r"^- \*\*((?:FR|SC)-\d{3})\*\*:", spec, re.M)
-    expected = [f"FR-{n:03}" for n in range(1, 21)] + [f"SC-{n:03}" for n in range(1, 7)]
-    require(requirements == expected, "Requirements must be unique, ordered FR-001..020 and SC-001..006")
+    expected = [f"FR-{n:03}" for n in range(1, 39)] + [f"SC-{n:03}" for n in range(1, 15)]
+    require(requirements == expected, "Requirements must be unique, ordered FR-001..038 and SC-001..014")
     stories = re.findall(r"^### User Story (\d+) .+\(Priority: P[123]\)", spec, re.M)
-    require(stories == ["1", "2", "3", "4"], "Expected four prioritized user stories")
+    require(stories == [str(n) for n in range(1, 9)], "Expected eight prioritized user stories")
     for heading in ["User Scenarios & Testing", "Requirements", "Success Criteria", "Assumptions"]:
         require(f"## {heading}" in spec, f"Missing spec section: {heading}")
     for heading in ["Summary", "Technical Context", "Constitution Check", "Project Structure", "Complexity Tracking"]:
@@ -49,15 +51,15 @@ def main() -> dict:
 
     rows = re.findall(r"^- \[([ x])\] (T\d{3}) (?:\[P\] )?(?:\[US(\d)\] )?(.+)$", tasks, re.M)
     ids = [row[1] for row in rows]
-    require(ids == [f"T{n:03}" for n in range(1, 53)], "Expected sequential unique T001..T052")
+    require(ids == [f"T{n:03}" for n in range(1, 106)], "Expected sequential unique T001..T105")
     require(all(state == " " for state, *_ in rows), "Planning deliverable must not mark implementation complete")
     require(len(re.findall(r"^- \[[ x]\] T", tasks, re.M)) == len(rows), "Malformed task checkbox line")
-    counts = {"setup_and_foundation": 0, "US1": 0, "US2": 0, "US3": 0, "US4": 0, "cross_cutting": 0}
+    counts = {"setup_and_foundation": 0, **{f"US{n}": 0 for n in range(1, 9)}, "cross_cutting": 0}
     for _, task_id, story, description in rows:
         num = int(task_id[1:])
-        wanted = "1" if 9 <= num <= 19 else "2" if 20 <= num <= 29 else "3" if 30 <= num <= 37 else "4" if 38 <= num <= 49 else ""
+        wanted = "1" if 9 <= num <= 19 else "2" if 20 <= num <= 29 else "3" if 30 <= num <= 37 else "4" if 38 <= num <= 49 else "5" if 50 <= num <= 61 else "6" if 62 <= num <= 79 else "7" if 80 <= num <= 92 else "8" if 93 <= num <= 102 else ""
         require(story == wanted, f"Incorrect/missing story label on {task_id}")
-        require(re.search(r"`[^`]*(?:src/|tests/|configs/|docker/|scripts/|specs/|docs/|README|\.specify/)[^`]*`", description) is not None, f"Task lacks concrete path: {task_id}")
+        require(re.search(r"`[^`]*(?:src/|tests/|configs/|docker/|scripts/|specs/|docs/|README|\.specify/|\.github/)[^`]*`", description) is not None, f"Task lacks concrete path: {task_id}")
         counts[f"US{story}" if story else "setup_and_foundation" if num <= 8 else "cross_cutting"] += 1
 
     coverage = {}
@@ -74,6 +76,25 @@ def main() -> dict:
     for task, prerequisites in dependencies.items():
         require(isinstance(prerequisites, list) and len(set(prerequisites)) == len(prerequisites), f"Invalid dependencies for {task}")
         require(all(p in ids and ids.index(p) < ids.index(task) for p in prerequisites), f"Forward/cyclic/missing dependency for {task}")
+
+    # External review coverage is a separate inventory, not inferred from FR presence.
+    review = json.loads((ROOT / "validation/review-inputs.json").read_text())
+    items = review["items"]
+    wanted_inputs = [f"R{n:02}" for n in range(1, 21)] + [f"A{n:02}" for n in range(1, 20)] + [f"P{n:02}" for n in range(1, 18)] + [f"D{n:02}" for n in range(1, 13)]
+    require([r["id"] for r in items] == wanted_inputs, "Incomplete or reordered review/decision inventory")
+    allowed = {"included", "corrected", "already_present", "not_adopted", "deferred_loda"}
+    for row in items:
+        require(row["status"] in allowed and len(row["disposition"]) >= 25, f"Invalid disposition: {row['id']}")
+        require(set(row["tasks"]) <= set(ids), f"Unknown review task: {row['id']}")
+        if row["status"] in {"included", "corrected", "already_present"}:
+            require(bool(row["tasks"]) and any(int(t[1:]) <= (105 if row["id"] == "D04" else 102) for t in row["tasks"]), f"No substantive task for {row['id']}")
+        if row["status"] == "deferred_loda":
+            require(row["id"] in {"D06", "D07", "D08"} and not row["tasks"], "Non-LODA deferral or ambiguous task mapping")
+        require(row["id"] in (ROOT / "review-coverage.md").read_text(), f"Missing human-readable coverage: {row['id']}")
+    require({r["id"] for r in items if r["status"] == "not_adopted"} == {"A01", "A11"}, "Unexpected rejected review item")
+    require(len(review["sources"]) == 2 and all(re.fullmatch(r"[0-9a-f]{64}", x["sha256"]) for x in review["sources"]), "Missing source provenance")
+    # Ensure each substantive FR has implementation/test coverage before final aggregate checks.
+    require(all(any(int(t[1:]) <= 102 for t in ts) for ts in coverage.values()), "Only aggregate task coverage")
 
     links = 0
     for doc in ROOT.rglob("*.md"):
@@ -119,7 +140,9 @@ def main() -> dict:
     return {
         "status": "pass", "scope": "document structure, links, coverage, dependency graph and schema shapes only",
         "requirements": len(requirements), "coverage_percent": 100, "tasks": len(ids),
-        "tasks_by_story": counts, "local_links_checked": links,
+        "tasks_by_story": counts, "review_decision_items": len(items),
+        "deferred_items": [r["id"] for r in items if r["status"] == "deferred_loda"],
+        "local_links_checked": links,
         "positive_schema_fixtures": len(examples), "negative_schema_cases": len(mutations),
         "runtime_gates_executed": False, "constitution_adoption_claimed": False,
     }

@@ -1,40 +1,32 @@
-# 007 validation report
+# 007 validation report — expanded scope
 
-**Date**: 2026-09-16. **Result**: Document/installation checks pass. Implementation readiness is conditional on constitution adoption and actual runtime evidence; these are not claimed complete.
+**Date**: 2026-09-16. **Result**: Document, integration, schema, task and input-traceability checks pass. Runtime implementation, actual Ryzen evidence and constitution adoption remain pending.
 
-## Installed tooling and workflow
+## Workflow and executed checks
 
-- Official Specify CLI **1.0.7**, installed in an isolated Python venv from commit `fe1d00e3ccaf495880aaf90fb0e17679e82f065b` (tag v1.0.7).
-- Official generated Codex skills under `.agents/skills/`; managed shared infrastructure updated through the CLI. No skill/template was edited to suppress a rule or make a check pass.
-- Existing Copilot integration replaced through official integration commands. An attempted side-by-side installation was rejected by `integration status` as unsafe; the final Codex-only installation passes with **zero modified/missing managed files, invalid manifest paths or unchecked manifests**.
-- Followed `speckit-specify`, `speckit-plan`, `speckit-tasks` and `speckit-analyze` instructions, with a separate explicit constitution proposal. Resolved templates, created the local feature pointer and used the official setup scripts. No extensions/hooks were configured before or after the phases.
+Official Specify CLI/Codex skills remain **1.0.7**, pinned to `fe1d00e3ccaf495880aaf90fb0e17679e82f065b`. No upstream skill/template was modified to make a check pass. Used `speckit-plan` for the expanded design, `speckit-tasks` to regenerate the105-task story-organized backlog from the resolved official template, and read-only `speckit-analyze` for consistency. No extension hooks are configured.
 
-## Executed checks
+Current exact commands, UTC timestamps, exit codes and outputs are in [expanded-commands.json](expanded-commands.json). [commands.json](commands.json) preserves the earlier installation/narrow-design checks as history; its old counts are not the current coverage result.
 
-Exact commands, exit codes, outputs and UTC timestamps are saved in [commands.json](commands.json). The task template's resolved content is represented there by its hash/length to avoid duplicating the whole upstream template.
-
-| Check | Result | What it establishes |
+| Executed check | Result | Scope |
 | --- | --- | --- |
-| `specify version` | Exit 0; 1.0.7 | Installed CLI identity. |
-| `specify integration status` | Exit 0; OK | Managed skill/scaffold integrity and valid Codex integration. |
-| `specify check` | Exit 0 | Environment tool inventory only. The standalone Codex CLI executable and many optional agents are absent here; installed skill files were followed directly in this session. |
-| `setup-plan.sh --json` | Exit 0 | Correct007 paths and active plan template; existing plan preserved. |
-| `setup-tasks.sh --json` | Exit 0 | Spec/plan present, all four design artifact categories found, task template resolved. |
-| `check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` | Exit 0 | Complete feature artifacts discoverable through the official workflow. |
-| `validate_artifacts.py` | Exit 0 | 26/26 requirements covered, 52 unique ordered/story-labeled tasks, acyclic dependencies, valid local links, valid Draft2020-12 schema, three positive fixtures and14 rejected negative shapes. |
-| `git diff --check` | Exit 0 | No whitespace/error-marker problems in the tracked diff. |
-| Read-only semantic analysis | Complete | [Analysis report](analysis.md), with the explicit governance gate below. |
+| `specify version` | Exit0,1.0.7 | Installed upstream identity |
+| `specify integration status` | Exit0,OK | Codex-managed integration integrity |
+| `setup-plan.sh --json` | Exit0 | Correct feature paths; existing plan preserved |
+| `setup-tasks.sh --json` | Exit0 | Resolved official template and available design artifacts; actual task generation followed the installed skill |
+| `check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` | Exit0 | Required feature artifacts discoverable |
+| `validate_artifacts.py` | Exit0 | 38FR+14SC,105 tasks/eight stories, acyclic dependencies, local links,68 input dispositions, only LODA deferrals and baseline JSON schema fixtures |
+| `git diff --check` | Exit0 | Tracked whitespace/error checks |
+| Read-only semantic review | Complete | [analysis.md](analysis.md), retaining GOV-001 |
 
-Task distribution: setup/foundation8, US1 execution11, US2 evaluation10, US3 provenance8, US4 operation12, cross-cutting3. All52 implementation checkboxes remain unchecked.
+The baseline schema still passes three positive and14 negative fixtures. Qualified extension records have normative field/behavior tables and explicit implementation-time validator/test tasks; these document checks do not claim those future application validators already exist.
 
-## Meaning and limits
+## Completeness and limits
 
-**Subsequent input-coverage audit:** [review-coverage.md](../review-coverage.md) compares all 20 independent recommendations, A01–A19, P01–P17 and the decision session. It finds partial coverage, contained-but-unrepaired defects and an unresolved divergence over immediate false-proof repair. The 26/26 result below is internal coverage of 007 requirements, not complete coverage of those earlier inputs. Document checks passing does not resolve these findings.
+The expanded [review map](../review-coverage.md) resolves all six input-audit gaps at design/task level. Known solver, prover, optimizer, native-runtime, RL, curriculum, replay and discovery defects require owning-path repairs and executable regressions. Packaging/CI, dataset policies, long-program retention and resource summaries are explicit. KV caching is included. Conditional position/capacity/precision/search experiments have concrete bounded protocols; they may retain the baseline with evidence. Only LODA-specific work is deferred.
 
-The project validator supplements upstream scripts; it is not described as an official Spec Kit validator. Schema fixtures contain synthetic identities and do not establish executed-program correctness, hash integrity or trained-model performance. The read-only analysis checks design consistency and task coverage, not runtime behavior.
+Internal requirement coverage is **52/52**; external input dispositions are **68/68**. These are different checks. All105 implementation tasks remain unchecked. Story counts: setup/foundation8; US1=11, US2=10, US3=8, US4=12, US5=12, US6=18, US7=13, US8=10; final cross-cutting3.
 
-**GOV-001 remains a CRITICAL activation gate**: the proposed 2.0.0 constitution is not ratified. T001 gathers actual workstation feasibility evidence; T002 records explicit adoption before subsequent strict implementation promotion. The plan honors this gate; no user approval, maintainer consensus or benchmark has been fabricated.
+**GOV-001 remains a CRITICAL activation gate:** constitution2.0.0 is proposed, not ratified. T001 gathers actual workstation evidence and T002 records adoption before further implementation promotion. This revision does not fabricate approval.
 
-No application source, arithmetic helper, trainer or evaluation implementation was changed for007. No new foundation runtime tests, Docker/GPU probe, full repository suite or multi-day training was run. Those tests and artifacts are precisely scoped in the implementation tasks and [quickstart](../quickstart.md). Historical known defects therefore remain until the corresponding tasks are implemented.
-
-The deliverable is a complete specification/design/task package with a verified official integration, not a claim that the proposed system already works on Ryzen or that a representation wins the comparison.
+No application runtime, helper, trainer, CI job or test implementation was changed or executed in this documentation update. No actual GPU probe, clean-wheel/native application suite, correctness benchmark or training experiment was run. The two-hour engineering and six-hour diagnostic/pilot caps are planning defaults for implementation, not spent time or measured results. Full007 completion requires actual G0–G10 evidence, not document scripts alone.

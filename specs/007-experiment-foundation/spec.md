@@ -4,9 +4,9 @@
 
 **Created**: 2026-09-16
 
-**Status**: Specification and implementation design complete; implementation pending.
+**Status**: Expanded specification and implementation design; implementation pending. Supersedes the initial narrow foundation scope following the user request to repair all known issues; only native LODA/comparison/transcoding work is deferred.
 
-**Input**: Complete the shared foundation needed to compare macro-WAT and native LODA fairly, using programs learned from generic bootstrap data, twenty observed terms, and the available Ryzen workstation. Minimize experiments and preserve evidence of what was actually measured.
+**Input**: Complete the shared foundation needed to compare macro-WAT and native LODA fairly, using programs learned from generic bootstrap data, twenty observed terms, and the available Ryzen workstation. Minimize experiments and preserve evidence of what was actually measured. Include every actionable non-LODA review item, repair known defects in their owning modules, and evaluate uncertain changes with bounded conditional probes. KV caching is included.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -72,6 +72,56 @@ As the operator, I need bounded, reproducible runs on the Ryzen machine, with is
 4. **Given** declared quotas/deadlines, **when** a worker hangs or a limit is reached, **then** failure is contained, recorded, and followed by replacement or a recoverable stop.
 5. **Given** an unknown setting or an option for a disabled subsystem, **when** configuration is loaded, **then** validation fails before training.
 
+### User Story 5 - Repair synthesis and proof soundness (Priority: P1)
+
+As a researcher, I need the existing grounding, optimizer and symbolic-proof implementations repaired, so calling them outside the new baseline cannot reproduce known false results.
+
+**Independent Test**: Run the original false-grounding, local.tee and shifted-symbol examples through the repaired public entry points. Verify exact arithmetic, scoped solver statuses and replayable proof evidence without training a model.
+
+**Acceptance Scenarios**:
+
+1. **Given** nonlinear or rank-deficient parameter dependence, **when** grounding runs, **then** classification follows the parsed program and UNKNOWN is distinct from scoped UNSAT; every proposed assignment passes final execution.
+2. **Given** expressions with shifted domains or different symbol assumptions, **when** proof is requested, **then** one controlled symbol table and explicit domain govern substitution; a false identity cannot become proved and a nonzero residual alone is not a counterexample.
+3. **Given** an optimizer or native execution adapter, **when** enabled, **then** typed transformation and Python/native conformance gates pass; disabling it alone does not complete its repair task.
+
+### User Story 6 - Learn and search with correct state and efficient decoding (Priority: P1)
+
+As a researcher, I need working decoding caches, exact input serialization, correctly accounted learning policies and useful replay/search, so performance and learning experiments measure real improvements.
+
+**Independent Test**: Compare cached/uncached logits and legal actions, enumerate a small masked policy analytically, interrupt/resume active RL/replay state, and exercise curriculum ordering with deterministic fixtures.
+
+**Acceptance Scenarios**:
+
+1. **Given** a fixed model and prefix, **when** cached/batched decoding replaces full-prefix decoding, **then** logits agree within declared tolerances, legal support agrees exactly and stale caches cannot survive weight or conditioning changes.
+2. **Given** masked sampling, **when** policy loss is computed, **then** it uses saved behavior probabilities under the actual sampling distribution, excludes forced actions and restores module modes.
+3. **Given** replay entries, long verified programs and reordered visit outcomes, **when** admission or scheduling runs, **then** evidence is complete, archive retention is separate from training eligibility, and curriculum updates depend on visit aggregates rather than arbitrary result order.
+4. **Given** adjacent large integers and a held-out synthetic structure, **when** data are encoded and split, **then** integer serialization remains exact and structural/parameter holdouts remain outside updates.
+
+### User Story 7 - Analyze generated programs and broaden supported algorithms (Priority: P2)
+
+As a researcher, I need bounded richer WAT profiles and program-derived relation analysis with scoped certificates, so discovered implementations can generate useful, checkable hypotheses.
+
+**Independent Test**: Use independently verified synthetic programs with planted and false relations, array/streaming cases and certificate mutations; recover planted relations while rejecting false claims and state/profile violations.
+
+**Acceptance Scenarios**:
+
+1. **Given** fresh-call and streaming implementations of the same supported program, **when** outputs are compared, **then** exact results agree across reset/resume boundaries and declared resource limits.
+2. **Given** a generated-program archive, **when** relations are proposed, **then** candidates reference actual programs and structural evidence, not a substitute list of known formulas.
+3. **Given** a candidate relation, **when** finite validation or certificate checking runs, **then** fitting, independent validation, bounded machine verification and class-specific proofs remain separate; unsupported proofs return UNKNOWN.
+4. **Given** a proposed reusable subprogram, **when** accepted, **then** its provenance, transitive dependencies, equivalence checks and costs are recorded before use; novelty lookup occurs only after proposal sealing.
+
+### User Story 8 - Release a tested package and resolve optimization decisions (Priority: P2)
+
+As the operator, I need clean-install CI, migrated launchers and a small conditional experiment protocol, so the implemented repairs are usable and uncertain optimizations do not produce uncontrolled sweeps.
+
+**Independent Test**: Install the built wheel outside the checkout, exercise CPU/native tests, verify historical launch configurations retain provenance, and dry-run the experiment decision/stop logic with deterministic measurements.
+
+**Acceptance Scenarios**:
+
+1. **Given** a clean wheel installation, **when** conformance runs, **then** WAT resources load without source-tree access and actual CPU/native CI failures block the relevant release gate.
+2. **Given** the four census horizons, **when** reporting, **then** each uses its own complete-record denominator, preserves finite/table/source metadata and reports exact signed eligibility.
+3. **Given** a bounded measurement, **when** an optimization is considered, **then** one predeclared decision, baseline, variant, budget and practical effect rule govern adoption or an inconclusive result; no automatic long-run sweep starts.
+
 ### Edge Cases
 
 - Signed bounds, zero, negative multiplication, carries, division by zero and signed minimum divided by -1; native-width wrap versus logical wide overflow.
@@ -97,7 +147,7 @@ As the operator, I need bounded, reproducible runs on the Ryzen machine, with is
 - **FR-009**: Development/final manifests and groups MUST be frozen before the run. Final scores MUST remain unavailable until checkpoint, selector and stopping decision are locked. Grouping limitations and exclusions MUST be reported.
 - **FR-010**: Primary scores MUST count unique representative groups with full-horizon matches at a declared attempt/time budget. Selected top-one MUST be separate from any-of-budget success; duplicate IDs or repeated candidates MUST NOT inflate either score.
 - **FR-011**: Every model score MUST link the actual loaded checkpoint, visible prompt, attempts, selected candidate, executable source, verification evidence and effective configuration. Reference-kernel checks MUST remain separately labeled diagnostics.
-- **FR-012**: The strict track MUST start from random weights and accept only mechanically generated generic-program demonstrations. It MUST reject imported solutions, named-family teachers, metadata scaffolds, unaudited replay and pretrained/legacy weights. Language primitives and sampling priors MUST be disclosed.
+- **FR-012**: The strict track MUST start from random weights with mechanically generated generic-program demonstrations as bootstrap. The baseline remains generic-only; qualified self-training may additionally use independently verified model-generated hypotheses from training-only prefixes, with the same provenance and holdout admission rules. It MUST reject imported solutions, named-family teachers, metadata scaffolds, unaudited replay and pretrained/legacy weights. Language primitives and sampling priors MUST be disclosed.
 - **FR-013**: Admission MUST require exact verified outputs, lossless token round trips, the complete conditioning prefix and provenance. Unknown tokens, truncation, fabricated extrapolations and exact reserved-prefix collisions MUST be rejected with auditable reasons.
 - **FR-014**: A resumable checkpoint MUST restore every active learning, randomness, data-order and budget state at a completed update boundary. Partial checkpoints MUST NOT be selected; weights-only restart MUST NOT be represented as continuation of a strict run.
 - **FR-015**: Configuration MUST reject unknown keys and inactive options and persist effective settings before work. Reports MUST distinguish measured values, disabled features and unavailable measurements.
@@ -106,6 +156,25 @@ As the operator, I need bounded, reproducible runs on the Ryzen machine, with is
 - **FR-018**: Runs MUST enforce finite execution, worker, queue, cache, checkpoint, log and disk limits and demonstrate recoverable handling of injected failures before a long experiment.
 - **FR-019**: Finite matches MUST NOT be described as proofs or novel relations. The legacy proof path MUST be unable to promote 007 evidence to `PROVEN`; imported proof labels MUST not cross this boundary.
 - **FR-020**: This feature MUST include an explicit constitution amendment proposal and migration/conflict map for earlier specs. Implementation MUST enforce the adopted experimental profile and preserve historical labels without retroactively qualifying old runs.
+
+- **FR-021**: Grounding MUST derive parameter dependence and recurrence structure from typed syntax, use exact integer/rational algebra, classify VERIFIED/UNSAT/UNKNOWN/TIMEOUT/UNSUPPORTED with explicit scope, and independently execute every final assignment. Rank deficiency, a failed modular prime or unsupported nonlinear behavior MUST NOT imply UNSAT.
+- **FR-022**: The existing symbolic prover MUST use one controlled symbol environment, explicit integer domains and valid shift/singularity intersections. Disproof MUST include a checked witness; proof MUST include a replayable certificate for a supported class. Repair the known false-proof entry point in addition to retaining the finite-evidence boundary.
+- **FR-023**: Optimizer transformations MUST preserve typed local/control/data dependencies, including local.tee. Python and Rust single/batch adapters MUST share declared arithmetic, arity, state and resource semantics and pass the same conformance corpus before qualification.
+- **FR-024**: Data tooling MUST report separate available-prefix and complete 20/50/100/120-term denominators, exact signed bounds, finite/table/keyword provenance, corrected growth descriptors and explicit source locations. Synthetic evaluation MUST hold out normalized structures and parameter regimes; documented exact affine/shift families MUST stay in one split.
+- **FR-025**: Decoding MUST support prefill plus self/cross-attention KV caches, batched dynamic grammar masks and bounded preallocated buffers, with correct invalidation and cached/uncached equivalence. Teacher-forced training MUST remain uncached; no fixed 128-bit vocabulary assumption is permitted.
+- **FR-026**: An exact signed-byte input serialization path MUST coexist with the declared tri-stream baseline, preserve all signed-256 inputs before neural projection, include explicit position/length masks and expose parity/power-of-two features for controlled comparison. Neural projections MUST NOT be claimed injective.
+- **FR-027**: RL MUST retain true behavior log-probabilities and legal-action support under actual temperature/masking, exclude forced/padded/teacher actions, freeze the complete reference model, restore train/eval modes and record valid entropy/reward variance and evidence-backed trace metrics.
+- **FR-028**: Curriculum allocation MUST aggregate outcomes per visit, include sample counts and uncertainty/cost, and retain explicit exploration under finite budgets. Replay MUST be active when configured, provenance-verified and checkpointed; all entry paths MUST share eligibility and retain verified over-context programs outside the training view.
+- **FR-029**: Search and self-training MUST operate only on permitted prefixes and provenance-compliant generated data, compare bounded sampling/beam/repair portfolios at equal declared budgets, preserve multiple verified implementations, and revalidate archive evidence when semantics change. Synthetic continuation truth may supervise generic programs; development/final OEIS continuations MUST NOT enter updates.
+- **FR-030**: Separate versioned WAT profiles MUST provide checked wide arithmetic/comparisons, bounded arrays and explicit streaming/block execution with reset and cost contracts. The initial pure fresh-call profile MUST remain a reproducible control; no stateful profile may be silently substituted.
+- **FR-031**: Relation proposals MUST originate from generated programs and normalized structural/dataflow evidence. Candidate retrieval MUST be ranked and bounded; integer relations MUST use exact multi-index validation on nonempty disjoint fitting/validation sets, with truthful rank/nullity metrics and negative controls.
+- **FR-032**: Proof evidence MUST distinguish finite matching, bounded machine claims and supported polynomial/linear-recurrence/finite-state or restricted-loop certificates. Certificate scope MUST include domain, assumptions, semantics and checker identity; mathematical recurrence proof alone MUST NOT prove fixed-width program equivalence or an OEIS identity.
+- **FR-033**: Subprogram abstraction and novelty analysis MUST preserve generated provenance, explicit acyclic dependency closures, cost accounting and checked rewrite side conditions. External formulas/programs may be consulted only for isolated conformance or post-seal novelty analysis, never strict training/search guidance.
+- **FR-034**: CI MUST install the built wheel outside the source tree and execute resource-loading and foundation regressions; a Docker-built native job MUST execute rather than skip backend parity tests. Historical launch/extraction/evaluation wrappers MUST delegate to shared services after parity checks and preserve historical evidence labels.
+- **FR-035**: Telemetry MUST include phase-separated synchronized timings, maximum/aggregate fuel, configurable near-limit counts, real solver/trace outcomes, effective configuration and sustained host/device memory, thermal/power availability. Missing sensors remain unavailable. Resource escalation MUST be bounded and recorded before candidate selection.
+- **FR-036**: Non-LODA optimization experiments MUST have frozen hypotheses, inputs, seeds, candidate/wall budgets, minimum useful effects, stopping and inconclusive rules. They MUST use short screens, then at most one targeted paired confirmation at a time; final-test data cannot guide any choice. Results may retain the baseline without deferring implementation of known correctness repairs.
+- **FR-037**: Overflow diagnostics MUST separate bootstrap/model/verified-program populations, measure logical intermediate range independently of output range, and compare checked/unchecked helper costs on identical in-range programs with separate tracing and timing. Wider-reference rescues MUST count independently validated programs and unique targets; no sequence is declared impossible because one candidate overflows.
+- **FR-038**: Every actionable review finding MUST map to a concrete task and acceptance gate or an explicit evidence-based rejection/already-fixed disposition. Only LODA runtime, cross-language comparison and conditional transcoding are deferred; conditional non-LODA experiments remain specified within 007.
 
 ### Key Entities
 
@@ -126,10 +195,19 @@ As the operator, I need bounded, reproducible runs on the Ryzen machine, with is
 - **SC-005**: Workstation acceptance performs at least three finite, observable model updates on the requested GPU within ten minutes after image availability; all injected worker/quota failures are contained without installing new host toolchains.
 - **SC-006**: No 007 result receives theorem or novelty status from finite matching or the legacy symbolic prover.
 
+- **SC-007**: Known grounding, optimizer, shifted-proof and native multi-result counterexamples pass their repaired owning entry points; unsupported/timeout cases cannot acquire UNSAT or proof status.
+- **SC-008**: Cached/uncached deterministic logits meet the declared FP32 tolerance and legal masks match exactly across cache invalidation, mixed lengths and batch reorder tests; no cached path is adopted on a correctness failure.
+- **SC-009**: Analytic masked-policy fixtures match stored probabilities/losses; module/reference invariants and deterministic resume of active replay/curriculum/reference/search state pass. Reordered outcomes within a visit produce identical scheduler updates.
+- **SC-010**: Each signed-256 input round-trips through the exact input codec; no normalized synthetic structure or reserved transformed evaluation group crosses the declared training split.
+- **SC-011**: Richer WAT profiles match independent arithmetic/state oracles with zero unexplained disagreement, and planted relation/certificate fixtures yield only their declared evidence scope; mutated certificates and empty validation sets fail.
+- **SC-012**: CPU clean-wheel/resource CI and native Docker parity jobs execute successfully with no unintended test skips; migrated wrappers preserve declared configuration and diagnostic provenance.
+- **SC-013**: Each bounded non-LODA measurement emits a decision record satisfying the experiment contract, reports inconclusive outcomes honestly and respects its cumulative cap; checked/unchecked timing uses only independently in-range programs.
+- **SC-014**: The complete 20-recommendation, A01–A19, P01–P17 and session-decision inventory has task-backed dispositions; no known issue is counted repaired merely because its subsystem is disabled.
+
 ## Assumptions
 
 - User-confirmed: generic bootstrap from scratch; native LODA first if tested; a minimal initial paired comparison; Ryzen AI Max+ 395 / 128 GB / 2 TB; NixOS with Python and Docker; roughly 1–3 days per arm; **20 visible terms**.
 - Explicit planning defaults: 100 total terms (20+80), rebased indices, checked logical signed-256 arithmetic and supervised-only initial learning. Change these versioned choices before freezing a run, never mid-run. The earlier 120-term profile remains historical.
 - Meaningful regression, differential, leakage, provenance, resume and containment tests are explicitly required. No model accuracy target is imposed on this infrastructure feature.
-- 007 delivers a WAT foundation and a runtime-neutral interface. Native LODA, comparison training, cached decoding, primitive ablations, a transpiler, mixed precision, capacity expansion and full proof repair are deferred.
+- The latest user direction supersedes the narrow foundation scope: 007 includes all actionable non-LODA repairs, KV caching and bounded conditional optimization work. Only native LODA, the paired language comparison and conditional LODA-to-WASM transcoding move to 008. Unsupported mathematical claims are rejected, not implemented as requirements. Unlimited proof/search capability is not promised.
 - This spec does not predict full-OEIS coverage or the fraction of algorithms needing wider intermediates. Prefix range coverage cannot establish those quantities.

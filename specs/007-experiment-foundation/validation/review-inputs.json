@@ -1,0 +1,792 @@
+{
+  "schema_version": "review-traceability/v1",
+  "sources": [
+    {
+      "name": "oeis-learn-independent-review(1).md",
+      "sha256": "09dd302b49586f2cdf020310cc257521a6926e2170fb74ffe5685ee9a3bbfcab"
+    },
+    {
+      "name": "oeis-learn-spec-decisions(1).md",
+      "sha256": "9b7a3cc7c3b9d48738b089b793d441f9e1bff1ae60dce04efa91261e2755e971"
+    }
+  ],
+  "previous_audit_commit": "9be610f5f13410dfde1729426232b56293a861b9",
+  "items": [
+    {
+      "id": "R01",
+      "title": "Exact integer arithmetic",
+      "status": "included",
+      "tasks": [
+        "T009",
+        "T013",
+        "T014",
+        "T019",
+        "T082",
+        "T097"
+      ],
+      "disposition": "Negative scalar correction, full literals, independent oracle, checked logical overflow and wider-intermediate diagnostic."
+    },
+    {
+      "id": "R02",
+      "title": "Genuine checkpoint qualification",
+      "status": "included",
+      "tasks": [
+        "T021",
+        "T023",
+        "T024",
+        "T025",
+        "T027",
+        "T029",
+        "T049",
+        "T095"
+      ],
+      "disposition": "Actual weights, full length, selected top-one/any scores, original launcher qualification and warmstart repair; historical evidence stays diagnostic."
+    },
+    {
+      "id": "R03",
+      "title": "Constant grounding",
+      "status": "included",
+      "tasks": [
+        "T050",
+        "T054",
+        "T055",
+        "T056",
+        "T061"
+      ],
+      "disposition": "Exact affine/nonlinear classification, modular pivots and rank deficiency, genuine QF_NIA/BV distinction, recurrence structure/cache, measured outcomes and final verification."
+    },
+    {
+      "id": "R04",
+      "title": "Common execution",
+      "status": "included",
+      "tasks": [
+        "T012",
+        "T015",
+        "T017",
+        "T052",
+        "T058",
+        "T059",
+        "T083"
+      ],
+      "disposition": "Lower before compile, four results, pure/batch/native parity and typed optimizer local.tee/control/trap correctness."
+    },
+    {
+      "id": "R05",
+      "title": "Immediate symbolic proof soundness",
+      "status": "included",
+      "tasks": [
+        "T051",
+        "T053",
+        "T057",
+        "T061"
+      ],
+      "disposition": "Repair both existing APIs, controlled symbol table, shifted domains/poles, scoped certificates and concrete disproof witnesses before experiments."
+    },
+    {
+      "id": "R06",
+      "title": "Data eligibility and isolation",
+      "status": "included",
+      "tasks": [
+        "T020",
+        "T022",
+        "T024",
+        "T065",
+        "T069",
+        "T093"
+      ],
+      "disposition": "Exact indexed truth, finite/table/growth metadata, separate horizons, affine/shift grouping, synthetic structure/parameter/operator holdouts."
+    },
+    {
+      "id": "R07",
+      "title": "RL policy mathematics",
+      "status": "included",
+      "tasks": [
+        "T063",
+        "T070",
+        "T071",
+        "T077",
+        "T079"
+      ],
+      "disposition": "Real behavior probabilities/support, frozen encoder+decoder, forced-action exclusion, module modes, entropy/variance and real trace evidence."
+    },
+    {
+      "id": "R08",
+      "title": "Reproducibility and infrastructure",
+      "status": "included",
+      "tasks": [
+        "T005",
+        "T038",
+        "T041",
+        "T042",
+        "T043",
+        "T077",
+        "T094",
+        "T095",
+        "T096"
+      ],
+      "disposition": "Complete active checkpoints, truthful metrics/config, external hashes, clean wheel/resources, actual native CI and shared lifecycle."
+    },
+    {
+      "id": "R09",
+      "title": "Generation performance",
+      "status": "included",
+      "tasks": [
+        "T062",
+        "T066",
+        "T067",
+        "T099"
+      ],
+      "disposition": "KV and cross-projection caches, batching/buffers, dynamic masks, invalidation and equivalence; actual end-to-end timings."
+    },
+    {
+      "id": "R10",
+      "title": "Typed representation and complete codec",
+      "status": "included",
+      "tasks": [
+        "T006",
+        "T007",
+        "T012",
+        "T073",
+        "T082"
+      ],
+      "disposition": "Complete constants/locals, typed logical WAT, consistent EOS/wrapper/length, atomic elite/CGI eligibility and long-program archive."
+    },
+    {
+      "id": "R11",
+      "title": "Generic data and self-training",
+      "status": "included",
+      "tasks": [
+        "T030",
+        "T032",
+        "T033",
+        "T065",
+        "T069",
+        "T073",
+        "T076"
+      ],
+      "disposition": "Diverse generic constructs, parameter/family isolation, multiple implementations/Pareto archive, near-miss training reuse and revalidation."
+    },
+    {
+      "id": "R12",
+      "title": "Bounded search",
+      "status": "included",
+      "tasks": [
+        "T056",
+        "T075",
+        "T076",
+        "T090",
+        "T100"
+      ],
+      "disposition": "Sampling/beam/repair, skeleton cache, sound pruning, visible counterexamples and permitted retrieval; equal-budget selection."
+    },
+    {
+      "id": "R13",
+      "title": "Curriculum/replay defects",
+      "status": "included",
+      "tasks": [
+        "T064",
+        "T072",
+        "T073",
+        "T074",
+        "T077"
+      ],
+      "disposition": "Per-visit observations, actual adaptive allocations, uncertainty/cost/exploration, nonzero replay gradients and complete state."
+    },
+    {
+      "id": "R14",
+      "title": "Runtime expressiveness and resource calibration",
+      "status": "included",
+      "tasks": [
+        "T080",
+        "T082",
+        "T083",
+        "T096"
+      ],
+      "disposition": "Pure plus streaming/block and arrays, full wide ops, reset/state parity, calibrated bounded fuel tiers and near-limit counts."
+    },
+    {
+      "id": "R15",
+      "title": "Exact input representation",
+      "status": "included",
+      "tasks": [
+        "T065",
+        "T068",
+        "T078",
+        "T100"
+      ],
+      "disposition": "Signed bytes and rebased indices, exact differences/residues, parity/powers-of-two, active heads and bounded prefix/encoder comparisons."
+    },
+    {
+      "id": "R16",
+      "title": "Ryzen configuration",
+      "status": "included",
+      "tasks": [
+        "T001",
+        "T040",
+        "T046",
+        "T047",
+        "T096",
+        "T099"
+      ],
+      "disposition": "Actual GPU updates, Docker AMD identity/shared-memory accounting, synchronized sustained timing, finite AMP and bounded4/8-worker comparisons."
+    },
+    {
+      "id": "R17",
+      "title": "Generated-program discovery",
+      "status": "included",
+      "tasks": [
+        "T073",
+        "T084",
+        "T086",
+        "T090",
+        "T091"
+      ],
+      "disposition": "Archive-derived graph/features/transforms, multiple implementations, checked typed rewrites/learned macros and post-seal novelty."
+    },
+    {
+      "id": "R18",
+      "title": "Relation-search defects",
+      "status": "included",
+      "tasks": [
+        "T081",
+        "T085",
+        "T086",
+        "T099"
+      ],
+      "disposition": "Ranked bounded retrieval, actual configured multi-index exact nullspace, nonempty disjoint validation, honest metrics and negative controls."
+    },
+    {
+      "id": "R19",
+      "title": "Scoped proof capabilities",
+      "status": "included",
+      "tasks": [
+        "T053",
+        "T057",
+        "T087",
+        "T088",
+        "T089",
+        "T092"
+      ],
+      "disposition": "Polynomial/rational, recurrence, finite-state, restricted-loop and bounded-machine certificates with domain/compiler-link limits and independent replay."
+    },
+    {
+      "id": "R20",
+      "title": "Position and capacity decisions",
+      "status": "included",
+      "tasks": [
+        "T062",
+        "T078",
+        "T098",
+        "T100"
+      ],
+      "disposition": "Keep sinusoidal baseline, fixture-test RoPE/ancestor-path/25M-class options, select at most one triggered paired contrast; no future AST leakage or assumed superiority."
+    },
+    {
+      "id": "A01",
+      "title": "Sinusoidal corruption",
+      "status": "not_adopted",
+      "tasks": [],
+      "disposition": "Unsupported defect diagnosis; no such claim adopted."
+    },
+    {
+      "id": "A02",
+      "title": "Fixed positional-buffer crash",
+      "status": "already_present",
+      "tasks": [
+        "T062",
+        "T078"
+      ],
+      "disposition": "Dynamic extension already exists; retain long-length regression instead of inventing a missing fix."
+    },
+    {
+      "id": "A03",
+      "title": "RoPE",
+      "status": "included",
+      "tasks": [
+        "T062",
+        "T078",
+        "T100"
+      ],
+      "disposition": "Implemented selectable variant, cache-offset tests and bounded conditional comparison."
+    },
+    {
+      "id": "A04",
+      "title": "Unconstrained RoPE extrapolation",
+      "status": "corrected",
+      "tasks": [
+        "T062",
+        "T078"
+      ],
+      "disposition": "Reject guarantee; explicit length/cache/memory limits and held-out length evidence."
+    },
+    {
+      "id": "A05",
+      "title": "Depth/sibling Tree-RoPE",
+      "status": "corrected",
+      "tasks": [
+        "T065",
+        "T078",
+        "T100"
+      ],
+      "disposition": "Replace colliding coordinates with generated-prefix ancestor paths; binding remains statically checked."
+    },
+    {
+      "id": "A06",
+      "title": "Consolidated lifecycle",
+      "status": "included",
+      "tasks": [
+        "T041",
+        "T045",
+        "T077",
+        "T095"
+      ],
+      "disposition": "Shared launch/resume/canaries/stages plus original-wrapper parity."
+    },
+    {
+      "id": "A07",
+      "title": "Extraction/manifests",
+      "status": "included",
+      "tasks": [
+        "T022",
+        "T069",
+        "T093",
+        "T095"
+      ],
+      "disposition": "Indexed sources, checksums, synthetic identity, group split and shared extraction."
+    },
+    {
+      "id": "A08",
+      "title": "Four-horizon census",
+      "status": "included",
+      "tasks": [
+        "T093"
+      ],
+      "disposition": "Separate20/50/100/120 complete denominators and exact signed range."
+    },
+    {
+      "id": "A09",
+      "title": "Qualification CLI",
+      "status": "included",
+      "tasks": [
+        "T024",
+        "T027",
+        "T028",
+        "T049",
+        "T095"
+      ],
+      "disposition": "Actual checkpoint synthesis and machine-readable gates; reference diagnostics separate."
+    },
+    {
+      "id": "A10",
+      "title": "All logic in CLI classes",
+      "status": "corrected",
+      "tasks": [
+        "T008",
+        "T045",
+        "T095"
+      ],
+      "disposition": "Reusable services with thin CLI adapters; classes only for stateful needs."
+    },
+    {
+      "id": "A11",
+      "title": "Additional command aliases",
+      "status": "not_adopted",
+      "tasks": [],
+      "disposition": "Existing oeis-learn command namespace suffices; optional names are not a defect."
+    },
+    {
+      "id": "A12",
+      "title": "Retire obsolete wrappers",
+      "status": "included",
+      "tasks": [
+        "T095"
+      ],
+      "disposition": "Archive after parity with original configs and evidence preserved."
+    },
+    {
+      "id": "A13",
+      "title": "512 default or RoPE removes limits",
+      "status": "corrected",
+      "tasks": [
+        "T006",
+        "T007",
+        "T062",
+        "T078"
+      ],
+      "disposition": "Existing dynamic buffer plus one explicit context contract; no unlimited length claim."
+    },
+    {
+      "id": "A14",
+      "title": "85+160 universal token minimum",
+      "status": "corrected",
+      "tasks": [
+        "T006",
+        "T007",
+        "T073"
+      ],
+      "disposition": "Actual body/wrapper/BOS/EOS accounting; fixed benchmark estimate is not universal."
+    },
+    {
+      "id": "A15",
+      "title": "Elite canonical limit",
+      "status": "included",
+      "tasks": [
+        "T064",
+        "T073"
+      ],
+      "disposition": "Repair legacy insertion-before-validation and retain valid long programs outside training."
+    },
+    {
+      "id": "A16",
+      "title": "CGI length guard",
+      "status": "corrected",
+      "tasks": [
+        "T064",
+        "T073"
+      ],
+      "disposition": "Existing guard becomes profile-derived with common eligibility, not hardcoded512."
+    },
+    {
+      "id": "A17",
+      "title": "Static helper fuel estimates",
+      "status": "corrected",
+      "tasks": [
+        "T013",
+        "T096",
+        "T097"
+      ],
+      "disposition": "Actual per-call and aggregate fuel measured; no copied instruction estimate."
+    },
+    {
+      "id": "A18",
+      "title": "25k\u201350k fuel thresholds",
+      "status": "corrected",
+      "tasks": [
+        "T080",
+        "T083",
+        "T096"
+      ],
+      "disposition": "Insufficient thresholds rejected; bounded100k/250k/1M tiers and aggregate accounting."
+    },
+    {
+      "id": "A19",
+      "title": "75% fuel warnings",
+      "status": "included",
+      "tasks": [
+        "T096"
+      ],
+      "disposition": "Configurable near-limit counts and summaries, not a learned optimum."
+    },
+    {
+      "id": "P01",
+      "title": "Historical generation timings",
+      "status": "corrected",
+      "tasks": [
+        "T096",
+        "T099"
+      ],
+      "disposition": "Historical G16 bottleneck is evidence; actual Ryzen phase timings still required."
+    },
+    {
+      "id": "P02",
+      "title": "KV caching",
+      "status": "included",
+      "tasks": [
+        "T062",
+        "T066",
+        "T067",
+        "T099"
+      ],
+      "disposition": "Include self/cross caches with bounded state/equivalence and measured benefit."
+    },
+    {
+      "id": "P03",
+      "title": "Attention complexity",
+      "status": "corrected",
+      "tasks": [
+        "T066",
+        "T099"
+      ],
+      "disposition": "Correct aggregate dense attention O(T^3) to O(T^2), not O(T^2) to O(T); no universal speed promise."
+    },
+    {
+      "id": "P04",
+      "title": "3\u20135x cache speedup",
+      "status": "corrected",
+      "tasks": [
+        "T099"
+      ],
+      "disposition": "Unverified projection rejected; use measured practical-effect rule."
+    },
+    {
+      "id": "P05",
+      "title": "Grammar allocation work",
+      "status": "corrected",
+      "tasks": [
+        "T067",
+        "T096",
+        "T099"
+      ],
+      "disposition": "Instrument actual sets/loops/synchronization; do not assert143 checks per step universally."
+    },
+    {
+      "id": "P06",
+      "title": "uint128 masks",
+      "status": "corrected",
+      "tasks": [
+        "T006",
+        "T007",
+        "T067"
+      ],
+      "disposition": "Reject insufficient width; sized boolean/word masks cover the full vocabulary."
+    },
+    {
+      "id": "P07",
+      "title": "Batched grammar masks",
+      "status": "included",
+      "tasks": [
+        "T067"
+      ],
+      "disposition": "Preallocated static components plus dynamic stack/local/scope state."
+    },
+    {
+      "id": "P08",
+      "title": "1.5\u20132x grammar gain",
+      "status": "corrected",
+      "tasks": [
+        "T099"
+      ],
+      "disposition": "Measure end-to-end and phase costs without multiplying speculative gains."
+    },
+    {
+      "id": "P09",
+      "title": "CUDA deployment",
+      "status": "corrected",
+      "tasks": [
+        "T001",
+        "T046",
+        "T047"
+      ],
+      "disposition": "AMD-compatible Docker runtime and actual HIP tensors, not NVIDIA wheels."
+    },
+    {
+      "id": "P10",
+      "title": "Weight/VRAM size",
+      "status": "corrected",
+      "tasks": [
+        "T040",
+        "T043",
+        "T078",
+        "T099"
+      ],
+      "disposition": "Record actual parameters and peak shared-host/device memory; weight storage is not full footprint."
+    },
+    {
+      "id": "P11",
+      "title": "GPU 10x/sub50ms claim",
+      "status": "corrected",
+      "tasks": [
+        "T099"
+      ],
+      "disposition": "Unsupported bound rejected; synchronized steady-state end-to-end measurements."
+    },
+    {
+      "id": "P12",
+      "title": "Entropy/ACR causal claim",
+      "status": "corrected",
+      "tasks": [
+        "T063",
+        "T070",
+        "T071",
+        "T096"
+      ],
+      "disposition": "Repair unrestricted entropy/proxy fields and measure actual group variance; no invented historical causality."
+    },
+    {
+      "id": "P13",
+      "title": "Temperature lower bound",
+      "status": "corrected",
+      "tasks": [
+        "T070",
+        "T098",
+        "T100"
+      ],
+      "disposition": "0.8 explicit baseline, not an established optimum; changing schedule requires one selected contrast."
+    },
+    {
+      "id": "P14",
+      "title": "Entropy coefficient0.03",
+      "status": "corrected",
+      "tasks": [
+        "T063",
+        "T070",
+        "T098"
+      ],
+      "disposition": "No evidence for optimum; repaired legal entropy with explicit0 default and bounded objective contrast."
+    },
+    {
+      "id": "P15",
+      "title": "top_p0.95 diversity",
+      "status": "corrected",
+      "tasks": [
+        "T063",
+        "T070",
+        "T075"
+      ],
+      "disposition": "Top-p1 policy baseline; legality and useful diversity measured, unsupported truncated policy rejected."
+    },
+    {
+      "id": "P16",
+      "title": "Recurrence speed/100% claim",
+      "status": "corrected",
+      "tasks": [
+        "T050",
+        "T054",
+        "T055",
+        "T056",
+        "T096"
+      ],
+      "disposition": "Exact solver and final checks; actual time and independent continuation evidence, no unsupported rate."
+    },
+    {
+      "id": "P17",
+      "title": "AST solver routing",
+      "status": "included",
+      "tasks": [
+        "T054",
+        "T056"
+      ],
+      "disposition": "Verified dependency/recurrence structure and exact cached systems; unsupported/rank-deficient not automatically UNSAT."
+    },
+    {
+      "id": "D01",
+      "title": "Generic bootstrap and no imported teachers",
+      "status": "included",
+      "tasks": [
+        "T030",
+        "T032",
+        "T033",
+        "T035",
+        "T069",
+        "T076"
+      ],
+      "disposition": "D001 preserved: random roots, mechanically generated bootstrap and later admitted generated hypotheses; no imported solutions/metadata guidance."
+    },
+    {
+      "id": "D02",
+      "title": "Immediate proof/arith repairs",
+      "status": "included",
+      "tasks": [
+        "T013",
+        "T051",
+        "T057",
+        "T061"
+      ],
+      "disposition": "Original decision sequencing restored; owning prover/solver defects fixed before architectural measurements."
+    },
+    {
+      "id": "D03",
+      "title": "Per-experiment contract",
+      "status": "included",
+      "tasks": [
+        "T098",
+        "T099",
+        "T100"
+      ],
+      "disposition": "Frozen question/hypothesis/baseline/variants/manifests/seeds/budgets/metric/effect/stop/inconclusive rules; no final tuning."
+    },
+    {
+      "id": "D04",
+      "title": "Spec/plan notes/research",
+      "status": "included",
+      "tasks": [
+        "T103",
+        "T104"
+      ],
+      "disposition": "Completed plan.md replaces preliminary plan-notes; research and contracts distinguish decisions from outcomes."
+    },
+    {
+      "id": "D05",
+      "title": "Unconfirmed overflow semantics",
+      "status": "included",
+      "tasks": [
+        "T009",
+        "T013",
+        "T097"
+      ],
+      "disposition": "D002 is not falsely labeled approved. Checked256 is a planning default; independently measure cost/intermediate range and unique rescues."
+    },
+    {
+      "id": "D06",
+      "title": "Native LODA C++ first",
+      "status": "deferred_loda",
+      "tasks": [],
+      "disposition": "Only deferred package: pin native interpreter/subset and data boundaries in008. Later user direction supersedes compiler-first proposal."
+    },
+    {
+      "id": "D07",
+      "title": "Conditional LODA-to-WASM",
+      "status": "deferred_loda",
+      "tasks": [],
+      "disposition": "Transcoder only if a demonstrated issue justifies it; no mandatory compiler assumed."
+    },
+    {
+      "id": "D08",
+      "title": "Minimal language comparison",
+      "status": "deferred_loda",
+      "tasks": [],
+      "disposition": "008 specifies native LODA versus WAT at roughly1\u20133 days each, token/primitive/runtime attribution and effect/stopping rules."
+    },
+    {
+      "id": "D09",
+      "title": "NixOS/Python/Docker/Ryzen",
+      "status": "included",
+      "tasks": [
+        "T001",
+        "T046",
+        "T047",
+        "T094"
+      ],
+      "disposition": "Beyond-venv dependencies and native builds in Docker, actual device feasibility, no automatic host changes."
+    },
+    {
+      "id": "D10",
+      "title": "Twenty observed terms",
+      "status": "included",
+      "tasks": [
+        "T004",
+        "T021",
+        "T024",
+        "T068"
+      ],
+      "disposition": "20 is confirmed;100 total and rebased indices remain explicit planning defaults, diagnostic5/10 prefixes use separate manifests."
+    },
+    {
+      "id": "D11",
+      "title": "Fresh weights/breaking compatibility",
+      "status": "included",
+      "tasks": [
+        "T007",
+        "T023",
+        "T033",
+        "T044",
+        "T078"
+      ],
+      "disposition": "New codecs/models may break compatibility; old weights remain diagnostic, strict parent chains root at random."
+    },
+    {
+      "id": "D12",
+      "title": "Only LODA deferred; KV discretionary",
+      "status": "included",
+      "tasks": [
+        "T061",
+        "T066",
+        "T079",
+        "T092",
+        "T101",
+        "T105"
+      ],
+      "disposition": "Latest instruction supersedes containment-only scope. KV included. Known defects require repair; uncertain optimizations have bounded decisions within007."
+    }
+  ]
+}
