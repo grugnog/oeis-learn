@@ -1,0 +1,579 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:oeis-learn:foundation:v1:artifacts",
+  "title": "007 external trust-boundary artifacts",
+  "description": "Shapes only; hashes, arithmetic ranges, evidence and cross-record rules require semantic validation. Examples are synthetic schema fixtures, not executed-run evidence.",
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "integer_text": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "value",
+        "unit",
+        "source",
+        "reason"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "measured",
+            "disabled",
+            "unavailable"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "measured"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visible_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "request_nonce",
+        "language_profile",
+        "observed_terms"
+      ],
+      "properties": {
+        "kind": {
+          "const": "visible_prompt"
+        },
+        "schema_version": {
+          "const": "foundation/v1"
+        },
+        "request_nonce": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        },
+        "language_profile": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "observed_terms": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)$"
+          }
+        }
+      }
+    },
+    "candidate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "purpose",
+        "run_id",
+        "attempt_index",
+        "stage",
+        "language_profile",
+        "resource_profile",
+        "source_sha256",
+        "checkpoint_sha256",
+        "prompt_sha256",
+        "outcome",
+        "reason",
+        "outputs",
+        "verified_terms",
+        "first_failure_index",
+        "selected",
+        "reference_evidence_sha256",
+        "expected_terms_sha256",
+        "usage",
+        "proof_status"
+      ],
+      "properties": {
+        "kind": {
+          "const": "candidate_result"
+        },
+        "schema_version": {
+          "const": "foundation/v1"
+        },
+        "purpose": {
+          "enum": [
+            "model",
+            "conformance"
+          ]
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "attempt_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stage": {
+          "enum": [
+            "prepare",
+            "prefix",
+            "full"
+          ]
+        },
+        "language_profile": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resource_profile": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome": {
+          "enum": [
+            "invalid_syntax",
+            "invalid_type",
+            "unsupported",
+            "numeric_limit",
+            "execution_limit",
+            "runtime_failure",
+            "wrong_values",
+            "incomplete_output",
+            "prefix_match",
+            "full_horizon_match"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outputs": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)$"
+          }
+        },
+        "verified_terms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "first_failure_index": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 99
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "reference_evidence_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_terms_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fuel",
+            "reference_steps",
+            "elapsed_ns",
+            "peak_rss_bytes"
+          ],
+          "properties": {
+            "fuel": {
+              "$ref": "#/$defs/metric"
+            },
+            "reference_steps": {
+              "$ref": "#/$defs/metric"
+            },
+            "elapsed_ns": {
+              "$ref": "#/$defs/metric"
+            },
+            "peak_rss_bytes": {
+              "$ref": "#/$defs/metric"
+            }
+          }
+        },
+        "proof_status": {
+          "const": "not_claimed"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "purpose": {
+                "const": "model"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "checkpoint_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "prefix_match"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "outputs": {
+                "minItems": 20,
+                "maxItems": 20
+              },
+              "verified_terms": {
+                "const": 20
+              },
+              "stage": {
+                "const": "prefix"
+              },
+              "reason": {
+                "type": "null"
+              },
+              "first_failure_index": {
+                "type": "null"
+              },
+              "reference_evidence_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "expected_terms_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "full_horizon_match"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "outputs": {
+                "minItems": 100,
+                "maxItems": 100
+              },
+              "verified_terms": {
+                "const": 100
+              },
+              "stage": {
+                "const": "full"
+              },
+              "reason": {
+                "type": "null"
+              },
+              "first_failure_index": {
+                "type": "null"
+              },
+              "reference_evidence_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "expected_terms_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "not": {
+                  "enum": [
+                    "prefix_match",
+                    "full_horizon_match"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "checkpoint_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "schema_version",
+        "run_id",
+        "generation",
+        "completed_update",
+        "blob_path",
+        "blob_sha256",
+        "contract_sha256",
+        "pool_sha256",
+        "codec_sha256",
+        "runtime_sha256",
+        "effective_config_sha256",
+        "ledger_sequence",
+        "charged_budget_ns",
+        "next_sample_ids",
+        "payload_state_keys",
+        "checkpoint_state",
+        "previous_manifest_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "checkpoint_manifest"
+        },
+        "schema_version": {
+          "const": "foundation/v1"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blob_path": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+[.]pt$"
+        },
+        "blob_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pool_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "codec_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runtime_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_config_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ledger_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "charged_budget_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_sample_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "payload_state_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "model",
+              "optimizer",
+              "scheduler",
+              "scaler",
+              "python_rng",
+              "numpy_rng",
+              "torch_cpu_rng",
+              "torch_gpu_rng",
+              "named_rng",
+              "data_order",
+              "counters"
+            ]
+          },
+          "minItems": 11
+        },
+        "checkpoint_state": {
+          "const": "complete"
+        },
+        "previous_manifest_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/visible_prompt"
+    },
+    {
+      "$ref": "#/$defs/candidate_result"
+    },
+    {
+      "$ref": "#/$defs/checkpoint_manifest"
+    }
+  ]
+}
