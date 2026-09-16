@@ -29,6 +29,8 @@ Task distribution: setup/foundation8, US1 execution11, US2 evaluation10, US3 pro
 
 ## Meaning and limits
 
+**Subsequent input-coverage audit:** [review-coverage.md](../review-coverage.md) compares all 20 independent recommendations, A01–A19, P01–P17 and the decision session. It finds partial coverage, contained-but-unrepaired defects and an unresolved divergence over immediate false-proof repair. The 26/26 result below is internal coverage of 007 requirements, not complete coverage of those earlier inputs. Document checks passing does not resolve these findings.
+
 The project validator supplements upstream scripts; it is not described as an official Spec Kit validator. Schema fixtures contain synthetic identities and do not establish executed-program correctness, hash integrity or trained-model performance. The read-only analysis checks design consistency and task coverage, not runtime behavior.
 
 **GOV-001 remains a CRITICAL activation gate**: the proposed 2.0.0 constitution is not ratified. T001 gathers actual workstation feasibility evidence; T002 records explicit adoption before subsequent strict implementation promotion. The plan honors this gate; no user approval, maintainer consensus or benchmark has been fabricated.

@@ -4,6 +4,8 @@
 
 ## Findings
 
+**Subsequent audit notice:** The earlier analysis below checked internal consistency against 007's selected scope. The user subsequently supplied the review and decision attachments for explicit reconciliation. [The input-coverage audit](../review-coverage.md) identifies GAP-01 (immediate false-proof repair was replaced by quarantine) and other missing/partial obligations. Its findings qualify the earlier statements of completeness and no further clarification. No implementation task or user decision has been silently changed by this audit.
+
 | ID | Category | Severity | Location | Finding / disposition |
 | --- | --- | --- | --- | --- |
 | GOV-001 | Constitution activation | CRITICAL implementation gate | `constitution-rfc.md`; plan Constitution Check; T001–T002 | The ratified 1.0.0 rules conflict with this architecture. A complete, separately proposed 2.0.0 revision is included, but adoption and the old procedure's feasibility evidence are not complete. Run the bounded standalone preflight and record maintainer adoption before implementation promotion beyond that gate. No script exit code waives this requirement. |
