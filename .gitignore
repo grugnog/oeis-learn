@@ -81,3 +81,4 @@ research/
 # Local Spec Kit installer cache and validation venv
 .specify/integrations/.cache/
 .venv-speckit/
+*.tar

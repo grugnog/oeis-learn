@@ -1,0 +1,26 @@
+image = "./oeis.tar"
+cpus = 8
+memory = 8192
+storage = 100
+overlay = 100
+net = true
+net_backend = "virtio-net"
+gpu = false
+workdir = "/workspace"
+cmd = ["sleep", "infinity"]
+env = ["PI_OFFLINE=true", "LAB_BASE_URL=http://10.77.0.1:8080/v1"]
+
+[dev]
+user = "root"
+#init = ["chown agent:agent /workspace"]
+
+[network]
+allow_cidrs = ["10.77.0.1/32"]
+allow_hosts = [
+  "index.docker.io",
+  "auth.docker.io",
+  "registry-1.docker.io",
+  "production.cloudfront.docker.com",
+  "pypi.org",
+  "files.pythonhosted.org",
+]
