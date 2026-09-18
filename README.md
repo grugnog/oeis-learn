@@ -79,6 +79,36 @@ graph TD
 
 ---
 
+## 🛠️ Setup (uv)
+
+This project is managed with [uv](https://docs.astral.sh/uv/). The environment
+and exact dependency versions are locked in `uv.lock` at the repository root.
+
+```bash
+# Create/refresh the environment (installs runtime + dev deps, incl. the console script)
+uv sync
+
+# Run any command inside the environment
+uv run python -m oeis_learn.cli.main --help
+
+# Install only the runtime deps
+uv sync --no-dev
+
+# Add a dependency (updates pyproject.toml + uv.lock)
+uv add duckdb
+
+# Run the test suite with the dev tooling
+uv run pytest -v
+```
+
+> The foundation images in `docker/foundation/` also use uv. The ROCm image
+> installs its hash-pinned deps via `uv pip install` into the base image's
+> `/opt/venv` (so the base ROCm torch is preserved; see
+> `docker/foundation/Dockerfile`), and the minimal CPU image installs the
+> project with `uv pip install --system .` (see `Dockerfile.simple`).
+
+---
+
 ## 💻 CLI Usage
 
 ```bash
@@ -106,8 +136,8 @@ python -m oeis_learn.cli.main discover --checkpoint checkpoints/stage1.v2.pt --b
 ## 🧪 Running Tests
 
 ```bash
-# Run all Python tests
-pytest -v
+# Run all Python tests (uv-managed environment)
+uv run pytest -v
 
 # Run Rust WASM evaluator unit tests
 cd crates/oeis_wasm_evaluator && cargo test

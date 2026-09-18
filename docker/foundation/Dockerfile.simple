@@ -30,13 +30,18 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --pr
     && mkdir -p /root/.cargo \
     && printf '[registries.crates-io]\nprotocol = "git"\n' > /root/.cargo/config.toml
 
-# ── Python packages ───────────────────────────────────────────
+# ── Python packages (uv) ──────────────────────────────────────
 WORKDIR /app
-COPY pyproject.toml README.md .
-# Source must be present before `pip install .` so setuptools can find the packages
+COPY pyproject.toml README.md uv.lock .
+# Source must be present before `uv pip install .` so setuptools can find the packages
 COPY src /app/src
-RUN pip install --no-cache-dir . \
-    && pip install --no-cache-dir pytest maturin
+# The project is managed with uv. Install uv via pip from PyPI (the network
+# allowlist blocks ghcr.io, astral's uv image), then use uv to install the
+# project into the base image's system Python.
+RUN pip install --no-cache-dir --break-system-packages uv \
+    && uv --version \
+    && uv pip install --system --break-system-packages --no-cache . \
+    && uv pip install --system --break-system-packages --no-cache pytest maturin
 
 # ── Native Rust/WASM evaluator (PyO3) ─────────────────────────
 # Build the PyO3 extension with maturin and install the resulting wheel
@@ -45,7 +50,7 @@ COPY crates/oeis_wasm_evaluator/Cargo.lock  /app/crates/oeis_wasm_evaluator/Carg
 COPY crates/oeis_wasm_evaluator/src         /app/crates/oeis_wasm_evaluator/src
 RUN cd /app/crates/oeis_wasm_evaluator \
     && maturin build --release --out /tmp/wheels \
-    && pip install --no-cache-dir /tmp/wheels/*.whl \
+    && uv pip install --system --break-system-packages --no-cache /tmp/wheels/*.whl \
     && rm -rf /tmp/wheels
 
 # ── Data + configs + scripts ──────────────────────────────────

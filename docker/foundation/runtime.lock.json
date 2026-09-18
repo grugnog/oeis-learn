@@ -1,0 +1,13 @@
+{
+  "base_image": "rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1",
+  "base_image_digest": "sha256:96a2fb24dec9896e2f8238178f0c49d0dcc4c7dcc597be09e4564316bd86d191",
+  "dockerfile": "docker/foundation/Dockerfile",
+  "dockerfile_sha256": "13160385d3f54ee14204d5425f55928f18e2e2dc192da9d9fb12a19844ac7c14",
+  "dependency_lock": "docker/foundation/requirements.lock",
+  "dependency_lock_sha256": "0233d5eb150741f6d723fa0a762abd4c106557266df3001d58beed5935f00f95",
+  "container_runtime": "podman",
+  "final_image_tag": "oeis-learn:foundation",
+  "final_image_id": "533dea20df8bd0450478c8fc3356b124a2264cd47b8a3345cb75e9f575e80a26",
+  "resolved_at": "2026-09-18T20:42:07Z",
+  "notes": "Real values captured from registry/build via podman image inspect. An unresolved placeholder or tag-only identity blocks a qualifying preflight."
+}

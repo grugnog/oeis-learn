@@ -21,7 +21,28 @@ dependencies = [
     "z3-solver>=4.12.0",
 ]
 
-[project.optional-dependencies]
+[project.scripts]
+oeis-learn = "oeis_learn.cli.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ── uv project metadata ───────────────────────────────────────
+# This project is managed with uv (https://docs.astral.sh/uv/). Use `uv sync`
+# (optionally `uv sync --all-extras`) to create/refresh the environment and
+# `uv run` to execute commands, instead of `pip` / `python -m venv`.
+# The lockfile is uv.lock at the repository root.
+[tool.uv]
+# Package the project (src layout) and install its console script on `uv sync`.
+package = true
+# Prefer the host's system Python instead of downloading a uv-managed one:
+# the ROCm host and sandbox block astral's python-build-standalone downloads
+# (github.com). Any Python >= 3.11 (per requires-python) is accepted.
+python-preference = "system"
+
+# Dev/test/lint tooling is a uv dependency group so `uv sync` installs it by
+# default (no `--extra dev` needed).
+[dependency-groups]
 dev = [
     "pytest>=7.4.0",
     "pytest-benchmark>=4.0.0",
@@ -31,12 +52,6 @@ dev = [
     "mypy>=1.8.0",
     "jsonschema>=4.20.0",
 ]
-
-[project.scripts]
-oeis-learn = "oeis_learn.cli.main:cli"
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.ruff]
 line-length = 100
