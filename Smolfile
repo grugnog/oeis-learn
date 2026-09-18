@@ -12,7 +12,14 @@ env = ["PI_OFFLINE=true", "LAB_BASE_URL=http://10.77.0.1:8080/v1"]
 
 [dev]
 user = "root"
-#init = ["chown agent:agent /workspace"]
+init = [
+    # Bind /var/lib/docker AND /var/lib/containerd to ext4 storage so overlay2
+    # works (avoids overlay-on-overlay). containerd keeps its own overlay
+    # snapshots under a separate state root, so both must live on ext4.
+    "mkdir -p /storage/docker /var/lib/docker /storage/containerd /var/lib/containerd",
+    "mount --bind /storage/docker /var/lib/docker",
+    "mount --bind /storage/containerd /var/lib/containerd",
+]
 
 [network]
 allow_cidrs = ["10.77.0.1/32"]
@@ -23,4 +30,9 @@ allow_hosts = [
   "production.cloudfront.docker.com",
   "pypi.org",
   "files.pythonhosted.org",
+  "deb.debian.org",
+  "sh.rustup.rs",
+  "static.rust-lang.org",
+  "github.com",
+  "static.crates.io",
 ]
