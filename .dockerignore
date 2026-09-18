@@ -1,0 +1,38 @@
+# VCS
+.git
+.gitignore
+*.swp
+
+# Python environments & caches
+.venv
+.venv-speckit
+venv
+.mypy_cache
+.pytest_cache
+.benchmarks
+__pycache__
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+
+# Build artifacts
+target
+crates/**/target
+dist
+build
+wheels
+
+# Large / generated artifacts
+*.tar
+*.pt
+*.pth
+*.ckpt
+*.bin
+oeis.tar
+checkpoints
+runs
+research
+reports
+.specify
+.pi

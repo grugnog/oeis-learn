@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────
+# oeis-learn — minimal foundation image (strict fp32, cpu)
+# Build:  docker build -f docker/foundation/Dockerfile.simple -t oeis-learn:simple .
+#
+# NOTE (sandbox adaptation): the Rust toolchain and PyO3 WASM
+# evaluator are installed here. The image compiles
+# crates/oeis_wasm_evaluator with maturin and installs the wheel,
+# so oeis_learn.sandbox.runner uses the native Rust evaluator
+# (Cranelift JIT, fuel metering, Rayon parallelism) instead of the
+# pure-Python wasmtime fallback.
+# ─────────────────────────────────────────────────────────────
+FROM python:3.11-slim
+
+# ── Build tooling: curl (rustup) + Rust toolchain ─────────────
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl gcc libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH=/root/.cargo/bin:/usr/local/bin:/usr/bin:/bin \
+    # Sparse index (index.crates.io) is DNS-blocked in this sandbox; use the
+    # git-based crates.io index on github.com instead (crate downloads still
+    # come from static.crates.io).
+    CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git
+
+# rustup installs the stable toolchain (minimal profile: rustc+cargo+std)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable --profile minimal \
+    && rustc --version && cargo --version \
+    && mkdir -p /root/.cargo \
+    && printf '[registries.crates-io]\nprotocol = "git"\n' > /root/.cargo/config.toml
+
+# ── Python packages ───────────────────────────────────────────
+WORKDIR /app
+COPY pyproject.toml README.md .
+# Source must be present before `pip install .` so setuptools can find the packages
+COPY src /app/src
+RUN pip install --no-cache-dir . \
+    && pip install --no-cache-dir pytest maturin
+
+# ── Native Rust/WASM evaluator (PyO3) ─────────────────────────
+# Build the PyO3 extension with maturin and install the resulting wheel
+COPY crates/oeis_wasm_evaluator/Cargo.toml  /app/crates/oeis_wasm_evaluator/Cargo.toml
+COPY crates/oeis_wasm_evaluator/Cargo.lock  /app/crates/oeis_wasm_evaluator/Cargo.lock
+COPY crates/oeis_wasm_evaluator/src         /app/crates/oeis_wasm_evaluator/src
+RUN cd /app/crates/oeis_wasm_evaluator \
+    && maturin build --release --out /tmp/wheels \
+    && pip install --no-cache-dir /tmp/wheels/*.whl \
+    && rm -rf /tmp/wheels
+
+# ── Data + configs + scripts ──────────────────────────────────
+COPY data /app/data
+COPY configs /app/configs
+COPY scripts /app/scripts
+
+ENV PYTHONPATH=/app/src
+
+# ── Verify the build ──────────────────────────────────────────
+RUN python -c "import torch; print(f'PyTorch {torch.__version__}')" && \
+    python -c "from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder; print('Core modules OK')" && \
+    python -c "import oeis_wasm_evaluator; print('Native WASM evaluator OK')"
+
+CMD ["python", "-m", "oeis_learn.cli.main", "train", "--config", "configs/train_tier1.yaml"]
