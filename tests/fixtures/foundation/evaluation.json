@@ -1,0 +1,101 @@
+{
+  "scenario": "foundation_evaluation_fixture",
+  "description": "Fixture protocol for foundation CLI contract scenarios (T028/T029). Not eligible run evidence.",
+  "schema_version": "foundation/v1",
+  "blocks": [
+    {
+      "name": "fixed_denominator",
+      "purpose": "Prove that N uses eligible complete100 groups only; missing truth yields zero qualifying scores.",
+      "steps": [
+        {
+          "action": "freeze-cohort",
+          "input": {
+            "root": "tests/fixtures/foundation/source/",
+            "census": "first100"
+          },
+          "expect": {
+            "groups": 4,
+            "complete100": 3,
+            "prefix_only": 1,
+            "representative": "G1"
+          }
+        },
+        {
+          "action": "evaluate",
+          "checkpoint": "fixture-digest",
+          "expect": {
+            "denominator": 3,
+            "full_horizon_matches": 1,
+            "prefix_matches": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "actual_weight_dependence",
+      "purpose": "Prove evaluation depends on checkpoint weights, not a canonical reference substitution.",
+      "steps": [
+        {
+          "action": "evaluate",
+          "checkpoint": "missing-digest",
+          "expect": {
+            "exit_code": 2,
+            "reason": "incompatible checkpoint"
+          }
+        },
+        {
+          "action": "evaluate",
+          "checkpoint": "null-weights",
+          "expect": {
+            "exit_code": 2,
+            "reason": "weights-only artifact"
+          }
+        }
+      ]
+    },
+    {
+      "name": "final_sealing",
+      "purpose": "Final scores unavailable until checkpoint, selector and stopping decision are locked.",
+      "steps": [
+        {
+          "action": "evaluate",
+          "checkpoint": "fixture-digest",
+          "allow_hidden": false,
+          "expect": {
+            "exit_code": 1,
+            "reason": "missing final lock"
+          }
+        },
+        {
+          "action": "finalize",
+          "expect": {
+            "lock_created": true
+          }
+        },
+        {
+          "action": "evaluate",
+          "checkpoint": "fixture-digest",
+          "expect": {
+            "exits": 0,
+            "seals_applied": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "zero_qualifying_scores",
+      "purpose": "Missing truth or checkpoint yields zero qualifying model scores.",
+      "steps": [
+        {
+          "action": "evaluate",
+          "checkpoint": "absent-digest",
+          "truth_available": false,
+          "expect": {
+            "qualifying_scores": 0,
+            "exit_code": 0
+          }
+        }
+      ]
+    }
+  ]
+}

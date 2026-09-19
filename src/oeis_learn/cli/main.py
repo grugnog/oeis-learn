@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import tempfile
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
@@ -318,7 +320,49 @@ def build_parser() -> argparse.ArgumentParser:
         help="Destination file for verified symbolic proofs (legacy alias)",
     )
 
-    # Command 8: list-runs
+
+    # Command 10: foundation (artifact administration)
+    foundation_p = subparsers.add_parser(
+        'foundation',
+        help='Foundation artifact administration commands (T008).',
+    )
+    foundation_subparsers = foundation_p.add_subparsers(dest='foundation_command')
+
+    # foundation preflight
+    fp_p = foundation_subparsers.add_parser(
+        'preflight',
+        help='Check foundation prerequisites (hardware_ready/hardware_not_ready).',
+    )
+    fp_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
+    fp_p.add_argument('--config', default='configs/foundation/preflight.yaml', help='Configuration file')
+
+    # foundation conformance
+    fc_p = foundation_subparsers.add_parser(
+        'conformance',
+        help='Validate artifacts against foundation artifacts schema.',
+    )
+    fc_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
+    fc_p.add_argument('--schema', default='specs/007-experiment-foundation/contracts/artifacts.schema.json', help='Schema path')
+    fc_p.add_argument('artifacts', nargs='*', type=str, help='Paths to artifact JSON files')
+
+    # foundation freeze-cohort
+    ffc_p = foundation_subparsers.add_parser(
+        'freeze-cohort',
+        help='Freeze a cohort of artifacts under root (create registry with deterministic IDs).',
+    )
+    ffc_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
+    ffc_p.add_argument('root', type=str, help='Root directory containing artifacts')
+
+    # foundation build-pool
+    fbp_p = foundation_subparsers.add_parser(
+        'build-pool',
+        help='Build a pool of candidate result digests for evaluation.',
+    )
+    fbp_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
+    fbp_p.add_argument('root', type=str, help='Root directory containing artifacts')
+    fbp_p.add_argument('--limit', type=int, default=1000, help='Maximum pool entries')
+
+    # Command 11: list-runs
     subparsers.add_parser(
         "list-runs",
         help="List all tracked experiment runs, configurations, and summary metrics.",
@@ -712,6 +756,134 @@ def handle_run_ablations(args: argparse.Namespace) -> int:
     )
 
 
+
+
+
+def handle_foundation(args: argparse.Namespace) -> int:
+    """Handles the `foundation` subcommand; delegates to foundation module (T008)."""
+    if not args.foundation_command:
+        print('Foundation commands: preflight, conformance, freeze-cohort, build-pool')
+        return 1
+    from oeis_learn.cli.foundation import dispatch
+    kw = {k: getattr(args, k) for k in (
+        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit',
+    ) if hasattr(args, k)}
+    return dispatch(args.foundation_command, **kw)
+
+
+def handle_foundation_preflight(args: argparse.Namespace) -> int:
+    """Handles the `foundation preflight` subcommand."""
+    from oeis_learn.cli.foundation_preflight import main as preflight_main
+    preflight_main(as_json=args.as_json, config_path=args.config)
+    return 0
+
+
+def handle_foundation_conformance(args: argparse.Namespace) -> int:
+    """Handles the `foundation conformance` subcommand."""
+    import json
+    import sys
+    from jsonschema import Draft202012Validator
+    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_canonical_digest, compute_file_hash
+
+    schema_path = args.schema
+    with open(schema_path, 'r', encoding='utf-8') as f:
+        schema_doc = json.load(f)
+    validator = Draft202012Validator(schema_doc)
+    errors = []
+    for artifact_path in args.artifacts:
+        try:
+            with open(artifact_path, 'r', encoding='utf-8') as f:
+                artifact = json.load(f)
+            for error in validator.iter_errors(artifact):
+                errors.append(f'{artifact_path}: {error.message}')
+        except json.JSONDecodeError as e:
+            errors.append(f'{artifact_path}: JSON parse error: {e}')
+    if errors:
+        if args.as_json:
+            print(json.dumps({'status': 'FAIL', 'errors': errors}))
+        else:
+            for e in errors:
+                print(f'FAIL: {e}')
+        sys.exit(2)
+    else:
+        if args.as_json:
+            print(json.dumps({'status': 'PASS'}))
+        else:
+            print('PASS: all artifacts conform')
+        sys.exit(0)
+
+
+def handle_foundation_freeze_cohort(args: argparse.Namespace) -> int:
+    """Handles the `foundation freeze-cohort` subcommand."""
+    import json
+    from pathlib import Path
+    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_file_hash
+
+    root_path = Path(args.root)
+    registry = ArtifactRegistry(root_path / 'artifacts')
+    for kind in ('visible-prompt', 'candidate-result'):
+        subdir = root_path / f'{kind}s'
+        if subdir.exists():
+            for path in subdir.glob('*.json'):
+                if path.is_file():
+                    with open(path, 'r', encoding='utf-8') as f:
+                        artifact = json.load(f)
+                    registry.store(kind, artifact)
+    for kind in ('checkpoint',):
+        subdir = root_path / f'{kind}s'
+        if subdir.exists():
+            for path in subdir.glob('*.pt'):
+                if path.is_file():
+                    digest = compute_file_hash(path)
+                    registry.store(kind, {'path': str(path), 'digest': digest})
+    if args.as_json:
+        counts = {k: len(v) for k, v in registry._by_kind.items()}
+        print(json.dumps({'root': str(root_path), 'counts': counts}))
+    else:
+        counts = {k: len(v) for k, v in registry._by_kind.items()}
+        print(f'Registry created at {registry.root}')
+        for k, v in counts.items():
+            print(f'  {k}: {v}')
+    return 0
+
+
+def handle_foundation_build_pool(args: argparse.Namespace) -> int:
+    """Handles the `foundation build-pool` subcommand."""
+    import json
+    import tempfile
+    from pathlib import Path
+    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_canonical_digest
+
+    registry = ArtifactRegistry(Path(args.root) / 'artifacts')
+    pool: List[str] = []
+    digest_path = registry.root / 'pool' / 'candidates.txt'
+    digest_path.parent.mkdir(parents=True, exist_ok=True)
+    if digest_path.exists():
+        with open(digest_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('sha256:'):
+                    pool.append(line)
+    subdir = registry.root.parent / 'candidate-results'
+    if subdir.exists():
+        for path in subdir.glob('*.json'):
+            with open(path, 'r', encoding='utf-8') as f:
+                artifact = json.load(f)
+            digest = compute_canonical_digest(artifact, identity_field='digest')
+            if digest not in pool:
+                pool.append(digest)
+                if len(pool) >= args.limit:
+                    break
+    with tempfile.NamedTemporaryFile(mode='w', dir=digest_path.parent, delete=False) as f:
+        for d in pool:
+            f.write(d + chr(10))
+        tmp_path = Path(f.name)
+    tmp_path.rename(digest_path)
+    if args.as_json:
+        print(json.dumps({'pool_size': len(pool), 'limit': args.limit}))
+    else:
+        print(f'Pool updated: {len(pool)} candidates')
+    return 0
 def handle_list_runs(args: argparse.Namespace) -> int:
     """Handles the `list-runs` subcommand."""
     from oeis_learn.tracking.run_manager import RunManager
@@ -769,6 +941,8 @@ def cli(args: Optional[List[str]] = None) -> int:
         return handle_solve_constants(parsed_args)
     elif parsed_args.command == "discover":
         return handle_discover(parsed_args)
+    elif parsed_args.command == "foundation":
+        return handle_foundation(parsed_args)
     elif parsed_args.command == "list-runs":
         return handle_list_runs(parsed_args)
     else:

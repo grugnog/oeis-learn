@@ -1,6 +1,6 @@
 # OEIS Learn Constitution
 
-**Amendment status**: Proposed version 2.0.0 on the 007 feature branch. Version 1.0.0 remains the ratified main-branch baseline until maintainers adopt [RFC 007](../../specs/007-experiment-foundation/constitution-rfc.md) with its required feasibility evidence. This file records the proposed rules explicitly so planning can be checked against them; it does not assert approval or completed benchmarks.
+**Amendment status**: Adopted version 2.0.0 on the 007 feature branch (maintainer acceptance recorded 2026-09-16 in [validation/adoption.md](../../specs/007-experiment-foundation/validation/adoption.md)). The original ratified baseline remains version 1.0.0 at `aa2c8c4579dd74fdd8114ec9456960a98fcf500e` (2026-08-30) and its historical compatibility map is preserved. This file records the adopted rules; it does not assert completed benchmarks.
 
 ## Core Principles
 
@@ -48,4 +48,4 @@ Amendments require a written RFC with rationale, evidence appropriate to the cla
 
 Versions use Semantic Versioning: major for removed/redefined mandatory principles, minor for compatible additions, patch for clarifications. Contributors MUST read this document and the active Spec Kit templates during specification, design, tasks and review. Templates and upstream skill instructions MUST NOT be altered merely to hide a conflict or make a check pass.
 
-**Version**: 2.0.0 (proposed) | **Original Ratified**: 2026-08-30 | **Amendment Proposed**: 2026-09-16
+**Version**: 2.0.0 (adopted) | **Original Ratified**: 2026-08-30 | **Amendment Proposed**: 2026-09-16 | **Adoption Recorded**: 2026-09-16 (see [validation/adoption.md](../../specs/007-experiment-foundation/validation/adoption.md))

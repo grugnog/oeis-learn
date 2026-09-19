@@ -1,0 +1,55 @@
+# Foundation/v1 smoke control (007) -- strict, frozen.
+# Every effective setting is explicit; no implicit default may change on resume.
+schema_version: foundation/v1
+kind: smoke
+
+learning:
+  track: strict_generic
+  objective: sft
+  initialization: random
+  horizon: [20, 100]        # visible prefix, full evaluation
+  policy: prefix_rebased_zero
+
+model:
+  d_model: 256
+  encoder_layers: 4
+  decoder_layers: 4
+  heads: 4
+  feed_forward: 1024
+  dropout: 10               # 0.1 as fixed-point integer
+  film: true                # FiLM enabled
+  summary_tokens: false     # summary tokens disabled
+  dtype: fp32
+  modulus: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101]
+  primes: [2, 3, 5, 7, 11, 13]
+  codec_output_vocab: 0     # set by the codec identity before work; 0 means "codec-sized"
+  position: sinusoidal
+
+training:
+  batch_size: 4
+  updates: 3
+  optimizer: adamw
+  learning_rate: 3          # 3e-4 as fixed-point integer + exponent
+  learning_rate_exp: -4
+  weight_decay: 1           # 0.01 as fixed-point integer + exponent
+  weight_decay_exp: -2
+  grad_norm_cap: 1          # 1.0 as fixed-point integer + exponent 0
+  scheduler: disabled       # no scheduler in the smoke
+  scaler: disabled          # no scaler in the smoke
+
+disabled:
+  solvers: disabled         # constant/dixon/mersenne61/qfnia solvers unavailable
+  optimizers: disabled      # no typed optimizer passes
+  scaffolds: disabled       # no named-family scaffolds
+  rl: disabled              # no RL path
+  proving: disabled         # no symbolic proving; proof_status stays not_claimed
+
+limits:
+  max_body_tokens: 1024     # including EOS, excluding BOS and wrapper
+  max_source_bytes: 65536   # 64 KiB canonical source
+
+locks:
+  language: wat_i256_checked_v1
+  codec: wat_body_decimal_v1
+  resource: ryzen_foundation_v1
+  evaluation: prefix20_total100_v1

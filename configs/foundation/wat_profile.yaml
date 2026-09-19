@@ -1,0 +1,37 @@
+# Foundation/v1 experiment profile (007).
+# Frozen defaults from contracts/execution.md and evaluation.md.
+# Changing any identity or inventory requires a new profile identity and run.
+schema_version: foundation/v1
+
+learning:
+  track: strict_generic
+  objective: sft
+  initialization: random
+  horizon: [20, 100]        # visible prefix, full evaluation
+  policy: prefix_rebased_zero
+
+language:
+  id: wat_i256_checked_v1
+  baseline_commit: aa2c8c4579dd74fdd8114ec9456960a98fcf500e
+  excluded_operators: [i64.const_?, result_i64_x4]
+  wrapper:
+    i64_locals: 32          # $v0..$v31, zero-initialized
+    i32_locals: 8           # $c0..$c7, zero-initialized
+    input: $n               # only input
+  macros: [i256.const, i256.zero, i256.add, i256.sub, i256.mul_scalar]
+  nesting:
+    max_block_depth: 8
+    max_nested_loops: 3
+  numeric_ranges:
+    i32: [-2147483648, 2147483647]
+    i64: [-9223372036854775808, 9223372036854775807]
+    i256: [-57896044618658097711785492504343953926634992332820282019728792003956564819968, 57896044618658097711785492504343953926634992332820282019728792003956564819967]
+
+codec:
+  id: wat_body_decimal_v1
+  max_body_tokens: 1024     # including EOS, excluding BOS and wrapper
+  max_source_bytes: 65536   # 64 KiB
+  numeric_immediate: <int>  # optional -, one+ decimal digit tokens, then </int>
+
+resource: ryzen_foundation_v1
+evaluation: prefix20_total100_v1

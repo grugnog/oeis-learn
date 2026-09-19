@@ -23,6 +23,13 @@ CONTRACTS_006_DIR = (
     / "contracts"
 )
 
+CONTRACTS_007_DIR = (
+    Path(__file__).resolve().parent.parent.parent
+    / "specs"
+    / "007-experiment-foundation"
+    / "contracts"
+)
+
 
 @pytest.fixture(scope="session")
 def contracts_dir() -> Path:
@@ -35,9 +42,14 @@ def contracts_006_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def schema_registry(contracts_dir: Path, contracts_006_dir: Path) -> Registry:
+def contracts_007_dir() -> Path:
+    return CONTRACTS_007_DIR
+
+
+@pytest.fixture(scope="session")
+def schema_registry(contracts_dir: Path, contracts_006_dir: Path, contracts_007_dir: Path) -> Registry:
     registry = Registry()
-    for search_dir in [contracts_dir, contracts_006_dir]:
+    for search_dir in [contracts_dir, contracts_006_dir, contracts_007_dir]:
         if search_dir.exists():
             for schema_file in search_dir.glob("*.schema.json"):
                 with open(schema_file, "r", encoding="utf-8") as f:
@@ -51,17 +63,18 @@ def schema_registry(contracts_dir: Path, contracts_006_dir: Path) -> Registry:
 
 
 @pytest.fixture(scope="session")
-def load_schema(contracts_dir: Path, contracts_006_dir: Path) -> Callable[[str], Dict[str, Any]]:
+def load_schema(contracts_dir: Path, contracts_006_dir: Path, contracts_007_dir: Path) -> Callable[[str], Dict[str, Any]]:
     def _loader(name: str) -> Dict[str, Any]:
         if not name.endswith(".schema.json"):
             name = f"{name}.schema.json"
-        path = contracts_dir / name
-        if not path.exists():
-            path = contracts_006_dir / name
-        if not path.exists():
-            raise FileNotFoundError(f"Schema not found at {path} (checked {contracts_dir} and {contracts_006_dir})")
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        for search_dir in [contracts_dir, contracts_006_dir, contracts_007_dir]:
+            path = search_dir / name
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        raise FileNotFoundError(
+            f"Schema not found at {name} (checked {contracts_dir}, {contracts_006_dir}, {contracts_007_dir})"
+        )
 
     return _loader
 

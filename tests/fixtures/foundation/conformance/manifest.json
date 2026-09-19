@@ -1,0 +1,16 @@
+{
+  "filepath": "tests/fixtures/foundation/conformance/known_regressions.json",
+  "description": "Known arithmetic regressions for conformance (T019). Seeds 7001 (10k random) and 7002 (256 structured) generate in-code; this file holds hand-calculated counterexamples.",
+  "counterexamples": [
+    {"id": "neg_mul", "source": "i64.const 1 </int> i64.const -1 </int> i256.mul_scalar", "expect": "-1", "description": "1 * -1 must be -1, not unsigned overflow"},
+    {"id": "signed_min", "source": "i64.const -9223372036854775808 </int>", "expect": "-9223372036854775808", "description": "Signed minimum value round-trips"},
+    {"id": "two_pow_64", "source": "i64.const 0 </int> i64.const 1 </int> i64.const 0 </int> i64.const 0 </int> i256.const", "expect": "0", "description": "Positive zero is 0, not i64 max (0x7FFF...)"},
+    {"id": "cross_limb_carry", "source": "i64.const 1 </int> i64.const 0 </int> i64.const 0 </int> i64.const 0 </int> i256.zero", "expect": "1", "description": "Final result counts all four limbs, carry does not produce a phantom fifth limb"}
+  ],
+  "seeds": {
+    "arithmetic_random": 7001,
+    "arithmetic_count": 10000,
+    "structured_programs": 7002,
+    "structured_count": 256
+  }
+}

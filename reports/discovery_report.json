@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "report_id": "rep_disc_1788799710",
+  "report_id": "rep_disc_1789770966",
   "run_id": "discovery_run_42",
-  "created_at": "2026-09-07T16:48:29.833599+00:00",
-  "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+  "created_at": "2026-09-18T22:36:06.462560+00:00",
+  "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
   "benchmark_manifest_sha256": "sha256:eb2a1ed1bfaf72933961cea1f86065744cf54430623b3b006247eb866264b172",
   "protocol": {
     "search_indices": [
@@ -183,15 +183,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_003",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.1828901767730713,
+          "vector_distance": 0.22080938518047333,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -492,24 +492,24 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-07T16:48:29.958749+00:00",
+        "verified_at": "2026-09-18T22:36:06.592455+00:00",
         "diagnostic": null
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         },
         {
           "status": "SYMBOLICALLY_PROVEN_IDENTITY",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "SYMPY_REDUCTION"
         }
       ]
@@ -547,15 +547,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_005",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2540450096130371,
+          "vector_distance": 0.45230168104171753,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -849,7 +849,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -887,15 +887,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_006",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.25790461897850037,
+          "vector_distance": 0.35322922468185425,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -1189,7 +1189,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1227,15 +1227,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_007",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.24981547892093658,
+          "vector_distance": 0.3398490250110626,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -1529,7 +1529,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1567,15 +1567,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_008",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2409040331840515,
+          "vector_distance": 0.29696089029312134,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -1869,7 +1869,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -1907,15 +1907,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_009",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2756897807121277,
+          "vector_distance": 0.32940441370010376,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -2209,7 +2209,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2247,15 +2247,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_010",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.25641319155693054,
+          "vector_distance": 0.32450297474861145,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -2549,7 +2549,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2587,15 +2587,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_011",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.26120761036872864,
+          "vector_distance": 0.3724212646484375,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -2889,7 +2889,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -2927,15 +2927,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_012",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3032408654689789,
+          "vector_distance": 0.349172979593277,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -3229,7 +3229,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3267,15 +3267,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_013",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.31609979271888733,
+          "vector_distance": 0.4104570746421814,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -3569,7 +3569,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3607,15 +3607,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_014",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3343680799007416,
+          "vector_distance": 0.4929029941558838,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -3909,7 +3909,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -3947,15 +3947,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_016",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3509221076965332,
+          "vector_distance": 0.5435682535171509,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -4249,7 +4249,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4287,15 +4287,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_017",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.32711416482925415,
+          "vector_distance": 0.5474071502685547,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -4589,7 +4589,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4627,15 +4627,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_018",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.373628705739975,
+          "vector_distance": 0.49090978503227234,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -4929,7 +4929,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -4967,15 +4967,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_019",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.20988446474075317,
+          "vector_distance": 0.24726153910160065,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -5269,7 +5269,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5307,15 +5307,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_020",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.25108039379119873,
+          "vector_distance": 0.3168131113052368,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -5609,7 +5609,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5647,15 +5647,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_021",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.25238335132598877,
+          "vector_distance": 0.33286339044570923,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -5949,7 +5949,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -5987,15 +5987,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_022",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.27211853861808777,
+          "vector_distance": 0.35662442445755005,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -6289,7 +6289,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6327,15 +6327,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_023",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.25174713134765625,
+          "vector_distance": 0.29871490597724915,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -6629,7 +6629,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -6667,15 +6667,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_024",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2900250256061554,
+          "vector_distance": 0.32328933477401733,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -6969,7 +6969,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7007,15 +7007,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_025",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.24612867832183838,
+          "vector_distance": 0.31518468260765076,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -7309,7 +7309,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7347,15 +7347,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_027",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.29084426164627075,
+          "vector_distance": 0.5010024309158325,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -7649,7 +7649,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -7687,15 +7687,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_028",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3124626874923706,
+          "vector_distance": 0.42580875754356384,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -7989,7 +7989,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8027,15 +8027,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_029",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3248426914215088,
+          "vector_distance": 0.40509405732154846,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -8329,7 +8329,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8367,15 +8367,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_031",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.18417811393737793,
+          "vector_distance": 0.2382778823375702,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -8669,7 +8669,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -8707,15 +8707,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_032",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.19990834593772888,
+          "vector_distance": 0.26481756567955017,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -9009,7 +9009,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9047,15 +9047,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_034",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.23038850724697113,
+          "vector_distance": 0.30801671743392944,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -9349,7 +9349,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9387,15 +9387,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_035",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.20292547345161438,
+          "vector_distance": 0.23724357783794403,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -9689,7 +9689,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -9727,15 +9727,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_037",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.16966311633586884,
+          "vector_distance": 0.22217029333114624,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -10029,7 +10029,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10067,15 +10067,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_038",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.24688412249088287,
+          "vector_distance": 0.29452016949653625,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -10369,7 +10369,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10407,15 +10407,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_039",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.18588252365589142,
+          "vector_distance": 0.20601387321949005,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -10709,7 +10709,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -10747,15 +10747,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_040",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.16966311633586884,
+          "vector_distance": 0.22217029333114624,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -11049,7 +11049,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11087,15 +11087,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_041",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2247721403837204,
+          "vector_distance": 0.3960059881210327,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -11388,19 +11388,19 @@
           "upper_bound": null
         },
         "verifier_version": "sympy-1.14.0",
-        "verified_at": "2026-09-07T16:48:30.005014+00:00",
+        "verified_at": "2026-09-18T22:36:06.606093+00:00",
         "diagnostic": "Missing definition for operand A100001"
       },
       "rejection": null,
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         },
         {
           "status": "NUMERICALLY_VERIFIED_CONJECTURE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EXACT_PARTITIONED_VALIDATION"
         }
       ]
@@ -11438,15 +11438,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_042",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.22860996425151825,
+          "vector_distance": 0.27816614508628845,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -11740,7 +11740,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -11778,15 +11778,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_043",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.244175523519516,
+          "vector_distance": 0.3396284878253937,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -12080,7 +12080,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12118,15 +12118,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_044",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2533164322376251,
+          "vector_distance": 0.2938302755355835,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -12420,7 +12420,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12458,15 +12458,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_045",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3088952600955963,
+          "vector_distance": 0.35453924536705017,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -12760,7 +12760,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -12798,15 +12798,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_046",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.26275911927223206,
+          "vector_distance": 0.31190788745880127,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -13100,7 +13100,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13138,15 +13138,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_047",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.2746672034263611,
+          "vector_distance": 0.3830432891845703,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -13440,7 +13440,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13478,15 +13478,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_048",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.33321207761764526,
+          "vector_distance": 0.36063700914382935,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -13780,7 +13780,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]
@@ -13818,15 +13818,15 @@
       "latent_evidence": [
         {
           "candidate_id": "cand_049",
-          "checkpoint_sha256": "sha256:dea98be6ca828782bf09ac91a4d98636cd2c9455c74e061390104775de09a0c6",
+          "checkpoint_sha256": "sha256:9b5100d109a378ba140618ab1579b761ec23df382cbe9c5aefde6803bd3cc4d5",
           "embedding_version": "tri_stream_strict_fp32",
-          "vector_distance": 0.3190358877182007,
+          "vector_distance": 0.35783955454826355,
           "search_parameters": {
             "distance_threshold": 0.8
           },
           "seed": 42,
           "backend_versions": {
-            "torch": "2.13.0+cpu"
+            "torch": "2.14.0+cu130"
           }
         }
       ],
@@ -14120,7 +14120,7 @@
       "status_history": [
         {
           "status": "LATENT_CANDIDATE",
-          "created_at": "2026-09-07T16:48:29.833599+00:00",
+          "created_at": "2026-09-18T22:36:06.462560+00:00",
           "evidence_type": "EMBEDDING_TRIPLE"
         }
       ]

@@ -45,25 +45,25 @@ On an AMD NixOS workstation with `/dev/kfd` and a render node, the probe:
 
 ## Adoption Decision
 
-<!-- Status: PENDING maintainer approval -->
+**Status: ADOPTED — 2026-09-16**
 
-This document records the results of the feasibility probe. **Explicit maintainer adoption of Constitution 2.0.0 is required before remaining implementation tasks (T003–T105) may proceed.**
+This document records the results of the feasibility probe and the **explicit maintainer adoption of Constitution 2.0.0** for the 007 feature branch. The user accepted the proposed governance change; adoption is recorded here, not fabricated.
 
-### If Adoption Is Granted
+### Adoption Record
 
-Maintainer notes go here (date, rationale, any deviations from the proposed RFC):
+- [x] Maintainer: oeis-learn maintainer (user instruction on the 007 branch)
+- [x] Adoption date: 2026-09-16
+- [x] Rationale (brief): The user explicitly accepted the proposed Constitution 2.0.0 (RFC 007). This supersedes the proposed status and authorizes remaining implementation tasks (T003–T105) to proceed under the new governance, subject to the recorded feasibility evidence and acceptance gates.
+- [x] Deviations: none — adopted as proposed. The original 2026-08-30 v1.0.0 ratification at `aa2c8c4579dd74fdd8114ec9456960a98fcf500e` and its historical compatibility map are preserved (see RFC migration table).
 
-- [ ] Maintainer name/signature
-- [ ] Adoption date
-- [ ] Rationale (brief):
-- [ ] Deviations (if any, or "none"):
+### Effect of Adoption
 
-Upon adoption: update `.specify/memory/constitution.md` to record the new status/ratification date while preserving the original 2026-08-30 ratification date and historical compatibility map.
+The proposed revision is ratified on this feature branch. `.specify/memory/constitution.md` is updated to record the adopted status/ratification date while preserving the original 2026-08-30 ratification date and the historical compatibility map. Remaining implementation tasks (T003–T105) may now proceed under Constitution 2.0.0, gated by the acceptance gates in [plan.md](../plan.md).
 
-### If Adoption Is Declined
+### If Adoption Had Been Declined
 
-Remaining tasks beyond T001 are blocked. The standalone preflight remains available as a reusable GPU feasibility probe. The proposal must be revised or withdrawn; no 007 completion is claimed.
+Remaining tasks beyond T001 would have been blocked. The standalone preflight remains available as a reusable GPU feasibility probe. The proposal would have required revision or withdrawal; no 007 completion would be claimed.
 
 ---
 
-**Updated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Updated**: 2026-09-16T00:00:00Z
