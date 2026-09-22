@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "dockerfile": "Dockerfile",
+  "target": "gpu",
+  "inputs": [
+    "Dockerfile", "docker/dev", "pyproject.toml", "uv.lock", "README.md",
+    "src", "crates/oeis_wasm_evaluator"
+  ]
+}
