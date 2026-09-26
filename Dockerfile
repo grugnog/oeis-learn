@@ -19,9 +19,6 @@ CMD ["bash"]
 
 FROM ${PI_BASE_IMAGE} AS smolvm
 USER root
-# Install agent tools before selecting the isolated project interpreter.
-COPY --chown=root:root pi/llama-swap.js /root/.pi/agent/extensions/llama-swap.js
-COPY --chown=agent:agent pi/llama-swap.js /home/agent/.pi/agent/extensions/llama-swap.js
 RUN uv tool install specify-cli && \
     git config --global --add safe.directory /workspace
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo \
@@ -35,5 +32,8 @@ COPY src /opt/oeis-build/src
 COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
 RUN bash /opt/oeis-setup/build-native.sh
 ENV PYTHONPATH=/workspace/src
+COPY --chown=agent:agent --chmod=500 system/.ssh /home/agent/.ssh
+COPY --chown=agent:agent system/llama-swap.js /home/agent/.pi/agent/extensions/llama-swap.js
+COPY --chown=root:root --chmod=555 system/lab-gpu* /usr/local/bin/
 WORKDIR /workspace
 # Inherit the Pi base entrypoint/CMD; Smolfile supplies its long-lived command.

@@ -8,18 +8,16 @@ net_backend = "virtio-net"
 gpu = false
 workdir = "/workspace"
 cmd = ["sleep", "infinity"]
-env = ["PI_OFFLINE=true", "LAB_BASE_URL=http://10.77.0.1:8080/v1"]
+env = [
+  "PI_OFFLINE=true",
+  "LAB_BASE_URL=http://10.77.0.1:8080/v1",
+  "LAB_GPU_HOST=10.77.0.1",
+  "LAB_GPU_USER=labgpu-oeis-learn",
+  "LAB_GPU_IDENTITY=/home/agent/.ssh/lab-gpu",
+]
 
 [dev]
-user = "root"
-init = [
-    # Bind /var/lib/docker AND /var/lib/containerd to ext4 storage so overlay2
-    # works (avoids overlay-on-overlay). containerd keeps its own overlay
-    # snapshots under a separate state root, so both must live on ext4.
-    "mkdir -p /storage/docker /var/lib/docker /storage/containerd /var/lib/containerd",
-    "mount --bind /storage/docker /var/lib/docker",
-    "mount --bind /storage/containerd /var/lib/containerd",
-]
+user = "agent"
 
 [network]
 allow_cidrs = ["10.77.0.1/32"]

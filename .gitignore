@@ -82,3 +82,4 @@ research/
 .specify/integrations/.cache/
 .venv-speckit/
 *.tar
+system

@@ -23,14 +23,6 @@ Use `python`, `pytest` and `maturin` directly in these images. Do not use plain
 `uv sync`/`uv run`: that can create a separate environment with generic Torch.
 If using uv's runner, use `uv run --no-sync --active` deliberately.
 
-Existing `docker/foundation/Dockerfile` and `Dockerfile.simple` remain standalone
-snapshot/preflight images with their original commands. Their historical
-`runtime.lock.json` does not describe these new development builds. The new
-targets share the foundation's dependency *roles*, but consume the current root
-lock (including its newer versions), not the older foundation lock whose hashes
-the existing installer strips. New exports preserve non-Torch package hashes.
-Torch/setup-tool pins and base-owned dependencies are handled separately.
-
 Rust 1.90.0 is pinned. Cargo.lock is currently ignored by this repository;
 builds generate it if absent and retain it plus a Python inventory under
 `/opt/oeis-build-info/`. Bitwise reproduction of independent rebuilds is not
