@@ -33,4 +33,5 @@ allow_hosts = [
   "static.rust-lang.org",
   "github.com",
   "static.crates.io",
+  "registry.npmjs.org",
 ]

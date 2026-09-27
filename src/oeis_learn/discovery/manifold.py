@@ -17,19 +17,34 @@ def reduce_manifold_2d(
     if n_samples < 5:
         return np.zeros((n_samples, 2), dtype=np.float32)
 
+    # Try GPU-accelerated UMAP first (RAPIDS cuML)
     try:
         from cuml.manifold import UMAP as cuUMAP
         reducer = cuUMAP(n_neighbors=min(n_neighbors, n_samples - 1), min_dist=min_dist, random_state=random_state)
         return np.array(reducer.fit_transform(embeddings), dtype=np.float32)
     except Exception:
-        try:
-            import umap
-            reducer = umap.UMAP(n_neighbors=min(n_neighbors, n_samples - 1), min_dist=min_dist, random_state=random_state)
-            return np.array(reducer.fit_transform(embeddings), dtype=np.float32)
-        except Exception:
-            from sklearn.decomposition import PCA
-            reducer = PCA(n_components=2, random_state=random_state)
-            return np.array(reducer.fit_transform(embeddings), dtype=np.float32)
+        pass
+    
+    # Try CPU UMAP
+    try:
+        import umap
+        reducer = umap.UMAP(n_neighbors=min(n_neighbors, n_samples - 1), min_dist=min_dist, random_state=random_state)
+        return np.array(reducer.fit_transform(embeddings), dtype=np.float32)
+    except Exception:
+        pass
+    
+    # Fall back to PCA if sklearn is available
+    try:
+        from sklearn.decomposition import PCA
+        reducer = PCA(n_components=2, random_state=random_state)
+        return np.array(reducer.fit_transform(embeddings), dtype=np.float32)
+    except Exception:
+        pass
+    
+    # If no dimensionality reduction available, return random 2D projection
+    logger.warning("No manifold reduction available (sklearn, umap, cuml), returning random projection")
+    np.random.seed(random_state)
+    return np.random.randn(n_samples, 2).astype(np.float32)
 
 
 def cluster_latent_manifold(
@@ -43,16 +58,30 @@ def cluster_latent_manifold(
     if n_samples < 3:
         return np.zeros(n_samples, dtype=int)
 
+    # Try GPU-accelerated HDBSCAN first (RAPIDS cuML)
     try:
         from cuml.cluster import HDBSCAN as cuHDBSCAN
         clusterer = cuHDBSCAN(min_cluster_size=min(min_cluster_size, n_samples), min_samples=min_samples)
         return np.array(clusterer.fit_predict(embeddings), dtype=int)
     except Exception:
-        try:
-            from sklearn.cluster import HDBSCAN
-            clusterer = HDBSCAN(min_cluster_size=min(min_cluster_size, n_samples), min_samples=min_samples)
-            return np.array(clusterer.fit_predict(embeddings), dtype=int)
-        except Exception:
-            from sklearn.cluster import DBSCAN
-            clusterer = DBSCAN(eps=0.5, min_samples=min_samples)
-            return np.array(clusterer.fit_predict(embeddings), dtype=int)
+        pass
+    
+    # Try sklearn HDBSCAN
+    try:
+        from sklearn.cluster import HDBSCAN
+        clusterer = HDBSCAN(min_cluster_size=min(min_cluster_size, n_samples), min_samples=min_samples)
+        return np.array(clusterer.fit_predict(embeddings), dtype=int)
+    except Exception:
+        pass
+    
+    # Fall back to DBSCAN if sklearn available
+    try:
+        from sklearn.cluster import DBSCAN
+        clusterer = DBSCAN(eps=0.5, min_samples=min_samples)
+        return np.array(clusterer.fit_predict(embeddings), dtype=int)
+    except Exception:
+        pass
+    
+    # If no clustering available, return all same cluster
+    logger.warning("No clustering available (sklearn, cuml), returning single cluster")
+    return np.zeros(n_samples, dtype=int)

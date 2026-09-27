@@ -32,8 +32,10 @@ COPY src /opt/oeis-build/src
 COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
 RUN bash /opt/oeis-setup/build-native.sh
 ENV PYTHONPATH=/workspace/src
+COPY --chown=root:root --chmod=555 system/lab-gpu* /usr/local/bin/
+USER agent
+RUN pi install npm:@juicesharp/rpiv-pi && pi -p '/rpiv-setup'
 COPY --chown=agent:agent --chmod=500 system/.ssh /home/agent/.ssh
 COPY --chown=agent:agent system/llama-swap.js /home/agent/.pi/agent/extensions/llama-swap.js
-COPY --chown=root:root --chmod=555 system/lab-gpu* /usr/local/bin/
 WORKDIR /workspace
 # Inherit the Pi base entrypoint/CMD; Smolfile supplies its long-lived command.

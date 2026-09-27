@@ -39,8 +39,29 @@ def parse_ast_placeholders(wat_code: str) -> ASTSkeleton:
         "i64.div_u", "i64.div_s", "i32.div_u", "i32.div_s",
     }
 
-    # Only mark non-linear if placeholders are used directly as operands to non-linear ops
-    is_linear = placeholder_count > 0
+    # FIXED: Check if placeholders are operands to nonlinear operations
+    # In WAT with parentheses, const_? is not adjacent to the operation.
+    # We need to find the enclosing (op ... const_?) expression.
+    # Go backward from const_? to find its parent (op ... ) and check op.
+    is_linear = True  # Assume linear until we find const_? used as operand to nonlinear op
+    
+    for idx in placeholder_indices:
+        # Find the enclosing parent expression for this const_?
+        depth = 0
+        for i in range(idx - 1, -1, -1):
+            if tokens[i] == ")":
+                depth += 1
+            elif tokens[i] == "(":
+                depth -= 1
+                if depth == 0:
+                    # Found the opening of the parent expression
+                    # Check if the token before this '(' is a nonlinear op
+                    if i > 0 and tokens[i - 1] in nonlinear_ops:
+                        is_linear = False
+                    break
+        
+        if not is_linear:
+            break
 
     return ASTSkeleton(
         raw_wat=wat_code,
