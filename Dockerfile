@@ -33,8 +33,9 @@ COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
 RUN bash /opt/oeis-setup/build-native.sh
 ENV PYTHONPATH=/workspace/src
 COPY --chown=root:root --chmod=555 system/lab-gpu* /usr/local/bin/
+RUN usermod -u 1000 -g 100 agent
 USER agent
-RUN pi install npm:@juicesharp/rpiv-pi && pi -p '/rpiv-setup'
+RUN pi install npm:@juicesharp/rpiv-ask-user-question && pi install npm:pi-goal-list-loop-audit
 COPY --chown=agent:agent --chmod=500 system/.ssh /home/agent/.ssh
 COPY --chown=agent:agent system/llama-swap.js /home/agent/.pi/agent/extensions/llama-swap.js
 WORKDIR /workspace

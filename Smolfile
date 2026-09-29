@@ -10,6 +10,7 @@ workdir = "/workspace"
 cmd = ["sleep", "infinity"]
 env = [
   "PI_OFFLINE=true",
+  "PI_CODING_AGENT_DIR=/workspace/system/.pi/agent"
   "LAB_BASE_URL=http://10.77.0.1:8080/v1",
   "LAB_GPU_HOST=10.77.0.1",
   "LAB_GPU_USER=labgpu-oeis-learn",
