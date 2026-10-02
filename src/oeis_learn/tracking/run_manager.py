@@ -24,16 +24,55 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-import os
 import platform
 import re
 import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 logger = logging.getLogger("oeis_learn.tracking")
+
+
+def inspect_foundation_run(run_dir):
+    """Read-only inspection: no recovery, quarantine, RNG advance or ledger write."""
+    from oeis_learn.experiments.artifacts import load_json
+    from oeis_learn.evaluation.checkpoint import load_foundation_checkpoint
+    from oeis_learn.evaluation.readiness import foundation_readiness
+    root = Path(run_dir).resolve()
+    run = load_json((root / "run.json").read_bytes())
+    ledger = None
+    events = 0
+    for path in sorted((root / "budget-events").glob("*.jsonl")):
+        with path.open("rb") as stream:
+            for line in stream:
+                if not line.endswith(b"\n"):
+                    raise ValueError("torn ledger tail; resume recovery required")
+                record = load_json(line)
+                if record["sequence"] != events:
+                    raise ValueError("invalid ledger event sequence")
+                ledger = record["data"]
+                if ledger["run_id"] != run["run_id"] or ledger["budget_ns"] != run["budget_ns"]:
+                    raise ValueError("ledger/run mismatch")
+                events += 1
+    invalid, selected, checkpoint = [], None, None
+    for path in sorted((root / "checkpoints").glob("checkpoint-[0-9]*.json"), reverse=True):
+        try:
+            loaded = load_foundation_checkpoint(path)
+            if loaded.manifest["run_id"] != run["run_id"] or loaded.manifest["contract_sha256"] != run["contract_sha256"]:
+                raise ValueError("run/checkpoint identity mismatch")
+            if ledger is None or loaded.manifest["charged_budget_ns"] > ledger["charged_budget_ns"] or loaded.manifest["ledger_sequence"] > ledger["sequence"]:
+                raise ValueError("checkpoint exceeds durable ledger")
+            selected, checkpoint = str(path), loaded
+            break
+        except (ValueError, OSError, RuntimeError, EOFError, KeyError, TypeError) as exc:
+            invalid.append(dict(path=str(path), reason=str(exc)))
+    return dict(run_id=run["run_id"], lifecycle=ledger["status"] if ledger else "prepared",
+                checkpoint=selected, completed_update=checkpoint.manifest["completed_update"] if checkpoint else None,
+                invalid_checkpoints=invalid, accounting=ledger,
+                readiness=foundation_readiness(checkpoint, software_complete=False) if checkpoint else dict(qualified=False, qualification="incomplete"),
+                qualified=False, diagnostic_small_host=run["diagnostic_small_host"])
 
 
 @dataclass

@@ -17,6 +17,13 @@ from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
 logger = logging.getLogger("oeis_learn.sft_trainer")
 
 
+def teacher_forced_logits(encoder, decoder, sequences, tokens, *, device, pad_id):
+    """Shared model operation; callers own codec, provenance and loss policy."""
+    memory = encoder.forward_from_sequences(sequences, device=device)
+    inputs = tokens[:, :-1]
+    return decoder(inputs, memory, tgt_key_padding_mask=(inputs == pad_id))
+
+
 class SftTrainer:
     """Trains Transformer Encoder and Decoder via Teacher-Forced Cross-Entropy on synthetic demonstrations."""
 
@@ -109,17 +116,13 @@ class SftTrainer:
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
             # Teacher forcing: input is tgt[:, :-1], target is tgt[:, 1:]
-            dec_input = tgt_batch[:, :-1]
             dec_target = tgt_batch[:, 1:]
 
             self.optimizer.zero_grad()
 
             # Encoder forward
-            memory = self.encoder.forward_from_sequences(seq_list, device=self.device)  # (batch, seq_len, d_model)
-
-            # Decoder forward with explicit padding attention mask
-            pad_mask = (dec_input == PAD_ID)
-            logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)  # (batch, dec_len, vocab_size)
+            logits = teacher_forced_logits(self.encoder, self.decoder, seq_list, tgt_batch,
+                                          device=self.device, pad_id=PAD_ID)
 
             loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
             loss.backward()

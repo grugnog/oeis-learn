@@ -234,9 +234,10 @@ class FoundationCheckpoint:
     encoder: TriStreamEncoder
     decoder: WatTransformerDecoder
     device: torch.device
+    payload: dict | None = None
 
 
-def load_foundation_checkpoint(manifest_path, *, device="cpu") -> FoundationCheckpoint:
+def load_foundation_checkpoint(manifest_path, *, device="cpu", include_payload=False) -> FoundationCheckpoint:
     """Load exact weights from a complete, externally hashed foundation bundle.
 
     Fixed sidecars are part of this reader contract: config.yaml,
@@ -522,4 +523,5 @@ def load_foundation_checkpoint(manifest_path, *, device="cpu") -> FoundationChec
         encoder,
         decoder,
         dev,
+        payload if include_payload else None,
     )

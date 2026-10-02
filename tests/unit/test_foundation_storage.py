@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from oeis_learn.cli.foundation import dispatch
 from oeis_learn.experiments.artifacts import (
     ArtifactPath,
     ArtifactRegistry,
@@ -161,8 +160,11 @@ def test_checkpoint_manifest_is_json_and_never_rewrites_blob(tmp_path, examples)
 @pytest.mark.parametrize(
     "command", ["train", "resume", "inspect"]
 )
-def test_later_commands_fail_without_writing(command, tmp_path):
-    assert dispatch(command, root=str(tmp_path)) == 1
+def test_training_commands_reject_missing_required_inputs_without_writing(command, tmp_path):
+    from oeis_learn.cli.main import cli
+    with pytest.raises(SystemExit) as exc:
+        cli(["foundation", command])
+    assert exc.value.code == 2
     assert not list(tmp_path.iterdir())
 
 
