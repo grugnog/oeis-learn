@@ -1,0 +1,474 @@
+{
+  "schema_version": "phase-review/v1",
+  "phase": 4,
+  "gate": "G2",
+  "software_status": "PASS",
+  "purpose": "diagnostic",
+  "qualified": false,
+  "proof_status": "not_claimed",
+  "base_commit": "27ec560ac1f3066cebd0113b3142737da0709452",
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.9.1+cpu",
+    "wasmtime": "48.0.0",
+    "pytest": "9.1.1",
+    "jsonschema": "4.26.0"
+  },
+  "tests": {
+    "collected": 400,
+    "passed": 398,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2,
+    "elapsed_seconds": 61.379,
+    "skip_reasons": [
+      {
+        "test": "tests.unit.test_foundation_sampler.test_complete_effective_constructors_and_real_forward_backward[cuda]",
+        "reason": "requires AMD HIP GPU via lab-gpu; CPU diagnostics are not hardware evidence"
+      },
+      {
+        "test": "tests.integration.test_foundation_evaluation.test_gpu_checkpoint_loading_and_prefix_only_generation",
+        "reason": "requires AMD HIP GPU via lab-gpu; CPU fixture is not device evidence"
+      }
+    ]
+  },
+  "scope": "foundation unit/contract/integration and impacted legacy checkpoint/readiness/canary/CLI tests; not whole repository",
+  "diagnostic_warning": "Hand-wired real encoder/Transformer fixture; success is not trained model accuracy or a generic pool result.",
+  "actual_weight_evidence": {
+    "zero_checkpoint": {
+      "N": 1,
+      "checkpoint_sha256": "sha256:4324373d840ac59e6c0e0ee97c7cb940a4a7e6ab9fe12d539b47cb28733b5e5d",
+      "cohort_id": "sha256:2502af3877abfde51aabe4e93a27424084501dca2df5135275a7a24f9bdfac72",
+      "command": "evaluate",
+      "evaluation_id": "sha256:dce69aaeafd231d139161c24a35e7e87b4f373fc23ea13be653c50c5104ffb21",
+      "finalization_id": null,
+      "full_outcomes": {
+        "full_horizon_match": 2
+      },
+      "novelty_status": "not_claimed",
+      "prefix_outcomes": {
+        "prefix_match": 2
+      },
+      "proof_status": "not_claimed",
+      "protocol_sha256": "sha256:60cfb86f564c9c253e197d339a2606bfd147920dbe1125410635a78780ed71e9",
+      "qualification": "diagnostic",
+      "qualified": false,
+      "rates": {
+        "success_any": 1.0,
+        "success_top1": 1.0
+      },
+      "readiness": {
+        "checkpoint_sha256": "sha256:4324373d840ac59e6c0e0ee97c7cb940a4a7e6ab9fe12d539b47cb28733b5e5d",
+        "missing_gates": [
+          "hardware/runtime containment and complete run provenance (T046/T049)"
+        ],
+        "qualification": "diagnostic",
+        "qualified": false,
+        "software_complete": true
+      },
+      "report_id": "sha256:b92d4bf6e2eade0ae136800c2f5ccf245ce1ee58b3d2a91601d8d8d961e8cbfd",
+      "schema_version": "foundation/v1",
+      "score_ids": [
+        "sha256:31f7abb770f3cf09c98a91e248635e33beaa4ac5bae3efca666ed6d70a712c2a"
+      ],
+      "seal_ids": [
+        "sha256:6850d6d2afa8608465bc316abf35ebd779f5e068fc7413b6766e1e7fc94df09c"
+      ],
+      "software_gate": "G2",
+      "split": "development",
+      "status": "complete",
+      "success_any": 1,
+      "success_top1": 1
+    },
+    "one_checkpoint": {
+      "N": 1,
+      "checkpoint_sha256": "sha256:96dcc2473e65eb540ab961aca1e824170cf2d3fb36b8b321ed9065a1558131ba",
+      "cohort_id": "sha256:2502af3877abfde51aabe4e93a27424084501dca2df5135275a7a24f9bdfac72",
+      "command": "evaluate",
+      "evaluation_id": "sha256:9932723e77e65061db6172afd02004eb13ba6a356d62aa5f6776122628ab1bd5",
+      "finalization_id": null,
+      "full_outcomes": {},
+      "novelty_status": "not_claimed",
+      "prefix_outcomes": {
+        "wrong_values": 2
+      },
+      "proof_status": "not_claimed",
+      "protocol_sha256": "sha256:60cfb86f564c9c253e197d339a2606bfd147920dbe1125410635a78780ed71e9",
+      "qualification": "diagnostic",
+      "qualified": false,
+      "rates": {
+        "success_any": 0.0,
+        "success_top1": 0.0
+      },
+      "readiness": {
+        "checkpoint_sha256": "sha256:96dcc2473e65eb540ab961aca1e824170cf2d3fb36b8b321ed9065a1558131ba",
+        "missing_gates": [
+          "hardware/runtime containment and complete run provenance (T046/T049)"
+        ],
+        "qualification": "diagnostic",
+        "qualified": false,
+        "software_complete": true
+      },
+      "report_id": "sha256:61c002dc35a3a0a519b25fdcc218e306c1c54107f796a74c05ddaf77132f9ba3",
+      "schema_version": "foundation/v1",
+      "score_ids": [
+        "sha256:83dce712352c384731106dd6bcd0813b2c57eb7adb22dece6543ca007b90edaf"
+      ],
+      "seal_ids": [
+        "sha256:f61f735e7056f6b260e5112f0f48d8fb48c65b1ec7387067f291d547ed7bb551"
+      ],
+      "software_gate": "G2",
+      "split": "development",
+      "status": "complete",
+      "success_any": 0,
+      "success_top1": 0
+    }
+  },
+  "final_evidence": {
+    "decision_lock": {
+      "checkpoint_manifest_sha256": "sha256:c83b811ef87022cbc7fd18b7527db31f3b8a6d3f9a31a148ab1ba391e0827d46",
+      "checkpoint_path": "/workspace/scratch/7932b47d0411/phase4-test-tmp/test_final_crash_resume_and_no0/run/checkpoint.json",
+      "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+      "cohort_id": "sha256:321d9eb06bbd4655f2e1f100d7a9132307647f5f8842d83ac5f781f198e75485",
+      "cohort_path": "/workspace/scratch/7932b47d0411/phase4-test-tmp/test_final_crash_resume_and_no0/data/cohort",
+      "contract_sha256": "sha256:c08c57f03e2cc0afa6c1174e335ab342d04d35d093e750a0641d250a8bbaa16d",
+      "created_at": "2026-10-02T18:44:33.260135+00:00",
+      "finalization_id": "sha256:327c6a63ada8e2a92dd99da8d4b91f0d7fd3639ddda90ebba3e4ad175db10c9d",
+      "implementation_sha256": "sha256:36c9c93776e0ecb07d4f270dbe3f443679f01f1c63c50976d904e64927a88f36",
+      "kind": "finalization",
+      "ledger_sequence": 1,
+      "ledger_sha256": "sha256:68cca9045a572e064e8d789888ca3e9f77416663e644f420e003b11c9710ec9d",
+      "protocol_path": "/workspace/scratch/7932b47d0411/phase4-test-tmp/test_final_crash_resume_and_no0/protocol.json",
+      "protocol_sha256": "sha256:3704dfe017a912307cbca2a16ac4d2bf278e2c884328635b8abc68e2da6429e3",
+      "run_dir": "/workspace/scratch/7932b47d0411/phase4-test-tmp/test_final_crash_resume_and_no0/run",
+      "run_id": "464c3c8a-ab3c-4ca7-b7c5-03e66b60f521",
+      "schema_version": "foundation/v1",
+      "selector": "body_token_count,source_sha256",
+      "stopping_record_path": "/workspace/scratch/7932b47d0411/phase4-test-tmp/test_final_crash_resume_and_no0/stopping.json",
+      "stopping_record_sha256": "sha256:f493e777640ccdb2a3df62f0c0fc2bc9982b2bed237d0389457e457fd6e00bb3"
+    },
+    "report": {
+      "N": 1,
+      "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+      "cohort_id": "sha256:321d9eb06bbd4655f2e1f100d7a9132307647f5f8842d83ac5f781f198e75485",
+      "command": "evaluate",
+      "evaluation_id": "sha256:d30b9b2dbda409ef6b5689e90b7d413d572a2ee4e94738d14b451c5140abec15",
+      "finalization_id": "sha256:327c6a63ada8e2a92dd99da8d4b91f0d7fd3639ddda90ebba3e4ad175db10c9d",
+      "full_outcomes": {
+        "full_horizon_match": 1
+      },
+      "novelty_status": "not_claimed",
+      "prefix_outcomes": {
+        "prefix_match": 1
+      },
+      "proof_status": "not_claimed",
+      "protocol_sha256": "sha256:3704dfe017a912307cbca2a16ac4d2bf278e2c884328635b8abc68e2da6429e3",
+      "qualification": "diagnostic",
+      "qualified": false,
+      "rates": {
+        "success_any": 1.0,
+        "success_top1": 1.0
+      },
+      "readiness": {
+        "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+        "missing_gates": [
+          "hardware/runtime containment and complete run provenance (T046/T049)"
+        ],
+        "qualification": "diagnostic",
+        "qualified": false,
+        "software_complete": true
+      },
+      "report_id": "sha256:143dc8082c6bbe06a356027b78a28349b2d49000a576c7d415d22cadf3e00c1a",
+      "schema_version": "foundation/v1",
+      "score_ids": [
+        "sha256:00c014fd7ce56e21fb24a63b4e49dfd5a318ca5b51b73b4addf8a09371752492"
+      ],
+      "seal_ids": [
+        "sha256:3bce4aaba7d50d565354a6db6b66fb20cc4f5bd74c448292925ffd94f754a0a9"
+      ],
+      "software_gate": "G2",
+      "split": "final",
+      "status": "complete",
+      "success_any": 1,
+      "success_top1": 1
+    },
+    "seal": {
+      "attempts": [
+        {
+          "attempt_index": 0,
+          "generation_elapsed_ns": 13697449,
+          "generation_peak_memory": {
+            "reason": "not instrumented in this software gate",
+            "source": null,
+            "state": "unavailable",
+            "unit": "bytes",
+            "value": null
+          },
+          "outcome": "prefix_match",
+          "prefix_result": {
+            "attempt_index": 0,
+            "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+            "expected_terms_sha256": "sha256:c5e83581235eb00b2323fdd8f73b603e848cdea48f807565cd6b4205b72a5901",
+            "first_failure_index": null,
+            "kind": "candidate_result",
+            "language_profile": "sha256:87d702bfcdc1b516da7055cfdc33f66bef6d4cf072f4bfb94ee68edcc5297654",
+            "outcome": "prefix_match",
+            "outputs": [
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0",
+              "0"
+            ],
+            "prompt_sha256": "sha256:35e478282d19dc6485beddb7cc2ae3d2b53af478f755d67ce9ca2854c402748c",
+            "proof_status": "not_claimed",
+            "purpose": "model",
+            "reason": null,
+            "reference_evidence_sha256": "sha256:dd0d587f2a639aad222a88f9a1662c65a9ce5d2f6a9b588f1353a3d085be6bf4",
+            "resource_profile": "sha256:37a2de6087943dec5fa701b0676048675a6785e19474f68819b41968eaae4b7f",
+            "run_id": "464c3c8a-ab3c-4ca7-b7c5-03e66b60f521",
+            "schema_version": "foundation/v1",
+            "selected": true,
+            "source_sha256": "sha256:5a5be6e80fc4b2fc4f28f18c562f42c40aace6520d365103ee8a2ec999c35475",
+            "stage": "prefix",
+            "usage": {
+              "elapsed_ns": {
+                "reason": null,
+                "source": "monotonic clock",
+                "state": "measured",
+                "unit": "ns",
+                "value": 7043983
+              },
+              "fuel": {
+                "reason": null,
+                "source": "Store.get_fuel",
+                "state": "measured",
+                "unit": "wasmtime_fuel",
+                "value": 100
+              },
+              "peak_rss_bytes": {
+                "reason": null,
+                "source": "worker getrusage",
+                "state": "measured",
+                "unit": "bytes",
+                "value": 379764736
+              },
+              "reference_steps": {
+                "reason": null,
+                "source": "independent interpreter",
+                "state": "measured",
+                "unit": "ast_instructions",
+                "value": 20
+              }
+            },
+            "verified_terms": 20
+          },
+          "reason": null,
+          "seed": 17309865940328769886,
+          "source": "i256.zero",
+          "source_sha256": "sha256:5a5be6e80fc4b2fc4f28f18c562f42c40aace6520d365103ee8a2ec999c35475",
+          "tokens": [
+            133,
+            2
+          ]
+        }
+      ],
+      "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+      "evaluation_id": "sha256:d30b9b2dbda409ef6b5689e90b7d413d572a2ee4e94738d14b451c5140abec15",
+      "finalization_id": "sha256:327c6a63ada8e2a92dd99da8d4b91f0d7fd3639ddda90ebba3e4ad175db10c9d",
+      "generation_complete": true,
+      "group_id": "sha256:d80a4534b3355ea6a0d906184e56ff5dcdf1d02522f0364b5470d4473ae6466d",
+      "prompt_sha256": "sha256:35e478282d19dc6485beddb7cc2ae3d2b53af478f755d67ce9ca2854c402748c",
+      "schema_version": "foundation/v1",
+      "seal_id": "sha256:3bce4aaba7d50d565354a6db6b66fb20cc4f5bd74c448292925ffd94f754a0a9",
+      "selected": 0,
+      "selector": "body_token_count,source_sha256"
+    },
+    "target_score": {
+      "evaluation_id": "sha256:d30b9b2dbda409ef6b5689e90b7d413d572a2ee4e94738d14b451c5140abec15",
+      "full_results": [
+        {
+          "attempt_index": 0,
+          "checkpoint_sha256": "sha256:028e8fd85f5b60a4acc7636ee3e9fe113e4d35fdbd17048c0110c054a5e9a0af",
+          "expected_terms_sha256": "sha256:3cd8f501ec0eddcb2467c2a305541a87771aea0f336d6d09388993a846fd224e",
+          "first_failure_index": null,
+          "kind": "candidate_result",
+          "language_profile": "sha256:87d702bfcdc1b516da7055cfdc33f66bef6d4cf072f4bfb94ee68edcc5297654",
+          "outcome": "full_horizon_match",
+          "outputs": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "prompt_sha256": "sha256:35e478282d19dc6485beddb7cc2ae3d2b53af478f755d67ce9ca2854c402748c",
+          "proof_status": "not_claimed",
+          "purpose": "model",
+          "reason": null,
+          "reference_evidence_sha256": "sha256:f644ce1916ef01c2b9d0c408c15fb659400eb8bdbc6ba1ccf6a46ff4b72a1990",
+          "resource_profile": "sha256:37a2de6087943dec5fa701b0676048675a6785e19474f68819b41968eaae4b7f",
+          "run_id": "464c3c8a-ab3c-4ca7-b7c5-03e66b60f521",
+          "schema_version": "foundation/v1",
+          "selected": true,
+          "source_sha256": "sha256:5a5be6e80fc4b2fc4f28f18c562f42c40aace6520d365103ee8a2ec999c35475",
+          "stage": "full",
+          "usage": {
+            "elapsed_ns": {
+              "reason": null,
+              "source": "monotonic clock",
+              "state": "measured",
+              "unit": "ns",
+              "value": 31878200
+            },
+            "fuel": {
+              "reason": null,
+              "source": "Store.get_fuel",
+              "state": "measured",
+              "unit": "wasmtime_fuel",
+              "value": 500
+            },
+            "peak_rss_bytes": {
+              "reason": null,
+              "source": "worker getrusage",
+              "state": "measured",
+              "unit": "bytes",
+              "value": 379764736
+            },
+            "reference_steps": {
+              "reason": null,
+              "source": "independent interpreter",
+              "state": "measured",
+              "unit": "ast_instructions",
+              "value": 100
+            }
+          },
+          "verified_terms": 100
+        }
+      ],
+      "generation_complete": true,
+      "group_id": "sha256:d80a4534b3355ea6a0d906184e56ff5dcdf1d02522f0364b5470d4473ae6466d",
+      "prefix_outcomes": {
+        "prefix_match": 1
+      },
+      "score_id": "sha256:00c014fd7ce56e21fb24a63b4e49dfd5a318ca5b51b73b4addf8a09371752492",
+      "seal_id": "sha256:3bce4aaba7d50d565354a6db6b66fb20cc4f5bd74c448292925ffd94f754a0a9",
+      "success_any": true,
+      "success_top1": true
+    }
+  },
+  "remaining": [
+    "T023/T024 actual AMD HIP checkpoint loading and generation",
+    "T046 container isolation and T049 run qualification remain later-phase gates"
+  ]
+}

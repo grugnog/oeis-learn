@@ -326,13 +326,30 @@ def build_parser() -> argparse.ArgumentParser:
     fc_p.add_argument('--output', help='New immutable conformance evidence directory')
     fc_p.add_argument('artifacts', nargs='*', type=str, help='Paths to artifact JSON files')
 
-    # foundation freeze-cohort
+    # Strict cohort, evaluation and final decision-lock commands.
     ffc_p = foundation_subparsers.add_parser(
-        'freeze-cohort',
-        help='Freeze a cohort of artifacts under root (create registry with deterministic IDs).',
+        'freeze-cohort', help='Freeze indexed first-100 groups and separate views.'
     )
-    ffc_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
-    ffc_p.add_argument('root', type=str, help='Root directory containing artifacts')
+    for name in ('source', 'config', 'output'):
+        ffc_p.add_argument('--' + name, required=True)
+    ffc_p.add_argument('--json', dest='as_json', action='store_true')
+
+    fe_p = foundation_subparsers.add_parser(
+        'evaluate', help='Generate from a checkpoint, seal, then score exact100 truth.'
+    )
+    for name in ('checkpoint', 'protocol', 'cohort', 'finalization'):
+        fe_p.add_argument('--' + name)
+    fe_p.add_argument('--split', choices=('development', 'final'), required=True)
+    fe_p.add_argument('--output', required=True)
+    fe_p.add_argument('--device', choices=('cpu', 'cuda'), default='cpu')
+    fe_p.add_argument('--json', dest='as_json', action='store_true')
+
+    ff_p = foundation_subparsers.add_parser(
+        'finalize', help='Commit a final checkpoint/protocol/stopping decision.'
+    )
+    for name in ('run-dir', 'checkpoint', 'protocol', 'cohort', 'stopping-record', 'output'):
+        ff_p.add_argument('--' + name, required=True)
+    ff_p.add_argument('--json', dest='as_json', action='store_true')
 
     # foundation build-pool
     fbp_p = foundation_subparsers.add_parser(
@@ -759,11 +776,12 @@ def handle_run_ablations(args: argparse.Namespace) -> int:
 def handle_foundation(args: argparse.Namespace) -> int:
     """Handles the `foundation` subcommand; delegates to foundation module (T008)."""
     if not args.foundation_command:
-        print('Foundation commands: preflight, conformance, freeze-cohort, build-pool')
+        print('Foundation commands: preflight, conformance, freeze-cohort, evaluate, finalize, build-pool')
         return 1
     from oeis_learn.cli.foundation import dispatch
     kw = {k: getattr(args, k) for k in (
         'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
+        'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

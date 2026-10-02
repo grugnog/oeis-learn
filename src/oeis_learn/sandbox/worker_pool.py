@@ -177,7 +177,18 @@ class WorkerPool:
             self.close()
             raise
 
-    def submit(self, source, indices, *, request_id, limits=Limits(), proposed_source=None):
+    def submit(
+        self,
+        source,
+        indices,
+        *,
+        request_id,
+        limits=Limits(),
+        proposed_source=None,
+        deadline_ns=None,
+    ):
+        if deadline_ns is not None and (type(deadline_ns) is not int or deadline_ns < 0):
+            raise ValueError("external phase deadline must be a monotonic integer")
         if not isinstance(source, str) or (
             proposed_source is not None and not isinstance(proposed_source, str)
         ):
@@ -214,7 +225,7 @@ class WorkerPool:
                 return future
             if not self.limit.acquire(blocking=False):
                 raise Full("32-request bound reached")
-            future = self.executor.submit(self._run, key, fingerprint, payload, limits)
+            future = self.executor.submit(self._run, key, fingerprint, payload, limits, deadline_ns)
             self.inflight[key] = (fingerprint, future)
 
         # register outside the lock: callbacks may run immediately
@@ -226,7 +237,7 @@ class WorkerPool:
         future.add_done_callback(complete)
         return future
 
-    def _run(self, key, fingerprint, payload, limits):
+    def _run(self, key, fingerprint, payload, limits, phase_deadline):
         path = ArtifactPath(self.root, key + ".json")
         if path.as_path().exists():
             record = load_json(path.as_path().read_bytes())
@@ -238,14 +249,22 @@ class WorkerPool:
         slot = self.slots.get()
         progress = None
         start = time.monotonic_ns()
-        deadline = start + limits.deadline_ns
+        deadline = (
+            min(start + limits.deadline_ns, phase_deadline)
+            if phase_deadline is not None
+            else start + limits.deadline_ns
+        )
         broken = False
         try:
             if slot.process is None:
                 slot.start()
                 # Startup/replacement is pool overhead, not guest execution.
                 start = time.monotonic_ns()
-                deadline = start + limits.deadline_ns
+                deadline = (
+                    min(start + limits.deadline_ns, phase_deadline)
+                    if phase_deadline is not None
+                    else start + limits.deadline_ns
+                )
             slot.channel.settimeout(max(1e-9, (deadline - time.monotonic_ns()) / 1e9))
             _send(slot.channel, {**payload, "deadline_ns": deadline})
             while True:

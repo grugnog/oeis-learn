@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional
 from oeis_learn.curriculum.extrapolation import ExtrapolationVerifier
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
 from oeis_learn.sandbox.runner import WasmRunner
@@ -96,7 +96,7 @@ def run_canary_evaluation(
     output_report_path: Optional[str] = None,
     fuel_budget: int = 20000,
 ) -> Dict[str, Any]:
-    """Evaluates all 6 canaries over 120 terms and returns canary-benchmark JSON report."""
+    """Runs reference kernels only; the requested checkpoint is never evaluated."""
     edb = EliteSeedDemonstrationBuffer()
     runner = WasmRunner(fuel_budget=fuel_budget)
     verifier = ExtrapolationVerifier(runner=runner, n_train=20, k_extrapolate=100)
@@ -117,16 +117,20 @@ def run_canary_evaluation(
         if entry is None:
             logger.error(f"Missing canonical program for canary {sid} in EDB")
             all_passed = False
-            canary_results.append({
-                "sequence_id": sid,
-                "name": name,
-                "scalar_64bit_overflow_term": overflow_idx,
-                "observed_matched": False,
-                "unseen_matched": False,
-                "overflow_prevented": False,
-                "fuel_consumed": 0,
-                "verdict": "FAILED_VERIFICATION",
-            })
+            canary_results.append(
+                {
+                    "sequence_id": sid,
+                    "name": name,
+                    "scalar_64bit_overflow_term": overflow_idx,
+                    "observed_matched": False,
+                    "unseen_matched": False,
+                    "overflow_prevented": None,
+                    "execution_status": "MISSING_REFERENCE",
+                    "execution_error": "reference kernel unavailable",
+                    "fuel_consumed": 0,
+                    "verdict": "FAILED_VERIFICATION",
+                }
+            )
             continue
 
         det = verifier.verify_detailed(
@@ -136,33 +140,46 @@ def run_canary_evaluation(
         )
 
         fuel_used = det.execution_result.max_fuel if det.execution_result else 0
-        overflow_prevented = True
-        if overflow_idx < 120 and det.execution_result and len(det.execution_result.output) > overflow_idx:
-            actual_val = det.execution_result.output[overflow_idx]
-            expected_val = ground_truth[overflow_idx]
-            if actual_val != expected_val or actual_val <= 0:
-                overflow_prevented = False
-
-        verdict = "EXTRAPOLATING_SUCCESS" if (det.passed and overflow_prevented) else "FAILED_VERIFICATION"
-        if not det.passed or not overflow_prevented:
+        execution = det.execution_result
+        # A scalar-overflow boundary outside the executed horizon is untested.
+        overflow_prevented = None
+        if overflow_idx < 120 and execution and len(execution.output) > overflow_idx:
+            overflow_prevented = execution.output[overflow_idx] == ground_truth[overflow_idx]
+        verdict = "EXTRAPOLATING_SUCCESS" if det.passed else "FAILED_VERIFICATION"
+        if execution and execution.status == "OUT_OF_FUEL":
+            verdict = "FUEL_TRAP"
+        if not det.passed or overflow_prevented is False:
             all_passed = False
 
-        canary_results.append({
-            "sequence_id": sid,
-            "name": name,
-            "scalar_64bit_overflow_term": overflow_idx,
-            "observed_matched": det.observed_match,
-            "unseen_matched": det.unseen_match,
-            "overflow_prevented": overflow_prevented,
-            "fuel_consumed": fuel_used,
-            "verdict": verdict,
-        })
-        logger.info(f"  Result: {verdict} (observed={det.observed_match}, unseen={det.unseen_match}, fuel={fuel_used})")
+        canary_results.append(
+            {
+                "sequence_id": sid,
+                "name": name,
+                "scalar_64bit_overflow_term": overflow_idx,
+                "observed_matched": det.observed_match,
+                "unseen_matched": det.unseen_match,
+                "overflow_prevented": overflow_prevented,
+                "execution_status": execution.status if execution else "NO_EXECUTION",
+                "execution_error": execution.error if execution else None,
+                "fuel_consumed": fuel_used,
+                "verdict": verdict,
+            }
+        )
+        logger.info(
+            f"  Result: {verdict} (observed={det.observed_match}, unseen={det.unseen_match}, fuel={fuel_used})"
+        )
 
     report = {
+        "schema_version": "reference-kernel-diagnostic/v1",
         "evaluation_timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "checkpoint_evaluated": checkpoint_path,
+        "checkpoint_evaluated": None,
+        "checkpoint_requested": checkpoint_path,
+        "purpose": "reference_kernel_diagnostic",
+        "model_synthesis": False,
+        "qualified": False,
+        "proof_status": "not_claimed",
         "result_profile": result_profile,
+        "fuel_budget": fuel_budget,
         "canary_results": canary_results,
         "all_canaries_passed": all_passed,
     }
@@ -171,15 +188,19 @@ def run_canary_evaluation(
         os.makedirs(os.path.dirname(os.path.abspath(output_report_path)), exist_ok=True)
         with open(output_report_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
-        logger.info(f"Saved canary qualification report to {output_report_path}")
+        logger.info(f"Saved reference-kernel diagnostic report to {output_report_path}")
 
     return report
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Canary Preflight Benchmark Qualification Runner")
+    parser = argparse.ArgumentParser(
+        description="Reference-kernel diagnostic (does not evaluate model weights)"
+    )
     parser.add_argument("--checkpoint", type=str, default="checkpoints/model_epoch_050.v2.pt")
-    parser.add_argument("--profile", type=str, default="i256x4_v1", choices=["i256x4_v1", "i64_scalar_v1"])
+    parser.add_argument(
+        "--profile", type=str, default="i256x4_v1", choices=["i256x4_v1", "i64_scalar_v1"]
+    )
     parser.add_argument("--output", type=str, default="reports/canary_qualification_report.json")
     parser.add_argument("--fuel", type=int, default=20000)
 
@@ -191,10 +212,12 @@ def main() -> None:
         fuel_budget=args.fuel,
     )
     if report["all_canaries_passed"]:
-        print("ALL 6 CANARIES PASSED 100-TERM EXTRAPOLATION WITHOUT OVERFLOW.")
+        print(
+            "ALL 6 REFERENCE KERNELS MATCHED THE FINITE 120-TERM HORIZON; NOT MODEL QUALIFICATION."
+        )
         sys.exit(0)
     else:
-        print("CANARY QUALIFICATION FAILED.")
+        print("REFERENCE-KERNEL DIAGNOSTIC FAILED; SEE EXECUTION STATUS.")
         sys.exit(1)
 
 

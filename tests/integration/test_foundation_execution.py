@@ -213,3 +213,24 @@ def test_declared_type_scope_and_source_caps():
     for source in sources:
         assert isinstance(Runtime().prepare(source), Failure)
     assert Runtime().evaluate(" " * 65537 + "i256.zero", [0]).outcome == "execution_limit"
+
+
+def test_inherited_deadline_does_not_change_idempotency_key(tmp_path):
+    with WorkerPool(tmp_path) as pool:
+        first = pool.evaluate(
+            "i256.zero", [0], request_id="phase", deadline_ns=time.monotonic_ns() + 1_000_000_000
+        )
+        assert first.outcome is None
+        # Completed evidence remains reusable when the enclosing phase expired.
+        assert (
+            pool.evaluate(
+                "i256.zero", [0], request_id="phase", deadline_ns=time.monotonic_ns() - 1
+            ).to_dict()
+            == first.to_dict()
+        )
+    with WorkerPool(tmp_path / "blocked", _worker_target=_blocked_worker) as pool:
+        begin = time.monotonic()
+        result = pool.evaluate(
+            "i256.zero", [0], request_id="short", deadline_ns=time.monotonic_ns() + 30_000_000
+        )
+        assert result.outcome == "execution_limit" and time.monotonic() - begin < 2.1

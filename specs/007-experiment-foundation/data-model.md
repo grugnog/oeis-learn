@@ -23,6 +23,11 @@ All names below are planned types in `src/oeis_learn/experiments/models.py`. Kee
 | dataset_manifest, benchmark_manifest, evaluation_protocol, effective_config | Required hashes; missing pool never triggers legacy generation. |
 | enabled_subsystems | Allowlisted per profile; the initial smoke disables solvers/optimization/RL. Only repaired and qualified extensions may enable them; family scaffolds and legacy proof promotion remain prohibited. Inactive subsystem options are rejected, not ignored. |
 
+The implemented phase-4 sidecar encoding and diagnostic null/provenance rules
+are documented in [checkpoint-evaluation-bundle.md](contracts/checkpoint-evaluation-bundle.md).
+The language profile bundles numerical/entrypoint rules, and `run_provenance`
+groups the run identity pins; these encodings do not relax qualification gates.
+
 ## SequenceRecord, SplitGroup and views
 
 | Entity | Fields and constraints |

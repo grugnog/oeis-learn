@@ -35,7 +35,7 @@ def test_readiness_policy_all_passed():
     }
     report = evaluate_readiness_policy(policy, metrics, run_id="run_100")
     assert report.overall_passed is True
-    assert report.qualification_state == "AUTHORIZED"
+    assert report.qualification_state == "BLOCKED"  # Metrics alone are diagnostic.
     assert report.override is None
     assert len(report.gate_results) == 4
     for gr in report.gate_results:
