@@ -1,0 +1,59 @@
+{
+  "schema_version": "phase-review/v1",
+  "phase": 5,
+  "gate": "G3",
+  "software_status": "PASS",
+  "purpose": "diagnostic",
+  "qualified": false,
+  "proof_status": "not_claimed",
+  "base_commit": "82c3826b1421fe932871863e3195eeefabf7f251",
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.9.1+cpu",
+    "wasmtime": "48.0.0",
+    "pytest": "9.1.1",
+    "jsonschema": "4.26.0"
+  },
+  "tests": {
+    "collected": 435,
+    "passed": 433,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2,
+    "elapsed_seconds": 109.728,
+    "phase5_passed": 36,
+    "phase5_skipped": 0,
+    "skip_reasons": [
+      {
+        "test": "tests.unit.test_foundation_sampler.test_complete_effective_constructors_and_real_forward_backward[cuda]",
+        "reason": "requires AMD HIP GPU via lab-gpu; CPU diagnostics are not hardware evidence"
+      },
+      {
+        "test": "tests.integration.test_foundation_evaluation.test_gpu_checkpoint_loading_and_prefix_only_generation",
+        "reason": "requires AMD HIP GPU via lab-gpu; CPU fixture is not device evidence"
+      }
+    ]
+  },
+  "archive_validation": {
+    "status": "PASS",
+    "pool_id": "sha256:052d48524d4e620c23951720e911d7ddf006d4c6bfdee7333135db678b662325",
+    "view_id": "sha256:620ec6197ab3419e9f45d039e9a2579abd6004045031c9887fd46a0d182803c5",
+    "examples": 64,
+    "archive_validation_seconds": 8.920734161999917,
+    "admitted_records_verified": 237,
+    "attempt_journals_verified": 624
+  },
+  "scope": "Foundation unit/contract/integration and impacted legacy checkpoint/readiness/canary/CLI tests; not all historical training/analysis tests.",
+  "g3_report": "phase-5-pool-report.json",
+  "evidence_sample": "phase-5-evidence-sample.json",
+  "remaining": "No phase-5 GPU requirement. Prior AMD/HIP checks remain partial; T046 container isolation and T049 run qualification remain later gates.",
+  "validation_checks": [
+    "Spec Kit prerequisites",
+    "project artifact/coverage/dependency validation",
+    "offline uv lock check",
+    "wheel build/install/import",
+    "Ruff E4/E7/E9/F on changed strict modules/tests",
+    "git diff --check"
+  ],
+  "diagnostic_warning": "This verifies generic sampling/admission/pool software, not trained accuracy, OEIS coverage or proof."
+}

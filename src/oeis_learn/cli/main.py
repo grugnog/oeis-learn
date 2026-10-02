@@ -353,12 +353,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     # foundation build-pool
     fbp_p = foundation_subparsers.add_parser(
-        'build-pool',
-        help='Build a pool of candidate result digests for evaluation.',
+        'build-pool', help='Build a verified offline generic pool with heldout-prefix admission.'
     )
-    fbp_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
-    fbp_p.add_argument('root', type=str, help='Root directory containing artifacts')
-    fbp_p.add_argument('--limit', type=int, default=1000, help='Maximum pool entries')
+    for name in ('config', 'cohort', 'output'):
+        fbp_p.add_argument('--' + name, required=True)
+    fbp_p.add_argument('--json', dest='as_json', action='store_true')
 
     # Command 11: list-runs
     subparsers.add_parser(

@@ -1,4 +1,8 @@
-"""Template-driven forward synthetic program and sequence generator for SFT warmup."""
+"""Legacy/assisted template-driven SFT generator; never a foundation pool source.
+
+Strict generic bootstrap uses generic_programs/program_admission/program_pool.
+These named-family examples remain available only to the legacy interfaces.
+"""
 
 from __future__ import annotations
 
