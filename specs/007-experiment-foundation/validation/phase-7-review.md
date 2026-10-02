@@ -8,7 +8,9 @@ An initial implementation and local commit were lost when the execution workspac
 
 The recovered grounding regression suite ran locally: **13 passed, 1 failed**. The failure was the recognized recurrence exhausting the legacy 10,000-fuel per-index default after 13 outputs. Direct execution confirmed OUT_OF_FUEL with the correct Fibonacci prefix. The recovered service now requests the declared 1,000,000-fuel ceiling for that recurrence path; its process wall-time and aggregate limits remain bounded. That change was not rerun locally because the execution service disconnected again.
 
-A CPU GitHub Actions job is included to test the actual published tree. Read that job's result and artifact separately; this document does not claim it has passed. All phase 7 task markers remain partial until validation and integration are complete.
+The recovered code was subsequently validated in [GitHub Actions run 37075710546](https://github.com/grugnog/oeis-learn/actions/runs/37075710546) at commit `463771013ba6613da79c9c62d646064c7ad9dee8`: **472 passed, 4 skipped**. Compilation, targeted Ruff F/E9 checks and spec-kit prerequisite/artifact validation also passed. The first CI run exposed two registry-loading failures; fixing the path-versus-text call to the JSON helper resolved both. The recurrence fuel correction passed. See [phase-7-software-report.json](phase-7-software-report.json) for exact scope, skips and the JUnit/environment artifact.
+
+This covers the foundation suites and new phase 7 regressions, not all original legacy owning suites. All phase 7 task markers remain partial until the remaining validation and integration work is complete.
 
 ## Findings and recovered remediation
 

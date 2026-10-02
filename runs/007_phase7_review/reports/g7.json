@@ -3,19 +3,20 @@
   "gate": "G7",
   "status": "PARTIAL",
   "qualified": false,
-  "evidence_scope": "recovered draft; final published tree validation pending",
+  "evidence_scope": "foundation and recovered phase 7 CPU regression suites; G7 capability incomplete",
   "checks": {
-    "grounding": "PENDING_FINAL_TREE_VALIDATION",
-    "symbolic": "PENDING_FINAL_TREE_VALIDATION",
-    "optimizer": "PENDING_FINAL_TREE_VALIDATION",
+    "grounding": "CPU_REGRESSIONS_PASS_CAPABILITY_REVIEW_PARTIAL",
+    "symbolic": "CPU_REGRESSIONS_PASS_CAPABILITY_REVIEW_PARTIAL",
+    "optimizer": "CPU_REGRESSIONS_PASS_CAPABILITY_REVIEW_PARTIAL",
     "native_parity": "NOT_RUN_NATIVE_REPAIR_INCOMPLETE",
     "qualified_contracts": "INCOMPLETE",
-    "recurrence_dataflow": "PENDING_FUEL_FIX_RERUN"
+    "recurrence_dataflow": "CPU_REGRESSIONS_PASS_CAPABILITY_REVIEW_PARTIAL"
   },
   "local_recovery_run": {
     "passed": 13,
     "failed": 1,
-    "failure": "recognized recurrence exhausted legacy per-index fuel; allowance corrected but rerun blocked"
+    "failure": "recognized recurrence exhausted legacy per-index fuel; allowance corrected but rerun blocked",
+    "resolution": "Subsequent CI passed the recurrence test; see cpu_validation"
   },
   "earlier_620_pass_result_applies_to_this_tree": false,
   "blockers": [
@@ -23,5 +24,55 @@
     "Rust/Docker conformance unavailable and native repair unfinished",
     "qualified/v1 validators/replay and activation integration unfinished"
   ],
-  "review": "specs/007-experiment-foundation/validation/phase-7-review.md"
+  "review": "specs/007-experiment-foundation/validation/phase-7-review.md",
+  "cpu_validation": {
+    "schema_version": "phase7-review/v1",
+    "tested_commit": "463771013ba6613da79c9c62d646064c7ad9dee8",
+    "run_url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546",
+    "job_id": 111065026952,
+    "conclusion": "success",
+    "suite": "foundation unit/contract/integration globs including recovered phase 7 regressions",
+    "pytest": {
+      "passed": 472,
+      "failed": 0,
+      "skipped": 4,
+      "warnings": 37,
+      "duration_seconds": 178.54
+    },
+    "checks": {
+      "compileall": "PASS",
+      "targeted_ruff_F_E9": "PASS",
+      "spec_kit_prerequisites": "PASS",
+      "spec_artifact_consistency": "PASS"
+    },
+    "skips": [
+      "AMD HIP sampler",
+      "AMD HIP evaluation",
+      "AMD HIP updates",
+      "Explicit pinned Docker image/resource probe"
+    ],
+    "artifact": {
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546/artifacts/11256392303",
+      "zip_sha256": "19f27c00b9b78457a2ccd1d1d6a3edd708e175dcd7fd6da93c7b145bb8710139",
+      "files": [
+        "phase7-junit.xml",
+        "phase7-environment.txt"
+      ]
+    },
+    "environment": {
+      "python": "3.12",
+      "torch": "2.9.1+cpu",
+      "sympy": "1.14.0",
+      "wasmtime": "49.0.0",
+      "z3_solver": "5.1.0.0"
+    },
+    "qualification": "G7 PARTIAL",
+    "not_covered": [
+      "All original legacy owning-module regressions",
+      "Native Rust repair/build/parity",
+      "qualified/v1 record validators and portable evidence replay",
+      "Positive qualified-service activation integration"
+    ],
+    "earlier_620_pass_result_applies_to_this_tree": false
+  }
 }
