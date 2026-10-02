@@ -1,37 +1,380 @@
-# Foundation/v1 experiment profile (007).
-# Frozen defaults from contracts/execution.md and evaluation.md.
-# Changing any identity or inventory requires a new profile identity and run.
+# Frozen inventory; regenerate only with intentional profile review.
 schema_version: foundation/v1
-
 learning:
   track: strict_generic
   objective: sft
   initialization: random
-  horizon: [20, 100]        # visible prefix, full evaluation
+  horizon:
+  - 20
+  - 100
   policy: prefix_rebased_zero
-
 language:
   id: wat_i256_checked_v1
   baseline_commit: aa2c8c4579dd74fdd8114ec9456960a98fcf500e
-  excluded_operators: [i64.const_?, result_i64_x4]
+  operators:
+  - local.get
+  - local.set
+  - local.tee
+  - i32.const
+  - i64.const
+  - i64.add
+  - i64.sub
+  - i64.mul
+  - i64.div_s
+  - i64.div_u
+  - i64.rem_s
+  - i64.rem_u
+  - i64.and
+  - i64.or
+  - i64.xor
+  - i64.shl
+  - i64.shr_s
+  - i64.shr_u
+  - i64.eqz
+  - i64.eq
+  - i64.ne
+  - i64.lt_s
+  - i64.gt_s
+  - i64.le_s
+  - i64.ge_s
+  - i32.add
+  - i32.sub
+  - i32.mul
+  - i32.div_s
+  - i32.div_u
+  - i32.rem_s
+  - i32.rem_u
+  - i32.and
+  - i32.or
+  - i32.xor
+  - i32.shl
+  - i32.shr_s
+  - i32.shr_u
+  - i32.ge_s
+  - i32.lt_s
+  - i32.gt_s
+  - i32.le_s
+  - i32.eq
+  - i32.ne
+  - i32.eqz
+  - i32.wrap_i64
+  - i64.extend_i32_s
+  - i64.extend_i32_u
+  - drop
+  - nop
+  - unreachable
+  - return
+  - br
+  - br_if
+  - block
+  - loop
+  - if
+  - then
+  - else
+  - end
+  - i256.add
+  - i256.sub
+  - i256.mul_scalar
+  - i256.const
+  - i256.zero
+  excluded_operators:
+  - i64.const_?
+  - result_i64_x4
   wrapper:
-    i64_locals: 32          # $v0..$v31, zero-initialized
-    i32_locals: 8           # $c0..$c7, zero-initialized
-    input: $n               # only input
-  macros: [i256.const, i256.zero, i256.add, i256.sub, i256.mul_scalar]
-  nesting:
-    max_block_depth: 8
-    max_nested_loops: 3
+    entrypoint: compute
+    input:
+    - $n
+    - i32
+    results:
+    - i64
+    - i64
+    - i64
+    - i64
+    i64_locals:
+    - $v0
+    - $v1
+    - $v2
+    - $v3
+    - $v4
+    - $v5
+    - $v6
+    - $v7
+    - $v8
+    - $v9
+    - $v10
+    - $v11
+    - $v12
+    - $v13
+    - $v14
+    - $v15
+    - $v16
+    - $v17
+    - $v18
+    - $v19
+    - $v20
+    - $v21
+    - $v22
+    - $v23
+    - $v24
+    - $v25
+    - $v26
+    - $v27
+    - $v28
+    - $v29
+    - $v30
+    - $v31
+    i32_locals:
+    - $c0
+    - $c1
+    - $c2
+    - $c3
+    - $c4
+    - $c5
+    - $c6
+    - $c7
+    initial_value: '0'
+    limb_order: little_endian_twos_complement
   numeric_ranges:
-    i32: [-2147483648, 2147483647]
-    i64: [-9223372036854775808, 9223372036854775807]
-    i256: [-57896044618658097711785492504343953926634992332820282019728792003956564819968, 57896044618658097711785492504343953926634992332820282019728792003956564819967]
-
+    i32:
+    - '-2147483648'
+    - '2147483647'
+    i64:
+    - '-9223372036854775808'
+    - '9223372036854775807'
+    i256:
+    - '-57896044618658097711785492504343953926634992332820282019728792003956564819968'
+    - '57896044618658097711785492504343953926634992332820282019728792003956564819967'
+  native_semantics: wasm_bit_vector
+  wide_semantics: checked_signed_256
+  macros:
+    i256.const:
+    - 0
+    - 4
+    i256.zero:
+    - 0
+    - 4
+    i256.add:
+    - 8
+    - 4
+    i256.sub:
+    - 8
+    - 4
+    i256.mul_scalar:
+    - 5
+    - 4
+  max_block_depth: 8
+  max_nested_loops: 3
+  forbidden:
+  - imports
+  - calls
+  - memories
+  - globals
+  - tables
+  - start
+  - recursion
+  - floats
+  - host_io
 codec:
   id: wat_body_decimal_v1
-  max_body_tokens: 1024     # including EOS, excluding BOS and wrapper
-  max_source_bytes: 65536   # 64 KiB
-  numeric_immediate: <int>  # optional -, one+ decimal digit tokens, then </int>
-
-resource: ryzen_foundation_v1
-evaluation: prefix20_total100_v1
+  vocabulary:
+  - <pad>
+  - <bos>
+  - <eos>
+  - (
+  - )
+  - result
+  - i32
+  - i64
+  - module
+  - func
+  - export
+  - param
+  - local
+  - '"compute"'
+  - '"generate_term"'
+  - <int>
+  - '-'
+  - </int>
+  - '0'
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  - '6'
+  - '7'
+  - '8'
+  - '9'
+  - $n
+  - $v0
+  - $v1
+  - $v2
+  - $v3
+  - $v4
+  - $v5
+  - $v6
+  - $v7
+  - $v8
+  - $v9
+  - $v10
+  - $v11
+  - $v12
+  - $v13
+  - $v14
+  - $v15
+  - $v16
+  - $v17
+  - $v18
+  - $v19
+  - $v20
+  - $v21
+  - $v22
+  - $v23
+  - $v24
+  - $v25
+  - $v26
+  - $v27
+  - $v28
+  - $v29
+  - $v30
+  - $v31
+  - $c0
+  - $c1
+  - $c2
+  - $c3
+  - $c4
+  - $c5
+  - $c6
+  - $c7
+  - local.get
+  - local.set
+  - local.tee
+  - i32.const
+  - i64.const
+  - i64.add
+  - i64.sub
+  - i64.mul
+  - i64.div_s
+  - i64.div_u
+  - i64.rem_s
+  - i64.rem_u
+  - i64.and
+  - i64.or
+  - i64.xor
+  - i64.shl
+  - i64.shr_s
+  - i64.shr_u
+  - i64.eqz
+  - i64.eq
+  - i64.ne
+  - i64.lt_s
+  - i64.gt_s
+  - i64.le_s
+  - i64.ge_s
+  - i32.add
+  - i32.sub
+  - i32.mul
+  - i32.div_s
+  - i32.div_u
+  - i32.rem_s
+  - i32.rem_u
+  - i32.and
+  - i32.or
+  - i32.xor
+  - i32.shl
+  - i32.shr_s
+  - i32.shr_u
+  - i32.ge_s
+  - i32.lt_s
+  - i32.gt_s
+  - i32.le_s
+  - i32.eq
+  - i32.ne
+  - i32.eqz
+  - i32.wrap_i64
+  - i64.extend_i32_s
+  - i64.extend_i32_u
+  - drop
+  - nop
+  - unreachable
+  - return
+  - br
+  - br_if
+  - block
+  - loop
+  - if
+  - then
+  - else
+  - end
+  - i256.add
+  - i256.sub
+  - i256.mul_scalar
+  - i256.const
+  - i256.zero
+  bos_id: 1
+  eos_id: 2
+  pad_id: 0
+  max_body_tokens: 1024
+  max_source_bytes: 65536
+resource:
+  id: ryzen_foundation_v1
+  limits:
+    fuel_per_term: 1000000
+    fuel_aggregate: 50000000
+    reference_steps_per_term: 1000000
+    reference_steps_aggregate: 50000000
+    candidate_deadline_s: 2
+    worker_reclaim_s: 2
+    worker_rss_limit_bytes: 1073741824
+    max_execution_workers: 8
+    learner_cpu_threads: 4
+    pending_requests: 32
+    message_bytes: 1048576
+    compiled_cache_bytes: 1073741824
+    learner_memory_bytes: 94489280512
+    worker_memory_bytes: 1073741824
+    gpu_alloc_bytes: 68719476736
+    gpu_device_fraction: 80
+    host_reserve_bytes: 17179869184
+    run_artifacts_bytes: 214748364800
+    checkpoint_bytes: 42949672960
+    log_bytes: 2147483648
+    log_segment_bytes: 67108864
+    pid_per_worker: 64
+    pid_learner: 512
+    attempts_default: 16
+    prefix_phase_s: 20
+    hidden_phase_s: 10
+    host_free_disk_bytes: 107374182400
+    learner_swap_limit_bytes: 94489280512
+    aggregate_container_cap_bytes: 103079215104
+    learners: 1
+    native_threads_per_worker: 1
+    host_reserve_sample_seconds: 1
+    host_reserve_sample_count: 2
+    checkpoint_retained_latest: 2
+    checkpoint_retained_final: 1
+    checkpoint_write_reserve_multiple: 2
+  worker_network: disabled
+  worker_gpu: disabled
+  runtime_source: read_only
+  output_mount: bounded
+  seccomp: docker_default
+  privileged: false
+  host_ipc: false
+evaluation:
+  id: prefix20_total100_v1
+  limits:
+    dev_count_default: 128
+    final_count_default: 512
+    shift_max: 20
+    seed_default: 20260913
+    split_seed: 20260913
+  visible_terms: 20
+  total_terms: 100
+  policy: prefix_rebased_zero
+digests:
+  language: sha256:87d702bfcdc1b516da7055cfdc33f66bef6d4cf072f4bfb94ee68edcc5297654
+  codec: sha256:9b6dcb91d4c90b227dffa6e11eb87554ddf271bfdb74e3974202d413703b8fe9
+  resource: sha256:37a2de6087943dec5fa701b0676048675a6785e19474f68819b41968eaae4b7f
+  evaluation: sha256:859f3e5a051d662562138e6b2f9028999e20f6e29da8d3eb4d35c7757f9c2182

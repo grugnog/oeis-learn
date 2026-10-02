@@ -1,321 +1,279 @@
-"""Foundation artifact storage, identity, and registry (T008).
+"""Content-addressed JSON artifacts; diagnostic fixtures are isolated from runs.
 
-This module provides:
-
-- Canonical artifact dataclasses (VisiblePrompt, CandidateResult, CheckpointManifest)
-- Deterministic identity computation (SHA-256 digests of canonical JSON)
-- Artifact validation against contracts/artifacts.schema.json and data-model.md
-- Safe, deterministic artifact storage with exact final-byte hashes, atomic writes,
-  acyclic references, and safe relative paths
-- CLI commands: `foundation preflight`, `foundation conformance`, `foundation freeze-cohort`, `foundation build-pool`
-
-The foundation codec `wat_body_decimal_v1` identity is preserved; legacy codec identities
-(`i64_scalar_v1`, `i256x4_v1`) remain in legacy modules to avoid incompatible weight reuse.
+Checkpoint payload publication/recovery belongs to the checkpoint writer. This
+registry stores its manifest as JSON and verifies the existing blob; it never
+replaces a .pt payload with JSON or embeds a self-referential digest.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import re
+import os
 import tempfile
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any
 
-from jsonschema import Draft202012Validator
-
-from oeis_learn.experiments.config import FoundationConfig, load_config
 from oeis_learn.experiments.models import (
     CandidateResult,
     CheckpointManifest,
-    Metric,
-    VisiblePrompt,
     FoundationValidationError,
-    parse_integer_text,
+    VisiblePrompt,
+    check_digest,
     validate_artifact,
 )
 
-# ---------------------------------------------------------------------------
+
+def load_json(text: str | bytes) -> Any:
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise FoundationValidationError(f"duplicate JSON member {key!r}")
+            result[key] = value
+        return result
+
+    def invalid_constant(value):
+        raise FoundationValidationError(f"non-JSON constant {value}")
+
+    return json.loads(text, object_pairs_hook=pairs, parse_constant=invalid_constant)
 
 
-def compute_canonical_digest(obj: Dict[str, Any], identity_field: Optional[str] = None) -> str:
-    """Compute SHA-256 digest of canonical JSON representation.
+def canonical_bytes(obj: Any) -> bytes:
+    return json.dumps(
+        obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
 
-    The JSON is sorted keys, compact separators, ensure_ascii=False.
-    If identity_field is provided, it is omitted from the hash.
-    """
-    filtered = {k: v for k, v in obj.items() if k != identity_field}
-    canonical = json.dumps(filtered, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+def compute_canonical_digest(obj: dict, identity_field: str | None = None) -> str:
+    """Logical identity; file identities must always hash every final byte."""
+    if identity_field is not None:
+        obj = {k: v for k, v in obj.items() if k != identity_field}
+    return "sha256:" + hashlib.sha256(canonical_bytes(obj)).hexdigest()
 
 
 def compute_file_hash(path: Path) -> str:
-    """Compute SHA-256 hash of file contents (final bytes only, no self-reference)."""
-    with open(path, "rb") as f:
-        data = f.read()
-    return "sha256:" + hashlib.sha256(data).hexdigest()
+    with Path(path).open("rb") as stream:
+        return "sha256:" + hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-# ---------------------------------------------------------------------------
-
-
-@dataclass
+@dataclass(frozen=True)
 class ArtifactPath:
-    """A safe, relative path under a run/cohort root with no traversal escapes."""
-
     root: Path
     relpath: str
 
     def __post_init__(self) -> None:
-        # Enforce: relative, no .., no absolute, no symlink escapes via path_norm
-        if self.relpath.startswith("/") or ".." in self.relpath:
-            raise ValueError(f"artifact path {self.relpath!r} is unsafe")
-        full = self.root / self.relpath
-        try:
-            full.resolve().relative_to(self.root.resolve())
-        except ValueError:
-            raise ValueError(f"artifact path {self.relpath!r} escapes root")
+        self.as_path()
 
     def as_path(self) -> Path:
-        return self.root / self.relpath
+        # Require portable canonical spelling before filesystem resolution.
+        if not isinstance(self.relpath, str):
+            raise FoundationValidationError("artifact path must be text")
+        p = PurePosixPath(self.relpath)
+        if (
+            not self.relpath
+            or "\\" in self.relpath
+            or ":" in self.relpath
+            or "\x00" in self.relpath
+            or p.is_absolute()
+            or ".." in p.parts
+            or p.as_posix() != self.relpath
+            or self.relpath == "."
+        ):
+            raise FoundationValidationError(f"unsafe artifact path {self.relpath!r}")
+        full = Path(self.root) / self.relpath
+        try:
+            full.resolve().relative_to(Path(self.root).resolve())
+        except ValueError as exc:
+            raise FoundationValidationError("artifact path escapes root") from exc
+        return full
 
     @classmethod
     def make(cls, root: Path, relpath: str) -> ArtifactPath:
-        return cls(root=root, relpath=relpath)
+        return cls(root, relpath)
 
 
-# ---------------------------------------------------------------------------
+def atomic_write(path: ArtifactPath, payload: bytes) -> None:
+    """Publish immutable final bytes, flush/fsync, and clean up failed writes.
+
+    The run root has one trusted controller writer, as required by the contract.
+    Candidate workers must not have write access to its directories.
+    """
+    target = path.as_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    path.as_path()  # Recheck containment after directory creation.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Hard-link publication is atomic and cannot overwrite an existing ID.
+        try:
+            os.link(temporary, target)
+        except FileExistsError:
+            if target.read_bytes() != payload:
+                raise FoundationValidationError(
+                    "immutable artifact already exists with different bytes"
+                )
+        fd = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
-# Note: VisiblePrompt, CandidateResult, CheckpointManifest defined in models.py
-# with required semantic checks. The dataclasses there are canonical.
+def verify_reference_graph(root: Path, references: dict[str, dict]) -> None:
+    """Resolve digest/path references, reject missing nodes, tampering and cycles.
 
-canonical_artifact_types = (VisiblePrompt, CandidateResult, CheckpointManifest)
+    Each entry has exactly `path` and `references` (a list of dependency digests).
+    It is supplied by the immutable run manifest, not inferred from filenames.
+    """
+    active, done = set(), set()
+
+    def visit(digest: str) -> None:
+        check_digest(digest, "reference")
+        if digest in active:
+            raise FoundationValidationError("cyclic artifact references")
+        if digest in done:
+            return
+        node = references.get(digest)
+        if (
+            not isinstance(node, dict)
+            or set(node) != {"path", "references"}
+            or not isinstance(node["references"], list)
+        ):
+            raise FoundationValidationError("missing or malformed artifact reference")
+        path = ArtifactPath(root, node["path"]).as_path()
+        if not path.is_file() or compute_file_hash(path) != digest:
+            raise FoundationValidationError(f"missing or corrupt reference {digest}")
+        active.add(digest)
+        for child in node["references"]:
+            visit(child)
+        active.remove(digest)
+        done.add(digest)
+
+    for digest in references:
+        visit(digest)
 
 
-# ---------------------------------------------------------------------------
+def _digests(obj: Any) -> set[str]:
+    if isinstance(obj, dict):
+        return set().union(*(_digests(v) for v in obj.values()))
+    if isinstance(obj, list):
+        return set().union(*(_digests(v) for v in obj))
+    return {obj} if isinstance(obj, str) and obj.startswith("sha256:") else set()
+
+
+_KINDS = {
+    "visible-prompt": "visible_prompt",
+    "candidate-result": "candidate_result",
+    "checkpoint": "checkpoint_manifest",
+}
 
 
 class ArtifactRegistry:
-    """Registry of canonical artifacts with deterministic IDs.
+    """Read/write exact-byte artifacts with verified provenance on consumption.
 
-    Each artifact gets a canonical path like:
-        visible-prompts/<digest>.json
-        candidate-results/<digest>.json
-        checkpoints/<digest>.pt
+    Diagnostic mode is explicit and writes exclusively below `diagnostics/`.
+    It validates shape/semantics but makes no executed-evidence claim. A run
+    registry requires the expected profiles plus a complete reference graph.
     """
 
-    def __init__(self, root: Path):
-        self.root = root
-        self.root.mkdir(parents=True, exist_ok=True)
-        self._by_kind: Dict[str, Set[str]] = {
-            "visible-prompt": set(),
-            "candidate-result": set(),
-            "checkpoint": set(),
-        }
+    def __init__(
+        self,
+        root: Path,
+        *,
+        diagnostic: bool = False,
+        references: dict | None = None,
+        expected_profiles: dict | None = None,
+    ):
+        self.run_root = Path(root)
+        self.root = self.run_root / "diagnostics" if diagnostic else self.run_root
+        self.diagnostic = diagnostic
+        self.references = references if references is not None else {}
+        self.expected_profiles = expected_profiles
 
-    def _canonical_path(self, kind: str, digest: str) -> Path:
-        """Return artifact path for kind/digest, creating subdirectory if needed."""
-        subdir = {
-            "visible-prompt": "visible-prompts",
-            "candidate-result": "candidate-results",
-            "checkpoint": "checkpoints",
-        }.get(kind, kind + "s")
-        path = self.root / subdir / f"{digest}.json" if kind != "checkpoint" else self.root / subdir / f"{digest}.pt"
-        path.parent.mkdir(parents=True, exist_ok=True)
+    def _path(self, kind: str, digest: str) -> ArtifactPath:
+        if kind not in _KINDS:
+            raise FoundationValidationError(f"unknown registry kind {kind!r}")
+        check_digest(digest, "artifact")
+        return ArtifactPath(self.root, f"{kind}s/{digest[7:]}.json")
+
+    def _validate(self, kind: str, artifact: dict) -> None:
+        validate_artifact(artifact)
+        if kind not in _KINDS or artifact["kind"] != _KINDS[kind]:
+            raise FoundationValidationError("registry kind does not match artifact kind")
+        if self.diagnostic:
+            if kind == "candidate-result" and artifact["purpose"] != "conformance":
+                raise FoundationValidationError("diagnostic results require conformance purpose")
+            return
+        if self.expected_profiles is None:
+            raise FoundationValidationError("run storage requires expected profile identities")
+        required = (
+            {"language_profile"}
+            if kind == "visible-prompt"
+            else (
+                {"language_profile", "resource_profile"}
+                if kind == "candidate-result"
+                else {
+                    "contract_sha256",
+                    "pool_sha256",
+                    "codec_sha256",
+                    "runtime_sha256",
+                    "effective_config_sha256",
+                }
+            )
+        )
+        if not required <= self.expected_profiles.keys():
+            raise FoundationValidationError("incomplete expected profile identities")
+        validate_artifact(
+            artifact, expected_profiles={k: self.expected_profiles[k] for k in required}
+        )
+        if kind == "candidate-result" and artifact["purpose"] != "model":
+            raise FoundationValidationError("conformance results are not run evidence")
+        if "sha256:" + "0" * 64 in _digests(artifact):
+            raise FoundationValidationError("fixture digest is not run evidence")
+        if not _digests(artifact) <= self.references.keys():
+            raise FoundationValidationError("artifact has unresolved references")
+        verify_reference_graph(self.run_root, self.references)
+        if kind == "checkpoint":
+            blob = ArtifactPath(self.run_root, artifact["blob_path"]).as_path()
+            if not blob.is_file() or compute_file_hash(blob) != artifact["blob_sha256"]:
+                raise FoundationValidationError("checkpoint blob missing or corrupt")
+
+    def store(self, kind: str, artifact: dict) -> ArtifactPath:
+        self._validate(kind, artifact)
+        payload = canonical_bytes(artifact)
+        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if digest in _digests(artifact):
+            raise FoundationValidationError("self-referential artifact")
+        path = self._path(kind, digest)
+        atomic_write(path, payload)
         return path
 
-    def store(self, kind: str, artifact: Dict[str, Any]) -> ArtifactPath:
-        """Store artifact and return its canonical path."""
-        # Validate against schema
-        validate_artifact(artifact)
-        # Compute identity digest (omit identity field if present)
-        digest = compute_canonical_digest(artifact, identity_field="digest")
-        if kind == "checkpoint":
-            digest = compute_file_hash(artifact.get("path", Path()))
-        # Write canonical JSON
-        path = self._canonical_path(kind, digest)
-        if kind != "checkpoint":
-            with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as f:
-                json.dump(artifact, f, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-                tmp_path = Path(f.name)
-            tmp_path.rename(path)
-        else:
-            # For checkpoints, we store the time of last checkpoint instead of re-serializing
-            # The real checkpoint data lives at artifact["path"]
-            checkpoint_info = {
-                "checkpoint_state": artifact.get("checkpoint_state", "complete"),
-                "payload_state_keys": artifact.get("payload_state_keys", []),
-                "timestamp_ns": int(artifact.get("timestamp_ns", 0)),
-                "digest": digest,
-            }
-            with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False) as f:
-                json.dump(checkpoint_info, f, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-                tmp_path = Path(f.name)
-            tmp_path.rename(path)
-        # Track
-        self._by_kind[kind].add(digest)
-        return ArtifactPath(root=self.root, relpath=f"{path.relative_to(self.root).as_posix()}")
+    def get(self, kind: str, digest: str) -> dict | None:
+        path = self._path(kind, digest).as_path()
+        if not path.exists():
+            return None
+        payload = path.read_bytes()
+        if "sha256:" + hashlib.sha256(payload).hexdigest() != digest:
+            raise FoundationValidationError("stored artifact digest mismatch")
+        artifact = load_json(payload)
+        self._validate(kind, artifact)
+        return artifact
 
-    def get(self, kind: str, digest: str) -> Optional[Dict[str, Any]]:
-        """Retrieve artifact if stored."""
-        path = self._canonical_path(kind, digest)
-        if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return None
-
-    def lookup(self, digest: str) -> Optional[Tuple[str, Dict[str, Any]]]:
-        """Look up artifact by digest across all kinds."""
-        for kind in self._by_kind:
-            if digest in self._by_kind[kind]:
-                artifact = self.get(kind, digest)
-                if artifact:
-                    return kind, artifact
+    def lookup(self, digest: str) -> tuple[str, dict] | None:
+        for kind in _KINDS:
+            artifact = self.get(kind, digest)
+            if artifact is not None:
+                return kind, artifact
         return None
 
 
-# ---------------------------------------------------------------------------
-# CLI commands
-# ---------------------------------------------------------------------------
-
-
-import click
-
-
-@click.group(name="foundation")
-def foundation_cli() -> None:
-    """Foundation artifact administration commands (T008)."""
-    pass
-
-
-@foundation_cli.command(name="preflight")
-@click.option("--json", "as_json", is_flag=True, help="Output summary JSON to stdout, progress to stderr")
-@click.option("--config", default="configs/foundation/preflight.yaml", help="Configuration file")
-def foundation_preflight(as_json: bool, config: str) -> None:
-    """Check foundation prerequisites (hardware_ready/hardware_not_ready)."""
-    # Reuse existing preflight module
-    from oeis_learn.cli.foundation_preflight import main as preflight_main
-    preflight_main(as_json=as_json, config_path=config)
-
-
-@foundation_cli.command(name="conformance")
-@click.option("--json", "as_json", is_flag=True, help="Output summary JSON to stdout, progress to stderr")
-@click.option("--schema", default="specs/007-experiment-foundation/contracts/artifacts.schema.json", help="Schema path")
-@click.argument("artifacts", nargs=-1, type=click.Path(exists=True))
-def foundation_conformance(as_json: bool, schema: str, artifacts: Tuple[str, ...]) -> None:
-    """Validate artifacts against foundation artifacts schema."""
-    with open(schema, "r", encoding="utf-8") as f:
-        schema_doc = json.load(f)
-    validator = Draft202012Validator(schema_doc)
-    errors = []
-    for artifact_path in artifacts:
-        try:
-            with open(artifact_path, "r", encoding="utf-8") as f:
-                artifact = json.load(f)
-            for error in validator.iter_errors(artifact):
-                errors.append(f"{artifact_path}: {error.message}")
-        except json.JSONDecodeError as e:
-            errors.append(f"{artifact_path}: JSON parse error: {e}")
-    if errors:
-        if as_json:
-            print(json.dumps({"status": "FAIL", "errors": errors}))
-        else:
-            for e in errors:
-                print(f"FAIL: {e}")
-        import sys
-
-        sys.exit(2)
-    else:
-        if as_json:
-            print(json.dumps({"status": "PASS"}))
-        else:
-            print("PASS: all artifacts conform")
-        import sys
-
-        sys.exit(0)
-
-
-@foundation_cli.command(name="freeze-cohort")
-@click.option("--json", "as_json", is_flag=True, help="Output summary JSON to stdout, progress to stderr")
-@click.argument("root", type=click.Path(exists=True))
-def foundation_freeze_cohort(as_json: bool, root: str) -> None:
-    """Freeze a cohort of artifacts under root (create registry with deterministic IDs)."""
-    root_path = Path(root)
-    registry = ArtifactRegistry(root_path / "artifacts")
-    # Scan for visible-prompts/candidate-results checkpoints
-    for kind in ("visible-prompt", "candidate-result"):
-        subdir = root_path / f"{kind}s"
-        if subdir.exists():
-            for path in subdir.glob("*.json"):
-                if path.is_file():
-                    with open(path, "r", encoding="utf-8") as f:
-                        artifact = json.load(f)
-                    registry.store(kind, artifact)
-    for kind in ("checkpoint",):
-        subdir = root_path / f"{kind}s"
-        if subdir.exists():
-            for path in subdir.glob("*.pt"):
-                if path.is_file():
-                    digest = compute_file_hash(path)
-                    registry.store(kind, {"path": str(path), "digest": digest})
-    if as_json:
-        counts = {k: len(v) for k, v in registry._by_kind.items()}
-        print(json.dumps({"root": str(root_path), "counts": counts}))
-    else:
-        counts = {k: len(v) for k, v in registry._by_kind.items()}
-        print(f"Registry created at {registry.root}")
-        for k, v in counts.items():
-            print(f"  {k}: {v}")
-
-
-@foundation_cli.command(name="build-pool")
-@click.option("--json", "as_json", is_flag=True, help="Output summary JSON to stdout, progress to stderr")
-@click.argument("root", type=click.Path(exists=True))
-@click.option("--limit", default=1000, help="Maximum pool entries")
-def foundation_build_pool(as_json: bool, root: str, limit: int) -> None:
-    """Build a pool of candidate result digests for evaluation."""
-    registry = ArtifactRegistry(Path(root) / "artifacts")
-    pool: List[str] = []
-    digest_path = registry.root / "pool" / "candidates.txt"
-    digest_path.parent.mkdir(parents=True, exist_ok=True)
-    if digest_path.exists():
-        with open(digest_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("sha256:"):
-                    pool.append(line)
-    # Add any new candidate results not in pool
-    subdir = registry.root.parent / "candidate-results"
-    if subdir.exists():
-        for path in subdir.glob("*.json"):
-            with open(path, "r", encoding="utf-8") as f:
-                artifact = json.load(f)
-            digest = compute_canonical_digest(artifact, identity_field="digest")
-            if digest not in pool:
-                pool.append(digest)
-                if len(pool) >= limit:
-                    break
-    with tempfile.NamedTemporaryFile(mode="w", dir=digest_path.parent, delete=False) as f:
-        for d in pool:
-            f.write(d + "\n")
-        tmp_path = Path(f.name)
-    tmp_path.rename(digest_path)
-    if as_json:
-        print(json.dumps({"pool_size": len(pool), "limit": limit}))
-    else:
-        print(f"Pool updated: {len(pool)} candidates")
-
-
-# ---------------------------------------------------------------------------
-
-
-__all__ = [
-    "ArtifactRegistry",
-    "ArtifactPath",
-    "compute_canonical_digest",
-    "compute_file_hash",
-    "foundation_cli",
-    "canonical_artifact_types",
-]
+canonical_artifact_types = (VisiblePrompt, CandidateResult, CheckpointManifest)

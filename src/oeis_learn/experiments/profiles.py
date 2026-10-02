@@ -14,7 +14,7 @@ opcode implicitly.
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from types import MappingProxyType
 
 # ---------------------------------------------------------------------------
 # Frozen profile identities
@@ -46,7 +46,7 @@ EXCLUDED_OPERATORS = ("i64.const_?", "result_i64_x4")
 # Exhaustive allowed-operator inventory (frozen)
 # ---------------------------------------------------------------------------
 
-ALLOWED_OPERATORS: Tuple[str, ...] = (
+ALLOWED_OPERATORS: tuple[str, ...] = (
     "local.get",
     "local.set",
     "local.tee",
@@ -115,7 +115,7 @@ ALLOWED_OPERATORS: Tuple[str, ...] = (
 )
 
 # The five checked wide macros with their exact stack effects.
-MACROS: Dict[str, Tuple[int, int]] = {
+MACROS: dict[str, tuple[int, int]] = {
     "i256.const": (0, 4),  # pushes four low-to-high limbs
     "i256.zero": (0, 4),
     "i256.add": (8, 4),
@@ -124,32 +124,14 @@ MACROS: Dict[str, Tuple[int, int]] = {
 }
 
 
-def _validate_inventory_against_baseline() -> None:
-    """Guard against accidental drift from the pinned baseline inventory."""
-    try:
-        from oeis_learn.decoder.wat_grammar import INSTRUCTION_TOKENS  # legacy
-    except Exception:  # pragma: no cover - import path may be unavailable
-        return
-    baseline = [t for t in INSTRUCTION_TOKENS if t not in EXCLUDED_OPERATORS]
-    if baseline != list(ALLOWED_OPERATORS):
-        raise RuntimeError(
-            "Frozen foundation opcode inventory drifted from the baseline "
-            "INSTRUCTION_TOKENS (commit %s) minus %s. Refusing to admit an "
-            "implicit opcode." % (BASELINE_COMMIT, EXCLUDED_OPERATORS)
-        )
-
-
-_validate_inventory_against_baseline()
-
-
 # ---------------------------------------------------------------------------
 # Fixed wrapper / numeric inventory
 # ---------------------------------------------------------------------------
 
 # The task-independent wrapper declares 32 i64 locals $v0..$v31 and 8 i32
 # locals $c0..$c7, all zero-initialized; $n is the only input.
-I64_LOCAL_NAMES: Tuple[str, ...] = tuple(f"$v{i}" for i in range(32))
-I32_LOCAL_NAMES: Tuple[str, ...] = tuple(f"$c{i}" for i in range(8))
+I64_LOCAL_NAMES: tuple[str, ...] = tuple(f"$v{i}" for i in range(32))
+I32_LOCAL_NAMES: tuple[str, ...] = tuple(f"$c{i}" for i in range(8))
 INPUT_LOCAL = "$n"
 
 # Signed value ranges enforced by the language profile.
@@ -157,7 +139,7 @@ I32_MIN, I32_MAX = -(1 << 31), (1 << 31) - 1
 I64_MIN, I64_MAX = -(1 << 63), (1 << 63) - 1
 I256_MIN, I256_MAX = -(1 << 255), (1 << 255) - 1
 
-NUMERIC_RANGES: Dict[str, Tuple[int, int]] = {
+NUMERIC_RANGES: dict[str, tuple[int, int]] = {
     "i32": (I32_MIN, I32_MAX),
     "i64": (I64_MIN, I64_MAX),
     "i256": (I256_MIN, I256_MAX),
@@ -168,7 +150,7 @@ NUMERIC_RANGES: Dict[str, Tuple[int, int]] = {
 # Resource profile: ryzen_foundation_v1 (frozen)
 # ---------------------------------------------------------------------------
 
-RESOURCE_LIMITS: Dict[str, int] = {
+RESOURCE_LIMITS: dict[str, int] = {
     "fuel_per_term": 1_000_000,
     "fuel_aggregate": 50_000_000,
     "reference_steps_per_term": 1_000_000,
@@ -195,13 +177,127 @@ RESOURCE_LIMITS: Dict[str, int] = {
     "attempts_default": 16,
     "prefix_phase_s": 20,
     "hidden_phase_s": 10,
+    "host_free_disk_bytes": 100 << 30,
+    "learner_swap_limit_bytes": 88 << 30,
+    "aggregate_container_cap_bytes": 96 << 30,
+    "learners": 1,
+    "native_threads_per_worker": 1,
+    "host_reserve_sample_seconds": 1,
+    "host_reserve_sample_count": 2,
+    "checkpoint_retained_latest": 2,
+    "checkpoint_retained_final": 1,
+    "checkpoint_write_reserve_multiple": 2,
 }
 
 # Evaluation grouping / split defaults (prefix20_total100_v1).
-EVALUATION_LIMITS: Dict[str, int] = {
+EVALUATION_LIMITS: dict[str, int] = {
     "dev_count_default": 128,
     "final_count_default": 512,
     "shift_max": 20,
     "seed_default": 20260913,
     "split_seed": 20260913,
 }
+
+
+# Full, serializable inventories are the source of profile content identities.
+# Returning fresh containers prevents accidental changes through a caller.
+def profile_inventory() -> dict:
+    from oeis_learn.decoder.program_codec import codec_identity
+
+    return {
+        "schema_version": "foundation/v1",
+        "learning": {
+            "track": TRACK,
+            "objective": OBJECTIVE,
+            "initialization": INITIALIZATION,
+            "horizon": [VISIBLE_HORIZON, FULL_HORIZON],
+            "policy": POLICY,
+        },
+        "language": {
+            "id": LANGUAGE_PROFILE_ID,
+            "baseline_commit": BASELINE_COMMIT,
+            "operators": list(ALLOWED_OPERATORS),
+            "excluded_operators": list(EXCLUDED_OPERATORS),
+            "wrapper": {
+                "entrypoint": "compute",
+                "input": ["$n", "i32"],
+                "results": ["i64"] * 4,
+                "i64_locals": list(I64_LOCAL_NAMES),
+                "i32_locals": list(I32_LOCAL_NAMES),
+                "initial_value": "0",
+                "limb_order": "little_endian_twos_complement",
+            },
+            "numeric_ranges": {k: [str(lo), str(hi)] for k, (lo, hi) in NUMERIC_RANGES.items()},
+            "native_semantics": "wasm_bit_vector",
+            "wide_semantics": "checked_signed_256",
+            "macros": {k: list(v) for k, v in MACROS.items()},
+            "max_block_depth": 8,
+            "max_nested_loops": 3,
+            "forbidden": [
+                "imports",
+                "calls",
+                "memories",
+                "globals",
+                "tables",
+                "start",
+                "recursion",
+                "floats",
+                "host_io",
+            ],
+        },
+        "codec": codec_identity(),
+        "resource": {
+            "id": RESOURCE_PROFILE_ID,
+            "limits": dict(RESOURCE_LIMITS),
+            "worker_network": "disabled",
+            "worker_gpu": "disabled",
+            "runtime_source": "read_only",
+            "output_mount": "bounded",
+            "seccomp": "docker_default",
+            "privileged": False,
+            "host_ipc": False,
+        },
+        "evaluation": {
+            "id": EVALUATION_PROFILE_ID,
+            "limits": dict(EVALUATION_LIMITS),
+            "visible_terms": VISIBLE_HORIZON,
+            "total_terms": FULL_HORIZON,
+            "policy": POLICY,
+        },
+    }
+
+
+def profile_digests() -> dict[str, str]:
+    import hashlib
+    import json
+
+    inventory = profile_inventory()
+    return {
+        key: "sha256:"
+        + hashlib.sha256(
+            json.dumps(inventory[key], sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        for key in ("language", "codec", "resource", "evaluation")
+    }
+
+
+def validate_profile_file(path) -> None:
+    import yaml
+
+    from oeis_learn.experiments.config import ConfigError, _UniqueLoader
+
+    with open(path, encoding="utf-8") as stream:
+        try:
+            data = yaml.load(stream, Loader=_UniqueLoader)
+        except yaml.YAMLError as exc:
+            raise ConfigError("invalid profile YAML") from exc
+    expected = profile_inventory()
+    expected["digests"] = profile_digests()
+    if data != expected:
+        raise ConfigError("profile inventory or content identity differs from frozen foundation/v1")
+
+
+MACROS = MappingProxyType(MACROS)
+NUMERIC_RANGES = MappingProxyType(NUMERIC_RANGES)
+RESOURCE_LIMITS = MappingProxyType(RESOURCE_LIMITS)
+EVALUATION_LIMITS = MappingProxyType(EVALUATION_LIMITS)

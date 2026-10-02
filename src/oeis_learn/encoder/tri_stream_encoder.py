@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 import torch
 import torch.nn as nn
-from oeis_learn.encoder.difference_stream import DifferenceStream, DifferenceStreamEncoder
+from oeis_learn.encoder.difference_stream import DifferenceStreamEncoder
 from oeis_learn.encoder.film_fusion import HierarchicalFilmFusion
 from oeis_learn.encoder.heads import SummaryRegressionHeads, TriStreamPredictionHeads
 from oeis_learn.encoder.magnitude_stream import MagnitudeStream
-from oeis_learn.encoder.modulo_stream import ModuloSpectrumStream, ModuloStreamEncoder
+from oeis_learn.encoder.modulo_stream import ModuloStreamEncoder
 
 
 class PositionalEncoding(nn.Module):
@@ -67,7 +67,9 @@ class TriStreamEncoder(nn.Module):
 
         # Streams
         self.s1_magnitude = MagnitudeStream(d_model=d_model, d_ff=d_ff, dropout=dropout)
-        self.s2_modulo = ModuloStreamEncoder(d_model=d_model, primes=primes, dropout=dropout)
+        self.s2_modulo = ModuloStreamEncoder(
+            d_model=d_model, primes=base_moduli if base_moduli is not None else primes, dropout=dropout
+        )
         self.s3_diff_padic = DifferenceStreamEncoder(
             d_model=d_model, primes=primes, max_valuation=max_valuation, dropout=dropout
         )

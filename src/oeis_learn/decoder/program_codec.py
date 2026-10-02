@@ -1,281 +1,425 @@
-"""Foundation `wat_body_decimal_v1` program codec (T007).
+"""Strict body-only WAT codec and incremental validation for foundation/v1.
 
-The codec maps a canonical WAT body to a fixed token vocabulary using fixed
-opcode/local tokens and signed digit immediates with an explicit terminator
-``</int>``. It enforces the foundation body constraints:
-
-- body tokens non-empty, EOS exactly once at the end
-- no BOS / padding / unknown tokens
-- at most 1,024 body tokens
-- canonical source at most 64 KiB
-
-The vocabulary exceeds 128 tokens so a fixed-width (128-wide) logit mask
-cannot silently drop vocabulary members.
-
-The legacy codec identities (``i64_scalar_v1``, ``i256x4_v1``) are preserved
-by ``decoder/wat_grammar.py`` for diagnostics; this module is the distinct
-``wat_body_decimal_v1`` codec and never reuses incompatible output weights.
+Integer delimiters are *tokens*, never WAT source. No weights from either
+legacy codec are compatible. This validator checks syntax/types, not execution
+or numeric overflow: admission still requires the execution/reference gates.
 """
 
 from __future__ import annotations
 
-from typing import List, Set
+import copy
+import hashlib
+import json
+import re
+from dataclasses import dataclass, field
 
 from oeis_learn.experiments.profiles import (
     ALLOWED_OPERATORS,
+    CODEC_PROFILE_ID,
     I32_LOCAL_NAMES,
     I64_LOCAL_NAMES,
     INPUT_LOCAL,
+    NUMERIC_RANGES,
 )
 
-# ---------------------------------------------------------------------------
-# Vocabulary
-# ---------------------------------------------------------------------------
-
-_SYNTAX_TOKENS = [
-    "(", ")", "local", "result", "param",
-    "block", "loop", "if", "then", "else", "end",
-    "br", "br_if", "return", "drop", "unreachable",
-    "func", "module", "export", "i32", "i64",
-    '"compute"', '"generate_term"',
-]
-
-_DIGIT_TOKENS = [str(d) for d in range(10)]
-_NEG = "-"
-_TERM = "</int>"
-_EOS = "<eos>"
-
-_FIXED_LOCALS = [INPUT_LOCAL] + list(I64_LOCAL_NAMES) + list(I32_LOCAL_NAMES)
-
-# Fixed opcode/local tokens plus signed digit immediates with explicit
-# terminator. Ordering keeps opcodes last so their token ids exceed 128,
-# making any fixed-width (128-wide) mask visibly lossy.
-FOUNDATION_VOCABULARY: List[str] = []
-for tok in (
-    [_EOS]
-    + _SYNTAX_TOKENS
-    + _DIGIT_TOKENS
-    + [_NEG, _TERM]
-    + _FIXED_LOCALS
-    + list(ALLOWED_OPERATORS)
-):
-    if tok not in FOUNDATION_VOCABULARY:
-        FOUNDATION_VOCABULARY.append(tok)
-
+# Keep wrapper syntax tokens reserved (masked out of bodies). Ordering is frozen
+# and content-addressed, including all three distinct special tokens.
+FOUNDATION_VOCABULARY = tuple(
+    dict.fromkeys(
+        [
+            "<pad>",
+            "<bos>",
+            "<eos>",
+            "(",
+            ")",
+            "result",
+            "i32",
+            "i64",
+            "module",
+            "func",
+            "export",
+            "param",
+            "local",
+            '"compute"',
+            '"generate_term"',
+            "<int>",
+            "-",
+            "</int>",
+        ]
+        + list("0123456789")
+        + [INPUT_LOCAL]
+        + list(I64_LOCAL_NAMES)
+        + list(I32_LOCAL_NAMES)
+        + list(ALLOWED_OPERATORS)
+    )
+)
 FOUNDATION_VOCAB_SIZE = len(FOUNDATION_VOCABULARY)
+TOKEN_TO_ID = {t: i for i, t in enumerate(FOUNDATION_VOCABULARY)}
+ID_TO_TOKEN = dict(enumerate(FOUNDATION_VOCABULARY))
+PAD_ID, BOS_ID, EOS_ID = (TOKEN_TO_ID[t] for t in ("<pad>", "<bos>", "<eos>"))
+INT_ID, NEG_ID, TERM_ID = (TOKEN_TO_ID[t] for t in ("<int>", "-", "</int>"))
+DIGIT_IDS = frozenset(TOKEN_TO_ID[t] for t in "0123456789")
+MAX_BODY_TOKENS = 1024
+MAX_SOURCE_BYTES = 65536
+LOCAL_TYPES = {
+    INPUT_LOCAL: "i32",
+    **dict.fromkeys(I32_LOCAL_NAMES, "i32"),
+    **dict.fromkeys(I64_LOCAL_NAMES, "i64"),
+}
+RESULT = ("i64",) * 4
 
-TOKEN_TO_ID: dict = {tok: idx for idx, tok in enumerate(FOUNDATION_VOCABULARY)}
-ID_TO_TOKEN: dict = {idx: tok for idx, tok in enumerate(FOUNDATION_VOCABULARY)}
 
-EOS_ID = TOKEN_TO_ID[_EOS]
-TERM_ID = TOKEN_TO_ID[_TERM]
-NEG_ID = TOKEN_TO_ID[_NEG]
-DIGIT_IDS: Set[int] = {TOKEN_TO_ID[d] for d in _DIGIT_TOKENS}
+def codec_identity() -> dict:
+    return {
+        "id": CODEC_PROFILE_ID,
+        "vocabulary": list(FOUNDATION_VOCABULARY),
+        "bos_id": BOS_ID,
+        "eos_id": EOS_ID,
+        "pad_id": PAD_ID,
+        "max_body_tokens": MAX_BODY_TOKENS,
+        "max_source_bytes": MAX_SOURCE_BYTES,
+    }
 
-# No <unk>/<pad>/<bos> tokens exist in this codec; unknown ids are forbidden.
-MAX_BODY_TOKENS = 1024  # including EOS, excluding BOS and wrapper
-MAX_SOURCE_BYTES = 65536  # 64 KiB canonical source
+
+def codec_digest() -> str:
+    payload = json.dumps(codec_identity(), sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 class CodecError(ValueError):
-    """Raised when a body token sequence or source violates codec constraints."""
+    """Invalid source, token stream, or incompatible model vocabulary."""
 
 
-# ---------------------------------------------------------------------------
-# Canonical tokenizer
-# ---------------------------------------------------------------------------
+@dataclass
+class _Frame:
+    kind: str
+    height: int
+    result: list[str] = field(default_factory=list)
+    unreachable: bool = False
+    phase: str = "header"
 
 
-def _tokenize_source(source: str) -> List[str]:
-    """Split a canonical source into tokens; numeric literals split into digits."""
-    tokens: List[str] = []
-    i, n = 0, len(source)
-    while i < n:
-        c = source[i]
-        if c.isspace():
-            i += 1
-            continue
-        if c in "()":
-            tokens.append(c)
-            i += 1
-            continue
-        if c == '"':
-            j = i + 1
-            while j < n and source[j] != '"':
-                j += 1
-            tokens.append(source[i : j + 1])
-            i = j + 1
-            continue
-        j = i
-        while j < n and not source[j].isspace() and source[j] not in "()":
-            j += 1
-        word = source[i:j]
-        i = j
-        if word == _TERM:
-            tokens.append(word)
-            continue
-        if word.startswith("-") and word[1:].isdigit():
-            tokens.append(_NEG)
-            word = word[1:]
-            tokens.extend(list(word))
-            continue
-        if word.isdigit():
-            tokens.extend(list(word))
-            continue
-        tokens.append(word)
-    return tokens
+@dataclass
+class BodyState:
+    """Incremental typed control stack; no hidden repairs or EOS insertion.
 
-
-# ---------------------------------------------------------------------------
-# Public codec API
-# ---------------------------------------------------------------------------
-
-
-def encode_body(source: str) -> List[int]:
-    """Encode a canonical WAT body to token ids, appending EOS.
-
-    Raises CodecError on unknown tokens, source over 64 KiB, or more than
-    1,024 body tokens (no truncation is ever performed).
+    Control frames implement Wasm's stack-polymorphic unreachable semantics.
+    Blocks/ifs may declare result types; loops have no block parameters in this
+    profile, so loop branch targets consume zero values.
     """
-    if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
-        raise CodecError(
-            f"canonical source {len(source.encode('utf-8'))} bytes exceeds {MAX_SOURCE_BYTES}"
-        )
-    str_tokens = _tokenize_source(source)
-    ids: List[int] = []
-    for tok in str_tokens:
-        if tok not in TOKEN_TO_ID:
-            raise CodecError(f"unknown body token {tok!r} (no UNK token in this codec)")
-        ids.append(TOKEN_TO_ID[tok])
+
+    stack: list[str] = field(default_factory=list)
+    frames: list[_Frame] = field(
+        default_factory=lambda: [_Frame("func", 0, list(RESULT), phase="body")]
+    )
+    mode: str = "body"
+    pending: str = ""
+    integer: str = ""
+    count: int = 0
+    finished: bool = False
+
+    def _pop(self, types: tuple[str, ...] | list[str]) -> None:
+        frame = self.frames[-1]
+        for typ in reversed(types):
+            if len(self.stack) == frame.height and frame.unreachable:
+                continue
+            if len(self.stack) <= frame.height:
+                raise CodecError("operand stack underflow")
+            actual = self.stack.pop()
+            if typ != "*" and actual != "*" and actual != typ:
+                raise CodecError(f"expected {typ}, got {actual}")
+
+    def _unreachable(self) -> None:
+        del self.stack[self.frames[-1].height :]
+        self.frames[-1].unreachable = True
+
+    def _end_values(self) -> None:
+        self._pop(self.frames[-1].result)
+        if len(self.stack) != self.frames[-1].height:
+            raise CodecError("extra operands at end of control frame")
+
+    def _branch(self, depth: int) -> None:
+        if depth >= len(self.frames):
+            raise CodecError("branch depth outside active scope")
+        target = self.frames[-1 - depth]
+        types = [] if target.kind == "loop" else target.result
+        if self.pending == "br_if":
+            self._pop(("i32",))
+            self._pop(types)
+            self.stack.extend(types)
+        else:
+            self._pop(types)
+            self._unreachable()
+
+    def _branch_depths(self) -> list[int]:
+        result = []
+        for depth in range(len(self.frames)):
+            try:
+                copy.deepcopy(self)._branch(depth)
+            except CodecError:
+                continue
+            result.append(depth)
+        return result
+
+    def _range(self) -> tuple[int, int]:
+        if self.pending in ("br", "br_if"):
+            return 0, len(self.frames) - 1
+        return NUMERIC_RANGES[self.pending.split(".")[0]]
+
+    def _number(self, token: str) -> None:
+        lo, hi = self._range()
+        if token == "</int>":
+            if not re.fullmatch(r"0|-?[1-9][0-9]*", self.integer):
+                raise CodecError("incomplete or noncanonical integer")
+            value = int(self.integer)
+            if not lo <= value <= hi:
+                raise CodecError("integer outside instruction range")
+            if self.pending in ("br", "br_if"):
+                self._branch(value)
+            else:
+                self.stack.extend(RESULT if self.pending == "i256.const" else [self.pending[:3]])
+            self.mode, self.pending, self.integer = "body", "", ""
+            return
+        if token == "-" and not self.integer and lo < 0:
+            self.integer = "-"
+            return
+        if token not in "0123456789" or len(token) != 1:
+            raise CodecError("expected decimal digit or integer terminator")
+        if self.integer in ("0", "-0") or (self.integer == "-" and token == "0"):
+            raise CodecError("leading zero or negative zero")
+        self.integer += token
+        if self.pending in ("br", "br_if") and int(self.integer) not in self._branch_depths():
+            raise CodecError("branch target has incompatible operand types")
+        bound = -lo if self.integer.startswith("-") else hi
+        # Bound length before conversion, including adversarial huge literals.
+        magnitude = self.integer.lstrip("-")
+        if len(magnitude) > len(str(bound)) or int(magnitude) > bound:
+            raise CodecError("integer prefix exceeds instruction range")
+
+    def consume(self, token_id: int) -> None:
+        if type(token_id) is not int or token_id not in ID_TO_TOKEN:
+            raise CodecError("unknown/non-integer token ID")
+        if self.finished or self.count >= MAX_BODY_TOKENS:
+            raise CodecError("body finished or token cap reached")
+        token = ID_TO_TOKEN[token_id]
+        if self.count == MAX_BODY_TOKENS - 1 and token != "<eos>":
+            raise CodecError("last body slot is reserved for a valid EOS")
+        self.count += 1
+        if self.mode == "int_start":
+            if token != "<int>":
+                raise CodecError("expected <int>")
+            self.mode = "integer"
+            return
+        if self.mode == "integer":
+            self._number(token)
+            return
+        if self.mode == "local":
+            if token not in LOCAL_TYPES:
+                raise CodecError("undeclared local")
+            typ = LOCAL_TYPES[token]
+            if self.pending != "local.get":
+                self._pop((typ,))
+            if self.pending != "local.set":
+                self.stack.append(typ)
+            self.mode, self.pending = "body", ""
+            return
+        if self.mode == "result":
+            if token == ")":
+                if not self.frames[-1].result:
+                    raise CodecError("empty result annotation")
+                self.mode = "body"
+                self.frames[-1].phase = "if_then" if self.frames[-1].kind == "if" else "body"
+            elif token in ("i32", "i64"):
+                self.frames[-1].result.append(token)
+            else:
+                raise CodecError("expected result type or closing parenthesis")
+            return
+        if self.mode in ("open", "header_open", "arm_open"):
+            mode, self.mode = self.mode, "body"
+            frame = self.frames[-1]
+            if mode == "header_open" and token == "result":
+                self.mode = "result"
+                return
+            if token in ("then", "else") and mode in ("header_open", "arm_open"):
+                expected = "else" if frame.phase == "after_then" else "then"
+                if frame.kind != "if" or token != expected:
+                    raise CodecError("unexpected if arm")
+                frame.phase = token
+                return
+            if mode == "arm_open" or (mode == "header_open" and frame.kind == "if"):
+                raise CodecError("expected if arm")
+            if mode == "header_open":
+                frame.phase = "body"
+            if token not in ("block", "loop", "if"):
+                raise CodecError("only structured control may open here")
+            if len(self.frames) > 8 or (
+                token == "loop" and sum(f.kind == "loop" for f in self.frames) >= 3
+            ):
+                raise CodecError("control nesting limit exceeded")
+            if token == "if":
+                self._pop(("i32",))
+            self.frames.append(_Frame(token, len(self.stack)))
+            return
+        frame = self.frames[-1]
+        if frame.phase in ("header", "if_then", "after_then", "after_else"):
+            if token == "(" and frame.phase != "after_else":
+                self.mode = "header_open" if frame.phase == "header" else "arm_open"
+                return
+            if frame.kind == "if":
+                if token == ")" and frame.phase in ("after_then", "after_else"):
+                    if frame.phase == "after_then" and frame.result:
+                        raise CodecError("value-producing if requires else")
+                    self.frames.pop()
+                    self.stack.extend(frame.result)
+                    return
+                raise CodecError("incomplete if structure")
+            frame.phase = "body"
+        if token == "<eos>":
+            if len(self.frames) != 1:
+                raise CodecError("EOS inside control scope")
+            self._end_values()
+            self.finished = True
+        elif token == ")":
+            if len(self.frames) == 1:
+                raise CodecError("unmatched closing parenthesis")
+            self._end_values()
+            if frame.kind == "if":
+                frame.phase = "after_" + frame.phase
+                frame.unreachable = False
+            else:
+                self.frames.pop()
+                self.stack.extend(frame.result)
+        elif token == "(":
+            if len(self.frames) > 8:
+                raise CodecError("control nesting limit exceeded")
+            self.mode = "open"
+        elif token in ("i32.const", "i64.const", "i256.const", "br", "br_if"):
+            self.pending, self.mode = token, "int_start"
+            if token in ("br", "br_if") and not self._branch_depths():
+                raise CodecError("no well-typed branch target")
+        elif token in ("local.get", "local.set", "local.tee"):
+            if token != "local.get":
+                # Check availability without consuming until the local type is known.
+                clone = copy.deepcopy(self)
+                clone._pop(("*",))
+            self.pending, self.mode = token, "local"
+        elif token == "unreachable":
+            self._unreachable()
+        elif token == "return":
+            self._pop(RESULT)
+            self._unreachable()
+        elif token == "drop":
+            self._pop(("*",))
+        elif token == "nop":
+            pass
+        elif token in ("i256.zero", "i256.add", "i256.sub", "i256.mul_scalar"):
+            arity = {"i256.zero": 0, "i256.add": 8, "i256.sub": 8, "i256.mul_scalar": 5}[token]
+            self._pop(("i64",) * arity)
+            self.stack.extend(RESULT)
+        elif token in ALLOWED_OPERATORS and token.startswith(("i32.", "i64.")):
+            typ, op = token.split(".")
+            if op == "wrap_i64":
+                inputs, outputs = ("i64",), ("i32",)
+            elif op in ("extend_i32_s", "extend_i32_u"):
+                inputs, outputs = ("i32",), ("i64",)
+            else:
+                inputs = (typ,) * (1 if op == "eqz" else 2)
+                outputs = (
+                    "i32" if op in ("eqz", "eq", "ne", "lt_s", "gt_s", "le_s", "ge_s") else typ,
+                )
+            self._pop(inputs)
+            self.stack.extend(outputs)
+        else:
+            raise CodecError(f"forbidden body token {token!r}")
+
+    def allowed(self) -> list[int]:
+        if self.finished or self.count >= MAX_BODY_TOKENS:
+            return []
+        result = []
+        for token_id in ID_TO_TOKEN:
+            try:
+                copy.deepcopy(self).consume(token_id)
+            except CodecError:
+                continue
+            result.append(token_id)
+        return result
+
+
+def _source_words(source: str) -> list[str]:
+    if not isinstance(source, str) or len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
+        raise CodecError("source exceeds 64 KiB or is not text")
+    # WAT line and nested block comments; never edit/reorder instructions.
+    out, i, depth = [], 0, 0
+    while i < len(source):
+        pair = source[i : i + 2]
+        if pair == "(;":
+            depth += 1
+            out.append(" ")
+            i += 2
+        elif depth and pair == ";)":
+            depth -= 1
+            i += 2
+        elif depth:
+            i += 1
+        elif pair == ";;":
+            end = source.find("\n", i)
+            i = len(source) if end < 0 else end
+            out.append(" ")
+        else:
+            out.append(source[i])
+            i += 1
+    if depth:
+        raise CodecError("unterminated block comment")
+    return re.findall(r"[()]|[^\s()]+", "".join(out))
+
+
+def encode_body(source: str) -> list[int]:
+    ids = []
+    for word in _source_words(source):
+        if re.fullmatch(r"0|-?[1-9][0-9]*", word):
+            ids.extend([INT_ID, *(TOKEN_TO_ID[c] for c in word), TERM_ID])
+        elif word in TOKEN_TO_ID and not word.startswith("<"):
+            ids.append(TOKEN_TO_ID[word])
+        else:
+            raise CodecError(f"unknown or noncanonical source token {word!r}")
+        if len(ids) >= MAX_BODY_TOKENS:
+            raise CodecError("body exceeds token cap")
     ids.append(EOS_ID)
-    if len(ids) > MAX_BODY_TOKENS:
-        raise CodecError(f"body has {len(ids)} tokens (incl. EOS), exceeds {MAX_BODY_TOKENS}")
+    validate_body(ids)
     return ids
 
 
-def decode_body(token_ids: List[int]) -> str:
-    """Decode body token ids back to the exact canonical source (round trip).
+def validate_body(token_ids: list[int]) -> None:
+    if not token_ids or len(token_ids) > MAX_BODY_TOKENS:
+        raise CodecError("empty body or token cap exceeded")
+    state = BodyState()
+    for token_id in token_ids:
+        state.consume(token_id)
+    if not state.finished:
+        raise CodecError("complete body must end with EOS")
 
-    Digit runs terminated by ``</int>`` are rejoined into signed integer
-    literals; the terminator is retained in the canonical serialization.
-    Raises CodecError on an unterminated digit run (a partially emitted
-    literal) or a mid-sequence EOS.
-    """
-    parts: List[str] = []
-    digits: List[str] = []
-    for idx, t_id in enumerate(token_ids):
-        if t_id not in ID_TO_TOKEN:
-            raise CodecError(f"unknown token id {t_id}")
-        tok = ID_TO_TOKEN[t_id]
-        if tok == _EOS:
-            if idx != len(token_ids) - 1:
-                raise CodecError("EOS must appear exactly once, at the end")
-            break
-        if tok == _TERM:
-            if not digits:
-                raise CodecError(f"unterminated/empty integer immediate at {tok!r}")
-            num = "".join(digits)
-            parts.append(num)
-            parts.append(tok)
+
+def decode_body(token_ids: list[int]) -> str:
+    validate_body(token_ids)
+    parts, digits = [], []
+    for token_id in token_ids[:-1]:
+        token = ID_TO_TOKEN[token_id]
+        if token == "<int>":
             digits = []
-        elif t_id in DIGIT_IDS or t_id == NEG_ID:
-            digits.append(tok)
+        elif token == "</int>":
+            parts.append("".join(digits))
+        elif token_id in DIGIT_IDS or token_id == NEG_ID:
+            digits.append(token)
         else:
-            if digits:
-                raise CodecError("partially emitted literal: digits without terminator")
-            parts.append(tok)
-    if digits:
-        raise CodecError("partially emitted literal: unterminated digit run")
-    return " ".join(parts)
+            parts.append(token)
+    source = " ".join(parts)
+    if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
+        raise CodecError("canonical source exceeds byte cap")
+    return source
 
 
-def validate_body(token_ids: List[int]) -> None:
-    """Enforce body token constraints: non-empty, EOS exactly once at the end,
-    no BOS/padding/unknown ids, at most 1,024 tokens."""
-    if not token_ids:
-        raise CodecError("body tokens must be non-empty")
-    if token_ids[-1] != EOS_ID:
-        raise CodecError("EOS must be exactly once, at the end")
-    if token_ids.count(EOS_ID) != 1:
-        raise CodecError("EOS must appear exactly once")
-    if len(token_ids) > MAX_BODY_TOKENS:
-        raise CodecError(f"body has {len(token_ids)} tokens, exceeds {MAX_BODY_TOKENS}")
-    for t_id in token_ids:
-        if t_id not in ID_TO_TOKEN or t_id == EOS_ID:
-            raise CodecError(f"invalid body token id {t_id}")
-        tok = ID_TO_TOKEN[t_id]
-        if tok in ("<unk>", "<pad>", "<bos>"):
-            raise CodecError(f"forbidden special token {tok!r} in body")
-
-
-# ---------------------------------------------------------------------------
-# Incremental type/scope mask
-# ---------------------------------------------------------------------------
-
-_OPCODE_IDS = {TOKEN_TO_ID[op] for op in ALLOWED_OPERATORS}
-_LOCAL_IDS = {TOKEN_TO_ID[l] for l in _FIXED_LOCALS}
-_OPEN_PAREN = TOKEN_TO_ID["("]
-_CLOSE_PAREN = TOKEN_TO_ID[")"]
-_LOCAL_KW = TOKEN_TO_ID["local"]
-
-_IMMEDIATE_OPS = {
-    op: TOKEN_TO_ID[op] for op in ("i64.const", "i32.const", "i256.const", "br", "br_if")
-}
-
-
-def allowed_tokens_at(prefix: List[int]) -> List[int]:
-    """Return the token ids allowed next for the given body token prefix.
-
-    Implements an incremental type/scope mask: immediates must be spelled as
-    signed digit tokens terminated by ``</int>``; EOS is only allowed once the
-    body is complete at top level.
-    """
-    allowed: Set[int] = set()
-
-    if not prefix:
-        # Body starts with '(' (a local declaration) or a top-level opcode.
-        allowed.add(_OPEN_PAREN)
-        allowed |= _OPCODE_IDS
-        return sorted(allowed)
-
-    if prefix[-1] == EOS_ID:
-        return [EOS_ID]
-
-    # Immediate in progress: after an opcode that takes an immediate, or while
-    # accumulating signed digits, only digits and the terminator are allowed.
-    if prefix[-1] in DIGIT_IDS or prefix[-1] == NEG_ID:
-        allowed |= DIGIT_IDS
-        allowed.add(TERM_ID)
-        allowed.add(NEG_ID)
-        return sorted(allowed)
-
-    # Inside a numeric immediate: the terminator is required before continuing.
-    if prefix[-1] == _TERM:
-        pass  # fall through to general body continuation
-
-    last_op = prefix[-1]
-    if last_op in _IMMEDIATE_OPS.values():
-        allowed |= DIGIT_IDS
-        allowed.add(NEG_ID)
-        return sorted(allowed)
-
-    # General body context: opcodes, fixed locals, parens, and EOS at top level.
-    allowed |= _OPCODE_IDS
-    allowed |= _LOCAL_IDS
-    allowed.add(_OPEN_PAREN)
-    allowed.add(_CLOSE_PAREN)
-    allowed.add(_LOCAL_KW)
-
-    # EOS is valid only when the body is complete: no open parens and the last
-    # token was a terminator or a closing paren / opcode at top level.
-    open_parens = 0
-    for t_id in prefix:
-        tok = ID_TO_TOKEN[t_id]
-        if tok == "(":
-            open_parens += 1
-        elif tok == ")":
-            open_parens = max(0, open_parens - 1)
-    if open_parens == 0 and len(prefix) >= 1:
-        allowed.add(EOS_ID)
-
-    return sorted(allowed)
+def allowed_tokens_at(prefix: list[int]) -> list[int]:
+    state = BodyState()
+    for token_id in prefix:
+        state.consume(token_id)
+    return state.allowed()

@@ -2,7 +2,7 @@
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts](contracts/cli.md).
 
-**Status**: Implementation backlog; no task below is marked complete by this planning change. Tests are explicitly required by the feature specification. Write the relevant failing regressions before their fixes. Commands and newly named files are implementation targets, not claims that they exist now.
+**Status**: Implementation backlog with reviewed phase-2 progress. Tests are explicitly required by the feature specification. Write the relevant failing regressions before their fixes. Commands and newly named files are implementation targets, not claims that they exist now.
 
 **Review status (implementation-kickoff audit of working tree at HEAD `42630f0`; tree == HEAD modulo file modes)**:
 
@@ -54,11 +54,20 @@ Per-task evidence for `[/]` tasks:
 
 ## Phase 2: Foundational contracts and complete codec
 
+**2026-10-02 review**: See [phase-2 review and validation](validation/phase-2-review.md).
+T003/T004/T006/T008 have CPU review evidence. T005/T007 are CPU-complete;
+`[/]` records the outstanding AMD/HIP constructor/device integration test, not
+an accepted GPU result. Later-phase statuses remain unchanged. The root Dockerfile
+and `lab-gpu` workflow supersede the historical phase-1 path audit above; this
+review does not require restoring the removed `docker/foundation/` layout.
+`freeze-cohort` and `build-pool` now reject until their actual later-phase
+pipelines exist; the previous file-list implementations were not those pipelines.
+
 - [X] T003 [P] Add `tests/contract/test_foundation_artifacts.py` covering every required/unknown field, profile mismatch, hash/path rule, wrong horizon, `PROVEN`, floating integer, incomplete match and partial checkpoint in `specs/007-experiment-foundation/contracts/artifacts.schema.json` and `data-model.md`. Verify the schema examples are explicitly fixtures, never eligible run evidence. (FR-001, FR-005, FR-007, FR-008, FR-014, FR-019)
 - [X] T004 Implement `src/oeis_learn/experiments/{__init__,models,profiles}.py` and `configs/foundation/wat_profile.yaml` from the contracts. Preserve the exact constraints: "`schema_version` is exactly `foundation/v1`; unknown versions and unknown fields are rejected"; "A `Digest` is `sha256:` followed by exactly 64 lowercase hexadecimal characters"; "An `IntegerText` matches `^(0|-?[1-9][0-9]*)$`"; indices/counts/durations are nonnegative integers, not booleans. Implement exact range, path containment, enum/nullability and relationship checks in addition to JSON shape validation. Track/objective/initialization are exactly `strict_generic`/`sft`/`random`, horizon 20/100 and policy `prefix_rebased_zero`. Store the exhaustive opcode/wrapper/numeric/resource inventory and reject implicit backend/profile upgrades. (FR-001–002, FR-005, FR-007–008, FR-012, FR-018–019)
-- [X] T005 Implement strict configuration loading in `src/oeis_learn/experiments/config.py` and `configs/foundation/wat_smoke.yaml`, rejecting unknown keys, options for disabled solvers/optimizers/scaffolds/RL/proving, mismatched locks and incomplete identities. Persist every effective model constructor setting (dropout0.1, FiLM enabled, summary tokens disabled and explicit prime/modulus lists), FP32, limits and explicit unavailable/disabled values before work; the smoke is batch four, three updates, no scheduler/scaler. (FR-001, FR-012, FR-015, FR-017–018)
+- [/] T005 Implement strict configuration loading in `src/oeis_learn/experiments/config.py` and `configs/foundation/wat_smoke.yaml`, rejecting unknown keys, options for disabled solvers/optimizers/scaffolds/RL/proving, mismatched locks and incomplete identities. Persist every effective model constructor setting (dropout0.1, FiLM enabled, summary tokens disabled and explicit prime/modulus lists), FP32, limits and explicit unavailable/disabled values before work; the smoke is batch four, three updates, no scheduler/scaler. (FR-001, FR-012, FR-015, FR-017–018)
 - [X] T006 [P] Add `tests/unit/test_foundation_codec.py` for signed-256/i64/i32 bounds, negative and large constants, every declared local/branch scope, partially emitted literals, valid EOS, no UNK, no truncation and exact canonical token round trips. Include vocabulary sizes above 128 so a fixed-width mask cannot silently drop tokens. (FR-004, FR-013)
-- [X] T007 Implement `src/oeis_learn/decoder/program_codec.py` and adapt `decoder/{wat_grammar,grammar_masker,environment_tracker,sampler}.py` for `wat_body_decimal_v1`: fixed opcode/local tokens and signed digit immediates with explicit terminator, incremental type/scope masks and complete EOS. Enforce "`body_tokens` is nonempty, contains EOS exactly once at the end, contains no BOS/padding/unknown tokens, and is at most 1,024 tokens" and "Canonical source is at most 64 KiB". Preserve legacy codec identities for diagnostics; do not reuse their incompatible output weights. Depends on T004/T006. (FR-001, FR-004, FR-013)
+- [/] T007 Implement `src/oeis_learn/decoder/program_codec.py` and adapt `decoder/{wat_grammar,grammar_masker,environment_tracker,sampler}.py` for `wat_body_decimal_v1`: fixed opcode/local tokens and signed digit immediates with explicit terminator, incremental type/scope masks and complete EOS. Enforce "`body_tokens` is nonempty, contains EOS exactly once at the end, contains no BOS/padding/unknown tokens, and is at most 1,024 tokens" and "Canonical source is at most 64 KiB". Preserve legacy codec identities for diagnostics; do not reuse their incompatible output weights. Depends on T004/T006. (FR-001, FR-004, FR-013)
 - [X] T008 Implement canonical artifact storage/identity helpers in `src/oeis_learn/experiments/artifacts.py`, initialize fixture support under `tests/fixtures/foundation/`, and register the strict command group in `src/oeis_learn/cli/{foundation,main}.py`. Use exact final-byte hashes, atomic writes, acyclic references, safe relative paths and an explicit diagnostic purpose. Reject unsupported commands until their slices are implemented. Depends on T003–T005. (FR-001, FR-011, FR-014–015, FR-020)
 
 **Checkpoint**: Shared types, profiles, codec and CLI boundary are usable; legacy data and implicit defaults cannot enter the strict path.
@@ -263,7 +272,7 @@ Each row names substantive test/implementation work as well as final release che
 
 | Requirement | Task IDs | Acceptance gate |
 | --- | --- | --- |
-| FR-001 | T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041, T053, T060, T104 | Mapped story gate; G10 release |
+| FR-001 | T106, T107, T108, T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041, T053, T060, T104 | Mapped story gate; G10 release |
 | FR-002 | T004, T009, T010, T013, T097, T104 | Mapped story gate; G10 release |
 | FR-003 | T009, T010, T013, T014, T015, T019, T033, T037, T050, T054, T059, T080, T082, T097, T104 | Mapped story gate; G10 release |
 | FR-004 | T006, T007, T011, T012, T015, T017, T019, T033, T050, T052, T056, T058, T104 | Mapped story gate; G10 release |
@@ -318,7 +327,7 @@ Each row names substantive test/implementation work as well as final release che
 
 ## Implementation strategy
 
-Deliver reviewed story increments with expected failing regressions before fixes and passing evidence before activation. All105 implementation checkboxes remain unchecked in this planning change. G0/adoption is preserved, and G7 restores immediate proof/solver repair sequencing. Scope is expanded but experiments remain bounded: two engineering hours plus at most one six-hour paired pilot. Runtime evidence, not document validation, establishes completion. No LODA runtime, paired language training or transcoder is launched here.
+Deliver reviewed story increments with expected failing regressions before fixes and passing evidence before activation. The original 105 tasks plus three phase-2 convergence fixes retain explicit implementation status. G0/adoption is preserved, and G7 restores immediate proof/solver repair sequencing. Scope is expanded but experiments remain bounded: two engineering hours plus at most one six-hour paired pilot. Runtime evidence, not document validation, establishes completion. No LODA runtime, paired language training or transcoder is launched here.
 
 ## Phase 12: Convergence (Phase 2 completion)
 

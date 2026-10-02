@@ -4,22 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 from oeis_learn.decoder.wat_grammar import (
     BOS_ID,
     EOS_ID,
-    ID_TO_TOKEN,
     IDENTIFIER_TOKENS,
-    INSTRUCTION_TOKENS,
     LITERAL_TOKENS,
     OPCODE_SIGNATURES,
     SIG_I32_I32_TO_I32,
-    SIG_I32_TO_I64,
     SIG_I64_I64_TO_I64,
-    SIG_I64_TO_I32,
-    SYNTAX_TOKENS,
     TOKEN_TO_ID,
-    VOCAB_SIZE,
 )
 
 
@@ -623,3 +617,21 @@ class RecurrenceFrameTracker:
     def can_emit_backedge(self) -> bool:
         return self.is_backedge_ready()
 
+
+
+class FoundationEnvironmentTracker:
+    """Body-only codec adapter used by the existing GrammarMasker/sampler."""
+
+    def __init__(self):
+        from oeis_learn.decoder.program_codec import BodyState, FOUNDATION_VOCAB_SIZE
+        self.state = BodyState()
+        self.vocab_size = FOUNDATION_VOCAB_SIZE
+
+    def update(self, token: str) -> None:
+        from oeis_learn.decoder.program_codec import TOKEN_TO_ID, CodecError
+        if token not in TOKEN_TO_ID:
+            raise CodecError(f'unknown foundation token {token!r}')
+        self.state.consume(TOKEN_TO_ID[token])
+
+    def get_valid_next_tokens(self) -> Set[int]:
+        return set(self.state.allowed())
