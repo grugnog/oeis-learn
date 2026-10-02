@@ -29,7 +29,7 @@ class SymbolicDefinitionRegistry:
     def load_registry(self,registry_path):
         path=Path(registry_path)
         if path.stat().st_size>1<<20: raise ValueError('registry size')
-        data=load_json(path)
+        data=load_json(path.read_text(encoding='utf-8'))
         if set(data)!={'schema_version','registry_id','registry_sha256','created_at','definitions'} or data['schema_version']!='1.0': raise ValueError('registry version/fields')
         if data['registry_sha256']!=compute_canonical_digest(data,'registry_sha256'): raise ValueError('registry hash mismatch')
         if not isinstance(data['definitions'],list): raise ValueError('definitions list')
