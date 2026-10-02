@@ -165,5 +165,15 @@ def foundation_readiness(checkpoint, *, software_complete):
         else "pending_run_gates",
         "software_complete": bool(software_complete),
         "checkpoint_sha256": checkpoint.manifest["blob_sha256"],
-        "missing_gates": ["hardware/runtime containment and complete run provenance (T046/T049)"],
+        "missing_gates": [
+            "G0: actual-device feasibility and adopted-contract provenance for this run",
+            "G1: bound exact-runtime conformance evidence",
+            "G2: bound evaluation/isolation evidence",
+            "G3: bound generic-admission evidence",
+            "G4: bound complete-resume evidence",
+            "G5: real HIP updates and runtime containment",
+            "G6: bound finite-result/proof-boundary evidence",
+        ],
+        "full_007_additional_gates": ["G7", "G8", "G9", "G10"],
+        "lifecycle_is_qualification": False,
     }

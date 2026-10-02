@@ -14,13 +14,19 @@ from oeis_learn.experiments.models import (
 )
 
 _SUPPORTED_COMMANDS = frozenset(
-    {"preflight", "conformance", "freeze-cohort", "evaluate", "finalize", "build-pool"}
+    {
+        "preflight",
+        "conformance",
+        "freeze-cohort",
+        "evaluate",
+        "finalize",
+        "build-pool",
+        "train",
+        "resume",
+        "inspect",
+    }
 )
-_UNSUPPORTED_COMMANDS = {
-    "train": "requires strict training and resource gates (T044–T047)",
-    "resume": "requires checkpoint continuation (T041–T045)",
-    "inspect": "requires checkpoint/run inspection (T041/T045)",
-}
+_UNSUPPORTED_COMMANDS = {}
 
 
 def _reject_unsupported(command: str) -> int:
@@ -107,6 +113,9 @@ def dispatch(command: str, **kwargs) -> int:
         "evaluate": cmd_evaluate,
         "finalize": cmd_finalize,
         "build-pool": cmd_build_pool,
+        "train": cmd_train,
+        "resume": cmd_resume,
+        "inspect": cmd_inspect,
     }[command](**{k: v for k, v in kwargs.items() if v is not None})
 
 
@@ -253,3 +262,66 @@ def cmd_build_pool(config, cohort, output, as_json=False):
         )
     print(json.dumps(result) if as_json else f"{result['status']}: {result}")
     return code
+
+
+def cmd_train(
+    config,
+    pool,
+    run_dir,
+    device,
+    diagnostic=False,
+    diagnostic_small_host=False,
+    prepare_only=False,
+    seed=20260913,
+    stop_after_update=None,
+    as_json=False,
+):
+    from oeis_learn.rl.foundation_sft import prepare_run
+    from oeis_learn.tracking.foundation_controller import run_training
+    from oeis_learn.evaluation.foundation_synthesis import HardwareUnavailable
+
+    def run():
+        if device == "cuda":
+            import torch
+
+            if not torch.cuda.is_available() or not torch.version.hip:
+                raise HardwareUnavailable("HIP GPU unavailable; no CPU fallback")
+        record = prepare_run(
+            config,
+            pool,
+            run_dir,
+            device=device,
+            diagnostic=diagnostic,
+            seed=seed,
+            diagnostic_small_host=diagnostic_small_host,
+        )
+        if prepare_only:
+            return dict(
+                status="prepared",
+                qualified=False,
+                run_id=record["run_id"],
+                result_path=str(Path(run_dir) / "run.json"),
+            )
+        return run_training(run_dir, stop_after=stop_after_update)
+
+    return _phase4_command("train", run, as_json)
+
+
+def cmd_resume(run_dir, checkpoint=None, stop_after_update=None, as_json=False):
+    from oeis_learn.tracking.foundation_controller import run_training
+    from oeis_learn.tracking.run_manager import inspect_foundation_run
+
+    def run():
+        if checkpoint is not None:
+            selected = inspect_foundation_run(run_dir)["checkpoint"]
+            if selected is None or Path(checkpoint).resolve() != Path(selected).resolve():
+                raise ValueError("resume must select newest valid checkpoint; override forbidden")
+        return run_training(run_dir, resume=True, stop_after=stop_after_update)
+
+    return _phase4_command("resume", run, as_json)
+
+
+def cmd_inspect(run_dir, as_json=False):
+    from oeis_learn.tracking.run_manager import inspect_foundation_run
+
+    return _phase4_command("inspect", lambda: inspect_foundation_run(run_dir), as_json)

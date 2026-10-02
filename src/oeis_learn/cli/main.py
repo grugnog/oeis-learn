@@ -359,6 +359,25 @@ def build_parser() -> argparse.ArgumentParser:
         fbp_p.add_argument('--' + name, required=True)
     fbp_p.add_argument('--json', dest='as_json', action='store_true')
 
+    ft_p = foundation_subparsers.add_parser('train', help='Bounded strict SFT from a verified generic pool.')
+    for name in ('config', 'pool', 'run-dir'):
+        ft_p.add_argument('--' + name, required=True)
+    ft_p.add_argument('--device', choices=('cpu', 'cuda'), required=True)
+    ft_p.add_argument('--diagnostic', action='store_true')
+    ft_p.add_argument('--diagnostic-small-host', action='store_true', help='Freeze diagnostic floors: 1 GiB free disk, 256 MiB host memory; never qualifies.')
+    ft_p.add_argument('--prepare-only', action='store_true', help='Validate and freeze inputs without starting the arm.')
+    ft_p.add_argument('--seed', type=int, default=20260913)
+    ft_p.add_argument('--stop-after-update', type=int, choices=(1, 2, 3))
+    ft_p.add_argument('--json', dest='as_json', action='store_true')
+    fr_p = foundation_subparsers.add_parser('resume', help='Recover newest valid complete state; no configuration overrides.')
+    fr_p.add_argument('--run-dir', required=True)
+    fr_p.add_argument('--checkpoint', help='Optional expected newest manifest; cannot force an older state.')
+    fr_p.add_argument('--stop-after-update', type=int, choices=(1, 2, 3))
+    fr_p.add_argument('--json', dest='as_json', action='store_true')
+    fi_p = foundation_subparsers.add_parser('inspect', help='Read-only run integrity and accounting inspection.')
+    fi_p.add_argument('--run-dir', required=True)
+    fi_p.add_argument('--json', dest='as_json', action='store_true')
+
     # Command 11: list-runs
     subparsers.add_parser(
         "list-runs",
@@ -775,12 +794,13 @@ def handle_run_ablations(args: argparse.Namespace) -> int:
 def handle_foundation(args: argparse.Namespace) -> int:
     """Handles the `foundation` subcommand; delegates to foundation module (T008)."""
     if not args.foundation_command:
-        print('Foundation commands: preflight, conformance, freeze-cohort, evaluate, finalize, build-pool')
+        print('Foundation commands: preflight, conformance, freeze-cohort, evaluate, finalize, build-pool, train, resume, inspect')
         return 1
     from oeis_learn.cli.foundation import dispatch
     kw = {k: getattr(args, k) for k in (
         'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
+        'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

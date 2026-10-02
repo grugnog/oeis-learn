@@ -1,0 +1,500 @@
+{
+  "schema_version": "phase-review/v1",
+  "phase": 6,
+  "purpose": "diagnostic",
+  "qualified": false,
+  "proof_status": "not_claimed",
+  "run": {
+    "budget_ns": 600000000000,
+    "contract_sha256": "sha256:c84ff909c6d6b7ad292d042a2408a26bf091c87cb64c57c2a6f2f8da172f9f81",
+    "device": "cpu",
+    "diagnostic": true,
+    "diagnostic_small_host": true,
+    "free_disk_floor_bytes": 1073741824,
+    "host_available_floor_bytes": 268435456,
+    "pool_id": "sha256:052d48524d4e620c23951720e911d7ddf006d4c6bfdee7333135db678b662325",
+    "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+    "schema_version": "foundation/v1",
+    "seed": 20260913,
+    "view_id": "sha256:620ec6197ab3419e9f45d039e9a2579abd6004045031c9887fd46a0d182803c5"
+  },
+  "pool_id": "sha256:052d48524d4e620c23951720e911d7ddf006d4c6bfdee7333135db678b662325",
+  "model_profile": {
+    "d_model": 256,
+    "encoder_layers": 4,
+    "decoder_layers": 4,
+    "heads": 4,
+    "feed_forward": 1024,
+    "dropout": 0.1,
+    "film": true,
+    "summary_tokens": false,
+    "dtype": "fp32",
+    "modulus": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101
+    ],
+    "primes": [
+      2,
+      3,
+      5,
+      7,
+      11,
+      13
+    ],
+    "codec_output_vocab": 134,
+    "position": "sinusoidal",
+    "encoder_max_seq_len": 128,
+    "decoder_max_seq_len": 1024,
+    "max_valuation": 16,
+    "chunk_size": 256,
+    "logit_cap_threshold": 30
+  },
+  "parameter_count": 8426527,
+  "pause_report": {
+    "completed_update": 1,
+    "diagnostic_small_host": true,
+    "isolation": "unqualified_process_boundary",
+    "ledger": {
+      "charged_budget_ns": 4544073010,
+      "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+      "sequence": 8,
+      "status": "paused"
+    },
+    "purpose": "diagnostic",
+    "qualified": false,
+    "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+    "status": "paused"
+  },
+  "completion_report": {
+    "completed_update": 3,
+    "diagnostic_small_host": true,
+    "isolation": "unqualified_process_boundary",
+    "ledger": {
+      "charged_budget_ns": 12381899333,
+      "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+      "sequence": 21,
+      "status": "completed"
+    },
+    "purpose": "diagnostic",
+    "qualified": false,
+    "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+    "status": "completed"
+  },
+  "checkpoint_manifest": {
+    "blob_path": "checkpoint-00000003.pt",
+    "blob_sha256": "sha256:1e6fc5e8680583ded79e2bb29d08bda6e8f94ba9eb1dea2e6acaec826c75fe80",
+    "charged_budget_ns": 10633181601,
+    "checkpoint_state": "complete",
+    "codec_sha256": "sha256:9b6dcb91d4c90b227dffa6e11eb87554ddf271bfdb74e3974202d413703b8fe9",
+    "completed_update": 3,
+    "contract_sha256": "sha256:c84ff909c6d6b7ad292d042a2408a26bf091c87cb64c57c2a6f2f8da172f9f81",
+    "effective_config_sha256": "sha256:ae846f06c0926fe3f34ec5fe11a6e913934384a59edfc55c95a3cf565857bec7",
+    "generation": 3,
+    "kind": "checkpoint_manifest",
+    "ledger_sequence": 18,
+    "next_sample_ids": [
+      "sha256:ad4fb152dd69810f4969fe02a93658a6caa750659c4860739ff94bac1273a311",
+      "sha256:8bdf4d6e7d267e6cd22340566e877763fef284bbdc941e1f93c1bd5d9dbb36e6",
+      "sha256:565ebee728f9c326f0a92f864df5331404a526082a7ac8460eb716404e4e1a31",
+      "sha256:581677062157c88b1902a940779c304b4d0d35353d7523910cceb24a4b9e6fe4"
+    ],
+    "payload_state_keys": [
+      "model",
+      "optimizer",
+      "scheduler",
+      "scaler",
+      "python_rng",
+      "numpy_rng",
+      "torch_cpu_rng",
+      "torch_gpu_rng",
+      "named_rng",
+      "data_order",
+      "counters"
+    ],
+    "pool_sha256": "sha256:567c79647c17abc620e20343dcd9d1481c0361d516420e035e07f8ff4a97d0ec",
+    "previous_manifest_sha256": "sha256:0918a7863159e7785ee8bebbcadb05e8bd0290f8c854b9e6b54d5c1921953172",
+    "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+    "runtime_sha256": "sha256:8d70ecd49f17a6264cae420d44563c82868a30b8348267ca7d0617068113de8d",
+    "schema_version": "foundation/v1"
+  },
+  "checkpoint_manifest_sha256": "sha256:487503d5ab5ce9696bb46954a89a189592e8d712a002e9036f12f0ad2942b2eb",
+  "payload_keys": [
+    "model",
+    "optimizer",
+    "scheduler",
+    "scaler",
+    "python_rng",
+    "numpy_rng",
+    "torch_cpu_rng",
+    "torch_gpu_rng",
+    "named_rng",
+    "data_order",
+    "counters"
+  ],
+  "source_and_run_settings_match_current": true,
+  "updates": [
+    {
+      "completed_update": 1,
+      "examples": {
+        "reason": null,
+        "source": "admitted trainer batch",
+        "state": "measured",
+        "unit": "count",
+        "value": 4
+      },
+      "gradient_norm": {
+        "reason": null,
+        "source": "clip_grad_norm preclip",
+        "state": "measured",
+        "unit": "norm",
+        "value": 1.8200349807739258
+      },
+      "kind": "update",
+      "loss": {
+        "reason": null,
+        "source": "per-program mean cross-entropy",
+        "state": "measured",
+        "unit": "nats",
+        "value": 5.056934356689453
+      },
+      "parameter_device": "cpu",
+      "parameters_changed": true,
+      "resources": {
+        "gpu_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_peak_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_reserved": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "host_available": {
+          "reason": null,
+          "source": "proc/meminfo",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 8332763136
+        },
+        "rss": {
+          "reason": null,
+          "source": "proc/self/statm",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 1062199296
+        }
+      },
+      "sample_ids": [
+        "sha256:063b36cfe7094fb931032f04d566dc2d640d4d4b5564e2fee0b4aaa2425ce2d8",
+        "sha256:b41bd27cdb84f74a9baeb41defbdb214a83734cd368f9fec1586d6621dee3574",
+        "sha256:64afcd9a1683d7e25714e04285fa6a1ddfc0b7d0c069cc3920977e2395b7189d",
+        "sha256:33e7c40caeec4c8b73ec023d1a11bd09aa56c427375f9022b3f6a2648c338e06"
+      ],
+      "tokens": {
+        "reason": null,
+        "source": "nonpadding targets including EOS",
+        "state": "measured",
+        "unit": "count",
+        "value": 1574
+      }
+    },
+    {
+      "completed_update": 2,
+      "examples": {
+        "reason": null,
+        "source": "admitted trainer batch",
+        "state": "measured",
+        "unit": "count",
+        "value": 4
+      },
+      "gradient_norm": {
+        "reason": null,
+        "source": "clip_grad_norm preclip",
+        "state": "measured",
+        "unit": "norm",
+        "value": 2.0295159816741943
+      },
+      "kind": "update",
+      "loss": {
+        "reason": null,
+        "source": "per-program mean cross-entropy",
+        "state": "measured",
+        "unit": "nats",
+        "value": 4.94239616394043
+      },
+      "parameter_device": "cpu",
+      "parameters_changed": true,
+      "resources": {
+        "gpu_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_peak_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_reserved": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "host_available": {
+          "reason": null,
+          "source": "proc/meminfo",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 8005971968
+        },
+        "rss": {
+          "reason": null,
+          "source": "proc/self/statm",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 1266106368
+        }
+      },
+      "sample_ids": [
+        "sha256:e4f08b3d36dbb711d979d0e7e6fcfc98eb99867e1d1bc37a86de89d831f01de5",
+        "sha256:c8e97dcf386bcea647793cc8a9b58a2b3242f57e76adcc9aedc7e590bbd8d7b3",
+        "sha256:279beaa35586e6dd44f6d5f101e55607ff3b2cd0769884a1564686955349b61d",
+        "sha256:1977b064ba96eea7b7c49a6bab7d0a92f6ab6661a35f4c3f7b4c77a7848ea434"
+      ],
+      "tokens": {
+        "reason": null,
+        "source": "nonpadding targets including EOS",
+        "state": "measured",
+        "unit": "count",
+        "value": 1820
+      }
+    },
+    {
+      "completed_update": 3,
+      "examples": {
+        "reason": null,
+        "source": "admitted trainer batch",
+        "state": "measured",
+        "unit": "count",
+        "value": 4
+      },
+      "gradient_norm": {
+        "reason": null,
+        "source": "clip_grad_norm preclip",
+        "state": "measured",
+        "unit": "norm",
+        "value": 1.8930587768554688
+      },
+      "kind": "update",
+      "loss": {
+        "reason": null,
+        "source": "per-program mean cross-entropy",
+        "state": "measured",
+        "unit": "nats",
+        "value": 4.809192657470703
+      },
+      "parameter_device": "cpu",
+      "parameters_changed": true,
+      "resources": {
+        "gpu_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_peak_allocated": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "gpu_reserved": {
+          "reason": "CPU diagnostic",
+          "source": "torch allocator",
+          "state": "unavailable",
+          "unit": "bytes",
+          "value": null
+        },
+        "host_available": {
+          "reason": null,
+          "source": "proc/meminfo",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 8247095296
+        },
+        "rss": {
+          "reason": null,
+          "source": "proc/self/statm",
+          "state": "measured",
+          "unit": "bytes",
+          "value": 1095630848
+        }
+      },
+      "sample_ids": [
+        "sha256:7041430e10fea761af74601b5607033e91330c0bce70290c8359d8079aded315",
+        "sha256:e3a1757452b282f7b322e2212de8b5e96e11e0642ea63004829b0f5681d96181",
+        "sha256:cedbd914d3ad3921ee6be9e6b011623285e6c14979caebbeeb05cfcdd7d9e61e",
+        "sha256:a413cf606196bf867525fae3003a5dc5e2a49b72d8d31c313c3aaa992c48c961"
+      ],
+      "tokens": {
+        "reason": null,
+        "source": "nonpadding targets including EOS",
+        "state": "measured",
+        "unit": "count",
+        "value": 1541
+      }
+    }
+  ],
+  "final_budget_state": {
+    "budget_ns": 600000000000,
+    "charged_budget_ns": 12381899333,
+    "clock": {
+      "boot_id": "0848cd78-3d3f-4a09-a304-f78918679b48",
+      "monotonic_ns": 4699418641712,
+      "utc_ns": 1790973293202506258
+    },
+    "estimated_ns": 0,
+    "measured_ns": 12381899333,
+    "phase_ns": {
+      "bootstrap": 0,
+      "checkpoint": 4498172620,
+      "evaluation": 0,
+      "recovery": 3157761704,
+      "training": 2951674301,
+      "validation": 1774290708
+    },
+    "run_id": "9b0c09ac-e67b-469d-aca2-1da776682b16",
+    "sequence": 21,
+    "status": "completed"
+  },
+  "retained_manifests": [
+    "checkpoint-00000000.json",
+    "checkpoint-00000001.json",
+    "checkpoint-00000002.json",
+    "checkpoint-00000003.json"
+  ],
+  "limitations": [
+    "CPU, reduced host resource floors; no HIP, image or Docker isolation evidence.",
+    "Three updates demonstrate numerical operation and continuation, not useful synthesis accuracy.",
+    "Budget covers active training/controller/recovery/checkpoint time; offline pool preparation and clean pause are excluded.",
+    "Binary checkpoint remains an external run artifact; this review records its actual final-byte identity."
+  ]
+}
