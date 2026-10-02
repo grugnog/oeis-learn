@@ -318,10 +318,12 @@ def build_parser() -> argparse.ArgumentParser:
     # foundation conformance
     fc_p = foundation_subparsers.add_parser(
         'conformance',
-        help='Validate artifacts against foundation artifacts schema.',
+        help='Run execution conformance, or diagnostic artifact validation.',
     )
     fc_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
     fc_p.add_argument('--schema', default=None, help='Schema path')
+    fc_p.add_argument('--profile', help='Frozen execution profile for the full G1 corpus')
+    fc_p.add_argument('--output', help='New immutable conformance evidence directory')
     fc_p.add_argument('artifacts', nargs='*', type=str, help='Paths to artifact JSON files')
 
     # foundation freeze-cohort
@@ -761,7 +763,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         return 1
     from oeis_learn.cli.foundation import dispatch
     kw = {k: getattr(args, k) for k in (
-        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output',
+        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

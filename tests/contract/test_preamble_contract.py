@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from oeis_learn.sandbox.preamble import (
     load_preamble_wat,
     get_preamble_fuel_costs,
@@ -29,24 +28,21 @@ def test_preamble_zero_memory_enforced():
 
 def test_preamble_fuel_costs_contract():
     costs = get_preamble_fuel_costs()
-    assert costs["i256_add"] == 55
-    assert costs["i256_sub"] == 56
-    assert costs["mul64_wide"] == 60
-    assert costs["i256_mul_scalar"] == 271
+    assert costs == {}  # estimates are not measurements
 
 
 def test_static_preamble_entity():
     preamble = get_static_preamble()
-    assert preamble.version == "1.0.0"
+    assert preamble.version == "2.0.0"
     assert preamble.memory_limit_bytes == 0
     assert len(preamble.wat_code) > 0
 
 
 def test_preamble_execution_addition():
     runner = WasmRunner(fuel_budget=10000)
-    preamble_wat = load_preamble_wat()
-    # Strip module wrap
-    inner = preamble_wat[preamble_wat.find("(func"):preamble_wat.rfind(")")]
+    from oeis_learn.sandbox.lowering import extract_preamble_funcs
+
+    inner = extract_preamble_funcs()
     full_module = f"""(module
       {inner}
       (func (export "compute") (param $n i32) (result i64 i64 i64 i64)
@@ -58,3 +54,10 @@ def test_preamble_execution_addition():
     res = runner.run_single(full_module, terms_to_generate=1, result_profile="i256x4_v1")
     assert res.status == "SUCCESS"
     assert res.output == [42]
+
+
+def test_zero_memory_diagnostic_handles_whitespace_and_malformed_text():
+    assert not verify_zero_memory("(module ( memory 1))")
+    assert not verify_zero_memory('(module (import "x" "m" (memory 1)))')
+    assert not verify_zero_memory("(module")
+    assert verify_zero_memory("(module ;; (memory 1)\n)")

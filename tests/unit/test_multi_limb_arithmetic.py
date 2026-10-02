@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+import wasmtime
+from oeis_learn.sandbox.lowering import lower_macro_wat
 from oeis_learn.data.models import MultiLimbRegisterState
 
 
@@ -75,11 +77,60 @@ def test_multilimb_min_negative():
 
 def test_multilimb_roundtrip_range():
     test_values = [
-        0, 1, -1, 42, -42, 2**63 - 1, -(2**63), 2**64, -(2**64),
-        2**120, -(2**120), 2**200, -(2**200), (1 << 255) - 1, -(1 << 255)
+        0,
+        1,
+        -1,
+        42,
+        -42,
+        2**63 - 1,
+        -(2**63),
+        2**64,
+        -(2**64),
+        2**120,
+        -(2**120),
+        2**200,
+        -(2**200),
+        (1 << 255) - 1,
+        -(1 << 255),
     ]
     for v in test_values:
         reg = MultiLimbRegisterState.from_int(v)
         assert reg.signed_value == v, f"Failed roundtrip for value {v}"
         reconstructed = MultiLimbRegisterState(limbs=reg.limbs)
         assert reconstructed.signed_value == v
+
+
+def evaluate(body):
+    module = f'(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) {body}))'
+    engine = wasmtime.Engine()
+    compiled = wasmtime.Module(engine, lower_macro_wat(module))
+    store = wasmtime.Store(engine)
+    limbs = wasmtime.Instance(store, compiled, []).exports(store)["compute"](store, 0)
+    unsigned = sum((limb % (2**64)) << (64 * i) for i, limb in enumerate(limbs))
+    return unsigned - (2**256 if unsigned >= 2**255 else 0)
+
+
+@pytest.mark.parametrize(
+    "body,expected",
+    [
+        ("i256.const 1 i64.const -1 i256.mul_scalar", -1),
+        (f"i256.const {2**64}", 2**64),
+        (f"i256.const {-(2**255)}", -(2**255)),
+        (f"i256.const -1 i64.const {-(2**63)} i256.mul_scalar", 2**63),
+    ],
+)
+def test_exact_known_regressions(body, expected):
+    assert evaluate(body) == expected
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        f"i256.const {2**255 - 1} i256.const 1 i256.add",
+        f"i256.const {-(2**255)} i256.const 1 i256.sub",
+        f"i256.const {-(2**255)} i64.const -1 i256.mul_scalar",
+    ],
+)
+def test_true_signed_overflow_traps(body):
+    with pytest.raises(wasmtime.Trap):
+        evaluate(body)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple
 from oeis_learn.data.models import CanonicalProgramArtifact, ExecutionResult
 from oeis_learn.sandbox.optimizer import optimize_wat_program
 
@@ -15,22 +15,14 @@ try:
     HAS_NATIVE_EVALUATOR = True
 except ImportError:
     HAS_NATIVE_EVALUATOR = False
-    logger.warning("Native oeis_wasm_evaluator not available, using pure Python wasmtime fallback.")
+    logger.debug("Legacy native evaluator unavailable; strict backend selection is explicit.")
 
 
 def decode_i256_limbs(limbs: Sequence[int]) -> int:
     """Reconstructs signed two's complement 256-bit integer from four 64-bit little-endian limbs."""
-    if len(limbs) < 4:
-        return 0
-    mask64 = (1 << 64) - 1
-    u0 = limbs[0] & mask64
-    u1 = limbs[1] & mask64
-    u2 = limbs[2] & mask64
-    u3 = limbs[3] & mask64
-    u = u0 | (u1 << 64) | (u2 << 128) | (u3 << 192)
-    if u >= (1 << 255):
-        return u - (1 << 256)
-    return u
+    from oeis_learn.sandbox.pipeline import decode_limbs
+
+    return decode_limbs(limbs)
 
 
 class WasmRunner:
@@ -59,8 +51,12 @@ class WasmRunner:
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
 
+        if result_profile == "wat_i256_checked_v1":
+            raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
+
         # Lower macros if present or in multi-limb profile
         from oeis_learn.sandbox.lowering import lower_macro_wat
+
         if "i256." in wat_code or result_profile == "i256x4_v1":
             wat_code = lower_macro_wat(wat_code)
 
@@ -82,6 +78,7 @@ class WasmRunner:
             )
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_single_fallback
+
             return evaluate_wat_single_fallback(wat_code, fuel, terms)
 
     def run_batch(
@@ -95,7 +92,11 @@ class WasmRunner:
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
 
+        if result_profile == "wat_i256_checked_v1":
+            raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
+
         from oeis_learn.sandbox.lowering import lower_macro_wat
+
         lowered_programs = []
         for p in wat_programs:
             if "i256." in p or result_profile == "i256x4_v1":
@@ -125,7 +126,8 @@ class WasmRunner:
             return out
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_batch_fallback
-            return evaluate_wat_batch_fallback(list(wat_programs), fuel, terms)
+
+            return evaluate_wat_batch_fallback(lowered_programs, fuel, terms)
 
     def run_optimized_single(
         self,
@@ -166,3 +168,49 @@ class WasmRunner:
             result_profile=result_profile,
         )
         return list(zip(results, artifacts))
+
+
+class FoundationRunner:
+    """Explicit strict adapter; single and batch calls share supervised execution.
+
+    Input is a frozen body, never a legacy module. Rust/automatic selection is
+    unavailable until US5 conformance. Results are ExecutionEvidence; callers
+    use pipeline.verify with evaluator-owned truth for finite CandidateResults.
+    """
+
+    def __init__(self, result_dir, *, backend, workers=1, cache_bytes=1 << 30):
+        if backend != "python_wasmtime":
+            raise ValueError(
+                "Only explicit python_wasmtime is qualified; Rust and auto are unavailable"
+            )
+        from oeis_learn.sandbox.worker_pool import WorkerPool
+
+        self.pool = WorkerPool(result_dir, workers=workers, cache_bytes=cache_bytes)
+
+    def run_single(self, source, indices, *, request_id, **kwargs):
+        return self.pool.evaluate(source, indices, request_id=request_id, **kwargs)
+
+    def run_batch(self, sources, indices, *, request_ids, **kwargs):
+        sources, request_ids, indices = list(sources), list(request_ids), list(indices)
+        if len(sources) != len(request_ids) or len(set(request_ids)) != len(request_ids):
+            raise ValueError("One unique attempt identity required per candidate")
+        # Bounded chunks preserve input order without exceeding the queue cap.
+        results = []
+        for start in range(0, len(sources), 32):
+            futures = [
+                self.pool.submit(source, indices, request_id=identity, **kwargs)
+                for source, identity in zip(
+                    sources[start : start + 32], request_ids[start : start + 32]
+                )
+            ]
+            results.extend(future.result() for future in futures)
+        return results
+
+    def close(self):
+        self.pool.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
