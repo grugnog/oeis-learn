@@ -14,10 +14,9 @@ from oeis_learn.experiments.models import (
 )
 
 _SUPPORTED_COMMANDS = frozenset(
-    {"preflight", "conformance", "freeze-cohort", "evaluate", "finalize"}
+    {"preflight", "conformance", "freeze-cohort", "evaluate", "finalize", "build-pool"}
 )
 _UNSUPPORTED_COMMANDS = {
-    "build-pool": "requires generic generation and independent admission (T029–T036)",
     "train": "requires strict training and resource gates (T044–T047)",
     "resume": "requires checkpoint continuation (T041–T045)",
     "inspect": "requires checkpoint/run inspection (T041/T045)",
@@ -107,6 +106,7 @@ def dispatch(command: str, **kwargs) -> int:
         "freeze-cohort": cmd_freeze_cohort,
         "evaluate": cmd_evaluate,
         "finalize": cmd_finalize,
+        "build-pool": cmd_build_pool,
     }[command](**{k: v for k, v in kwargs.items() if v is not None})
 
 
@@ -205,3 +205,51 @@ def cmd_finalize(run_dir, checkpoint, protocol, cohort, stopping_record, output,
         }
 
     return _phase4_command("finalize", run, as_json)
+
+
+def cmd_build_pool(config, cohort, output, as_json=False):
+    import yaml
+    from oeis_learn.data.program_pool import build_pool
+    from oeis_learn.data.program_admission import AdmissionGateError
+
+    try:
+        result = build_pool(config, cohort, output)
+        code = (
+            0
+            if result["status"] == "complete"
+            else 5
+            if result["reason"] == "wall_budget_exhausted"
+            else 4
+        )
+    except AdmissionGateError as exc:
+        result, code = (
+            {
+                "command": "build-pool",
+                "status": "gate_failed",
+                "error": str(exc),
+                "qualified": False,
+            },
+            4,
+        )
+    except (FileNotFoundError, ValueError, KeyError, TypeError, yaml.YAMLError) as exc:
+        result, code = (
+            {
+                "command": "build-pool",
+                "status": "invalid_input",
+                "error": str(exc),
+                "qualified": False,
+            },
+            2,
+        )
+    except (OSError, RuntimeError, EOFError, TimeoutError) as exc:
+        result, code = (
+            {
+                "command": "build-pool",
+                "status": "interrupted",
+                "error": str(exc),
+                "qualified": False,
+            },
+            5,
+        )
+    print(json.dumps(result) if as_json else f"{result['status']}: {result}")
+    return code
