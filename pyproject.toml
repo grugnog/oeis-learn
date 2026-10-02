@@ -75,4 +75,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 
 [tool.setuptools.package-data]
+"oeis_learn.sandbox" = ["*.wat", "conformance/*.json"]
 "oeis_learn.experiments" = ["*.schema.json"]

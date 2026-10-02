@@ -38,9 +38,31 @@ def cmd_preflight(config: str, output: str, as_json: bool = False) -> int:
 
 
 def cmd_conformance(
-    as_json: bool = False, schema: str | None = None, artifacts: list[str] | None = None
+    as_json: bool = False,
+    schema: str | None = None,
+    artifacts: list[str] | None = None,
+    profile: str | None = None,
+    output: str | None = None,
 ) -> int:
-    """Validate diagnostic artifact shape/semantics, never claim execution success."""
+    """Run G1 with profile/output, or explicitly diagnostic artifact validation."""
+    if profile is not None or output is not None:
+        try:
+            if not profile or not output or schema or artifacts:
+                raise ValueError(
+                    "--profile and --output are required together; cannot mix artifact diagnostics"
+                )
+            from oeis_learn.sandbox.conformance_runner import run_conformance
+
+            result = run_conformance(Path(profile), Path(output))
+            code = 0 if result["status"] == "PASS" else 5 if result["interruptions"] else 4
+        except (OSError, ValueError) as exc:
+            result = {"command": "conformance", "status": "FAIL", "errors": [str(exc)]}
+            code = 2 if isinstance(exc, ValueError) else 5
+        except (RuntimeError, EOFError, TimeoutError) as exc:
+            result = {"command": "conformance", "status": "FAIL", "errors": [str(exc)]}
+            code = 5
+        print(json.dumps(result) if as_json else f"{result['status']}: {result}")
+        return code
     errors, count = [], 0
     try:
         extra_schema = json.loads(Path(schema).read_text()) if schema else None

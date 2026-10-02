@@ -7,8 +7,8 @@ to pure value-stack static arithmetic preamble function calls.
 from __future__ import annotations
 
 import re
-from typing import Dict
-from oeis_learn.sandbox.preamble import load_preamble_wat, STATIC_FUEL_COSTS
+from typing import Optional
+from oeis_learn.sandbox.preamble import load_preamble_wat
 
 _CONST_PAREN_REGEX = re.compile(r"\(\s*i256\.const\s+(-?\d+)\s*\)")
 _CONST_BARE_REGEX = re.compile(r"\bi256\.const\s+(-?\d+)\b")
@@ -21,9 +21,9 @@ _MUL_REGEX = re.compile(r"\bi256\.mul_scalar\b")
 _CACHED_PREAMBLE_FUNCS: Optional[str] = None
 
 
-def get_macro_fuel_cost(macro_name: str) -> int:
-    """Returns the instruction fuel cost of a macro operation."""
-    return STATIC_FUEL_COSTS.get(macro_name, 1)
+def get_macro_fuel_cost(macro_name: str) -> None:
+    """Static estimates are unavailable; measure fuel on each actual execution."""
+    return None  # Fuel is measured from Store consumption, not a static estimate.
 
 
 def extract_preamble_funcs() -> str:
@@ -33,21 +33,14 @@ def extract_preamble_funcs() -> str:
         return _CACHED_PREAMBLE_FUNCS
 
     raw = load_preamble_wat()
-    first_func_idx = raw.find("(func")
-    if first_func_idx == -1:
-        _CACHED_PREAMBLE_FUNCS = ""
-        return ""
-    last_paren_idx = raw.rfind(")")
-    if last_paren_idx > first_func_idx:
-        _CACHED_PREAMBLE_FUNCS = raw[first_func_idx:last_paren_idx].strip()
-    else:
-        _CACHED_PREAMBLE_FUNCS = raw[first_func_idx:].strip()
+    start = raw.index("(module") + len("(module")
+    _CACHED_PREAMBLE_FUNCS = raw[start : raw.rfind(")")].strip()
 
     return _CACHED_PREAMBLE_FUNCS
 
 
 def lower_macro_wat(wat_code: str) -> str:
-    """Lowers macro instructions to verified value-stack WebAssembly preamble calls.
+    """Legacy diagnostic lowering; strict admission uses the validated AST path.
 
     Transforms:
       i256.add -> call $i256_add
@@ -62,13 +55,11 @@ def lower_macro_wat(wat_code: str) -> str:
     # 1. Lower constants
     def _rep_const_paren(m: re.Match) -> str:
         v = int(m.group(1))
-        s = -1 if v < 0 else 0
-        return f" i64.const {v} i64.const {s} i64.const {s} i64.const {s} "
+        return " " + lower_constant(v) + " "
 
     def _rep_const_bare(m: re.Match) -> str:
         v = int(m.group(1))
-        s = -1 if v < 0 else 0
-        return f" i64.const {v} i64.const {s} i64.const {s} i64.const {s} "
+        return " " + lower_constant(v) + " "
 
     if "i256.const" in code:
         code = _CONST_PAREN_REGEX.sub(_rep_const_paren, code)
@@ -76,7 +67,9 @@ def lower_macro_wat(wat_code: str) -> str:
 
     # 2. Lower zero
     if "i256.zero" in code:
-        code = _ZERO_PAREN_REGEX.sub(" (i64.const 0) (i64.const 0) (i64.const 0) (i64.const 0) ", code)
+        code = _ZERO_PAREN_REGEX.sub(
+            " (i64.const 0) (i64.const 0) (i64.const 0) (i64.const 0) ", code
+        )
         code = _ZERO_BARE_REGEX.sub(" i64.const 0 i64.const 0 i64.const 0 i64.const 0 ", code)
 
     # 3. Lower arithmetic macros
@@ -107,3 +100,44 @@ def lower_macro_wat(wat_code: str) -> str:
             code = f"(module\n  {preamble_funcs}\n  {code}\n)"
 
     return code
+
+
+def lower_constant(value: int) -> str:
+    """Four valid signed i64 spellings of a checked signed-256 value."""
+    if type(value) is not int or not -(1 << 255) <= value < (1 << 255):
+        raise ValueError("signed-256 literal outside range")
+    limbs = [(value >> (64 * i)) & ((1 << 64) - 1) for i in range(4)]
+    return " ".join(f"i64.const {x if x < 1 << 63 else x - (1 << 64)}" for x in limbs)
+
+
+def lower_body(program) -> str:
+    """Lower a validated AST, never use legacy regex rewrites for admission."""
+    from oeis_learn.experiments.profiles import I32_LOCAL_NAMES, I64_LOCAL_NAMES
+
+    def emit(nodes):
+        words = []
+        for node in nodes:
+            if node.op == "i256.const":
+                words.append(lower_constant(node.arg))
+            elif node.op == "i256.zero":
+                words.append(lower_constant(0))
+            elif node.op.startswith("i256."):
+                words.append("call $" + node.op.replace(".", "_"))
+            elif node.op in ("block", "loop", "if"):
+                result = "(result " + " ".join(node.results) + ")" if node.results else ""
+                body = emit(node.body)
+                if node.op == "if":
+                    body = (
+                        "(then "
+                        + body
+                        + ")"
+                        + (" (else " + emit(node.otherwise) + ")" if node.has_else else "")
+                    )
+                words.append(f"({node.op} {result} {body})")
+            else:
+                words.append(node.op + (f" {node.arg}" if node.arg is not None else ""))
+        return " ".join(words)
+
+    locals_ = " ".join(f"(local {n} i64)" for n in I64_LOCAL_NAMES)
+    locals_ += " " + " ".join(f"(local {n} i32)" for n in I32_LOCAL_NAMES)
+    return f'(module {extract_preamble_funcs()} (func (export "compute") (param $n i32) (result i64 i64 i64 i64) {locals_} {emit(program.instructions)}))'

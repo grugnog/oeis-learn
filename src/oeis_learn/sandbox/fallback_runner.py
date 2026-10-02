@@ -1,112 +1,105 @@
-"""Fallback in-memory WASM execution using wasmtime-py with fuel metering."""
+"""Legacy full-module diagnostics using Wasmtime.
+
+Strict body-only execution uses Runtime inside WorkerPool, via FoundationRunner.
+This compatibility API does not constitute independent admission evidence.
+"""
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Sequence
 import wasmtime
 from oeis_learn.data.models import ExecutionResult
+from oeis_learn.sandbox.pipeline import decode_limbs
 
 
 def evaluate_wat_single_fallback(
     wat_code: str, fuel_budget: int = 10000, terms_to_generate: int = 20
 ) -> ExecutionResult:
-    """Evaluates a single WAT program using Python wasmtime bindings."""
-    try:
-        # Configure engine with fuel
-        config = wasmtime.Config()
-        config.consume_fuel = True
-        engine = wasmtime.Engine(config)
-
-        # In-memory compile WAT text to WASM bytecode
+    if type(fuel_budget) is not int or fuel_budget <= 0:
+        raise ValueError("fuel_budget must be positive")
+    if type(terms_to_generate) is not int or terms_to_generate <= 0:
+        raise ValueError("terms_to_generate must be positive")
+    config = wasmtime.Config()
+    config.consume_fuel = True
+    config.parallel_compilation = False
+    with wasmtime.Engine(config) as engine:
         try:
-            wasm_bytes = bytes(wasmtime.wat2wasm(wat_code))
-        except Exception as e:
+            wasm = wasmtime.wat2wasm(wat_code)
+        except wasmtime.WasmtimeError as exc:
+            return ExecutionResult(status="PARSE_ERROR", consumed_fuel=0, output=[], error=str(exc))
+        try:
+            module = wasmtime.Module(engine, wasm)
+        except wasmtime.WasmtimeError as exc:
             return ExecutionResult(
-                status="PARSE_ERROR",
-                consumed_fuel=0,
-                output=[],
-                error=f"WAT parse error: {e}",
+                status="COMPILE_ERROR", consumed_fuel=0, output=[], error=str(exc)
             )
-
-        module = wasmtime.Module(engine, wasm_bytes)
-        store = wasmtime.Store(engine)
-        store.set_fuel(fuel_budget)
-
-        instance = wasmtime.Instance(store, module, [])
-    except Exception as e:
-        error_str = str(e)
-        status = "OUT_OF_FUEL" if "fuel" in error_str.lower() else "COMPILE_ERROR"
+        outputs, wide_outputs, total, maximum = [], [], 0, 0
+        with module:
+            for n in range(terms_to_generate):
+                status, error = "SUCCESS", None
+                with wasmtime.Store(engine) as store:
+                    store.set_fuel(fuel_budget)
+                    try:
+                        instance = wasmtime.Instance(store, module, [])
+                        exports = instance.exports(store)
+                        func = next(
+                            (
+                                exports.get(name)
+                                for name in ("compute", "generate_term", "a")
+                                if isinstance(exports.get(name), wasmtime.Func)
+                            ),
+                            None,
+                        )
+                        if func is None:
+                            status, error = "MISSING_ENTRYPOINT", "No supported entrypoint found"
+                        else:
+                            params, results = func.type(store).params, func.type(store).results
+                            if (
+                                len(params) != 1
+                                or str(params[0]) not in ("i32", "i64")
+                                or [str(t) for t in results] not in (["i64"], ["i64"] * 4)
+                            ):
+                                status, error = (
+                                    "COMPILE_ERROR",
+                                    "Expected one integer input and one or four i64 results",
+                                )
+                            else:
+                                value = func(store, n)
+                                if len(results) == 4:
+                                    outputs.append(decode_limbs(value))
+                                    wide_outputs.append(list(value))
+                                else:
+                                    if type(value) is not int:
+                                        raise ValueError("Expected an exact scalar integer")
+                                    outputs.append(value)
+                    except wasmtime.Trap as exc:
+                        status = (
+                            "OUT_OF_FUEL"
+                            if exc.trap_code == wasmtime.TrapCode.OUT_OF_FUEL
+                            else "EXECUTION_TRAP"
+                        )
+                        error = str(exc)
+                    except (wasmtime.WasmtimeError, ValueError) as exc:
+                        status, error = "EXECUTION_TRAP", str(exc)
+                    used = fuel_budget - store.get_fuel()
+                total += used
+                maximum = max(maximum, used)
+                if status != "SUCCESS":
+                    break
         return ExecutionResult(
             status=status,
-            consumed_fuel=fuel_budget,
-            output=[],
-            error=error_str,
+            consumed_fuel=maximum,
+            output=outputs,
+            error=error,
+            max_fuel=maximum,
+            total_fuel=total,
+            wide_output=wide_outputs,
         )
-
-    # Locate function entrypoint
-    exports = instance.exports(store)
-    func: Optional[wasmtime.Func] = None
-    for name in ["compute", "generate_term", "a"]:
-        exp = exports.get(name)
-        if exp is not None and isinstance(exp, wasmtime.Func):
-            func = exp
-            break
-
-    if func is None:
-        # Check first exported function
-        for val in exports.values():
-            if isinstance(val, wasmtime.Func):
-                func = val
-                break
-
-    if func is None:
-        fuel_rem = store.get_fuel()
-        return ExecutionResult(
-            status="MISSING_ENTRYPOINT",
-            consumed_fuel=max(0, fuel_budget - fuel_rem),
-            output=[],
-            error="No entrypoint function found",
-        )
-
-    outputs: List[int] = []
-    param_types = func.type(store).params
-    use_i64 = len(param_types) > 0 and param_types[0] == wasmtime.ValType.i64()
-
-    for n in range(terms_to_generate):
-        arg = wasmtime.Val.i64(n) if use_i64 else wasmtime.Val.i32(n)
-        try:
-            res = func(store, arg)
-            term = int(res)  # type: ignore[call-overload]
-            outputs.append(term)
-        except Exception as e:
-            error_str = str(e)
-            try:
-                fuel_rem = store.get_fuel()
-            except Exception:
-                fuel_rem = 0
-            is_out_of_fuel = fuel_rem == 0 or "fuel" in error_str.lower()
-            status = "OUT_OF_FUEL" if is_out_of_fuel else "EXECUTION_TRAP"
-            return ExecutionResult(
-                status=status,
-                consumed_fuel=max(0, fuel_budget - fuel_rem),
-                output=outputs,
-                error=error_str,
-            )
-
-    fuel_rem = store.get_fuel()
-    return ExecutionResult(
-        status="SUCCESS",
-        consumed_fuel=max(0, fuel_budget - fuel_rem),
-        output=outputs,
-        error=None,
-    )
 
 
 def evaluate_wat_batch_fallback(
     wat_programs: Sequence[str], fuel_budget: int = 10000, terms_to_generate: int = 20
 ) -> List[ExecutionResult]:
-    """Evaluates a batch of WAT programs sequentially using fallback runner."""
     return [
-        evaluate_wat_single_fallback(wat, fuel_budget, terms_to_generate)
-        for wat in wat_programs
+        evaluate_wat_single_fallback(wat, fuel_budget, terms_to_generate) for wat in wat_programs
     ]

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from oeis_learn.sandbox.lowering import lower_macro_wat, get_macro_fuel_cost
 
 
 def test_macro_instruction_lowering_add():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) i256.add))"
+    wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) i256.add))'
     lowered = lower_macro_wat(wat)
     assert "call $i256_add" in lowered
     assert "$i256_add" in lowered
@@ -15,7 +14,7 @@ def test_macro_instruction_lowering_add():
 
 
 def test_macro_instruction_lowering_sub():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) i256.sub))"
+    wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) i256.sub))'
     lowered = lower_macro_wat(wat)
     assert "call $i256_sub" in lowered
     assert "$i256_sub" in lowered
@@ -23,7 +22,9 @@ def test_macro_instruction_lowering_sub():
 
 
 def test_macro_instruction_lowering_mul_scalar():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) i256.mul_scalar))"
+    wat = (
+        '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) i256.mul_scalar))'
+    )
     lowered = lower_macro_wat(wat)
     assert "call $i256_mul_scalar" in lowered
     assert "$i256_mul_scalar" in lowered
@@ -31,29 +32,30 @@ def test_macro_instruction_lowering_mul_scalar():
 
 
 def test_macro_instruction_lowering_const_positive():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) (i256.const 42)))"
+    wat = (
+        '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) (i256.const 42)))'
+    )
     lowered = lower_macro_wat(wat)
     assert "i64.const 42 i64.const 0 i64.const 0 i64.const 0" in lowered
 
 
 def test_macro_instruction_lowering_const_negative():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) (i256.const -5)))"
+    wat = (
+        '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) (i256.const -5)))'
+    )
     lowered = lower_macro_wat(wat)
     assert "i64.const -5 i64.const -1 i64.const -1 i64.const -1" in lowered
 
 
 def test_macro_instruction_lowering_zero():
-    wat = "(module (func (export \"compute\") (param $n i32) (result i64 i64 i64 i64) i256.zero))"
+    wat = '(module (func (export "compute") (param $n i32) (result i64 i64 i64 i64) i256.zero))'
     lowered = lower_macro_wat(wat)
     assert "i64.const 0 i64.const 0 i64.const 0 i64.const 0" in lowered
 
 
 def test_macro_fuel_costs():
-    assert get_macro_fuel_cost("i256.add") == 55
-    assert get_macro_fuel_cost("i256.sub") == 56
-    assert get_macro_fuel_cost("i256.mul_scalar") == 271
-    assert get_macro_fuel_cost("i256.const") == 4
-    assert get_macro_fuel_cost("i256.zero") == 4
+    for macro in ("i256.add", "i256.sub", "i256.mul_scalar", "i256.const", "i256.zero"):
+        assert get_macro_fuel_cost(macro) is None  # only actual Store consumption is evidence
 
 
 def test_fibonacci_macro_token_budget():
