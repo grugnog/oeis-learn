@@ -1,0 +1,44 @@
+name: Phase 7 review validation
+on:
+  pull_request:
+    paths:
+      - 'src/oeis_learn/**'
+      - 'tests/**'
+      - '.github/workflows/phase7-review.yml'
+permissions:
+  contents: read
+jobs:
+  cpu-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: '2'
+      PYTHONPATH: 'src:.'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create CPU test environment
+        run: |
+          python3 -m venv .review-venv
+          .review-venv/bin/pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+          .review-venv/bin/pip install -e . pytest ruff
+          .review-venv/bin/pip freeze > phase7-environment.txt
+      - name: Compile and check repaired modules
+        run: |
+          .review-venv/bin/python -m compileall -q src tests/unit/test_foundation_grounding.py tests/unit/test_foundation_symbolic.py
+          .review-venv/bin/ruff check --select F,E9 src/oeis_learn/decoder/grounding.py src/oeis_learn/decoder/grounding_reference.py src/oeis_learn/decoder/recurrence.py src/oeis_learn/decoder/constant_solver.py src/oeis_learn/decoder/dixon_solver.py src/oeis_learn/decoder/qfnia_solver.py src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
+      - name: Spec Kit prerequisites and artifact consistency
+        env:
+          SPECIFY_FEATURE_DIRECTORY: specs/007-experiment-foundation
+        run: |
+          bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+          .review-venv/bin/python specs/007-experiment-foundation/validate_artifacts.py
+      - name: Foundation and phase 7 CPU regression suite
+        run: |
+          .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase7-cpu-validation
+          path: |
+            phase7-junit.xml
+            phase7-environment.txt

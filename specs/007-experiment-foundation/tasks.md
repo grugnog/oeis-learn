@@ -194,6 +194,8 @@ and later-phase tasks are unchanged; T046 container isolation remains separate.
 - [-] T060 [US5] Add qualified-service activation/configuration in `src/oeis_learn/experiments/{config,qualified_models}.py` and `cli/foundation.py`: initial smoke stays fixed; solvers/typed optimizer/native/prover require concrete G7 evidence. Negative configuration tests reject missing gates and legacy labels; disabled means pending, not repaired. (FR-001, FR-015, FR-021, FR-022, FR-023, FR-038, SC-007, SC-014)
 - [-] T061 [US5] Run owning-module regressions, solver/proof worker containment and native parity via `tests/integration/test_foundation_repair_gate.py`; persist G7 report in the run reports directory. Make `evaluation/readiness.py` require this gate before any architecture/learning measurement, independently of US4 smoke completion. (FR-021, FR-022, FR-023, FR-038, SC-007, SC-014)
 
+**Phase 7 review status:** Recovered draft; G7 remains PARTIAL. All T050–T061 markers remain partial. See [phase-7-review.md](validation/phase-7-review.md) for preserved fixes, the recovered CPU CI result (472 passed/4 skipped), its exact scope, and unfinished software/native work. The earlier 620-pass result belonged to a lost workspace tree and is not evidence for this PR.
+
 ## Phase 8: User Story 6 - Correct and efficient learning/search
 
 **Goal**: Correct and efficient learning/search.

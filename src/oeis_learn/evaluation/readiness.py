@@ -177,3 +177,9 @@ def foundation_readiness(checkpoint, *, software_complete):
         "full_007_additional_gates": ["G7", "G8", "G9", "G10"],
         "lifecycle_is_qualification": False,
     }
+
+
+def require_architecture_measurement_gates(g7_report):
+    """Architecture/learning measurements require G7 independently of smoke."""
+    from oeis_learn.evaluation.repair_gate import require_g7
+    require_g7(g7_report)

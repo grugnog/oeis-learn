@@ -45,6 +45,8 @@ def int_to_m61(val: int) -> int:
 
 def m61_inv(a: int) -> int:
     """Computes multiplicative inverse in F_{2^61 - 1} via Fermat's Little Theorem."""
+    if a % M61_PRIME == 0:
+        raise ValueError("zero has no inverse")
     return pow(a % M61_PRIME, M61_PRIME - 2, M61_PRIME)
 
 
@@ -64,17 +66,12 @@ def evaluate_modular_filter(
     m = len(matrix_a)
     k = unknown_count
 
-    if m == 0 or k == 0:
-        elapsed_us = (time.perf_counter() - start_t) * 1_000_000.0
-        return ModularFilterCertificate(
-            status="UNDERDETERMINED",
-            prime=M61_PRIME,
-            augmented_rank=0,
-            coefficient_rank=0,
-            unknown_count=k,
-            elapsed_microseconds=elapsed_us,
-            penalty_reward=-0.50,
-        )
+    if type(k) is not int or not 0 <= k <= 8 or m > 20 or len(vector_b) != m:
+        raise ValueError("bounded matrix dimensions required")
+    if any(len(row) != k for row in matrix_a):
+        raise ValueError("ragged matrix")
+    if any(type(v) is not int or v.bit_length() > 4096 for row in matrix_a for v in row) or any(type(v) is not int or v.bit_length() > 4096 for v in vector_b):
+        raise ValueError("bounded exact integer matrix required")
 
     # Build augmented matrix M in F_p: m rows, k+1 cols
     M: List[List[int]] = []
@@ -120,16 +117,8 @@ def evaluate_modular_filter(
             break
 
     # Determine rank of coefficient matrix A and augmented matrix M
-    coeff_rank = 0
-    augmented_rank = 0
-
-    for r in range(m):
-        has_coeff = any(M[r][c] != 0 for c in range(k))
-        has_aug = has_coeff or (M[r][k] != 0)
-        if has_coeff:
-            coeff_rank += 1
-        if has_aug:
-            augmented_rank += 1
+    coeff_rank = row_idx
+    augmented_rank = coeff_rank + int(any(not any(row[:k]) and row[k] for row in M))
 
     elapsed_us = (time.perf_counter() - start_t) * 1_000_000.0
 
@@ -138,7 +127,7 @@ def evaluate_modular_filter(
         penalty = -0.50
     elif coeff_rank < k:
         status = "UNDERDETERMINED"
-        penalty = -0.50
+        penalty = 0.0
     else:
         status = "CONSISTENT"
         penalty = 0.0

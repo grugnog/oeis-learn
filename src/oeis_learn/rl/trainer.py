@@ -14,11 +14,8 @@ from oeis_learn.curriculum.scheduler import CurriculumScheduler
 from oeis_learn.curriculum.symple_bandit import AdaGGroupAllocator, Exp3SBanditScheduler
 from oeis_learn.data.models import SequenceRecord
 from oeis_learn.decoder.constant_solver import (
-    abstract_wat_constants,
     parse_ast_placeholders,
     solve_constants,
-    solve_linear_diophantine,
-    solve_smt_constants,
     splice_constants_into_wat,
 )
 from oeis_learn.decoder.sampler import WatProgramSampler
@@ -178,37 +175,12 @@ class EgcaGrpoTrainer:
         # 2b. Decoupled Constant Solver Dispatch
         target_int_terms = [int(x) for x in record.terms[:20]]
         grounded_wat_programs = []
+        self.last_grounding_results = []
         for wat in wat_programs:
-            if "i64.const_?" in wat:
-                skeleton = parse_ast_placeholders(wat)
-                cand = solve_constants(skeleton, target_int_terms, runner=self.wasm_runner)
-                if cand.is_sat and cand.grounded_wat:
-                    grounded_wat_programs.append(cand.grounded_wat)
-                    # Ingest grounded program into EDB
-                    self.elite_buffer.add_canonical_entry(
-                        oeis_id=record.oeis_id,
-                        wat_code=cand.grounded_wat,
-                        terms=target_int_terms,
-                        step=self.current_epoch,
-                    )
-                else:
-                    grounded_wat_programs.append(wat)
-            else:
-                # Abstract concrete integer constants into placeholders to ground coefficients
-                abstracted = abstract_wat_constants(wat)
-                if "i64.const_?" in abstracted:
-                    skeleton = parse_ast_placeholders(abstracted)
-                    cand = solve_constants(skeleton, target_int_terms, runner=self.wasm_runner)
-                    if cand.is_sat and cand.grounded_wat:
-                        grounded_wat_programs.append(cand.grounded_wat)
-                        self.elite_buffer.add_canonical_entry(
-                            oeis_id=record.oeis_id,
-                            wat_code=cand.grounded_wat,
-                            terms=target_int_terms,
-                            step=self.current_epoch,
-                        )
-                        continue
-                grounded_wat_programs.append(wat)
+            candidate = solve_constants(parse_ast_placeholders(wat), target_int_terms)
+            self.last_grounding_results.append(candidate)
+            grounded_wat_programs.append(candidate.grounded_wat if candidate.is_sat else wat)
+        # A visible-prefix fit is a hypothesis, not independent elite admission.
 
         # 3. Batch evaluate across CPU worker threads with optional DCE optimization
         opt_artifacts = self.wasm_runner.run_optimized_batch(

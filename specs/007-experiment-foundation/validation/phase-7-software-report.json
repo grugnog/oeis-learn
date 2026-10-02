@@ -1,0 +1,50 @@
+{
+  "schema_version": "phase7-review/v1",
+  "tested_commit": "463771013ba6613da79c9c62d646064c7ad9dee8",
+  "run_url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546",
+  "job_id": 111065026952,
+  "conclusion": "success",
+  "suite": "foundation unit/contract/integration globs including recovered phase 7 regressions",
+  "pytest": {
+    "passed": 472,
+    "failed": 0,
+    "skipped": 4,
+    "warnings": 37,
+    "duration_seconds": 178.54
+  },
+  "checks": {
+    "compileall": "PASS",
+    "targeted_ruff_F_E9": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "spec_artifact_consistency": "PASS"
+  },
+  "skips": [
+    "AMD HIP sampler",
+    "AMD HIP evaluation",
+    "AMD HIP updates",
+    "Explicit pinned Docker image/resource probe"
+  ],
+  "artifact": {
+    "url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546/artifacts/11256392303",
+    "zip_sha256": "19f27c00b9b78457a2ccd1d1d6a3edd708e175dcd7fd6da93c7b145bb8710139",
+    "files": [
+      "phase7-junit.xml",
+      "phase7-environment.txt"
+    ]
+  },
+  "environment": {
+    "python": "3.12",
+    "torch": "2.9.1+cpu",
+    "sympy": "1.14.0",
+    "wasmtime": "49.0.0",
+    "z3_solver": "5.1.0.0"
+  },
+  "qualification": "G7 PARTIAL",
+  "not_covered": [
+    "All original legacy owning-module regressions",
+    "Native Rust repair/build/parity",
+    "qualified/v1 record validators and portable evidence replay",
+    "Positive qualified-service activation integration"
+  ],
+  "earlier_620_pass_result_applies_to_this_tree": false
+}
