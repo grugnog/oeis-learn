@@ -116,9 +116,21 @@ class WatProgramSampler:
         max_length: int = 256,
         temperature: float = 0.8,
         top_p: float = 0.95,
+        codec_profile: Optional[str] = None,
     ):
         self.decoder = decoder
-        self.grammar_masker = grammar_masker or GrammarMasker()
+        self.codec = None
+        if codec_profile is not None:
+            from oeis_learn.decoder.wat_grammar import get_program_codec
+            self.codec = get_program_codec(codec_profile)
+            if getattr(decoder, 'codec_sha256', None) != self.codec.codec_digest():
+                raise ValueError('decoder has no matching foundation codec identity')
+        if grammar_masker is not None:
+            self.grammar_masker = grammar_masker
+        elif self.codec is not None:
+            self.grammar_masker = GrammarMasker(self.codec.FOUNDATION_VOCAB_SIZE)
+        else:
+            self.grammar_masker = GrammarMasker()
         self.max_length = max_length
         self.temperature = temperature
         self.top_p = top_p
@@ -134,6 +146,8 @@ class WatProgramSampler:
         prefix_wat: Optional[str] = None,
     ) -> Tuple[str, torch.Tensor]:
         """Samples a single candidate program using a local deterministic generator."""
+        if self.codec is not None:
+            return self._sample_body(memory, seed, temperature, top_p, use_grammar_mask, max_length, prefix_wat)
         self.decoder.eval()
         device = memory.device
         temp = temperature if temperature is not None else self.temperature
@@ -160,7 +174,6 @@ class WatProgramSampler:
         else:
             generated = torch.full((1, 1), BOS_ID, dtype=torch.long, device=device)
 
-        finished = False
         start_step = generated.size(1) - 1
 
         with torch.no_grad():
@@ -189,7 +202,6 @@ class WatProgramSampler:
                 tracker.update(tok_str)
 
                 if tok_id == EOS_ID or (tracker.paren_depth == 0 and step > 10):
-                    finished = True
                     break
 
         code, final_tokens = finalize_wat_tokens(generated[0].tolist(), tracker)
@@ -216,6 +228,8 @@ class WatProgramSampler:
         Returns:
             Tuple of (generated WAT code strings, generated token IDs tensor)
         """
+        if self.codec is not None:
+            raise ValueError('foundation generation requires sample_candidate with an explicit per-attempt seed')
         self.decoder.eval()
         device = memory.device
         batch_size = memory.size(0)
@@ -294,3 +308,49 @@ class WatProgramSampler:
             final_generated[b_idx, : len(t_seq)] = torch.tensor(t_seq, dtype=torch.long, device=device)
 
         return wat_codes, final_generated
+
+
+    def _sample_body(self, memory, seed, temperature, top_p, use_grammar_mask, max_length, prefix_wat):
+        from oeis_learn.decoder.environment_tracker import FoundationEnvironmentTracker
+        codec = self.codec
+        if not use_grammar_mask or prefix_wat is not None:
+            raise codec.CodecError('foundation requires typed masking and forbids source scaffolds')
+        limit = self.max_length if max_length is None else max_length
+        if type(limit) is not int or not 1 <= limit <= codec.MAX_BODY_TOKENS:
+            raise codec.CodecError('invalid foundation body token cap')
+        temp = self.temperature if temperature is None else temperature
+        p = self.top_p if top_p is None else top_p
+        import math
+        if not math.isfinite(temp) or temp < 0 or not math.isfinite(p) or not 0 < p <= 1:
+            raise ValueError('invalid temperature or top_p')
+        if memory.ndim != 3 or memory.size(0) != 1:
+            raise ValueError('one visible prompt required per seeded foundation attempt')
+        tracker = FoundationEnvironmentTracker()
+        generator = torch.Generator(device='cpu').manual_seed(seed)
+        generated = torch.tensor([[codec.BOS_ID]], device=memory.device, dtype=torch.long)
+        body = []
+        was_training = self.decoder.training
+        self.decoder.eval()
+        try:
+            with torch.no_grad():
+                for _ in range(limit):
+                    logits = self.decoder(generated, memory)[:, -1, :].clone()
+                    if logits.shape != (1, codec.FOUNDATION_VOCAB_SIZE) or not torch.isfinite(logits).all():
+                        raise codec.CodecError('incompatible or nonfinite decoder logits')
+                    logits += self.grammar_masker.compute_batch_mask([tracker], device=memory.device)
+                    if not torch.isfinite(logits).any():
+                        raise codec.CodecError('no valid continuation')
+                    if temp == 0:
+                        token = int(logits.argmax(-1).item())
+                    else:
+                        filtered = top_p_filtering(logits / temp, p, filter_value=float('-inf'))
+                        probs = F.softmax(filtered, dim=-1).cpu()
+                        token = int(torch.multinomial(probs, 1, generator=generator).item())
+                    tracker.update(codec.ID_TO_TOKEN[token])
+                    body.append(token)
+                    generated = torch.cat((generated, torch.tensor([[token]], device=memory.device)), dim=1)
+                    if token == codec.EOS_ID:
+                        return codec.decode_body(body), torch.tensor(body, device=memory.device, dtype=torch.long)
+            raise codec.CodecError('token cap reached without valid EOS; candidate rejected')
+        finally:
+            self.decoder.train(was_training)

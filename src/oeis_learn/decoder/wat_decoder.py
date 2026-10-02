@@ -74,8 +74,15 @@ class WatTransformerDecoder(nn.Module):
         pad_idx: int = PAD_ID,
         chunk_size: int = 256,
         logit_cap_threshold: Optional[float] = 30.0,
+        codec_sha256: Optional[str] = None,
     ):
         super().__init__()
+        self.codec_sha256 = codec_sha256
+        if codec_sha256 is not None:
+            from oeis_learn.decoder.program_codec import codec_digest, FOUNDATION_VOCAB_SIZE, PAD_ID as BODY_PAD
+            if codec_sha256 != codec_digest() or vocab_size != FOUNDATION_VOCAB_SIZE or pad_idx != BODY_PAD:
+                raise ValueError('incompatible foundation codec configuration')
+            self.register_buffer('_codec_identity', torch.tensor(list(codec_sha256.encode()), dtype=torch.uint8))
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.pad_idx = pad_idx
@@ -115,6 +122,18 @@ class WatTransformerDecoder(nn.Module):
             h_chunk = hidden[:, i : i + c_size]
             chunks.append(self.lm_head(h_chunk))
         return torch.cat(chunks, dim=1)
+
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
+                              missing_keys, unexpected_keys, error_msgs):
+        key = prefix + '_codec_identity'
+        if self.codec_sha256 is not None:
+            supplied = state_dict.get(key)
+            if supplied is None or not torch.equal(supplied.cpu(), self._codec_identity.cpu()):
+                error_msgs.append('missing or incompatible foundation codec identity; legacy weights forbidden')
+        elif key in state_dict:
+            error_msgs.append('foundation weights cannot load into a legacy decoder')
+        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict,
+                                     missing_keys, unexpected_keys, error_msgs)
 
     def forward(
         self,

@@ -1,7 +1,7 @@
 # Constitution RFC 007 — Adoption Record
 
 **Feature**: 007-experiment-foundation (Trustworthy Experiment Foundation)
-**RFC**: [constitution-rfc.md](constitution-rfc.md) — Version 2.0.0 (proposed)
+**RFC**: [constitution-rfc.md](../constitution-rfc.md) — Version 2.0.0 (proposed)
 **Original Ratified Constitution**: 2026-08-30 (v1.0.0 at `aa2c8c4579dd74fdd8114ec9456960a98fcf500e`)
 **Amendment Proposed**: 2026-09-16
 

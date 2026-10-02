@@ -62,7 +62,7 @@ coverage.xml
 **/*.db
 **/*.wal
 runs/**/sft_demonstrations.json
-data/
+/data/
 
 # Research Notes
 research/

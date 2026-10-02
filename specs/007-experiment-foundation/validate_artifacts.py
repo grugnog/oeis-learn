@@ -49,11 +49,10 @@ def main() -> dict:
     for heading in ["Summary", "Technical Context", "Constitution Check", "Project Structure", "Complexity Tracking"]:
         require(f"## {heading}" in (ROOT / "plan.md").read_text(), f"Missing plan section: {heading}")
 
-    rows = re.findall(r"^- \[([ x])\] (T\d{3}) (?:\[P\] )?(?:\[US(\d)\] )?(.+)$", tasks, re.M)
+    rows = re.findall(r"^- \[([ xX/-])\] (T\d{3}) (?:\[P\] )?(?:\[US(\d)\] )?(.+)$", tasks, re.M)
     ids = [row[1] for row in rows]
-    require(ids == [f"T{n:03}" for n in range(1, 106)], "Expected sequential unique T001..T105")
-    require(all(state == " " for state, *_ in rows), "Planning deliverable must not mark implementation complete")
-    require(len(re.findall(r"^- \[[ x]\] T", tasks, re.M)) == len(rows), "Malformed task checkbox line")
+    require(ids == [f"T{n:03}" for n in range(1, 109)], "Expected sequential unique T001..T108")
+    require(len(re.findall(r"^- \[[ xX/-]\] T", tasks, re.M)) == len(rows), "Malformed task checkbox line")
     counts = {"setup_and_foundation": 0, **{f"US{n}": 0 for n in range(1, 9)}, "cross_cutting": 0}
     for _, task_id, story, description in rows:
         num = int(task_id[1:])
@@ -140,7 +139,8 @@ def main() -> dict:
     return {
         "status": "pass", "scope": "document structure, links, coverage, dependency graph and schema shapes only",
         "requirements": len(requirements), "coverage_percent": 100, "tasks": len(ids),
-        "tasks_by_story": counts, "review_decision_items": len(items),
+        "tasks_by_story": counts,
+        "task_status_counts": {s: sum(row[0] == s for row in rows) for s in (" ", "x", "X", "/", "-")}, "review_decision_items": len(items),
         "deferred_items": [r["id"] for r in items if r["status"] == "deferred_loda"],
         "local_links_checked": links,
         "positive_schema_fixtures": len(examples), "negative_schema_cases": len(mutations),

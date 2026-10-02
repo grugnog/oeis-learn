@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Tuple
 
 # Supported WAT result profiles
 RESULT_PROFILES = ("i64_scalar_v1", "i256x4_v1")
@@ -173,3 +173,15 @@ def decode_wat_tokens(token_ids: List[int]) -> str:
     """Decode token IDs back to a formatted WAT string."""
     tokens = [ID_TO_TOKEN.get(t_id, "<unk>") for t_id in token_ids if t_id not in (PAD_ID, BOS_ID, EOS_ID)]
     return " ".join(tokens)
+
+
+def get_program_codec(profile: str):
+    """Explicit codec selection; legacy vocabulary remains diagnostic-only.
+
+    The foundation body vocabulary must never silently reuse this module's
+    full-module IDs or unknown-token fallback.
+    """
+    if profile == 'wat_body_decimal_v1':
+        from oeis_learn.decoder import program_codec
+        return program_codec
+    raise ValueError(f'unsupported program codec {profile!r}')

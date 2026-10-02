@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import time
-from typing import List, Optional, Set, Union
+from typing import List, Optional
 import torch
 from oeis_learn.decoder.environment_tracker import EnvironmentTracker
-from oeis_learn.decoder.wat_grammar import ID_TO_TOKEN, TOKEN_TO_ID, VOCAB_SIZE
+from oeis_learn.decoder.wat_grammar import VOCAB_SIZE
 
 
 class GrammarMasker:
@@ -23,7 +22,11 @@ class GrammarMasker:
 
         Allowed tokens get 0.0, forbidden tokens get -inf.
         """
+        if hasattr(tracker, 'vocab_size') and tracker.vocab_size != self.vocab_size:
+            raise ValueError('tracker and mask vocabularies differ')
         valid_ids = tracker.get_valid_next_tokens()
+        if any(t_id < 0 or t_id >= self.vocab_size for t_id in valid_ids):
+            raise ValueError('mask vocabulary would truncate allowed tokens')
         mask = torch.full((self.vocab_size,), float("-inf"), dtype=torch.float32, device=device)
         for t_id in valid_ids:
             if 0 <= t_id < self.vocab_size:

@@ -5,29 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import tempfile
-from pathlib import Path
 from typing import Any, Dict, List, Optional
-import numpy as np
-import torch
-import yaml
-from oeis_learn.cli.reporting import export_discovered_proofs_markdown
-from oeis_learn.curriculum.extrapolation import ExtrapolationVerifier
-from oeis_learn.curriculum.mdl_verifier import MdlVerifier
-from oeis_learn.curriculum.sampler import DynamicMixtureSampler
-from oeis_learn.curriculum.scheduler import CurriculumScheduler
-from oeis_learn.data.dataset import OeisSequenceDataset
-from oeis_learn.data.ingest import OeisIngestionPipeline
-from oeis_learn.data.models import LatentDiscoveryCandidate, SequenceRecord
-from oeis_learn.decoder.sampler import WatProgramSampler
-from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
-from oeis_learn.discovery.manifold import cluster_latent_manifold, reduce_manifold_2d
-from oeis_learn.discovery.pslq_solver import PslqRelationSolver
-from oeis_learn.discovery.symbolic_prover import SymbolicProver
-from oeis_learn.discovery.vector_search import VectorRelationSearcher
-from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
-from oeis_learn.rl.trainer import EgcaGrpoTrainer
-from oeis_learn.sandbox.runner import WasmRunner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -334,7 +312,8 @@ def build_parser() -> argparse.ArgumentParser:
         help='Check foundation prerequisites (hardware_ready/hardware_not_ready).',
     )
     fp_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
-    fp_p.add_argument('--config', default='configs/foundation/preflight.yaml', help='Configuration file')
+    fp_p.add_argument('--config', required=True, help='Preflight configuration file')
+    fp_p.add_argument('--output', required=True, help='Preflight evidence output directory')
 
     # foundation conformance
     fc_p = foundation_subparsers.add_parser(
@@ -342,7 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
         help='Validate artifacts against foundation artifacts schema.',
     )
     fc_p.add_argument('--json', dest='as_json', action='store_true', help='Output summary JSON to stdout, progress to stderr')
-    fc_p.add_argument('--schema', default='specs/007-experiment-foundation/contracts/artifacts.schema.json', help='Schema path')
+    fc_p.add_argument('--schema', default=None, help='Schema path')
     fc_p.add_argument('artifacts', nargs='*', type=str, help='Paths to artifact JSON files')
 
     # foundation freeze-cohort
@@ -373,6 +352,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def handle_ingest(args: argparse.Namespace) -> int:
     """Handles the `ingest` subcommand."""
+    from oeis_learn.data.ingest import OeisIngestionPipeline
+
     print(f"Initializing database at: {args.db_path}")
     pipeline = OeisIngestionPipeline(db_path=args.db_path)
 
@@ -396,6 +377,16 @@ def handle_ingest(args: argparse.Namespace) -> int:
 
 def handle_train(args: argparse.Namespace) -> int:
     """Handles the `train` subcommand."""
+    import yaml
+    from oeis_learn.curriculum.sampler import DynamicMixtureSampler
+    from oeis_learn.curriculum.scheduler import CurriculumScheduler
+    from oeis_learn.data.dataset import OeisSequenceDataset
+    from oeis_learn.data.ingest import OeisIngestionPipeline
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+    from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+    from oeis_learn.rl.trainer import EgcaGrpoTrainer
+    from oeis_learn.sandbox.runner import WasmRunner
+
     print(f"Loading configuration from: {args.config}")
     cfg: Dict[str, Any] = {}
     if os.path.exists(args.config):
@@ -492,8 +483,9 @@ def handle_test_progressive(args: argparse.Namespace) -> int:
 
 def handle_convert_checkpoint(args: argparse.Namespace) -> int:
     """Handles the `convert-checkpoint` subcommand."""
-    from oeis_learn.evaluation.checkpoint import convert_legacy_checkpoint, load_checkpoint_v2
     import yaml
+
+    from oeis_learn.evaluation.checkpoint import convert_legacy_checkpoint, load_checkpoint_v2
 
     if not os.path.exists(args.input_checkpoint):
         print(f"Validation error: input checkpoint not found: {args.input_checkpoint}")
@@ -545,12 +537,13 @@ def handle_convert_checkpoint(args: argparse.Namespace) -> int:
 
 def handle_synthesize(args: argparse.Namespace) -> int:
     """Handles the `synthesize` subcommand using the shared evaluation workflow."""
+    import torch
+
     from oeis_learn.data.benchmark import BenchmarkTarget, compute_term_fingerprint, load_benchmark_manifest
     from oeis_learn.evaluation.checkpoint import load_checkpoint_v2
     from oeis_learn.evaluation.protocol import EvaluationProtocol
     from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
     from oeis_learn.cli.reporting import project_synthesis_markdown, save_authoritative_json
-    import torch
 
     device = torch.device(args.device)
 
@@ -697,6 +690,8 @@ def handle_discover(args: argparse.Namespace) -> int:
 
 def handle_solve_constants(args: argparse.Namespace) -> int:
     """Handles the `solve-constants` subcommand."""
+    from oeis_learn.sandbox.runner import WasmRunner
+
     from oeis_learn.decoder.constant_solver import (
         parse_ast_placeholders,
         solve_linear_diophantine,
@@ -766,124 +761,11 @@ def handle_foundation(args: argparse.Namespace) -> int:
         return 1
     from oeis_learn.cli.foundation import dispatch
     kw = {k: getattr(args, k) for k in (
-        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit',
+        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 
 
-def handle_foundation_preflight(args: argparse.Namespace) -> int:
-    """Handles the `foundation preflight` subcommand."""
-    from oeis_learn.cli.foundation_preflight import main as preflight_main
-    preflight_main(as_json=args.as_json, config_path=args.config)
-    return 0
-
-
-def handle_foundation_conformance(args: argparse.Namespace) -> int:
-    """Handles the `foundation conformance` subcommand."""
-    import json
-    import sys
-    from jsonschema import Draft202012Validator
-    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_canonical_digest, compute_file_hash
-
-    schema_path = args.schema
-    with open(schema_path, 'r', encoding='utf-8') as f:
-        schema_doc = json.load(f)
-    validator = Draft202012Validator(schema_doc)
-    errors = []
-    for artifact_path in args.artifacts:
-        try:
-            with open(artifact_path, 'r', encoding='utf-8') as f:
-                artifact = json.load(f)
-            for error in validator.iter_errors(artifact):
-                errors.append(f'{artifact_path}: {error.message}')
-        except json.JSONDecodeError as e:
-            errors.append(f'{artifact_path}: JSON parse error: {e}')
-    if errors:
-        if args.as_json:
-            print(json.dumps({'status': 'FAIL', 'errors': errors}))
-        else:
-            for e in errors:
-                print(f'FAIL: {e}')
-        sys.exit(2)
-    else:
-        if args.as_json:
-            print(json.dumps({'status': 'PASS'}))
-        else:
-            print('PASS: all artifacts conform')
-        sys.exit(0)
-
-
-def handle_foundation_freeze_cohort(args: argparse.Namespace) -> int:
-    """Handles the `foundation freeze-cohort` subcommand."""
-    import json
-    from pathlib import Path
-    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_file_hash
-
-    root_path = Path(args.root)
-    registry = ArtifactRegistry(root_path / 'artifacts')
-    for kind in ('visible-prompt', 'candidate-result'):
-        subdir = root_path / f'{kind}s'
-        if subdir.exists():
-            for path in subdir.glob('*.json'):
-                if path.is_file():
-                    with open(path, 'r', encoding='utf-8') as f:
-                        artifact = json.load(f)
-                    registry.store(kind, artifact)
-    for kind in ('checkpoint',):
-        subdir = root_path / f'{kind}s'
-        if subdir.exists():
-            for path in subdir.glob('*.pt'):
-                if path.is_file():
-                    digest = compute_file_hash(path)
-                    registry.store(kind, {'path': str(path), 'digest': digest})
-    if args.as_json:
-        counts = {k: len(v) for k, v in registry._by_kind.items()}
-        print(json.dumps({'root': str(root_path), 'counts': counts}))
-    else:
-        counts = {k: len(v) for k, v in registry._by_kind.items()}
-        print(f'Registry created at {registry.root}')
-        for k, v in counts.items():
-            print(f'  {k}: {v}')
-    return 0
-
-
-def handle_foundation_build_pool(args: argparse.Namespace) -> int:
-    """Handles the `foundation build-pool` subcommand."""
-    import json
-    import tempfile
-    from pathlib import Path
-    from oeis_learn.experiments.artifacts import ArtifactRegistry, compute_canonical_digest
-
-    registry = ArtifactRegistry(Path(args.root) / 'artifacts')
-    pool: List[str] = []
-    digest_path = registry.root / 'pool' / 'candidates.txt'
-    digest_path.parent.mkdir(parents=True, exist_ok=True)
-    if digest_path.exists():
-        with open(digest_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('sha256:'):
-                    pool.append(line)
-    subdir = registry.root.parent / 'candidate-results'
-    if subdir.exists():
-        for path in subdir.glob('*.json'):
-            with open(path, 'r', encoding='utf-8') as f:
-                artifact = json.load(f)
-            digest = compute_canonical_digest(artifact, identity_field='digest')
-            if digest not in pool:
-                pool.append(digest)
-                if len(pool) >= args.limit:
-                    break
-    with tempfile.NamedTemporaryFile(mode='w', dir=digest_path.parent, delete=False) as f:
-        for d in pool:
-            f.write(d + chr(10))
-        tmp_path = Path(f.name)
-    tmp_path.rename(digest_path)
-    if args.as_json:
-        print(json.dumps({'pool_size': len(pool), 'limit': args.limit}))
-    else:
-        print(f'Pool updated: {len(pool)} candidates')
-    return 0
 def handle_list_runs(args: argparse.Namespace) -> int:
     """Handles the `list-runs` subcommand."""
     from oeis_learn.tracking.run_manager import RunManager

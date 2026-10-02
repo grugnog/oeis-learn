@@ -9,13 +9,15 @@ and acyclic reference rules.
 
 from __future__ import annotations
 
-import copy
+import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from functools import lru_cache
+from importlib.resources import files
 from pathlib import PurePosixPath
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker, validators
 
 from oeis_learn.experiments.profiles import I256_MAX, I256_MIN
 
@@ -48,13 +50,15 @@ def parse_integer_text(value: str, lo: int, hi: int, context: str) -> int:
         raise FoundationValidationError(
             f"{context}: expected canonical integer text (0 or -?[1-9][0-9]*), got {value!r}"
         )
+    if len(value.lstrip("-")) > max(len(str(abs(lo))), len(str(abs(hi)))):
+        raise FoundationValidationError(f"{context}: integer magnitude outside profile")
     parsed = int(value, 10)
     if not (lo <= parsed <= hi):
         raise FoundationValidationError(f"{context}: integer {value} outside [{lo}, {hi}]")
     return parsed
 
 
-def check_digest(value: Any, context: str, *, nullable: bool = False) -> Optional[str]:
+def check_digest(value: Any, context: str, *, nullable: bool = False) -> str | None:
     if value is None:
         if nullable:
             return None
@@ -74,13 +78,13 @@ def check_digest(value: Any, context: str, *, nullable: bool = False) -> Optiona
 @dataclass
 class Metric:
     state: str
-    value: Optional[int]
+    value: int | None
     unit: str
-    source: Optional[str]
-    reason: Optional[str]
+    source: str | None
+    reason: str | None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any], context: str) -> "Metric":
+    def from_dict(cls, d: dict[str, Any], context: str) -> Metric:
         return cls(
             state=d["state"],
             value=d["value"],
@@ -89,7 +93,7 @@ class Metric:
             reason=d["reason"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "state": self.state,
             "value": self.value,
@@ -99,17 +103,26 @@ class Metric:
         }
 
 
-def _check_metric(metric: Dict[str, Any], context: str) -> None:
+def _check_metric(metric: dict[str, Any], context: str) -> None:
     state = metric["state"]
     _require(state in {"measured", "disabled", "unavailable"}, f"{context}.state invalid")
     value = metric["value"]
     if state == "measured":
-        _require(isinstance(value, int) and value >= 0, f"{context}.value must be a nonnegative integer when measured")
-        _require(isinstance(metric["source"], str) and metric["source"], f"{context}.source required when measured")
+        _require(
+            isinstance(value, int) and value >= 0,
+            f"{context}.value must be a nonnegative integer when measured",
+        )
+        _require(
+            isinstance(metric["source"], str) and metric["source"],
+            f"{context}.source required when measured",
+        )
         _require(metric["reason"] is None, f"{context}.reason must be null when measured")
     else:
         _require(value is None, f"{context}.value must be null when {state}")
-        _require(isinstance(metric["reason"], str) and metric["reason"], f"{context}.reason required when {state}")
+        _require(
+            isinstance(metric["reason"], str) and metric["reason"],
+            f"{context}.reason required when {state}",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -123,10 +136,10 @@ class VisiblePrompt:
     schema_version: str
     request_nonce: str
     language_profile: str
-    observed_terms: List[str]
+    observed_terms: list[str]
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "VisiblePrompt":
+    def from_dict(cls, d: dict[str, Any]) -> VisiblePrompt:
         return cls(
             kind=d["kind"],
             schema_version=d["schema_version"],
@@ -135,7 +148,7 @@ class VisiblePrompt:
             observed_terms=d["observed_terms"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.kind,
             "schema_version": self.schema_version,
@@ -156,21 +169,21 @@ class CandidateResult:
     language_profile: str
     resource_profile: str
     source_sha256: str
-    checkpoint_sha256: Optional[str]
+    checkpoint_sha256: str | None
     prompt_sha256: str
     outcome: str
-    reason: Optional[str]
-    outputs: List[str]
+    reason: str | None
+    outputs: list[str]
     verified_terms: int
-    first_failure_index: Optional[int]
+    first_failure_index: int | None
     selected: bool
-    reference_evidence_sha256: Optional[str]
-    expected_terms_sha256: Optional[str]
-    usage: Dict[str, Metric]
+    reference_evidence_sha256: str | None
+    expected_terms_sha256: str | None
+    usage: dict[str, Metric]
     proof_status: str
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "CandidateResult":
+    def from_dict(cls, d: dict[str, Any]) -> CandidateResult:
         return cls(
             kind=d["kind"],
             schema_version=d["schema_version"],
@@ -195,7 +208,7 @@ class CandidateResult:
             proof_status=d["proof_status"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.kind,
             "schema_version": self.schema_version,
@@ -237,13 +250,13 @@ class CheckpointManifest:
     effective_config_sha256: str
     ledger_sequence: int
     charged_budget_ns: int
-    next_sample_ids: List[str]
-    payload_state_keys: List[str]
+    next_sample_ids: list[str]
+    payload_state_keys: list[str]
     checkpoint_state: str
-    previous_manifest_sha256: Optional[str]
+    previous_manifest_sha256: str | None
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "CheckpointManifest":
+    def from_dict(cls, d: dict[str, Any]) -> CheckpointManifest:
         return cls(
             kind=d["kind"],
             schema_version=d["schema_version"],
@@ -265,7 +278,7 @@ class CheckpointManifest:
             previous_manifest_sha256=d["previous_manifest_sha256"],
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.kind,
             "schema_version": self.schema_version,
@@ -291,7 +304,9 @@ class CheckpointManifest:
 def _check_blob_path(path: str) -> None:
     """Safe relative artifact path: no '..', no absolute path, no symlink escape."""
     if not isinstance(path, str) or not BLOB_PATH_RE.fullmatch(path):
-        raise FoundationValidationError(f"blob_path: expected safe relative *.pt filename, got {path!r}")
+        raise FoundationValidationError(
+            f"blob_path: expected safe relative *.pt filename, got {path!r}"
+        )
     p = PurePosixPath(path)
     _require(not p.is_absolute(), f"blob_path {path!r} must be relative")
     _require(".." not in p.parts, f"blob_path {path!r} must not contain '..'")
@@ -302,8 +317,15 @@ def _check_blob_path(path: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def validate_artifact(data: Dict[str, Any]) -> None:
+def validate_artifact(
+    data: dict[str, Any], *, expected_profiles: dict[str, str] | None = None
+) -> None:
     """Validate a foundation/v1 artifact (JSON shape + semantic rules)."""
+    validate_shape(data, _artifact_schema())
+    if expected_profiles is not None:
+        for key, digest in expected_profiles.items():
+            check_digest(digest, key)
+            _require(key in data and data[key] == digest, f"{key}: profile identity mismatch")
     kind = data.get("kind")
     _require(kind in VALID_KINDS, f"unknown artifact kind {kind!r}")
     _require(data.get("schema_version") == SCHEMA_VERSION, "schema_version must be foundation/v1")
@@ -316,14 +338,17 @@ def validate_artifact(data: Dict[str, Any]) -> None:
         _validate_checkpoint_manifest(data)
 
 
-def _validate_visible_prompt(data: Dict[str, Any]) -> None:
+def _validate_visible_prompt(data: dict[str, Any]) -> None:
     check_digest(data["language_profile"], "language_profile")
-    _require(len(data["observed_terms"]) == 20, "visible_prompt.observed_terms must have exactly 20 values")
+    _require(
+        len(data["observed_terms"]) == 20,
+        "visible_prompt.observed_terms must have exactly 20 values",
+    )
     for i, term in enumerate(data["observed_terms"]):
         parse_integer_text(term, I256_MIN, I256_MAX, f"observed_terms[{i}]")
 
 
-def _validate_candidate_result(data: Dict[str, Any]) -> None:
+def _validate_candidate_result(data: dict[str, Any]) -> None:
     check_digest(data["language_profile"], "language_profile")
     check_digest(data["resource_profile"], "resource_profile")
     check_digest(data["source_sha256"], "source_sha256")
@@ -339,13 +364,31 @@ def _validate_candidate_result(data: Dict[str, Any]) -> None:
     for key in ("fuel", "reference_steps", "elapsed_ns", "peak_rss_bytes"):
         _check_metric(data["usage"][key], f"usage.{key}")
 
+    horizon = {"prepare": 0, "prefix": 20, "full": 100}[data["stage"]]
+    _require(len(data["outputs"]) <= horizon, "outputs exceed stage horizon")
+    _require(data["verified_terms"] <= len(data["outputs"]), "verified count exceeds outputs")
+    failure = data["first_failure_index"]
+    if failure is not None:
+        _require(failure < horizon, "failure index outside stage horizon")
+        _require(
+            data["verified_terms"] <= failure <= len(data["outputs"]), "inconsistent failure index"
+        )
+    for key, unit in {
+        "fuel": "wasmtime_fuel",
+        "reference_steps": "ast_instructions",
+        "elapsed_ns": "ns",
+        "peak_rss_bytes": "bytes",
+    }.items():
+        _require(data["usage"][key]["unit"] == unit, f"usage.{key}: wrong unit")
     outcome = data["outcome"]
     if outcome == "prefix_match":
         _require(len(data["outputs"]) == 20, "prefix_match requires exactly 20 outputs")
         _require(data["verified_terms"] == 20, "prefix_match requires verified_terms == 20")
         _require(data["stage"] == "prefix", "prefix_match requires stage == 'prefix'")
         _require(data["reason"] is None, "prefix_match requires reason null")
-        _require(data["first_failure_index"] is None, "prefix_match requires first_failure_index null")
+        _require(
+            data["first_failure_index"] is None, "prefix_match requires first_failure_index null"
+        )
         check_digest(data["reference_evidence_sha256"], "reference_evidence_sha256")
         check_digest(data["expected_terms_sha256"], "expected_terms_sha256")
     elif outcome == "full_horizon_match":
@@ -353,11 +396,17 @@ def _validate_candidate_result(data: Dict[str, Any]) -> None:
         _require(data["verified_terms"] == 100, "full_horizon_match requires verified_terms == 100")
         _require(data["stage"] == "full", "full_horizon_match requires stage == 'full'")
         _require(data["reason"] is None, "full_horizon_match requires reason null")
-        _require(data["first_failure_index"] is None, "full_horizon_match requires first_failure_index null")
+        _require(
+            data["first_failure_index"] is None,
+            "full_horizon_match requires first_failure_index null",
+        )
         check_digest(data["reference_evidence_sha256"], "reference_evidence_sha256")
         check_digest(data["expected_terms_sha256"], "expected_terms_sha256")
     else:
-        _require(isinstance(data["reason"], str) and data["reason"], f"{outcome} requires a non-empty reason")
+        _require(
+            isinstance(data["reason"], str) and data["reason"],
+            f"{outcome} requires a non-empty reason",
+        )
 
     if data["purpose"] == "model":
         check_digest(data["checkpoint_sha256"], "checkpoint_sha256", nullable=False)
@@ -365,7 +414,7 @@ def _validate_candidate_result(data: Dict[str, Any]) -> None:
         check_digest(data["checkpoint_sha256"], "checkpoint_sha256", nullable=True)
 
 
-def _validate_checkpoint_manifest(data: Dict[str, Any]) -> None:
+def _validate_checkpoint_manifest(data: dict[str, Any]) -> None:
     _check_blob_path(data["blob_path"])
     check_digest(data["blob_sha256"], "blob_sha256")
     check_digest(data["contract_sha256"], "contract_sha256")
@@ -378,7 +427,8 @@ def _validate_checkpoint_manifest(data: Dict[str, Any]) -> None:
         check_digest(sid, "next_sample_ids[]")
     _require(data["checkpoint_state"] == "complete", "checkpoint_state must be 'complete'")
     _require(
-        data["payload_state_keys"] == [
+        data["payload_state_keys"]
+        == [
             "model",
             "optimizer",
             "scheduler",
@@ -400,15 +450,31 @@ def _validate_checkpoint_manifest(data: Dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def build_schema_validator(schema: Dict[str, Any]) -> Draft202012Validator:
+def build_schema_validator(schema: dict[str, Any]) -> Draft202012Validator:
     """Return a validator for the supplied artifacts schema."""
-    return Draft202012Validator(schema)
+    # JSON Schema normally accepts 1.0 as an integer. Boundary counters must
+    # retain exact JSON integer spelling and may never admit booleans/floats.
+    checker = Draft202012Validator.TYPE_CHECKER.redefine(
+        "integer", lambda _, value: type(value) is int
+    )
+    strict = validators.extend(Draft202012Validator, type_checker=checker)
+    return strict(schema, format_checker=FormatChecker())
 
 
-def validate_shape(data: Dict[str, Any], schema: Dict[str, Any]) -> None:
+def validate_shape(data: dict[str, Any], schema: dict[str, Any]) -> None:
     """Validate JSON shape only (unknown fields, required fields, enums)."""
     errors = list(build_schema_validator(schema).iter_errors(data))
     if errors:
         raise FoundationValidationError(
             "schema validation failed: " + "; ".join(e.message for e in errors)
         )
+
+
+@lru_cache(maxsize=1)
+def _artifact_schema() -> dict[str, Any]:
+    """Packaged contract, independent of process cwd or source checkout."""
+    return json.loads(
+        files("oeis_learn.experiments")
+        .joinpath("artifacts.schema.json")
+        .read_text(encoding="utf-8")
+    )
