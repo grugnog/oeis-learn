@@ -34,11 +34,20 @@ class WasmRunner:
         memory_limit_mib: int = 16,
         terms_to_generate: int = 20,
         use_fallback: bool = False,
+        backend: str = "python_wasmtime",
     ):
         self.fuel_budget = fuel_budget
         self.memory_limit_mib = memory_limit_mib
         self.terms_to_generate = terms_to_generate
-        self.use_fallback = use_fallback or not HAS_NATIVE_EVALUATOR
+        if backend != "python_wasmtime":
+            raise ValueError(
+                "Native execution is pending phase 7 conformance; "
+                "select python_wasmtime explicitly for diagnostics"
+            )
+        if memory_limit_mib != 16:
+            raise ValueError("Only the fixed 16 MiB memory profile is supported")
+        self.backend = backend
+        self.use_fallback = True
 
     def run_single(
         self,
@@ -79,7 +88,7 @@ class WasmRunner:
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_single_fallback
 
-            return evaluate_wat_single_fallback(wat_code, fuel, terms)
+            return evaluate_wat_single_fallback(wat_code, fuel, terms, result_profile)
 
     def run_batch(
         self,
@@ -127,7 +136,7 @@ class WasmRunner:
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_batch_fallback
 
-            return evaluate_wat_batch_fallback(lowered_programs, fuel, terms)
+            return evaluate_wat_batch_fallback(lowered_programs, fuel, terms, result_profile)
 
     def run_optimized_single(
         self,

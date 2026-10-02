@@ -1,0 +1,27 @@
+{
+  "schema_version": "phase7-review/v1",
+  "gate": "G7",
+  "status": "PARTIAL",
+  "qualified": false,
+  "evidence_scope": "recovered draft; final published tree validation pending",
+  "checks": {
+    "grounding": "PENDING_FINAL_TREE_VALIDATION",
+    "symbolic": "PENDING_FINAL_TREE_VALIDATION",
+    "optimizer": "PENDING_FINAL_TREE_VALIDATION",
+    "native_parity": "NOT_RUN_NATIVE_REPAIR_INCOMPLETE",
+    "qualified_contracts": "INCOMPLETE",
+    "recurrence_dataflow": "PENDING_FUEL_FIX_RERUN"
+  },
+  "local_recovery_run": {
+    "passed": 13,
+    "failed": 1,
+    "failure": "recognized recurrence exhausted legacy per-index fuel; allowance corrected but rerun blocked"
+  },
+  "earlier_620_pass_result_applies_to_this_tree": false,
+  "blockers": [
+    "Execution service disconnected after workspace rollback",
+    "Rust/Docker conformance unavailable and native repair unfinished",
+    "qualified/v1 validators/replay and activation integration unfinished"
+  ],
+  "review": "specs/007-experiment-foundation/validation/phase-7-review.md"
+}

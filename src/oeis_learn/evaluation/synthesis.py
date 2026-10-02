@@ -58,6 +58,8 @@ def evaluate_candidate_stages(
         fuel_budget=protocol.fuel_per_invocation,
         memory_limit_mib=protocol.memory_limit_mib,
     )
+    if protocol.native_evaluator_required:
+        raise ValueError("Native qualification is pending phase 7 conformance")
     cand_id = f"{evaluation_id}_c{candidate_index}"
 
     stage_records: List[StageRecord] = []
@@ -114,7 +116,7 @@ def evaluate_candidate_stages(
     # 2. Stage: CONSTANT_RESOLUTION
     if primary_failure is None:
         t0 = time.perf_counter()
-        if "i64.const_?" in raw_wat:
+        if "i64.const_?" in raw_wat or "i256.const_?" in raw_wat or protocol.constant_resolution:
             if not protocol.constant_resolution:
                 record_stage("CONSTANT_RESOLUTION", "FAILED", 0.0, "SOLVER_DISABLED", "Placeholders emitted but constant_resolution is false")
                 primary_failure = "CONSTANT_RESOLUTION"
@@ -134,7 +136,7 @@ def evaluate_candidate_stages(
                     record_stage("CONSTANT_RESOLUTION", "TIMEOUT", r_dur, "SOLVER_TIMEOUT", r_err)
                     primary_failure = "CONSTANT_RESOLUTION"
                 else:
-                    record_stage("CONSTANT_RESOLUTION", "FAILED", r_dur, "UNSATISFIABLE", r_err)
+                    record_stage("CONSTANT_RESOLUTION", "FAILED", r_dur, r_status, r_err)
                     primary_failure = "CONSTANT_RESOLUTION"
         else:
             resolved_wat = raw_wat
@@ -147,7 +149,7 @@ def evaluate_candidate_stages(
     if primary_failure is None:
         t0 = time.perf_counter()
         try:
-            artifact = optimize_wat_program(target_wat, hard_waste_threshold=protocol.mdl_ratio_max)
+            artifact = optimize_wat_program(target_wat)
             canonical_wat = artifact.opt_wat
             canonical_tokens = tokenize_wat(canonical_wat)
             token_str = " ".join(canonical_tokens)
@@ -431,7 +433,8 @@ def evaluate_cohort_synthesis(
     unique_count = len(seen_canonical)
     qualified_ids = [c.candidate_id for c in candidates if c.classification == "EXTRAPOLATING_SUCCESS"]
 
-    status = "QUALIFIED_SUCCESS" if qualified_ids else "COMPLETED_NO_SUCCESS"
+    status = "DIAGNOSTIC_MATCH" if qualified_ids else "COMPLETED_NO_SUCCESS"
+    qualified_ids = []  # Legacy finite evaluation is not qualified-service evidence.
     duration_ms = (time.perf_counter() - start_eval_time) * 1000.0
 
     return SynthesisEvaluationResult(

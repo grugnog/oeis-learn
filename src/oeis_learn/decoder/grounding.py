@@ -221,7 +221,7 @@ def _ground(source, terms, bound, timeout_ms, recurrence_data=None):
             expected = reference(rec, values, len(terms))
         except OverflowError:
             return result("unknown", reason="recurrence intermediate exceeds signed i256")
-        run = WasmRunner().run_single(splice(source, values), terms_to_generate=len(terms), result_profile="i256x4_v1")
+        run = WasmRunner(fuel_budget=1_000_000).run_single(splice(source, values), terms_to_generate=len(terms), result_profile="i256x4_v1")
         if run.status != "SUCCESS" or run.output != list(terms) or expected != list(terms):
             return result("unknown", reason="final recurrence verification failed")
         return result("verified_solution", values, execution={"production":run.output,"reference":expected,"scope":"visible_prefix"})
@@ -279,6 +279,16 @@ def _ground(source, terms, bound, timeout_ms, recurrence_data=None):
                 values = None
             else:
                 method = solved.method
+    if values is None and method == "z3_qfnia":
+        from oeis_learn.decoder.qfnia_solver import solve_integer_constraints
+        constraints = guards + [e == t for e, t in zip(expressions, terms)]
+        def build(fresh):
+            substitutions = list(zip(cs, fresh))
+            return [z3.substitute(c, *substitutions) if substitutions else c for c in constraints]
+        solved = solve_integer_constraints(k, build, bound, timeout_ms)
+        if solved.outcome != "verified_solution":
+            return result(solved.outcome, reason=solved.reason)
+        values = solved.constants
     if values is None:
         status = solver.check()
         if status == z3.unsat:

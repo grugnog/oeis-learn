@@ -95,6 +95,9 @@ class SymbolicProver:
         try:
             for entry in entries: validate_definition(entry)
         except ValueError as exc: return 'UNSUPPORTED',{'outcome':'UNSUPPORTED','diagnostic':str(exc),'independently_checked':False}
-        status,evidence=self._run([e['expression'] for e in entries],relation.coefficients,[(op.index_scale,op.index_shift) for op in relation.operands],[e['domain'] for e in entries],[a for e in entries for a in e['assumptions']]+['Formula-to-OEIS correspondence is an external assumption.'])
+        import re
+        if any(not isinstance(c, str) or not re.fullmatch(r"-?(0|[1-9][0-9]*)", c) or len(c) > 80 for c in relation.coefficients):
+            return 'UNSUPPORTED', {'outcome':'UNSUPPORTED','diagnostic':'canonical exact coefficients required','independently_checked':False}
+        status,evidence=self._run([e['expression'] for e in entries],[int(c) for c in relation.coefficients],[(op.index_scale,op.index_shift) for op in relation.operands],[e['domain'] for e in entries],[a for e in entries for a in e['assumptions']]+['Formula-to-OEIS correspondence is an external assumption.'])
         evidence.update(definition_ids=[e['definition_id'] for e in entries],definition_hashes=[e['expression_sha256'] for e in entries],normalized_identity=relation.canonical_expression)
         return status,evidence

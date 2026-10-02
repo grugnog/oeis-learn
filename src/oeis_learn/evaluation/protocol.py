@@ -74,8 +74,8 @@ class EvaluationProtocol:
             raise ValueError(f"top_p must be in (0, 1], got {self.top_p}")
         if self.mdl_ratio_max > 1.2:
             raise ValueError(f"mdl_ratio_max must be <= 1.2, got {self.mdl_ratio_max}")
-        if not self.native_evaluator_required:
-            raise ValueError("native_evaluator_required must be true for qualified evaluation")
+        if type(self.native_evaluator_required) is not bool:
+            raise ValueError("native_evaluator_required must be an exact boolean")
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> EvaluationProtocol:

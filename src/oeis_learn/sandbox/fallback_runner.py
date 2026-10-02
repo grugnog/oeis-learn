@@ -13,13 +13,20 @@ from oeis_learn.sandbox.pipeline import decode_limbs
 
 
 def evaluate_wat_single_fallback(
-    wat_code: str, fuel_budget: int = 10000, terms_to_generate: int = 20
+    wat_code: str, fuel_budget: int = 10000, terms_to_generate: int = 20,
+    result_profile: str = "i64_scalar_v1"
 ) -> ExecutionResult:
     if type(fuel_budget) is not int or fuel_budget <= 0:
         raise ValueError("fuel_budget must be positive")
     if type(terms_to_generate) is not int or terms_to_generate <= 0:
         raise ValueError("terms_to_generate must be positive")
+    if fuel_budget > 1_000_000 or terms_to_generate > 120 or len(wat_code.encode()) > 65536:
+        raise ValueError("execution cap exceeded")
+    if result_profile not in ("i64_scalar_v1", "i256x4_v1"):
+        raise ValueError("explicit scalar or wide profile required")
     config = wasmtime.Config()
+    config.memory_reservation = 0
+    config.memory_guard_size = 0
     config.consume_fuel = True
     config.parallel_compilation = False
     with wasmtime.Engine(config) as engine:
@@ -38,7 +45,9 @@ def evaluate_wat_single_fallback(
             for n in range(terms_to_generate):
                 status, error = "SUCCESS", None
                 with wasmtime.Store(engine) as store:
-                    store.set_fuel(fuel_budget)
+                    allowance = min(fuel_budget, 50_000_000 - total)
+                    store.set_limits(memory_size=16*1024*1024, instances=1, memories=1, tables=10)
+                    store.set_fuel(allowance)
                     try:
                         instance = wasmtime.Instance(store, module, [])
                         exports = instance.exports(store)
@@ -57,7 +66,7 @@ def evaluate_wat_single_fallback(
                             if (
                                 len(params) != 1
                                 or str(params[0]) not in ("i32", "i64")
-                                or [str(t) for t in results] not in (["i64"], ["i64"] * 4)
+                                or [str(t) for t in results] != ["i64"] * (4 if result_profile == "i256x4_v1" else 1)
                             ):
                                 status, error = (
                                     "COMPILE_ERROR",
@@ -81,7 +90,7 @@ def evaluate_wat_single_fallback(
                         error = str(exc)
                     except (wasmtime.WasmtimeError, ValueError) as exc:
                         status, error = "EXECUTION_TRAP", str(exc)
-                    used = fuel_budget - store.get_fuel()
+                    used = allowance - store.get_fuel()
                 total += used
                 maximum = max(maximum, used)
                 if status != "SUCCESS":
@@ -98,8 +107,9 @@ def evaluate_wat_single_fallback(
 
 
 def evaluate_wat_batch_fallback(
-    wat_programs: Sequence[str], fuel_budget: int = 10000, terms_to_generate: int = 20
+    wat_programs: Sequence[str], fuel_budget: int = 10000, terms_to_generate: int = 20,
+    result_profile: str = "i64_scalar_v1"
 ) -> List[ExecutionResult]:
     return [
-        evaluate_wat_single_fallback(wat, fuel_budget, terms_to_generate) for wat in wat_programs
+        evaluate_wat_single_fallback(wat, fuel_budget, terms_to_generate, result_profile) for wat in wat_programs
     ]
