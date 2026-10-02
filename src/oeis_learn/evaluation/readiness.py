@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import hashlib
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -14,7 +13,7 @@ from oeis_learn.data.models import (
     ReadinessReport,
     ReadinessThreshold,
 )
-from oeis_learn.evaluation.protocol import canonical_json_dumps, canonical_json_hash
+from oeis_learn.evaluation.protocol import canonical_json_hash
 
 
 def load_readiness_policy(policy_path: str) -> ReadinessPolicy:
@@ -114,7 +113,9 @@ def evaluate_readiness_policy(
 
     override_record: Optional[OverrideRecord] = None
     if all_passed:
-        qual_state = "AUTHORIZED"
+        qual_state = (
+            "BLOCKED"  # Threshold-only legacy diagnostics cannot authorize model synthesis.
+        )
     else:
         if override_info and override_info.get("operator") and override_info.get("reason"):
             ovr_id = f"ovr_{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}"
@@ -123,7 +124,9 @@ def evaluate_readiness_policy(
                 operator=override_info["operator"],
                 created_at=now_utc,
                 reason=override_info["reason"],
-                diagnostic_intent=override_info.get("diagnostic_intent", "Diagnostic evaluation only"),
+                diagnostic_intent=override_info.get(
+                    "diagnostic_intent", "Diagnostic evaluation only"
+                ),
                 failed_gate_ids=failed_gate_ids,
                 policy_id=policy.policy_id,
             )
@@ -143,3 +146,24 @@ def evaluate_readiness_policy(
         override=override_record,
         qualification_state=qual_state,
     )
+
+
+def foundation_readiness(checkpoint, *, software_complete):
+    """Software evidence cannot stand in for the later hardware/run gates."""
+    from oeis_learn.experiments.profiles import profile_digests
+
+    if (
+        checkpoint.contract["profiles"] != profile_digests()
+        or checkpoint.contract["constitution_version"] != "2.0.0"
+        or not checkpoint.manifest["blob_sha256"]
+    ):
+        raise ValueError("genuine checkpoint and adopted profile evidence required")
+    return {
+        "qualified": False,
+        "qualification": "diagnostic"
+        if checkpoint.contract["purpose"] == "diagnostic"
+        else "pending_run_gates",
+        "software_complete": bool(software_complete),
+        "checkpoint_sha256": checkpoint.manifest["blob_sha256"],
+        "missing_gates": ["hardware/runtime containment and complete run provenance (T046/T049)"],
+    }

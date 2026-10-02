@@ -159,7 +159,7 @@ def test_checkpoint_manifest_is_json_and_never_rewrites_blob(tmp_path, examples)
 
 
 @pytest.mark.parametrize(
-    "command", ["freeze-cohort", "build-pool", "train", "resume", "inspect", "evaluate", "finalize"]
+    "command", ["build-pool", "train", "resume", "inspect"]
 )
 def test_later_commands_fail_without_writing(command, tmp_path):
     assert dispatch(command, root=str(tmp_path)) == 1

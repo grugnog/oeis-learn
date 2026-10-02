@@ -108,3 +108,9 @@ def load_benchmark_manifest(
         exclusions=data.get("exclusions", []),
     )
     return cohort
+
+
+def load_foundation_benchmark(root):
+    """Strict first-100 cohort adapter; never reinterpret legacy 20+100 data."""
+    from oeis_learn.evaluation.foundation_cohort import load_cohort
+    return load_cohort(root)

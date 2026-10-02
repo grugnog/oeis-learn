@@ -223,7 +223,7 @@ def evaluate_candidate_stages(
         )
         max_fuel = exec_res.max_fuel
         total_fuel = exec_res.total_fuel
-        peak_memory_mib = 1.0  # Safe upper-bound estimate within 16 MiB ceiling
+        peak_memory_mib = None  # No measurement is available from this legacy adapter.
 
         if exec_res.status != "SUCCESS":
             record_stage(

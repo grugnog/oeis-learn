@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Reference kernel diagnostic (not model synthesis)",
+  "description": "Versioned replacement for new canary output. Historical reports retain the 006 schema.",
+  "type": "object",
+  "required": [
+    "all_canaries_passed",
+    "canary_results",
+    "checkpoint_evaluated",
+    "checkpoint_requested",
+    "evaluation_timestamp",
+    "model_synthesis",
+    "proof_status",
+    "purpose",
+    "qualified",
+    "result_profile",
+    "schema_version",
+    "fuel_budget"
+  ],
+  "properties": {
+    "evaluation_timestamp": {
+      "type": "string"
+    },
+    "checkpoint_evaluated": {
+      "type": "null"
+    },
+    "result_profile": {
+      "type": "string",
+      "enum": [
+        "i256x4_v1",
+        "i64_scalar_v1"
+      ]
+    },
+    "canary_results": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "sequence_id",
+          "name",
+          "scalar_64bit_overflow_term",
+          "observed_matched",
+          "unseen_matched",
+          "overflow_prevented",
+          "fuel_consumed",
+          "verdict",
+          "execution_status",
+          "execution_error"
+        ],
+        "properties": {
+          "sequence_id": {
+            "type": "string",
+            "enum": [
+              "A000217",
+              "A000290",
+              "A000079",
+              "A000045",
+              "A000032",
+              "A000129"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "scalar_64bit_overflow_term": {
+            "type": "integer",
+            "description": "Index at which 64-bit signed scalar arithmetic overflows"
+          },
+          "observed_matched": {
+            "type": "boolean"
+          },
+          "unseen_matched": {
+            "type": "boolean"
+          },
+          "overflow_prevented": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Null when the scalar-overflow boundary was not executed; never inferred from a missing output."
+          },
+          "fuel_consumed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "EXTRAPOLATING_SUCCESS",
+              "FAILED_VERIFICATION",
+              "OVERFLOW_TRAP",
+              "FUEL_TRAP"
+            ]
+          },
+          "execution_status": {
+            "type": "string"
+          },
+          "execution_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "all_canaries_passed": {
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "reference-kernel-diagnostic/v1"
+    },
+    "checkpoint_requested": {
+      "type": "string"
+    },
+    "purpose": {
+      "const": "reference_kernel_diagnostic"
+    },
+    "model_synthesis": {
+      "const": false
+    },
+    "qualified": {
+      "const": false
+    },
+    "proof_status": {
+      "const": "not_claimed"
+    },
+    "fuel_budget": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "$id": "reference-kernel-diagnostic.schema.json"
+}

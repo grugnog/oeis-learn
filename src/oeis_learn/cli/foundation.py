@@ -13,15 +13,14 @@ from oeis_learn.experiments.models import (
     validate_shape,
 )
 
-_SUPPORTED_COMMANDS = frozenset({"preflight", "conformance"})
+_SUPPORTED_COMMANDS = frozenset(
+    {"preflight", "conformance", "freeze-cohort", "evaluate", "finalize"}
+)
 _UNSUPPORTED_COMMANDS = {
-    "freeze-cohort": "requires cohort isolation and grouping (T020–T022/T028)",
     "build-pool": "requires generic generation and independent admission (T029–T036)",
     "train": "requires strict training and resource gates (T044–T047)",
     "resume": "requires checkpoint continuation (T041–T045)",
     "inspect": "requires checkpoint/run inspection (T041/T045)",
-    "evaluate": "requires prefix-only selection and sealing (T024–T028)",
-    "finalize": "requires immutable finalization (T026/T028)",
 }
 
 
@@ -102,6 +101,107 @@ def cmd_conformance(
 def dispatch(command: str, **kwargs) -> int:
     if command not in _SUPPORTED_COMMANDS:
         return _reject_unsupported(command)
-    return {"preflight": cmd_preflight, "conformance": cmd_conformance}[command](
-        **{k: v for k, v in kwargs.items() if v is not None}
-    )
+    return {
+        "preflight": cmd_preflight,
+        "conformance": cmd_conformance,
+        "freeze-cohort": cmd_freeze_cohort,
+        "evaluate": cmd_evaluate,
+        "finalize": cmd_finalize,
+    }[command](**{k: v for k, v in kwargs.items() if v is not None})
+
+
+def _phase4_command(command, operation, as_json):
+    from oeis_learn.evaluation.foundation_synthesis import EvaluationGateError, HardwareUnavailable
+
+    try:
+        report = operation()
+        result = {"command": command, "status": "complete", **report}
+        code = 0
+    except HardwareUnavailable as exc:
+        result, code = (
+            {
+                "command": command,
+                "status": "hardware_unavailable",
+                "error": str(exc),
+                "qualified": False,
+            },
+            3,
+        )
+    except EvaluationGateError as exc:
+        result, code = (
+            {"command": command, "status": "gate_failed", "error": str(exc), "qualified": False},
+            4,
+        )
+    except (FileNotFoundError, ValueError, KeyError, TypeError) as exc:
+        result, code = (
+            {"command": command, "status": "invalid", "error": str(exc), "qualified": False},
+            2,
+        )
+    except (OSError, RuntimeError, EOFError, TimeoutError) as exc:
+        result, code = (
+            {"command": command, "status": "incomplete", "error": str(exc), "qualified": False},
+            5,
+        )
+    print(json.dumps(result) if as_json else f"{command}: {result}")
+    return code
+
+
+def cmd_freeze_cohort(source, config, output, as_json=False):
+    from oeis_learn.evaluation.foundation_cohort import freeze_cohort
+
+    def run():
+        record = freeze_cohort(Path(source), Path(config), Path(output))
+        return {
+            "cohort_id": record["cohort_id"],
+            "census": record["census"],
+            "result_path": str(Path(output) / "manifest.json"),
+        }
+
+    return _phase4_command("freeze-cohort", run, as_json)
+
+
+def cmd_evaluate(
+    output,
+    split,
+    checkpoint=None,
+    protocol=None,
+    cohort=None,
+    finalization=None,
+    device="cpu",
+    as_json=False,
+):
+    from oeis_learn.evaluation.foundation_synthesis import evaluate_foundation
+
+    def run():
+        if finalization:
+            if checkpoint or protocol or cohort or split != "final":
+                raise ValueError(
+                    "finalization cannot be combined with overriding checkpoint/protocol/cohort or development split"
+                )
+            lock = load_json(Path(finalization).read_bytes())
+            inputs = (lock["checkpoint_path"], lock["cohort_path"], lock["protocol_path"])
+        else:
+            if not checkpoint or not protocol or not cohort or split != "development":
+                raise ValueError(
+                    "development requires checkpoint/cohort/protocol; final requires a decision lock"
+                )
+            inputs = (checkpoint, cohort, protocol)
+        return evaluate_foundation(
+            *inputs, output, split=split, finalization=finalization, device=device
+        )
+
+    return _phase4_command("evaluate", run, as_json)
+
+
+def cmd_finalize(run_dir, checkpoint, protocol, cohort, stopping_record, output, as_json=False):
+    from oeis_learn.evaluation.finalization import create_finalization, final_output
+
+    def run():
+        lock = create_finalization(run_dir, checkpoint, protocol, cohort, stopping_record, output)
+        return {
+            "finalization_id": lock["finalization_id"],
+            "result_path": str(output),
+            "evaluation_output": str(final_output(lock)),
+        }
+
+    return _phase4_command("finalize", run, as_json)
