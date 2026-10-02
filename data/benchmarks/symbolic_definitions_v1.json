@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "registry_id": "symbolic_definitions_v1",
-  "registry_sha256": "sha256:315a22923c79685e3345430ec441234a6c86d08d2a65a0c4fe282748bd4856cd",
+  "registry_sha256": "sha256:a9cf1949adbccd589a93c9da8b3a41d6c122f94cfb41f3132f89097a537c56c3",
   "created_at": "2026-09-04T12:00:00Z",
   "definitions": [
     {
@@ -13,9 +13,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A000012",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
       },
       "expression": "1",
       "domain": {
@@ -24,9 +24,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
     },
     {
       "definition_id": "def_A000027_v1",
@@ -37,9 +39,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A000027",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:1b16b1df538ba12dc3f97edbb85caa7050d46c148134290feba80f8236c83db9"
       },
       "expression": "n",
       "domain": {
@@ -48,9 +50,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:1b16b1df538ba12dc3f97edbb85caa7050d46c148134290feba80f8236c83db9"
     },
     {
       "definition_id": "def_A000217_v1",
@@ -61,9 +65,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A000217",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:1a094164fd7efc0634c5091c65f45e8dba86b42ad0a7c8398627f98db5790663"
       },
       "expression": "n*(n + 1)/2",
       "domain": {
@@ -72,9 +76,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:1a094164fd7efc0634c5091c65f45e8dba86b42ad0a7c8398627f98db5790663"
     },
     {
       "definition_id": "def_A000290_v1",
@@ -85,9 +91,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A000290",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:62575584b1ecc552a79a63a0692124668678520a7b9203d1ba10f63924addb8e"
       },
       "expression": "n**2",
       "domain": {
@@ -96,9 +102,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:62575584b1ecc552a79a63a0692124668678520a7b9203d1ba10f63924addb8e"
     },
     {
       "definition_id": "def_A100000_v1",
@@ -109,9 +117,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A100000",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:62575584b1ecc552a79a63a0692124668678520a7b9203d1ba10f63924addb8e"
       },
       "expression": "n**2",
       "domain": {
@@ -120,9 +128,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:62575584b1ecc552a79a63a0692124668678520a7b9203d1ba10f63924addb8e"
     },
     {
       "definition_id": "def_A005408_v1",
@@ -133,9 +143,9 @@
       },
       "kind": "CLOSED_FORM",
       "source": {
-        "reference": "OEIS A005408",
-        "revision": "2026-09-04",
-        "content_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "reference": "Repository formula assumption (not verified against OEIS)",
+        "revision": "007-phase7",
+        "content_sha256": "sha256:b6fe592523a87a2723d5d45c9d7f1603b29e7109a7c0e7925785e42c7728546c"
       },
       "expression": "2*n + 1",
       "domain": {
@@ -144,9 +154,11 @@
         "upper_bound": null
       },
       "assumptions": [
-        "n >= 0"
+        "n >= 0",
+        "Formula-to-OEIS correspondence is an external assumption."
       ],
-      "parser_version": "sympy-1.12"
+      "parser_version": "bounded-rational/v1",
+      "expression_sha256": "sha256:b6fe592523a87a2723d5d45c9d7f1603b29e7109a7c0e7925785e42c7728546c"
     }
   ]
 }
