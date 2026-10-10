@@ -548,14 +548,13 @@ def cmd_learning_train(
                     encoder, decoder, optimizer, replay, generic=generic_batch, device=device
                 )
                 if policy is not None:
-                    from oeis_learn.data.models import SequenceRecord
+                    from oeis_learn.rl.trainer import TrainingPrompt
 
                     value = program_archive.get(generic[cursor % len(generic)])
                     result["policy"] = policy.train_step_for_prompt(
-                        SequenceRecord(
-                            oeis_id="training-" + generic[cursor % len(generic)][7:23],
-                            name="",
-                            terms=[int(v) for v in value["entry"]["conditioning_values"]],
+                        TrainingPrompt(
+                            prompt_id="training-" + generic[cursor % len(generic)][7:23],
+                            terms=tuple(int(v) for v in value["entry"]["conditioning_values"]),
                             curriculum_stage=1,
                         ),
                         group_size=4,

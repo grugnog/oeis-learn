@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 import torch
 import torch.nn as nn
@@ -22,6 +23,21 @@ from oeis_learn.rl.telemetry import DiagnosticTelemetryTracker
 from oeis_learn.sandbox.runner import WasmRunner
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TrainingPrompt:
+    """Training-only generic prompt; its archive ID is not an OEIS accession."""
+
+    prompt_id: str
+    terms: tuple[int, ...]
+    curriculum_stage: int = 1
+
+    def __post_init__(self):
+        if not isinstance(self.prompt_id, str) or not self.prompt_id:
+            raise ValueError("named training prompt required")
+        if len(self.terms) != 20 or any(type(v) is not int for v in self.terms):
+            raise ValueError("exact twenty-term visible training prompt required")
 
 
 class EgcaGrpoTrainer:
@@ -155,6 +171,7 @@ class EgcaGrpoTrainer:
         count = self.rollout_group_size if group_size is None else group_size
         if type(count) is not int or not 1 <= count <= 16:
             raise ValueError("bounded actual rollout group required")
+        prompt_id = record.prompt_id if isinstance(record, TrainingPrompt) else record.oeis_id
         terms = list(record.terms[:20])
         if len(terms) != 20 or any(type(v) is not int for v in terms):
             raise ValueError("exact twenty-term visible prompt required")
@@ -270,7 +287,7 @@ class EgcaGrpoTrainer:
             error_if_nonfinite=True,
         )
         self.optimizer.step()
-        self.scheduler.record_visit(record.oeis_id, sum(successes), count)
+        self.scheduler.record_visit(prompt_id, sum(successes), count)
         _, _, entropies = masked_distribution(logits.detach(), supports, self.sampling_temperature)
         entropy = float(trajectory_mean(entropies, action_mask))
         self.last_rollouts = []
@@ -308,7 +325,8 @@ class EgcaGrpoTrainer:
             "mean_reward": float(reward.mean()),
             "entropy": entropy,
             "acr": self.telemetry.current_acr,
-            "oeis_id": record.oeis_id,
+            "oeis_id": prompt_id,
+            "prompt_kind": "generic_training" if isinstance(record, TrainingPrompt) else "oeis",
             "compiler_traps": sum(e.status != "SUCCESS" for e, _ in results),
             "sft_loss": None,
             "reward_variance": variance,

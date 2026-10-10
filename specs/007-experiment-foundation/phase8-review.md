@@ -74,7 +74,10 @@ G8 executes owning regressions and pins their JUnit evidence, implementation and
 runtime. CPU software PASS is separate from accelerator qualification. CPU evidence
 cannot enable a hardware-qualified learning session. `foundation learning-train`
 and `learning-search` require actual G7/G8 evidence and explicit service profiles.
-Their CPU diagnostic mode reports `qualified=false`. The root qualification image
+Their CPU diagnostic mode reports `qualified=false`. CLI routing preserves the
+hardware, archive, learning gate, portfolio and resume flags. Generic policy
+prompts carry explicit archive IDs rather than invalid/fabricated OEIS accessions;
+real body-codec execution fixtures cover both REINFORCE and GRPO. The root qualification image
 runs fresh G7, G8 and real CLI train/resume/search acceptance in CI.
 
 Local broader foundation regressions encounter unavailable
