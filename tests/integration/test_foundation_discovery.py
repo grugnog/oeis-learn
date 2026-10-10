@@ -484,3 +484,20 @@ def test_actual_archive_macro_mining_value_repair_and_costs(tmp_path):
             ledger=SearchLedger(),
             max_expansions=1,
         )
+
+
+def test_certificate_has_replayed_finite_compiler_evidence():
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+
+    certificate = make_certificate("polynomial_program", [POLY_A, POLY_B], [1, -1])
+    conformance = certificate["compiler"]["finite_conformance"]
+    assert conformance["status"] == "finite_conformance" and conformance["wasm_theorem"] is False
+    for program in conformance["programs"]:
+        assert [item["value"] for item in program["observations"]] == ["0", "2", "6", "12", "20"]
+        assert all(
+            item["outcome"] is None and item["state_sha256"] for item in program["observations"]
+        )
+    changed = deepcopy(certificate)
+    changed["compiler"]["finite_conformance"]["programs"][0]["observations"][1]["value"] = "999"
+    changed["certificate_sha256"] = digest(changed, "certificate_sha256")
+    assert check_certificate(changed)["result"] == "unknown"

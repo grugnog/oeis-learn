@@ -172,6 +172,7 @@ def make_certificate(kind, sources, coefficients, *, domain=None, template=None)
 
 def _make_certificate(kind, sources, coefficients, domain, template):
     from oeis_learn.sandbox.lowering import lower_logical
+    from oeis_learn.discovery.compiler_conformance import finite_compiled_conformance
 
     if kind not in KINDS:
         raise ValueError("unknown certificate family")
@@ -211,6 +212,9 @@ def _make_certificate(kind, sources, coefficients, domain, template):
             "compiled_sha256": [digest(lower_logical(p)) for p in programs],
             "linkage": "finite_conformance_only",
             "wasm_theorem": False,
+            "finite_conformance": finite_compiled_conformance(
+                [p.canonical_source for p in programs], statement["domain"]
+            ),
         },
     }
     certificate["certificate_sha256"] = digest(certificate)

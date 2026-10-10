@@ -12,6 +12,7 @@ from oeis_learn.discovery.certificates import (
 
 def _check(certificate):
     from oeis_learn.sandbox.lowering import lower_logical
+    from oeis_learn.discovery.compiler_conformance import finite_compiled_conformance
     from oeis_learn.sandbox.wat_ast import ExecutionFailure
 
     try:
@@ -40,6 +41,9 @@ def _check(certificate):
             "compiled_sha256": [digest(lower_logical(s)) for s in sources],
             "linkage": "finite_conformance_only",
             "wasm_theorem": False,
+            "finite_conformance": finite_compiled_conformance(
+                sources, certificate["statement"]["domain"]
+            ),
         }:
             raise ValueError("compiler binding/linkage mutation")
         if certificate["kind"] != "loop_invariant" and certificate["template"] is not None:
@@ -58,6 +62,7 @@ def _check(certificate):
             "assumptions": certificate["statement"]["assumptions"],
             "compiler_linkage": "finite_conformance_only",
             "wasm_theorem": False,
+            "finite_conformance_sha256": digest(compiler["finite_conformance"]),
             "checker": "program-certificate-checker/v1",
         }
     except NotImplementedError as exc:
