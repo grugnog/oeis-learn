@@ -36,11 +36,10 @@ installation or production boot/deadline relaxation was performed.
 
 Actual CPU quickstart command: `OMP_NUM_THREADS=2 .review-venv/bin/python
 scripts/verify_phase11.py --output phase11-evidence/quickstart`. The workspace lacks
-`/proc/sys/kernel/random/boot_id`: cohort/census/measurement/handoff execute,
-pool rejects and dependent training/evaluation remain explicit failures. The
-initial bounded archive had 27 files / 77,160 bytes and pending G0–G10. Its hash
-is historical after subsequent code remediation; Linux CI executes the final
-full quickstart and fresh replay. Missing GPU/source/trained-model acceptance
+`/proc/sys/kernel/random/boot_id`: cohort/measurement/handoff execute; the initial census driver also rejected its malformed terms,
+pool rejects and dependent training/evaluation remain explicit failures. The initial bounded archive preserved these failures and pending G0–G10.
+The driver now preserves indexed census records and uses the final lock output
+path; Linux CI executes the corrected full quickstart and fresh replay. Missing GPU/source/trained-model acceptance
 keeps T104/T105 and earlier acceptance tasks half-checked.
 
 Additional local validation:
@@ -50,6 +49,16 @@ Additional local validation:
 - Official upstream Spec Kit at `fe1d00e3ccaf495880aaf90fb0e17679e82f065b`, CLI 1.0.7: `specify version`, `specify check`, and `SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation specify integration status` succeed. Integration is Pi, with zero modified/missing/invalid/unchecked managed files; local coding-agent CLIs are unavailable and not installed for this review.
 - `SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation bash .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` passes. `python specs/007-experiment-foundation/validate_artifacts.py` passes: 52 requirements, 108 tasks, 68 original findings, 100% structural requirement/task coverage, 82 checked links and 14 negative schema cases. Neither command executes runtime gates.
 - Read-only semantic review compares constitution/spec/plan/contracts/tasks/source findings; no new constitution conflict or unmapped requirement/task. Findings and remaining runtime acceptance are summarized in the review. Requirements/design checklists remain untouched.
+
+The first Linux run at `9f92f4cb88f5d97ccb7152b3eb48f48d0e119eec`
+passed **733 CPU tests / 56 capability skips** and native qualification, then
+exposed two quickstart argument errors: a non-lock final output path and indexed
+integer text incorrectly supplied as normalized census integers. These driver
+errors are repaired; failures stay visible in that run's archive. No service
+validation guard was relaxed. Clean local installed-wheel acceptance on the
+corrected final-path driver recorded **3 passed / 3 native/gate skips**; packaged
+reconciliation independently verified all **68** original inputs/tasks outside
+checkout with Python isolated mode.
 
 Current Linux/native/wheel CI results will be recorded below after execution;
 no future result is treated as passing evidence.

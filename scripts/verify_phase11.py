@@ -161,11 +161,9 @@ def main():
                 ],
             )
     sources = load_json((fixture / "source/records.json").read_bytes())
-    (output / "census-input.json").write_bytes(
-        canonical_bytes(
-            [dict(terms=row["values"], offset=row["first_index"], tags=[]) for row in sources]
-        )
-    )
+    # Preserve the exact indexed text representation and supplied metadata;
+    # the census service owns integer validation and normalization.
+    (output / "census-input.json").write_bytes(canonical_bytes(sources))
     run(
         "census",
         ["census", "--source", output / "census-input.json", "--output", output / "census"],

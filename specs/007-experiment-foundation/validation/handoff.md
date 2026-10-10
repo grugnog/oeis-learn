@@ -62,8 +62,9 @@ Current phase 11 tested commit/results are recorded in
 
 The driver uses exact fixture/profile identities, random full-model weights,
 complete manifests/ledger and a genuine visible-only evaluation. Local execution
-successfully freezes the fixture cohort and runs census, measurement dry-run,
-actual CPU timings and bounded archive replay. Pool construction fails closed
+successfully freezes the fixture cohort and runs measurement dry-run, actual CPU
+timings and bounded archive replay. The initial driver supplied malformed census
+terms; it now preserves the original indexed records instead. Pool construction fails closed
 where Linux `/proc/sys/kernel/random/boot_id` is absent; training/resume and
 finalization/evaluation then remain prerequisite failures. The Linux CI driver
 must execute all those slices, with saved commands/stdout/stderr and no fallback.
