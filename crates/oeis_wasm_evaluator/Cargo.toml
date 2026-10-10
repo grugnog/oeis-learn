@@ -2,7 +2,7 @@
 name = "oeis_wasm_evaluator"
 version = "0.1.0"
 edition = "2021"
-description = "High-throughput native WASM evaluator with fuel metering and Rayon parallelism for oeis-learn"
+description = "Bounded native WASM evaluator with fuel metering for oeis-learn"
 
 [lib]
 name = "oeis_wasm_evaluator"

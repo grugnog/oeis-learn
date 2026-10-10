@@ -129,6 +129,13 @@ def check_grounding_record(record):
                 and evidence["production"] == evidence["reference"] == [str(t) for t in terms]
             )
         if record["numeric_semantics"] == "modular_i64":
+            from oeis_learn.sandbox.runner import WasmRunner
+
+            production = WasmRunner(fuel_budget=1000000).run_single(
+                source, terms_to_generate=len(terms), result_profile="i64_scalar_v1"
+            )
+            if production.status != "SUCCESS" or production.output != list(terms):
+                return False
             values = [str(scalar_value(source, i)) for i in indices]
         else:
             run = Runtime().evaluate(source, indices)

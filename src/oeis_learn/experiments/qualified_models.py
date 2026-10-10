@@ -338,6 +338,12 @@ def _acyclic(edges):
 def validate_record(record: dict) -> None:
     """Validate structure and semantic consistency. Evidence replay is explicit."""
     _require(isinstance(record, dict), "qualified record must be an object")
+    from oeis_learn.experiments.artifacts import canonical_bytes
+
+    try:
+        _require(len(canonical_bytes(record)) <= 1 << 20, "qualified record exceeds 1 MiB")
+    except (TypeError, RecursionError, OverflowError) as exc:
+        raise ValueError("qualified record must be finite, acyclic JSON") from exc
     kind = record.get("kind")
     _require(kind in SCHEMAS, "unknown qualified record kind")
     validate_shape(record, SCHEMAS[kind])

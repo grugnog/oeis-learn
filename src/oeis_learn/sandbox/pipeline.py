@@ -14,6 +14,7 @@ from pathlib import Path
 import platform
 import resource
 import time
+from typing import Any
 
 import wasmtime
 
@@ -55,7 +56,7 @@ class Failure:
 @dataclass(frozen=True)
 class PreparedCandidate:
     program: Program
-    module: wasmtime.Module
+    module: Any  # wasmtime.Module or the source-verified native NativeModule
     source_sha256: str
     lowered_sha256: str
     wrapper_sha256: str
@@ -152,14 +153,16 @@ class Runtime:
         self.backend = backend
         if type(cache_bytes) is not int or not 0 <= cache_bytes <= 1 << 30:
             raise ValueError("invalid cache capacity")
-        config = wasmtime.Config()
-        config.consume_fuel = True
-        config.parallel_compilation = False
-        config.wasm_threads = False
-        config.memory_reservation = 0
-        config.memory_guard_size = 0
-        self.engine = wasmtime.Engine(config)
         self.identity = runtime_identity(backend)
+        self.engine = None
+        if backend == "python_wasmtime":
+            config = wasmtime.Config()
+            config.consume_fuel = True
+            config.parallel_compilation = False
+            config.wasm_threads = False
+            config.memory_reservation = 0
+            config.memory_guard_size = 0
+            self.engine = wasmtime.Engine(config)
         self.identity_sha256 = compute_canonical_digest(self.identity)
         self.cache, self.cache_size, self.cache_capacity = OrderedDict(), 0, cache_bytes
         if backend == "rust":
@@ -197,9 +200,9 @@ class Runtime:
                     module = compile_native(lowered)
                 else:
                     module = wasmtime.Module(self.engine, lowered)
-                compiled = bytes(module.serialize())
+                compiled = bytes(module.serialize()) if self.cache_capacity else b""
                 size = len(compiled) + len(key) + 256
-                if size <= self.cache_capacity:
+                if compiled and size <= self.cache_capacity:
                     while self.cache and self.cache_size + size > self.cache_capacity:
                         old_key, old = self.cache.popitem(last=False)
                         self.cache_size -= len(old) + len(old_key) + 256

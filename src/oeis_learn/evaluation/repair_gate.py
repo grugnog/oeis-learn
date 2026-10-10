@@ -184,6 +184,7 @@ def run_qualification(output):
         report["status"] = "PASS"
         report["report_sha256"] = compute_canonical_digest(report, "report_sha256")
         require_g7(report, evidence_root=output)
+        _exercise_activation(report, output)
     except BaseException:
         report["status"] = "PARTIAL"
         report["report_sha256"] = compute_canonical_digest(report, "report_sha256")
@@ -191,6 +192,102 @@ def run_qualification(output):
         raise
     (output / "g7.json").write_bytes(canonical_bytes(report))
     return report
+
+
+def _exercise_activation(report, output):
+    """Exercise ordinary dispatch using the actual complete qualification report."""
+    from copy import deepcopy
+    from oeis_learn.experiments.config import activate_qualified_contract, load_config
+    from oeis_learn.experiments.qualified_models import MODES, seal_record
+    from oeis_learn.discovery.formula_checker import check_scoped_evidence
+    from oeis_learn.sandbox.rewrite_checker import check_rewrite
+    from oeis_learn.data.models import LatentDiscoveryCandidate
+
+    base = load_config(ROOT / "configs/foundation/wat_smoke.yaml").to_dict()
+    base_sha = compute_canonical_digest(base)
+    refs = {base_sha: base}
+    settings = {
+        "solver": {"coefficient_bound": 1000, "timeout_ms": 2000, "max_parameters": 8},
+        "optimizer": {"waste_threshold_percent": 30},
+        "native": {"workers": 1, "cache_bytes": 128 << 20},
+        "formula_identity": {"timeout_ms": 2000},
+    }
+    modes = {name: {"enabled": False, "profile_sha256": None} for name in MODES}
+    for name, value in settings.items():
+        profile = {"version": "qualified-service/v1", "service": name, "settings": value}
+        sha = compute_canonical_digest(profile)
+        refs[sha] = profile
+        modes[name] = {"enabled": True, "profile_sha256": sha}
+    contract = seal_record(
+        "qualified_contract",
+        base_contract_sha256=base_sha,
+        profiles={
+            name: base_sha
+            for name in (
+                "language",
+                "runtime",
+                "codec",
+                "model",
+                "objective",
+                "sampling",
+                "search",
+                "admission",
+            )
+        },
+        gates={"G7": report["report_sha256"], "G8": None, "G9": None},
+        track="strict_generic",
+        initialization="random",
+        parent_chain=[],
+        objective="sft",
+        modes=modes,
+    )
+    services = activate_qualified_contract(
+        contract, g7_report=report, evidence_root=output, resolve=refs.__getitem__
+    )
+    solution = services.ground("i256.const_?", [7] * 20)
+    if solution.outcome != "verified_solution":
+        raise ValueError("activated grounding failed")
+    rewrite = services.optimize("nop i256.const 7")
+    if not rewrite.rewrite_evidence or not check_rewrite(rewrite.rewrite_evidence):
+        raise ValueError("activated optimizer failed")
+    candidate = LatentDiscoveryCandidate("qualification", "linear", ("x", "y"), 0.0, [1, -1])
+    proof = services.prover().prove_relation(candidate, ["n", "n"])
+    evidence = load_json(proof.symbolic_proof)
+    if proof.status != "FORMULA_IDENTITY" or not check_scoped_evidence(evidence):
+        raise ValueError("activated scoped prover failed")
+    with services.runner(output / "activation-native") as runner:
+        execution = runner.run_single("i256.const 7", [0, 1], request_id="activation")
+    if (
+        execution.outcome is not None
+        or execution.outputs != ["7", "7"]
+        or execution.reference_outputs != ["7", "7"]
+    ):
+        raise ValueError("activated native runner failed")
+    # A self-consistent status edit cannot authorize ordinary capabilities.
+    partial = deepcopy(report)
+    partial["status"] = "PARTIAL"
+    partial["report_sha256"] = compute_canonical_digest(partial, "report_sha256")
+    try:
+        activate_qualified_contract(
+            contract, g7_report=partial, evidence_root=output, resolve=refs.__getitem__
+        )
+    except ValueError:
+        pass
+    else:
+        raise ValueError("partial qualification activated services")
+    activation = {
+        "version": "g7-activation/v1",
+        "contract": contract,
+        "references": refs,
+        "capabilities": list(services.capabilities),
+        "grounding": solution.to_qualified(),
+        "rewrite": rewrite.rewrite_evidence,
+        "formula": evidence,
+        "native": execution.to_dict(),
+        "partial_report_rejected": True,
+    }
+    activation["identity_sha256"] = compute_canonical_digest(activation, "identity_sha256")
+    (output / "activation.json").write_bytes(canonical_bytes(activation))
 
 
 def main():

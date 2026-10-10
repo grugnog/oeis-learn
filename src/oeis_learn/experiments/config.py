@@ -413,12 +413,21 @@ class QualifiedServices:
 
     contract_sha256: str
     g7_sha256: str
-    _profiles: dict
+    _profiles_json: bytes
+
+    @property
+    def capabilities(self):
+        from oeis_learn.experiments.artifacts import load_json
+
+        return tuple(sorted(load_json(self._profiles_json)))
 
     def _settings(self, name):
-        if name not in self._profiles:
+        from oeis_learn.experiments.artifacts import load_json
+
+        profiles = load_json(self._profiles_json)
+        if name not in profiles:
             raise ConfigError(f"{name}: capability disabled/pending")
-        return deepcopy(self._profiles[name]["settings"])
+        return profiles[name]["settings"]
 
     def ground(self, source, visible_terms):
         from oeis_learn.decoder.grounding import ground
@@ -591,7 +600,9 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
         else:
             _require(1 <= settings["timeout_ms"] <= 2000, "formula worker limits mismatch")
         active[name] = deepcopy(profile)
-    return QualifiedServices(contract["identity_sha256"], gate, active)
+    from oeis_learn.experiments.artifacts import canonical_bytes
+
+    return QualifiedServices(contract["identity_sha256"], gate, canonical_bytes(active))
 
 
 def load_qualified_config(path, **activation):

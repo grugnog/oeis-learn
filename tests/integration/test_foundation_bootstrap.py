@@ -1,6 +1,7 @@
 """Executable G3: strict generic bootstrap, replay and learner isolation."""
 
 import json
+import shutil
 import pytest
 import yaml
 
@@ -95,6 +96,14 @@ def test_builder_crash_resume_keeps_counter_rng_order_and_dedup(tmp_path, event)
     baseline = build_pool(config, cohort, tmp_path / "baseline")
     assert baseline["status"] == "complete", baseline
     baseline_pool = load_pool(tmp_path / "baseline", expected_pool_id=baseline["pool_id"])
+    # Crash replay must preserve durable outcomes. Independent fresh execution
+    # can legitimately differ at a wall-time/resource limit; comparing those
+    # results confuses scheduling variability with counter/journal determinism.
+    resumed_root = tmp_path / "resumed"
+    shutil.copytree(tmp_path / "baseline/execution", resumed_root / "execution")
+    original_execution = {
+        p.name: p.read_bytes() for p in (resumed_root / "execution").glob("*.json")
+    }
 
     def crash(where, root):
         if where == event:
@@ -106,6 +115,9 @@ def test_builder_crash_resume_keeps_counter_rng_order_and_dedup(tmp_path, event)
     restored = load_pool(tmp_path / "resumed", expected_pool_id=resumed["pool_id"])
     assert restored.examples == baseline_pool.examples
     assert resumed["summary"] == baseline["summary"]
+    assert {
+        p.name: p.read_bytes() for p in (resumed_root / "execution").glob("*.json")
+    } == original_execution
     assert build_pool(config, cohort, tmp_path / "resumed") == resumed
     # Raw elapsed/RSS evidence can differ across runs; program identity/order cannot.
     assert [x["program_id"] for x in restored.examples] == [

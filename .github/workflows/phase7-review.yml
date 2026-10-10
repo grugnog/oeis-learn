@@ -56,9 +56,26 @@ jobs:
         run: |
           mkdir -p phase7-evidence
           chmod 777 phase7-evidence
-          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c 'cd crates/oeis_wasm_evaluator && cargo test --locked --no-default-features && cd /workspace && python -m oeis_learn.evaluation.repair_gate --output /evidence'
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            mkdir -p /evidence/build-info/src
+            cp /opt/oeis-build-info/* /evidence/build-info/
+            cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/
+            cp crates/oeis_wasm_evaluator/build.rs /evidence/build-info/
+            rustfmt --edition 2021 /evidence/build-info/src/*.rs /evidence/build-info/build.rs
+            cd crates/oeis_wasm_evaluator
+            cargo test --locked --no-default-features
+            cd /workspace
+            python -m oeis_learn.evaluation.repair_gate --output /evidence
+          '
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: phase7-native-qualification
-          path: phase7-evidence
+          path: |
+            phase7-evidence/*.xml
+            phase7-evidence/g7.json
+            phase7-evidence/activation.json
+            phase7-evidence/native/parity.json
+            phase7-evidence/build-info/
