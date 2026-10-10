@@ -47,6 +47,8 @@ class IntegerBatch:
 
 
 def encode_sequences(sequences, *, device=None, max_terms=20):
+    if type(max_terms) is not int or not 1 <= max_terms <= 20:
+        raise ValueError("visible term cap must be in 1..20")
     if not sequences or any(not 1 <= len(row) <= max_terms for row in sequences):
         raise ValueError("visible sequences must contain 1..20 terms")
     length = max(map(len, sequences))

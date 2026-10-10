@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import random
+import math
+
+from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 from typing import Dict, List, Sequence
 from oeis_learn.curriculum.scheduler import CurriculumScheduler
 from oeis_learn.data.models import SequenceRecord
@@ -25,6 +28,19 @@ class DynamicMixtureSampler:
         p_earlier: float = 0.10,
         seed: int = 20260913,
     ):
+        probabilities = (p_active, p_prev, p_earlier)
+        if any(not math.isfinite(p) or p < 0 for p in probabilities) or not math.isclose(
+            sum(probabilities), 1.0, abs_tol=1e-12
+        ):
+            raise ValueError("mixture probabilities must be finite, nonnegative and sum to one")
+        if len({r.oeis_id for r in records}) != len(records):
+            raise ValueError("duplicate mixture prompt IDs")
+        self.pool_sha256 = digest(
+            sorted(
+                [(r.oeis_id, r.curriculum_stage, r.terms, r.tags) for r in records],
+                key=lambda value: value[0],
+            )
+        )
         self.scheduler = scheduler
         self.p_active = p_active
         self.p_prev = p_prev
@@ -45,7 +61,7 @@ class DynamicMixtureSampler:
         if active == 1:
             return 1
         elif active == 2:
-            return 2 if self.rng.random() < 0.80 else 1
+            return 2 if self.rng.random() < self.p_active + self.p_earlier else 1
         else:
             rand = self.rng.random()
             if rand < self.p_active:
@@ -71,16 +87,22 @@ class DynamicMixtureSampler:
 
     def state_dict(self):
         return {
-            "version": "mixture-sampler/v1",
+            "version": "mixture-sampler/v2",
+            "pool_sha256": self.pool_sha256,
             "rng": self.rng.getstate(),
             "mixture": [self.p_active, self.p_prev, self.p_earlier],
         }
 
     def load_state_dict(self, state):
-        if state["version"] != "mixture-sampler/v1" or state["mixture"] != [
-            self.p_active,
-            self.p_prev,
-            self.p_earlier,
-        ]:
+        if (
+            state["version"] != "mixture-sampler/v2"
+            or state.get("pool_sha256") != self.pool_sha256
+            or state["mixture"]
+            != [
+                self.p_active,
+                self.p_prev,
+                self.p_earlier,
+            ]
+        ):
             raise ValueError("incompatible mixture state")
         self.rng.setstate(state["rng"])

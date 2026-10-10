@@ -17,6 +17,9 @@ and LODA are outside this PR.
   trainer uses dropout-off scoring, actual population group variance, fresh
   REINFORCE or symmetric clipped GRPO, a full frozen encoder/decoder reference,
   exact masked categorical KL, safe entropy and per-trajectory normalization.
+  Full-horizon rewards reject short successful executions, and telemetry labels
+  only actual zero variance. Virtual anchors and asymmetric advantage wrappers
+  cannot silently reintroduce the old objective.
   Forced/PAD actions are excluded; sampled EOS is included. Old shaping,
   synthetic-positive injection and unaudited teacher blending fail explicitly.
 - Exact conditioning uses sign plus 32 magnitude bytes, exact rebased index and
@@ -36,7 +39,8 @@ and LODA are outside this PR.
 - Curriculum records aggregate measured-cost visits and correct conditional
   probabilities for sampling without replacement. Default allocation is four
   prompts, 2..16 candidates each and total 32; caps, deterministic redistribution
-  and unallocated budget are explicit. Statistics and named RNG state resume.
+  and unallocated budget are explicit. Statistics and named RNG state resume. Mixture weights are validated and used
+  at stage two; resumed sampling binds the prompt pool as well as RNG state.
 - Trace evidence comes from actual reference interpreter events with logical
   instruction IDs and WAT lowering sites. Native causal tracing reports
   unsupported. Whole-trajectory credit is explicit; guessed textual spans and
@@ -88,7 +92,8 @@ lab-gpu exec -- python -m oeis_learn.evaluation.learning_gate \
 ```
 
 The gate requires actual GPU FP32 cached/full equivalence for all declared
-position variants at 1/2/513/1024 tokens and a finite FP16+GradScaler update.
+position variants at 1/2/513/1024 tokens and a finite FP16+GradScaler encoder/decoder update of the declared model for
+all three position variants. The gate rejects incomplete architecture coverage.
 It rejects skips and failures. Thermal throughput, worker-count selection,
 peak memory and the final hardware profile remain measurements for the hardware
 qualification phase; this PR does not invent those results. T062/T066/T067/T078/

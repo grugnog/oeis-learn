@@ -36,3 +36,11 @@ def test_all_declared_paths_have_finite_gradients_and_padding_is_inert():
     assert torch.isfinite(output).all() and not output[1, 2:].any()
     output.square().sum().backward()
     assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in model.parameters())
+
+
+def test_visible_term_cap_cannot_enable_hidden_continuations():
+    for cap in (0, 21, True, 20.0):
+        with pytest.raises(ValueError, match="cap"):
+            encode_sequences([[0] * 21], max_terms=cap)
+    with pytest.raises(ValueError, match="1..20"):
+        encode_sequences([[0] * 21])

@@ -39,6 +39,7 @@ SUITES = {
         "tests/unit/test_symple_curriculum.py",
         "tests/unit/test_adag_allocator.py",
         "tests/unit/test_curriculum_scheduler.py",
+        "tests/unit/test_curriculum_gates.py",
         "tests/unit/test_curriculum_orchestrator.py",
     ],
     "trace": [
@@ -108,6 +109,30 @@ def check_junit(path, suite=None):
     return len(cases)
 
 
+def check_hardware_junit(path):
+    """Require every declared architecture/length and mixed-precision case."""
+    count = check_junit(path)
+    expected = {
+        f"test_gpu_fp32_cached_full_prefix[{length}-{position}]"
+        for length in (1, 2, 513, 1024)
+        for position in ("sinusoidal", "rope", "prefix_ancestor")
+    } | {
+        f"test_gpu_fp16_scaler_finite_optimizer_update[{position}]"
+        for position in ("sinusoidal", "rope", "prefix_ancestor")
+    }
+    cases = ET.parse(path).findall(".//testcase")
+    if (
+        count != len(expected)
+        or {case.attrib.get("name") for case in cases} != expected
+        or any(
+            case.attrib.get("classname") != "tests.integration.test_foundation_learning_gpu"
+            for case in cases
+        )
+    ):
+        raise ValueError("incomplete G8 accelerator coverage")
+    return count
+
+
 def require_g8(report, *, evidence_root, diagnostic=False):
     if (
         set(report)
@@ -151,7 +176,7 @@ def require_g8(report, *, evidence_root, diagnostic=False):
         if (
             root not in path.parents
             or digest_bytes(path.read_bytes()) != report["hardware"]["sha256"]
-            or check_junit(path) != report["hardware"]["cases"]
+            or check_hardware_junit(path) != report["hardware"]["cases"]
         ):
             raise ValueError("G8 accelerator evidence mismatch")
         if not torch.cuda.is_available():
@@ -200,7 +225,7 @@ def run_qualification(output, *, hardware=False):
                 hardware_record = {
                     "path": path.name,
                     "sha256": digest_bytes(path.read_bytes()),
-                    "cases": check_junit(path),
+                    "cases": check_hardware_junit(path),
                 }
             except ValueError:
                 pass
