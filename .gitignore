@@ -84,3 +84,9 @@ research/
 .venv-speckit/
 *.tar
 system
+
+# Local phase review diagnostics
+pytest-of-root/
+phase9-*.xml
+debug_stream.py
+.uv-cache/

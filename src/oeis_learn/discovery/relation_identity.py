@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 from oeis_learn.data.models import CanonicalRelation, SequenceRef
-from oeis_learn.evaluation.protocol import canonical_json_dumps, canonical_json_hash
+from oeis_learn.evaluation.protocol import canonical_json_hash
 
 
 def is_trivial_relation(
@@ -13,7 +13,9 @@ def is_trivial_relation(
     coefficients: Sequence[int | str],
 ) -> Tuple[bool, Optional[str]]:
     """Checks whether a proposed linear relation is trivial or degenerate."""
-    int_coeffs = [int(c) for c in coefficients]
+    from oeis_learn.discovery.pslq_solver import exact_integer
+
+    int_coeffs = [exact_integer(c) for c in coefficients]
     if len(operands) != len(int_coeffs):
         return True, "Operands and coefficients length mismatch"
 
@@ -39,7 +41,12 @@ def canonicalize_relation(
     coefficients: Sequence[int | str],
 ) -> CanonicalRelation:
     """Reduces and deterministically canonicalizes a linear sequence relation."""
-    int_coeffs = [int(c) for c in coefficients]
+    from oeis_learn.discovery.pslq_solver import exact_integer
+
+    int_coeffs = [exact_integer(c) for c in coefficients]
+
+    if is_trivial_relation(operands, int_coeffs)[0]:
+        raise ValueError("nontrivial equal-length operands and coefficients required")
 
     # 1. Pair operands and coefficients, then sort lexicographically by operand identity
     paired = list(zip(operands, int_coeffs))

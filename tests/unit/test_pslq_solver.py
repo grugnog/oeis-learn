@@ -36,5 +36,5 @@ def test_pslq_verifier_candidate():
     }
 
     verified = solver.verify_candidate(candidate, terms_dict)
-    assert verified.status == "PSLQ_VERIFIED"
+    assert verified.status == "EXACT_FINITE_VERIFIED"
     assert verified.pslq_vector is not None

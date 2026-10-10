@@ -179,3 +179,105 @@ def lower_with_map(program):
     for item in mapping:
         item["lowered_wat_offset"] = lowered.index(f"(;;oeis-site-{item['instruction_id']};;)")
     return lowered, mapping, identities
+
+
+def lower_logical(program):
+    """Deterministic checked lowering; only trusted code creates state/memory."""
+    from oeis_learn.sandbox.logical_ir import parse_logical, COMPARE, SHIFT
+    from oeis_learn.sandbox.wide_helpers import helpers, decl, get
+
+    if isinstance(program, str):
+        program = parse_logical(program)
+    # Reparse immutable source, so callers cannot substitute an untyped AST.
+    program = parse_logical(program.canonical_source)
+    globals_ = " ".join(
+        f'(global $s{s}_{i} (export "__slot{s}_{i}") (mut i64) (i64.const 0))'
+        for s in range(32)
+        for i in range(4)
+    )
+    loops = []
+
+    def expression(n):
+        op, args = n.op, n.args
+        if op == "const":
+            return lower_constant(args[0])
+        if op == "index":
+            return "global.get $index global.get $index i64.const 63 i64.shr_s global.get $index i64.const 63 i64.shr_s global.get $index i64.const 63 i64.shr_s"
+        if op == "get":
+            return " ".join(f"global.get $s{args[0]}_{i}" for i in range(4))
+        if op == "load":
+            return expression(args[0]) + " call $array_load"
+        if op in ("add", "sub", "mul", "div", "rem", "and", "or", "xor"):
+            helper = "i256_" + op if op in ("add", "sub") else op
+            return expression(args[0]) + " " + expression(args[1]) + f" call ${helper}"
+        if op in COMPARE:
+            wasm = {"eq": "eq", "ne": "ne", "lt": "lt_s", "le": "le_s", "gt": "gt_s", "ge": "ge_s"}[
+                op
+            ]
+            return (
+                expression(args[0])
+                + " "
+                + expression(args[1])
+                + f" call $scmp i32.const 0 i32.{wasm}"
+            )
+        if op in SHIFT:
+            return expression(args[0]) + f" i32.const {args[1]} call ${op}"
+        if op == "select":
+            return (
+                expression(args[0])
+                + f" if (result i64 i64 i64 i64) {expression(args[1])} else {expression(args[2])} end"
+            )
+        if op == "to_i32":
+            return expression(args[0]) + " call $to_i32"
+        if op == "from_i32":
+            return expression(args[0]) + " call $from_i32"
+        raise ValueError("unsupported typed expression")
+
+    def statement(n):
+        op, args = n.op, n.args
+        if op == "set":
+            return (
+                expression(args[1])
+                + " "
+                + " ".join(f"global.set $s{args[0]}_{i}" for i in reversed(range(4)))
+            )
+        if op == "store":
+            return expression(args[0]) + " " + expression(args[1]) + " call $array_store"
+        if op == "if":
+            return expression(args[0]) + f" if {statement(args[1])} else {statement(args[2])} end"
+        if op == "while":
+            key = len(loops)
+            loops.append(f"(local $loop{key} i32)")
+            content = " ".join(statement(a) for a in args[1:])
+            return f"block $end{key} loop $again{key} {expression(args[0])} i32.eqz br_if $end{key} {content} br $again{key} end end"
+        if op == "repeat":
+            key = len(loops)
+            loops.append(f"(local $loop{key} i32)")
+            content = " ".join(statement(a) for a in args[1:])
+            return f"i32.const {args[0]} local.set $loop{key} block $end{key} loop $again{key} local.get $loop{key} i32.eqz br_if $end{key} {content} local.get $loop{key} i32.const 1 i32.sub local.set $loop{key} br $again{key} end end"
+        raise ValueError("unsupported typed statement")
+
+    def function(args):
+        return " ".join(statement(n) for n in args[:-1]) + " " + expression(args[-1].args[0])
+
+    array_funcs = f"""(func $array_load {decl("param", "a")} (result i64 i64 i64 i64) (local $offset i32)
+    {get("a")} call $bounds local.set $offset {" ".join(f"local.get $offset i64.load offset={i * 8}" for i in range(4))})
+    (func $array_store {decl("param", "a")} {decl("param", "b")} (local $offset i32)
+    {get("a")} call $bounds local.set $offset {" ".join(f"local.get $offset local.get $b{i} i64.store offset={i * 8}" for i in range(4))})
+    (func $from_i32 (param $a i32) (result i64 i64 i64 i64) local.get $a i64.extend_i32_s {" ".join("local.get $a i32.const 31 i32.shr_s i64.extend_i32_s" for _ in range(3))})"""
+    if program.profile == "pure":
+        body = function(program.root.args)
+        funcs = f'(func (export "compute") (param $n i32) (result i64 i64 i64 i64) {" ".join(loops)} local.get $n i64.extend_i32_s global.set $index {body})'
+    else:
+        init = " ".join(statement(n) for n in program.root.args[0].args)
+        initlocals = " ".join(loops)
+        loops.clear()
+        nxt = function(program.root.args[1].args)
+        reset = " ".join(f"i64.const 0 global.set $s{s}_{i}" for s in range(32) for i in range(4))
+        funcs = f"""(func (export "init") (param $start i32) {initlocals} {reset}
+        i32.const 0 i32.const 0 i32.const 65536 memory.fill
+        local.get $start i64.extend_i32_s global.set $index {init})
+        (func (export "next") (result i64 i64 i64 i64) {" ".join(loops)}
+        global.get $index i64.const 2147483647 i64.gt_s if i32.const 1 global.set $__oeis_numeric_limit unreachable end
+        {nxt} global.get $index i64.const 1 i64.add global.set $index)"""
+    return f'(module {helpers()} (memory (export "__memory") 1 1) (global $index (export "__index") (mut i64) (i64.const 0)) {globals_} {array_funcs} {funcs})'

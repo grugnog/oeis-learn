@@ -380,7 +380,9 @@ class SearchSession:
                 parents = [
                     r["source"]
                     for r in self.results
-                    if r.get("source") and r.get("status") != "duplicate_source" and r.get("provenance",{}).get("method")!="typed_repair"
+                    if r.get("source")
+                    and r.get("status") != "duplicate_source"
+                    and r.get("provenance", {}).get("method") != "typed_repair"
                 ] + list(self.retrieval)
                 variants = [
                     (source, variant) for source in parents for variant in typed_repairs(source)
@@ -526,8 +528,57 @@ class SearchSession:
         )
         return obj
 
-    def load_state_dict(self,state):
-        restored=self.from_state(state,archive=getattr(self,'_archive',None))
-        if restored.visible!=self.visible or restored.portfolio!=self.portfolio or restored.seed!=self.seed:
-            raise ValueError('search task/profile differs on resume')
+    def load_state_dict(self, state):
+        restored = self.from_state(state, archive=getattr(self, "_archive", None))
+        if (
+            restored.visible != self.visible
+            or restored.portfolio != self.portfolio
+            or restored.seed != self.seed
+        ):
+            raise ValueError("search task/profile differs on resume")
         self.__dict__.update(restored.__dict__)
+
+
+def value_guided_repairs(
+    source,
+    value_model,
+    *,
+    training_view,
+    training_snapshot,
+    measurement_decision,
+    ledger,
+    max_expansions=32,
+):
+    """Training-only learned ranking of bounded typed repairs, after a pilot gate.
+
+    Scores rank hypotheses; all changed programs still require normal exact
+    execution/admission. This function makes no rewrite-equivalence claim.
+    """
+    if not 1 <= max_expansions <= 32:
+        raise ValueError("value proposer cap32")
+    if (
+        set(measurement_decision)
+        != {"branch", "disposition", "training_snapshot_sha256", "baseline_failure_observed"}
+        or measurement_decision["branch"] != "value_guided_repair"
+        or measurement_decision["disposition"] != "pilot_selected"
+        or measurement_decision["baseline_failure_observed"] is not True
+        or measurement_decision["training_snapshot_sha256"] != training_snapshot
+    ):
+        raise ValueError("measured training-only value pilot gate required")
+    if not training_view or any(
+        not e["entry"]["training_eligible"] for e in training_view.values()
+    ):
+        raise ValueError("verified eligible training targets required")
+    targets = [
+        {"source": e["source"], "conditioning_values": e["entry"]["conditioning_values"]}
+        for e in training_view.values()
+    ]
+    variants = typed_repairs(source, limit=max_expansions)
+    scored = []
+    for candidate in variants:
+        ledger.charge(expansions=1, tokens=len(encode_body(candidate)))
+        score = float(value_model(candidate, deepcopy(targets)))
+        if not __import__("math").isfinite(score):
+            raise ValueError("finite learned value required")
+        scored.append((score, candidate))
+    return tuple(source for _, source in sorted(scored, key=lambda item: (-item[0], item[1])))

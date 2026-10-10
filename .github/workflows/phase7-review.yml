@@ -1,4 +1,4 @@
-name: Phase 7 and 8 review validation
+name: Phase 7, 8 and 9 review validation
 on:
   pull_request:
     paths:
@@ -13,6 +13,24 @@ on:
 permissions:
   contents: read
 jobs:
+  native-format:
+    runs-on: ubuntu-24.04
+    container: rust:1.90.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check committed Rust formatting
+        run: cargo fmt --manifest-path crates/oeis_wasm_evaluator/Cargo.toml -- --check
+      - name: Preserve formatter output for repair
+        if: failure()
+        run: |
+          cargo fmt --manifest-path crates/oeis_wasm_evaluator/Cargo.toml
+          mkdir -p formatted-native
+          cp crates/oeis_wasm_evaluator/src/*.rs formatted-native/
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: native-format-repair
+          path: formatted-native/
   cpu-regressions:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -71,6 +89,7 @@ jobs:
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
             PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase8.py --evidence /evidence
+            python -m oeis_learn.evaluation.discovery_gate --native --output /evidence/discovery
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4
@@ -87,6 +106,8 @@ jobs:
             phase7-evidence/rust-tests.txt
             phase7-evidence/native/parity.json
             phase7-evidence/build-info/
+            phase7-evidence/discovery/*.xml
+            phase7-evidence/discovery/g9.json
             phase7-evidence/learning/*.xml
             phase7-evidence/learning/g8.json
             phase7-evidence/learning/cli-acceptance.json

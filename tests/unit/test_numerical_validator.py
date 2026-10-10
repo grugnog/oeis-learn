@@ -20,7 +20,8 @@ def test_validate_numerical_relation_exact_true():
         operands=ops,
         coefficients=coeffs,
         sequence_terms_dict=seq_terms,
-        validation_indices=list(range(20)),
+        search_indices=list(range(10,20)),
+        validation_indices=list(range(10)),
         unseen_indices=list(range(20, 120)),
     )
     assert res.outcome == "VERIFIED"
@@ -40,7 +41,8 @@ def test_validate_numerical_relation_counterexample_detected():
         operands=ops,
         coefficients=coeffs,
         sequence_terms_dict=seq_terms,
-        validation_indices=list(range(20)),
+        search_indices=list(range(10,20)),
+        validation_indices=list(range(10)),
         unseen_indices=list(range(20, 120)),
     )
     assert res.outcome == "COUNTEREXAMPLE"

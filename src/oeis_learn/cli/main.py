@@ -360,6 +360,19 @@ def build_parser() -> argparse.ArgumentParser:
                 default="portfolio32",
             )
 
+    fdq_p=foundation_subparsers.add_parser('qualify-discovery',help='G9 mandatory logical runtime/discovery/certificate acceptance.')
+    fdq_p.add_argument('--output',required=True)
+    fdq_p.add_argument('--native',action='store_true')
+    fdq_p.add_argument('--json',dest='as_json',action='store_true')
+    fdc_p=foundation_subparsers.add_parser('discover',help='G9-gated program discovery from the verified training archive.')
+    for name in ('archive','discovery-gate-report','output'):
+        fdc_p.add_argument('--'+name,required=True)
+    fdc_p.add_argument('--json',dest='as_json',action='store_true')
+    fcc_p=foundation_subparsers.add_parser('check-certificate',help='Fresh bounded scoped certificate replay without model weights.')
+    for name in ('certificate','profile','output'):
+        fcc_p.add_argument('--'+name,required=True)
+    fcc_p.add_argument('--json',dest='as_json',action='store_true')
+
     # foundation conformance
     fc_p = foundation_subparsers.add_parser(
         'conformance',
@@ -848,7 +861,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         'gate_report', 'profiles', 'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
         'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
-        'learning_gate_report', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
+        'learning_gate_report', 'discovery_gate_report', 'certificate', 'native', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

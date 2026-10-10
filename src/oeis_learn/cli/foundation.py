@@ -19,6 +19,9 @@ _SUPPORTED_COMMANDS = frozenset(
         "qualify-repairs",
         "activate-qualified",
         "qualify-learning",
+        "qualify-discovery",
+        "discover",
+        "check-certificate",
         "learning-train",
         "learning-search",
         "conformance",
@@ -116,6 +119,9 @@ def dispatch(command: str, **kwargs) -> int:
         "qualify-repairs": cmd_qualify_repairs,
         "activate-qualified": cmd_activate_qualified,
         "qualify-learning": cmd_qualify_learning,
+        "qualify-discovery": cmd_qualify_discovery,
+        "discover": cmd_discover,
+        "check-certificate": cmd_check_certificate,
         "learning-train": cmd_learning_train,
         "learning-search": cmd_learning_search,
         "conformance": cmd_conformance,
@@ -668,3 +674,60 @@ def cmd_learning_search(
         return report
 
     return _phase4_command("learning-search", operation, as_json)
+
+
+def cmd_qualify_discovery(output, native=False, as_json=False):
+    from oeis_learn.evaluation.discovery_gate import run_qualification
+
+    result = run_qualification(output, native=native)
+    print(json.dumps(result) if as_json else str(result))
+    return 0 if result["status"] == "PASS" else 3 if result["status"] == "PENDING" else 4
+
+
+def cmd_check_certificate(certificate, profile, output, as_json=False):
+    from oeis_learn.discovery.certificate_checker import check_certificate
+    from oeis_learn.sandbox.logical_ir import profile_identity
+    from oeis_learn.tracking.foundation_metrics import replace_json
+
+    def action():
+        data = load_json(Path(certificate).read_bytes())
+        selected = load_json(Path(profile).read_bytes())
+        modes = {
+            __import__("oeis_learn.sandbox.logical_ir", fromlist=["parse_logical"])
+            .parse_logical(p["source"])
+            .profile
+            for p in data["statement"]["programs"]
+        }
+        if len(modes) != 1 or __import__(
+            "oeis_learn.experiments.artifacts", fromlist=["compute_canonical_digest"]
+        ).compute_canonical_digest(selected) != __import__(
+            "oeis_learn.experiments.artifacts", fromlist=["compute_canonical_digest"]
+        ).compute_canonical_digest(profile_identity(next(iter(modes)))):
+            raise ValueError("certificate/profile mismatch")
+        result = check_certificate(data)
+        replace_json(Path(output) / "certificate-check.json", result)
+        if result["result"] != "verified":
+            from oeis_learn.evaluation.foundation_synthesis import EvaluationGateError
+
+            raise EvaluationGateError(
+                result["result"] + ": " + result.get("reason", "certificate not verified")
+            )
+        return result
+
+    return _phase4_command("check-certificate", action, as_json)
+
+
+def cmd_discover(archive, discovery_gate_report, output, as_json=False):
+    from oeis_learn.evaluation.readiness import require_discovery_readiness
+    from oeis_learn.discovery.program_archive import ProgramArchive
+    from oeis_learn.discovery.pipeline import run_program_discovery
+    from oeis_learn.tracking.foundation_metrics import replace_json
+
+    def action():
+        report = load_json(Path(discovery_gate_report).read_bytes())
+        require_discovery_readiness(report, evidence_root=Path(discovery_gate_report).parent)
+        result = run_program_discovery(ProgramArchive(archive))
+        replace_json(Path(output) / "discovery.json", result)
+        return result
+
+    return _phase4_command("discover", action, as_json)

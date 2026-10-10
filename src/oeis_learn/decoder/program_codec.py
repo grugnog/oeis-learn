@@ -423,3 +423,80 @@ def allowed_tokens_at(prefix: list[int]) -> list[int]:
     for token_id in prefix:
         state.consume(token_id)
     return state.allowed()
+
+
+class LogicalCodec:
+    """Complete decimal codec for typed logical WAT, with distinct weight identity."""
+
+    version = "logical-wat-decimal/v1"
+
+    def __init__(self):
+        from oeis_learn.sandbox.logical_ir import WORDS
+
+        self.vocabulary = (
+            "<pad>",
+            "<bos>",
+            "<eos>",
+            "(",
+            ")",
+            "<int>",
+            "</int>",
+            "-",
+            *tuple("0123456789"),
+            *WORDS,
+        )
+        self.ids = {s: i for i, s in enumerate(self.vocabulary)}
+
+    def identity(self):
+        from oeis_learn.experiments.artifacts import compute_canonical_digest
+
+        return compute_canonical_digest(
+            {"version": self.version, "vocabulary": self.vocabulary, "cap": 1024}
+        )
+
+    def encode(self, source):
+        import re
+        from oeis_learn.sandbox.logical_ir import parse_logical
+
+        words = re.findall(r"\(|\)|[^\s()]+", parse_logical(source).canonical_source)
+        result = []
+        for word in words:
+            pieces = ["<int>", *word, "</int>"] if re.fullmatch(r"-?[0-9]+", word) else [word]
+            result.extend(self.ids[p] for p in pieces)
+        result.append(self.ids["<eos>"])
+        if len(result) > 1024:
+            raise CodecError("logical predicted token cap")
+        return result
+
+    def decode(self, tokens):
+        from oeis_learn.sandbox.logical_ir import parse_logical
+
+        if not tokens or len(tokens) > 1024 or tokens[-1] != self.ids["<eos>"]:
+            raise CodecError("complete logical EOS required")
+        words = []
+        number = None
+        for token in tokens[:-1]:
+            if type(token) is not int or not 0 <= token < len(self.vocabulary):
+                raise CodecError("invalid logical token")
+            word = self.vocabulary[token]
+            if word == "<int>" and number is None:
+                number = ""
+            elif word == "</int>" and number is not None:
+                words.append(number)
+                number = None
+            elif number is not None and word in ("-", *tuple("0123456789")):
+                number += word
+            elif number is None and word not in (
+                "<pad>",
+                "<bos>",
+                "<eos>",
+                "</int>",
+                "-",
+                *tuple("0123456789"),
+            ):
+                words.append(word)
+            else:
+                raise CodecError("logical integer/special-token syntax")
+        if number is not None:
+            raise CodecError("incomplete logical integer")
+        return parse_logical(" ".join(words)).canonical_source

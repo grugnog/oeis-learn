@@ -35,7 +35,7 @@ def test_discovery_pipeline_end_to_end():
     }
     pslq_solver = PslqRelationSolver(precision_digits=100)
     verified = pslq_solver.verify_candidate(cand, terms_dict)
-    assert verified.status == "PSLQ_VERIFIED"
+    assert verified.status == "EXACT_FINITE_VERIFIED"
     assert verified.pslq_vector is not None
 
     # 4. Symbolic prover proves identity

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence
-from oeis_learn.data.models import SequenceRef
+from typing import Any, Dict, List, Optional
 from oeis_learn.discovery.relation_identity import is_trivial_relation
 
 
@@ -25,7 +24,7 @@ class NumericalValidationResult:
     unseen_residuals: List[str] = field(default_factory=list)
     matrix_rank: int = 0
     matrix_nullity: int = 0
-    minimal_support: bool = True
+    minimal_support: Optional[bool] = None
     first_counterexample: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -49,75 +48,68 @@ class NumericalValidationResult:
 
 
 def validate_numerical_relation(
-    operands: Sequence[SequenceRef],
-    coefficients: Sequence[int | str],
-    sequence_terms_dict: Mapping[str, Sequence[int]],
-    validation_indices: Sequence[int] = tuple(range(20)),
-    unseen_indices: Sequence[int] = tuple(range(20, 120)),
-    search_indices: Sequence[int] = tuple(range(10, 20)),
-) -> NumericalValidationResult:
-    """Verifies that sum_i c_i * a_i(n) == 0 holds identically across all indices."""
-    int_coeffs = [int(c) for c in coefficients]
-    coeff_strs = [str(c) for c in int_coeffs]
+    operands,
+    coefficients,
+    sequence_terms_dict,
+    validation_indices=tuple(range(10, 20)),
+    unseen_indices=tuple(range(20, 120)),
+    search_indices=tuple(range(10)),
+):
+    """Finite exact evidence over three disjoint, nonempty partitions."""
+    import sympy as sp
+    from oeis_learn.discovery.pslq_solver import exact_integer
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
-    is_triv, _ = is_trivial_relation(operands, int_coeffs)
-    if is_triv:
-        return NumericalValidationResult(
-            outcome="TRIVIAL",
-            coefficients=coeff_strs,
-        )
-
-    # Check that all sequence terms are present
-    for op in operands:
-        if op.oeis_id not in sequence_terms_dict:
-            return NumericalValidationResult(
-                outcome="INSUFFICIENT_EVIDENCE",
-                coefficients=coeff_strs,
-            )
-
-    val_residuals: List[str] = []
-    uns_residuals: List[str] = []
-    first_counterexample: Optional[Dict[str, Any]] = None
-
-    # Check validation indices
-    for idx in validation_indices:
-        res = 0
-        for op, c in zip(operands, int_coeffs):
-            seq_idx = op.index_scale * idx + op.index_shift
-            seq = sequence_terms_dict[op.oeis_id]
-            if 0 <= seq_idx < len(seq):
-                res += c * int(seq[seq_idx])
-            else:
-                return NumericalValidationResult(outcome="INSUFFICIENT_EVIDENCE", coefficients=coeff_strs)
-
-        val_residuals.append(str(res))
-        if res != 0 and first_counterexample is None:
-            first_counterexample = {"index": idx, "residual": str(res)}
-
-    # Check unseen indices
-    for idx in unseen_indices:
-        res = 0
-        for op, c in zip(operands, int_coeffs):
-            seq_idx = op.index_scale * idx + op.index_shift
-            seq = sequence_terms_dict[op.oeis_id]
-            if 0 <= seq_idx < len(seq):
-                res += c * int(seq[seq_idx])
-            else:
-                return NumericalValidationResult(outcome="INSUFFICIENT_EVIDENCE", coefficients=coeff_strs)
-
-        uns_residuals.append(str(res))
-        if res != 0 and first_counterexample is None:
-            first_counterexample = {"index": idx, "residual": str(res)}
-
-    outcome = "COUNTEREXAMPLE" if first_counterexample is not None else "VERIFIED"
-
+    parts = [tuple(p) for p in (search_indices, validation_indices, unseen_indices)]
+    if any(
+        not p or len(set(p)) != len(p) or any(type(i) is not int or i < 0 for i in p) for p in parts
+    ) or any(set(parts[i]) & set(parts[j]) for i in range(3) for j in range(i)):
+        raise ValueError("nonempty disjoint exact index partitions required")
+    if len(operands) != len(coefficients) or not 2 <= len(operands) <= 8:
+        raise ValueError("bounded equal-length operands/coefficients required")
+    ints = [exact_integer(c) for c in coefficients]
+    coeffs = [str(c) for c in ints]
+    if is_trivial_relation(operands, ints)[0]:
+        return NumericalValidationResult(outcome="TRIVIAL", coefficients=coeffs)
+    rows = []
+    for index in sum(parts, ()):
+        row = []
+        for op in operands:
+            if type(op.index_scale) is not int or type(op.index_shift) is not int:
+                raise ValueError("exact source index transforms required")
+            seq = sequence_terms_dict.get(op.oeis_id)
+            idx = op.index_scale * index + op.index_shift
+            if seq is None or not 0 <= idx < len(seq):
+                return NumericalValidationResult(
+                    outcome="INSUFFICIENT_EVIDENCE", coefficients=coeffs
+                )
+            row.append(exact_integer(seq[idx]))
+        rows.append(row)
+    rank = int(sp.Matrix(rows[: len(parts[0])]).rank())
+    residuals = [sum(c * v for c, v in zip(ints, row)) for row in rows]
+    first = next(
+        ({"index": idx, "residual": str(r)} for idx, r in sorted(zip(sum(parts, ()), residuals)) if r), None
+    )
     return NumericalValidationResult(
-        outcome=outcome,
-        search_indices=list(search_indices),
-        validation_indices=list(validation_indices),
-        unseen_indices=list(unseen_indices),
-        coefficients=coeff_strs,
-        validation_residuals=val_residuals,
-        unseen_residuals=uns_residuals,
-        first_counterexample=first_counterexample,
+        outcome="COUNTEREXAMPLE" if first else "VERIFIED",
+        source_sha256=digest(
+            {
+                "operands": [op.to_dict() for op in operands],
+                "partitions": parts,
+                "indexed_values": [[str(v) for v in row] for row in rows],
+            }
+        ),
+        search_indices=list(parts[0]),
+        validation_indices=list(parts[1]),
+        unseen_indices=list(parts[2]),
+        coefficients=coeffs,
+        coefficient_method="EXACT_INTEGER_NULLSPACE",
+        validation_residuals=[
+            str(r) for r in residuals[len(parts[0]) : len(parts[0]) + len(parts[1])]
+        ],
+        unseen_residuals=[str(r) for r in residuals[len(parts[0]) + len(parts[1]) :]],
+        matrix_rank=rank,
+        matrix_nullity=len(operands) - rank,
+        minimal_support=None,
+        first_counterexample=first,
     )
