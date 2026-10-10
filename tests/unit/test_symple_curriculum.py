@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from oeis_learn.curriculum.symple_bandit import Exp3SBanditScheduler
 
 
@@ -26,14 +25,14 @@ def test_exp3s_learning_progress_feedback():
     # A000002: 10 successes out of 10 -> p=1.0 (mastered)
     # A000003: 0 successes out of 10 -> p=0.0 (unmastered)
     for _ in range(5):
-        bandit.update_feedback("A000001", success_count=1, group_size=1)
-        bandit.update_feedback("A000001", success_count=0, group_size=1)
+        bandit.update_feedback("A000001", success_count=1, group_size=1, elapsed_s=0.1)
+        bandit.update_feedback("A000001", success_count=0, group_size=1, elapsed_s=0.1)
 
     for _ in range(10):
-        bandit.update_feedback("A000002", success_count=1, group_size=1)
+        bandit.update_feedback("A000002", success_count=1, group_size=1, elapsed_s=0.1)
 
     for _ in range(10):
-        bandit.update_feedback("A000003", success_count=0, group_size=1)
+        bandit.update_feedback("A000003", success_count=0, group_size=1, elapsed_s=0.1)
 
     probs = bandit.get_selection_probabilities()
     # A000001 (frontier, p=0.5) should have higher sampling weight than mastered or unmastered

@@ -270,6 +270,8 @@ class FineGrainedAttributionSpan:
     causal_token_end: int = 0
     token_advantage_mask: List[float] = field(default_factory=list)
     executed_token_mask: List[bool] = field(default_factory=list)
+    trace_status: str = "unsupported"
+    attribution_policy: str = "whole_trajectory"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

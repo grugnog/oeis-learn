@@ -323,6 +323,43 @@ def build_parser() -> argparse.ArgumentParser:
         faq_p.add_argument('--'+name, required=True)
     faq_p.add_argument('--json', dest='as_json', action='store_true')
 
+    faq_p.add_argument("--learning-gate-report")
+    faq_p.add_argument("--diagnostic", action="store_true")
+    flq_p = foundation_subparsers.add_parser(
+        "qualify-learning", help="G8 software and optional accelerator acceptance."
+    )
+    flq_p.add_argument("--output", required=True)
+    flq_p.add_argument("--hardware", action="store_true")
+    flq_p.add_argument("--json", action="store_true", dest="as_json")
+    for command in ("learning-train", "learning-search"):
+        child = foundation_subparsers.add_parser(
+            command, help="Explicit G7/G8-gated learning capability."
+        )
+        for flag in (
+            "config",
+            "gate-report",
+            "learning-gate-report",
+            "profiles",
+            "archive",
+            "output",
+        ):
+            child.add_argument("--" + flag, required=True)
+        child.add_argument("--device", default="cuda")
+        child.add_argument("--diagnostic", action="store_true")
+        child.add_argument("--json", action="store_true", dest="as_json")
+        if command == "learning-train":
+            child.add_argument("--updates", type=int, default=1)
+            child.add_argument("--seed", type=int, default=20260913)
+            child.add_argument("--resume")
+        else:
+            child.add_argument("--checkpoint", required=True)
+            child.add_argument("--prompt", required=True)
+            child.add_argument(
+                "--portfolio",
+                choices=["portfolio32", "baseline16", "greedy"],
+                default="portfolio32",
+            )
+
     # foundation conformance
     fc_p = foundation_subparsers.add_parser(
         'conformance',

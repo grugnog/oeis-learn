@@ -1,232 +1,225 @@
-"""SYMPLE Multi-Task Engine: EXP3.S Non-Stationary Bandit Scheduler & Ada-G Dynamic Group Allocator."""
+"""Cost-aware visit scheduler with explicit conditional sampling probabilities.
 
-from __future__ import annotations
+The old public class name is retained; this is deliberately not an EXP3 claim.
+"""
 
+from copy import deepcopy
 import math
-from typing import Dict, List, Optional, Sequence
-import numpy as np
+import random
 
 
 class Exp3SBanditScheduler:
-    """EXP3.S adversarial non-stationary multi-armed bandit task scheduler
-
-    with binomial dispersion learning progress feedback in the Zone of Proximal Development.
-    """
-
     def __init__(
         self,
-        sequence_ids: Sequence[str],
-        gamma: float = 0.15,
-        alpha: float = 0.05,
-        competence_window: int = 20,
-        gamma_floor: float = 0.25,
+        sequence_ids,
+        gamma=0.25,
+        alpha=0.05,
+        competence_window=20,
+        gamma_floor=0.25,
+        seed=20260913,
     ):
+        if len(set(sequence_ids)) != len(sequence_ids) or not sequence_ids:
+            raise ValueError("nonempty unique task identities required")
+        if not 0.25 <= max(gamma, gamma_floor) <= 1 or competence_window < 2:
+            raise ValueError("at least 25% uniform exploration required")
         self.sequence_ids = list(sequence_ids)
-        self.K = max(1, len(self.sequence_ids))
-        self.gamma_floor = gamma_floor
+        self.K = len(sequence_ids)
         self.gamma = max(gamma, gamma_floor)
-        self.alpha = alpha
-        self.window_size = competence_window
+        self.gamma_floor = gamma_floor
+        self.alpha, self.window_size = alpha, competence_window
+        self.weights = {sid: 1.0 for sid in sequence_ids}
+        self.histories = {sid: [] for sid in sequence_ids}
+        self.last_visited = {sid: 0 for sid in sequence_ids}
+        self.last_selection = {}
+        self.rng = random.Random(seed)
 
-        # Weights initialized to 1.0
-        self.weights: Dict[str, float] = {sid: 1.0 for sid in self.sequence_ids}
-        self.histories: Dict[str, List[int]] = {sid: [] for sid in self.sequence_ids}
-        self.last_visited: Dict[str, int] = {sid: 0 for sid in self.sequence_ids}
-
-    def recalibrate_uniform(self, gamma_floor: float = 0.25) -> None:
-        """Recalibrates all bandit weights to uniform and updates exploration floor."""
+    def recalibrate_uniform(self, gamma_floor=0.25):
+        if not 0.25 <= gamma_floor <= 1:
+            raise ValueError("exploration floor out of bounds")
         self.gamma_floor = gamma_floor
         self.gamma = max(self.gamma, gamma_floor)
         self.weights = {sid: 1.0 for sid in self.sequence_ids}
 
-    def get_competence(self, oeis_id: str) -> float:
-        """Computes rolling pass competence p_hat in [0.0, 1.0]."""
-        hist = self.histories.get(oeis_id, [])
-        if not hist:
+    def get_competence(self, oeis_id):
+        history = self.histories.get(oeis_id, [])
+        total = sum(v["attempts"] for v in history)
+        return sum(v["successes"] for v in history) / total if total else 0.0
+
+    def get_competence_slope(self, oeis_id):
+        history = self.histories.get(oeis_id, [])
+        if len(history) < 2:
             return 0.0
-        return float(np.mean(hist))
 
-    def get_competence_slope(self, oeis_id: str) -> float:
-        """Computes competence velocity Delta C_i across early and late history."""
-        hist = self.histories.get(oeis_id, [])
-        if len(hist) < 4:
-            return 0.0
-        mid = len(hist) // 2
-        early = hist[:mid]
-        late = hist[mid:]
-        return float(np.mean(late) - np.mean(early))
+        def mean(visits):
+            return sum(v["successes"] for v in visits) / sum(v["attempts"] for v in visits)
 
-    def get_selection_probabilities(self) -> Dict[str, float]:
-        """Calculates current probability distribution over the K task arms."""
-        total_w = sum(self.weights.values())
-        if total_w <= 0.0 or math.isnan(total_w) or math.isinf(total_w):
-            total_w = float(self.K)
-            self.weights = {sid: 1.0 for sid in self.sequence_ids}
+        mid = len(history) // 2
+        return mean(history[mid:]) - mean(history[:mid])
 
-        probs = {}
-        for sid in self.sequence_ids:
-            w_i = self.weights.get(sid, 1.0)
-            if math.isnan(w_i) or math.isinf(w_i) or w_i <= 0.0:
-                w_i = 1.0
-                self.weights[sid] = 1.0
-            p_i = (1.0 - self.gamma) * (w_i / total_w) + (self.gamma / self.K)
-            probs[sid] = float(p_i)
-        return probs
+    def get_selection_probabilities(self, remaining=None):
+        remaining = self.sequence_ids if remaining is None else list(remaining)
+        if not remaining:
+            return {}
+        total = sum(self.weights[sid] for sid in remaining)
+        return {
+            sid: (1 - self.gamma) * self.weights[sid] / total + self.gamma / len(remaining)
+            for sid in remaining
+        }
 
-    def sample_active_prompts(self, batch_size: int = 2) -> List[str]:
-        """Samples B_active frontier task prompts without replacement."""
-        if self.K <= batch_size:
-            return list(self.sequence_ids)
-
-        probs_dict = self.get_selection_probabilities()
-        sids = list(probs_dict.keys())
-        p_vals = np.array([probs_dict[sid] for sid in sids], dtype=np.float64)
-        total_p = np.sum(p_vals)
-        if total_p <= 0 or np.isnan(total_p) or np.isinf(total_p):
-            p_vals = np.ones(len(sids), dtype=np.float64) / len(sids)
-        else:
-            p_vals /= total_p
-
-        chosen = np.random.choice(sids, size=batch_size, replace=False, p=p_vals)
-        return [str(c) for c in chosen]
+    def sample_active_prompts(self, batch_size=4):
+        if type(batch_size) is not int or batch_size <= 0:
+            raise ValueError("positive active prompt count required")
+        remaining, chosen = list(self.sequence_ids), []
+        self.last_selection = {}
+        for _ in range(min(batch_size, self.K)):
+            probabilities = self.get_selection_probabilities(remaining)
+            pick = self.rng.choices(remaining, [probabilities[sid] for sid in remaining])[0]
+            self.last_selection[pick] = {
+                "probability": probabilities[pick],
+                "draw": len(chosen),
+                "remaining": tuple(remaining),
+                "rule": "conditional-without-replacement/v1",
+            }
+            chosen.append(pick)
+            remaining.remove(pick)
+        return chosen
 
     def update_feedback(
         self,
-        oeis_id: str,
-        success_count: int,
-        group_size: int,
-        current_step: int = 0,
-    ) -> None:
-        """Updates rolling pass history and EXP3.S weights given task rollout outcomes."""
-        if oeis_id not in self.weights:
-            self.sequence_ids.append(oeis_id)
-            self.K = len(self.sequence_ids)
-            self.weights[oeis_id] = 1.0
-            self.histories[oeis_id] = []
-
+        oeis_id,
+        success_count,
+        group_size,
+        current_step=0,
+        elapsed_s=None,
+        selection_probability=None,
+    ):
+        if (
+            oeis_id not in self.histories
+            or type(group_size) is not int
+            or group_size <= 0
+            or type(success_count) is not int
+            or not 0 <= success_count <= group_size
+            or elapsed_s is None
+            or not math.isfinite(elapsed_s)
+            or elapsed_s <= 0
+        ):
+            raise ValueError("valid aggregate visit and measured positive cost required")
+        probability = selection_probability
+        if probability is None:
+            probability = self.last_selection.get(oeis_id, {}).get(
+                "probability", self.get_selection_probabilities()[oeis_id]
+            )
+        if not 0 < probability <= 1:
+            raise ValueError("invalid recorded conditional probability")
+        visit = {
+            "successes": success_count,
+            "attempts": group_size,
+            "elapsed_s": elapsed_s,
+            "step": current_step,
+            "selection_probability": probability,
+        }
+        self.histories[oeis_id].append(visit)
+        self.histories[oeis_id] = self.histories[oeis_id][-self.window_size :]
         self.last_visited[oeis_id] = current_step
+        self.weights[oeis_id] = max(1e-4, self.priority(oeis_id))
 
-        # Update sliding history window
-        outcomes = [1] * success_count + [0] * max(0, group_size - success_count)
-        self.histories[oeis_id].extend(outcomes)
-        if len(self.histories[oeis_id]) > self.window_size:
-            self.histories[oeis_id] = self.histories[oeis_id][-self.window_size :]
+    def priority(self, sid):
+        visits = self.histories[sid]
+        attempts = sum(v["attempts"] for v in visits)
+        # A planning uncertainty score, not independent-trial confidence.
+        uncertainty = 1 / math.sqrt(len(visits) + 1)
+        cost = sum(v["elapsed_s"] for v in visits) / max(1, attempts) if visits else 1.0
+        competence = self.get_competence(sid)
+        return (
+            uncertainty + 4 * competence * (1 - competence) + abs(self.get_competence_slope(sid))
+        ) / max(cost, 1e-6)
 
-        # Compute learning progress feedback r_{i,t} in Zone of Proximal Development
-        p_hat = self.get_competence(oeis_id)
-        delta_c = self.get_competence_slope(oeis_id)
+    def state_dict(self):
+        return deepcopy(
+            {
+                "version": "visit-scheduler/v1",
+                "sequence_ids": self.sequence_ids,
+                "gamma": self.gamma,
+                "gamma_floor": self.gamma_floor,
+                "alpha": self.alpha,
+                "window_size": self.window_size,
+                "weights": self.weights,
+                "histories": self.histories,
+                "last_visited": self.last_visited,
+                "last_selection": self.last_selection,
+                "rng": self.rng.getstate(),
+            }
+        )
 
-        # Binomial dispersion (peaks at p=0.5) + score velocity + alarm for decay
-        binomial_dispersion = p_hat * (1.0 - p_hat) * 4.0  # Normalized to [0, 1]
-        decay_alarm = 2.0 * max(0.0, -delta_c)
-        r_feedback = binomial_dispersion + abs(delta_c) + decay_alarm
-
-        # Importance weight estimate: r_hat = r / p_i
-        probs = self.get_selection_probabilities()
-        p_i = max(1e-6, probs.get(oeis_id, 1.0 / self.K))
-        r_hat = min(10.0, r_feedback / p_i)
-
-        # EXP3.S weight update
-        w_old = self.weights.get(oeis_id, 1.0)
-        w_new = w_old * math.exp(self.gamma * r_hat / self.K)
-        self.weights[oeis_id] = min(1e6, max(1e-4, w_new))
-
-        # Uniform mixing across all arms
-        total_w = sum(self.weights.values())
-        if total_w <= 0.0 or math.isnan(total_w) or math.isinf(total_w):
-            total_w = float(self.K)
-            self.weights = {sid: 1.0 for sid in self.sequence_ids}
-
-        mixing = (math.e * self.alpha / self.K) * total_w
-        for sid in self.sequence_ids:
-            self.weights[sid] += mixing
-
-        # Renormalize weights so total_w does not explode exponentially over thousands of steps
-        new_total = sum(self.weights.values())
-        if new_total > 0 and not math.isnan(new_total) and not math.isinf(new_total):
-            scale = float(self.K) / new_total
-            for sid in self.sequence_ids:
-                self.weights[sid] *= scale
-        else:
-            self.weights = {sid: 1.0 for sid in self.sequence_ids}
+    def load_state_dict(self, state):
+        expected = set(self.state_dict())
+        if (
+            set(state) != expected
+            or state["version"] != "visit-scheduler/v1"
+            or state["sequence_ids"] != self.sequence_ids
+        ):
+            raise ValueError("incompatible curriculum state")
+        if (
+            not 0.25 <= state["gamma_floor"] <= state["gamma"] <= 1
+            or type(state["window_size"]) is not int
+            or state["window_size"] < 2
+        ):
+            raise ValueError("invalid scheduler settings")
+        for key in ("weights", "histories", "last_visited"):
+            if set(state[key]) != set(self.sequence_ids):
+                raise ValueError("missing scheduler task state")
+        if any(not math.isfinite(weight) or weight <= 0 for weight in state["weights"].values()):
+            raise ValueError("invalid scheduler weights")
+        for history in state["histories"].values():
+            if len(history) > state["window_size"]:
+                raise ValueError("history exceeds window")
+            for visit in history:
+                if (
+                    set(visit)
+                    != {"successes", "attempts", "elapsed_s", "step", "selection_probability"}
+                    or type(visit["attempts"]) is not int
+                    or type(visit["successes"]) is not int
+                    or not 0 <= visit["successes"] <= visit["attempts"]
+                    or visit["attempts"] <= 0
+                    or not math.isfinite(visit["elapsed_s"])
+                    or visit["elapsed_s"] <= 0
+                    or not 0 < visit["selection_probability"] <= 1
+                ):
+                    raise ValueError("invalid aggregate visit state")
+        rng = random.Random()
+        rng.setstate(state["rng"])
+        for key in (
+            "gamma",
+            "gamma_floor",
+            "alpha",
+            "window_size",
+            "weights",
+            "histories",
+            "last_visited",
+            "last_selection",
+        ):
+            setattr(self, key, deepcopy(state[key]))
+        self.rng = rng
 
 
 class AdaGGroupAllocator:
-    """Adaptive Dynamic Group Sizing (Ada-G) allocating rollout compute G_i in [min_g, max_g]
+    def __init__(self, total_budget=32, min_g=2, max_g=16, p_target=0.50, p_floor=0.02):
+        if not 1 <= min_g <= max_g <= 16 or total_budget <= 0:
+            raise ValueError("invalid allocation bounds")
+        self.total_budget, self.min_g, self.max_g = total_budget, min_g, max_g
+        self.unallocated = 0
 
-    to guarantee P(Hit >= 1) >= p_target on frontier tasks.
-    """
-
-    def __init__(
-        self,
-        total_budget: int = 32,
-        min_g: int = 8,
-        max_g: int = 16,
-        p_target: float = 0.50,
-        p_floor: float = 0.02,
-    ):
-        self.total_budget = total_budget
-        self.min_g = min_g
-        self.max_g = max_g
-        self.p_target = p_target
-        self.p_floor = p_floor
-
-    def compute_group_sizes(
-        self,
-        prompts: Sequence[str],
-        bandit: Exp3SBanditScheduler,
-        total_budget: Optional[int] = None,
-    ) -> Dict[str, int]:
-        """Computes allocated rollout count G_i for each active prompt, filling the budget."""
-        budget = total_budget if total_budget is not None else self.total_budget
-        if not prompts:
-            return {}
-
-        raw_sizes: Dict[str, int] = {}
-
-        for pid in sorted(prompts):
-            p_hat = bandit.get_competence(pid)
-            effective_p = min(max(p_hat, self.p_floor), 0.99)
-
-            # G_i = ceil( ln(1 - p_target) / ln(1 - effective_p) )
-            log_num = math.log(max(1e-6, 1.0 - self.p_target))
-            log_den = math.log(max(1e-6, 1.0 - effective_p))
-            g_ideal = math.ceil(log_num / log_den)
-            g_clipped = min(self.max_g, max(self.min_g, g_ideal))
-            raw_sizes[pid] = g_clipped
-
-        current_total = sum(raw_sizes.values())
-
-        # If below budget, allocate surplus up to max_g starting with lowest competence (deterministic tie-breaking)
-        if current_total < budget:
-            sorted_by_need = sorted(
-                prompts,
-                key=lambda p: (bandit.get_competence(p), p),
-            )
-            while current_total < budget:
-                allocated_any = False
-                for pid in sorted_by_need:
-                    if raw_sizes[pid] < self.max_g and current_total < budget:
-                        raw_sizes[pid] += 1
-                        current_total += 1
-                        allocated_any = True
-                if not allocated_any:
-                    break
-
-        # If above budget, scale down while respecting min_g
-        elif current_total > budget:
-            sorted_by_ease = sorted(
-                prompts,
-                key=lambda p: (-bandit.get_competence(p), p),
-            )
-            while current_total > budget:
-                reduced_any = False
-                for pid in sorted_by_ease:
-                    if raw_sizes[pid] > self.min_g and current_total > budget:
-                        raw_sizes[pid] -= 1
-                        current_total -= 1
-                        reduced_any = True
-                if not reduced_any:
-                    break
-
-        return raw_sizes
+    def compute_group_sizes(self, prompts, bandit, total_budget=None):
+        budget = self.total_budget if total_budget is None else total_budget
+        if type(budget) is not int or budget < 0 or len(set(prompts)) != len(prompts):
+            raise ValueError("exact budget and unique prompts required")
+        if budget < len(prompts) * self.min_g:
+            raise ValueError("budget cannot satisfy per-prompt minimum")
+        sizes = {pid: self.min_g for pid in sorted(prompts)}
+        target = min(budget, len(prompts) * self.max_g)
+        while sum(sizes.values()) < target:
+            candidates = [pid for pid in sizes if sizes[pid] < self.max_g]
+            pick = min(candidates, key=lambda pid: (-bandit.priority(pid) / (sizes[pid] + 1), pid))
+            sizes[pick] += 1
+        self.unallocated = budget - target
+        return sizes

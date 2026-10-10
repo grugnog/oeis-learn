@@ -9,7 +9,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from oeis_learn.data.models import SyntheticDemonstrationPair
-from oeis_learn.data.synthetic_generator import SyntheticDemonstrationDataset, SyntheticDemonstrationGenerator
+from oeis_learn.data.synthetic_generator import (
+    SyntheticDemonstrationDataset,
+    SyntheticDemonstrationGenerator,
+)
 from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 from oeis_learn.decoder.wat_grammar import BOS_ID, EOS_ID, PAD_ID, encode_wat
 from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
@@ -22,6 +25,73 @@ def teacher_forced_logits(encoder, decoder, sequences, tokens, *, device, pad_id
     memory = encoder.forward_from_sequences(sequences, device=device)
     inputs = tokens[:, :-1]
     return decoder(inputs, memory, tgt_key_padding_mask=(inputs == pad_id))
+
+
+def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=(), device="cpu"):
+    """Commit a 25% archive replay / 75% generic SFT batch with its own prompts.
+
+    Eligibility/provenance is rechecked from the immutable archive, not trusted
+    from a caller-supplied source list. Counters change only after optimizer.step.
+    """
+    from oeis_learn.decoder.program_codec import BOS_ID as BODY_BOS, PAD_ID as BODY_PAD
+    from oeis_learn.rl.policy import trajectory_mean
+    from oeis_learn.discovery.program_archive import eligibility
+
+    if type(batch_size) is not int or batch_size < 4 or batch_size % 4:
+        raise ValueError("25% replay requires a batch multiple of four")
+    replay_count = batch_size // 4
+    if len(generic) != batch_size - replay_count:
+        raise ValueError("exact 75% generic complement required")
+    selected = replay.peek(replay_count)
+    values = [replay.archive.get(key) for key, _ in selected]
+    for key in generic:
+        value = replay.archive.get(key)
+        if value["entry"]["origin"] != "generic_sample":
+            raise ValueError("generic complement must be independently admitted generic draws")
+        values.append(value)
+    for value in values:
+        if (
+            not value["entry"]["training_eligible"]
+            or not eligibility(value["source"], replay.archive.context_limit)[0]
+        ):
+            raise ValueError("ineligible source reached SFT")
+    sequences = [[int(v) for v in value["entry"]["conditioning_values"]] for value in values]
+    token_lists = [[BODY_BOS] + value["tokens"] for value in values]
+    tokens = torch.full(
+        (batch_size, max(map(len, token_lists))), BODY_PAD, device=device, dtype=torch.long
+    )
+    for row, ids in enumerate(token_lists):
+        tokens[row, : len(ids)] = torch.tensor(ids, device=device)
+    # SFT's explicit dropout choice belongs to its model profile. Preserve modes.
+    modes = {module: module.training for model in (encoder, decoder) for module in model.modules()}
+    try:
+        encoder.train()
+        decoder.train()
+        optimizer.zero_grad(set_to_none=True)
+        logits = teacher_forced_logits(
+            encoder, decoder, sequences, tokens, device=device, pad_id=BODY_PAD
+        )
+        target = tokens[:, 1:]
+        losses = torch.nn.functional.cross_entropy(logits.transpose(1, 2), target, reduction="none")
+        loss = trajectory_mean(losses, target.ne(BODY_PAD))
+        if not torch.isfinite(loss):
+            raise FloatingPointError("nonfinite replay loss")
+        loss.backward()
+        nn.utils.clip_grad_norm_(
+            list(encoder.parameters()) + list(decoder.parameters()), 1.0, error_if_nonfinite=True
+        )
+        optimizer.step()
+        replay.commit(replay_count)
+        return {
+            "loss": float(loss.detach()),
+            "examples": batch_size,
+            "replay_examples": replay_count,
+            "replay_fraction": 0.25,
+            "normalization": "mean-per-program",
+        }
+    finally:
+        for module, training in modes.items():
+            module.training = training
 
 
 class SftTrainer:
@@ -49,35 +119,50 @@ class SftTrainer:
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.multilimb = multilimb
-        self.device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
+        self.device = device or (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
 
         # Initialize models (FP32 strict)
-        self.encoder = encoder or TriStreamEncoder(d_model=256, n_heads=4, n_encoder_layers=4, d_ff=1024)
-        self.decoder = decoder or WatTransformerDecoder(d_model=256, n_heads=4, n_decoder_layers=4, d_ff=1024)
+        self.encoder = encoder or TriStreamEncoder(
+            d_model=256, n_heads=4, n_encoder_layers=4, d_ff=1024
+        )
+        self.decoder = decoder or WatTransformerDecoder(
+            d_model=256, n_heads=4, n_decoder_layers=4, d_ff=1024
+        )
         self.encoder.to(self.device)
         self.decoder.to(self.device)
 
         self.criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
         params = list(self.encoder.parameters()) + list(self.decoder.parameters())
         self.optimizer = optim.AdamW(params, lr=lr, weight_decay=weight_decay)
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=epochs, eta_min=min_lr)
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=epochs, eta_min=min_lr
+        )
 
     def load_or_generate_dataset(self) -> List[SyntheticDemonstrationPair]:
         """Loads synthetic demonstration pairs from disk or generates a fresh set."""
         if os.path.exists(self.dataset_path):
             with open(self.dataset_path, "r", encoding="utf-8") as f:
                 import json
+
                 data = json.load(f)
             dataset = SyntheticDemonstrationDataset.from_dict(data)
-            logger.info(f"Loaded {len(dataset.samples)} SFT demonstration pairs from {self.dataset_path}")
+            logger.info(
+                f"Loaded {len(dataset.samples)} SFT demonstration pairs from {self.dataset_path}"
+            )
             return dataset.samples
 
         gen = SyntheticDemonstrationGenerator()
         if self.multilimb:
-            logger.info(f"Dataset not found at {self.dataset_path}. Generating 5,000 multi-limb synthetic demonstrations...")
+            logger.info(
+                f"Dataset not found at {self.dataset_path}. Generating 5,000 multi-limb synthetic demonstrations..."
+            )
             dataset = gen.generate_multilimb_dataset(num_samples=5000)
         else:
-            logger.info(f"Dataset not found at {self.dataset_path}. Generating 1,000 synthetic demonstrations...")
+            logger.info(
+                f"Dataset not found at {self.dataset_path}. Generating 1,000 synthetic demonstrations..."
+            )
             dataset = gen.generate_dataset(num_samples=1000)
         gen.save_dataset(dataset, self.dataset_path)
         return dataset.samples
@@ -92,6 +177,7 @@ class SftTrainer:
 
         # Shuffle samples
         import random
+
         shuffled = list(samples)
         random.shuffle(shuffled)
 
@@ -111,7 +197,9 @@ class SftTrainer:
 
             # Pad targets to max length in batch
             max_len = max(len(t) for t in tgt_token_lists)
-            tgt_batch = torch.full((len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device)
+            tgt_batch = torch.full(
+                (len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device
+            )
             for b_idx, t_tensor in enumerate(tgt_token_lists):
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
@@ -121,13 +209,21 @@ class SftTrainer:
             self.optimizer.zero_grad()
 
             # Encoder forward
-            logits = teacher_forced_logits(self.encoder, self.decoder, seq_list, tgt_batch,
-                                          device=self.device, pad_id=PAD_ID)
+            logits = teacher_forced_logits(
+                self.encoder, self.decoder, seq_list, tgt_batch, device=self.device, pad_id=PAD_ID
+            )
 
-            loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
+            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
+                torch.nn.functional.cross_entropy(
+                    logits.transpose(1, 2), dec_target, reduction="none"
+                ),
+                dec_target.ne(PAD_ID),
+            )
             loss.backward()
 
-            nn.utils.clip_grad_norm_(list(self.encoder.parameters()) + list(self.decoder.parameters()), max_norm=1.0)
+            nn.utils.clip_grad_norm_(
+                list(self.encoder.parameters()) + list(self.decoder.parameters()), max_norm=1.0
+            )
             self.optimizer.step()
 
             total_loss += loss.item()
@@ -139,7 +235,9 @@ class SftTrainer:
     def train(self) -> Dict[str, Any]:
         """Executes full SFT pretraining loop and saves model checkpoint."""
         samples = self.load_or_generate_dataset()
-        logger.info(f"Starting SFT Warmup Training ({self.epochs} epochs, {len(samples)} samples)...")
+        logger.info(
+            f"Starting SFT Warmup Training ({self.epochs} epochs, {len(samples)} samples)..."
+        )
 
         best_loss = float("inf")
         loss_history = []
@@ -147,7 +245,9 @@ class SftTrainer:
         for epoch in range(1, self.epochs + 1):
             avg_loss = self.train_epoch(samples)
             loss_history.append(avg_loss)
-            logger.info(f"SFT Epoch {epoch:02d}/{self.epochs:02d} | Cross-Entropy Loss: {avg_loss:.4f}")
+            logger.info(
+                f"SFT Epoch {epoch:02d}/{self.epochs:02d} | Cross-Entropy Loss: {avg_loss:.4f}"
+            )
 
             if avg_loss < best_loss:
                 best_loss = avg_loss
@@ -198,7 +298,9 @@ class SftTrainer:
                 tgt_token_lists.append(torch.tensor(encoded, dtype=torch.long))
 
             max_len = max(len(t) for t in tgt_token_lists)
-            tgt_batch = torch.full((len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device)
+            tgt_batch = torch.full(
+                (len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device
+            )
             for b_idx, t_tensor in enumerate(tgt_token_lists):
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
@@ -209,9 +311,14 @@ class SftTrainer:
             with torch.no_grad():
                 memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
 
-            pad_mask = (dec_input == PAD_ID)
+            pad_mask = dec_input == PAD_ID
             logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
-            loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
+            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
+                torch.nn.functional.cross_entropy(
+                    logits.transpose(1, 2), dec_target, reduction="none"
+                ),
+                dec_target.ne(PAD_ID),
+            )
             loss.backward()
             nn.utils.clip_grad_norm_(warmup_params, max_norm=1.0)
             optimizer.step()
@@ -223,7 +330,12 @@ class SftTrainer:
 
         checkpoint_path = self.output_checkpoint.replace(".pt", "_warmup.pt")
         self.save_checkpoint(checkpoint_path, epoch=1, loss=loss.item())
-        return {"status": "SUCCESS", "steps": steps, "final_loss": loss.item(), "checkpoint": checkpoint_path}
+        return {
+            "status": "SUCCESS",
+            "steps": steps,
+            "final_loss": loss.item(),
+            "checkpoint": checkpoint_path,
+        }
 
     def train_joint_bridge(
         self,
@@ -281,7 +393,9 @@ class SftTrainer:
                 tgt_token_lists.append(torch.tensor(encoded, dtype=torch.long))
 
             max_len = max(len(t) for t in tgt_token_lists)
-            tgt_batch = torch.full((len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device)
+            tgt_batch = torch.full(
+                (len(batch_samples), max_len), PAD_ID, dtype=torch.long, device=self.device
+            )
             for b_idx, t_tensor in enumerate(tgt_token_lists):
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
@@ -290,9 +404,14 @@ class SftTrainer:
 
             optimizer.zero_grad()
             memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
-            pad_mask = (dec_input == PAD_ID)
+            pad_mask = dec_input == PAD_ID
             logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
-            loss = self.criterion(logits.reshape(-1, logits.size(-1)), dec_target.reshape(-1))
+            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
+                torch.nn.functional.cross_entropy(
+                    logits.transpose(1, 2), dec_target, reduction="none"
+                ),
+                dec_target.ne(PAD_ID),
+            )
             loss.backward()
 
             all_params = enc_params_top2 + dec_backbone_params + head_params
@@ -301,12 +420,19 @@ class SftTrainer:
 
             loss_accum += loss.item()
             if step % 500 == 0:
-                logger.info(f"Joint Bridge Step {step:04d}/{steps:04d} | Loss: {loss_accum / 500:.4f}")
+                logger.info(
+                    f"Joint Bridge Step {step:04d}/{steps:04d} | Loss: {loss_accum / 500:.4f}"
+                )
                 loss_accum = 0.0
 
         checkpoint_path = self.output_checkpoint.replace(".pt", "_bridge.pt")
         self.save_checkpoint(checkpoint_path, epoch=1, loss=loss.item())
-        return {"status": "SUCCESS", "steps": steps, "final_loss": loss.item(), "checkpoint": checkpoint_path}
+        return {
+            "status": "SUCCESS",
+            "steps": steps,
+            "final_loss": loss.item(),
+            "checkpoint": checkpoint_path,
+        }
 
     def save_checkpoint(self, path: str, epoch: int, loss: float) -> None:
         """Saves encoder & decoder weights to checkpoint."""

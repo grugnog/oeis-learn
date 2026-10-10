@@ -26,10 +26,11 @@ class _Branch(Exception):
 
 
 class Interpreter:
-    def __init__(self, step_limit: int, deadline_ns: int):
+    def __init__(self, step_limit: int, deadline_ns: int, event=None):
         if type(step_limit) is not int or step_limit < 0:
             raise ValueError("reference steps must be nonnegative")
         self.limit, self.deadline, self.steps = step_limit, deadline_ns, 0
+        self.event = event
         self.stack, self.frames = [], [("func", 4)]
         self.locals = dict.fromkeys((*I64_LOCAL_NAMES, *I32_LOCAL_NAMES), 0)
 
@@ -115,6 +116,8 @@ class Interpreter:
     def sequence(self, nodes):
         for node in nodes:
             self.tick()
+            if self.event is not None:
+                self.event(node, self.steps, self.stack)
             op = node.op
             if op in ("block", "loop", "if"):
                 condition = self.stack.pop() if op == "if" else 1

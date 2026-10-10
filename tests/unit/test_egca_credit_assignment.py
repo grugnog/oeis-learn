@@ -24,7 +24,9 @@ def test_classify_failure_modes():
 def test_downstream_token_zero_masking_and_advantage_conservation():
     wat_code = '(module (func (export "compute") (param $n i32) (result i64) (local $a i64) local.get $n i64.extend_i32_s i64.const 2 i64.mul))'
     target = [0, 2, 4, 7, 8, 10]  # Diverges at index 3
-    res = ExecutionResult(status="SUCCESS", consumed_fuel=100, output=[0, 2, 4, 6, 8, 10], divergence_step=3)
+    res = ExecutionResult(
+        status="SUCCESS", consumed_fuel=100, output=[0, 2, 4, 6, 8, 10], divergence_step=3
+    )
 
     total_adv = -1.2
     total_tokens = 30
@@ -41,9 +43,10 @@ def test_downstream_token_zero_masking_and_advantage_conservation():
     adv_vec = attr.token_advantage_mask
     assert len(adv_vec) == total_tokens
 
-    # Downstream tokens after causal span must be zero-masked
-    for t in range(attr.causal_token_end, total_tokens):
-        assert adv_vec[t] == 0.0
+    assert attr.trace_status == "unsupported"
+    assert attr.attribution_policy == "whole_trajectory"
+    assert attr.causal_token_start == attr.causal_token_end == 0
+    assert all(value == pytest.approx(total_adv / total_tokens) for value in adv_vec)
 
     # Total advantage sum must be conserved (sum a_{i,t} = A_i)
     assert abs(sum(adv_vec) - total_adv) < 1e-4

@@ -629,3 +629,23 @@ def _issued_stop(root, build_id, config):
             raise ValueError("invalid issued-batch journal")
         cursor = stop
     return cursor
+
+
+def qualified_training_view(archive, snapshot=None):
+    """Group-balanced view of independently admitted, training-only algorithms.
+
+    A group's weight is shared between its retained algorithms; output duplicates
+    never gain additional sampling mass. Source diversity remains in the archive.
+    """
+    rows = archive.training_view(snapshot)
+    groups = Counter(digest(value["entry"]["outputs"]) for _, value in rows)
+    return tuple(
+        {
+            "key": key,
+            "source": value["source"],
+            "conditioning": tuple(int(v) for v in value["entry"]["conditioning_values"]),
+            "structure_sha256": value["entry"]["ir_sha256"],
+            "weight": 1.0 / (max(1, len(groups)) * groups[digest(value["entry"]["outputs"])]),
+        }
+        for key, value in rows
+    )

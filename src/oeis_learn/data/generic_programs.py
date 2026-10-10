@@ -177,6 +177,9 @@ class GenericSampler:
         self.rng_identity = RNG_ID
 
     def sample(self, counter):
+        return self._sample(counter)
+
+    def _sample(self, counter, *, parameter_seed=None, structure_only=False):
         if type(counter) is not int or not 0 <= counter < self.config["max_attempts"]:
             raise ValueError("sample counter outside frozen bounds")
         seed = int(
@@ -184,6 +187,7 @@ class GenericSampler:
             16,
         )
         rng = random.Random(seed)
+        parameters = rng if parameter_seed is None else random.Random(parameter_seed)
         kinds, leaves, operators, constants = Counter(), Counter(), Counter(), Counter()
         stats = {"statements": 0, "loop_depth": 0, "structured_depth": 0}
 
@@ -196,14 +200,14 @@ class GenericSampler:
                 if leaf == "index":
                     return Expression(typ, leaf)
                 width = {"wide": 256, "i64": 64, "i32": 32}[typ]
-                if rng.randrange(8) < 7:
-                    value = rng.randint(-16, 16)
+                if parameters.randrange(8) < 7:
+                    value = parameters.randint(-16, 16)
                     constants["small"] += 1
                 else:
-                    bits = rng.choice([w for w in PRIORS["signed_widths"] if w <= width])
-                    value = rng.randrange(-(2 ** (bits - 1)), 2 ** (bits - 1))
+                    bits = parameters.choice([w for w in PRIORS["signed_widths"] if w <= width])
+                    value = parameters.randrange(-(2 ** (bits - 1)), 2 ** (bits - 1))
                     constants[str(bits)] += 1
-                return Expression(typ, leaf, value=value)
+                return Expression(typ, leaf, value=1 if structure_only else value)
             op, inputs = rng.choice(OPS[typ])
             operators[op] += 1
             return Expression(typ, op, tuple(expression(t, depth + 1) for t in inputs))
@@ -241,7 +245,7 @@ class GenericSampler:
                     count -= used
                 else:
                     used = rng.randint(1, count)
-                    bound = rng.randint(0, 32) if rng.randrange(2) == 0 else None
+                    bound = parameters.randint(0, 32) if rng.randrange(2) == 0 else None
                     result.append(
                         Statement(
                             kind,
@@ -288,4 +292,41 @@ class GenericSampler:
             "body_tokens": tokens,
             "statistics": stats,
             "sampling_failure": failure,
+        }
+
+
+class QualifiedGenericSampler(GenericSampler):
+    """Assign the structural split before drawing an independent parameter variant.
+
+    The foundation control continues to use sample(); this is a separate stream.
+    """
+
+    def sample_variant(self, counter, parameter_counter=0, *, split=None):
+        from oeis_learn.data.structural_splits import structural_signature, split_for_structure
+
+        if type(parameter_counter) is not int or not 0 <= parameter_counter < 10000:
+            raise ValueError("bounded independent parameter counter required")
+        skeleton = self._sample(counter, parameter_seed=0, structure_only=True)
+        if skeleton["sampling_failure"] is not None:
+            raise ValueError("structural draw exceeds the codec limits")
+        signature = structural_signature(skeleton["canonical_source"])
+        assigned = split_for_structure(signature, self.config["seed"])
+        if split is not None and split != assigned:
+            raise ValueError("structural draw belongs to another partition")
+        seed = int(
+            digest(["parameter-variant/v1", self.config["seed"], counter, parameter_counter])[7:23],
+            16,
+        )
+        sample = self._sample(counter, parameter_seed=seed)
+        if (
+            sample["sampling_failure"] is not None
+            or structural_signature(sample["canonical_source"]) != signature
+        ):
+            raise ValueError("parameter variant changes structure or exceeds codec limits")
+        return {
+            "version": "qualified-generic/v1",
+            "structure_sha256": signature,
+            "split": assigned,
+            "parameter_counter": parameter_counter,
+            "sample": sample,
         }

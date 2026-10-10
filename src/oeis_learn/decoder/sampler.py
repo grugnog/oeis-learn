@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 import torch
 import torch.nn.functional as F
 from oeis_learn.decoder.environment_tracker import EnvironmentTracker, StructuralPhase
 from oeis_learn.decoder.grammar_masker import GrammarMasker
-from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 from oeis_learn.decoder.wat_grammar import (
     BOS_ID,
     EOS_ID,
@@ -71,10 +70,16 @@ def finalize_wat_tokens(
         # Clean up control frames by popping or dropping excess items to match baseline
         while tracker.control_stack and len(token_ids) < max_length - 8:
             frame = tracker.control_stack[-1]
-            while len(tracker.operand_stack) > frame.baseline_stack_depth and len(token_ids) < max_length - 8:
+            while (
+                len(tracker.operand_stack) > frame.baseline_stack_depth
+                and len(token_ids) < max_length - 8
+            ):
                 token_ids.append(TOKEN_TO_ID["drop"])
                 tracker.update("drop")
-            while len(tracker.operand_stack) < frame.baseline_stack_depth and len(token_ids) < max_length - 8:
+            while (
+                len(tracker.operand_stack) < frame.baseline_stack_depth
+                and len(token_ids) < max_length - 8
+            ):
                 token_ids.extend([TOKEN_TO_ID["i64.const"], TOKEN_TO_ID["0"]])
                 tracker.update("i64.const")
                 tracker.update("0")
@@ -106,251 +111,311 @@ def finalize_wat_tokens(
     return code, token_ids
 
 
+from dataclasses import dataclass
+from oeis_learn.rl.policy import scoring_mode, masked_distribution
+
+
+@dataclass(frozen=True)
+class SampledTrajectory:
+    source: str
+    tokens: tuple[int, ...]
+    supports: tuple[tuple[int, ...], ...]
+    log_probabilities: tuple[float | None, ...]
+    forced: tuple[bool, ...]
+    temperature: float
+    seed: int
+    complete: bool
+    failure: str | None
+
+    def record(
+        self,
+        *,
+        encoder_sha256,
+        decoder_sha256,
+        prompt_sha256,
+        execution_sha256,
+        reward_components,
+        eos_id,
+    ):
+        from oeis_learn.experiments.qualified_models import seal_record
+        from oeis_learn.experiments.artifacts import compute_canonical_digest
+
+        return seal_record(
+            "rollout_record",
+            behavior_encoder_sha256=encoder_sha256,
+            behavior_decoder_sha256=decoder_sha256,
+            visible_prompt_sha256=prompt_sha256,
+            actions=list(self.tokens),
+            supports=[list(v) for v in self.supports],
+            temperatures=[self.temperature] * len(self.tokens),
+            log_probabilities=list(self.log_probabilities),
+            forced_mask=list(self.forced),
+            pad_mask=[False] * len(self.tokens),
+            eos_mask=[v == eos_id for v in self.tokens],
+            rng_sha256=compute_canonical_digest(["per-candidate-torch/v1", self.seed]),
+            reward_components=reward_components,
+            execution_sha256=execution_sha256,
+            top_p=1,
+            top_k=None,
+            rollout_dropout=False,
+            scoring_dropout=False,
+        )
+
+
 class WatProgramSampler:
-    """Generates WAT programs using temperature / nucleus sampling under strict grammar constraints."""
+    """Shared seeded rollout; diagnostic repair tokens never become policy actions."""
 
     def __init__(
         self,
-        decoder: WatTransformerDecoder,
-        grammar_masker: Optional[GrammarMasker] = None,
-        max_length: int = 256,
-        temperature: float = 0.8,
-        top_p: float = 0.95,
-        codec_profile: Optional[str] = None,
+        decoder,
+        grammar_masker=None,
+        max_length=256,
+        temperature=0.8,
+        top_p=0.95,
+        codec_profile=None,
+        use_cache=False,
     ):
-        self.decoder = decoder
-        self.codec = None
+        self.decoder, self.codec = decoder, None
         if codec_profile is not None:
             from oeis_learn.decoder.wat_grammar import get_program_codec
+
             self.codec = get_program_codec(codec_profile)
-            if getattr(decoder, 'codec_sha256', None) != self.codec.codec_digest():
-                raise ValueError('decoder has no matching foundation codec identity')
-        if grammar_masker is not None:
-            self.grammar_masker = grammar_masker
-        elif self.codec is not None:
-            self.grammar_masker = GrammarMasker(self.codec.FOUNDATION_VOCAB_SIZE)
-        else:
-            self.grammar_masker = GrammarMasker()
-        self.max_length = max_length
-        self.temperature = temperature
-        self.top_p = top_p
+            if getattr(decoder, "codec_sha256", None) != self.codec.codec_digest():
+                raise ValueError("decoder has no matching foundation codec identity")
+        self.grammar_masker = grammar_masker or GrammarMasker(
+            self.codec.FOUNDATION_VOCAB_SIZE if self.codec else decoder.vocab_size
+        )
+        self.max_length, self.temperature, self.top_p = max_length, temperature, top_p
+        self.use_cache, self.last_trajectories = use_cache, ()
 
-    def sample_candidate(
+    def sample_trajectories(
         self,
-        memory: torch.Tensor,
-        seed: int,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        use_grammar_mask: bool = True,
-        max_length: Optional[int] = None,
-        prefix_wat: Optional[str] = None,
-    ) -> Tuple[str, torch.Tensor]:
-        """Samples a single candidate program using a local deterministic generator."""
-        if self.codec is not None:
-            return self._sample_body(memory, seed, temperature, top_p, use_grammar_mask, max_length, prefix_wat)
-        self.decoder.eval()
-        device = memory.device
-        temp = temperature if temperature is not None else self.temperature
-        p_val = top_p if top_p is not None else self.top_p
-        limit_len = max_length if max_length is not None else self.max_length
+        memory,
+        seeds,
+        *,
+        policy=False,
+        temperature=None,
+        top_p=None,
+        prefix_wat=None,
+        max_length=None,
+        use_grammar_mask=True,
+        budget_hook=None,
+    ):
+        import math
+        from oeis_learn.decoder.environment_tracker import FoundationEnvironmentTracker
+        from oeis_learn.decoder.wat_grammar import encode_wat
 
-        # Isolated local generator (seed in [0, 2^31 - 1])
-        gen = torch.Generator(device="cpu")
-        local_seed = abs(int(seed)) % (2**31 - 1)
-        gen.manual_seed(local_seed)
-
-        # Single prompt batch
-        tracker = EnvironmentTracker()
-        tracker.reset()
-        tracker.update("<bos>")
-
-        if prefix_wat:
-            from oeis_learn.decoder.wat_grammar import tokenize_wat, UNK_ID
-            p_tokens = tokenize_wat(prefix_wat)
-            p_ids = [TOKEN_TO_ID.get(t, UNK_ID) for t in p_tokens]
-            for t in p_tokens:
-                tracker.update(t)
-            generated = torch.tensor([[BOS_ID] + p_ids], dtype=torch.long, device=device)
-        else:
-            generated = torch.full((1, 1), BOS_ID, dtype=torch.long, device=device)
-
-        start_step = generated.size(1) - 1
-
-        with torch.no_grad():
-            for step in range(start_step, limit_len):
-                logits = self.decoder(generated, memory[:1])
-                next_token_logits = logits[:, -1, :].clone()
-
-                if use_grammar_mask:
-                    mask = self.grammar_masker.compute_batch_mask([tracker], device=device)
-                    next_token_logits = next_token_logits + mask
-
-                if temp > 0.0:
-                    scaled = next_token_logits / temp
-                    if p_val < 1.0:
-                        scaled = top_p_filtering(scaled, top_p=p_val)
-                    probs = F.softmax(scaled, dim=-1)
-                    # Sample on CPU with isolated generator
-                    next_token_cpu = torch.multinomial(probs.cpu(), num_samples=1, generator=gen)
-                    next_token = next_token_cpu.to(device).squeeze(1)
-                else:
-                    next_token = torch.argmax(next_token_logits, dim=-1)
-
-                generated = torch.cat([generated, next_token.unsqueeze(1)], dim=1)
-                tok_id = int(next_token.item())
-                tok_str = ID_TO_TOKEN.get(tok_id, "<unk>")
-                tracker.update(tok_str)
-
-                if tok_id == EOS_ID or (tracker.paren_depth == 0 and step > 10):
-                    break
-
-        code, final_tokens = finalize_wat_tokens(generated[0].tolist(), tracker)
-        final_tensor = torch.tensor(final_tokens + [EOS_ID], dtype=torch.long, device=device)
-        return code, final_tensor
-
-    def sample(
-        self,
-        memory: torch.Tensor,
-        temperature: Optional[float] = None,
-        use_grammar_mask: bool = True,
-        prefix_wat: Optional[str] = None,
-        max_length: Optional[int] = None,
-    ) -> Tuple[List[str], torch.Tensor]:
-        """Autoregressively sample candidate programs for a batch of encoded sequence representations.
-
-        Args:
-            memory: (batch, src_len, d_model) encoded latent embeddings
-            temperature: Sampling temperature
-            use_grammar_mask: Whether to apply dynamic grammar logit masking
-            prefix_wat: Optional WAT prefix to initialize the generation
-            max_length: Optional maximum token length override
-
-        Returns:
-            Tuple of (generated WAT code strings, generated token IDs tensor)
-        """
-        if self.codec is not None:
-            raise ValueError('foundation generation requires sample_candidate with an explicit per-attempt seed')
-        self.decoder.eval()
-        device = memory.device
-        batch_size = memory.size(0)
-        temp = temperature if temperature is not None else self.temperature
-        limit_len = max_length if max_length is not None else self.max_length
-
-        # Initialize trackers and generated tokens
-        trackers = [EnvironmentTracker() for _ in range(batch_size)]
-
-        if prefix_wat:
-            from oeis_learn.decoder.wat_grammar import tokenize_wat, UNK_ID
-            p_tokens = tokenize_wat(prefix_wat)
-            p_ids = [TOKEN_TO_ID.get(t, UNK_ID) for t in p_tokens]
-            for tracker in trackers:
-                tracker.reset()
-                tracker.update("<bos>")
-                for t in p_tokens:
-                    tracker.update(t)
-            generated = torch.tensor([[BOS_ID] + p_ids] * batch_size, dtype=torch.long, device=device)
-        else:
-            generated = torch.full((batch_size, 1), BOS_ID, dtype=torch.long, device=device)
-            for tracker in trackers:
-                tracker.reset()
-                tracker.update("<bos>")
-
-        finished = [False] * batch_size
-        start_step = generated.size(1) - 1
-
-        with torch.no_grad():
-            for step in range(start_step, limit_len):
-                logits = self.decoder(generated, memory)  # (batch, cur_len, vocab_size)
-                next_token_logits = logits[:, -1, :].clone()  # (batch, vocab_size)
-
-                if use_grammar_mask:
-                    mask = self.grammar_masker.compute_batch_mask(trackers, device=device)
-                    next_token_logits = next_token_logits + mask
-
-                # Temperature scaling & top-p filtering
-                if temp > 0.0:
-                    scaled_logits = next_token_logits / temp
-                    if self.top_p < 1.0:
-                        scaled_logits = top_p_filtering(scaled_logits, top_p=self.top_p)
-                    probs = F.softmax(scaled_logits, dim=-1)
-                    # Sample from valid distribution
-                    next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
-                else:
-                    next_tokens = torch.argmax(next_token_logits, dim=-1)
-
-                # Append newly sampled tokens
-                generated = torch.cat([generated, next_tokens.unsqueeze(1)], dim=1)
-
-                for b_idx in range(batch_size):
-                    if not finished[b_idx]:
-                        tok_id = int(next_tokens[b_idx].item())
-                        tok_str = ID_TO_TOKEN.get(tok_id, "<unk>")
-                        trackers[b_idx].update(tok_str)
-                        if tok_id == EOS_ID or (trackers[b_idx].paren_depth == 0 and step > 10):
-                            finished[b_idx] = True
-
+        temp = self.temperature if temperature is None else temperature
+        nucleus = self.top_p if top_p is None else top_p
+        limit = self.max_length if max_length is None else max_length
+        if not math.isfinite(temp) or temp < 0 or not 0 < nucleus <= 1:
+            raise ValueError("invalid temperature/top_p")
+        if policy and (temp == 0 or nucleus != 1 or not use_grammar_mask):
+            raise ValueError(
+                "policy gradients require positive temperature, top_p=1 and exact grammar"
+            )
+        if type(limit) is not int or not 1 <= limit <= 1024:
+            raise ValueError("bounded context in 1..1024 required")
+        if (
+            not seeds
+            or any(type(s) is not int or not -(2**63) <= s < 2**64 for s in seeds)
+            or memory.ndim != 3
+            or len(seeds) != memory.size(0)
+        ):
+            raise ValueError("one independent seed required for each visible prompt")
+        if self.codec and (prefix_wat is not None or not use_grammar_mask):
+            raise self.codec.CodecError(
+                "foundation forbids source scaffolds and unmasked generation"
+            )
+        codec = self.codec
+        bos, eos, pad = (
+            (codec.BOS_ID, codec.EOS_ID, codec.PAD_ID) if codec else (BOS_ID, EOS_ID, PAD_ID)
+        )
+        words = codec.ID_TO_TOKEN if codec else ID_TO_TOKEN
+        trackers = [
+            FoundationEnvironmentTracker() if codec else EnvironmentTracker() for _ in seeds
+        ]
+        prefix = [bos] + ([] if prefix_wat is None else encode_wat(prefix_wat))
+        if len(prefix) >= limit:
+            raise ValueError("forced prefix exhausts context")
+        for tracker in trackers:
+            for token in prefix[1:] if codec else prefix:
+                tracker.update(words[token])
+        batch = len(seeds)
+        generators = [
+            torch.Generator(device=memory.device).manual_seed(int(seed)) for seed in seeds
+        ]
+        buffer = torch.full((batch, limit + 1), pad, dtype=torch.long, device=memory.device)
+        buffer[:, : len(prefix)] = torch.tensor(prefix, device=memory.device)
+        token_rows = [list(prefix) for _ in seeds]
+        supports = [[(v,) for v in prefix] for _ in seeds]
+        logs = [[None] * len(prefix) for _ in seeds]
+        forced = [[True] * len(prefix) for _ in seeds]
+        finished, failures = [False] * batch, [None] * batch
+        with scoring_mode(self.decoder), torch.no_grad():
+            cached = self.use_cache and hasattr(self.decoder, "prefill")
+            if cached:
+                logits, cache = self.decoder.prefill(
+                    buffer[:, : len(prefix)], memory, capacity=limit
+                )
+                logits = logits[:, -1]
+            for step in range(len(prefix), limit + int(codec is not None)):
+                if budget_hook is not None:
+                    budget_hook(sum(not done for done in finished))
+                if not cached:
+                    logits = self.decoder(buffer[:, :step], memory)[:, -1]
+                if (
+                    logits.shape != (batch, self.grammar_masker.vocab_size)
+                    or not torch.isfinite(logits).all()
+                ):
+                    raise ValueError("incompatible or nonfinite decoder logits")
+                legal_lists = [
+                    tracker.get_valid_next_tokens()
+                    if use_grammar_mask
+                    else list(range(logits.size(-1)))
+                    for tracker in trackers
+                ]
+                for row in range(batch):
+                    if finished[row]:
+                        legal_lists[row] = [pad]
+                    elif not legal_lists[row]:
+                        finished[row], failures[row] = True, "grammar_dead_end"
+                        legal_lists[row] = [pad]
+                support = self.grammar_masker.fill_support(legal_lists, device=memory.device)
+                log_distribution, probabilities, _ = masked_distribution(
+                    logits, support, temp if temp else 1.0
+                )
+                if nucleus < 1:
+                    filtered = top_p_filtering(
+                        logits.masked_fill(~support, float("-inf")) / (temp or 1.0),
+                        nucleus,
+                        float("-inf"),
+                    )
+                    probabilities = F.softmax(filtered, -1)
+                    log_distribution = F.log_softmax(filtered, -1)
+                chosen = torch.stack(
+                    [
+                        probabilities[row].argmax()
+                        if temp == 0
+                        else torch.multinomial(probabilities[row], 1, generator=generators[row])[0]
+                        for row in range(batch)
+                    ]
+                )
+                chosen_logs = (
+                    log_distribution.gather(-1, chosen[:, None]).squeeze(-1).cpu().tolist()
+                )
+                ids = chosen.cpu().tolist()
+                buffer[:, step] = chosen
+                for row, token in enumerate(ids):
+                    if finished[row]:
+                        continue
+                    token_rows[row].append(token)
+                    supports[row].append(tuple(legal_lists[row]))
+                    logs[row].append(chosen_logs[row] if temp else None)
+                    forced[row].append(temp == 0)
+                    trackers[row].update(words[token])
+                    if token == eos:
+                        finished[row] = True
                 if all(finished):
                     break
+                if cached and step + 1 < limit + int(codec is not None):
+                    cache.finished = list(finished)
+                    logits = self.decoder.decode_step(chosen, cache)[:, 0]
+        results = []
+        for row in range(batch):
+            tokens = token_rows[row]
+            complete = tokens[-1] == eos and failures[row] is None
+            if not complete:
+                failures[row] = failures[row] or "token_cap_without_eos"
+            if codec:
+                source = codec.decode_body(tokens[1:]) if complete else ""
+            else:
+                source, repaired = finalize_wat_tokens(
+                    list(tokens), trackers[row], max_length=limit
+                )
+                if not complete:
+                    for token in repaired[len(tokens) :] + [eos]:
+                        supports[row].append((token,))
+                        logs[row].append(None)
+                        forced[row].append(True)
+                    tokens = repaired + [eos]
+            results.append(
+                SampledTrajectory(
+                    source,
+                    tuple(tokens),
+                    tuple(supports[row]),
+                    tuple(logs[row]),
+                    tuple(forced[row]),
+                    temp or 1.0,
+                    int(seeds[row]),
+                    complete,
+                    failures[row],
+                )
+            )
+        self.last_trajectories = tuple(results)
+        return results
 
-        # Decode token sequences to WAT code strings using shared sound closing
-        wat_codes = []
-        final_token_lists = []
-        for b_idx in range(batch_size):
-            token_ids = generated[b_idx].tolist()
-            tracker = trackers[b_idx]
-            code, final_tokens = finalize_wat_tokens(token_ids, tracker)
-            wat_codes.append(code)
-            final_token_lists.append(final_tokens + [EOS_ID])
+    def sample_candidate(self, memory, seed, **kwargs):
+        if memory.size(0) != 1:
+            raise ValueError("one prompt required for sample_candidate")
+        trajectory = self.sample_trajectories(memory, [seed], **kwargs)[0]
+        if self.codec and not trajectory.complete:
+            raise self.codec.CodecError(trajectory.failure)
+        tokens = trajectory.tokens[1:] if self.codec else trajectory.tokens
+        return trajectory.source, torch.tensor(tokens, device=memory.device, dtype=torch.long)
 
-        max_final_len = max((len(t) for t in final_token_lists), default=1)
-        final_generated = torch.full((batch_size, max_final_len), PAD_ID, dtype=torch.long, device=device)
-        for b_idx, t_seq in enumerate(final_token_lists):
-            final_generated[b_idx, : len(t_seq)] = torch.tensor(t_seq, dtype=torch.long, device=device)
+    def sample(
+        self, memory, temperature=None, use_grammar_mask=True, prefix_wat=None, max_length=None
+    ):
+        if self.codec:
+            raise ValueError("foundation requires explicit per-attempt seeds")
+        seeds = torch.randint(0, 2**31 - 1, (memory.size(0),)).tolist()
+        trajectories = self.sample_trajectories(
+            memory,
+            seeds,
+            temperature=temperature,
+            use_grammar_mask=use_grammar_mask,
+            prefix_wat=prefix_wat,
+            max_length=max_length,
+        )
+        size = max(len(t.tokens) for t in trajectories)
+        output = torch.full(
+            (len(trajectories), size), PAD_ID, device=memory.device, dtype=torch.long
+        )
+        for row, trajectory in enumerate(trajectories):
+            output[row, : len(trajectory.tokens)] = torch.tensor(
+                trajectory.tokens, device=memory.device
+            )
+        return [t.source for t in trajectories], output
 
-        return wat_codes, final_generated
+
+def prompt_length_buckets(sequences, *, context_limit=1024):
+    """Stable exact-length buckets avoid cross-attending to fabricated padding.
+
+    The code capacity is part of the bucket identity; neural inputs contain only
+    visible values. Bucket ordering never changes per-candidate random streams.
+    """
+    if type(context_limit) is not int or not 2 <= context_limit <= 1024:
+        raise ValueError("bounded model context required")
+    groups = {}
+    for row, values in enumerate(sequences):
+        if not 1 <= len(values) <= 20:
+            raise ValueError("visible lengths must be in 1..20")
+        groups.setdefault((len(values), context_limit), []).append(row)
+    return tuple((key, tuple(rows)) for key, rows in sorted(groups.items()))
 
 
-    def _sample_body(self, memory, seed, temperature, top_p, use_grammar_mask, max_length, prefix_wat):
-        from oeis_learn.decoder.environment_tracker import FoundationEnvironmentTracker
-        codec = self.codec
-        if not use_grammar_mask or prefix_wat is not None:
-            raise codec.CodecError('foundation requires typed masking and forbids source scaffolds')
-        limit = self.max_length if max_length is None else max_length
-        if type(limit) is not int or not 1 <= limit <= codec.MAX_BODY_TOKENS:
-            raise codec.CodecError('invalid foundation body token cap')
-        temp = self.temperature if temperature is None else temperature
-        p = self.top_p if top_p is None else top_p
-        import math
-        if not math.isfinite(temp) or temp < 0 or not math.isfinite(p) or not 0 < p <= 1:
-            raise ValueError('invalid temperature or top_p')
-        if memory.ndim != 3 or memory.size(0) != 1:
-            raise ValueError('one visible prompt required per seeded foundation attempt')
-        tracker = FoundationEnvironmentTracker()
-        generator = torch.Generator(device='cpu').manual_seed(seed)
-        generated = torch.tensor([[codec.BOS_ID]], device=memory.device, dtype=torch.long)
-        body = []
-        was_training = self.decoder.training
-        self.decoder.eval()
-        try:
-            with torch.no_grad():
-                for _ in range(limit):
-                    logits = self.decoder(generated, memory)[:, -1, :].clone()
-                    if logits.shape != (1, codec.FOUNDATION_VOCAB_SIZE) or not torch.isfinite(logits).all():
-                        raise codec.CodecError('incompatible or nonfinite decoder logits')
-                    logits += self.grammar_masker.compute_batch_mask([tracker], device=memory.device)
-                    if not torch.isfinite(logits).any():
-                        raise codec.CodecError('no valid continuation')
-                    if temp == 0:
-                        token = int(logits.argmax(-1).item())
-                    else:
-                        filtered = top_p_filtering(logits / temp, p, filter_value=float('-inf'))
-                        probs = F.softmax(filtered, dim=-1).cpu()
-                        token = int(torch.multinomial(probs, 1, generator=generator).item())
-                    tracker.update(codec.ID_TO_TOKEN[token])
-                    body.append(token)
-                    generated = torch.cat((generated, torch.tensor([[token]], device=memory.device)), dim=1)
-                    if token == codec.EOS_ID:
-                        return codec.decode_body(body), torch.tensor(body, device=memory.device, dtype=torch.long)
-            raise codec.CodecError('token cap reached without valid EOS; candidate rejected')
-        finally:
-            self.decoder.train(was_training)
+def sample_bucketed(encoder, sampler, sequences, seeds, *, policy=True):
+    if len(sequences) != len(seeds) or not sequences:
+        raise ValueError("one named seed per visible prompt required")
+    results = [None] * len(sequences)
+    device = next(encoder.parameters()).device
+    with scoring_mode(encoder, sampler.decoder), torch.no_grad():
+        for _, rows in prompt_length_buckets(sequences, context_limit=sampler.max_length + 1):
+            memory = encoder.forward_from_sequences([sequences[i] for i in rows], device=device)
+            trajectories = sampler.sample_trajectories(
+                memory, [seeds[i] for i in rows], policy=policy
+            )
+            for row, trajectory in zip(rows, trajectories):
+                results[row] = trajectory
+    return tuple(results)

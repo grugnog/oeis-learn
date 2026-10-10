@@ -20,7 +20,7 @@ class CurriculumOrchestrator:
         allocator: Optional[AdaGGroupAllocator] = None,
         elite_buffer: Optional[EliteSeedDemonstrationBuffer] = None,
         scheduler: Optional[CurriculumScheduler] = None,
-        active_batch_size: int = 2,
+        active_batch_size: int = 4,
         rollout_budget: int = 32,
         replay_batch_size: int = 2,
     ):
@@ -39,21 +39,26 @@ class CurriculumOrchestrator:
 
         self.events: List[Dict[str, Any]] = []
 
-    def _record_event(self, event_type: str, sequence_id: str, step: int, data: Dict[str, Any]) -> None:
+    def _record_event(
+        self, event_type: str, sequence_id: str, step: int, data: Dict[str, Any]
+    ) -> None:
         """Appends an immutable curriculum event to the trace."""
-        self.events.append({
-            "event_type": event_type,
-            "sequence_id": sequence_id,
-            "step": step,
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            **data,
-        })
+        self.events.append(
+            {
+                "event_type": event_type,
+                "sequence_id": sequence_id,
+                "step": step,
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                **data,
+            }
+        )
 
-    def select_active_prompts(self, batch_size: Optional[int] = None, current_step: int = 0) -> List[str]:
+    def select_active_prompts(
+        self, batch_size: Optional[int] = None, current_step: int = 0
+    ) -> List[str]:
         """Samples active task prompts from the non-stationary bandit distribution."""
         b_size = batch_size if batch_size is not None else self.active_batch_size
         prompts = self.bandit.sample_active_prompts(batch_size=b_size)
-        probs = self.bandit.get_selection_probabilities()
 
         for pid in prompts:
             self._record_event(
@@ -61,7 +66,9 @@ class CurriculumOrchestrator:
                 sequence_id=pid,
                 step=current_step,
                 data={
-                    "selection_probability": probs.get(pid, 0.0),
+                    "selection_probability": self.bandit.last_selection[pid]["probability"],
+                    "sampling_rule": self.bandit.last_selection[pid]["rule"],
+                    "conditional_draw": self.bandit.last_selection[pid]["draw"],
                     "competence": self.bandit.get_competence(pid),
                 },
             )
@@ -75,7 +82,9 @@ class CurriculumOrchestrator:
     ) -> Dict[str, int]:
         """Allocates dynamic rollout compute G_i for each active prompt."""
         budget = total_budget if total_budget is not None else self.rollout_budget
-        sizes = self.allocator.compute_group_sizes(prompts=prompts, bandit=self.bandit, total_budget=budget)
+        sizes = self.allocator.compute_group_sizes(
+            prompts=prompts, bandit=self.bandit, total_budget=budget
+        )
 
         for pid, sz in sizes.items():
             self._record_event(
@@ -106,6 +115,9 @@ class CurriculumOrchestrator:
             # Record active visitation in elite buffer
             self.elite_buffer.record_active_visit(pid, current_step)
 
+            import time
+
+            started = time.monotonic()
             metrics = trainer.train_step_for_prompt(rec, epoch=epoch, group_size=g_size)
             pass_count = metrics.get("pass_count", 0)
 
@@ -115,6 +127,8 @@ class CurriculumOrchestrator:
                 success_count=pass_count,
                 group_size=g_size,
                 current_step=current_step,
+                elapsed_s=max(time.monotonic() - started, 1e-9),
+                selection_probability=self.bandit.last_selection[pid]["probability"],
             )
 
             self._record_event(
@@ -135,11 +149,12 @@ class CurriculumOrchestrator:
             current_step=current_step,
         )
         for r_id, _ in replay_items:
+            replay_metrics = trainer.replay_step([self.elite_buffer.get_entry(r_id)])
             self._record_event(
                 event_type="REPLAY_SELECTED",
                 sequence_id=r_id,
                 step=current_step,
-                data={"is_dormancy_replay": True},
+                data={"is_dormancy_replay": True, "committed_examples": replay_metrics["examples"]},
             )
 
         return {

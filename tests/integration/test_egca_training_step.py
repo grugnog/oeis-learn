@@ -1,6 +1,5 @@
 """Integration test for complete EGCA-GRPO training iteration."""
 
-import pytest
 import torch
 from oeis_learn.curriculum.scheduler import CurriculumScheduler
 from oeis_learn.data.models import SequenceRecord
@@ -19,7 +18,7 @@ def test_egca_training_step_executes_and_updates_gradients():
         decoder=decoder,
         scheduler=scheduler,
         rollout_group_size=4,
-        asymmetric_penalty_weight=1.5,
+        asymmetric_penalty_weight=1.0,
     )
 
     record = SequenceRecord(

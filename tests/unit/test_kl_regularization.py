@@ -2,8 +2,11 @@
 
 import pytest
 import torch
-import torch.nn.functional as F
-from oeis_learn.rl.egca_grpo import compute_egca_grpo_loss, compute_policy_entropy, compute_schulman_kl
+from oeis_learn.rl.egca_grpo import (
+    compute_egca_grpo_loss,
+    compute_policy_entropy,
+    compute_schulman_kl,
+)
 
 
 def test_schulman_kl_identical_distributions():
@@ -37,7 +40,6 @@ def test_loss_incorporates_kl_and_entropy_bonus():
     group_size, seq_len, vocab_size = 2, 4, 16
     logits = torch.randn(group_size, seq_len, vocab_size)
     old_log_probs = torch.randn(group_size, seq_len)
-    ref_log_probs = torch.randn(group_size, seq_len)
     token_ids = torch.randint(0, vocab_size, (group_size, seq_len))
     advantages = torch.tensor([0.5, -0.5])
 
@@ -47,10 +49,21 @@ def test_loss_incorporates_kl_and_entropy_bonus():
         token_ids=token_ids,
         advantages=advantages,
         beta_kl=0.1,
-        ref_log_probs=ref_log_probs,
+        reference_logits=logits + torch.randn_like(logits) * 0.2,
         alpha_ent=0.05,
     )
 
     assert isinstance(loss_with_kl, torch.Tensor)
     assert loss_with_kl.ndim == 0
     assert not torch.isnan(loss_with_kl)
+
+
+def test_sampled_stale_reference_cannot_masquerade_as_exact_kl():
+    with pytest.raises(ValueError, match="full reference"):
+        compute_egca_grpo_loss(
+            torch.zeros(1, 1, 2),
+            torch.zeros(1, 1),
+            torch.ones(1, 1, dtype=torch.long),
+            torch.ones(1),
+            ref_log_probs=torch.zeros(1, 1),
+        )

@@ -1,4 +1,4 @@
-name: Phase 7 review validation
+name: Phase 7 and 8 review validation
 on:
   pull_request:
     paths:
@@ -7,6 +7,8 @@ on:
       - 'Dockerfile'
       - 'docker/dev/**'
       - 'tests/**'
+      - 'configs/foundation/qualified.yaml'
+      - 'scripts/verify_phase8.py'
       - '.github/workflows/phase7-review.yml'
 permissions:
   contents: read
@@ -66,6 +68,8 @@ jobs:
             rustfmt --edition 2021 /evidence/build-info/src/*.rs /evidence/build-info/build.rs
             cd /workspace
             python -m oeis_learn.evaluation.repair_gate --output /evidence
+            python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
+            python scripts/verify_phase8.py --evidence /evidence
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4
@@ -82,3 +86,10 @@ jobs:
             phase7-evidence/rust-tests.txt
             phase7-evidence/native/parity.json
             phase7-evidence/build-info/
+            phase7-evidence/learning/*.xml
+            phase7-evidence/learning/g8.json
+            phase7-evidence/learning/cli-acceptance.json
+            phase7-evidence/learning/learning-contract.json
+            phase7-evidence/learning/training/learning-inputs.json
+            phase7-evidence/learning/training/ledger.json
+            phase7-evidence/learning/search/search.json

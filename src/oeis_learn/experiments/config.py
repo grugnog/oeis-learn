@@ -339,6 +339,8 @@ class FoundationConfig:
                 chunk_size=m["chunk_size"],
                 logit_cap_threshold=float(m["logit_cap_threshold"]),
                 codec_sha256=codec_digest(),
+                position_style="sinusoidal",
+                attention_backend="sdpa",
             ),
         }
 
@@ -414,6 +416,8 @@ class QualifiedServices:
     contract_sha256: str
     g7_sha256: str
     _profiles_json: bytes
+    g8_sha256: str | None = None
+    diagnostic: bool = False
 
     @property
     def capabilities(self):
@@ -428,6 +432,15 @@ class QualifiedServices:
         if name not in profiles:
             raise ConfigError(f"{name}: capability disabled/pending")
         return profiles[name]["settings"]
+
+    def models(self, device="cpu"):
+        from oeis_learn.experiments.profiles import construct_qualified_models
+
+        if not self.diagnostic and not str(device).startswith("cuda"):
+            raise ConfigError("accelerator-qualified learning requires the validated device")
+        return construct_qualified_models(
+            self._settings("learning")["model_profile"], device=device
+        )
 
     def ground(self, source, visible_terms):
         from oeis_learn.decoder.grounding import ground
@@ -465,7 +478,16 @@ class QualifiedServices:
         )
 
 
-def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
+def activate_qualified_contract(
+    contract,
+    *,
+    g7_report,
+    evidence_root,
+    resolve,
+    g8_report=None,
+    g8_evidence_root=None,
+    diagnostic=False,
+):
     """Resolve content-addressed inputs before activating any repaired service."""
     from oeis_learn.experiments.qualified_models import validate_record
     from oeis_learn.experiments.artifacts import compute_canonical_digest
@@ -474,11 +496,8 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
     validate_record(contract)
     if contract["kind"] != "qualified_contract":
         raise ConfigError("qualified contract required")
-    if any(
-        contract["modes"][m]["enabled"]
-        for m in ("learning", "replay", "search", "program_proof", "extended_runtime")
-    ):
-        raise ConfigError("G8/G9 capabilities are pending their own qualification")
+    if any(contract["modes"][m]["enabled"] for m in ("program_proof", "extended_runtime")):
+        raise ConfigError("G9 capabilities are pending their own qualification")
 
     def resolve_checked(digest):
         value = resolve(digest)
@@ -589,6 +608,16 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
     gate = require_g7(g7_report, evidence_root=evidence_root)
     if contract["gates"]["G7"] != gate:
         raise ConfigError("qualified G7 identity mismatch")
+    learning_active = any(contract["modes"][m]["enabled"] for m in ("learning", "replay", "search"))
+    g8 = None
+    if learning_active:
+        from oeis_learn.evaluation.learning_gate import require_g8
+
+        if g8_report is None or g8_evidence_root is None:
+            raise ConfigError("G8 capabilities are pending complete evidence")
+        g8 = require_g8(g8_report, evidence_root=g8_evidence_root, diagnostic=diagnostic)
+        if contract["gates"]["G8"] != g8 or not contract["modes"]["learning"]["enabled"]:
+            raise ConfigError("qualified G8 identity/learning capability mismatch")
     profile_schemas = {
         "solver": {
             "coefficient_bound": ("int",),
@@ -637,9 +666,61 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
         else:
             _require(1 <= settings["timeout_ms"] <= 2000, "formula worker limits mismatch")
         active[name] = deepcopy(profile)
+    if learning_active:
+        from oeis_learn.experiments.profiles import qualified_model_profile
+
+        for name in ("learning", "replay", "search"):
+            mode = contract["modes"][name]
+            if not mode["enabled"]:
+                continue
+            profile = resolve_checked(mode["profile_sha256"])
+            if (
+                set(profile) != {"version", "service", "settings"}
+                or profile["version"] != "qualified-service/v1"
+                or profile["service"] != name
+            ):
+                raise ConfigError("unknown learning service profile")
+            settings = profile["settings"]
+            if name == "learning":
+                if set(settings) != {"model_profile"}:
+                    raise ConfigError("explicit model constructor required")
+                model = settings["model_profile"]
+                expected = qualified_model_profile(
+                    position_style=model.get("position_style"),
+                    attention_backend=model.get("attention_backend"),
+                    objective=contract["objective"],
+                )
+                if (
+                    model != expected
+                    or contract["profiles"]["model"] != expected["identity_sha256"]
+                ):
+                    raise ConfigError("unqualified model/objective profile")
+                if resolve_checked(contract["profiles"]["objective"]) != {
+                    "version": "objective/v1",
+                    "objective": contract["objective"],
+                    "policy": model["policy"],
+                } or resolve_checked(contract["profiles"]["sampling"]) != {
+                    "version": "sampling/v1",
+                    "policy": model["policy"],
+                }:
+                    raise ConfigError("policy defaults differ from qualified objective")
+            elif name == "replay":
+                if settings != {"fraction_percent": 25, "implementations_per_output": 4}:
+                    raise ConfigError("unqualified replay profile")
+            elif settings != {
+                "portfolio": "portfolio32",
+                "attempts": 32,
+                "stochastic": 16,
+                "beam": 8,
+                "repair": 8,
+            }:
+                raise ConfigError("unqualified search profile")
+            active[name] = deepcopy(profile)
     from oeis_learn.experiments.artifacts import canonical_bytes
 
-    return QualifiedServices(contract["identity_sha256"], gate, canonical_bytes(active))
+    return QualifiedServices(
+        contract["identity_sha256"], gate, canonical_bytes(active), g8, diagnostic
+    )
 
 
 def load_qualified_config(path, **activation):

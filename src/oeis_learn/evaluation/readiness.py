@@ -182,4 +182,12 @@ def foundation_readiness(checkpoint, *, software_complete):
 def require_architecture_measurement_gates(g7_report, *, evidence_root=None):
     """Architecture/learning measurements require G7 independently of smoke."""
     from oeis_learn.evaluation.repair_gate import require_g7
-    require_g7(g7_report,evidence_root=evidence_root)
+
+    require_g7(g7_report, evidence_root=evidence_root)
+
+
+def require_learning_readiness(report, *, evidence_root, diagnostic=False):
+    """G8 CPU diagnostics cannot authorize hardware-qualified learning."""
+    from oeis_learn.evaluation.learning_gate import require_g8
+
+    return require_g8(report, evidence_root=evidence_root, diagnostic=diagnostic)
