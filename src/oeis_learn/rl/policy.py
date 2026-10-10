@@ -30,7 +30,9 @@ def model_digest(model):
     digest = hashlib.sha256()
     for name, tensor in sorted(model.state_dict().items()):
         digest.update(str((name, tuple(tensor.shape), str(tensor.dtype))).encode())
-        digest.update(tensor.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes())
+        digest.update(
+            tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()
+        )
     return "sha256:" + digest.hexdigest()
 
 
@@ -79,7 +81,7 @@ def group_advantages(rewards):
     if rewards.ndim != 1 or not len(rewards) or not torch.isfinite(rewards).all():
         raise ValueError("finite real sampled group rewards required")
     std = rewards.std(unbiased=False)
-    if std <= 1e-8:
+    if std == 0:
         return torch.zeros_like(rewards)
     return (rewards - rewards.mean()) / std
 

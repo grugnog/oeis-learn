@@ -10,28 +10,30 @@ from oeis_learn.data.models import LexicaseSelectionBatch
 
 def compute_group_advantages(
     rewards: torch.Tensor,  # shape: (group_size,)
-    asymmetric_penalty_weight: float = 1.5,
-    eps: float = 1e-8,
+    asymmetric_penalty_weight: float = 1.0,
+    eps: float = 0.0,
 ) -> torch.Tensor:
-    """Computes group-normalized advantages with asymmetric penalty weighting for failed groups.
-
-    If all completions fail (rewards all -1.0), std is 0. Standard GRPO yields advantages = 0.
-    Asymmetric prompt weighting sets advantages = -asymmetric_penalty_weight to apply informative
-    negative gradients to failed program tokens.
-    """
+    """Population-normalized sampled rewards; true zero variance gives zero."""
     from oeis_learn.rl.policy import group_advantages
+
+    if asymmetric_penalty_weight != 1.0 or eps != 0.0:
+        raise ValueError("asymmetric legacy weighting is unsupported")
 
     return group_advantages(rewards)
 
 
 def compute_sgrpo_advantages(
-    rewards, ref_injected=False, asymmetric_penalty_weight=1.5, use_avspo_anchor=False, eps=1e-8
+    rewards, ref_injected=False, asymmetric_penalty_weight=1.0, use_avspo_anchor=False, eps=0.0
 ):
     """Only actual sampled rewards define the group; zero variance gives zero."""
     from oeis_learn.rl.policy import group_advantages
 
     if ref_injected:
         raise ValueError("teacher trajectories are SFT-only")
+    if use_avspo_anchor:
+        raise ValueError("virtual anchor is not a sampled outcome")
+    if asymmetric_penalty_weight != 1.0 or eps != 0.0:
+        raise ValueError("asymmetric legacy weighting is unsupported")
     return group_advantages(rewards)
 
 

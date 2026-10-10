@@ -526,6 +526,7 @@ def cmd_learning_train(
                     optimizer,
                     replay=replay,
                     reference=None if policy is None else policy.reference,
+                    curriculum=None if policy is None else policy.scheduler,
                 )
                 if (
                     base["ledger_sequence"] > ledger.state["sequence"]
@@ -571,6 +572,7 @@ def cmd_learning_train(
                     prefetch={"archive_root_sha256": replay.snapshot["root_sha256"], "next": []},
                     replay=replay,
                     reference=None if policy is None else policy.reference,
+                    curriculum=None if policy is None else policy.scheduler,
                 )
                 budget = ledger.transition("checkpoint")
                 path = store.save_learning(

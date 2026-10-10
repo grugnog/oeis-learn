@@ -337,9 +337,14 @@ class EgcaGrpoTrainer:
             self.encoder,
             self.decoder,
             self.optimizer,
-            sampler={"seed": self.seed, "cursor": self.rollout_cursor},
+            sampler={
+                "seed": self.seed,
+                "cursor": self.rollout_cursor,
+                "mixture": None if self.sampler is None else self.sampler.state_dict(),
+            },
             prefetch={"next": []},
             reference=self.reference,
+            curriculum=self.scheduler,
         )
         payload = {
             "version": "original-policy-state/v1",
@@ -380,8 +385,17 @@ class EgcaGrpoTrainer:
         ):
             raise ValueError("policy profile differs on resume")
         sampler, _ = restore_learning_state(
-            payload["state"], self.encoder, self.decoder, self.optimizer, reference=self.reference
+            payload["state"],
+            self.encoder,
+            self.decoder,
+            self.optimizer,
+            reference=self.reference,
+            curriculum=self.scheduler,
         )
+        if (sampler["mixture"] is None) != (self.sampler is None):
+            raise ValueError("active mixture sampler differs on resume")
+        if self.sampler is not None:
+            self.sampler.load_state_dict(sampler["mixture"])
         self.seed, self.rollout_cursor = sampler["seed"], sampler["cursor"]
         self.current_epoch = payload["epoch"]
         return payload

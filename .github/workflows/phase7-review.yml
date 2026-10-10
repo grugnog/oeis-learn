@@ -31,6 +31,7 @@ jobs:
         run: |
           .review-venv/bin/python -m compileall -q src tests/unit/test_foundation_grounding.py tests/unit/test_foundation_symbolic.py
           .review-venv/bin/ruff check --select F,E9 src/oeis_learn/decoder/grounding.py src/oeis_learn/decoder/grounding_reference.py src/oeis_learn/decoder/recurrence.py src/oeis_learn/decoder/constant_solver.py src/oeis_learn/decoder/dixon_solver.py src/oeis_learn/decoder/qfnia_solver.py src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
+          .review-venv/bin/ruff check --select F,E9 scripts/verify_phase8.py src/oeis_learn/rl/policy.py src/oeis_learn/rl/prompt_weighting.py src/oeis_learn/rl/reward.py src/oeis_learn/rl/telemetry.py src/oeis_learn/rl/trainer.py src/oeis_learn/evaluation/learning_gate.py
       - name: Spec Kit prerequisites and artifact consistency
         env:
           SPECIFY_FEATURE_DIRECTORY: specs/007-experiment-foundation
@@ -69,7 +70,7 @@ jobs:
             cd /workspace
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
-            python scripts/verify_phase8.py --evidence /evidence
+            PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase8.py --evidence /evidence
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4

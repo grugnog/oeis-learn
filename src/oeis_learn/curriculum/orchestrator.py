@@ -26,6 +26,8 @@ class CurriculumOrchestrator:
     ):
         self.records = list(records)
         self.records_by_id = {r.oeis_id: r for r in self.records}
+        if len(self.records_by_id) != len(self.records):
+            raise ValueError("duplicate curriculum task identities")
         self.sequence_ids = list(self.records_by_id.keys())
 
         self.bandit = bandit or Exp3SBanditScheduler(sequence_ids=self.sequence_ids)

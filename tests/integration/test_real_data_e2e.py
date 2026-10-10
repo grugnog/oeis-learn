@@ -127,11 +127,15 @@ def test_real_data_end_to_end_progressive():
         assert not torch.isnan(latent_z).any()
         assert not torch.isinf(latent_z).any()
 
-        # Auxiliary heads verification
-        aux_outputs = encoder.aux_heads(latent_z)
-        assert "pred_magnitude" in aux_outputs
-        assert "pred_sign_logits" in aux_outputs
-        assert not torch.isnan(aux_outputs["pred_magnitude"]).any()
+        # Every retained parameter must participate in the actual encoder path.
+        assert not hasattr(encoder, "aux_heads")
+        encoder.zero_grad(set_to_none=True)
+        encoder.forward_from_sequences(real_seq_list).square().mean().backward()
+        assert all(
+            p.grad is not None and torch.isfinite(p.grad).all()
+            for p in encoder.parameters()
+        )
+        encoder.zero_grad(set_to_none=True)
 
         # =========================================================================
         # STAGE 4: Deterministic Sandboxed WASM Execution & Generalization Gates
@@ -212,7 +216,7 @@ def test_real_data_end_to_end_progressive():
             sampler=mixture_sampler,
             wasm_runner=runner,
             rollout_group_size=4,
-            asymmetric_penalty_weight=1.5,
+            asymmetric_penalty_weight=1.0,
         )
 
         # Train 1 optimization step on Fibonacci and 1 on Triangular

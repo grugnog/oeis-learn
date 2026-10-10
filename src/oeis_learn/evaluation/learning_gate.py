@@ -21,6 +21,7 @@ SUITES = {
     "policy": [
         "tests/unit/test_foundation_policy.py",
         "tests/unit/test_kl_regularization.py",
+        "tests/unit/test_prompt_weighting.py",
         "tests/unit/test_partitioned_entropy.py",
         "tests/unit/test_sampler_determinism.py",
         "tests/integration/test_egca_training_step.py",
@@ -37,6 +38,8 @@ SUITES = {
         "tests/unit/test_elite_buffer_replay.py",
         "tests/unit/test_symple_curriculum.py",
         "tests/unit/test_adag_allocator.py",
+        "tests/unit/test_curriculum_scheduler.py",
+        "tests/unit/test_curriculum_orchestrator.py",
     ],
     "trace": [
         "tests/unit/test_foundation_trace.py",

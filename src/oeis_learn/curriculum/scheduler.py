@@ -173,6 +173,7 @@ class CurriculumScheduler:
         return deepcopy(
             {
                 "version": "stage-curriculum/v1",
+                "rng": None,
                 "active_stage": self.active_stage,
                 "settings": [
                     self.competence_threshold,

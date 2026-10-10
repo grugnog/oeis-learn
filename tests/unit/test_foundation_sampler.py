@@ -130,3 +130,29 @@ def test_complete_effective_constructors_and_real_forward_backward(tmp_path, dev
     assert torch.isfinite(model.lm_head.weight.grad).all()
     assert all(p.dtype == torch.float32 for p in model.parameters())
     assert cfg.persist_effective(tmp_path).as_path().is_file()
+
+
+def test_one_body_token_limit_is_a_recorded_incomplete_rollout():
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+    from oeis_learn.decoder.sampler import WatProgramSampler
+    from oeis_learn.decoder.program_codec import FOUNDATION_VOCAB_SIZE, PAD_ID, codec_digest
+
+    model = WatTransformerDecoder(
+        vocab_size=FOUNDATION_VOCAB_SIZE,
+        d_model=16,
+        n_heads=2,
+        n_decoder_layers=1,
+        d_ff=32,
+        dropout=0,
+        pad_idx=PAD_ID,
+        codec_sha256=codec_digest(),
+    )
+    sampler = WatProgramSampler(
+        model, max_length=1, temperature=0, top_p=1, codec_profile="wat_body_decimal_v1"
+    )
+    rollout = sampler.sample_trajectories(torch.zeros(1, 20, 16), [1])[0]
+    assert (
+        not rollout.complete
+        and rollout.failure == "token_cap_without_eos"
+        and len(rollout.tokens) == 2
+    )

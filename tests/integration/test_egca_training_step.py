@@ -37,3 +37,27 @@ def test_egca_training_step_executes_and_updates_gradients():
     assert "acr" in metrics
     assert not torch.isnan(torch.tensor(metrics["loss"]))
     assert len(trainer.telemetry.records) == 1
+
+
+def test_original_policy_checkpoint_reproduces_next_rollout_update(tmp_path):
+    from oeis_learn.tracking.training_checkpoint import learning_state_digest
+
+    torch.manual_seed(123)
+    encoder = TriStreamEncoder(d_model=16, n_heads=2, n_encoder_layers=1, d_ff=32, dropout=0)
+    decoder = WatTransformerDecoder(d_model=16, n_heads=2, n_decoder_layers=1, d_ff=32, dropout=0)
+    trainer = EgcaGrpoTrainer(
+        encoder, decoder, CurriculumScheduler(), rollout_group_size=2, max_program_length=24
+    )
+    record = SequenceRecord("A000027", "", list(range(20)), curriculum_stage=1)
+    trainer.train_step_for_prompt(record)
+    checkpoint = tmp_path / "policy.pt"
+    trainer.save_checkpoint(checkpoint, epoch=1)
+    expected = trainer.train_step_for_prompt(record)
+    actions = [r["actions"] for r in trainer.last_rollouts]
+    state = learning_state_digest(trainer.decoder.state_dict())
+    trainer.load_checkpoint(checkpoint)
+    actual = trainer.train_step_for_prompt(record)
+    assert actual["loss"] == expected["loss"] and actual["entropy"] == expected["entropy"]
+    assert [r["actions"] for r in trainer.last_rollouts] == actions
+    assert learning_state_digest(trainer.decoder.state_dict()) == state
+    assert len(trainer.scheduler.prompt_histories[record.oeis_id]) == 2

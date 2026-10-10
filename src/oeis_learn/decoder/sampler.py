@@ -236,7 +236,9 @@ class WatProgramSampler:
             FoundationEnvironmentTracker() if codec else EnvironmentTracker() for _ in seeds
         ]
         prefix = [bos] + ([] if prefix_wat is None else encode_wat(prefix_wat))
-        if len(prefix) >= limit:
+        # Foundation BOS is outside the body cap; legacy scaffolding is inside it.
+        prefix_body_length = len(prefix) - int(bool(codec))
+        if prefix_body_length >= limit:
             raise ValueError("forced prefix exhausts context")
         for tracker in trackers:
             for token in prefix[1:] if codec else prefix:

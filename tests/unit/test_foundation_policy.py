@@ -110,3 +110,33 @@ def test_nested_modes_restore_on_exception_and_full_reference_frozen():
         for model in (reference.encoder, reference.decoder)
         for p in model.parameters()
     )
+
+
+def test_short_execution_cannot_receive_a_pass_reward():
+    from oeis_learn.data.models import ExecutionResult
+    from oeis_learn.rl.reward import compute_binary_reward
+
+    result = ExecutionResult(status="SUCCESS", consumed_fuel=1, output=[1, 2])
+    assert compute_binary_reward(result, [1, 2, 3]) == (-1.0, 2)
+    with pytest.raises(ValueError):
+        compute_binary_reward(result, [])
+
+
+def test_near_zero_positive_variance_is_not_a_zero_variance_group():
+    from oeis_learn.rl.telemetry import DiagnosticTelemetryTracker
+
+    telemetry = DiagnosticTelemetryTracker()
+    telemetry.record_step(
+        epoch=1,
+        step=1,
+        policy_entropy=1.0,
+        reward_variance=1e-9,
+        compiler_trapped=False,
+        prefix_length=20.0,
+        active_stage=1,
+    )
+    assert telemetry.current_acr == 0
+    rewards = torch.tensor([0.0, 1e-10], dtype=torch.float64)
+    torch.testing.assert_close(
+        group_advantages(rewards), torch.tensor([-1.0, 1.0], dtype=torch.float64)
+    )
