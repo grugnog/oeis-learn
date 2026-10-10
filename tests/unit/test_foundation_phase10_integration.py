@@ -360,3 +360,17 @@ def test_closed_pilot_variants_execute_finite_forward_backward(question, arm, bi
     record_property("parameter_count", count)
     if question == "capacity":
         assert profile["d_ff"] == 2048 and 25_000_000 <= count <= 26_000_000
+
+
+def test_acceptance_workspaces_do_not_resume_or_delete_previous_runs(tmp_path):
+    from oeis_learn.evaluation.cli_acceptance import learning_workspace
+
+    phase = tmp_path / "learning"
+    first = learning_workspace(phase)
+    prior = first / "training/qualified-00000001.json"
+    prior.parent.mkdir()
+    prior.write_text("earlier accepted checkpoint")
+    second = learning_workspace(phase)
+    assert first != second and first.parent == second.parent == phase
+    assert prior.read_text() == "earlier accepted checkpoint"
+    assert not (second / "training").exists()

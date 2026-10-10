@@ -93,14 +93,19 @@ def qualified_cli_evidence():
         pytest.skip("actual native G7/G8/G9 artifacts required")
     from oeis_learn.evaluation.cli_acceptance import verify_learning_cli
 
-    verify_learning_cli(evidence)
-    return Path(evidence)
+    first = verify_learning_cli(evidence)
+    second = verify_learning_cli(evidence)
+    assert first != second
+    assert (first / "training/qualified-00000001.json").is_file()
+    assert (second / "training/qualified-00000001.json").is_file()
+    return Path(evidence), second
 
 
 def test_installed_train_resume_search(qualified_cli_evidence):
     from oeis_learn.experiments.artifacts import load_json
 
-    phase = qualified_cli_evidence / "learning"
+    evidence, work = qualified_cli_evidence
+    phase = evidence / "learning"
     report = load_json((phase / "cli-acceptance.json").read_bytes())
     assert report == dict(
         status="PASS",
@@ -109,13 +114,14 @@ def test_installed_train_resume_search(qualified_cli_evidence):
         search_attempts=1,
         hardware_activation="rejected",
     )
-    assert (phase / "training/qualified-00000001.json").is_file()
+    assert (work / "training/qualified-00000001.json").is_file()
 
 
 def test_installed_discover_and_fresh_certificate(qualified_cli_evidence):
     from oeis_learn.evaluation.cli_acceptance import verify_discovery_cli
     from oeis_learn.experiments.artifacts import load_json
 
-    verify_discovery_cli(qualified_cli_evidence)
-    report = load_json((qualified_cli_evidence / "discovery/cli-acceptance.json").read_bytes())
+    evidence, _ = qualified_cli_evidence
+    verify_discovery_cli(evidence)
+    report = load_json((evidence / "discovery/cli-acceptance.json").read_bytes())
     assert report["status"] == "PASS" and report["stale_evidence"] == "rejected"

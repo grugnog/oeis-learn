@@ -48,10 +48,20 @@ def generic_fixture():
     raise AssertionError("no bounded valid generic fixture")
 
 
+def learning_workspace(phase):
+    """Allocate an independent acceptance run without deleting earlier evidence."""
+    import tempfile
+
+    phase = Path(phase)
+    phase.mkdir(parents=True, exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix="cli-learning-", dir=phase))
+
+
 def verify_learning_cli(evidence):
     root = Path(evidence)
     phase = root / "learning"
     phase.mkdir(exist_ok=True)
+    work = learning_workspace(phase)
     sample, outputs, holdouts = generic_fixture()
     archive = ProgramArchive(phase / "archive", holdouts=holdouts)
     with FoundationRunner(phase / "admission-runtime", backend="rust") as runner:
@@ -93,14 +103,14 @@ def verify_learning_cli(evidence):
                 "learning-train",
                 *common,
                 "--output",
-                str(phase / "training"),
+                str(work / "training"),
                 "--updates",
                 "1",
             ]
         )
         == 0
     )
-    checkpoint = phase / "training" / "qualified-00000000.json"
+    checkpoint = work / "training" / "qualified-00000000.json"
     assert checkpoint.exists()
     assert (
         cli(
@@ -109,7 +119,7 @@ def verify_learning_cli(evidence):
                 "learning-train",
                 *common,
                 "--output",
-                str(phase / "training"),
+                str(work / "training"),
                 "--updates",
                 "1",
                 "--resume",
@@ -118,8 +128,8 @@ def verify_learning_cli(evidence):
         )
         == 0
     )
-    checkpoint = phase / "training" / "qualified-00000001.json"
-    prompt = phase / "visible.json"
+    checkpoint = work / "training" / "qualified-00000001.json"
+    prompt = work / "visible.json"
     prompt.write_bytes(canonical_bytes({"values": outputs[:20]}))
     assert (
         cli(
@@ -134,12 +144,12 @@ def verify_learning_cli(evidence):
                 "--portfolio",
                 "greedy",
                 "--output",
-                str(phase / "search"),
+                str(work / "search"),
             ]
         )
         == 0
     )
-    report = load_json((phase / "search" / "search.json").read_bytes())
+    report = load_json((work / "search" / "search.json").read_bytes())
     assert report["qualified"] is False and report["spent"]["attempts"] == 1
 
     def resolve(key):
@@ -170,6 +180,7 @@ def verify_learning_cli(evidence):
             }
         )
     )
+    return work
 
 
 def verify_discovery_cli(evidence):
