@@ -368,15 +368,9 @@ def release_readiness(
     if dispositions:
         try:
             record = load_json(Path(dispositions).read_bytes())
-            from oeis_learn.evaluation.experiment_runner import implementation_identity
+            from oeis_learn.evaluation.review_dispositions import require_dispositions
 
-            if (
-                record.get("implementation_sha256") != implementation_identity()
-                or record.get("original_inputs") != 68
-                or len(record.get("items", [])) != 68
-            ):
-                raise ValueError("current complete review dispositions required")
-            software["dispositions"] = dict(status="PASS")
+            software["dispositions"] = dict(status="PASS", inputs=require_dispositions(record))
         except (ValueError, OSError, KeyError, TypeError) as exc:
             software["dispositions"] = dict(status="FAIL", reason=str(exc))
     else:

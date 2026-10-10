@@ -39,9 +39,18 @@ _SUPPORTED_COMMANDS = frozenset(
         "qualify-baseline",
         "diagnose-overflow",
         "coordinated-smoke",
+        "handoff",
     }
 )
 _UNSUPPORTED_COMMANDS = {}
+
+
+def cmd_handoff(manifest, output, as_json=False):
+    from oeis_learn.evaluation.handoff import archive_handoff
+
+    return _phase4_command("handoff", lambda: archive_handoff(
+        load_json(Path(manifest).read_bytes()), input_root=Path(manifest).parent, output=output
+    ), as_json)
 
 
 def _reject_unsupported(command: str) -> int:
@@ -146,6 +155,7 @@ def dispatch(command: str, **kwargs) -> int:
         "qualify-baseline": cmd_qualify_baseline,
         "diagnose-overflow": cmd_diagnose_overflow,
         "coordinated-smoke": cmd_coordinated_smoke,
+        "handoff": cmd_handoff,
     }[command](**{k: v for k, v in kwargs.items() if v is not None})
 
 

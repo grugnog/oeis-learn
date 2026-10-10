@@ -305,6 +305,10 @@ def build_parser() -> argparse.ArgumentParser:
         help='Foundation artifact administration commands (T008).',
     )
     foundation_subparsers = foundation_p.add_subparsers(dest='foundation_command')
+    handoff_p = foundation_subparsers.add_parser('handoff', help='Archive enumerated evidence and replay G0-G10 without inferred qualification.')
+    handoff_p.add_argument('--manifest', required=True)
+    handoff_p.add_argument('--output', required=True)
+    handoff_p.add_argument('--json', dest='as_json', action='store_true')
     smoke_p=foundation_subparsers.add_parser('coordinated-smoke',help='Strict three-update GPU smoke under host Docker containment.')
     for name in ('config','pool','image','output'):
         smoke_p.add_argument('--'+name,required=True)

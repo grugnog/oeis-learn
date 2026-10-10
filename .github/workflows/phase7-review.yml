@@ -1,4 +1,4 @@
-name: Phase 7, 8 and 9 review validation
+name: Foundation review validation (phases 7–11)
 on:
   pull_request:
     paths:
@@ -10,13 +10,17 @@ on:
       - 'configs/foundation/qualified.yaml'
       - 'scripts/verify_phase8.py'
       - 'scripts/verify_phase9.py'
+      - 'scripts/verify_phase11.py'
+      - 'specs/007-experiment-foundation/**'
+      - 'docs/foundation.md'
+      - 'README.md'
       - '.github/workflows/phase7-review.yml'
 permissions:
   contents: read
 jobs:
   cpu-regressions:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       OMP_NUM_THREADS: '2'
       PYTHONPATH: 'src:.'
@@ -34,6 +38,8 @@ jobs:
           .review-venv/bin/ruff check --select F,E9 src/oeis_learn/decoder/grounding.py src/oeis_learn/decoder/grounding_reference.py src/oeis_learn/decoder/recurrence.py src/oeis_learn/decoder/constant_solver.py src/oeis_learn/decoder/dixon_solver.py src/oeis_learn/decoder/qfnia_solver.py src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
           .review-venv/bin/ruff check --select F,E9 scripts/verify_phase8.py src/oeis_learn/rl/policy.py src/oeis_learn/rl/prompt_weighting.py src/oeis_learn/rl/reward.py src/oeis_learn/rl/telemetry.py src/oeis_learn/rl/trainer.py src/oeis_learn/evaluation/learning_gate.py
           .review-venv/bin/ruff check --select F,E9 src/oeis_learn/discovery src/oeis_learn/sandbox/logical_ir.py src/oeis_learn/sandbox/wide_helpers.py src/oeis_learn/sandbox/streaming.py src/oeis_learn/evaluation/discovery_gate.py tests/unit/test_foundation_extended_wat.py tests/integration/test_foundation_discovery.py tests/integration/test_foundation_extended_wat.py tests/contract/test_foundation_discovery_cli.py
+      - name: Phase 11 code quality
+        run: .review-venv/bin/ruff check --select F,E9 src/oeis_learn/evaluation/handoff.py src/oeis_learn/evaluation/review_dispositions.py scripts/verify_phase11.py scripts/archive_phase11.py tests/unit/test_foundation_handoff.py
       - name: Spec Kit prerequisites and artifact consistency
         env:
           SPECIFY_FEATURE_DIRECTORY: specs/007-experiment-foundation
@@ -43,6 +49,10 @@ jobs:
       - name: Foundation and phase 7 CPU regression suite
         run: |
           .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
+      - name: Execute actual CPU quickstart and replay immutable archive
+        run: |
+          .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
+          .review-venv/bin/python -m oeis_learn.evaluation.handoff --archive phase11-evidence/quickstart/handoff
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -50,6 +60,11 @@ jobs:
           path: |
             phase7-junit.xml
             phase7-environment.txt
+            phase11-evidence/quickstart/*.stdout
+            phase11-evidence/quickstart/*.stderr
+            phase11-evidence/quickstart/quickstart.json
+            phase11-evidence/quickstart/handoff/inputs.json
+            phase11-evidence/quickstart/handoff/handoff.json
   native-qualification:
     runs-on: ubuntu-24.04
     timeout-minutes: 60

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 
-def test_packaged_resources_and_actual_execution():
+def test_packaged_resources_and_actual_execution(tmp_path):
     import oeis_learn
     from oeis_learn.sandbox.preamble import load_preamble_wat
     from oeis_learn.experiments.source_snapshot import source_snapshot, qualification_identity
@@ -22,6 +22,16 @@ def test_packaged_resources_and_actual_execution():
         assert "src/oeis_learn/sandbox/preamble.wat" in source_snapshot()
     result = Runtime().evaluate("i256.const -1", range(20), Limits())
     assert result.outcome is None and result.outputs == ["-1"] * 20 == result.reference_outputs
+    from oeis_learn.evaluation.review_dispositions import original_inputs_path
+    from oeis_learn.evaluation.handoff import archive_handoff, replay_handoff
+    from oeis_learn.experiments.artifacts import canonical_bytes, compute_file_hash
+    assert len(json.loads(original_inputs_path().read_bytes())["items"]) == 68
+    file = tmp_path / "runtime.json"
+    file.write_bytes(canonical_bytes({"purpose": "diagnostic"}))
+    manifest = dict(version="handoff-inputs/v1", files=[dict(path=file.name, sha256=compute_file_hash(file))], readiness={})
+    report = archive_handoff(manifest, input_root=tmp_path, output=tmp_path / "handoff")
+    assert replay_handoff(tmp_path / "handoff") == report
+    assert not report["readiness"]["full_007_complete"]
 
 
 def test_public_measure_dry_run_and_actual(tmp_path, capsys):
