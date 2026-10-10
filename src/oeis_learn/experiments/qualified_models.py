@@ -286,7 +286,7 @@ FIELDS = {
         status=enum("adopted", "baseline_retained", "not_triggered", "inconclusive", "failed_gate"),
         active_ns=I,
         charged_ns=I,
-        paired_results=array(obj(seed=I, baseline=N, challenger=N), 0, 3),
+        paired_results=array({"anyOf": [obj(seed=I,baseline=N,challenger=N), obj(seed=I,baseline=N,challenger=N,baseline_charged_ns=I,challenger_charged_ns=I)]}, 0, 3),
         stop_reason=S,
         trigger=obj(
             diagnostic_sha256=nullable(D), observed=nullable(N), threshold=N, disposition=S
@@ -587,7 +587,7 @@ def validate_record(record: dict) -> None:
             )
     elif kind == "experiment_decision":
         _require(
-            record["active_ns"] <= record["charged_ns"] <= record["budget_ns"],
+            record["active_ns"] <= record["charged_ns"] and (record["charged_ns"] <= record["budget_ns"] or record["status"] == "failed_gate"),
             "experiment budget mismatch",
         )
         _require(len(set(record["seeds"])) == len(record["seeds"]), "duplicate paired seeds")
@@ -605,6 +605,10 @@ def validate_record(record: dict) -> None:
             )
         if record["status"] == "adopted":
             _require(bool(results), "adoption requires paired evidence")
+            from oeis_learn.experiments.decisions import paired_disposition
+            pairs = [(r["baseline"], r["challenger"]) for r in results]
+            durations = [(r["baseline_charged_ns"],r["challenger_charged_ns"]) for r in results] if all("baseline_charged_ns" in r for r in results) else None
+            _require(paired_disposition(pairs,durations) == "adopted", "adoption threshold/confirmation mismatch")
 
 
 def replay_record(record: dict) -> dict:

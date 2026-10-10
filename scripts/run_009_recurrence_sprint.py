@@ -20,7 +20,6 @@ import time
 from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
-import yaml
 
 from oeis_learn.cli.reporting import (
     project_discovery_markdown,
@@ -55,6 +54,10 @@ from oeis_learn.evaluation.protocol import EvaluationProtocol
 from oeis_learn.evaluation.readiness import evaluate_readiness_policy, load_readiness_policy
 from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
+from oeis_learn.evaluation.legacy_wrappers import (
+    load_legacy_configuration, require_legacy_parent, complete_legacy_run, latest_legacy_checkpoint,
+    legacy_readiness_metrics,
+)
 from oeis_learn.rl.sft_trainer import SftTrainer
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 from oeis_learn.sandbox.runner import WasmRunner
@@ -91,8 +94,7 @@ def run_009(
     # 1. Load Configuration
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found: {config_path}")
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg: Dict[str, Any] = yaml.safe_load(f) or {}
+    cfg = load_legacy_configuration(config_path)
 
     train_cfg = cfg.get("training", {})
     model_cfg = cfg.get("model", {})
@@ -109,22 +111,19 @@ def run_009(
     run_manager = RunManager()
     ctx = run_manager.get_or_create_run(run_id=run_id, name=name, config=cfg) if resume else run_manager.create_run(run_id=run_id, name=name, config=cfg)
     logger = setup_logger(str(ctx.log_file))
+    ctx.set_qualification_state("legacy_unverified")
     ctx.set_status("RUNNING")
 
     start_epoch = 1
     previous_elapsed_h = 0.0
 
     if resume:
-        ckpt_files = sorted(list(ctx.checkpoints_dir.glob("model_epoch_*.v2.pt")))
-        if ckpt_files:
-            latest_ckpt = ckpt_files[-1]
-            import re
-            m = re.search(r"model_epoch_(\d+)", latest_ckpt.name)
-            if m:
-                last_epoch = int(m.group(1))
-                start_epoch = last_epoch + 1
-                warmstart_checkpoint = str(latest_ckpt)
-                logger.info(f"Resuming Run 009 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
+        latest = latest_legacy_checkpoint(ctx.checkpoints_dir)
+        if latest is not None:
+            latest_ckpt, last_epoch = latest
+            start_epoch = last_epoch + 1
+            warmstart_checkpoint = str(latest_ckpt)
+            logger.info(f"Resuming Run 009 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
 
         if os.path.exists(ctx.log_file):
             with open(ctx.log_file, "r", encoding="utf-8") as f:
@@ -137,6 +136,7 @@ def run_009(
                             pass
             logger.info(f"Previous elapsed duration detected: {previous_elapsed_h:.2f}h")
 
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Starting OEIS-Learn Run {ctx.metadata.run_id}: {ctx.metadata.name} (Resume={resume}, Start Epoch={start_epoch})")
     logger.info(f"Target Duration: ~3.5 Hours ({epochs} epochs x {steps_per_epoch} steps = {epochs * steps_per_epoch} decisions)")
@@ -373,7 +373,9 @@ def run_009(
 
     benchmark_manifest = load_benchmark_manifest(manifest_path) if os.path.exists(manifest_path) else None
 
+    epoch_metrics = []
     for epoch in range(start_epoch, epochs + 1):
+        epoch_metrics = []
         epoch_start = time.time()
         # Temperature cosine annealing with floor at 0.45
         progress = (epoch - 1) / max(1, epochs - 1)
@@ -387,6 +389,7 @@ def run_009(
             global_step += 1
             step_res = orchestrator.execute_step(trainer=trainer, current_step=global_step, epoch=epoch)
             metrics = step_res.get("step_metrics", [])
+            epoch_metrics.extend(metrics)
             for m in metrics:
                 step_losses.append(m.get("loss", 0.0))
                 step_pass_rates.append(m.get("pass_rate", 0.0))
@@ -455,8 +458,7 @@ def run_009(
                         "max_placeholders": 4,
                         "fuel_per_invocation": 10000,
                         "memory_limit_mib": 16,
-                        "mdl_ratio_max": 1.20,
-                        "native_evaluator_required": True,
+                                        "native_evaluator_required": True,
                         "code_revision": "run009",
                         "environment_fingerprint": "sha256:" + "0" * 64,
                     })
@@ -507,8 +509,7 @@ def run_009(
                 "max_placeholders": 4,
                 "fuel_per_invocation": 10000,
                 "memory_limit_mib": 16,
-                "mdl_ratio_max": 1.20,
-                "native_evaluator_required": True,
+                        "native_evaluator_required": True,
                 "code_revision": "run009",
                 "environment_fingerprint": "sha256:" + "0" * 64,
             })
@@ -536,24 +537,14 @@ def run_009(
         manifest_path=manifest_path,
         device=device,
     )
-    save_authoritative_json(discovery_res, str(ctx.reports_dir / "discovery_report_v1.json"), schema_name="discovery-report")
+    save_authoritative_json(discovery_res.to_dict() if hasattr(discovery_res, "to_dict") else discovery_res, str(ctx.reports_dir / "discovery_report_v1.json"), schema_name="discovery-report")
     project_discovery_markdown(discovery_res, output_path=str(ctx.theorems_path))
 
     # Evaluate Readiness Policy
     final_c2, final_cov2 = scheduler.compute_stage_competence(2)
-    readiness_metrics = {
-        "assembly_validity_rate": 1.0,
-        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate if trainer.telemetry.latest_record else 0.0),
-        "single_prompt_exact_success_count": 1.0,
-        "stage1_rolling_competence": 0.870,
-        "stage1_minimum_coverage": 0.50,
-        "stage1_competence_variance": float(scheduler.compute_epoch_variance()),
-        "stage1_synthesis_pass_rate": float(epoch_pass_rates[-1]),
-        "verified_task_retention_rate": 1.0,
-        "extrapolation_pass_rate": 1.0,
-        "mdl_ratio_max": 1.20,
-        "advantage_collapse_rate": float(trainer.telemetry.current_acr),
-    }
+    readiness_metrics = legacy_readiness_metrics(
+        trainer, scheduler, epoch_metrics, epoch_pass_rates)
+
 
     if os.path.exists(readiness_policy_path):
         policy = load_readiness_policy(readiness_policy_path)
@@ -588,7 +579,7 @@ def run_009(
         "final_loss": round(epoch_losses[-1], 4),
         "proven_theorems": discovery_res["summary"]["symbolically_proven"],
     })
-    ctx.set_status("COMPLETED")
+    complete_legacy_run(ctx)
 
     logger.info("=" * 80)
     logger.info(f"Run {ctx.metadata.run_id} Finished Successfully in {total_hours:.2f} hours.")

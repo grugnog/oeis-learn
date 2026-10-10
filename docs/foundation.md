@@ -72,10 +72,11 @@ pauses exclude downtime. An unclean gap is charged through recovery and labeled
 estimated; same-boot time uses monotonic intervals, cross-boot recovery uses UTC,
 and backward/inconsistent clocks fail closed. Model rollback never rewinds this
 ledger. Training, recovery and checkpoint costs are integrated. The ledger API
-also supports bootstrap, validation and evaluation phases; the existing separate
-pool/evaluation commands are **not yet one integrated arm controller**. Their
-own bounded timing reports must not be represented as a complete multi-phase
-training ledger.
+also supports bootstrap, validation and evaluation phases. Standalone pool and
+evaluation commands retain their own bounded reports. The live measurement/v2
+controller charges setup, training, checkpointing, generation and development
+evaluation to the same capped diagnostic/paired-arm schedule; standalone timing
+reports cannot substitute for that complete schedule.
 
 Events are append-only bounded segments (64 MiB each; 1 GiB for budget events
 and 1 GiB for metrics), with duplicate/conflicting event checks and torn-tail
@@ -110,13 +111,14 @@ It uses host-side `docker rm --force` at the deadline to reclaim the cgroup.
 Do not launch multiple 88 GiB roles concurrently or infer an aggregate cap from
 this single-container launcher.
 
-This launcher is scaffolding for the existing environment, **not** a completed
-multi-role execution protocol. The current evaluator's generation/worker process
-transport has not been moved to coordinated role containers; aggregate admission
-of up to eight worker containers and mounted-view enforcement need integration
-and actual Docker tests. The shared development filesystem is not isolation
-evidence. The repository does not contain the machine's `system/lab-gpu` broker
-implementation, so its actual mount/device configuration was not audited here.
+The single-container launcher remains available for explicit role invocations.
+Phase 10's host `RoleCoordinator` supplies the coordinated live protocol used by
+`coordinated-smoke` and measurement/v2: one main role, at most eight workers,
+enumerated views, no worker GPU capability and host-owned deadlines/reclamation.
+The older standalone evaluation process boundary sends only visible prompts;
+release authorization still requires executed run-bound containment evidence.
+The shared development filesystem alone is not isolation evidence. Actual GPU
+broker/device deployment remains subject to the machine acceptance tests.
 
 The Docker-marked test requires Docker and `OEIS_FOUNDATION_TEST_IMAGE` set to the
 resolved local image ID; it actually checks visible/read-only mounts and absent
@@ -126,3 +128,78 @@ truth/device/socket paths. Hardware skips are pending evidence, not passes.
 remains fail-closed until adopted-contract, exact-runtime, provenance, isolation,
 resume, real-device/containment and proof-boundary evidence are all bound to the
 run. Full spec 007 also needs G7–G10; a three-update smoke cannot satisfy them.
+
+## Phase 10 source and decision fixtures
+
+Use `oeis-learn foundation census --source records.json --output DIR --json`
+for the read-only exact-horizon census. Source rows contain exact `terms`, an
+explicit or null `offset`, and original keywords; extraction's inferred tags
+are not authoritative OEIS metadata. The precision database analyzer now requires
+`--db FILE`. It reports invalid rows instead of dropping them silently.
+
+Historical cohorts retain `prefix20_total100_v1`. New release cohorts use
+`prefix20_total100_affine_v2` to keep exact affine/shift families together;
+this version must be selected before cohort freezing and training admission.
+No real release source or cohort is supplied by the diagnostic fixtures.
+
+`oeis-learn foundation measure --manifest FILE --output DIR --dry-run --json`
+validates and freezes the bounded schedule without issuing work. The explicit
+`cpu_fixture` mode runs actual cache/runtime timings and reports its sample
+shortfall, unavailable diagnostics and inconclusive decisions. It cannot qualify
+GPU performance or learning. `qualified_device` uses the measurement/v2 bundle
+from `prepare-measurement` for coordinated live execution. Legacy manifests
+without that bundle and missing host/device capabilities report unavailable
+without CPU fallback. Inputs have no final-truth path or external comparative-score
+field.
+
+The wider logical diagnostic and benchmark-only unchecked lowering cannot publish
+training/admission records. Unknown provenance or unavailable development evidence
+is reported as unavailable, never as zero rescued groups. See
+[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
+for remaining acceptance work and exact reproduction commands.
+
+The installed-wheel CI uses actual G7/G8/G9 artifacts to exercise two diagnostic
+learning updates across resume, bounded search, generated-archive discovery,
+fresh isolated certificate verification and stale-evidence rejection. It requires
+all six standalone acceptance cases without skips. These CPU updates do not
+qualify hardware learning. Legacy readiness reports preserve missing observations
+as null with failed gates, including upper bounds; Run 011 lifecycle completion
+keeps its `legacy_unverified` qualification label.
+
+`evaluation.readiness.release_readiness` replays current extension artifacts and
+keeps verified G8 software separate from pending hardware. Missing G0–G6 or full
+G10 evidence prevents release authorization. The [input disposition report](../specs/007-experiment-foundation/validation/phase-10-dispositions.json)
+records all 68 review inputs and task states; a checkbox or diagnostic timer
+cannot substitute for an executable gate.
+
+### Phase 10 live integration
+
+The phase 10 implementation now provides `foundation prepare-release`,
+`diagnose-overflow`, `coordinated-smoke`, `qualify-baseline`,
+`prepare-measurement` and `measure`. Use `--help` for the closed arguments.
+Source preparation requires hashed indexed term files and authoritative metadata;
+its audit replays the original files, grouping and archive holdouts. Real source
+inputs remain necessary even on a CPU host.
+
+`coordinated-smoke` requires an explicit resolved ROCm image and generic pool.
+It runs the three-update smoke under host Docker containment. GPU acceptance
+uses `OEIS_GPU_ROLE_IMAGE` with the separately marked actual HIP test. Its
+checkpoint is under `OUTPUT/smoke/run/checkpoints/`; `--resume-run` points to the
+previous `OUTPUT/smoke/run` and preserves its budget and state.
+
+`qualify-baseline --suites` takes a JSON map of G1–G6 JUnit paths plus
+`native_parity` and `containment` paths. The latter is the executed
+`coordinated-smoke.json`, bound to that GPU checkpoint. Missing/skipped mandatory
+suites, CPU checkpoint labels or unmeasured containment cannot authorize it.
+`prepare-measurement` must run in the same image/runtime as its replayed gate
+artifacts and requires `--baseline-report`, `--baseline-checkpoint`, G7/G8,
+real release cohort and archive; provide the archive's explicit `--holdouts`
+profile when it uses release prefixes. The host `measure` command receives that
+bundle's `manifest-input.json`; roles independently replay prerequisites.
+
+The live path enforces the two-hour engineering cap and six-hour diagnostic/one
+contrast cap. It never carries final truth into measurement assets. CPU workers
+use persistent native caches and host kill deadlines. GPU, real release-source
+and trained-model acceptance remain half-checked. See the current
+[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
+for the exact remaining evidence; no performance or learning adoption is claimed.

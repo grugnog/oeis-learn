@@ -22,7 +22,6 @@ import time
 from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
-import yaml
 
 from oeis_learn.cli.reporting import (
     project_discovery_markdown,
@@ -57,6 +56,10 @@ from oeis_learn.evaluation.protocol import EvaluationProtocol
 from oeis_learn.evaluation.readiness import evaluate_readiness_policy, load_readiness_policy
 from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
+from oeis_learn.evaluation.legacy_wrappers import (
+    load_legacy_configuration, require_legacy_parent, complete_legacy_run, latest_legacy_checkpoint,
+    legacy_readiness_metrics,
+)
 from oeis_learn.rl.sft_trainer import SftTrainer
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 from oeis_learn.sandbox.runner import WasmRunner
@@ -90,8 +93,7 @@ def run_010(
     override_epochs: Optional[int] = None,
 ) -> None:
     # 1. Load Configuration
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg: Dict[str, Any] = yaml.safe_load(f) or {}
+    cfg = load_legacy_configuration(config_path)
 
     train_cfg = cfg.get("training", {})
     model_cfg = cfg.get("model", {})
@@ -109,21 +111,19 @@ def run_010(
     run_manager = RunManager()
     ctx = run_manager.get_or_create_run(run_id=run_id, name=name, config=cfg)
     logger = setup_logger(str(ctx.log_file))
+    ctx.set_qualification_state("legacy_unverified")
     ctx.set_status("RUNNING")
 
     start_epoch = 1
     previous_elapsed_h = 0.0
 
     if resume:
-        ckpt_files = sorted(list(ctx.checkpoints_dir.glob("model_epoch_*.v2.pt")))
-        if ckpt_files:
-            latest_ckpt = ckpt_files[-1]
-            m = re.search(r"model_epoch_(\d+)", latest_ckpt.name)
-            if m:
-                last_epoch = int(m.group(1))
-                start_epoch = last_epoch + 1
-                warmstart_checkpoint = str(latest_ckpt)
-                logger.info(f"Resuming Run 010 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
+        latest = latest_legacy_checkpoint(ctx.checkpoints_dir)
+        if latest is not None:
+            latest_ckpt, last_epoch = latest
+            start_epoch = last_epoch + 1
+            warmstart_checkpoint = str(latest_ckpt)
+            logger.info(f"Resuming Run 010 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
 
         if os.path.exists(ctx.log_file):
             with open(ctx.log_file, "r", encoding="utf-8") as f:
@@ -136,6 +136,7 @@ def run_010(
                             pass
             logger.info(f"Previous elapsed duration detected: {previous_elapsed_h:.2f}h")
 
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Starting OEIS-Learn Run {ctx.metadata.run_id}: {ctx.metadata.name} (Resume={resume}, Start Epoch={start_epoch})")
     logger.info(f"Target Duration: ~10.5 - 11.5 Hours ({epochs} epochs x {steps_per_epoch} steps = {epochs * steps_per_epoch} decisions)")
@@ -426,7 +427,9 @@ def run_010(
 
     benchmark_manifest = load_benchmark_manifest(manifest_path) if os.path.exists(manifest_path) else None
 
+    epoch_metrics = []
     for epoch in range(start_epoch, epochs + 1):
+        epoch_metrics = []
         epoch_start = time.time()
         # Temperature cosine annealing
         progress = (epoch - 1) / max(1, epochs - 1)
@@ -440,6 +443,7 @@ def run_010(
             global_step += 1
             step_res = orchestrator.execute_step(trainer=trainer, current_step=global_step, epoch=epoch)
             metrics = step_res.get("step_metrics", [])
+            epoch_metrics.extend(metrics)
             for m in metrics:
                 step_losses.append(m.get("loss", 0.0))
                 step_pass_rates.append(m.get("pass_rate", 0.0))
@@ -454,7 +458,7 @@ def run_010(
         c_s2, cov_s2 = scheduler.compute_stage_competence(2)
         c_s3, cov_s3 = scheduler.compute_stage_competence(3)
         min_cov = min(cov_s1, cov_s2, cov_s3)
-        acr_val = 1.0  # Dynamic Grammar Masker enforces AST validity
+        acr_val = trainer.telemetry.current_acr  # observed group variance only
 
         epoch_duration = (time.time() - epoch_start) / 60.0
         total_duration_h = previous_elapsed_h + (epoch * epoch_duration) / 60.0
@@ -595,26 +599,17 @@ def run_010(
     c1_final, cov1_final = scheduler.compute_stage_competence(1)
     c2_final, cov2_final = scheduler.compute_stage_competence(2)
     c3_final, cov3_final = scheduler.compute_stage_competence(3)
-    readiness_metrics = {
-        "acr": 1.0,
-        "latency_p99_ms": 4.5,
-        "c_s1": c1_final,
-        "c_s2": c2_final,
-        "c_s3": c3_final,
-        "min_coverage": min(cov1_final, cov2_final, cov3_final),
-        "proven_theorems": discovery_res.proven_theorems_count,
-        "conjectures": discovery_res.conjectures_count,
-        "checkpoint_present": os.path.exists(final_ckpt),
-        "reproducibility_verified": True,
-    }
+    readiness_metrics = legacy_readiness_metrics(
+        trainer, scheduler, epoch_metrics, epoch_pass_rates)
+
     readiness_rep = evaluate_readiness_policy(policy, readiness_metrics, run_id=ctx.metadata.run_id)
     save_authoritative_json(readiness_rep.to_dict(), str(ctx.reports_dir / "readiness_report_v1.json"))
 
     with open(ctx.reports_dir / "readiness_report_v1.md", "w", encoding="utf-8") as f:
-        f.write(project_readiness_markdown(readiness_rep))
+        f.write(project_readiness_markdown(readiness_rep.to_dict()))
 
     with open(ctx.reports_dir / "discovered_theorems.md", "w", encoding="utf-8") as f:
-        f.write(project_discovery_markdown(discovery_res))
+        f.write(project_discovery_markdown(discovery_res.to_dict()))
 
     with open(ctx.reports_dir / "summary.md", "w", encoding="utf-8") as f:
         f.write(f"# Run 010 ({ctx.metadata.name}) Execution Summary\n\n")
@@ -627,14 +622,15 @@ def run_010(
         f.write(f"- **Final Pass Rate**: {mean_pass_rate*100:.1f}%\n")
         f.write(f"- **Symbolically Proven Theorems**: {discovery_res.proven_theorems_count}\n")
         f.write(f"- **Numerical Conjectures**: {discovery_res.conjectures_count}\n")
-        f.write(f"- **Readiness State**: {'QUALIFIED' if readiness_rep.overall_passed else 'BLOCKED'}\n\n")
+        f.write(f"- **Readiness State**: {readiness_rep.qualification_state}\n\n")
         f.write("## Benchmark Synthesis Evaluation Results\n\n")
         f.write("| OEIS ID | Status | Fuel | Extrap Passed | MDL Ratio |\n")
         f.write("| :--- | :--- | :--- | :--- | :--- |\n")
         for s in summary_synthesis:
             f.write(f"| `{s['oeis_id']}` | `{s['status']}` | `{s['fuel']}` | `{s['extrap_passed']}` | `{s['mdl_ratio']:.2f}` |\n")
 
-    ctx.set_status("COMPLETED" if readiness_rep.overall_passed else "FINISHED_BLOCKED")
+    ctx.set_qualification_state(readiness_rep.qualification_state)
+    complete_legacy_run(ctx)
     logger.info("=" * 80)
     logger.info(f"Readiness Policy Qualification State: {ctx.metadata.status} (Overall Passed: {readiness_rep.overall_passed})")
     logger.info(f"Run 010 Finished Successfully in {total_duration_h:.2f} hours.")

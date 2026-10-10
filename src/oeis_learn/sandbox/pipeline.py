@@ -86,6 +86,8 @@ class ExecutionEvidence:
     identities: dict = field(default_factory=dict)
     reference_sha256: str | None = None
     cache_hit: bool = False
+    phase_timings_ns: dict[str, int] = field(default_factory=dict)
+    retry_attempts: list[dict] = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)
@@ -287,7 +289,7 @@ class Runtime:
         ):
             raise ValueError("indices must be nonempty, unique ascending exact integers in 0..99")
         start = time.monotonic_ns()
-        deadline = min(deadline_ns or start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
         evidence = ExecutionEvidence(
             prepared.source_sha256,
             indices,
@@ -321,11 +323,23 @@ class Runtime:
                 )
                 failure = Failure("execution_limit", reason, "execute")
             else:
+                phase_start = time.monotonic_ns()
                 value, used, prod_failure = self.production_term(prepared, index, fuel)
+                evidence.phase_timings_ns["production"] = (
+                    evidence.phase_timings_ns.get("production", 0)
+                    + time.monotonic_ns()
+                    - phase_start
+                )
                 evidence.fuel += used
                 evidence.fuel_terms.append(used)
+                phase_start = time.monotonic_ns()
                 ref = reference.execute_term(
                     prepared.program, index, step_limit=steps, deadline_ns=deadline
+                )
+                evidence.phase_timings_ns["independent_reference"] = (
+                    evidence.phase_timings_ns.get("independent_reference", 0)
+                    + time.monotonic_ns()
+                    - phase_start
                 )
                 evidence.reference_steps += ref.steps
                 evidence.reference_terms.append(
@@ -380,8 +394,9 @@ class Runtime:
         proposed_source=None,
     ):
         start = time.monotonic_ns()
-        deadline = min(deadline_ns or start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
         prepared = self.prepare(source, proposed_source=proposed_source)
+        prepare_ns = time.monotonic_ns() - start
         if isinstance(prepared, Failure):
             final = proposed_source if proposed_source is not None else source
             return ExecutionEvidence(
@@ -393,12 +408,17 @@ class Runtime:
                 outcome=prepared.outcome,
                 reason=prepared.reason,
                 failure_stage="prepare",
+                phase_timings_ns={"prepare": prepare_ns},
             )
         try:
             result = self.execute(
                 prepared, indices, limits, deadline_ns=deadline, progress=progress
             )
             result.elapsed_ns = time.monotonic_ns() - start
+            result.phase_timings_ns["prepare"] = prepare_ns
+            result.phase_timings_ns["controller_overhead"] = max(
+                0, result.elapsed_ns - sum(result.phase_timings_ns.values())
+            )
             return result
         finally:
             prepared.module.close()

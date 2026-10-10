@@ -150,3 +150,94 @@ def resource_metrics(device):
             )
         )
     return result
+
+
+def fuel_summary(values, *, limit, near_fraction=0.75):
+    """Observed fuel only, including exhausted/failed calls and retries."""
+    if type(limit) is not int or limit <= 0 or not 0 < near_fraction <= 1:
+        raise ValueError("invalid fuel summary limit/fraction")
+    values = list(values)
+    if any(type(v) is not int or not 0 <= v <= limit for v in values):
+        raise ValueError("fuel requires actual bounded exact consumption")
+    ordered = sorted(values)
+
+    def quantile(fraction):
+        return ordered[max(0, math.ceil(len(ordered) * fraction) - 1)] if ordered else None
+
+    return dict(
+        calls=len(values),
+        aggregate=sum(values),
+        maximum=max(values) if values else None,
+        p50=quantile(0.5),
+        p95=quantile(0.95),
+        near_limit_fraction=near_fraction,
+        near_limit_count=sum(v >= near_fraction * limit for v in values),
+        limit=limit,
+    )
+
+
+class PhaseTimer:
+    """Wall phases synchronized at both device boundaries, with explicit sensor availability."""
+
+    def __init__(self, device="cpu", *, clock=None):
+        import time
+
+        self.device, self.clock = device, clock or time.monotonic_ns
+        self.values = {}
+
+    def synchronize(self):
+        import torch
+
+        if torch.device(self.device).type == "cuda":
+            if not torch.cuda.is_available():
+                raise RuntimeError("requested device unavailable; no CPU fallback")
+            torch.cuda.synchronize(self.device)
+
+    def phase(self, name):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def scope():
+            self.synchronize()
+            start = self.clock()
+            try:
+                yield
+            finally:
+                self.synchronize()
+                elapsed = self.clock() - start
+                if elapsed < 0:
+                    raise ValueError("backward phase clock")
+                self.values[name] = self.values.get(name, 0) + elapsed
+
+        return scope()
+
+
+def sensor_metrics(device="cpu", *, root="/sys/class/drm"):
+    """Read existing AMD hwmon sensors only; ambiguity/missing sensors stay unavailable."""
+    def absent(unit, reason):
+        return metric(None, unit, "amdgpu hwmon", state="unavailable", reason=reason)
+
+    result = dict(thermal=absent("celsius", "no uniquely identified AMD sensor"),
+                  power=absent("watts", "no uniquely identified AMD sensor"))
+    if not str(device).startswith("cuda"):
+        return result
+    candidates = []
+    for directory in Path(root).glob("card[0-9]*/device/hwmon/hwmon*"):
+        try:
+            if (directory / "name").read_text().strip() == "amdgpu":
+                candidates.append(directory.resolve())
+        except OSError:
+            continue
+    candidates = sorted(set(candidates))
+    if len(candidates) != 1:
+        return result
+    for name, filename, scale, unit in (
+        ("thermal", "temp1_input", 1000, "celsius"),
+        ("power", "power1_average", 1000000, "watts"),
+    ):
+        try:
+            value = int((candidates[0] / filename).read_text().strip()) / scale
+            result[name] = metric(value, unit, str(candidates[0] / filename))
+        except (OSError, ValueError):
+            pass
+    return result

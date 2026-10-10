@@ -165,6 +165,14 @@ class EgcaGrpoTrainer:
         )
         from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
+        from oeis_learn.tracking.foundation_metrics import (
+            PhaseTimer,
+            resource_metrics,
+            fuel_summary,
+            sensor_metrics,
+        )
+
+        timer = PhaseTimer(self.device)
         started = time.monotonic()
         if epoch is not None:
             self.current_epoch = epoch
@@ -176,56 +184,60 @@ class EgcaGrpoTrainer:
         if len(terms) != 20 or any(type(v) is not int for v in terms):
             raise ValueError("exact twenty-term visible prompt required")
         encoder_id, decoder_id = model_digest(self.encoder), model_digest(self.decoder)
-        with torch.no_grad():
-            behavior_memory = self.encoder.forward_from_sequences([terms], device=self.device)
+        with timer.phase("behavior_encoder"):
+            with torch.no_grad():
+                behavior_memory = self.encoder.forward_from_sequences([terms], device=self.device)
         seeds = [
             int(digest([self.seed, self.rollout_cursor + i, terms])[7:23], 16) for i in range(count)
         ]
-        trajectories = self.program_sampler.sample_trajectories(
-            behavior_memory.expand(count, -1, -1), seeds, policy=True
-        )
+        with timer.phase("generation"):
+            trajectories = self.program_sampler.sample_trajectories(
+                behavior_memory.expand(count, -1, -1), seeds, policy=True
+            )
         self.rollout_cursor += count
         candidates, self.last_grounding_results = [], []
-        for trajectory in trajectories:
-            grounded = (
-                solve_constants(parse_ast_placeholders(trajectory.source), terms)
-                if trajectory.source
-                else None
-            )
-            self.last_grounding_results.append(grounded)
-            candidates.append(
-                grounded.grounded_wat
-                if grounded is not None and grounded.is_sat
-                else trajectory.source
-            )
-        if self.strict_codec:
-            from types import SimpleNamespace
+        with timer.phase("grounding"):
+            for trajectory in trajectories:
+                grounded = (
+                    solve_constants(parse_ast_placeholders(trajectory.source), terms)
+                    if trajectory.source
+                    else None
+                )
+                self.last_grounding_results.append(grounded)
+                candidates.append(
+                    grounded.grounded_wat
+                    if grounded is not None and grounded.is_sat
+                    else trajectory.source
+                )
+        with timer.phase("runtime"):
+            if self.strict_codec:
+                from types import SimpleNamespace
 
-            results = []
-            for i, source in enumerate(candidates):
-                if not source:
-                    execution = SimpleNamespace(status="INCOMPLETE", output=[], total_fuel=0)
-                else:
-                    evidence = self.wasm_runner.run_single(
-                        source, list(range(20)), request_id=f"policy-{self.rollout_cursor}-{i}"
-                    ).to_dict()
-                    execution = SimpleNamespace(
-                        status="SUCCESS"
-                        if evidence["outcome"] is None
-                        and evidence["outputs"] == evidence["reference_outputs"]
-                        else "EXECUTION_FAILURE",
-                        output=[int(v) for v in evidence["outputs"]],
-                        total_fuel=evidence["fuel"] or 0,
-                        evidence=evidence,
-                    )
-                results.append((execution, None))
-        else:
-            results = self.wasm_runner.run_optimized_batch(
-                candidates,
-                fuel_budget=self.wasm_runner.fuel_budget,
-                terms_to_generate=20,
-                result_profile=self.result_profile,
-            )
+                results = []
+                for i, source in enumerate(candidates):
+                    if not source:
+                        execution = SimpleNamespace(status="INCOMPLETE", output=[], total_fuel=0)
+                    else:
+                        evidence = getattr(self.wasm_runner, "run_escalating", self.wasm_runner.run_single)(
+                            source, list(range(20)), request_id=f"policy-{self.rollout_cursor}-{i}"
+                        ).to_dict()
+                        execution = SimpleNamespace(
+                            status="SUCCESS"
+                            if evidence["outcome"] is None
+                            and evidence["outputs"] == evidence["reference_outputs"]
+                            else "EXECUTION_FAILURE",
+                            output=[int(v) for v in evidence["outputs"]],
+                            total_fuel=evidence["fuel"] or 0,
+                            evidence=evidence,
+                        )
+                    results.append((execution, None))
+            else:
+                results = self.wasm_runner.run_optimized_batch(
+                    candidates,
+                    fuel_budget=self.wasm_runner.fuel_budget,
+                    terms_to_generate=20,
+                    result_profile=self.result_profile,
+                )
         rewards, successes = [], []
         for trajectory, (execution, _) in zip(trajectories, results):
             matched = (
@@ -255,38 +267,40 @@ class EgcaGrpoTrainer:
                 if not trajectory.forced[position]:
                     old[row, position - 1] = trajectory.log_probabilities[position]
                     action_mask[row, position - 1] = True
-        self.optimizer.zero_grad(set_to_none=True)
-        memory = self.encoder.forward_from_sequences([terms], device=self.device).expand(
-            count, -1, -1
-        )
-        logits = self.decoder(
-            tokens[:, :-1], memory, tgt_key_padding_mask=tokens[:, :-1].eq(pad_id)
-        )
-        reference_logits = None
-        if self.reference is not None:
-            reference_logits = self.reference.logits(
-                [terms] * count, tokens[:, :-1], self.device, pad_id
+        with timer.phase("forward_objective"):
+            self.optimizer.zero_grad(set_to_none=True)
+            memory = self.encoder.forward_from_sequences([terms], device=self.device).expand(
+                count, -1, -1
             )
-        loss = policy_loss(
-            logits,
-            tokens[:, 1:],
-            old,
-            advantages,
-            supports=supports,
-            temperatures=self.sampling_temperature,
-            action_mask=action_mask,
-            objective=self.objective,
-            reference_logits=reference_logits,
-            kl_coefficient=self.beta_kl,
-            entropy_coefficient=self.alpha_ent,
-        )
-        loss.backward()
-        nn.utils.clip_grad_norm_(
-            list(self.encoder.parameters()) + list(self.decoder.parameters()),
-            1.0,
-            error_if_nonfinite=True,
-        )
-        self.optimizer.step()
+            logits = self.decoder(
+                tokens[:, :-1], memory, tgt_key_padding_mask=tokens[:, :-1].eq(pad_id)
+            )
+            reference_logits = None
+            if self.reference is not None:
+                reference_logits = self.reference.logits(
+                    [terms] * count, tokens[:, :-1], self.device, pad_id
+                )
+            loss = policy_loss(
+                logits,
+                tokens[:, 1:],
+                old,
+                advantages,
+                supports=supports,
+                temperatures=self.sampling_temperature,
+                action_mask=action_mask,
+                objective=self.objective,
+                reference_logits=reference_logits,
+                kl_coefficient=self.beta_kl,
+                entropy_coefficient=self.alpha_ent,
+            )
+        with timer.phase("backward_optimizer"):
+            loss.backward()
+            nn.utils.clip_grad_norm_(
+                list(self.encoder.parameters()) + list(self.decoder.parameters()),
+                1.0,
+                error_if_nonfinite=True,
+            )
+            self.optimizer.step()
         self.scheduler.record_visit(prompt_id, sum(successes), count)
         _, _, entropies = masked_distribution(logits.detach(), supports, self.sampling_temperature)
         entropy = float(trajectory_mean(entropies, action_mask))
@@ -331,6 +345,21 @@ class EgcaGrpoTrainer:
             "sft_loss": None,
             "reward_variance": variance,
             "zero_variance": variance == 0,
+            "phase_timings_ns": dict(timer.values),
+            "resources": resource_metrics(self.device),
+            "fuel": fuel_summary(
+                [f for e, _ in results for f in e.evidence["fuel_terms"]], limit=1000000
+            )
+            if self.strict_codec and all(hasattr(e, "evidence") for e, _ in results)
+            else dict(
+                state="unavailable",
+                reason="per-term fuel not exposed by legacy/incomplete execution",
+            ),
+            **sensor_metrics(self.device),
+            "solver_durations_ms": [
+                r.solve_duration_ms for r in self.last_grounding_results if r is not None
+            ],
+            "solver_outcomes": [r.outcome for r in self.last_grounding_results if r is not None],
             "elapsed_s": time.monotonic() - started,
         }
 

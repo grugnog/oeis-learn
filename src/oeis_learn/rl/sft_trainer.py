@@ -20,11 +20,16 @@ from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
 logger = logging.getLogger("oeis_learn.sft_trainer")
 
 
-def teacher_forced_logits(encoder, decoder, sequences, tokens, *, device, pad_id):
+def teacher_forced_logits(encoder, decoder, sequences, tokens, *, device, pad_id, timer=None):
     """Shared model operation; callers own codec, provenance and loss policy."""
-    memory = encoder.forward_from_sequences(sequences, device=device)
+    from oeis_learn.tracking.foundation_metrics import PhaseTimer
+
+    timer = timer or PhaseTimer(device)
+    with timer.phase("encoder"):
+        memory = encoder.forward_from_sequences(sequences, device=device)
     inputs = tokens[:, :-1]
-    return decoder(inputs, memory, tgt_key_padding_mask=(inputs == pad_id))
+    with timer.phase("decoder_forward"):
+        return decoder(inputs, memory, tgt_key_padding_mask=(inputs == pad_id))
 
 
 def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=(), device="cpu"):
@@ -33,6 +38,9 @@ def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=
     Eligibility/provenance is rechecked from the immutable archive, not trusted
     from a caller-supplied source list. Counters change only after optimizer.step.
     """
+    from oeis_learn.tracking.foundation_metrics import PhaseTimer, resource_metrics, sensor_metrics
+
+    timer = PhaseTimer(device)
     from oeis_learn.decoder.program_codec import BOS_ID as BODY_BOS, PAD_ID as BODY_PAD
     from oeis_learn.rl.policy import trajectory_mean
     from oeis_learn.discovery.program_archive import eligibility
@@ -69,18 +77,19 @@ def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=
         decoder.train()
         optimizer.zero_grad(set_to_none=True)
         logits = teacher_forced_logits(
-            encoder, decoder, sequences, tokens, device=device, pad_id=BODY_PAD
+            encoder, decoder, sequences, tokens, device=device, pad_id=BODY_PAD, timer=timer
         )
         target = tokens[:, 1:]
         losses = torch.nn.functional.cross_entropy(logits.transpose(1, 2), target, reduction="none")
         loss = trajectory_mean(losses, target.ne(BODY_PAD))
         if not torch.isfinite(loss):
             raise FloatingPointError("nonfinite replay loss")
-        loss.backward()
-        nn.utils.clip_grad_norm_(
-            list(encoder.parameters()) + list(decoder.parameters()), 1.0, error_if_nonfinite=True
-        )
-        optimizer.step()
+        with timer.phase("backward_optimizer"):
+            loss.backward()
+            nn.utils.clip_grad_norm_(
+                list(encoder.parameters()) + list(decoder.parameters()), 1.0, error_if_nonfinite=True
+            )
+            optimizer.step()
         replay.commit(replay_count)
         return {
             "loss": float(loss.detach()),
@@ -88,10 +97,50 @@ def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=
             "replay_examples": replay_count,
             "replay_fraction": 0.25,
             "normalization": "mean-per-program",
+            "phase_timings_ns": timer.values,
+            "resources": resource_metrics(device),
+            "sensors": sensor_metrics(device),
+            "entropy": predictive_entropy(logits, target, BODY_PAD),
         }
     finally:
         for module, training in modes.items():
             module.training = training
+
+
+def predictive_entropy(logits, targets, pad_id):
+    with torch.no_grad():
+        logs = torch.log_softmax(logits.float(), dim=-1)
+        entropy = -(logs.exp() * logs).sum(-1)
+        mask = targets.ne(pad_id)
+        return float((entropy * mask).sum() / mask.sum().clamp_min(1))
+
+
+def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, pad_id):
+    """Shared measured update for legacy warmup/bridge and strict SFT consumers."""
+    from oeis_learn.rl.policy import trajectory_mean
+    from oeis_learn.tracking.foundation_metrics import PhaseTimer, resource_metrics, sensor_metrics
+
+    timer = PhaseTimer(device)
+    optimizer.zero_grad(set_to_none=True)
+    logits = teacher_forced_logits(encoder, decoder, sequences, tokens,
+                                  device=device, pad_id=pad_id, timer=timer)
+    targets = tokens[:, 1:]
+    with timer.phase("objective"):
+        loss = trajectory_mean(torch.nn.functional.cross_entropy(
+            logits.transpose(1, 2), targets, reduction="none"), targets.ne(pad_id))
+    if not torch.isfinite(loss):
+        raise FloatingPointError("nonfinite supervised loss")
+    with timer.phase("backward_optimizer"):
+        loss.backward()
+        params = [p for group in optimizer.param_groups for p in group["params"]]
+        norm = nn.utils.clip_grad_norm_(params, 1.0, error_if_nonfinite=True)
+        optimizer.step()
+    if any(not bool(torch.isfinite(p).all()) for p in params):
+        raise FloatingPointError("nonfinite supervised parameters")
+    return dict(loss=float(loss.detach()), gradient_norm=float(norm),
+                entropy=predictive_entropy(logits, targets, pad_id),
+                phase_timings_ns=timer.values, resources=resource_metrics(device),
+                sensors=sensor_metrics(device))
 
 
 class SftTrainer:
@@ -204,27 +253,11 @@ class SftTrainer:
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
             # Teacher forcing: input is tgt[:, :-1], target is tgt[:, 1:]
-            dec_target = tgt_batch[:, 1:]
 
-            self.optimizer.zero_grad()
-
-            # Encoder forward
-            logits = teacher_forced_logits(
-                self.encoder, self.decoder, seq_list, tgt_batch, device=self.device, pad_id=PAD_ID
-            )
-
-            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
-                torch.nn.functional.cross_entropy(
-                    logits.transpose(1, 2), dec_target, reduction="none"
-                ),
-                dec_target.ne(PAD_ID),
-            )
-            loss.backward()
-
-            nn.utils.clip_grad_norm_(
-                list(self.encoder.parameters()) + list(self.decoder.parameters()), max_norm=1.0
-            )
-            self.optimizer.step()
+            self.last_metrics = supervised_step(
+                self.encoder, self.decoder, self.optimizer, seq_list, tgt_batch,
+                device=self.device, pad_id=PAD_ID)
+            loss = torch.tensor(self.last_metrics["loss"])
 
             total_loss += loss.item()
             num_batches += 1
@@ -304,24 +337,11 @@ class SftTrainer:
             for b_idx, t_tensor in enumerate(tgt_token_lists):
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
-            dec_input = tgt_batch[:, :-1]
-            dec_target = tgt_batch[:, 1:]
 
-            optimizer.zero_grad()
-            with torch.no_grad():
-                memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
-
-            pad_mask = dec_input == PAD_ID
-            logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
-            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
-                torch.nn.functional.cross_entropy(
-                    logits.transpose(1, 2), dec_target, reduction="none"
-                ),
-                dec_target.ne(PAD_ID),
-            )
-            loss.backward()
-            nn.utils.clip_grad_norm_(warmup_params, max_norm=1.0)
-            optimizer.step()
+            self.last_metrics = supervised_step(
+                self.encoder, self.decoder, optimizer, seq_list, tgt_batch,
+                device=self.device, pad_id=PAD_ID)
+            loss = torch.tensor(self.last_metrics["loss"])
 
             loss_accum += loss.item()
             if step % 250 == 0:
@@ -399,24 +419,11 @@ class SftTrainer:
             for b_idx, t_tensor in enumerate(tgt_token_lists):
                 tgt_batch[b_idx, : len(t_tensor)] = t_tensor.to(self.device)
 
-            dec_input = tgt_batch[:, :-1]
-            dec_target = tgt_batch[:, 1:]
 
-            optimizer.zero_grad()
-            memory = self.encoder.forward_from_sequences(seq_list, device=self.device)
-            pad_mask = dec_input == PAD_ID
-            logits = self.decoder(dec_input, memory, tgt_key_padding_mask=pad_mask)
-            loss = __import__("oeis_learn.rl.policy", fromlist=["trajectory_mean"]).trajectory_mean(
-                torch.nn.functional.cross_entropy(
-                    logits.transpose(1, 2), dec_target, reduction="none"
-                ),
-                dec_target.ne(PAD_ID),
-            )
-            loss.backward()
-
-            all_params = enc_params_top2 + dec_backbone_params + head_params
-            nn.utils.clip_grad_norm_(all_params, max_norm=1.0)
-            optimizer.step()
+            self.last_metrics = supervised_step(
+                self.encoder, self.decoder, optimizer, seq_list, tgt_batch,
+                device=self.device, pad_id=PAD_ID)
+            loss = torch.tensor(self.last_metrics["loss"])
 
             loss_accum += loss.item()
             if step % 500 == 0:

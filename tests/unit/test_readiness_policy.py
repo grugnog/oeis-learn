@@ -15,7 +15,9 @@ def sample_policy() -> ReadinessPolicy:
         name="test_policy",
         thresholds=[
             ReadinessThreshold("exact_success", "exact_success_count", "GE", 1.0, "count", "spec"),
-            ReadinessThreshold("assembly_validity", "assembly_validity_rate", "EQ", 1.0, "ratio", "const"),
+            ReadinessThreshold(
+                "assembly_validity", "assembly_validity_rate", "EQ", 1.0, "ratio", "const"
+            ),
             ReadinessThreshold("trap_rate", "runtime_trap_rate", "LE", 0.15, "ratio", "const"),
             ReadinessThreshold("coverage", "min_coverage", "GE", 0.50, "ratio", "const"),
         ],
@@ -92,3 +94,31 @@ def test_readiness_policy_diagnostic_override():
     assert report.qualification_state == "OVERRIDDEN_UNQUALIFIED"
     assert report.override is not None
     assert set(report.override.failed_gate_ids) == {"exact_success", "trap_rate", "coverage"}
+
+
+@pytest.mark.parametrize("observation", [None, float("nan"), float("inf"), "invalid"])
+def test_missing_or_nonfinite_upper_bound_never_passes(observation):
+    from oeis_learn.cli.reporting import project_readiness_markdown
+    from dataclasses import replace
+    from pathlib import Path
+    import json
+    from jsonschema import Draft202012Validator
+
+    policy = sample_policy()
+    policy = replace(
+        policy, thresholds=[policy.thresholds[2]]
+    )  # an upper bound formerly passed missing=0
+    report = evaluate_readiness_policy(policy, {"runtime_trap_rate": observation}, "diagnostic")
+    assert not report.overall_passed and report.qualification_state == "BLOCKED"
+    assert report.gate_results[0].measured_value is None
+    assert "Unavailable" in report.gate_results[0].diagnostics[0]
+    assert "unavailable" in project_readiness_markdown(report.to_dict())
+    schema = json.loads(
+        Path(
+            "specs/005-trustworthy-synthesis-readiness/contracts/readiness-report.schema.json"
+        ).read_text()
+    )
+    Draft202012Validator(schema).validate(report.to_dict())
+    invalid = report.to_dict()
+    invalid["gate_results"][0]["passed"] = True
+    assert list(Draft202012Validator(schema).iter_errors(invalid))

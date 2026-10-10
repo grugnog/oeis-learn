@@ -66,6 +66,10 @@ class ProgramArchive:
         check_digest(key, "archive object")
         path = self.root / (key[7:] + ".json")
         envelope = load_json(path.read_bytes())
+        return self.validate_packet(envelope,key)
+
+    def validate_packet(self,envelope,key):
+        """Shared admission replay for an immutable transported archive object."""
         if (
             set(envelope) != {"entry", "source", "tokens", "execution", "provenance"}
             or digest(envelope) != key

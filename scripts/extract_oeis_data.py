@@ -102,7 +102,7 @@ def fetch_joeis_classes(cache_dir: str = DEFAULT_CACHE_DIR, force: bool = False)
 
 def stream_names(names_path: str) -> Iterator[Tuple[str, str]]:
     """Streams (oeis_id, name) tuples from names.gz."""
-    with gzip.open(names_path, "rt", encoding="utf-8", errors="ignore") as f:
+    with gzip.open(names_path, "rt", encoding="utf-8", errors="strict") as f:
         for line in f:
             line = line.strip()
             if not line or not line.startswith("A"):
@@ -115,7 +115,7 @@ def stream_names(names_path: str) -> Iterator[Tuple[str, str]]:
 
 def stream_stripped(stripped_path: str) -> Iterator[Tuple[str, List[int]]]:
     """Streams (oeis_id, terms) tuples from stripped.gz."""
-    with gzip.open(stripped_path, "rt", encoding="utf-8", errors="ignore") as f:
+    with gzip.open(stripped_path, "rt", encoding="utf-8", errors="strict") as f:
         for line in f:
             line = line.strip()
             if not line or not line.startswith("A"):
@@ -134,8 +134,8 @@ def stream_stripped(stripped_path: str) -> Iterator[Tuple[str, List[int]]]:
                     continue
                 try:
                     terms.append(int(t))
-                except ValueError:
-                    pass
+                except ValueError as exc:
+                    raise ValueError(f"{oeis_id}: malformed term; refusing compressed indices") from exc
             if terms:
                 yield oeis_id, terms
 
@@ -147,7 +147,7 @@ def infer_tags_and_stage(
     joeis_class: Optional[str] = None,
 ) -> Tuple[List[str], int, Optional[str]]:
     """Infers metadata tags, curriculum stage (1..5), and generating formula."""
-    tags = ["nonn"]
+    tags = ["nonn"] if all(v >= 0 for v in terms) else ["sign"]
     name_lower = name.lower()
     formula: Optional[str] = None
 
@@ -248,7 +248,10 @@ def run_extraction(
             max_term_abs VARCHAR,
             max_term_bits INTEGER,
             has_joeis BOOLEAN,
-            has_formula BOOLEAN
+            has_formula BOOLEAN,
+            "offset" BIGINT,
+            source_keywords VARCHAR,
+            metadata_provenance VARCHAR
         )
     """)
 
@@ -262,7 +265,7 @@ def run_extraction(
     formula_matches = 0
 
     insert_sql = """
-        INSERT INTO sequences VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sequences VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     for oeis_id, terms in stream_stripped(stripped_path):
@@ -272,7 +275,8 @@ def run_extraction(
 
         # Bit width & maximum term
         max_abs = max(abs(x) for x in terms) if terms else 0
-        max_bits = max_abs.bit_length()
+        from oeis_learn.evaluation.source_policy import bit_width
+        max_bits = max(map(bit_width, terms), default=1)
 
         has_j = j_class is not None
         has_f = formula is not None
@@ -295,6 +299,9 @@ def run_extraction(
             max_bits,
             has_j,
             has_f,
+            None,  # stripped/names sources contain no trustworthy offset
+            None,  # inferred tags above are not OEIS source keywords
+            "stripped/names: offset and authoritative keywords unavailable; tags/stage inferred",
         ))
 
         total_processed += 1

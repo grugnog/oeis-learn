@@ -30,7 +30,7 @@ from oeis_learn.experiments.artifacts import (
 from oeis_learn.experiments.config import load_config
 from oeis_learn.experiments.profiles import profile_digests
 from oeis_learn.rl.sft_trainer import teacher_forced_logits
-from oeis_learn.tracking.foundation_metrics import metric, resource_metrics
+from oeis_learn.tracking.foundation_metrics import metric, resource_metrics, PhaseTimer, sensor_metrics
 from oeis_learn.tracking.training_checkpoint import CheckpointStore
 
 
@@ -299,6 +299,7 @@ class FoundationTrainer:
     def update(self):
         if self.completed_update >= self.cfg.data["training"]["updates"]:
             raise ValueError("frozen update budget exhausted")
+        timer = PhaseTimer(self.device)
         batch = self.peek()
         tokens = [[BOS_ID] + x["body_tokens"] for x in batch]
         target = torch.full(
@@ -315,16 +316,16 @@ class FoundationTrainer:
             target,
             device=self.device,
             pad_id=PAD_ID,
+            timer=timer,
         )
         loss = per_program_loss(logits, target[:, 1:])
         if not torch.isfinite(loss):
             raise FloatingPointError("nonfinite training loss")
-        loss.backward()
-        norm = torch.nn.utils.clip_grad_norm_(self.parameters, 1.0, error_if_nonfinite=True)
-        self.optimizer.step()
-        self.optimizer.zero_grad(set_to_none=True)
-        if self.device.type == "cuda":
-            torch.cuda.synchronize(self.device)
+        with timer.phase("backward_optimizer"):
+            loss.backward()
+            norm = torch.nn.utils.clip_grad_norm_(self.parameters, 1.0, error_if_nonfinite=True)
+            self.optimizer.step()
+            self.optimizer.zero_grad(set_to_none=True)
         if any(not bool(torch.isfinite(p).all()) for p in self.parameters):
             raise FloatingPointError("nonfinite model parameters")
         if torch.equal(before, self.decoder.lm_head.weight):
@@ -348,6 +349,8 @@ class FoundationTrainer:
             parameters_changed=True,
             parameter_device=str(self.decoder.lm_head.weight.device),
             resources=resource_metrics(self.device),
+            sensors=sensor_metrics(self.device),
+            phase_timings_ns=timer.values,
         )
 
     def payload(self):

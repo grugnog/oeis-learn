@@ -138,9 +138,9 @@ class RunContext:
         self,
         epoch: int,
         step: int,
-        advantage_collapse_rate: float,
-        modular_filter_rejection_rate: float,
-        diophantine_solve_duration_ms: float,
+        advantage_collapse_rate: Optional[float],
+        modular_filter_rejection_rate: Optional[float],
+        diophantine_solve_duration_ms: Optional[float],
         stage_competence: Dict[str, float],
         additional_metrics: Optional[Dict[str, Any]] = None,
     ) -> None:

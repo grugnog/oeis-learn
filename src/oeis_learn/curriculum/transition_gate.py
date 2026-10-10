@@ -9,8 +9,7 @@ Enforces landmark pre-RL qualification metrics:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
-from oeis_learn.data.models import SyntheticDemonstrationPair
+from typing import Any, Dict, List, Optional
 from oeis_learn.sandbox.runner import WasmRunner
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class TransitionGateEvaluator:
         self.max_acr = max_advantage_collapse_rate
         self.min_grammar = min_grammar_validity
         self.min_pass = min_candidate_pass_rate
-        self.runner = runner or WasmRunner(fuel_budget=10000)
+        self.runner = runner or WasmRunner(fuel_budget=10000, backend="python_wasmtime")
 
     def evaluate_rollouts(
         self,
@@ -43,6 +42,10 @@ class TransitionGateEvaluator:
             target_sequences: List of ground-truth term lists corresponding to each prompt group
         """
         total_groups = len(rollout_groups)
+        if len(target_sequences) != total_groups or any(not group for group in rollout_groups):
+            raise ValueError("nonempty rollout groups and exact target partition required")
+        if any(len(terms) < 20 or any(type(v) is not int for v in terms) for terms in target_sequences):
+            raise ValueError("twenty exact visible terms required")
         if total_groups == 0:
             return {
                 "advantage_collapse_rate": 1.0,
@@ -66,15 +69,15 @@ class TransitionGateEvaluator:
                     terms_to_generate=min(20, len(target_terms)),
                     result_profile="i256x4_v1",
                 )
-                if res.status != "PARSE_ERROR" and res.status != "COMPILE_ERROR":
+                if res.status not in ("PARSE_ERROR", "COMPILE_ERROR", "INVALID_TYPE", "UNSUPPORTED"):
                     valid_grammar_count += 1
 
-                if res.status == "SUCCESS" and res.output == target_terms[: len(res.output)]:
+                if res.status == "SUCCESS" and len(res.output) == 20 and res.output == target_terms[:20]:
                     passed_candidate_count += 1
                     group_successes += 1
 
             # In GRPO, if group_successes == 0, every rollout has reward 0 -> zero advantage variance
-            if group_successes == 0:
+            if group_successes in (0, len(group)):
                 collapsed_group_count += 1
 
         acr = collapsed_group_count / total_groups
@@ -95,4 +98,6 @@ class TransitionGateEvaluator:
             "total_candidates": total_candidates,
             "total_groups": total_groups,
             "collapsed_groups": collapsed_group_count,
+            "qualified": False,
+            "purpose": "legacy_model_prefix_diagnostic",
         }

@@ -34,7 +34,10 @@ checkpoints
 runs
 research
 reports
-.specify
+.specify/*
+!.specify/memory
+.specify/memory/*
+!.specify/memory/constitution.md
 .pi
 
 # Local phase review diagnostics
@@ -44,3 +47,9 @@ phase9-*.log
 debug_stream.py
 .uv-cache
 phase9-evidence
+
+# Disposable review work
+tmp*/
+phase10-*.log
+phase10-*.xml
+phase10-evidence
