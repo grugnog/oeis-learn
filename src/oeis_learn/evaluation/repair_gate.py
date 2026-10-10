@@ -190,7 +190,7 @@ def run_qualification(output):
 
     try:
         rust = subprocess.run(
-            ["cargo", "test", "--locked", "--no-default-features"],
+            ["cargo", "test", "--release", "--locked", "--no-default-features"],
             cwd=ROOT / "crates/oeis_wasm_evaluator",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

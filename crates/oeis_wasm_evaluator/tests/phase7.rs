@@ -32,7 +32,9 @@ fn tee_trap_and_entrypoint() {
         ),
         ("(loop br 0) i64.const 1", ExecutionStatus::OutOfFuel),
     ] {
-        let source = format!("(module (func (export \"compute\") (param i32) (result i64) (local $x i64) {body}))");
+        let source = format!(
+            "(module (func (export \"compute\") (param i32) (result i64) (local $x i64) {body}))"
+        );
         assert_eq!(
             evaluate_profile(&engine, &source, 1000, 2, "i64_scalar_v1").status,
             status
