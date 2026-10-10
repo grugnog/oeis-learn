@@ -541,3 +541,56 @@ class StreamController:
         if result.get("cost_kind") == "charged_upper_bound" or result["checkpoint"] is None:
             self.exhausted = True
         return result
+
+
+def _random_access(source, indices, limits, backend):
+    runtime = LogicalRuntime(source, limits, backend)
+    if runtime.program.profile != "stream":
+        raise ValueError("stream random-access adapter required")
+    outputs = []
+    outcome = reason = None
+    try:
+        for n in indices:
+            runtime.initialize(0)
+            value = None
+            for _ in range(n + 1):
+                value = runtime.next()
+            outputs.append(str(value))
+    except ExecutionFailure as exc:
+        outcome, reason = exc.outcome, exc.reason
+    return {
+        "outputs": outputs,
+        "outcome": outcome,
+        "reason": reason,
+        "fuel": runtime.fuel,
+        "reference_steps": runtime.steps,
+        "execution_mode": "stream_reset_replay_random_access",
+        "identity": identity(source, backend),
+    }
+
+
+def random_access_stream(source, indices, *, limits=LogicalLimits(), backend="python_wasmtime"):
+    """Explicit expensive reset/replay wrapper; never presented as pure O(1) access."""
+    from oeis_learn.sandbox.contained import run_contained
+
+    limits.validate()
+    program = parse_logical(source)
+    if (
+        program.profile != "stream"
+        or not indices
+        or len(indices) > 120
+        or any(type(n) is not int or not 0 <= n < 120 for n in indices)
+    ):
+        raise ValueError("bounded stream replay indices required")
+    status, result = run_contained(
+        _random_access, (source, list(indices), limits, backend), timeout_ms=limits.timeout_ms
+    )
+    return (
+        result
+        if status == "ok"
+        else {
+            "outputs": [],
+            "outcome": "execution_limit" if status == "timeout" else "runtime_failure",
+            "reason": result,
+        }
+    )

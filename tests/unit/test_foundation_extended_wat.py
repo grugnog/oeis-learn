@@ -183,3 +183,13 @@ def test_durable_stream_controller_resume_and_orphan_charge(tmp_path):
     recovered = StreamController(tmp_path / "b", STREAM)
     assert recovered.next_block(3)["outcome"] == "execution_limit"
     assert recovered.next_block(3)["spent_fuel"] == 50000000
+
+
+def test_explicit_random_access_stream_wrapper_charges_reset_replay():
+    from oeis_learn.sandbox.streaming import random_access_stream
+
+    result = random_access_stream(STREAM, [0, 4, 2, 9])
+    assert result["outcome"] is None, result
+    assert result["outputs"] == ["0", "3", "1", "34"]
+    assert result["execution_mode"] == "stream_reset_replay_random_access"
+    assert result["reference_steps"] > next_block(STREAM, 10)["spent_steps"]

@@ -543,7 +543,7 @@ def value_guided_repairs(
     source,
     value_model,
     *,
-    training_view,
+    archive,
     training_snapshot,
     measurement_decision,
     ledger,
@@ -562,9 +562,10 @@ def value_guided_repairs(
         or measurement_decision["branch"] != "value_guided_repair"
         or measurement_decision["disposition"] != "pilot_selected"
         or measurement_decision["baseline_failure_observed"] is not True
-        or measurement_decision["training_snapshot_sha256"] != training_snapshot
+        or measurement_decision["training_snapshot_sha256"] != training_snapshot["root_sha256"]
     ):
         raise ValueError("measured training-only value pilot gate required")
+    training_view = dict(archive.training_view(training_snapshot))
     if not training_view or any(
         not e["entry"]["training_eligible"] for e in training_view.values()
     ):

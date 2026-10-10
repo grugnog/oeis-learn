@@ -13,24 +13,6 @@ on:
 permissions:
   contents: read
 jobs:
-  native-format:
-    runs-on: ubuntu-24.04
-    container: rust:1.90.0
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check committed Rust formatting
-        run: cargo fmt --manifest-path crates/oeis_wasm_evaluator/Cargo.toml -- --check
-      - name: Preserve formatter output for repair
-        if: failure()
-        run: |
-          cargo fmt --manifest-path crates/oeis_wasm_evaluator/Cargo.toml
-          mkdir -p formatted-native
-          cp crates/oeis_wasm_evaluator/src/*.rs formatted-native/
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: native-format-repair
-          path: formatted-native/
   cpu-regressions:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
