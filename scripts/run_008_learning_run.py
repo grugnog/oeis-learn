@@ -56,6 +56,10 @@ from oeis_learn.evaluation.protocol import EvaluationProtocol
 from oeis_learn.evaluation.readiness import evaluate_readiness_policy, load_readiness_policy
 from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
+from oeis_learn.evaluation.legacy_wrappers import (
+    load_legacy_configuration, require_legacy_parent, complete_legacy_run,
+    legacy_readiness_metrics,
+)
 from oeis_learn.rl.sft_trainer import SftTrainer
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 from oeis_learn.sandbox.runner import WasmRunner
@@ -92,8 +96,7 @@ def run_008(
     # 1. Load Configuration
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found: {config_path}")
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg: Dict[str, Any] = yaml.safe_load(f) or {}
+    cfg = load_legacy_configuration(config_path)
 
     train_cfg = cfg.get("training", {})
     model_cfg = cfg.get("model", {})
@@ -110,6 +113,7 @@ def run_008(
     run_manager = RunManager()
     ctx = run_manager.get_or_create_run(run_id=run_id, name=name, config=cfg) if resume else run_manager.create_run(run_id=run_id, name=name, config=cfg)
     logger = setup_logger(str(ctx.log_file))
+    ctx.set_qualification_state("legacy_unverified")
     ctx.set_status("RUNNING")
 
     start_epoch = 1
@@ -138,12 +142,14 @@ def run_008(
                             pass
             logger.info(f"Previous elapsed duration detected: {previous_elapsed_h:.2f}h")
 
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Starting OEIS-Learn Run {ctx.metadata.run_id}: {ctx.metadata.name} (Resume={resume}, Start Epoch={start_epoch})")
     logger.info(f"Target Duration: 8-10 Hours ({epochs} epochs x {steps_per_epoch} steps = {epochs * steps_per_epoch} decisions)")
     logger.info(f"Run Directory: {ctx.run_dir}")
     logger.info(f"Device: {device} | Host: {ctx.metadata.host.get('system')} {ctx.metadata.host.get('release')}")
     logger.info(f"Active Checkpoint: {warmstart_checkpoint}")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     # 3. Model Architecture Configurations
@@ -371,9 +377,11 @@ def run_008(
         logger.info(f"Resumed baseline competence: C(S1)={c1_res:.3f} (min cov: {min_cov1_res:.2f}), C(S2)={c2_res:.3f}")
 
     # 9. Main Reinforcement Learning Loop with Adaptive Orchestrator
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Beginning Run 008 RL Training: {epochs} Epochs x {steps_per_epoch} Steps (Starting Epoch {start_epoch})")
     logger.info(f"Curriculum Focus: Stage 1 & Stage 2 | Dynamic Group Budget: 32 Rollouts/step")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     t_init = float(train_cfg.get("sampling_temperature_initial", 0.70))
@@ -385,7 +393,9 @@ def run_008(
 
     benchmark_manifest = load_benchmark_manifest(manifest_path) if os.path.exists(manifest_path) else None
 
+    epoch_metrics = []
     for epoch in range(start_epoch, epochs + 1):
+        epoch_metrics = []
         epoch_start = time.time()
         # Temperature cosine annealing
         progress = (epoch - 1) / max(1, epochs - 1)
@@ -399,6 +409,7 @@ def run_008(
             global_step += 1
             step_res = orchestrator.execute_step(trainer=trainer, current_step=global_step, epoch=epoch)
             metrics = step_res.get("step_metrics", [])
+            epoch_metrics.extend(metrics)
             for m in metrics:
                 step_losses.append(m.get("loss", 0.0))
                 step_pass_rates.append(m.get("pass_rate", 0.0))
@@ -482,8 +493,10 @@ def run_008(
                 logger.info(f"Benchmark Audit @ Epoch {epoch}: {bench_passes}/{len(eval_canaries)} Canaries Extrapolated 100 Terms")
 
     # 10. Post-Run Final Artifact Generation & Readiness Gating
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info("Training Completed. Running Comprehensive Evaluation & Readiness Verification...")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     final_v2_path = ctx.get_checkpoint_path("model_final.v2.pt")
@@ -550,19 +563,14 @@ def run_008(
         manifest_path=manifest_path,
         device=device,
     )
-    save_authoritative_json(discovery_res, str(ctx.reports_dir / "discovery_report_v1.json"), schema_name="discovery-report")
+    save_authoritative_json(discovery_res.to_dict() if hasattr(discovery_res, "to_dict") else discovery_res, str(ctx.reports_dir / "discovery_report_v1.json"), schema_name="discovery-report")
     project_discovery_markdown(discovery_res, output_path=str(ctx.theorems_path))
 
     # Evaluate Readiness Policy
     final_c1, final_cov1 = scheduler.compute_stage_competence(1)
-    readiness_metrics = {
-        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate) if trainer.telemetry.latest_record else None,
-        "stage1_rolling_competence": float(final_c1),
-        "stage1_minimum_coverage": float(final_cov1),
-        "stage1_competence_variance": float(scheduler.compute_epoch_variance()),
-        "stage1_synthesis_pass_rate": float(epoch_pass_rates[-1]),
-        "advantage_collapse_rate": float(trainer.telemetry.current_acr),
-    }
+    readiness_metrics = legacy_readiness_metrics(
+        trainer, scheduler, epoch_metrics, epoch_pass_rates)
+
 
     if os.path.exists(readiness_policy_path):
         policy = load_readiness_policy(readiness_policy_path)
@@ -597,11 +605,13 @@ def run_008(
         "final_loss": round(epoch_losses[-1], 4),
         "proven_theorems": discovery_res["summary"]["symbolically_proven"],
     })
-    ctx.set_status("COMPLETED")
+    complete_legacy_run(ctx)
 
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Run {ctx.metadata.run_id} Finished Successfully in {total_hours:.2f} hours.")
     logger.info(f"All artifacts saved to {ctx.run_dir}")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     return 0
 

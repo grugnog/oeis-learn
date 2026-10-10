@@ -34,6 +34,11 @@ _SUPPORTED_COMMANDS = frozenset(
         "inspect",
         "measure",
         "census",
+        "prepare-release",
+        "prepare-measurement",
+        "qualify-baseline",
+        "diagnose-overflow",
+        "coordinated-smoke",
     }
 )
 _UNSUPPORTED_COMMANDS = {}
@@ -136,6 +141,11 @@ def dispatch(command: str, **kwargs) -> int:
         "inspect": cmd_inspect,
         "measure": cmd_measure,
         "census": cmd_census,
+        "prepare-release": cmd_prepare_release,
+        "prepare-measurement": cmd_prepare_measurement,
+        "qualify-baseline": cmd_qualify_baseline,
+        "diagnose-overflow": cmd_diagnose_overflow,
+        "coordinated-smoke": cmd_coordinated_smoke,
     }[command](**{k: v for k, v in kwargs.items() if v is not None})
 
 
@@ -736,12 +746,24 @@ def cmd_discover(archive, discovery_gate_report, output, holdouts=None, as_json=
 
 def cmd_measure(manifest, output, dry_run=False, as_json=False):
     from oeis_learn.evaluation.experiment_runner import measure
+
     try:
-        report=measure(load_json(Path(manifest).read_bytes()),Path(output),dry_run=dry_run)
-        code=3 if report['status']=='hardware_unavailable' else 5 if report['status']=='interrupted' else 0
-    except (ValueError,OSError) as exc:
-        report=dict(command='measure',status='invalid_input',qualified=False,reason=str(exc))
-        code=2
+        report = measure(
+            load_json(Path(manifest).read_bytes()),
+            Path(output),
+            dry_run=dry_run,
+            source_root=Path(manifest).parent,
+        )
+        code = (
+            3
+            if report["status"] == "hardware_unavailable"
+            else 5
+            if report["status"] in ("interrupted", "failed_gate")
+            else 0
+        )
+    except (ValueError, OSError) as exc:
+        report = dict(command="measure", status="invalid_input", qualified=False, reason=str(exc))
+        code = 2
     print(json.dumps(report) if as_json else f"{report['status']}: {report}")
     return code
 
@@ -750,17 +772,113 @@ def cmd_census(source, output, as_json=False):
     from oeis_learn.evaluation.source_policy import analyze_sequence_cohort
     from oeis_learn.evaluation.foundation_cohort import write_json
     from oeis_learn.experiments.artifacts import compute_file_hash
+
     try:
-        path=Path(source).resolve(strict=True)
-        rows=load_json(path.read_bytes())
-        if not isinstance(rows,list):
-            raise ValueError('source census requires a record array')
-        report=dict(command='census',status='complete',source_path=str(path),source_sha256=compute_file_hash(path),
-                    qualified=False,**analyze_sequence_cohort(rows))
-        write_json(Path(output),'census.json',report)
-        code=0
-    except (ValueError,OSError,KeyError,TypeError) as exc:
-        report=dict(command='census',status='invalid_input',qualified=False,reason=str(exc))
-        code=2
+        path = Path(source).resolve(strict=True)
+        rows = load_json(path.read_bytes())
+        if not isinstance(rows, list):
+            raise ValueError("source census requires a record array")
+        report = dict(
+            command="census",
+            status="complete",
+            source_path=str(path),
+            source_sha256=compute_file_hash(path),
+            qualified=False,
+            **analyze_sequence_cohort(rows),
+        )
+        write_json(Path(output), "census.json", report)
+        code = 0
+    except (ValueError, OSError, KeyError, TypeError) as exc:
+        report = dict(command="census", status="invalid_input", qualified=False, reason=str(exc))
+        code = 2
     print(json.dumps(report) if as_json else f"{report['status']}: {report}")
     return code
+
+
+def cmd_prepare_release(manifest, config, output, as_json=False):
+    from oeis_learn.evaluation.release_source import prepare_release
+
+    return _phase4_command(
+        "prepare-release", lambda: prepare_release(manifest, config, output), as_json
+    )
+
+
+def cmd_prepare_measurement(
+    archive,
+    cohort,
+    gate_report,
+    learning_gate_report,
+    image,
+    output,
+    baseline_report,
+    baseline_checkpoint,
+    holdouts=None,
+    as_json=False,
+):
+    from oeis_learn.evaluation.measurement_inputs import prepare_measurement
+    from oeis_learn.discovery.program_archive import ProgramArchive
+    from oeis_learn.experiments.learning_profiles import load_holdouts
+
+    selected = None if holdouts is None else load_holdouts(load_json(Path(holdouts).read_bytes()))
+    return _phase4_command(
+        "prepare-measurement",
+        lambda: prepare_measurement(
+            ProgramArchive(archive, holdouts=selected),
+            cohort,
+            gate_report,
+            learning_gate_report,
+            Path(gate_report).parent,
+            image,
+            output,
+            baseline_report=baseline_report,
+            baseline_checkpoint=baseline_checkpoint,
+        ),
+        as_json,
+    )
+
+
+def cmd_qualify_baseline(checkpoint, run_dir, preflight, suites, output, as_json=False):
+    from oeis_learn.evaluation.baseline_gate import assemble_baseline_bundle
+
+    return _phase4_command(
+        "qualify-baseline",
+        lambda: assemble_baseline_bundle(
+            checkpoint, run_dir, preflight, load_json(Path(suites).read_bytes()), output
+        ),
+        as_json,
+    )
+
+
+def cmd_diagnose_overflow(
+    strata, output, provenance=None, archive=None, holdouts=None, development=None, as_json=False
+):
+    from oeis_learn.evaluation.overflow_diagnostics import diagnose_overflow
+    from oeis_learn.discovery.program_archive import ProgramArchive
+    from oeis_learn.experiments.learning_profiles import load_holdouts
+
+    def action():
+        policy = None if holdouts is None else load_holdouts(load_json(Path(holdouts).read_bytes()))
+        selected = None if archive is None else ProgramArchive(archive, holdouts=policy)
+        return diagnose_overflow(
+            load_json(Path(strata).read_bytes()),
+            output,
+            archive=selected,
+            development=development,
+            provenance_packets=None
+            if provenance is None
+            else load_json(Path(provenance).read_bytes()),
+        )
+
+    return _phase4_command("diagnose-overflow", action, as_json)
+
+
+def cmd_coordinated_smoke(config, pool, image, output, seconds=600, resume_run=None, as_json=False):
+    from oeis_learn.evaluation.coordinated_smoke import coordinated_smoke
+
+    return _phase4_command(
+        "coordinated-smoke",
+        lambda: coordinated_smoke(
+            config, pool, image, output, seconds=seconds, resume_run=resume_run
+        ),
+        as_json,
+    )

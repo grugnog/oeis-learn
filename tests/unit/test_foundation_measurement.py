@@ -128,3 +128,19 @@ def test_replayed_cpu_learning_evidence_keeps_hardware_pending(tmp_path, monkeyp
     assert report["gates"]["G8"]["status"] == "pending"
     assert report["gates"]["G8"]["software_status"] == "PASS"
     assert not report["full_release_qualified"]
+
+
+def test_real_stream_retry_restores_state_and_charges_both_attempts():
+    from oeis_learn.sandbox.streaming import next_block
+
+    source = "(stream (init (set 0 (const 0))) (next (set 0 (add (get 0) (const 1))) (repeat 40 (repeat 40 (set 1 (add (get 1) (const 1))))) (return (get 0))))"
+    result = next_block(source, 2)
+    assert result["outcome"] is None and result["outputs"] == ["1", "2"]
+    calls = [r for r in result["telemetry"]["calls"] if r["call"] == "next"]
+    assert [r["tier"] for r in calls] == [100000, 250000, 100000, 250000]
+    assert (
+        calls[0]["production_outcome"] == "execution_limit"
+        and calls[0]["reference_outcome"] is None
+    )
+    assert result["spent_fuel"] == sum(r["fuel"] for r in result["telemetry"]["calls"])
+    assert result["spent_fuel"] > sum(r["fuel"] for r in calls if r["production_outcome"] is None)

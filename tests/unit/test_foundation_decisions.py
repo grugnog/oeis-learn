@@ -137,3 +137,17 @@ def test_not_triggered_selection_is_frozen_even_when_no_contrast(tmp_path):
     restored = PilotSchedule(tmp_path, "fixture", clock=lambda: 0)
     with pytest.raises(ValueError, match="one post"):
         restored.select({"encoder_collisions": 1})
+
+
+def test_primary_rate_uses_actual_charged_duration_and_count_nonregression():
+    from oeis_learn.experiments.decisions import useful_effect, decision_records
+    from oeis_learn.evaluation.experiment_runner import fixture_manifest
+    assert useful_effect(100,100,3300,3000)
+    assert not useful_effect(100,105,3000,3300)
+    assert not useful_effect(100,99,3300,2000)
+    pairs=[(100,100)]*3
+    durations=[(3300,3000)]*3
+    assert paired_disposition(pairs,durations) == "adopted"
+    records=decision_records(fixture_manifest()["identities"],{"encoder_collisions":1},pairs,durations=durations)
+    assert records[0]["status"] == "adopted"
+    assert records[0]["paired_results"][0]["baseline_charged_ns"] == 3300

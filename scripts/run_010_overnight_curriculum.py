@@ -57,6 +57,10 @@ from oeis_learn.evaluation.protocol import EvaluationProtocol
 from oeis_learn.evaluation.readiness import evaluate_readiness_policy, load_readiness_policy
 from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
+from oeis_learn.evaluation.legacy_wrappers import (
+    load_legacy_configuration, require_legacy_parent, complete_legacy_run,
+    legacy_readiness_metrics,
+)
 from oeis_learn.rl.sft_trainer import SftTrainer
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 from oeis_learn.sandbox.runner import WasmRunner
@@ -90,8 +94,7 @@ def run_010(
     override_epochs: Optional[int] = None,
 ) -> None:
     # 1. Load Configuration
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg: Dict[str, Any] = yaml.safe_load(f) or {}
+    cfg = load_legacy_configuration(config_path)
 
     train_cfg = cfg.get("training", {})
     model_cfg = cfg.get("model", {})
@@ -109,6 +112,7 @@ def run_010(
     run_manager = RunManager()
     ctx = run_manager.get_or_create_run(run_id=run_id, name=name, config=cfg)
     logger = setup_logger(str(ctx.log_file))
+    ctx.set_qualification_state("legacy_unverified")
     ctx.set_status("RUNNING")
 
     start_epoch = 1
@@ -136,12 +140,14 @@ def run_010(
                             pass
             logger.info(f"Previous elapsed duration detected: {previous_elapsed_h:.2f}h")
 
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Starting OEIS-Learn Run {ctx.metadata.run_id}: {ctx.metadata.name} (Resume={resume}, Start Epoch={start_epoch})")
     logger.info(f"Target Duration: ~10.5 - 11.5 Hours ({epochs} epochs x {steps_per_epoch} steps = {epochs * steps_per_epoch} decisions)")
     logger.info(f"Run Directory: {ctx.run_dir}")
     logger.info(f"Device: {device} | Host: {ctx.metadata.host.get('system')} {ctx.metadata.host.get('release')}")
     logger.info(f"Warmstart Checkpoint: {warmstart_checkpoint}")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     # 3. Model Architecture Instantiation
@@ -412,9 +418,11 @@ def run_010(
     )
 
     # 9. Main Reinforcement Learning Loop with Adaptive Orchestrator
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Beginning Run 010 RL Training: {epochs} Epochs x {steps_per_epoch} Steps (Start Epoch {start_epoch})")
     logger.info(f"Curriculum: Stages 1 & 2 (100 Sequences) | Headroom: {max_tokens} Tokens | Dynamic Budget: 32 Rollouts/step")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     t_init = float(train_cfg.get("sampling_temperature_initial", 0.80))
@@ -426,7 +434,9 @@ def run_010(
 
     benchmark_manifest = load_benchmark_manifest(manifest_path) if os.path.exists(manifest_path) else None
 
+    epoch_metrics = []
     for epoch in range(start_epoch, epochs + 1):
+        epoch_metrics = []
         epoch_start = time.time()
         # Temperature cosine annealing
         progress = (epoch - 1) / max(1, epochs - 1)
@@ -440,6 +450,7 @@ def run_010(
             global_step += 1
             step_res = orchestrator.execute_step(trainer=trainer, current_step=global_step, epoch=epoch)
             metrics = step_res.get("step_metrics", [])
+            epoch_metrics.extend(metrics)
             for m in metrics:
                 step_losses.append(m.get("loss", 0.0))
                 step_pass_rates.append(m.get("pass_rate", 0.0))
@@ -454,7 +465,7 @@ def run_010(
         c_s2, cov_s2 = scheduler.compute_stage_competence(2)
         c_s3, cov_s3 = scheduler.compute_stage_competence(3)
         min_cov = min(cov_s1, cov_s2, cov_s3)
-        acr_val = 1.0  # Dynamic Grammar Masker enforces AST validity
+        acr_val = trainer.telemetry.current_acr  # observed group variance only
 
         epoch_duration = (time.time() - epoch_start) / 60.0
         total_duration_h = previous_elapsed_h + (epoch * epoch_duration) / 60.0
@@ -519,8 +530,10 @@ def run_010(
                 logger.info(f"Benchmark Audit @ Epoch {epoch}: {bench_passes}/{len(eval_canaries)} Canaries Extrapolated 100 Terms")
 
     # 10. Post-Run Final Artifact Generation & Readiness Gating
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info("Run 010 Training Completed. Running Comprehensive Evaluation & Readiness Verification...")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     final_ckpt = ctx.get_checkpoint_path(f"model_epoch_{epochs:03d}.v2.pt")
@@ -595,15 +608,9 @@ def run_010(
     c1_final, cov1_final = scheduler.compute_stage_competence(1)
     c2_final, cov2_final = scheduler.compute_stage_competence(2)
     c3_final, cov3_final = scheduler.compute_stage_competence(3)
-    readiness_metrics = {
-        "c_s1": c1_final,
-        "c_s2": c2_final,
-        "c_s3": c3_final,
-        "min_coverage": min(cov1_final, cov2_final, cov3_final),
-        "proven_theorems": discovery_res.proven_theorems_count,
-        "conjectures": discovery_res.conjectures_count,
-        "checkpoint_present": os.path.exists(final_ckpt),
-    }
+    readiness_metrics = legacy_readiness_metrics(
+        trainer, scheduler, epoch_metrics, epoch_pass_rates)
+
     readiness_rep = evaluate_readiness_policy(policy, readiness_metrics, run_id=ctx.metadata.run_id)
     save_authoritative_json(readiness_rep.to_dict(), str(ctx.reports_dir / "readiness_report_v1.json"))
 
@@ -632,11 +639,13 @@ def run_010(
             f.write(f"| `{s['oeis_id']}` | `{s['status']}` | `{s['fuel']}` | `{s['extrap_passed']}` | `{s['mdl_ratio']:.2f}` |\n")
 
     ctx.set_qualification_state(readiness_rep.qualification_state)
-    ctx.set_status("COMPLETED")
+    complete_legacy_run(ctx)
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Readiness Policy Qualification State: {ctx.metadata.status} (Overall Passed: {readiness_rep.overall_passed})")
     logger.info(f"Run 010 Finished Successfully in {total_duration_h:.2f} hours.")
     logger.info(f"All artifacts saved to {ctx.run_dir}")
+    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
 

@@ -2,7 +2,7 @@
 
 No Docker socket enters a workload. This launcher exposes only explicit role
 views; the development VM's shared workspace is not a qualifying mount plan.
-Container transport for live evaluator/worker role coordination is not claimed.
+Live role coordination uses role_coordinator without sharing a Docker socket.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import subprocess
 import uuid
 
 
-def container_command(*, role, image, inputs, output, name, command, render_node=None):
+def container_command(*, role, image, inputs, output, name, command, render_node=None, gpu=None):
     if role not in ("learner", "preflight", "generation", "evaluator", "worker"):
         raise ValueError("unknown role")
     if re.fullmatch(r"sha256:[0-9a-f]{64}", image) is None:
@@ -63,7 +63,10 @@ def container_command(*, role, image, inputs, output, name, command, render_node
         "--env",
         "OMP_NUM_THREADS=" + cpus,
     ]
-    if role in ("learner", "preflight"):
+    use_gpu = role in ("learner", "preflight") if gpu is None else gpu
+    if type(use_gpu) is not bool or (use_gpu and role not in ("learner", "preflight", "generation")):
+        raise ValueError("invalid role GPU capability")
+    if use_gpu:
         node = Path(render_node or "/dev/dri/renderD128")
         if re.fullmatch(r"/dev/dri/renderD[0-9]+", str(node)) is None:
             raise ValueError("specific render node required")

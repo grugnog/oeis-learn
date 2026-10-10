@@ -20,34 +20,35 @@ def save_authoritative_json(
     os.makedirs(os.path.dirname(os.path.abspath(json_path)), exist_ok=True)
 
     if schema_name is not None:
-        try:
-            from jsonschema import Draft202012Validator
-            from referencing import Registry, Resource
-            contracts_dir = (
-                Path(__file__).resolve().parent.parent.parent.parent
-                / "specs"
-                / "005-trustworthy-synthesis-readiness"
-                / "contracts"
-            )
-            schema_file = contracts_dir / (
-                schema_name if schema_name.endswith(".schema.json") else f"{schema_name}.schema.json"
-            )
-            if schema_file.exists():
-                with open(schema_file, "r", encoding="utf-8") as sf:
-                    schema_data = json.load(sf)
-                registry = Registry()
-                for s_file in contracts_dir.glob("*.schema.json"):
-                    with open(s_file, "r", encoding="utf-8") as f_s:
-                        sd = json.load(f_s)
-                    res = Resource.from_contents(sd)
-                    if "$id" in sd:
-                        registry = registry.with_resource(sd["$id"], res)
-                    registry = registry.with_resource(s_file.name, res)
-                    registry = registry.with_resource(str(s_file), res)
-                validator = Draft202012Validator(schema_data, registry=registry)
-                validator.validate(data)
-        except Exception:
-            pass
+        from jsonschema import Draft202012Validator
+        from referencing import Registry, Resource
+        contracts_dir = (
+            Path(__file__).resolve().parent.parent.parent.parent
+            / "specs"
+            / "005-trustworthy-synthesis-readiness"
+            / "contracts"
+        )
+        if not contracts_dir.exists():
+            contracts_dir = Path(__file__).parent / "contracts"
+        schema_file = contracts_dir / (
+            schema_name if schema_name.endswith(".schema.json") else f"{schema_name}.schema.json"
+        )
+        if not schema_file.exists():
+            raise FileNotFoundError(f"authoritative schema unavailable: {schema_name}")
+        if schema_file.exists():
+            with open(schema_file, "r", encoding="utf-8") as sf:
+                schema_data = json.load(sf)
+            registry = Registry()
+            for s_file in contracts_dir.glob("*.schema.json"):
+                with open(s_file, "r", encoding="utf-8") as f_s:
+                    sd = json.load(f_s)
+                res = Resource.from_contents(sd)
+                if "$id" in sd:
+                    registry = registry.with_resource(sd["$id"], res)
+                registry = registry.with_resource(s_file.name, res)
+                registry = registry.with_resource(str(s_file), res)
+            validator = Draft202012Validator(schema_data, registry=registry)
+            validator.validate(data)
 
     content = json.dumps(data, indent=2)
     with open(json_path, "w", encoding="utf-8") as f:

@@ -1,25 +1,11 @@
 # Implementation results
 
-## Phase 10 remediation (partial)
+Phase 10 implementation is in [draft PR #11](https://github.com/grugnog/oeis-learn/pull/11). [The review report](phase-10-review.md) records the completed integration, tests and explicit acceptance limits. [The disposition map](phase-10-dispositions.json) preserves all 68 original findings and binds the current implementation hash.
 
-Phase 10 has a separate draft PR: [#11](https://github.com/grugnog/oeis-learn/pull/11).
-See [phase-10-review.md](phase-10-review.md) for repaired defects, requirement/test
-mapping, measured results, reproduction commands and remaining acceptance work.
-[phase-10-dispositions.json](phase-10-dispositions.json) traces all 68 original
-review and decision inputs without inferring runtime qualification from checkboxes.
+The remaining historical-wrapper, telemetry, wider-trace and live-measurement software paths have been implemented. They include source-file replay, shared measured updates, charged stateful retries, provenance-linked tracing, isolated Docker roles, strict GPU smoke, frozen engineering comparisons, a single conditional pilot and replayed G0–G10 readiness. CPU fixtures do not establish GPU performance or learning benefit.
 
-Final code revision `f50f144` passes the [Ubuntu CPU/native workflow](https://github.com/grugnog/oeis-learn/actions/runs/38074159609)
-(680 CPU tests, 54 documented capability skips, mandatory native G7–G9) and the
-[Docker installed-wheel workflow](https://github.com/grugnog/oeis-learn/actions/runs/38074159601)
-(all six standalone cases, zero skips). The local review suite passes 56 tests
-with three native/gate skips. GPU qualification remains separate.
+Current local focused validation: **50 passed, 1 Docker capability skip**, plus one sealed development-scoring regression. The wheel builds and its embedded source/resource inventory validates. Compile, focused lint and document structural checks pass. The broad restricted-host run is recorded candidly in the review report; Ubuntu CI supplies boot-identity/native/container validation.
 
-T094 packaging/native CI and T101 reporting are checked. The remaining phase-10
-source/integration tasks retain partial markers; T099/T100 remain unavailable.
+Current-revision CI is pending publication/inspection. Earlier successful runs recorded under `prior_validation` in the disposition map certify only the earlier code revision.
 
-Phase 10 and full G10 remain **partial**: real release-source evidence, remaining
-wrapper/telemetry/wider-trace integration, coordinated execution, GPU engineering
-and the conditional pilot are outstanding. Existing HIP and production-container
-markers remain pending. Phase 11 has not started. No performance or learning
-adoption is inferred from diagnostic fixtures. Preserve each partial marker until
-its declared acceptance evidence exists.
+T093 and T095–T100/T102 remain half-checked for actual-source, trained-model or GPU acceptance. T094 packaging and T101 reporting remain checked; new packaging/role CI must also pass. The actual release corpus is unavailable here and is a data dependency, not a GPU dependency. Phase 11 has not started. Full 007 release qualification remains pending.

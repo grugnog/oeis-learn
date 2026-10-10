@@ -169,6 +169,7 @@ class EgcaGrpoTrainer:
             PhaseTimer,
             resource_metrics,
             fuel_summary,
+            sensor_metrics,
         )
 
         timer = PhaseTimer(self.device)
@@ -217,7 +218,7 @@ class EgcaGrpoTrainer:
                     if not source:
                         execution = SimpleNamespace(status="INCOMPLETE", output=[], total_fuel=0)
                     else:
-                        evidence = self.wasm_runner.run_single(
+                        evidence = getattr(self.wasm_runner, "run_escalating", self.wasm_runner.run_single)(
                             source, list(range(20)), request_id=f"policy-{self.rollout_cursor}-{i}"
                         ).to_dict()
                         execution = SimpleNamespace(
@@ -354,8 +355,7 @@ class EgcaGrpoTrainer:
                 state="unavailable",
                 reason="per-term fuel not exposed by legacy/incomplete execution",
             ),
-            "thermal": dict(state="unavailable", reason="no supported sensor probe"),
-            "power": dict(state="unavailable", reason="no supported sensor probe"),
+            **sensor_metrics(self.device),
             "solver_durations_ms": [
                 r.solve_duration_ms for r in self.last_grounding_results if r is not None
             ],

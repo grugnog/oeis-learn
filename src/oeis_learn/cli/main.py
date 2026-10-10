@@ -305,7 +305,33 @@ def build_parser() -> argparse.ArgumentParser:
         help='Foundation artifact administration commands (T008).',
     )
     foundation_subparsers = foundation_p.add_subparsers(dest='foundation_command')
-    fm_p = foundation_subparsers.add_parser('measure', help='Validate frozen decisions or run explicitly unqualified CPU fixtures.')
+    smoke_p=foundation_subparsers.add_parser('coordinated-smoke',help='Strict three-update GPU smoke under host Docker containment.')
+    for name in ('config','pool','image','output'):
+        smoke_p.add_argument('--'+name,required=True)
+    smoke_p.add_argument('--seconds',type=int,default=600)
+    smoke_p.add_argument('--resume-run')
+    smoke_p.add_argument('--json',dest='as_json',action='store_true')
+    overflow_p = foundation_subparsers.add_parser('diagnose-overflow',help='Trace sealed draws and archive sources under bounded wider arithmetic.')
+    for name in ('strata','output'):
+        overflow_p.add_argument('--'+name,required=True)
+    for name in ('provenance','archive','holdouts','development'):
+        overflow_p.add_argument('--'+name)
+    overflow_p.add_argument('--json',dest='as_json',action='store_true')
+    release_p = foundation_subparsers.add_parser('prepare-release', help='Import hashed indexed release source and freeze affine cohorts.')
+    release_p.add_argument('--manifest', required=True)
+    release_p.add_argument('--config', required=True)
+    release_p.add_argument('--output', required=True)
+    release_p.add_argument('--json', dest='as_json', action='store_true')
+    prep_p = foundation_subparsers.add_parser('prepare-measurement', help='Freeze generic and development-only live measurement capabilities.')
+    for name in ('archive', 'cohort', 'gate-report', 'learning-gate-report', 'image', 'output', 'baseline-report', 'baseline-checkpoint'):
+        prep_p.add_argument('--' + name, required=True)
+    prep_p.add_argument('--holdouts')
+    prep_p.add_argument('--json', dest='as_json', action='store_true')
+    baseline_p = foundation_subparsers.add_parser('qualify-baseline', help='Replay actual run-bound G0-G6 evidence.')
+    for name in ('checkpoint','run-dir','preflight','suites','output'):
+        baseline_p.add_argument('--'+name,required=True)
+    baseline_p.add_argument('--json',dest='as_json',action='store_true')
+    fm_p = foundation_subparsers.add_parser('measure', help='Replay frozen measurements or execute an isolated live capability bundle.')
     fm_p.add_argument('--manifest', required=True)
     fm_p.add_argument('--output', required=True)
     fm_p.add_argument('--dry-run', action='store_true')

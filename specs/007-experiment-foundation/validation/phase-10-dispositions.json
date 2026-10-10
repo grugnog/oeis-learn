@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 10,
-  "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
+  "code_revision": "phase-10-live-integration (see PR head and implementation_sha256)",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Task and review evidence traceability; no runtime or hardware qualification inferred from checklist markers.",
   "full_007_complete": false,
@@ -21,7 +21,9 @@
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
-        "tests/integration/test_foundation_overflow_diagnostics.py"
+        "tests/integration/test_foundation_overflow_diagnostics.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase9-review.md",
@@ -48,6 +50,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -178,6 +182,8 @@
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
         "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -196,10 +202,13 @@
         "T062": "/",
         "T066": "/",
         "T067": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -257,10 +266,13 @@
         "T075": "X",
         "T076": "X",
         "T090": "X",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/phase9-review.md",
@@ -300,7 +312,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase9-review.md",
@@ -316,10 +330,13 @@
         "T065": "X",
         "T068": "X",
         "T078": "/",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -336,12 +353,14 @@
         "T046": "/",
         "T047": " ",
         "T096": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md",
@@ -376,10 +395,13 @@
         "T081": "X",
         "T085": "X",
         "T086": "X",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase9-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -414,12 +436,14 @@
         "T062": "/",
         "T078": "/",
         "T098": "/",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/contract/test_foundation_qualified_cli.py",
-        "tests/unit/test_foundation_decisions.py"
+        "tests/unit/test_foundation_decisions.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
@@ -459,10 +483,13 @@
       "task_states": {
         "T062": "/",
         "T078": "/",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -491,10 +518,13 @@
       "task_states": {
         "T065": "X",
         "T078": "/",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -515,6 +545,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -538,6 +570,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_foundation_source_policy.py",
         "tests/unit/test_readiness_policy.py"
       ],
@@ -579,6 +613,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -601,6 +637,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -631,6 +669,8 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_transition_gate.py",
         "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py",
         "tests/unit/test_readiness_policy.py"
       ],
       "review_evidence_refs": [
@@ -716,7 +756,9 @@
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
         "tests/integration/test_foundation_overflow_diagnostics.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md",
@@ -736,7 +778,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase9-review.md",
@@ -754,7 +798,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -767,12 +813,14 @@
       "rationale": "Historical G16 bottleneck is evidence; actual Ryzen phase timings still required.",
       "task_states": {
         "T096": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -787,10 +835,13 @@
         "T062": "/",
         "T066": "/",
         "T067": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -803,10 +854,13 @@
       "rationale": "Correct aggregate dense attention O(T^3) to O(T^2), not O(T^2) to O(T); no universal speed promise.",
       "task_states": {
         "T066": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -818,10 +872,13 @@
       "design_disposition": "corrected",
       "rationale": "Unverified projection rejected; use measured practical-effect rule.",
       "task_states": {
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
       ]
@@ -834,12 +891,14 @@
       "task_states": {
         "T067": "/",
         "T096": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
@@ -883,10 +942,13 @@
       "design_disposition": "corrected",
       "rationale": "Measure end-to-end and phase costs without multiplying speculative gains.",
       "task_states": {
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
       ]
@@ -916,10 +978,13 @@
         "T040": "/",
         "T043": "/",
         "T078": "/",
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
         "specs/007-experiment-foundation/validation/phase-10-review.md",
@@ -932,10 +997,13 @@
       "design_disposition": "corrected",
       "rationale": "Unsupported bound rejected; synchronized steady-state end-to-end measurements.",
       "task_states": {
-        "T099": "-"
+        "T099": "/"
       },
       "implementation_disposition": "partial_or_pending",
-      "phase10_acceptance_refs": [],
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
+      ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
       ]
@@ -954,7 +1022,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
@@ -969,12 +1039,14 @@
       "task_states": {
         "T070": "X",
         "T098": "/",
-        "T100": "-"
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/contract/test_foundation_qualified_cli.py",
-        "tests/unit/test_foundation_decisions.py"
+        "tests/unit/test_foundation_decisions.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
@@ -994,7 +1066,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/contract/test_foundation_qualified_cli.py",
-        "tests/unit/test_foundation_decisions.py"
+        "tests/unit/test_foundation_decisions.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/phase8-review.md",
@@ -1032,7 +1106,9 @@
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/integration/test_egca_training_step.py",
-        "tests/unit/test_foundation_measurement.py"
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md",
@@ -1099,13 +1175,15 @@
       "rationale": "Frozen question/hypothesis/baseline/variants/manifests/seeds/budgets/metric/effect/stop/inconclusive rules; no final tuning.",
       "task_states": {
         "T098": "/",
-        "T099": "-",
-        "T100": "-"
+        "T099": "/",
+        "T100": "/"
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
         "tests/contract/test_foundation_qualified_cli.py",
-        "tests/unit/test_foundation_decisions.py"
+        "tests/unit/test_foundation_decisions.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md"
@@ -1136,7 +1214,9 @@
       },
       "implementation_disposition": "partial_or_pending",
       "phase10_acceptance_refs": [
-        "tests/integration/test_foundation_overflow_diagnostics.py"
+        "tests/integration/test_foundation_overflow_diagnostics.py",
+        "tests/unit/test_foundation_phase10_integration.py",
+        "tests/unit/test_foundation_roles.py"
       ],
       "review_evidence_refs": [
         "specs/007-experiment-foundation/validation/phase-10-review.md",
@@ -1260,7 +1340,9 @@
       ]
     }
   ],
-  "validation": {
+  "original_inputs": 68,
+  "implementation_sha256": "sha256:dda08822174014398687da063a7d7222ebf4375f5180b881d5ac5fa1b55fc573",
+  "prior_validation": {
     "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
     "local_focused": {
       "passed": 56,
@@ -1284,6 +1366,21 @@
     "g8_software": "PASS",
     "g8_hardware": "PENDING",
     "g9": "PASS",
+    "g10": "PARTIAL"
+  },
+  "validation": {
+    "local_focused": {
+      "passed": 50,
+      "skipped": 1,
+      "scope": "CPU integration; actual Docker capability skipped"
+    },
+    "additional_development_scoring": {
+      "passed": 1
+    },
+    "cpu_ci": "pending current revision",
+    "installed_native_ci": "pending current revision",
+    "gpu_acceptance": "PENDING",
+    "real_release_source": "PENDING",
     "g10": "PARTIAL"
   }
 }

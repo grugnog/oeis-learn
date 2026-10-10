@@ -249,17 +249,18 @@ class SearchSession:
             type(v) is not int or not I256_MIN <= v <= I256_MAX for v in visible
         ):
             raise ValueError("search sees exactly twenty signed256 values")
-        if portfolio not in ("portfolio32", "baseline16", "greedy"):
+        if portfolio not in ("portfolio32", "sampling32", "baseline16", "greedy"):
             raise ValueError("frozen supported portfolio required")
         self.visible = tuple(visible)
         self.ledger = ledger or SearchLedger(
             max_attempts=16 if portfolio == "baseline16" else 1 if portfolio == "greedy" else 32
         )
-        maximum = 32 if portfolio == "portfolio32" else 16 if portfolio == "baseline16" else 1
+        maximum = 32 if portfolio in ("portfolio32", "sampling32") else 16 if portfolio == "baseline16" else 1
         if self.ledger.max_attempts != maximum:
             raise ValueError("portfolio attempt allocation and shared budget differ")
         self.portfolio, self.seed = portfolio, seed
         self.cursor, self.results, self.seen, self.frontier = 0, [], set(), []
+        self.phase_timings_ns = {}
         if retrieval:
             raise ValueError("retrieval must use a verified frozen archive capability")
         self.retrieval = ()
@@ -285,7 +286,7 @@ class SearchSession:
             return {"status": "duplicate_source", "source": canonical, "provenance": provenance}
         self.seen.add(key)
         self.ledger.charge()  # deadline before every final execution
-        evidence = runner.run_single(
+        evidence = getattr(runner, "run_escalating", runner.run_single)(
             canonical,
             list(range(20)),
             request_id=f"search-{self.seed}-{self.cursor}",
@@ -356,21 +357,27 @@ class SearchSession:
 
     def step(self, proposer, runner):
         maximum = (
-            32 if self.portfolio == "portfolio32" else 16 if self.portfolio == "baseline16" else 1
+            32 if self.portfolio in ("portfolio32", "sampling32") else 16 if self.portfolio == "baseline16" else 1
         )
         if self.cursor >= maximum:
             return None
         self.ledger.charge(attempts=1)
+        from oeis_learn.tracking.foundation_metrics import PhaseTimer
+
+        device = next(proposer.encoder.parameters()).device if hasattr(proposer, "encoder") else "cpu"
+        timer = PhaseTimer(device)
         slot = self.cursor
         self.cursor += 1  # spent attempts are never refunded
         try:
-            if self.portfolio == "greedy" or slot < 16:
-                source, provenance = proposer.stochastic(
-                    self.visible, self.seed + slot, self.ledger, greedy=self.portfolio == "greedy"
-                )
+            if self.portfolio in ("greedy", "sampling32") or slot < 16:
+                with timer.phase("generation"):
+                    source, provenance = proposer.stochastic(
+                        self.visible, self.seed + slot, self.ledger, greedy=self.portfolio == "greedy"
+                    )
             elif slot < 24:
                 if slot == 16:
-                    self.frontier = list(proposer.beam(self.visible, self.ledger, count=8))
+                    with timer.phase("generation_beam"):
+                        self.frontier = list(proposer.beam(self.visible, self.ledger, count=8))
                 source, provenance = (
                     self.frontier.pop(0)
                     if self.frontier
@@ -432,13 +439,16 @@ class SearchSession:
                                 "snapshot": deepcopy(self.archive_snapshot),
                             }
                         )
-            result = (
-                self._execute(source, provenance, runner)
-                if source
-                else {"status": "incomplete", "provenance": provenance}
-            )
+            with timer.phase("runtime_and_evidence"):
+                result = (
+                    self._execute(source, provenance, runner)
+                    if source
+                    else {"status": "incomplete", "provenance": provenance}
+                )
         except SearchExhausted:
             result = {"status": "budget_exhausted"}
+        for name, duration in timer.values.items():
+            self.phase_timings_ns[name] = self.phase_timings_ns.get(name, 0) + duration
         self.results.append(result)
         return deepcopy(result)
 
@@ -453,14 +463,17 @@ class SearchSession:
     def report(self):
         return {
             "version": "bounded-search/v1",
-            "label": "model-only" if self.portfolio in ("baseline16", "greedy") else "model+search",
+            "label": "model-only" if self.portfolio in ("sampling32", "baseline16", "greedy") else "model+search",
             "portfolio": self.portfolio,
             "requested_attempts": 32
-            if self.portfolio == "portfolio32"
+            if self.portfolio in ("portfolio32", "sampling32")
             else 16
             if self.portfolio == "baseline16"
             else 1,
             "spent": self.ledger.state_dict(),
+            "phase_timings_ns": dict(self.phase_timings_ns),
+            "fuel": __import__("oeis_learn.tracking.foundation_metrics", fromlist=["fuel_summary"]).fuel_summary(
+                [v for r in self.results for v in r.get("execution", {}).get("fuel_terms", [])], limit=1000000),
             "results": deepcopy(self.results),
             "comparison_key": digest(
                 [
@@ -475,6 +488,7 @@ class SearchSession:
     def state_dict(self):
         return {
             "version": "search-session/v1",
+            "phase_timings_ns": dict(self.phase_timings_ns),
             "visible": list(self.visible),
             "portfolio": self.portfolio,
             "seed": self.seed,
@@ -520,6 +534,7 @@ class SearchSession:
             or len(state["results"]) != state["cursor"]
         ):
             raise ValueError("incomplete search boundary cannot resume")
+        obj.phase_timings_ns = dict(state.get("phase_timings_ns", {}))
         obj.cursor, obj.results, obj.seen, obj.frontier = (
             state["cursor"],
             deepcopy(state["results"]),

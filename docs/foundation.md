@@ -167,3 +167,35 @@ keeps verified G8 software separate from pending hardware. Missing G0–G6 or fu
 G10 evidence prevents release authorization. The [input disposition report](../specs/007-experiment-foundation/validation/phase-10-dispositions.json)
 records all 68 review inputs and task states; a checkbox or diagnostic timer
 cannot substitute for an executable gate.
+
+### Phase 10 live integration
+
+The phase 10 implementation now provides `foundation prepare-release`,
+`diagnose-overflow`, `coordinated-smoke`, `qualify-baseline`,
+`prepare-measurement` and `measure`. Use `--help` for the closed arguments.
+Source preparation requires hashed indexed term files and authoritative metadata;
+its audit replays the original files, grouping and archive holdouts. Real source
+inputs remain necessary even on a CPU host.
+
+`coordinated-smoke` requires an explicit resolved ROCm image and generic pool.
+It runs the three-update smoke under host Docker containment. GPU acceptance
+uses `OEIS_GPU_ROLE_IMAGE` with the separately marked actual HIP test. Its
+checkpoint is under `OUTPUT/smoke/run/checkpoints/`; `--resume-run` points to the
+previous `OUTPUT/smoke/run` and preserves its budget and state.
+
+`qualify-baseline --suites` takes a JSON map of G1–G6 JUnit paths plus
+`native_parity` and `containment` paths. The latter is the executed
+`coordinated-smoke.json`, bound to that GPU checkpoint. Missing/skipped mandatory
+suites, CPU checkpoint labels or unmeasured containment cannot authorize it.
+`prepare-measurement` must run in the same image/runtime as its replayed gate
+artifacts and requires `--baseline-report`, `--baseline-checkpoint`, G7/G8,
+real release cohort and archive; provide the archive's explicit `--holdouts`
+profile when it uses release prefixes. The host `measure` command receives that
+bundle's `manifest-input.json`; roles independently replay prerequisites.
+
+The live path enforces the two-hour engineering cap and six-hour diagnostic/one
+contrast cap. It never carries final truth into measurement assets. CPU workers
+use persistent native caches and host kill deadlines. GPU, real release-source
+and trained-model acceptance remain half-checked. See the current
+[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
+for the exact remaining evidence; no performance or learning adoption is claimed.

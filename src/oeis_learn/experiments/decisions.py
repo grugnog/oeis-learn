@@ -136,9 +136,19 @@ def select_trigger(diagnostic):
     return selected, states
 
 
-def useful_effect(baseline, challenger):
+def useful_effect(baseline, challenger, baseline_ns=None, challenger_ns=None):
     if any(type(v) is not int or v < 0 for v in (baseline, challenger)):
         raise ValueError("unique solved-group counts must be nonnegative exact integers")
+    if baseline_ns is not None or challenger_ns is not None:
+        if any(type(v) is not int or v <= 0 for v in (baseline_ns, challenger_ns)):
+            raise ValueError("positive charged arm durations required")
+        if challenger < baseline:
+            return False
+        return (
+            challenger - baseline >= 2
+            if baseline == 0
+            else 100 * challenger * baseline_ns >= 105 * baseline * challenger_ns
+        )
     return (
         challenger - baseline >= 2
         if baseline == 0
@@ -146,10 +156,15 @@ def useful_effect(baseline, challenger):
     )
 
 
-def paired_disposition(pairs):
+def paired_disposition(pairs, durations=None):
     if not isinstance(pairs, list) or len(pairs) > 3:
         raise ValueError("at most three paired seeds")
-    effects = [useful_effect(*pair) for pair in pairs]
+    if durations is not None and len(durations) != len(pairs):
+        raise ValueError("paired duration denominator mismatch")
+    effects = [
+        useful_effect(*pair, *(durations[i] if durations is not None else ()))
+        for i, pair in enumerate(pairs)
+    ]
     if not effects:
         return "inconclusive"
     if not effects[0]:
@@ -165,7 +180,16 @@ def paired_disposition(pairs):
     )
 
 
-def decision_records(identities, diagnostic=None, pairs=(), *, charged_ns=0, failure=None):
+def decision_records(
+    identities,
+    diagnostic=None,
+    pairs=(),
+    *,
+    charged_ns=0,
+    failure=None,
+    durations=None,
+    profile_identities=None,
+):
     selected, states = select_trigger(diagnostic or {})
     diagnostic_hash = digest(diagnostic) if diagnostic is not None else None
     records = []
@@ -173,7 +197,7 @@ def decision_records(identities, diagnostic=None, pairs=(), *, charged_ns=0, fai
         state = states[key]
         reason = "required diagnostic unavailable"
         if state == "selected":
-            state = paired_disposition(list(pairs))
+            state = paired_disposition(list(pairs), durations)
             reason = "paired useful-effect and aggregate nonregression rule"
         elif state == "not_triggered":
             reason = "measured trigger condition false"
@@ -186,8 +210,12 @@ def decision_records(identities, diagnostic=None, pairs=(), *, charged_ns=0, fai
                 "experiment_decision",
                 question=key,
                 hypothesis="bounded contrast: " + key,
-                baseline_sha256=identities["model"],
-                challenger_sha256=digest([identities["model"], key]),
+                baseline_sha256=(profile_identities or {}).get(
+                    key, (identities["model"], digest([identities["model"], key]))
+                )[0],
+                challenger_sha256=(profile_identities or {}).get(
+                    key, (identities["model"], digest([identities["model"], key]))
+                )[1],
                 code_sha256=identities["code"],
                 runtime_sha256=identities["runtime"],
                 data_sha256=identities["data"],
@@ -202,7 +230,20 @@ def decision_records(identities, diagnostic=None, pairs=(), *, charged_ns=0, fai
                 active_ns=charged_ns,
                 charged_ns=charged_ns,
                 paired_results=[
-                    dict(seed=7001 + i, baseline=b, challenger=c) for i, (b, c) in enumerate(pairs)
+                    dict(
+                        seed=7001 + i,
+                        baseline=b,
+                        challenger=c,
+                        **(
+                            {
+                                "baseline_charged_ns": durations[i][0],
+                                "challenger_charged_ns": durations[i][1],
+                            }
+                            if durations is not None
+                            else {}
+                        ),
+                    )
+                    for i, (b, c) in enumerate(pairs)
                 ]
                 if key == selected
                 else [],
@@ -246,6 +287,7 @@ class PilotSchedule:
         self.selection_recorded = False
         self.diagnostic_done = False
         self.pairs = []
+        self.durations = []
         self.pending = None
         for name, event in self.log.events.items():
             if name == "binding":
@@ -268,8 +310,10 @@ class PilotSchedule:
                     arm = self.pending["arm"]
                     if arm == "baseline":
                         self.pairs.append([event["solved_groups"], None])
+                        self.durations.append([event["elapsed_ns"], None])
                     else:
                         self.pairs[-1][1] = event["solved_groups"]
+                        self.durations[-1][1] = event["elapsed_ns"]
                 self.pending = None
             elif event["type"] == "select":
                 if self.selection_recorded or not self.diagnostic_done:
@@ -321,7 +365,9 @@ class PilotSchedule:
             if not self.selected:
                 raise ValueError("no triggered contrast")
             completed = [p for p in self.pairs if p[1] is not None]
-            if completed and (not useful_effect(*completed[0]) or len(completed) == 3):
+            if completed and (
+                not useful_effect(*completed[0], *self.durations[0]) or len(completed) == 3
+            ):
                 raise ValueError("paired stop rule prohibits additional arms")
             arm = "challenger" if self.pairs and self.pairs[-1][1] is None else "baseline"
             index = len(self.pairs) - 1 if arm == "challenger" else len(self.pairs)
@@ -339,6 +385,19 @@ class PilotSchedule:
         self.log.append(task["issued_id"], task)
         self.pending = task
         return dict(task, deadline_ns=task["start_ns"] + task["seconds"] * 10**9)
+
+    def interrupt(self, reason):
+        if not self.pending:
+            return
+        elapsed = self.clock() - self.pending["start_ns"]
+        if elapsed < 0:
+            raise ValueError("backward pilot clock")
+        self.log.append(
+            str(len(self.log.events)), dict(type="interrupted", elapsed_ns=elapsed, reason=reason)
+        )
+        self.charged += elapsed
+        self.pending = None
+        self.interrupted = True
 
     def complete(self, *, solved_groups=None):
         if not self.pending:
@@ -366,6 +425,8 @@ class PilotSchedule:
             self.diagnostic_done = True
         elif self.pending["arm"] == "baseline":
             self.pairs.append([solved_groups, None])
+            self.durations.append([elapsed, None])
         else:
             self.pairs[-1][1] = solved_groups
+            self.durations[-1][1] = elapsed
         self.pending = None

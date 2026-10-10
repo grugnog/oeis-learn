@@ -16,6 +16,16 @@ class QualificationBuild(build_py):
         ]
         path = Path(self.build_lib) / "oeis_learn/experiments/qualification-sources.json"
         path.write_text(json.dumps(collect(root), sort_keys=True, separators=(",", ":")))
+        import shutil
+        governance = Path(self.build_lib) / "oeis_learn/evaluation/governance"
+        governance.mkdir(parents=True, exist_ok=True)
+        for name, source in (("constitution.md", root / ".specify/memory/constitution.md"),
+                             ("adoption.md", root / "specs/007-experiment-foundation/validation/adoption.md")):
+            shutil.copyfile(source, governance / name)
+        schemas = Path(self.build_lib) / "oeis_learn/cli/contracts"
+        schemas.mkdir(parents=True, exist_ok=True)
+        for source in (root / "specs/005-trustworthy-synthesis-readiness/contracts").glob("*.schema.json"):
+            shutil.copyfile(source, schemas / source.name)
 
 
 setup(cmdclass={"build_py": QualificationBuild})

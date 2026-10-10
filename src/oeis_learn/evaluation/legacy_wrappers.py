@@ -80,3 +80,35 @@ def complete_legacy_run(context):
         qualified=False,
         purpose="legacy_unverified",
     )
+
+
+def load_legacy_configuration(path):
+    """One parser for existing launchers; historical contents are preserved verbatim."""
+    import yaml
+    from oeis_learn.experiments.config import _UniqueLoader
+
+    value = yaml.load(Path(path).read_text(), Loader=_UniqueLoader)
+    if not isinstance(value, dict) or not value:
+        raise ValueError("nonempty historical configuration required")
+    return value
+
+
+def require_legacy_parent(path):
+    if path and not Path(path).is_file():
+        raise FileNotFoundError(f"Explicit historical parent checkpoint missing: {path}")
+
+
+def legacy_readiness_metrics(trainer, scheduler, epoch_metrics, pass_rates):
+    observed = epoch_diagnostics(epoch_metrics)
+    competence, coverage = scheduler.compute_stage_competence(1)
+    record = trainer.telemetry.latest_record
+    return dict(
+        runtime_trap_rate=float(record.compiler_trap_rate) if record else None,
+        stage1_rolling_competence=float(competence),
+        stage1_minimum_coverage=float(coverage),
+        stage1_competence_variance=float(scheduler.compute_epoch_variance()),
+        stage1_synthesis_pass_rate=float(pass_rates[-1]) if pass_rates else None,
+        advantage_collapse_rate=observed["advantage_collapse_rate"],
+        diophantine_solve_duration_ms=observed["diophantine_solve_duration_ms"],
+        modular_filter_rejection_rate=observed["modular_filter_rejection_rate"],
+    )

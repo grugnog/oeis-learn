@@ -38,9 +38,26 @@ def collect_snapshot(root):
             and p.name != "qualification-sources.json"
         )
     files.update(root / name for name in ("Dockerfile", "pyproject.toml", "uv.lock", "setup.py"))
-    return {
+    snapshot = {
         str(p.relative_to(root)): file_digest(p.read_bytes()) for p in sorted(files) if p.exists()
     }
+    resources = {
+        "evaluation/governance/constitution.md": root / ".specify/memory/constitution.md",
+        "evaluation/governance/adoption.md": root
+        / "specs/007-experiment-foundation/validation/adoption.md",
+    }
+    resources.update(
+        {
+            "cli/contracts/" + p.name: p
+            for p in (root / "specs/005-trustworthy-synthesis-readiness/contracts").glob(
+                "*.schema.json"
+            )
+        }
+    )
+    snapshot.update(
+        {"src/oeis_learn/" + name: file_digest(p.read_bytes()) for name, p in resources.items()}
+    )
+    return snapshot
 
 
 def source_snapshot():
@@ -59,7 +76,7 @@ def source_snapshot():
         str(p.relative_to(package))
         for p in package.rglob("*")
         if p.is_file()
-        and p.suffix in (".py", ".wat", ".json")
+        and p.suffix in (".py", ".wat", ".json", ".md")
         and p.name != "qualification-sources.json"
     }
     expected = {

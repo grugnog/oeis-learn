@@ -210,3 +210,34 @@ class PhaseTimer:
                 self.values[name] = self.values.get(name, 0) + elapsed
 
         return scope()
+
+
+def sensor_metrics(device="cpu", *, root="/sys/class/drm"):
+    """Read existing AMD hwmon sensors only; ambiguity/missing sensors stay unavailable."""
+    def absent(unit, reason):
+        return metric(None, unit, "amdgpu hwmon", state="unavailable", reason=reason)
+
+    result = dict(thermal=absent("celsius", "no uniquely identified AMD sensor"),
+                  power=absent("watts", "no uniquely identified AMD sensor"))
+    if not str(device).startswith("cuda"):
+        return result
+    candidates = []
+    for directory in Path(root).glob("card[0-9]*/device/hwmon/hwmon*"):
+        try:
+            if (directory / "name").read_text().strip() == "amdgpu":
+                candidates.append(directory.resolve())
+        except OSError:
+            continue
+    candidates = sorted(set(candidates))
+    if len(candidates) != 1:
+        return result
+    for name, filename, scale, unit in (
+        ("thermal", "temp1_input", 1000, "celsius"),
+        ("power", "power1_average", 1000000, "watts"),
+    ):
+        try:
+            value = int((candidates[0] / filename).read_text().strip()) / scale
+            result[name] = metric(value, unit, str(candidates[0] / filename))
+        except (OSError, ValueError):
+            pass
+    return result

@@ -90,6 +90,8 @@ class LogicalRuntime:
         self.ref = LogicalReference(self.program)
         self.fuel = 0
         self.steps = 0
+        self.call_records = []
+        self.call_tier = limits.per_call_fuel
         self.store = None
 
     def fresh(self):
@@ -156,7 +158,7 @@ class LogicalRuntime:
 
         if time.monotonic() >= self.deadline:
             raise ExecutionFailure("execution_limit", "logical deadline")
-        cap = min(self.limits.per_call_fuel, self.limits.aggregate_fuel - self.fuel)
+        cap = min(self.call_tier, self.limits.aggregate_fuel - self.fuel)
         if cap <= 0:
             raise ExecutionFailure("execution_limit", "aggregate fuel")
         if self.backend == "rust":
@@ -196,30 +198,81 @@ class LogicalRuntime:
     def pair(self, name, method, *args):
         from oeis_learn.sandbox.pipeline import decode_limbs
 
-        production_failure = reference_failure = None
-        try:
-            raw = self.call(name, *args)
-            value = None if name == "init" else decode_limbs(raw)
-        except ExecutionFailure as exc:
-            production_failure = exc
-            value = None
-        try:
-            expected = self.reference_call(method, *args)
-        except ExecutionFailure as exc:
-            reference_failure = exc
-            expected = None
-        failures = [e for e in (production_failure, reference_failure) if e]
-        if any(e.outcome == "execution_limit" for e in failures):
-            raise ExecutionFailure("execution_limit", "production/reference limit")
-        if failures:
-            if len(failures) != 2 or failures[0].outcome != failures[1].outcome:
-                raise ExecutionFailure(
-                    "runtime_failure", "production/reference outcome disagreement"
+        # Restore the same pre-call state at each exhaustion-only retry. Prior
+        # consumption remains in self.fuel/self.steps; restoring state refunds nothing.
+        stream = self.program.profile == "stream"
+        before = self.wasm_state() if stream else None
+        ref_before = self.ref.state()
+        tiers = sorted(set(min(t, self.limits.per_call_fuel) for t in (100000, 250000, 1000000)))
+        for tier in tiers:
+            self.call_tier = tier
+            fuel_before, steps_before = self.fuel, self.steps
+            start = time.monotonic_ns()
+            production_failure = reference_failure = None
+            try:
+                raw = self.call(name, *args)
+                value = None if name == "init" else decode_limbs(raw)
+            except ExecutionFailure as exc:
+                production_failure, value = exc, None
+            try:
+                expected = self.reference_call(method, *args)
+            except ExecutionFailure as exc:
+                reference_failure, expected = exc, None
+            self.call_records.append(
+                dict(
+                    call=name,
+                    tier=tier,
+                    fuel_cap=min(tier, self.limits.aggregate_fuel - fuel_before),
+                    fuel=self.fuel - fuel_before,
+                    reference_steps=self.steps - steps_before,
+                    elapsed_ns=time.monotonic_ns() - start,
+                    production_outcome=production_failure.outcome if production_failure else None,
+                    reference_outcome=reference_failure.outcome if reference_failure else None,
                 )
-            raise production_failure
-        if value != expected:
-            raise ExecutionFailure("runtime_failure", "production/reference value disagreement")
-        return value
+            )
+            retry = (
+                production_failure is not None
+                and production_failure.outcome == "execution_limit"
+                and production_failure.reason in ("fuel", "wasmtime_fuel")
+                and reference_failure is None
+                and tier != tiers[-1]
+                and self.fuel < self.limits.aggregate_fuel
+                and self.steps < self.limits.aggregate_steps
+                and time.monotonic() < self.deadline
+            )
+            if retry:
+                if stream:
+                    self.restore_wasm(before)
+                else:
+                    self.fresh()
+                self.ref.restore(ref_before)
+                continue
+            failures = [e for e in (production_failure, reference_failure) if e]
+            if any(e.outcome == "execution_limit" for e in failures):
+                raise ExecutionFailure("execution_limit", "production/reference limit")
+            if failures:
+                if len(failures) != 2 or failures[0].outcome != failures[1].outcome:
+                    raise ExecutionFailure(
+                        "runtime_failure", "production/reference outcome disagreement"
+                    )
+                raise production_failure
+            if value != expected:
+                raise ExecutionFailure("runtime_failure", "production/reference value disagreement")
+            return value
+
+    def telemetry(self):
+        from oeis_learn.tracking.foundation_metrics import fuel_summary
+
+        return dict(
+            calls=self.call_records,
+            fuel=fuel_summary(
+                [r["fuel"] for r in self.call_records], limit=self.limits.per_call_fuel
+            ),
+            spent_fuel=self.fuel,
+            spent_reference_steps=self.steps,
+            near_tier_limit_count=sum(r["fuel"] >= 0.75 * r["fuel_cap"] for r in self.call_records),
+            rollback="pre-call state; consumption retained",
+        )
 
     def initialize(self, index):
         self.fresh()
@@ -304,6 +357,7 @@ def _stream_block(source, count, start, checkpoint, limits, backend):
             "reason": reason,
             "outputs": [],
             "checkpoint": None,
+            "telemetry": runtime.telemetry(),
             "spent_fuel": runtime.fuel,
             "spent_steps": runtime.steps,
             "failure_index": start,
@@ -323,6 +377,7 @@ def _stream_block(source, count, start, checkpoint, limits, backend):
         "reason": reason,
         "outputs": new,
         "checkpoint": record,
+        "telemetry": runtime.telemetry(),
         "spent_fuel": runtime.fuel,
         "spent_steps": runtime.steps,
         "failure_index": start + len(previous) + len(new) if outcome else None,
@@ -396,6 +451,7 @@ def _pure(source, indices, limits, backend):
         "outcome": outcome,
         "reason": reason,
         "failure_index": failure,
+        "telemetry": runtime.telemetry(),
         "fuel": runtime.fuel,
         "reference_steps": runtime.steps,
     }
@@ -562,6 +618,7 @@ def _random_access(source, indices, limits, backend):
         "outputs": outputs,
         "outcome": outcome,
         "reason": reason,
+        "telemetry": runtime.telemetry(),
         "fuel": runtime.fuel,
         "reference_steps": runtime.steps,
         "execution_mode": "stream_reset_replay_random_access",

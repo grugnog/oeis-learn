@@ -1,162 +1,54 @@
 # Phase 10 review and remediation
 
-Scope: T093–T102 on top of merged phase 9 (`8187772`). Phase 11 is unchanged.
-This review is **partial**, not full 007 qualification. CPU fixture timings and
-record schemas do not establish GPU feasibility, performance or learning benefit.
+Scope: T093–T102 on merged phase 9 (`8187772`), in [PR #11](https://github.com/grugnog/oeis-learn/pull/11). Phase 11 is unchanged. Software implementation and hardware acceptance are separate; this report does not claim full 007 qualification.
 
-## Findings and repairs
+## Implemented integration
 
-- Census coverage included short series in complete-horizon denominators, took
-  absolute values before signed-width testing, and labeled growth from the last
-  value. The shared read-only source policy now uses exact complete 20/50/100/120
-  populations, separates available prefixes, handles signed minima correctly,
-  retains offsets/keywords, and describes the full observed series without an
-  asymptotic claim. The database path is explicit; malformed rows are reported.
-- Extraction silently deleted malformed terms and inferred authoritative-looking
-  `nonn`/`tabl` tags. Malformed terms now fail instead of compressing indices;
-  inferred tags remain explicitly separate from unavailable source keywords and
-  offsets. No source download or real release cohort was performed in this review.
-- Historical baseline cohort IDs remain reproducible. The explicit release profile
-  `prefix20_total100_affine_v2` adds exact nonzero rational affine/shift grouping,
-  verified over the full overlap, with replayable rational witnesses and all-member
-  reserved-prefix membership. Admission accepts this version explicitly.
-- Warmstart repeated a handwritten family in its transition gate. It now samples
-  current model weights with explicit seeds and restores module modes. A missing
-  requested parent is an error. Identical successes have zero reward variance,
-  just as identical failures do. Prefix-only legacy diagnostics cannot authorize
-  Run 011; historical files are inventoried and remain `legacy_unverified`.
-  Gate-only warmstart skips both training stages and preserves nested module
-  modes. Run 011 lifecycle completion and Run 010 summaries no longer grant
-  qualification. Run 008/009/010 no longer submit fixed passing readiness scores;
-  missing/nonfinite observations stay null and fail even upper-bound gates.
-  Existing numeric readiness reports remain valid; null requires a failed gate
-  and explanatory diagnostics under the extended legacy report schema.
-- Gate identity calculation depended on source checkout paths. The wheel embeds a
-  build snapshot of code, owning tests and locks; installed code/resources are
-  checked against it before identity reuse. This snapshot creates no PASS evidence.
-- Added frozen experiment defaults, exact priority and paired useful-effect rules,
-  a durable single-contrast issuance schedule, immutable measure inputs/results,
-  and a bounded actual CPU cache fixture. Missing trigger diagnostics stay
-  inconclusive. A crash cannot regenerate/refund issued work or launch another
-  contrast. The live GPU/pilot adapter remains pending and fails explicitly.
-- Added actual fuel distribution summaries, synchronized phase timers and
-  exhaustion-only 100k/250k/1M fresh-call escalation sharing the 50M aggregate cap.
-  The production pipeline separates prepare/compiled/reference/overhead time;
-  policy updates synchronize encoding/generation/grounding/runtime/forward/backward
-  boundaries and record actual entropy, reward variance, solver durations/outcomes,
-  per-term fuel and resources. Run 011 aggregates actual variance instead of a
-  pass-rate proxy and reports absent filter/sensor observations explicitly.
-  Complete search/stream/SFT integration and sustained hardware observations are
-  still pending; helpers and CPU fixtures alone do not close T096.
-- Added externally bounded logical wider-reference tracing (4096 bits/50M steps),
-  explicit unavailable strata, rescued-output counts and independent in-range-only
-  checked/unchecked alternating benchmarks. Unchecked compiled bytes never leave
-  the benchmark worker. This diagnostic does not verify origin labels as archive
-  evidence; baseline-body/native-word tracing and sealed development scoring are
-  pending and unavailable counts remain null.
+- Indexed source import binds a release manifest, exact indexed term files, authoritative metadata and file hashes. Release audit reopens those files and replays exclusions, affine/shift grouping, all-member reserved prefixes and the frozen training archive's structural split. Stripped samples cannot supply missing offsets or keywords. Empty training archives cannot pass.
+- Existing Run 008/009/010 launchers use shared configuration, explicit-parent, actual readiness and lifecycle services. Resume resolves its checkpoint before checking a parent. Shared SFT updates now cover ordinary SFT, embedding warmup, bridge and verified replay. Historical configurations and `legacy_unverified` status remain explicit. Reporting validates authoritative schemas and includes those schemas in the installed wheel.
+- Neural/search/runtime operations record actual synchronized phases, predictive entropy, population reward variance, solver observations, fuel distributions and resources. Existing AMD hwmon is read when uniquely available; unsupported sensors stay unavailable. Search/policy use deterministic exhaustion-only retries. Stateful streaming restores the pre-call state while retaining every failed attempt's fuel and reference steps.
+- Wider tracing supports logical IR and baseline WAT bodies. Mathematical wide violations and native word wraps are separate. Raw generic/model samples can be provenance-replayed before strict admission, so overflow does not exclude the population being studied. Archive entries replay shared admission checks. Sources are sealed before development truth is read; correlated implementations are deduplicated for rescued-program and unique added-group counts. Unchecked bytes stay inside the independent benchmark worker.
+- A host Docker coordinator owns one bounded main role and at most eight one-GiB CPU workers, with no network, Docker socket, shared writable repository or worker GPU capability. Enumerated views separate learner, generator and development evaluator. Persistent native workers retain compiled caches. Host deadlines, reserve/quota monitors, exclusive-controller checks, durable request/result binding and cgroup reclamation remain outside the learner.
+- `coordinated-smoke` performs the strict three-update GPU smoke inside those boundaries; resume retains the original run/checkpoint/budget journals. `qualify-baseline` binds actual G0–G6 artifacts to the current checkpoint, including native conformance, executed containment, measured GPU updates and owning suites. Lifecycle labels cannot substitute for these records.
+- `prepare-measurement` freezes exactly 128 generic prompts, training/structural-validation views, development-only evaluator data, models, code/runtime/image identities and prerequisite evidence. It requires replayed G0–G8 evidence; preparation runs in the matching image. The host repeats hashes and admission replay, then the GPU probe independently replays the gates and checks actual code/device identity. No final-test truth enters the bundle.
+- Live engineering executes cached/uncached and batch/attention comparisons for seeds 7001–7003, fixed 10 warmups/30 alternating repeats, actual 4/8-worker and fuel horizons, grammar comparison, 32-update precision fixtures, ten-minute steady-state segments and bounded 128/256/512 relation corpora. Each corpus's 60-second allowance includes construction and features. Unsupported context or ABI horizons are explicit shortfalls; a grammar microbenchmark alone cannot authorize end-to-end adoption. No speedup is claimed here.
+- The conditional pilot charges the diagnostic and every setup/update/checkpoint/generation/development operation within the frozen caps. It chooses one contrast, uses matched fresh seeds and common 15/30/45/55 evaluations, admits self-training through the real archive and stores optimizer, reference, curriculum, replay and all active RNG state. Effects use actual charged arm duration with solved-count nonregression; first-pair and confirmation rules are durably enforced. Missing matched structural coverage remains inconclusive. Failures are charged immediately and cannot reissue an arm.
+- Release readiness replays supplied G0–G10 evidence and distinguishes baseline-ready from full-release-qualified. Current dispositions, installed-wheel/native acceptance, Docker role evidence, source audit and measured live results are mandatory. Measurement replay verifies the role-owned results, immutable scheduled evaluations, checkpoint bytes and durable pilot events.
 
-## Validation and reproduction
+## Current validation
+
+- Focused CPU suite: **50 passed, 1 explicit Docker capability skip**; additional sealed development-scoring regression passed. Subsequent owning tests and CI results are recorded in `implementation-results.md`.
+- Actual wheel built locally. Its extracted installed inventory verified all 386 source/resource bindings, including embedded governance and authoritative schemas. Clean-environment native acceptance belongs to the Docker workflow.
+- Compile checks, focused Ruff F/E9 and Spec Kit structural validation passed. Document validation does not execute runtime gates.
+- The broad local suite before final fixes recorded **654 passed, 55 skips, 25 failures and 12 setup errors**. Most failures were blocked by the absent Linux boot ID; several worker startup deadlines also expired in this restricted environment. One real replay-test regression compared fresh telemetry as deterministic state; it was repaired and the owning resume test now passes. The boot guard and production deadlines were retained. This is not a passing local full-suite claim.
+
+## Remaining acceptance
+
+| Task | Outstanding acceptance | GPU needed? |
+| --- | --- | --- |
+| T093 | Actual indexed release corpus, authoritative metadata and real structural-archive audit | No; source files are unavailable here |
+| T095 | Sustained historical launch parity with actual trained weights | Yes for the historical GPU runs |
+| T096 | Actual accelerator synchronization, thermal/power and sustained telemetry | Yes |
+| T097 | Representative source/model/verified strata on real data; interface, trace, provenance and sealed-score fixtures are implemented | Real data/model artifacts needed; CPU tracing is supported |
+| T098 | Live device orchestration acceptance | Yes; CPU transport and actual Docker CI remain independently executable |
+| T099 | Frozen engineering measurements, precision and workstation steady-state | Yes |
+| T100 | Real diagnostic and conditional paired pilot | Yes |
+| T102 | Actual run-bound G0–G10 release authorization | Includes GPU and real-source evidence |
+
+These tasks retain `[/]`; T099/T100 now have executable adapters rather than unavailable implementations. No hardware result is inferred from a fixture or a checklist. Only the existing LODA dispositions remain deferred.
+
+## Reproduction
 
 ```sh
-SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation \
-  bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-python specs/007-experiment-foundation/validate_artifacts.py
-python -m pytest -q tests/unit/test_foundation_source_policy.py \
-  tests/unit/test_foundation_decisions.py tests/unit/test_foundation_measurement.py \
-  tests/unit/test_foundation_legacy_wrappers.py \
+OMP_NUM_THREADS=2 python -m pytest -q \
+  tests/unit/test_foundation_phase10_integration.py \
+  tests/unit/test_foundation_roles.py tests/unit/test_foundation_measurement.py \
+  tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py \
   tests/integration/test_foundation_overflow_diagnostics.py \
-  tests/contract/test_foundation_qualified_cli.py \
-  tests/integration/test_egca_training_step.py \
-  tests/unit/test_readiness_policy.py tests/contract/test_readiness_report_contract.py \
-  tests/integration/test_readiness_override.py tests/integration/test_transition_gate.py
+  tests/integration/test_foundation_qualified_resume.py \
+  tests/integration/test_egca_training_step.py
+python specs/007-experiment-foundation/validate_artifacts.py
 bash scripts/foundation/test_wheel.sh
 ```
 
-The installed-wheel script builds a wheel, installs into a fresh environment,
-changes directory outside the checkout, unsets PYTHONPATH, uses Python isolated
-mode, imports packaged WAT, verifies installed source bytes and executes actual
-runtime, census and measurement CLI fixtures. Given actual G7/G8/G9 artifacts,
-standalone installed tests also perform two diagnostic training updates across
-resume, bounded search, discovery from the admitted generated archive, a fresh
-isolated certificate check and rejection of stale evidence/GPU activation. The
-scripts for prior CLI acceptance delegate to this same packaged fixture service.
-Native absence and unavailable gate artifacts are explicit local skips. The new
-`foundation.yml` job requires the actual built native wheel and executable gates;
-all six installed-wheel cases must execute without skips. Live GPU acceptance
-stays separate from ordinary CI.
-
-Local limitations: no `lab-gpu`, Docker daemon or native extension; Linux boot ID
-is not exposed, blocking the existing protected resume/accounting tests. Do not
-remove the boot identity check to make this environment pass. Ubuntu CI owns
-those checks. Final measured results are recorded after validation below.
-
-## Remaining acceptance work
-
-- T093: real indexed release source, metadata and structural split audit, followed
-  by a release cohort freeze; fixture grouping is not a real corpus census.
-- T094 is complete: final revision Docker/native and all six installed-wheel cases passed.
-- T095: remaining historical command parity and end-to-end migration evidence.
-- T096: integrate all phase/entropy/reward/solver/thermal telemetry and shared
-  retry charging through real neural/search/stream callers.
-- T097: genuine archive provenance linkage, baseline-body/native-word wider traces,
-  sealed development prefix/continuation scoring and unique-group rescue counts.
-- T098: coordinated qualified device/pilot execution under external hard deadlines;
-  the durable decision controller and CPU fixture are not that live adapter.
-- T099/T100: run the declared 128-prompt engineering session and one diagnostic/
-  conditional paired pilot on qualified hardware. CPU speedups are not substituted.
-- T101 disposition reporting is complete: every original input remains traced
-  with tested, partial, unavailable or earlier-task evidence and unchanged design
-  rationale. This reporting does not close its referenced incomplete tasks.
-- T102: full G0–G10 release authorization still needs the earlier coordinated
-  run/containment integration, mandatory remaining repairs and hardware/source
-  evidence. Installed CPU CLI acceptance is complete, not hardware promotion.
-
-## Requirement and input evidence map
-
-| Tasks / requirements | Executed software evidence | Remaining acceptance |
-| --- | --- | --- |
-| T093; FR-024/007/009 | Exact horizon, signed bounds, indexed gaps, authoritative keyword arrays and affine membership fixtures in `test_foundation_source_policy.py` | Real release source and structural split audit |
-| T094; FR-034/023/017 | Pinned Docker build, mandatory native parity, G7/G8/G9 and clean installed-wheel workflow | Complete software acceptance; live GPU separate |
-| T095; FR-034/011/020 | Model-sampled warmstart, gate-only execution, nested modes, legacy lifecycle, missing explicit resume and null readiness regressions | End-to-end parity of remaining historical launch configurations |
-| T096; FR-035/016/018 | Actual pipeline and policy timings; entropy/variance/solver evidence; fuel distributions, retry accounting and expired-deadline regressions | Complete search/SFT/stream integration and actual sustained device observations |
-| T097; FR-037/002/003/008 | Independent wider pure-IR trace, signed overflow rescues, cap/unknown behavior, separately timed in-range helpers | Genuine archive linkage, baseline-body/native-word traces and sealed development scoring |
-| T098–100; FR-036/038/014/016 | Frozen defaults, priority/effect boundaries, interruption charging, no second contrast and immutable measure CLI regressions | Coordinated live adapter and qualified engineering/conditional pilot |
-| T101–102; FR-038/034/019 | All 68 original inputs mapped in [phase-10-dispositions.json](phase-10-dispositions.json); installed CLI and fail-closed readiness tests | Full G0–G10 evidence and remaining mandatory integration |
-
-The machine-readable disposition map binds the original review inventory hash,
-preserves evidence-based design rationale and lists actual task states. A checked
-earlier task is reported only as checklist completion, never inferred release
-qualification. All 20 recommendations, A01–A19, P01–P17 and D01–D12 remain traced;
-only the three original LODA dispositions remain deferred. Unmeasured branches are
-inconclusive and no cache, precision, architecture or learning adoption is claimed.
-
-## Measured validation results
-
-Final code revision: `f50f144bf78a38605b16bdc945c305526f0eecd1`.
-The later commit records reports/task states and does not change qualified code,
-owning tests or locks.
-
-- [Ubuntu CPU and native run](https://github.com/grugnog/oeis-learn/actions/runs/38074159609):
-  **680 passed, 54 documented capability skips** in the full CPU foundation
-  suite. Its separate native job passed mandatory Rust/native parity, G7/G8/G9
-  and the public diagnostic learning/discovery acceptance scripts.
-- [Docker/native clean-wheel run](https://github.com/grugnog/oeis-learn/actions/runs/38074159601):
-  **all 6 installed cases passed with zero skips**, including two train updates
-  across resume, search, discovery, fresh certificate checking and measure. Actual
-  native evidence was mandatory; source-tree imports/editable installs were absent.
-  G8 software is PASS; G8 hardware remains PENDING. G10 is not promoted.
-- Final local focused suite: **56 passed, 3 explicit native/gate-evidence skips**.
-- Final local isolated installed wheel: **3 passed, 3 explicit native/gate-evidence
-  skips**.
-- Full local foundation run before the later fixes: **635 passed, 52 capability
-  skips, 22 failures and 12 setup errors** caused by the absent Linux boot ID.
-  This is not a passing local full-suite claim. The guard is preserved; actual
-  Ubuntu CI above passes those checks.
-- Compile checks, focused Ruff F/E9 and Spec Kit structural validation passed.
-  Structural validation reports 52 requirements and 68 input items; it explicitly
-  executes no runtime gates and ratifies no constitution.
-
-T094 packaging/native CI and T101 disposition reporting are complete. T093,
-T095–T098 and T102 retain partial markers. T099/T100 remain unavailable pending
-qualified hardware and coordinated execution. No known pending repair is counted
-as fixed by disabling it. Phase 11 is unchanged.
+`OEIS_ROLE_TEST_IMAGE` selects the resolved CPU Docker image for actual role/cache/reclamation acceptance. `OEIS_GPU_ROLE_IMAGE` selects the resolved ROCm image for the separately marked coordinated HIP test. Missing capabilities remain skipped and cannot qualify release readiness.

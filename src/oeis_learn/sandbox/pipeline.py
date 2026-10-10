@@ -87,6 +87,7 @@ class ExecutionEvidence:
     reference_sha256: str | None = None
     cache_hit: bool = False
     phase_timings_ns: dict[str, int] = field(default_factory=dict)
+    retry_attempts: list[dict] = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)
@@ -288,7 +289,7 @@ class Runtime:
         ):
             raise ValueError("indices must be nonempty, unique ascending exact integers in 0..99")
         start = time.monotonic_ns()
-        deadline = min(deadline_ns or start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
         evidence = ExecutionEvidence(
             prepared.source_sha256,
             indices,
@@ -393,7 +394,7 @@ class Runtime:
         proposed_source=None,
     ):
         start = time.monotonic_ns()
-        deadline = min(deadline_ns or start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
         prepared = self.prepare(source, proposed_source=proposed_source)
         prepare_ns = time.monotonic_ns() - start
         if isinstance(prepared, Failure):

@@ -32,6 +32,8 @@ def execute_escalating(evaluate, source, indices, *, deadline_ns=None):
         result = evaluate(source, indices, limits)
         if result.fuel is None or result.reference_steps is None:
             records.append(dict(tier=tier, evidence=result.to_dict()))
+            used += limits.fuel_aggregate
+            steps += limits.reference_aggregate
             break
         if type(result.fuel) is not int or not 0 <= result.fuel <= limits.fuel_aggregate:
             raise ValueError("invalid retry consumption")
@@ -53,3 +55,45 @@ def execute_escalating(evaluate, source, indices, *, deadline_ns=None):
         budget_refunded=False,
         completed=bool(records) and records[-1]["evidence"]["outcome"] is None,
     )
+
+
+def run_escalating(runner, source, indices, *, request_id, deadline_ns=None):
+    """Production adapter: durable tier requests, all costs attached before selection."""
+    from copy import deepcopy
+    from oeis_learn.sandbox.pipeline import ExecutionEvidence, digest_bytes
+
+    results = []
+
+    def evaluate(body, positions, limits):
+        result = runner.run_single(
+            body,
+            positions,
+            request_id=f"{request_id}-fuel{limits.fuel_per_term}",
+            limits=limits,
+            deadline_ns=deadline_ns,
+        )
+        results.append(result)
+        return result
+
+    positions = list(indices)
+    report = execute_escalating(evaluate, source, positions, deadline_ns=deadline_ns)
+    result = (
+        deepcopy(results[-1])
+        if results
+        else ExecutionEvidence(
+            digest_bytes(source.encode()),
+            positions,
+            outcome="execution_limit",
+            reason="candidate_deadline",
+        )
+    )
+    result.retry_attempts = report["attempts"]
+    result.fuel = report["aggregate_fuel"]
+    result.reference_steps = report["aggregate_reference_steps"]
+    result.fuel_terms = [fuel for attempt in results for fuel in attempt.fuel_terms]
+    result.elapsed_ns = sum(attempt.elapsed_ns for attempt in results)
+    result.phase_timings_ns = {}
+    for attempt in results:
+        for name, duration in attempt.phase_timings_ns.items():
+            result.phase_timings_ns[name] = result.phase_timings_ns.get(name, 0) + duration
+    return result

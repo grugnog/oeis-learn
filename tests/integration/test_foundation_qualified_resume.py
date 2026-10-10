@@ -138,7 +138,13 @@ def test_replay_cursor_and_search_frontier_continue_with_same_next_update(tmp_pa
     parameters = learning_state_digest(decoder.state_dict())
     next_candidate = search.step(Proposer(), Runner())
     restore_learning_state(state, encoder, decoder, optimizer, replay=replay, search=search)
-    assert replay_update(encoder, decoder, optimizer, replay, generic=[key] * 3) == expected
+    actual = replay_update(encoder, decoder, optimizer, replay, generic=[key] * 3)
+    # Replay guarantees the next mathematical update; host timings/resources are
+    # fresh observations and must not be copied from the previous invocation.
+    for field in ("loss", "examples", "replay_examples", "replay_fraction", "normalization", "entropy"):
+        assert actual[field] == expected[field]
+    assert actual["phase_timings_ns"].keys() == expected["phase_timings_ns"].keys()
+    assert all(v >= 0 for v in actual["phase_timings_ns"].values())
     assert learning_state_digest(decoder.state_dict()) == parameters
     assert search.step(Proposer(), Runner()) == next_candidate
     assert replay.cursor == 2

@@ -235,6 +235,7 @@ class FoundationCheckpoint:
     decoder: WatTransformerDecoder
     device: torch.device
     payload: dict | None = None
+    runtime: dict | None = None
 
 
 def load_foundation_checkpoint(manifest_path, *, device="cpu", include_payload=False) -> FoundationCheckpoint:
@@ -524,4 +525,5 @@ def load_foundation_checkpoint(manifest_path, *, device="cpu", include_payload=F
         decoder,
         dev,
         payload if include_payload else None,
+        sidecars["runtime"],
     )

@@ -226,6 +226,11 @@ class FoundationRunner:
     def run_single(self, source, indices, *, request_id, **kwargs):
         return self.pool.evaluate(source, indices, request_id=request_id, **kwargs)
 
+    def run_escalating(self, source, indices, *, request_id, deadline_ns=None):
+        from oeis_learn.evaluation.fuel_escalation import run_escalating
+
+        return run_escalating(self, source, indices, request_id=request_id, deadline_ns=deadline_ns)
+
     def run_batch(self, sources, indices, *, request_ids, **kwargs):
         sources, request_ids, indices = list(sources), list(request_ids), list(indices)
         if len(sources) != len(request_ids) or len(set(request_ids)) != len(request_ids):
