@@ -368,36 +368,45 @@ def self_training_round(
     return rows + admitted[: max(1, len(rows) // 3)]
 
 
-def diagnostic(inputs, output):
+def encoder_collision_count(encoder, device):
+    """Probe the selected encoder's input features before its learned projection."""
     import torch
+    from oeis_learn.encoder.integer_bytes import IntegerByteEncoder, encode_sequences
+    from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+
+    collisions = 0
+    with torch.no_grad():
+        for value in ((1 << 54), (1 << 100), -(1 << 100)):
+            pair = [[value] * 20, [value + 1] * 20]
+            if isinstance(encoder, IntegerByteEncoder):
+                features = encode_sequences(pair)
+                collision = torch.equal(features.signs[0], features.signs[1]) and torch.equal(
+                    features.magnitudes[0], features.magnitudes[1]
+                )
+            elif isinstance(encoder, TriStreamEncoder):
+                streams = [
+                    encoder.s1_magnitude(pair, device=device),
+                    encoder.s2_modulo(pair, device=device),
+                    encoder.s3_diff_padic(pair, device=device),
+                ]
+                collision = all(torch.equal(s[0], s[1]) for s in streams)
+            else:
+                raise ValueError("unsupported diagnostic encoder")
+            collisions += int(collision)
+    return collisions
+
+
+def diagnostic(inputs, output):
     from oeis_learn.experiments.pilot_models import pilot_profile
     from oeis_learn.data.structural_splits import structural_signature
-    from oeis_learn.encoder.integer_bytes import encode_sequences
 
     settings = load_json((inputs / "settings.json").read_bytes())
     settings["profile"] = pilot_profile()
     atomic_write(ArtifactPath(output, "diagnostic-settings.json"), canonical_bytes(settings))
     result = train(inputs, output)
     rows = load_json((inputs / "examples.json").read_bytes())["rows"]
-    # Measure collisions at the old *feature* boundary, before learned projection.
-    from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
-
-    old = TriStreamEncoder(d_model=128, n_heads=4, n_encoder_layers=2, d_ff=512, dropout=0).to(
-        settings["device"]
-    )
-    collisions = 0
-    with torch.no_grad():
-        for value in ((1 << 54), (1 << 100), -(1 << 100)):
-            pair = [[value] * 20, [value + 1] * 20]
-            streams = [
-                old.s1_magnitude(pair, device=settings["device"]),
-                old.s2_modulo(pair, device=settings["device"]),
-                old.s3_diff_padic(pair, device=settings["device"]),
-            ]
-            collisions += int(all(torch.equal(s[0], s[1]) for s in streams))
-            exact = encode_sequences(pair)
-            if torch.equal(exact.magnitudes[0], exact.magnitudes[1]):
-                raise ValueError("lossless integer collision")
+    encoder, decoder = load_models(output, settings)
+    collisions = encoder_collision_count(encoder, settings["device"])
     observed = dict(
         encoder_collisions=collisions,
         updates=result["completed_updates"],
@@ -419,8 +428,6 @@ def diagnostic(inputs, output):
         observed["train_loss"] = result["last_loss"]
     if windows:
         observed["validation_loss"] = windows[-1]
-    encoder, decoder = load_models(output, settings)
-    # load_models reads the actual diagnostic output checkpoint here.
     from oeis_learn.evaluation.search import SearchSession, ModelProposer
     from oeis_learn.tracking.role_coordinator import QueueRunner
 
@@ -490,6 +497,7 @@ def diagnostic(inputs, output):
         result,
         diagnostic=observed,
         diagnostic_attempts=attempted,
+        encoder_probe=dict(profile=settings["profile"], boundary="selected input features", pairs=3),
         missing=["synthetic validation unavailable"] if not validation else [],
     )
 

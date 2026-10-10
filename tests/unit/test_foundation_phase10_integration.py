@@ -374,3 +374,16 @@ def test_acceptance_workspaces_do_not_resume_or_delete_previous_runs(tmp_path):
     assert first != second and first.parent == second.parent == phase
     assert prior.read_text() == "earlier accepted checkpoint"
     assert not (second / "training").exists()
+
+
+def test_encoder_trigger_probes_the_frozen_baseline_not_a_legacy_model(monkeypatch):
+    from oeis_learn.tracking.role_worker import encoder_collision_count
+    from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+
+    def wrong_encoder(*args, **kwargs):
+        raise AssertionError("lossless baseline must not collect legacy input features")
+
+    for name in ("s1_magnitude", "s2_modulo", "s3_diff_padic"):
+        monkeypatch.setattr(TriStreamEncoder, name, wrong_encoder, raising=False)
+    encoder, _ = construct_pilot_models(pilot_profile(), "cpu")
+    assert encoder_collision_count(encoder, "cpu") == 0
