@@ -16,6 +16,8 @@ from oeis_learn.experiments.models import (
 _SUPPORTED_COMMANDS = frozenset(
     {
         "preflight",
+        "qualify-repairs",
+        "activate-qualified",
         "conformance",
         "freeze-cohort",
         "evaluate",
@@ -108,6 +110,8 @@ def dispatch(command: str, **kwargs) -> int:
         return _reject_unsupported(command)
     return {
         "preflight": cmd_preflight,
+        "qualify-repairs": cmd_qualify_repairs,
+        "activate-qualified": cmd_activate_qualified,
         "conformance": cmd_conformance,
         "freeze-cohort": cmd_freeze_cohort,
         "evaluate": cmd_evaluate,
@@ -325,3 +329,33 @@ def cmd_inspect(run_dir, as_json=False):
     from oeis_learn.tracking.run_manager import inspect_foundation_run
 
     return _phase4_command("inspect", lambda: inspect_foundation_run(run_dir), as_json)
+
+
+def cmd_qualify_repairs(output, as_json=False):
+    from oeis_learn.evaluation.repair_gate import run_qualification
+
+    return _phase4_command("qualify-repairs", lambda: run_qualification(output), as_json)
+
+
+def cmd_activate_qualified(config, gate_report, profiles, as_json=False):
+    from oeis_learn.experiments.config import load_qualified_config
+
+    def operation():
+        def resolve(digest):
+            return load_json(
+                (Path(profiles) / (digest.removeprefix("sha256:") + ".json")).read_bytes()
+            )
+
+        services = load_qualified_config(
+            config,
+            g7_report=load_json(Path(gate_report).read_bytes()),
+            evidence_root=Path(gate_report).parent,
+            resolve=resolve,
+        )
+        return {
+            "contract_sha256": services.contract_sha256,
+            "g7_sha256": services.g7_sha256,
+            "capabilities": list(services.capabilities),
+        }
+
+    return _phase4_command("activate-qualified", operation, as_json)

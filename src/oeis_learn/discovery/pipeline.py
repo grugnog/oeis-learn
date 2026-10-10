@@ -42,6 +42,9 @@ def run_discovery_pipeline(
     # 2. Load Checkpoint and Registry
     encoder, _, checkpoint_prov = load_checkpoint_v2(checkpoint_path, device=dev)
     registry = SymbolicDefinitionRegistry(definitions_path)
+    from oeis_learn.experiments.artifacts import compute_canonical_digest
+    if protocol_dict.get("definition_registry_sha256") != registry.registry_sha256 or protocol_dict.get("protocol_id") != compute_canonical_digest(protocol_dict, "protocol_id"):
+        raise ValueError("Discovery protocol/registry identity mismatch")
     manifest = load_benchmark_manifest(manifest_path)
 
     # 3. Extract L2-Normalized Sequence Embeddings
@@ -167,16 +170,8 @@ def run_discovery_pipeline(
             })
             # Attempt general symbolic proof
             sym_outcome, sym_evidence = prover.prove_canonical_relation(can_rel, registry)
-            if sym_outcome == "PROVEN":
-                status = "SYMBOLICALLY_PROVEN_IDENTITY"
-                status_history.append({
-                    "status": "SYMBOLICALLY_PROVEN_IDENTITY",
-                    "created_at": now_utc,
-                    "evidence_type": "SYMPY_REDUCTION",
-                })
-                num_proven += 1
-            else:
-                num_conj += 1
+            # Conditional formula identities do not establish OEIS correspondence.
+            num_conj += 1
         elif num_evidence.outcome == "COUNTEREXAMPLE":
             status = "REJECTED"
             rejection = {

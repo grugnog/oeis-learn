@@ -12,12 +12,17 @@ export RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo
 export PATH="/opt/cargo/bin:$PATH"
 curl --fail --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh
 bash /tmp/rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain 1.90.0
+rustup component add rustfmt
 chmod -R a+rX /opt/rustup /opt/cargo
 
 if [[ "$mode" == cpu ]]; then
   # PyO3 0.20 is incompatible with Pi's Python 3.14. Keep Pi itself untouched.
-  uv python install 3.12.12
-  uv venv --python 3.12.12 --managed-python /opt/oeis-venv
+  if python -c "import sys; assert sys.version_info[:3] == (3, 12, 12)" 2>/dev/null; then
+    uv venv --python "$(command -v python)" --no-python-downloads /opt/oeis-venv
+  else
+    uv python install 3.12.12
+    uv venv --python 3.12.12 --managed-python /opt/oeis-venv
+  fi
   export VIRTUAL_ENV=/opt/oeis-venv
   export PATH="/opt/oeis-venv/bin:$PATH"
   uv pip install --python "$VIRTUAL_ENV/bin/python" 'torch==2.9.1' \

@@ -3,37 +3,39 @@
 from __future__ import annotations
 
 import pytest
+from dataclasses import replace
 from oeis_learn.data.models import BenchmarkTarget
 from oeis_learn.evaluation.protocol import EvaluationProtocol
 from oeis_learn.evaluation.synthesis import (
     evaluate_candidate_stages,
-    evaluate_cohort_synthesis,
 )
 
 
 @pytest.fixture
 def sample_protocol():
-    return EvaluationProtocol.from_dict({
-        "schema_version": "1.0",
-        "checkpoint_sha256": "sha256:" + "0" * 64,
-        "benchmark_manifest_sha256": "sha256:" + "1" * 64,
-        "observed_horizon": 20,
-        "unseen_horizon": 100,
-        "candidate_budget": 1,
-        "base_seed": 42,
-        "temperature": 0.8,
-        "top_p": 0.95,
-        "max_tokens": 128,
-        "constant_resolution": True,
-        "solver_timeout_ms": 250,
-        "max_placeholders": 4,
-        "fuel_per_invocation": 10000,
-        "memory_limit_mib": 16,
-        "mdl_ratio_max": 1.2,
-        "native_evaluator_required": True,
-        "code_revision": "test",
-        "environment_fingerprint": "sha256:" + "2" * 64,
-    })
+    return EvaluationProtocol.from_dict(
+        {
+            "schema_version": "1.0",
+            "checkpoint_sha256": "sha256:" + "0" * 64,
+            "benchmark_manifest_sha256": "sha256:" + "1" * 64,
+            "observed_horizon": 20,
+            "unseen_horizon": 100,
+            "candidate_budget": 1,
+            "base_seed": 42,
+            "temperature": 0.8,
+            "top_p": 0.95,
+            "max_tokens": 128,
+            "constant_resolution": True,
+            "solver_timeout_ms": 2000,
+            "max_placeholders": 4,
+            "fuel_per_invocation": 10000,
+            "memory_limit_mib": 16,
+            "mdl_ratio_max": 1.2,
+            "native_evaluator_required": False,
+            "code_revision": "test",
+            "environment_fingerprint": "sha256:" + "2" * 64,
+        }
+    )
 
 
 @pytest.fixture
@@ -84,7 +86,25 @@ def test_state_machine_exact_success(sample_protocol, sample_target):
         assert sr.status in ("PASSED", "NOT_REQUIRED")
 
 
+def test_legacy_native_request_cannot_silently_use_python(sample_protocol, sample_target):
+    from dataclasses import replace
+
+    with pytest.raises(ValueError, match="G7-activated"):
+        evaluate_candidate_stages(
+            0,
+            42,
+            [1],
+            "i256.const 7",
+            sample_target,
+            replace(sample_protocol, native_evaluator_required=True),
+            {},
+        )
+
+
 def test_state_machine_assembly_failure(sample_protocol, sample_target):
+    # Exercise assembly itself. The shared grounding service also parses and
+    # verifies no-placeholder candidates when constant resolution is enabled.
+    sample_protocol = replace(sample_protocol, constant_resolution=False)
     malformed_wat = "(module (func broken syntax"
     rec = evaluate_candidate_stages(
         candidate_index=0,
@@ -103,6 +123,7 @@ def test_state_machine_assembly_failure(sample_protocol, sample_target):
 
 
 def test_state_machine_observed_mismatch(sample_protocol, sample_target):
+    sample_protocol = replace(sample_protocol, constant_resolution=False)
     # Returns n instead of n^2
     wrong_wat = """(module
   (func (export "compute") (param $n i32) (result i64)
@@ -129,6 +150,9 @@ def test_state_machine_duplicate_detection(sample_protocol, sample_target):
   (func (export "compute") (param $n i32) (result i64)
     local.get $n
     i64.extend_i32_u
+    local.get $n
+    i64.extend_i32_u
+    i64.mul
   )
 )"""
     seen = {}
@@ -155,3 +179,13 @@ def test_state_machine_duplicate_detection(sample_protocol, sample_target):
     )
     assert rec2.classification == "DUPLICATE"
     assert rec2.duplicate_of == rec1.candidate_id
+
+
+def test_no_placeholder_mismatch_is_rejected_by_shared_grounding(sample_protocol, sample_target):
+    wrong = '(module (func (export "compute") (param $n i32) (result i64) i64.const 0))'
+    record = evaluate_candidate_stages(0, 42, [1], wrong, sample_target, sample_protocol, {})
+    assert record.classification == "FAILED"
+    assert record.primary_failure_stage == "CONSTANT_RESOLUTION"
+    stage = next(s for s in record.stage_records if s.stage == "CONSTANT_RESOLUTION")
+    assert stage.reason_code == "PROVED_UNSAT_IN_SCOPE"
+    assert record.outputs == []

@@ -44,6 +44,7 @@ runs/**/checkpoints/
 crates/**/target/
 target/
 Cargo.lock
+!crates/oeis_wasm_evaluator/Cargo.lock
 **/*.rs.bk
 *.rlib
 *.prof*

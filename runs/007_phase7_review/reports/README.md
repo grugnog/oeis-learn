@@ -1,0 +1,5 @@
+# G7 software qualification evidence
+
+These are unmodified report and activation outputs from [CI run 38019310921](https://github.com/grugnog/oeis-learn/actions/runs/38019310921) at implementation commit `90b3f35831e2dd38db0b3f0a703c5e86d7682638`. G7 passed: 129 Python owning-suite tests, 11 Rust tests, 10,268 native/Python/reference cases, three portable replay records and ordinary service/CLI activation. The separate foundation CPU suite passed 509 tests with four pending hardware/container checks.
+
+See the [review](../../../specs/007-experiment-foundation/validation/phase-7-review.md) and [software report](../../../specs/007-experiment-foundation/validation/phase-7-software-report.json) for exact artifact URLs, ZIP hashes and scope. The complete [native artifact](https://github.com/grugnog/oeis-learn/actions/runs/38019310921/artifacts/11657393687) contains the referenced JUnit files, Rust logs, parity transcript, contract, profiles and build information. These report copies alone cannot activate services; activation verifies the supporting evidence and matching implementation/runtime identities. Earlier GPU markers remain pending and phase 8 is unchanged.

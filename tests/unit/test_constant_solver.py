@@ -1,4 +1,4 @@
-"""Unit tests for exact Hermite Normal Form Diophantine linear integer solver."""
+"""Original entry-point tests for exact bounded grounding and final execution."""
 
 from __future__ import annotations
 
@@ -40,9 +40,10 @@ def test_linear_affine_diophantine_grounding(wasm_runner):
     duration_ms = (time.perf_counter() - start_t) * 1000.0
 
     assert result.is_sat is True
-    assert result.solver_type == "DIOPHANTINE_HNF"
+    assert result.solver_type == "z3_qfbv"
     assert result.constants == [5, 2]
-    assert duration_ms < 100.0  # Well under safety budget, targeting sub-millisecond in batch
+    assert 0 < result.solve_duration_ms <= duration_ms
+    assert result.outcome == "verified_solution"
 
     # Verify spliced WAT execution
     grounded_wat = splice_constants_into_wat(skeleton, result.constants)
@@ -75,7 +76,7 @@ def test_quadratic_polynomial_diophantine_grounding(wasm_runner):
 
     result = solve_linear_diophantine(skeleton, target_terms, wasm_runner)
     assert result.is_sat is True
-    assert result.solver_type == "DIOPHANTINE_HNF"
+    assert result.solver_type == "z3_qfbv"
     assert result.constants == [3, -4, 7]
 
     grounded_wat = splice_constants_into_wat(skeleton, result.constants)
@@ -124,7 +125,8 @@ def test_inconsistent_linear_diophantine(wasm_runner):
     skeleton = parse_ast_placeholders(wat_skeleton)
     result = solve_linear_diophantine(skeleton, target_terms, wasm_runner)
     assert result.is_sat is False
-    assert result.constants is None
+    assert result.constants == []
+    assert result.outcome == "proved_unsat_in_scope"
 
 
 def test_multilimb_recurrence_fast_path():
@@ -167,7 +169,7 @@ def test_multilimb_recurrence_fast_path():
     terms = [0, 1, 2, 6, 16, 44, 120, 328]
     cand = solve_constants(skeleton, terms, runner=runner)
     assert cand.is_sat is True
-    assert cand.solver_tier == "TIER2_DIXON_LIFTING"
+    assert cand.solver_tier == "exact_recurrence_order2"
     assert cand.constants == [2, 2]
     assert cand.grounded_wat is not None
 

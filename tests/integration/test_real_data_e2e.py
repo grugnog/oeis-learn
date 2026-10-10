@@ -250,7 +250,9 @@ def test_real_data_end_to_end_progressive():
         assert rel2 in ([1, 1, -1], [-1, -1, 1])
         assert conf2 < 1e-50
 
-        # Prove identities symbolically with SymPy
+        # The supported checker cannot certify Fibonacci/Lucas formulas. Keep
+        # the finite integer relation a conjecture instead of substituting
+        # unrelated polynomial formulas to manufacture a proof label.
         prover = SymbolicProver()
         cand1 = LatentDiscoveryCandidate(
             candidate_id="fib_lucas_relation",
@@ -260,10 +262,9 @@ def test_real_data_end_to_end_progressive():
             pslq_vector=[1, 1, -1],
             status="PSLQ_VERIFIED",
         )
-        proven1 = prover.prove_relation(
-            cand1, formulas=["a(n) = n", "a(n) = 2*n", "a(n) = 3*n"]
-        )
-        assert proven1.status == "PROVEN"
+        proven1 = prover.prove_relation(cand1)
+        assert proven1.status == "NUMERICALLY_VERIFIED_CONJECTURE"
+        assert proven1.symbolic_proof is None
 
         cand2 = LatentDiscoveryCandidate(
             candidate_id="triangular_squares_relation",
@@ -276,11 +277,14 @@ def test_real_data_end_to_end_progressive():
         proven2 = prover.prove_relation(
             cand2, formulas=["a(n) = n*(n+1)/2", "a(n) = (n-1)*n/2", "a(n) = n**2"]
         )
-        assert proven2.status == "PROVEN"
-        assert "Q.E.D." in proven2.symbolic_proof
+        assert proven2.status == "FORMULA_IDENTITY"
+        from oeis_learn.experiments.artifacts import load_json
+        from oeis_learn.discovery.formula_checker import check_scoped_evidence
+
+        assert check_scoped_evidence(load_json(proven2.symbolic_proof))
 
         # Export formal real-data discovery report
-        report_path = os.path.join("reports", "real_data_e2e_report.md")
+        report_path = os.path.join(tmpdir, "real_data_e2e_report.md")
         report_content = export_discovered_proofs_markdown(
             [proven1, proven2], output_path=report_path
         )

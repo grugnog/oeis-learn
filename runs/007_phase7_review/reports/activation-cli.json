@@ -1,0 +1,1 @@
+{"command": "activate-qualified", "status": "complete", "contract_sha256": "sha256:ea4ae5eb5d20e894feb401c6ffcdfb5a653c27d8a1dc9c9e3738b33b60a182e1", "g7_sha256": "sha256:4c14d9b0a7cf47c1568a085039b8f880f9a473b5feea242c775132da57ddd662", "capabilities": ["formula_identity", "native", "optimizer", "solver"]}

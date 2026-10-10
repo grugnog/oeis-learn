@@ -38,7 +38,7 @@ def test_nonlinear_smt_modulo_grounding(wasm_runner):
 
     result = solve_smt_constants(skeleton, target_terms, timeout_ms=500)
     assert result.is_sat is True
-    assert result.solver_type == "Z3_SMT"
+    assert result.solver_type == "z3_qfbv"
     assert result.constants == [5]
 
     grounded_wat = splice_constants_into_wat(skeleton, result.constants)

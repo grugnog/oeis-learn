@@ -17,6 +17,27 @@ WORKDIR /workspace
 # The broker clears entrypoint and supplies argv; no automatic training.
 CMD ["bash"]
 
+# Portable CPU qualification target. Uses the same installer/native build as
+# the development/GPU targets; no compiler or Docker dependency on the host.
+FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS qualification
+USER root
+ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo \
+    UV_PYTHON_INSTALL_DIR=/opt/oeis-python PATH=/opt/oeis-venv/bin:/opt/cargo/bin:${PATH}
+RUN pip install --no-cache-dir uv==0.8.22
+COPY docker/dev /opt/oeis-setup
+COPY pyproject.toml uv.lock README.md /opt/oeis-build/
+RUN bash /opt/oeis-setup/install.sh cpu
+ENV VIRTUAL_ENV=/opt/oeis-venv
+COPY src /opt/oeis-build/src
+COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
+RUN bash /opt/oeis-setup/build-native.sh
+COPY . /workspace
+RUN cp /opt/oeis-build-info/Cargo.lock /workspace/crates/oeis_wasm_evaluator/Cargo.lock
+ENV CARGO_TARGET_DIR=/opt/oeis-build/crates/oeis_wasm_evaluator/target \
+    PYTHONPATH=/workspace/src OMP_NUM_THREADS=2
+WORKDIR /workspace
+CMD ["python", "-m", "oeis_learn.evaluation.repair_gate", "--output", "/evidence"]
+
 FROM ${PI_BASE_IMAGE} AS smolvm
 USER root
 RUN uv tool install specify-cli && \
@@ -40,3 +61,4 @@ COPY --chown=agent:agent --chmod=500 system/.ssh /home/agent/.ssh
 COPY --chown=agent:agent system/llama-swap.js /home/agent/.pi/agent/extensions/llama-swap.js
 WORKDIR /workspace
 # Inherit the Pi base entrypoint/CMD; Smolfile supplies its long-lived command.
+

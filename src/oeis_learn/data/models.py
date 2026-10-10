@@ -327,6 +327,8 @@ class ConstantSolverResult:
     """Captures the output of Diophantine or SMT constant solving."""
 
     solver_type: str
+    outcome: str = "unknown"
+    evidence: Optional[Dict[str, Any]] = None
     constants: Optional[List[int]] = None
     solve_duration_ms: float = 0.0
     is_sat: bool = False
@@ -348,6 +350,7 @@ class CanonicalProgramArtifact:
     waste_ratio: float = 0.0
     passes_applied: List[str] = field(default_factory=lambda: ["--vacuum", "--dce", "--remove-unused-locals"])
     is_waste_exceeded: bool = False
+    rewrite_evidence: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -1075,6 +1078,8 @@ class GroundedCandidate:
     solve_duration_ms: float
     grounded_wat: Optional[str] = None
     certificate: Optional[ModularFilterCertificate] = None
+    outcome: str = "unknown"
+    evidence: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)

@@ -40,11 +40,14 @@ def test_discovery_pipeline_end_to_end():
 
     # 4. Symbolic prover proves identity
     prover = SymbolicProver()
-    proven = prover.prove_relation(
-        verified, formulas=["a(n) = n", "a(n) = 2*n", "a(n) = 3*n"]
-    )
-    assert proven.status == "PROVEN"
-    assert "Q.E.D." in proven.symbolic_proof
+    proven = prover.prove_relation(verified, formulas=["a(n) = n", "a(n) = 2*n", "a(n) = 3*n"])
+    assert proven.status == "FORMULA_IDENTITY"
+    from oeis_learn.experiments.artifacts import load_json
+    from oeis_learn.discovery.formula_checker import check_scoped_evidence
+
+    evidence = load_json(proven.symbolic_proof)
+    assert check_scoped_evidence(evidence)
+    assert evidence["assumptions"]
 
     # 5. Manifold 2D reduction and clustering
     mat = np.stack([va, vb, vc] * 3, axis=0)
@@ -61,7 +64,16 @@ def test_discovery_pipeline_orchestration(tmp_path):
     from oeis_learn.evaluation.checkpoint import save_checkpoint_v2
     import torch
 
-    enc_cfg = {"d_model": 64, "n_heads": 2, "n_encoder_layers": 2, "d_ff": 128, "dropout": 0.0, "primes": [3, 5], "max_valuation": 16, "use_film": True}
+    enc_cfg = {
+        "d_model": 64,
+        "n_heads": 2,
+        "n_encoder_layers": 2,
+        "d_ff": 128,
+        "dropout": 0.0,
+        "primes": [3, 5],
+        "max_valuation": 16,
+        "use_film": True,
+    }
     dec_cfg = {"d_model": 64, "n_heads": 2, "n_decoder_layers": 2, "d_ff": 128, "dropout": 0.0}
     enc = TriStreamEncoder(**enc_cfg)
     dec = WatTransformerDecoder(**dec_cfg)

@@ -26,11 +26,9 @@ def test_three_tier_grounding_linear_affine():
     dur_ms = (time.perf_counter() - start_t) * 1000.0
 
     assert cand.is_sat is True
-    assert cand.solver_tier == "TIER2_DIXON_LIFTING"
+    assert cand.solver_tier == "z3_qfbv"
     assert cand.constants == [5, 2]
-    assert cand.certificate is not None
-    assert cand.certificate.status == "CONSISTENT"
-    assert cand.certificate.penalty_reward == 0.0
+    assert cand.evidence["execution"]["production"] == [str(t) for t in target_terms]
 
     # Verify execution of grounded program
     assert cand.grounded_wat is not None
@@ -58,9 +56,7 @@ def test_three_tier_grounding_fast_inconsistency_rejection():
     dur_ms = (time.perf_counter() - start_t) * 1000.0
 
     assert cand.is_sat is False
-    assert cand.solver_tier == "TIER1_MODULAR_M61"
-    assert cand.certificate is not None
-    assert cand.certificate.status in ("INCONSISTENT", "UNDERDETERMINED")
-    assert cand.certificate.penalty_reward == -0.50
-    # Fast modular rejection should take only a fraction of a millisecond for filter logic
-    assert cand.certificate.elapsed_microseconds < 1000.0
+    assert cand.solver_tier == "z3_qfbv"
+    from oeis_learn.decoder.grounding_evidence import check_unsat
+    assert cand.outcome == "proved_unsat_in_scope"
+    assert check_unsat(cand.evidence["unsat_evidence"])

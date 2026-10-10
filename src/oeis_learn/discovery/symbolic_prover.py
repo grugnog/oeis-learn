@@ -1,117 +1,210 @@
-"""Symbolic Proof Generator and Computer Algebra Verifier using SymPy."""
+"""Contained conditional formula identities; never unqualified OEIS proofs."""
 
 from __future__ import annotations
 
-import logging
-from typing import Optional, Sequence
-import sympy as sp
-from oeis_learn.data.models import LatentDiscoveryCandidate
+import datetime
+import json
 
-logger = logging.getLogger(__name__)
+from oeis_learn.discovery.formula_checker import check_certificate, relation_degree
+from oeis_learn.discovery.formula_syntax import (
+    exact_value,
+    expression_hash,
+    parse_formula,
+)
+from oeis_learn.sandbox.contained import run_contained
+
+
+def _proof(formulas, coefficients, transforms, domains, assumptions):
+    from oeis_learn.discovery.formula_scope import common_domain
+
+    evidence = {
+        "outcome": "UNKNOWN",
+        "proof_method": "rational-evaluation/v1",
+        "verifier_version": "fraction-checker/v1",
+        "backend_version": "python-fractions/v1",
+        "verified_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        "assumptions": assumptions,
+        "numeric_semantics": "mathematical_rational",
+        "independently_checked": False,
+        "expression_hashes": [expression_hash(f) for f in formulas],
+        "transforms": transforms,
+    }
+
+    def finish(status, reason=None):
+        evidence["outcome"] = status
+        evidence["diagnostic"] = reason
+        if "domain" in evidence:
+            from oeis_learn.discovery.formula_checker import check_scoped_evidence
+            from oeis_learn.discovery.formula_scope import bind_scope
+
+            bind_scope(evidence, formulas, coefficients, transforms, domains, assumptions)
+            if status in ("FORMULA_IDENTITY", "COUNTEREXAMPLE") and not check_scoped_evidence(
+                evidence
+            ):
+                status = "UNKNOWN"
+                evidence["outcome"] = status
+                evidence["independently_checked"] = False
+                evidence["diagnostic"] = "scoped evidence checker rejected"
+        return status, evidence
+
+    try:
+        if (
+            not 1 <= len(formulas) <= 16
+            or len(coefficients) != len(formulas)
+            or len(transforms) != len(formulas)
+            or len(domains) != len(formulas)
+        ):
+            raise ValueError("operand arity")
+        if any(type(c) is not int or c.bit_length() > 256 for c in coefficients):
+            raise ValueError("exact bounded coefficients required")
+        trees = [parse_formula(f) for f in formulas]
+        domain, empty = common_domain(formulas, transforms, domains)
+        evidence["domain"] = domain
+        lower, upper = domain["lower_bound"], domain["upper_bound"]
+        if empty:
+            return finish("EMPTY_DOMAIN")
+        defined = 0
+        for index in range(
+            lower, min(lower + 1024, upper + 1 if upper is not None else lower + 1024)
+        ):
+            try:
+                values = [
+                    exact_value(tree, a * index + b) for tree, (a, b) in zip(trees, transforms)
+                ]
+            except ZeroDivisionError:
+                continue
+            defined += 1
+            value = sum(c * v for c, v in zip(coefficients, values))
+            if value:
+                evidence["witness"] = {
+                    "index": index,
+                    "values": [str(v) for v in values],
+                    "residual": str(value),
+                }
+                evidence["independently_checked"] = True
+                return finish("COUNTEREXAMPLE")
+        if not defined:
+            return finish(
+                "EMPTY_DOMAIN" if upper is not None and upper - lower < 1024 else "UNKNOWN",
+                "no defined witness point found",
+            )
+        degree = relation_degree(trees)
+        if degree > 512:
+            return finish("UNSUPPORTED", "certificate degree cap")
+        points = []
+        for index in range(2048):
+            try:
+                for tree, (a, b) in zip(trees, transforms):
+                    exact_value(tree, a * index + b)
+            except ZeroDivisionError:
+                continue
+            points.append(index)
+            if len(points) == degree + 1:
+                break
+        certificate = {
+            "version": "rational-evaluation/v1",
+            "formulas": list(formulas),
+            "expression_hashes": evidence["expression_hashes"],
+            "coefficients": list(coefficients),
+            "transforms": [list(t) for t in transforms],
+            "degree_bound": degree,
+            "points": points,
+        }
+        if not check_certificate(certificate):
+            return finish("UNKNOWN", "independent certificate rejected")
+        evidence["reduced_expression"] = "0"
+        evidence["certificate"] = certificate
+        evidence["independently_checked"] = True
+        return finish("FORMULA_IDENTITY")
+    except (ValueError, TypeError, SyntaxError, OverflowError) as exc:
+        return finish("UNSUPPORTED", str(exc))
 
 
 class SymbolicProver:
-    """Proves conjectured and PSLQ-verified sequence identities symbolically via SymPy."""
+    def __init__(self, timeout_ms=2000):
+        self.timeout_ms = timeout_ms
 
-    def prove_relation(
-        self,
-        candidate: LatentDiscoveryCandidate,
-        formulas: Optional[Sequence[str]] = None,
-    ) -> LatentDiscoveryCandidate:
-        """Constructs and checks formal symbolic proof for a relation vector sum_i c_i * a_i(n) = 0."""
+    def _run(self, formulas, coefficients, transforms=None, domains=None, assumptions=None):
+        count = len(formulas)
+        status, value = run_contained(
+            _proof,
+            (
+                list(formulas),
+                list(coefficients),
+                transforms if transforms is not None else [(1, 0)] * count,
+                domains
+                if domains is not None
+                else [
+                    {"integer_only": True, "lower_bound": 0, "upper_bound": None} for _ in formulas
+                ],
+                assumptions
+                if assumptions is not None
+                else ["Formula-to-OEIS correspondence is an external assumption."],
+            ),
+            timeout_ms=self.timeout_ms,
+        )
+        if status == "ok":
+            return value
+        outcome = "TIMEOUT" if status == "timeout" else "UNKNOWN"
+        return outcome, {
+            "outcome": outcome,
+            "diagnostic": str(value),
+            "independently_checked": False,
+        }
+
+    def prove_relation(self, candidate, formulas=None):
         if not candidate.pslq_vector or len(candidate.pslq_vector) != len(candidate.sequences):
             candidate.status = "REJECTED"
             return candidate
-
-        n = sp.Symbol("n", integer=True)
-        coeffs = candidate.pslq_vector
-        seq_ids = candidate.sequences
-
-        # If explicit formulas provided, verify sum_i c_i * f_i(n) == 0
-        if formulas and len(formulas) == len(seq_ids):
-            try:
-                sym_terms = []
-                for f_str in formulas:
-                    # Clean formula
-                    clean_f = f_str.replace("a(n) =", "").replace("^", "**").strip()
-                    expr = sp.sympify(clean_f)
-                    sym_terms.append(expr)
-
-                total_expr = sum(c * expr for c, expr in zip(coeffs, sym_terms))
-                simplified = sp.simplify(total_expr)
-
-                if simplified == 0:
-                    proof_script = (
-                        f"Theorem: For sequences {', '.join(seq_ids)},\n"
-                        f"Identity holds: {' + '.join(f'({c})*{s}' for c, s in zip(coeffs, seq_ids))} = 0\n"
-                        f"Symbolic proof: sum_i c_i * f_i(n) = {sp.expand(total_expr)} = 0 identically (Q.E.D.)."
-                    )
-                    candidate.symbolic_proof = proof_script
-                    candidate.status = "PROVEN"
-                    return candidate
-            except Exception as e:
-                logger.warning(f"Symbolic verification exception: {e}")
-
-        # When symbolic proof cannot be established, retain numerical conjecture status
-        candidate.status = "NUMERICALLY_VERIFIED_CONJECTURE"
-        candidate.symbolic_proof = None
+        if formulas is None or len(formulas) != len(candidate.sequences):
+            candidate.status = "NUMERICALLY_VERIFIED_CONJECTURE"
+            candidate.symbolic_proof = None
+            return candidate
+        status, evidence = self._run(formulas, candidate.pslq_vector)
+        candidate.status = status
+        candidate.symbolic_proof = json.dumps(evidence, sort_keys=True)
         return candidate
 
-    def prove_canonical_relation(
-        self,
-        relation: Any,
-        registry: Any,
-    ) -> Tuple[str, Optional[Dict[str, Any]]]:
-        """Proves a CanonicalRelation using verified closed-form definitions from registry."""
-        import datetime
-        now_utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        definition_ids = []
-        definition_hashes = []
-        expr_terms = []
+    def prove_canonical_relation(self, relation, registry):
+        entries = [registry.get_definition(op.oeis_id) for op in relation.operands]
+        if any(e is None for e in entries):
+            return "MISSING_DEFINITION", {
+                "outcome": "MISSING_DEFINITION",
+                "independently_checked": False,
+            }
+        from oeis_learn.data.symbolic_definitions import validate_definition
 
-        n = sp.Symbol("n", integer=True)
+        try:
+            for entry in entries:
+                validate_definition(entry)
+        except ValueError as exc:
+            return "UNSUPPORTED", {
+                "outcome": "UNSUPPORTED",
+                "diagnostic": str(exc),
+                "independently_checked": False,
+            }
+        import re
 
-        for op in relation.operands:
-            entry = registry.get_definition(op.oeis_id) if hasattr(registry, "get_definition") else None
-            if not entry:
-                return "MISSING_DEFINITION", {
-                    "outcome": "MISSING_DEFINITION",
-                    "definition_ids": [],
-                    "definition_hashes": [],
-                    "normalized_identity": relation.canonical_expression,
-                    "proof_method": "SYMPY_SIMPLIFY",
-                    "reduced_expression": "None",
-                    "domain": {"integer_only": True, "lower_bound": 0, "upper_bound": None},
-                    "verifier_version": f"sympy-{sp.__version__}",
-                    "verified_at": now_utc,
-                    "diagnostic": f"Missing definition for operand {op.oeis_id}",
-                }
-
-            definition_ids.append(entry["definition_id"])
-            definition_hashes.append(entry["source"]["content_sha256"])
-
-            # Substitute scaled/shifted n if needed
-            base_expr = sp.sympify(entry["expression"])
-            if op.index_scale != 1 or op.index_shift != 0:
-                sub_n = op.index_scale * n + op.index_shift
-                base_expr = base_expr.subs(n, sub_n)
-            expr_terms.append(base_expr)
-
-        int_coeffs = [int(c) for c in relation.coefficients]
-        total_expr = sum(c * t for c, t in zip(int_coeffs, expr_terms))
-        simplified = sp.simplify(total_expr)
-
-        outcome = "PROVEN" if simplified == 0 else "COUNTEREXAMPLE"
-        evidence = {
-            "outcome": outcome,
-            "definition_ids": definition_ids,
-            "definition_hashes": definition_hashes,
-            "normalized_identity": relation.canonical_expression,
-            "proof_method": "SYMPY_SIMPLIFY",
-            "reduced_expression": str(simplified),
-            "domain": {"integer_only": True, "lower_bound": 0, "upper_bound": None},
-            "verifier_version": f"sympy-{sp.__version__}",
-            "verified_at": now_utc,
-            "diagnostic": None if simplified == 0 else f"Non-zero reduction: {simplified}",
-        }
-        return outcome, evidence
+        if any(
+            not isinstance(c, str) or not re.fullmatch(r"(0|-?[1-9][0-9]*)", c) or len(c) > 80
+            for c in relation.coefficients
+        ):
+            return "UNSUPPORTED", {
+                "outcome": "UNSUPPORTED",
+                "diagnostic": "canonical exact coefficients required",
+                "independently_checked": False,
+            }
+        status, evidence = self._run(
+            [e["expression"] for e in entries],
+            [int(c) for c in relation.coefficients],
+            [(op.index_scale, op.index_shift) for op in relation.operands],
+            [e["domain"] for e in entries],
+            [a for e in entries for a in e["assumptions"]]
+            + ["Formula-to-OEIS correspondence is an external assumption."],
+        )
+        evidence.update(
+            definition_ids=[e["definition_id"] for e in entries],
+            definition_hashes=[e["expression_sha256"] for e in entries],
+            normalized_identity=relation.canonical_expression,
+        )
+        return status, evidence

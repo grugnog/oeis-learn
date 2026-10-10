@@ -405,3 +405,244 @@ def _unique_mapping(loader, node, deep=False):
 
 
 _UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _unique_mapping)
+
+
+@dataclass(frozen=True)
+class QualifiedServices:
+    """Explicit capability dispatch after G7 and profile validation."""
+
+    contract_sha256: str
+    g7_sha256: str
+    _profiles_json: bytes
+
+    @property
+    def capabilities(self):
+        from oeis_learn.experiments.artifacts import load_json
+
+        return tuple(sorted(load_json(self._profiles_json)))
+
+    def _settings(self, name):
+        from oeis_learn.experiments.artifacts import load_json
+
+        profiles = load_json(self._profiles_json)
+        if name not in profiles:
+            raise ConfigError(f"{name}: capability disabled/pending")
+        return profiles[name]["settings"]
+
+    def ground(self, source, visible_terms):
+        from oeis_learn.decoder.grounding import ground
+
+        settings = self._settings("solver")
+        return ground(
+            source,
+            visible_terms,
+            bound=settings["coefficient_bound"],
+            timeout_ms=settings["timeout_ms"],
+        )
+
+    def optimize(self, source):
+        from oeis_learn.sandbox.optimizer import optimize_wat_program
+
+        return optimize_wat_program(
+            source,
+            hard_waste_threshold=self._settings("optimizer")["waste_threshold_percent"] / 100,
+        )
+
+    def prover(self):
+        from oeis_learn.discovery.symbolic_prover import SymbolicProver
+
+        return SymbolicProver(timeout_ms=self._settings("formula_identity")["timeout_ms"])
+
+    def runner(self, result_dir):
+        from oeis_learn.sandbox.runner import FoundationRunner
+
+        settings = self._settings("native")
+        return FoundationRunner(
+            result_dir,
+            backend="rust",
+            workers=settings["workers"],
+            cache_bytes=settings["cache_bytes"],
+        )
+
+
+def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
+    """Resolve content-addressed inputs before activating any repaired service."""
+    from oeis_learn.experiments.qualified_models import validate_record
+    from oeis_learn.experiments.artifacts import compute_canonical_digest
+    from oeis_learn.evaluation.repair_gate import require_g7
+
+    validate_record(contract)
+    if contract["kind"] != "qualified_contract":
+        raise ConfigError("qualified contract required")
+    if any(
+        contract["modes"][m]["enabled"]
+        for m in ("learning", "replay", "search", "program_proof", "extended_runtime")
+    ):
+        raise ConfigError("G8/G9 capabilities are pending their own qualification")
+
+    def resolve_checked(digest):
+        value = resolve(digest)
+        # Content-addressed records omit their own identity when hashed.
+        excluded = (
+            "identity_sha256" if isinstance(value, dict) and "identity_sha256" in value else None
+        )
+        if compute_canonical_digest(value, excluded) != digest:
+            raise ConfigError("referenced content identity mismatch")
+        return value
+
+    base = resolve_checked(contract["base_contract_sha256"])
+    if base.get("kind") == "smoke":
+        _expect(("map", _TOP_SCHEMA), "qualified.base", base)
+        _validate_semantics(base, "qualified.base")
+    else:
+        required = {
+            "schema_version",
+            "kind",
+            "purpose",
+            "run_id",
+            "profiles",
+            "track",
+            "initialization",
+            "objective",
+            "constitution_version",
+            "observed_terms",
+            "total_terms",
+            "index_policy",
+            "enabled_subsystems",
+            "run_provenance",
+            "contract_id",
+        }
+        _require(set(base) == required, "complete foundation base contract required")
+        _require(
+            base["contract_id"] == compute_canonical_digest(base, "contract_id"),
+            "base contract identity mismatch",
+        )
+        _require(
+            base["schema_version"] == "foundation/v1"
+            and base["kind"] == "experiment_contract"
+            and base["track"] == "strict_generic"
+            and base["initialization"] == "random"
+            and base["objective"] == "sft"
+            and base["constitution_version"] == "2.0.0",
+            "incompatible base contract",
+        )
+        _require(
+            base["profiles"] == profile_digests()
+            and type(base["observed_terms"]) is int
+            and base["observed_terms"] == 20
+            and type(base["total_terms"]) is int
+            and base["total_terms"] == 100
+            and base["index_policy"] == "prefix_rebased_zero"
+            and base["enabled_subsystems"] == ["sft"],
+            "incompatible base profiles/horizon",
+        )
+        from uuid import UUID
+        import re
+        from oeis_learn.experiments.models import check_digest
+
+        _require(base["purpose"] in ("diagnostic", "training"), "invalid base purpose")
+        _require(isinstance(base["run_id"], str), "base run identity must be a string")
+        _require(
+            str(UUID(base["run_id"])) == base["run_id"], "canonical base run identity required"
+        )
+        provenance = base["run_provenance"]
+        required_provenance = {
+            "source_revision",
+            "dependency_lock",
+            "base_image_digest",
+            "final_image_id",
+            "environment_report",
+            "dataset_manifest",
+            "benchmark_manifest",
+            "evaluation_protocol",
+            "effective_config",
+        }
+        _require(
+            isinstance(provenance, dict) and set(provenance) == required_provenance,
+            "complete base provenance required",
+        )
+        for name, value in provenance.items():
+            if value is None and base["purpose"] == "diagnostic":
+                continue
+            if name == "source_revision":
+                _require(
+                    isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) is not None,
+                    "resolved base source revision required",
+                )
+            else:
+                check_digest(value, "base." + name)
+    for item in contract["parent_chain"]:
+        parent = resolve_checked(item["contract_sha256"])
+        validate_record(parent)
+        if (
+            parent["track"] != "strict_generic"
+            or parent["initialization"] != item["initialization"]
+        ):
+            raise ConfigError("parent provenance mismatch")
+        expected_parent = (
+            parent["parent_chain"][0]["contract_sha256"] if parent["parent_chain"] else None
+        )
+        if expected_parent != item["parent_sha256"]:
+            raise ConfigError("parent chain identity mismatch")
+    for digest in contract["profiles"].values():
+        resolve_checked(digest)
+    gate = require_g7(g7_report, evidence_root=evidence_root)
+    if contract["gates"]["G7"] != gate:
+        raise ConfigError("qualified G7 identity mismatch")
+    profile_schemas = {
+        "solver": {
+            "coefficient_bound": ("int",),
+            "timeout_ms": ("int",),
+            "max_parameters": ("int",),
+        },
+        "optimizer": {"waste_threshold_percent": ("int",)},
+        "native": {"workers": ("int",), "cache_bytes": ("int",)},
+        "formula_identity": {"timeout_ms": ("int",)},
+    }
+    active = {}
+    for name in profile_schemas:
+        mode = contract["modes"][name]
+        if not mode["enabled"]:
+            continue
+        profile = resolve_checked(mode["profile_sha256"])
+        _expect(
+            (
+                "map",
+                {
+                    "version": ("enum", ("qualified-service/v1",)),
+                    "service": ("enum", (name,)),
+                    "settings": ("map", profile_schemas[name]),
+                },
+            ),
+            name,
+            profile,
+        )
+        settings = profile["settings"]
+        if name == "solver":
+            _require(
+                0 <= settings["coefficient_bound"] <= 1000
+                and 1 <= settings["timeout_ms"] <= 2000
+                and settings["max_parameters"] == 8,
+                "solver limits mismatch",
+            )
+        elif name == "optimizer":
+            _require(
+                0 <= settings["waste_threshold_percent"] <= 100, "optimizer threshold mismatch"
+            )
+        elif name == "native":
+            _require(
+                1 <= settings["workers"] <= 8 and 0 <= settings["cache_bytes"] <= 1 << 30,
+                "native limits mismatch",
+            )
+        else:
+            _require(1 <= settings["timeout_ms"] <= 2000, "formula worker limits mismatch")
+        active[name] = deepcopy(profile)
+    from oeis_learn.experiments.artifacts import canonical_bytes
+
+    return QualifiedServices(contract["identity_sha256"], gate, canonical_bytes(active))
+
+
+def load_qualified_config(path, **activation):
+    with open(path, encoding="utf-8") as handle:
+        contract = yaml.load(handle, Loader=_UniqueLoader)
+    return activate_qualified_contract(contract, **activation)

@@ -72,42 +72,52 @@ def test_cli_and_service_parity(checkpoint_and_manifest):
 
     try:
         # 1. Run through CLI
-        exit_code = cli([
-            "synthesize",
-            "--checkpoint", ckpt_path,
-            "--benchmark-manifest", manifest_path,
-            "--oeis-id", "A000290",
-            "--candidate-budget", str(budget),
-            "--seed", str(seed),
-            "--output-json", out_json,
-        ])
+        exit_code = cli(
+            [
+                "synthesize",
+                "--checkpoint",
+                ckpt_path,
+                "--benchmark-manifest",
+                manifest_path,
+                "--oeis-id",
+                "A000290",
+                "--candidate-budget",
+                str(budget),
+                "--seed",
+                str(seed),
+                "--output-json",
+                out_json,
+            ]
+        )
         assert exit_code in (0, 1)
 
         with open(out_json, "r") as f:
             cli_res = json.load(f)
 
         # 2. Run directly through service
-        protocol = EvaluationProtocol.from_dict({
-            "schema_version": "1.0",
-            "checkpoint_sha256": prov.checkpoint_sha256,
-            "benchmark_manifest_sha256": manifest.manifest_sha256,
-            "observed_horizon": 20,
-            "unseen_horizon": 100,
-            "candidate_budget": budget,
-            "base_seed": seed,
-            "temperature": 0.8,
-            "top_p": 0.95,
-            "max_tokens": 128,
-            "constant_resolution": True,
-            "solver_timeout_ms": 250,
-            "max_placeholders": 4,
-            "fuel_per_invocation": 10000,
-            "memory_limit_mib": 16,
-            "mdl_ratio_max": 1.2,
-            "native_evaluator_required": True,
-            "code_revision": "trustworthy-v1",
-            "environment_fingerprint": "sha256:" + "0" * 64,
-        })
+        protocol = EvaluationProtocol.from_dict(
+            {
+                "schema_version": "1.0",
+                "checkpoint_sha256": prov.checkpoint_sha256,
+                "benchmark_manifest_sha256": manifest.manifest_sha256,
+                "observed_horizon": 20,
+                "unseen_horizon": 100,
+                "candidate_budget": budget,
+                "base_seed": seed,
+                "temperature": 0.8,
+                "top_p": 0.95,
+                "max_tokens": 128,
+                "constant_resolution": True,
+                "solver_timeout_ms": 250,
+                "max_placeholders": 4,
+                "fuel_per_invocation": 10000,
+                "memory_limit_mib": 16,
+                "mdl_ratio_max": 1.2,
+                "native_evaluator_required": False,
+                "code_revision": "trustworthy-v1",
+                "environment_fingerprint": "sha256:" + "0" * 64,
+            }
+        )
 
         service_res = evaluate_cohort_synthesis(
             encoder=encoder,
@@ -130,13 +140,19 @@ def test_cli_and_service_parity(checkpoint_and_manifest):
 
 def test_cli_rejects_missing_target(checkpoint_and_manifest):
     ckpt_path, manifest_path, _, _, _ = checkpoint_and_manifest
-    exit_code = cli([
-        "synthesize",
-        "--checkpoint", ckpt_path,
-        "--benchmark-manifest", manifest_path,
-        "--oeis-id", "A999999",  # Nonexistent
-        "--seed", "42",
-    ])
+    exit_code = cli(
+        [
+            "synthesize",
+            "--checkpoint",
+            ckpt_path,
+            "--benchmark-manifest",
+            manifest_path,
+            "--oeis-id",
+            "A999999",  # Nonexistent
+            "--seed",
+            "42",
+        ]
+    )
     assert exit_code == 2
 
 
@@ -147,13 +163,19 @@ def test_cli_rejects_corrupted_checkpoint(checkpoint_and_manifest):
         corrupt_path = f.name
 
     try:
-        exit_code = cli([
-            "synthesize",
-            "--checkpoint", corrupt_path,
-            "--benchmark-manifest", manifest_path,
-            "--oeis-id", "A000290",
-            "--seed", "42",
-        ])
+        exit_code = cli(
+            [
+                "synthesize",
+                "--checkpoint",
+                corrupt_path,
+                "--benchmark-manifest",
+                manifest_path,
+                "--oeis-id",
+                "A000290",
+                "--seed",
+                "42",
+            ]
+        )
         assert exit_code == 2
     finally:
         if os.path.exists(corrupt_path):

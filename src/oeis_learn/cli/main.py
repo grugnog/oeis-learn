@@ -315,6 +315,14 @@ def build_parser() -> argparse.ArgumentParser:
     fp_p.add_argument('--config', required=True, help='Preflight configuration file')
     fp_p.add_argument('--output', required=True, help='Preflight evidence output directory')
 
+    fqr_p = foundation_subparsers.add_parser('qualify-repairs', help='Run mandatory phase 7 software and native qualification.')
+    fqr_p.add_argument('--output', required=True)
+    fqr_p.add_argument('--json', dest='as_json', action='store_true')
+    faq_p = foundation_subparsers.add_parser('activate-qualified', help='Validate G7 evidence and qualified service profiles.')
+    for name in ('config', 'gate-report', 'profiles'):
+        faq_p.add_argument('--'+name, required=True)
+    faq_p.add_argument('--json', dest='as_json', action='store_true')
+
     # foundation conformance
     fc_p = foundation_subparsers.add_parser(
         'conformance',
@@ -648,7 +656,9 @@ def handle_synthesize(args: argparse.Namespace) -> int:
             "fuel_per_invocation": min(10000, args.fuel_per_invocation),
             "memory_limit_mib": min(16, args.memory_limit_mib),
             "mdl_ratio_max": min(1.20, args.mdl_max),
-            "native_evaluator_required": True,
+            # This legacy 20+100 protocol is a diagnostic, with an explicit
+            # Python backend. Qualified native admission uses the G7 service.
+            "native_evaluator_required": False,
             "code_revision": "trustworthy-v1",
             "environment_fingerprint": "sha256:" + "0" * 64,
         })
@@ -754,7 +764,7 @@ def handle_solve_constants(args: argparse.Namespace) -> int:
     runner = WasmRunner(fuel_budget=10000)
     result = solve_linear_diophantine(skeleton=skeleton, terms=terms, runner=runner)
     if not result.is_sat and not skeleton.is_linear:
-        print("Linear solver UNSAT. Trying Z3 SMT solver fallback...")
+        print("Linear solver unsupported. Trying bounded bit-vector solver...")
         result = solve_smt_constants(skeleton=skeleton, terms=terms, timeout_ms=args.timeout_ms)
 
     if result.is_sat and result.constants:
@@ -798,7 +808,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         return 1
     from oeis_learn.cli.foundation import dispatch
     kw = {k: getattr(args, k) for k in (
-        'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
+        'gate_report', 'profiles', 'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
         'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
     ) if hasattr(args, k)}

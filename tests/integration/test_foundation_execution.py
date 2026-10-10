@@ -139,7 +139,7 @@ def test_killed_worker_replaced_and_duplicate_delivery(tmp_path):
 def test_single_batch_parity_and_explicit_backend(tmp_path):
     from oeis_learn.sandbox.runner import FoundationRunner, WasmRunner, decode_i256_limbs
 
-    for backend in ("auto", "rust", None):
+    for backend in ("auto", None):
         with pytest.raises(ValueError):
             FoundationRunner(tmp_path, backend=backend)
     with pytest.raises(ValueError):

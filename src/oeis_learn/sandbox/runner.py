@@ -34,11 +34,23 @@ class WasmRunner:
         memory_limit_mib: int = 16,
         terms_to_generate: int = 20,
         use_fallback: bool = False,
+        backend: str = "python_wasmtime",
     ):
         self.fuel_budget = fuel_budget
         self.memory_limit_mib = memory_limit_mib
         self.terms_to_generate = terms_to_generate
-        self.use_fallback = use_fallback or not HAS_NATIVE_EVALUATOR
+        if backend not in ("python_wasmtime", "rust"):
+            raise ValueError("explicit python_wasmtime or rust backend required")
+        if use_fallback and backend == "rust":
+            raise ValueError("native selection cannot request fallback")
+        if backend == "rust":
+            from oeis_learn.sandbox.native_runtime import native_identity
+
+            native_identity()
+        if memory_limit_mib != 16:
+            raise ValueError("Only the fixed 16 MiB memory profile is supported")
+        self.backend = backend
+        self.use_fallback = backend == "python_wasmtime"
 
     def run_single(
         self,
@@ -50,6 +62,15 @@ class WasmRunner:
         """Evaluates a single WAT program string."""
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
+        if (
+            type(fuel) is not int
+            or not 0 < fuel <= 1_000_000
+            or type(terms) is not int
+            or not 0 < terms <= 120
+        ):
+            raise ValueError("exact fuel/term bounds required")
+        if result_profile not in ("i64_scalar_v1", "i256x4_v1", "wat_i256_checked_v1"):
+            raise ValueError("explicit result profile required")
 
         if result_profile == "wat_i256_checked_v1":
             raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
@@ -61,7 +82,7 @@ class WasmRunner:
             wat_code = lower_macro_wat(wat_code)
 
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            res = oeis_wasm_evaluator.evaluate_wat_single(wat_code, fuel, terms)
+            res = oeis_wasm_evaluator.evaluate_wat_single(wat_code, fuel, terms, result_profile)
             wide_out = getattr(res, "wide_output", [])
             output = res.output
             if (result_profile == "i256x4_v1" or wide_out) and wide_out:
@@ -79,7 +100,7 @@ class WasmRunner:
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_single_fallback
 
-            return evaluate_wat_single_fallback(wat_code, fuel, terms)
+            return evaluate_wat_single_fallback(wat_code, fuel, terms, result_profile)
 
     def run_batch(
         self,
@@ -91,6 +112,15 @@ class WasmRunner:
         """Evaluates a batch of WAT programs concurrently across CPU threads."""
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
+        if (
+            type(fuel) is not int
+            or not 0 < fuel <= 1_000_000
+            or type(terms) is not int
+            or not 0 < terms <= 120
+        ):
+            raise ValueError("exact fuel/term bounds required")
+        if result_profile not in ("i64_scalar_v1", "i256x4_v1", "wat_i256_checked_v1"):
+            raise ValueError("explicit result profile required")
 
         if result_profile == "wat_i256_checked_v1":
             raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
@@ -105,7 +135,13 @@ class WasmRunner:
                 lowered_programs.append(p)
 
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            results = oeis_wasm_evaluator.evaluate_wat_batch(list(lowered_programs), fuel, terms)
+            results = []
+            for offset in range(0, len(lowered_programs), 32):
+                results.extend(
+                    oeis_wasm_evaluator.evaluate_wat_batch(
+                        lowered_programs[offset : offset + 32], fuel, terms, result_profile
+                    )
+                )
             out = []
             for r in results:
                 wide_out = getattr(r, "wide_output", [])
@@ -127,7 +163,7 @@ class WasmRunner:
         else:
             from oeis_learn.sandbox.fallback_runner import evaluate_wat_batch_fallback
 
-            return evaluate_wat_batch_fallback(lowered_programs, fuel, terms)
+            return evaluate_wat_batch_fallback(lowered_programs, fuel, terms, result_profile)
 
     def run_optimized_single(
         self,
@@ -179,13 +215,13 @@ class FoundationRunner:
     """
 
     def __init__(self, result_dir, *, backend, workers=1, cache_bytes=1 << 30):
-        if backend != "python_wasmtime":
-            raise ValueError(
-                "Only explicit python_wasmtime is qualified; Rust and auto are unavailable"
-            )
+        if backend not in ("python_wasmtime", "rust"):
+            raise ValueError("explicit python_wasmtime or rust backend required")
         from oeis_learn.sandbox.worker_pool import WorkerPool
 
-        self.pool = WorkerPool(result_dir, workers=workers, cache_bytes=cache_bytes)
+        self.pool = WorkerPool(
+            result_dir, workers=workers, cache_bytes=cache_bytes, backend=backend
+        )
 
     def run_single(self, source, indices, *, request_id, **kwargs):
         return self.pool.evaluate(source, indices, request_id=request_id, **kwargs)

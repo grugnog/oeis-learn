@@ -18,9 +18,12 @@ def test_symbolic_prover_verifies_polynomial_sum():
     formulas = ["a(n) = n", "a(n) = n**2", "a(n) = n**2 + n"]
     proven = prover.prove_relation(candidate, formulas=formulas)
 
-    assert proven.status == "PROVEN"
+    assert proven.status == "FORMULA_IDENTITY"
+    import json
+    from oeis_learn.discovery.formula_checker import check_scoped_evidence
+    assert check_scoped_evidence(json.loads(proven.symbolic_proof))
     assert proven.symbolic_proof is not None
-    assert "Q.E.D." in proven.symbolic_proof
+    assert json.loads(proven.symbolic_proof)["assumptions"]
 
 
 def test_symbolic_prover_missing_definitions_remains_conjecture():
