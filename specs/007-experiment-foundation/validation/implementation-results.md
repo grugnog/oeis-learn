@@ -68,5 +68,23 @@ cannot consume the gate archive, while missing/escaping dependencies still rejec
 No quota or gate was weakened. Latest focused suite: **27 passed / 3 capability
 skips**; lint passes. The current full CI rerun must validate this closure.
 
-Current Linux/native/wheel CI results will be recorded below after execution;
-no future result is treated as passing evidence.
+At `252e6372d557625d515a91b31d7847338bfcbb38`,
+[review CI](https://github.com/grugnog/oeis-learn/actions/runs/38095379995)
+passed **736 CPU tests / 56 capability skips**, lint/structural checks, the complete
+CPU quickstart and native G7/G8-software/G9 qualification.
+[Wheel/native/Docker CI](https://github.com/grugnog/oeis-learn/actions/runs/38095379931)
+passed **6 installed-wheel cases**, **93 integration regressions**, **8 actual
+Docker role tests**, and copied-dependency archive replay. The gate archive has
+**30 files / 41,960,608 bytes**, with G7/G9 PASS, G8 software PASS/hardware pending,
+and G10 wheel/integration/68-input checks PASS; source/measurements remain pending.
+
+A final source-distribution check found that owning tests need the phase 11
+disposition JSON. `MANIFEST.in` now includes it. The extracted source distribution
+executes all 24 handoff tests plus the existing current-disposition binding test:
+**25 passed**, using the locked local CPU environment with the extracted source
+and scripts first on `sys.path`. Direct and rebuilt wheels verify **395**
+source/resource bindings. This packaging-only change receives fresh native/wheel
+CI below; Python service and driver bytes remain those validated at `252e637`.
+
+Final packaging CI result will be recorded after execution; pending runtime
+acceptance remains explicit.
