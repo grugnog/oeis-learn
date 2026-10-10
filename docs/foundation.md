@@ -72,10 +72,11 @@ pauses exclude downtime. An unclean gap is charged through recovery and labeled
 estimated; same-boot time uses monotonic intervals, cross-boot recovery uses UTC,
 and backward/inconsistent clocks fail closed. Model rollback never rewinds this
 ledger. Training, recovery and checkpoint costs are integrated. The ledger API
-also supports bootstrap, validation and evaluation phases; the existing separate
-pool/evaluation commands are **not yet one integrated arm controller**. Their
-own bounded timing reports must not be represented as a complete multi-phase
-training ledger.
+also supports bootstrap, validation and evaluation phases. Standalone pool and
+evaluation commands retain their own bounded reports. The live measurement/v2
+controller charges setup, training, checkpointing, generation and development
+evaluation to the same capped diagnostic/paired-arm schedule; standalone timing
+reports cannot substitute for that complete schedule.
 
 Events are append-only bounded segments (64 MiB each; 1 GiB for budget events
 and 1 GiB for metrics), with duplicate/conflicting event checks and torn-tail
@@ -110,13 +111,14 @@ It uses host-side `docker rm --force` at the deadline to reclaim the cgroup.
 Do not launch multiple 88 GiB roles concurrently or infer an aggregate cap from
 this single-container launcher.
 
-This launcher is scaffolding for the existing environment, **not** a completed
-multi-role execution protocol. The current evaluator's generation/worker process
-transport has not been moved to coordinated role containers; aggregate admission
-of up to eight worker containers and mounted-view enforcement need integration
-and actual Docker tests. The shared development filesystem is not isolation
-evidence. The repository does not contain the machine's `system/lab-gpu` broker
-implementation, so its actual mount/device configuration was not audited here.
+The single-container launcher remains available for explicit role invocations.
+Phase 10's host `RoleCoordinator` supplies the coordinated live protocol used by
+`coordinated-smoke` and measurement/v2: one main role, at most eight workers,
+enumerated views, no worker GPU capability and host-owned deadlines/reclamation.
+The older standalone evaluation process boundary sends only visible prompts;
+release authorization still requires executed run-bound containment evidence.
+The shared development filesystem alone is not isolation evidence. Actual GPU
+broker/device deployment remains subject to the machine acceptance tests.
 
 The Docker-marked test requires Docker and `OEIS_FOUNDATION_TEST_IMAGE` set to the
 resolved local image ID; it actually checks visible/read-only mounts and absent
@@ -144,9 +146,11 @@ No real release source or cohort is supplied by the diagnostic fixtures.
 validates and freezes the bounded schedule without issuing work. The explicit
 `cpu_fixture` mode runs actual cache/runtime timings and reports its sample
 shortfall, unavailable diagnostics and inconclusive decisions. It cannot qualify
-GPU performance or learning. `qualified_device` currently records hardware/
-orchestration unavailability without CPU fallback. Inputs have no final-truth
-path or external comparative-score field.
+GPU performance or learning. `qualified_device` uses the measurement/v2 bundle
+from `prepare-measurement` for coordinated live execution. Legacy manifests
+without that bundle and missing host/device capabilities report unavailable
+without CPU fallback. Inputs have no final-truth path or external comparative-score
+field.
 
 The wider logical diagnostic and benchmark-only unchecked lowering cannot publish
 training/admission records. Unknown provenance or unavailable development evidence

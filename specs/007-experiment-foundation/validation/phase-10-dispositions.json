@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 10,
-  "code_revision": "phase-10-live-integration (see PR head and implementation_sha256)",
+  "code_revision": "ba89b9694128775cd136b890f77a249b650a70ae",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Task and review evidence traceability; no runtime or hardware qualification inferred from checklist markers.",
   "full_007_complete": false,
@@ -1378,13 +1378,17 @@
       "passed": 1
     },
     "cpu_ci": {
-      "code_revision": "c0d2bd6241f8d77dde6698e6382b219b8f7cc7b3",
-      "passed": 698,
+      "code_revision": "ba89b9694128775cd136b890f77a249b650a70ae",
+      "passed": 712,
       "skipped": 56,
-      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38086521998",
-      "followup_revision": "pending"
+      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38088372626"
     },
-    "installed_native_ci": "pending current revision",
+    "installed_native_ci": {
+      "code_revision": "ba89b9694128775cd136b890f77a249b650a70ae",
+      "passed": 6,
+      "skipped": 0,
+      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38088372595"
+    },
     "gpu_acceptance": "PENDING",
     "real_release_source": "PENDING",
     "g10": "PARTIAL",
@@ -1392,7 +1396,26 @@
       "passed": 16,
       "skipped": 1,
       "scope": "archive admission, CLI error boundary and worker timeout replacement; actual Docker skipped"
-    }
+    },
+    "phase10_native_regressions": {
+      "code_revision": "ba89b9694128775cd136b890f77a249b650a70ae",
+      "passed": 69,
+      "skipped": 0
+    },
+    "actual_docker_roles": {
+      "code_revision": "ba89b9694128775cd136b890f77a249b650a70ae",
+      "passed": 8,
+      "skipped": 0
+    },
+    "local_source_distribution": {
+      "code_revision": "fad58226719d10d08a34b31ffd03bf92105a1075",
+      "inventory_bindings": 388,
+      "wheel_rebuild": "PASS"
+    },
+    "g7": "PASS",
+    "g8_software": "PASS",
+    "g8_hardware": "PENDING",
+    "g9": "PASS"
   },
   "implementation_hash_method": "experiment_runner.implementation_identity()"
 }
