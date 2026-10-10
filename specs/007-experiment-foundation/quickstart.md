@@ -109,6 +109,10 @@ Use the deterministic CPU integration fixture for interruption equivalence. It c
 
 Try wrong hashes, unknown/inactive options, a weights-only checkpoint, a missing pool/checkpoint, a truth field injected into a visible prompt, repeated finalization with a changed candidate list, a full-match record with fewer than 100 values, and a `PROVEN` status. Each must fail before qualification. Resource tests hang/kill workers and exhaust queue/cache/disk allowances in temporary directories; they never deliberately exhaust the real host.
 
+## Phase 7 software qualification
+
+Build the root Dockerfile `qualification` target and run the G7 harness with a new reports directory. It executes original owning-module tests, mandatory Rust tests, the full fixed native corpus, portable replay and qualified-service activation. Follow [the phase 7 qualification procedure](validation/phase-7-review.md). GPU evidence remains a separate requirement.
+
 ## Expanded repair and release acceptance (G7–G10)
 
 After implementing the relevant tasks, run the owning-path regressions first, then qualify extensions. The initial formula checker is a G7 requirement; richer program-class checkers are G9.

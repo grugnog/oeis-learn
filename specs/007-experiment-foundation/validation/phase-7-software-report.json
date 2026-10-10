@@ -1,50 +1,118 @@
 {
-  "schema_version": "phase7-review/v1",
-  "tested_commit": "463771013ba6613da79c9c62d646064c7ad9dee8",
-  "run_url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546",
-  "job_id": 111065026952,
+  "schema_version": "phase7-review/v2",
+  "tested_commit": "90b3f35831e2dd38db0b3f0a703c5e86d7682638",
+  "run_url": "https://github.com/grugnog/oeis-learn/actions/runs/38019310921",
   "conclusion": "success",
-  "suite": "foundation unit/contract/integration globs including recovered phase 7 regressions",
-  "pytest": {
-    "passed": 472,
-    "failed": 0,
-    "skipped": 4,
-    "warnings": 37,
-    "duration_seconds": 178.54
+  "qualification": "G7 PASS",
+  "software_only": true,
+  "completed_tasks": [
+    "T050",
+    "T051",
+    "T052",
+    "T053",
+    "T054",
+    "T055",
+    "T056",
+    "T057",
+    "T058",
+    "T059",
+    "T060",
+    "T061"
+  ],
+  "cpu": {
+    "job_id": 114116526782,
+    "suite": "foundation unit/contract/integration globs",
+    "pytest": {
+      "passed": 509,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 4,
+      "warnings": 37,
+      "duration_seconds": 158.47
+    },
+    "checks": {
+      "compileall": "PASS",
+      "targeted_ruff_F_E9": "PASS",
+      "spec_kit_prerequisites": "PASS",
+      "spec_artifact_consistency": "PASS"
+    },
+    "environment": {
+      "python": "3.12",
+      "torch": "2.9.1+cpu",
+      "sympy": "1.14.0",
+      "wasmtime": "49.0.0",
+      "z3_solver": "5.1.0.0"
+    },
+    "artifact": {
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/38019310921/artifacts/11657608140",
+      "zip_sha256": "e950c76d1794ed2c1463959e05afaa94a5adf4319b0817917cc5e16e05a25873",
+      "checksum_verified": true
+    }
   },
-  "checks": {
-    "compileall": "PASS",
-    "targeted_ruff_F_E9": "PASS",
-    "spec_kit_prerequisites": "PASS",
-    "spec_artifact_consistency": "PASS"
+  "native": {
+    "job_id": 114116526668,
+    "build": "root Dockerfile qualification target; cargo fmt and committed Cargo.lock; release build/tests",
+    "owning_suites": {
+      "containment_activation": 7,
+      "discovery_consumers": 7,
+      "grounding": 38,
+      "native_entrypoints": 8,
+      "optimizer": 7,
+      "qualified_contracts": 28,
+      "recurrence_dataflow": 2,
+      "symbolic": 19,
+      "synthesis_consumers": 13
+    },
+    "python_passed": 129,
+    "python_failed": 0,
+    "python_skipped": 0,
+    "rust_passed": 11,
+    "parity_cases": 10268,
+    "parity_corpus": "12 known regressions + 10000 fixed arithmetic cases + 256 structured programs at indices 0..99",
+    "portable_records_verified": 3,
+    "activated_capabilities": [
+      "formula_identity",
+      "native",
+      "optimizer",
+      "solver"
+    ],
+    "cli_activation": "complete",
+    "partial_report_rejected": true,
+    "gate_report_sha256": "sha256:4c14d9b0a7cf47c1568a085039b8f880f9a473b5feea242c775132da57ddd662",
+    "implementation_sha256": "sha256:690f632c78fb844f03d4743755f26e148e38dc4fbb51ccb7a8fb665ae67e4cbb",
+    "environment": {
+      "python": "3.12.12",
+      "rustc": "1.90.0",
+      "torch": "2.9.1+cpu",
+      "python_wasmtime": "48.0.0",
+      "rust_wasmtime": "20.0.2",
+      "sympy": "1.14.0",
+      "z3_solver": "5.1.0.0"
+    },
+    "artifact": {
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/38019310921/artifacts/11657393687",
+      "zip_sha256": "821e8ac8253f0f0962268ec88982e460f1cf0eac58f34818405b661732b29a1e",
+      "checksum_verified": true
+    },
+    "audit": {
+      "bound_artifact_hashes_verified": true,
+      "full_corpus_reconstructed_and_exact_values_checked": true,
+      "report_activation_and_profile_hashes_verified": true,
+      "portable_records_replayed_locally": true
+    }
   },
-  "skips": [
+  "pending_checks": [
     "AMD HIP sampler",
     "AMD HIP evaluation",
     "AMD HIP updates",
-    "Explicit pinned Docker image/resource probe"
+    "Explicit pinned production Docker image/resource probe"
   ],
-  "artifact": {
-    "url": "https://github.com/grugnog/oeis-learn/actions/runs/37075710546/artifacts/11256392303",
-    "zip_sha256": "19f27c00b9b78457a2ccd1d1d6a3edd708e175dcd7fd6da93c7b145bb8710139",
-    "files": [
-      "phase7-junit.xml",
-      "phase7-environment.txt"
-    ]
-  },
-  "environment": {
-    "python": "3.12",
-    "torch": "2.9.1+cpu",
-    "sympy": "1.14.0",
-    "wasmtime": "49.0.0",
-    "z3_solver": "5.1.0.0"
-  },
-  "qualification": "G7 PARTIAL",
-  "not_covered": [
-    "All original legacy owning-module regressions",
-    "Native Rust repair/build/parity",
-    "qualified/v1 record validators and portable evidence replay",
-    "Positive qualified-service activation integration"
+  "limits": [
+    "G7 software qualification does not certify AMD HIP training or full spec 007 release.",
+    "CPU and native test counts overlap; they are not a combined unique-test total.",
+    "Owning suites and full G7 qualification ran at tested_commit; the subsequent evidence commit changes documentation and run-report copies only.",
+    "Activation requires all referenced artifacts and the same qualified runtime; the committed report copy alone is insufficient.",
+    "Phase 8/G8 and phase 9/G9 capabilities remain disabled."
   ],
   "earlier_620_pass_result_applies_to_this_tree": false
 }

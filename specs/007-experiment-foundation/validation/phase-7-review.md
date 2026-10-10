@@ -1,51 +1,50 @@
-# Phase 7 review and recovery status
+# Phase 7 review and remediation
 
-This draft reviews phase 7 of spec 007 only. Phase 8 has not started.
+Phase 7 repairs the existing synthesis, execution and discovery code. It adds qualified records and an authorization boundary around the repaired services. The fixed foundation SFT smoke remains unchanged; phase 8 has not started.
 
-## Publication and validation boundary
+## Repairs and acceptance coverage
 
-An initial implementation and local commit were lost when the execution workspace reverted during publication. An earlier reported 620-passed/4-skipped result belonged to that lost tree and MUST NOT be used as evidence for this PR. No JUnit file or passing report has been reconstructed from those numbers.
-
-The recovered grounding regression suite ran locally: **13 passed, 1 failed**. The failure was the recognized recurrence exhausting the legacy 10,000-fuel per-index default after 13 outputs. Direct execution confirmed OUT_OF_FUEL with the correct Fibonacci prefix. The recovered service now requests the declared 1,000,000-fuel ceiling for that recurrence path; its process wall-time and aggregate limits remain bounded. That change was not rerun locally because the execution service disconnected again.
-
-The recovered code was subsequently validated in [GitHub Actions run 37075710546](https://github.com/grugnog/oeis-learn/actions/runs/37075710546) at commit `463771013ba6613da79c9c62d646064c7ad9dee8`: **472 passed, 4 skipped**. Compilation, targeted Ruff F/E9 checks and spec-kit prerequisite/artifact validation also passed. The first CI run exposed two registry-loading failures; fixing the path-versus-text call to the JSON helper resolved both. The recurrence fuel correction passed. See [phase-7-software-report.json](phase-7-software-report.json) for exact scope, skips and the JUnit/environment artifact.
-
-This covers the foundation suites and new phase 7 regressions, not all original legacy owning suites. All phase 7 task markers remain partial until the remaining validation and integration work is complete.
-
-## Findings and recovered remediation
-
-1. **Unsafe affine classification and floating-point fitting.** Parameter products could enter empirical-basis least squares, including C*C fitted as C=4. The shared service uses typed parameter degree, exact rational elimination with explicit pivot columns, and bounded integer constraints for deficient systems. Scalar modular expressions have a separately named bit-vector solver.
-2. **False solver outcomes.** Rank deficiency, unlucky modular pivots, failed reconstruction and unknown were conflated with UNSAT/timeouts. Modular rank is diagnostic, exact elimination provides the supported complete linear constraints, and solver status/reason determines the outcome. Corrected augmented rank and removed the deficiency reward penalty.
-3. **Unverified final candidates.** No-placeholder candidates previously bypassed execution; training and evaluation diverged. Both public solver adapters now route to one killable service over the first at most20 visible terms. Final source is executed by production and independent reference semantics for the supported subset. Hidden tails are not fitting data. Training no longer auto-abstracts scalar helper literals or inserts prefix-only results into the elite buffer.
-4. **Unfounded recurrence recognition.** Loop substring and placeholder count were treated as recurrence evidence. The recovered recognizer matches every operation/declaration/guard/state transfer of one order-two template, including initial states. Its lag matrix is cached by the immutable visible prefix within this fixed recognizer/index convention. Other recurrence shapes remain unsupported.
-5. **Unqualified mathematical proof claims.** Both prover APIs now parse an allowlisted bounded arithmetic AST using one canonical integer n. Domain preimages handle negative/zero scales; original poles survive cancellation. Formula identities require an independent rational-evaluation certificate. A nonzero CAS residual alone is not a counterexample; an exact defined in-domain witness is required. Formula/OEIS correspondence remains an explicit external assumption.
-6. **Unvalidated formula registry/provenance.** The registry checks content hashes, strict definition fields, expression syntax and index/domain convention, and returns copies. Bundled formula references are accurately labeled repository assumptions rather than verified OEIS source evidence. The discovery protocol is pinned to the repaired registry.
-7. **Unsafe regex optimizer.** Full legacy modules are returned byte-identically. The supported strict-body rewrite catalog removes only typed nops and total effect-free push/drop pairs, retains writes/tee/traps/control ordering and reparses the output.
-8. **Automatic native selection and misleading qualification.** The legacy runner selects Python explicitly and rejects Rust pending repair/conformance. The Python adapter checks the requested result profile, fresh state, memory and cumulative fuel limits. Native source remediation/build/parity remain incomplete; disabling it is not described as a repair. Native-required synthesis fails closed. Finite legacy matches are diagnostic, not qualified successes.
-9. **Missing G7 authorization boundary.** Added a fail-closed gate and architecture-measurement entry point. Self-declared PASS reports cannot enable services. Positive activation, qualified record validators and portable evidence replay are unfinished software work.
-
-## Task accounting
-
-| Tasks | Current status / remaining work |
+| Tasks | Implemented behavior and evidence |
 |---|---|
-| T050, T054, T055 | Grounding repairs and regressions recovered; rerun actual final tree and reconcile original owning suites before completion. |
-| T051, T057 | Parser, proof service, registry and scoped reporting recovered; CPU validation and all original consumer/schema regressions still required. |
-| T052, T058 | Conservative typed optimizer plus Python regressions present. Native fixtures/parity and complete rewrite-evidence validation pending. |
-| T056 | Shared public dispatch, final-source checks, narrow recurrence/data cache and elite boundary changed; broader owning integration validation pending. |
-| T059 | Explicit runtime selection/limits repaired on Python side; Rust implementation, Docker build and mandatory no-fallback parity still pending. |
-| T053 | qualified/v1 record validation and replay remain incomplete; not implemented by the baseline schema or this gate. |
-| T060, T061 | Negative gating scaffold present. Qualified configuration/CLI activation, positive gate evidence, complete regression evidence and native parity remain incomplete. |
+| T050, T054, T055 | One contained grounding service uses typed parameter dependence, exact affine elimination with explicit pivots, bounded integer solving and a separately named faithful bit-vector tier. Rank deficiency, unlucky primes and timeout do not imply UNSAT. Original solver entry points and their owning contract/integration suites are included in G7. |
+| T051, T057 | Both prover APIs use bounded allowlisted parsing, canonical symbols, exact domain preimages, original denominator exclusions and checked rational certificates or concrete witnesses. Formula/OEIS correspondence remains an explicit assumption. Registry hashes and report consumers are checked; legacy proof labels are rendered unverified. |
+| T052, T058 | Typed liveness removes only supported dead writes and total pure operations, retaining trapping producers, local.tee and control ordering. Every transformation is reparsed and checked against a separate rewrite certificate. Python and Rust fixtures cover traps, state and result profiles. |
+| T053 | All ten qualified/v1 record kinds have positive and adversarial fixtures. Closed fields, versions, integer representations, identities, origins, modes, parent chains, budgets and status-specific evidence are checked. Solution and scoped UNSAT records, formula certificates and witnesses have separate contained replay. Future record formats do not enable future algorithms. |
+| T056 | Training and evaluation share grounding dispatch and final-source verification, including no-placeholder candidates. The supported order-two recurrence recognizer checks state, initials, guards, updates and output, accepts alpha-renaming and independent limb-copy order, and caches by visible values, fit indices, order and transform identity. Hidden continuations are excluded from fitting. |
+| T059 | The rebuilt Rust runtime uses explicit scalar/wide/strict profiles, exact four-limb decoding, fresh stores/instances, typed trap classification and bounded per-call/aggregate fuel. Python owns worker concurrency; native calls release the GIL. Native selection is explicit, and missing/stale native builds fail closed. Cargo dependencies, Rust sources and the compiled extension are identity-bound. |
+| T060, T061 | G7 requires current implementation/runtime identities, owning-suite JUnit files, executed Rust-test evidence, the entire native parity transcript and portable replay. Activation resolves content-addressed base/parent/service profiles and preserves effective settings immutably. The harness exercises grounding, optimization, proving, native dispatch and the architecture-measurement gate with actual G7 evidence. CLI activation is tested in Docker. |
 
-These are not all GPU-blocked tasks. Several are unfinished software/integration tasks after the workspace failure. GPU validation from earlier phases also remains separate.
+## Qualification procedure
 
-## Validation commands and next steps
+The root Dockerfile has a CPU `qualification` target using the same installation and native-build scripts as development/GPU targets. No host compiler or additional system dependency is required. The build checks Rust formatting and uses the committed Cargo lockfile.
 
-Run the included CPU workflow or, in the project Python environment:
-
-```sh
-OMP_NUM_THREADS=2 PYTHONPATH=src:. python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py
-SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-python specs/007-experiment-foundation/validate_artifacts.py
+```bash
+docker build --target qualification -t oeis-learn:g7 .
+mkdir -p runs/007-g7/reports
+docker run --rm -v "$PWD/runs/007-g7/reports:/evidence" oeis-learn:g7 bash -c '
+  set -euo pipefail
+  trap "chmod -R a+rX /evidence" EXIT
+  python -m oeis_learn.evaluation.repair_gate --output /evidence
+  oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json \
+    --gate-report /evidence/g7.json --profiles /evidence/profiles --json \
+    > /evidence/activation-cli.json
+'
 ```
 
-Then run the original grounding, symbolic, discovery, synthesis, optimizer and sandbox owning suites; adjust stale contract expectations to scoped statuses without weakening their semantic assertions. Native dependencies/builds belong in the root Dockerfile environment. Do not proceed to architecture/learning measurements, claim G7 PASS, or mark this PR ready until the remaining software and native checks are resolved.
+Use a new output directory for each qualification. `g7.json` is the gate report; failed acceptance remains PARTIAL. The evidence bundle includes Rust logs, owning-suite JUnit files, `native/parity.json`, embedded portable replay records, `activation.json`, a qualified contract and content-addressed profiles. The command exercises CLI activation in the same image and preserves `activation-cli.json`. CI also retains exact Python/Rust build information.
+
+Activation must run in the same qualified runtime/image. Changing implementation, dependencies or the native binary requires new qualification. A summary JSON, test count or self-declared PASS does not authorize a service. The full parity corpus comprises 12 regressions, 10,000 fixed arithmetic cases and 256 structured programs evaluated at indices 0–99, with Python, Rust and independent reference agreement.
+
+The foundation CPU suite checks durable crash recovery using the same recorded execution outcomes. Independent fresh executions may differ at a wall-time limit; those resource limits are tested separately. The real-data discovery regression no longer manufactures a Fibonacci proof from unrelated polynomial formulas: it retains that finite relation as a conjecture and independently checks the supported triangular identity.
+
+The contained formula worker proposes its rational certificate with exact fractions, avoiding a cold SymPy import within the two-second deadline. Its independent checker still reconstructs the degree bound and evaluates the original expressions at enough distinct defined points. An identically zero denominator cannot produce an identity certificate; denominator exclusions and formula/OEIS assumptions remain part of the checked statement.
+
+## Scope and task accounting
+
+See [phase-7-software-report.json](phase-7-software-report.json) for the exact tested commit, CI run, results and artifact hashes. Only evidence for that tree is counted; the historical lost-workspace 620-pass claim is excluded.
+
+The report copy under `runs/007_phase7_review/reports/` is an audit record. Activation additionally needs all referenced JUnit files, Rust logs and the parity transcript from the CI artifact, in the matching qualified runtime. Copying a PASS report alone cannot activate services.
+
+Grounding proves bounded visible-fit statements, not all-index sequence correctness. Recurrence recognition deliberately supports the checked order-two transition; other shapes remain unsupported. Formula identities are conditional mathematical statements and do not prove generated programs. Rewrite certificates establish value/trap equivalence, not identical fuel consumption. Legacy synthesis stays diagnostic and uses explicit Python execution; qualified native admission uses the G7-activated FoundationRunner.
+
+G8/G9 learning, replay, search, richer program proofs and extended runtime modes remain disabled pending their own phases. GPU tests and the pinned production-container resource probe from earlier phases retain their pending markers. G7 is software qualification and does not certify AMD HIP training or complete spec 007.
