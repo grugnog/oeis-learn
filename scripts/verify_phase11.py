@@ -157,7 +157,7 @@ def main():
                     "--split",
                     "final",
                     "--output",
-                    output / "final",
+                    finalized["evaluation_output"],
                 ],
             )
     sources = load_json((fixture / "source/records.json").read_bytes())

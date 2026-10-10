@@ -43,5 +43,13 @@ is historical after subsequent code remediation; Linux CI executes the final
 full quickstart and fresh replay. Missing GPU/source/trained-model acceptance
 keeps T104/T105 and earlier acceptance tasks half-checked.
 
-Current CI, broad CPU, packaging and official Spec Kit results will be recorded
-below after execution; no future result is treated as passing evidence.
+Additional local validation:
+
+- Broad command: `OMP_NUM_THREADS=2 .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase11-evidence/broad.xml`: **699 passed, 56 capability skips, 22 failures, 12 setup errors**. Nineteen failures and all twelve setup errors directly name the unavailable Linux boot ID; three CLI assertions reflect the corresponding invalid-input exits. These are not marked passing. Current Linux CI must supply acceptance.
+- `python -m build --sdist --wheel --no-isolation --outdir phase11-evidence/dist` and an extracted-sdist wheel rebuild succeed. The wheel verifies **395** source/resource bindings, including exact original-input and task-checklist governance bytes. Native compilation stays in Docker CI.
+- Official upstream Spec Kit at `fe1d00e3ccaf495880aaf90fb0e17679e82f065b`, CLI 1.0.7: `specify version`, `specify check`, and `SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation specify integration status` succeed. Integration is Pi, with zero modified/missing/invalid/unchecked managed files; local coding-agent CLIs are unavailable and not installed for this review.
+- `SPECIFY_FEATURE_DIRECTORY=specs/007-experiment-foundation bash .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` passes. `python specs/007-experiment-foundation/validate_artifacts.py` passes: 52 requirements, 108 tasks, 68 original findings, 100% structural requirement/task coverage, 82 checked links and 14 negative schema cases. Neither command executes runtime gates.
+- Read-only semantic review compares constitution/spec/plan/contracts/tasks/source findings; no new constitution conflict or unmapped requirement/task. Findings and remaining runtime acceptance are summarized in the review. Requirements/design checklists remain untouched.
+
+Current Linux/native/wheel CI results will be recorded below after execution;
+no future result is treated as passing evidence.
