@@ -195,3 +195,154 @@ def execute_term(
     return Interpreter(
         step_limit, deadline_ns if deadline_ns is not None else time.monotonic_ns() + 2_000_000_000
     ).run(program, index)
+
+
+class LogicalReference:
+    """Independent Python-integer logical semantics; no lowering or limb helper calls."""
+
+    def __init__(self, program):
+        from oeis_learn.sandbox.logical_ir import parse_logical
+
+        self.program = parse_logical(
+            program.canonical_source if hasattr(program, "canonical_source") else program
+        )
+        self.slots = [0] * 32
+        self.array = [0] * 1024
+        self.index = 0
+        self.steps = 0
+        self.max_steps = 1000000
+        self.deadline = float("inf")
+
+    def tick(self):
+        import time
+
+        if self.steps >= self.max_steps or time.monotonic() >= self.deadline:
+            raise ExecutionFailure("execution_limit", "logical reference steps/deadline")
+        self.steps += 1
+
+    def checked(self, v):
+        if not -(1 << 255) <= v < (1 << 255):
+            raise ExecutionFailure("numeric_limit", "signed256 intermediate")
+        return v
+
+    def expr(self, n):
+        self.tick()
+        op, args = n.op, n.args
+        if op == "const":
+            return args[0]
+        if op == "index":
+            return self.checked(self.index)
+        if op == "get":
+            return self.slots[args[0]]
+        if op == "load":
+            i = self.expr(args[0])
+            if not 0 <= i < 1024:
+                raise ExecutionFailure("runtime_failure", "array bounds")
+            return self.array[i]
+        if op == "select":
+            return self.expr(args[1] if self.expr(args[0]) else args[2])
+        a = self.expr(args[0])
+        if op == "to_i32":
+            if not -(1 << 31) <= a < (1 << 31):
+                raise ExecutionFailure("numeric_limit", "checked i32 cast")
+            return a
+        if op == "from_i32":
+            return a
+        if op.startswith("shr") or op == "shl":
+            k = args[1]
+            if op == "shl":
+                return self.checked(a * (1 << k))
+            if op == "shr_s":
+                return a // (1 << k)
+            bits = (a % (1 << 256)) // (1 << k)
+            return bits - (1 << 256) if bits >= (1 << 255) else bits
+        b = self.expr(args[1])
+        if op == "add":
+            return self.checked(a + b)
+        if op == "sub":
+            return self.checked(a - b)
+        if op == "mul":
+            return self.checked(a * b)
+        if op in ("div", "rem"):
+            if b == 0:
+                raise ExecutionFailure("runtime_failure", "division by zero")
+            q = abs(a) // abs(b)
+            if (a < 0) != (b < 0):
+                q = -q
+            self.checked(q)
+            return q if op == "div" else a - q * b
+        if op in ("eq", "ne", "lt", "le", "gt", "ge"):
+            return {
+                "eq": a == b,
+                "ne": a != b,
+                "lt": a < b,
+                "le": a <= b,
+                "gt": a > b,
+                "ge": a >= b,
+            }[op]
+        if op in ("and", "or", "xor"):
+            return {"and": a & b, "or": a | b, "xor": a ^ b}[op]
+        raise ExecutionFailure("unsupported", "logical expression")
+
+    def stmt(self, n):
+        self.tick()
+        op, args = n.op, n.args
+        if op == "set":
+            self.slots[args[0]] = self.expr(args[1])
+        elif op == "store":
+            idx = self.expr(args[0])
+            value = self.expr(args[1])
+            if not 0 <= idx < 1024:
+                raise ExecutionFailure("runtime_failure", "array bounds")
+            self.array[idx] = value
+        elif op == "if":
+            self.stmt(args[1] if self.expr(args[0]) else args[2])
+        elif op == "while":
+            while self.expr(args[0]):
+                self.tick()
+                for s in args[1:]:
+                    self.stmt(s)
+        elif op == "repeat":
+            for _ in range(args[0]):
+                self.tick()
+                for s in args[1:]:
+                    self.stmt(s)
+        else:
+            raise ExecutionFailure("unsupported", "logical statement")
+
+    def state(self):
+        return {"index": self.index, "slots": list(self.slots), "array": list(self.array)}
+
+    def restore(self, state):
+        self.index = state["index"]
+        self.slots = list(state["slots"])
+        self.array = list(state["array"])
+
+    def init(self, index):
+        self.index = index
+        self.slots = [0] * 32
+        self.array = [0] * 1024
+        if self.program.profile == "stream":
+            for n in self.program.root.args[0].args:
+                self.stmt(n)
+
+    def compute(self, index):
+        self.init(index)
+        for n in self.program.root.args[:-1]:
+            self.stmt(n)
+        return self.expr(self.program.root.args[-1].args[0])
+
+    def next(self):
+        before = self.state()
+        try:
+            if self.index > 2147483647:
+                raise ExecutionFailure("numeric_limit", "index range")
+            args = self.program.root.args[1].args
+            for n in args[:-1]:
+                self.stmt(n)
+            value = self.expr(args[-1].args[0])
+            self.index += 1
+            return value
+        except BaseException:
+            self.restore(before)
+            raise

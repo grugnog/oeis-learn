@@ -21,17 +21,7 @@
     6,
     7,
     8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19
+    9
   ],
   "unseen_indices": [
     20,
@@ -140,5 +130,5 @@
   "precision_digits": 500,
   "seed": 42,
   "definition_registry_sha256": "sha256:a9cf1949adbccd589a93c9da8b3a41d6c122f94cfb41f3132f89097a537c56c3",
-  "protocol_id": "sha256:1cce465dea05fc2f5014462b503e9415f7a60bea92bfca57e6f7149152429ad2"
+  "protocol_id": "sha256:4a132e5150e2e13065ef9fb412ab1b6c88c8080381f0e051618ea241044ace72"
 }

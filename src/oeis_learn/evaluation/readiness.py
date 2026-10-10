@@ -191,3 +191,10 @@ def require_learning_readiness(report, *, evidence_root, diagnostic=False):
     from oeis_learn.evaluation.learning_gate import require_g8
 
     return require_g8(report, evidence_root=evidence_root, diagnostic=diagnostic)
+
+
+def require_discovery_readiness(report, *, evidence_root):
+    """Unavailable native evidence is pending; failed mandatory cases remain failures."""
+    from oeis_learn.evaluation.discovery_gate import require_g9
+
+    return require_g9(report, evidence_root=evidence_root)

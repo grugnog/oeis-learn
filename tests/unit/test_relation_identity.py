@@ -42,3 +42,13 @@ def test_triviality_detection_duplicate_sequence():
     is_triv, reason = is_trivial_relation(operands=[op1, op2], coefficients=[1, -1])
     assert is_triv is True
     assert "duplicate sequence" in reason.lower()
+
+
+def test_duplicate_coefficients_are_combined_before_canonical_identity():
+    a, b = SequenceRef("a"), SequenceRef("b")
+    combined = canonicalize_relation([a, a, b], [1, 1, -2])
+    assert combined.claim_id == canonicalize_relation([a, b], [1, -1]).claim_id
+    with pytest.raises(ValueError, match="after combining"):
+        canonicalize_relation([a, a, b, b], [1, -1, 1, -1])
+    shifted = SequenceRef("a", 1, 1)
+    assert len(canonicalize_relation([a, shifted], [1, -1]).operands) == 2

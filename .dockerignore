@@ -36,3 +36,11 @@ research
 reports
 .specify
 .pi
+
+# Local phase review diagnostics
+pytest-of-root
+phase9-*.xml
+phase9-*.log
+debug_stream.py
+.uv-cache
+phase9-evidence

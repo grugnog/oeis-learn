@@ -1,4 +1,4 @@
-name: Phase 7 and 8 review validation
+name: Phase 7, 8 and 9 review validation
 on:
   pull_request:
     paths:
@@ -9,6 +9,7 @@ on:
       - 'tests/**'
       - 'configs/foundation/qualified.yaml'
       - 'scripts/verify_phase8.py'
+      - 'scripts/verify_phase9.py'
       - '.github/workflows/phase7-review.yml'
 permissions:
   contents: read
@@ -32,6 +33,7 @@ jobs:
           .review-venv/bin/python -m compileall -q src tests/unit/test_foundation_grounding.py tests/unit/test_foundation_symbolic.py
           .review-venv/bin/ruff check --select F,E9 src/oeis_learn/decoder/grounding.py src/oeis_learn/decoder/grounding_reference.py src/oeis_learn/decoder/recurrence.py src/oeis_learn/decoder/constant_solver.py src/oeis_learn/decoder/dixon_solver.py src/oeis_learn/decoder/qfnia_solver.py src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
           .review-venv/bin/ruff check --select F,E9 scripts/verify_phase8.py src/oeis_learn/rl/policy.py src/oeis_learn/rl/prompt_weighting.py src/oeis_learn/rl/reward.py src/oeis_learn/rl/telemetry.py src/oeis_learn/rl/trainer.py src/oeis_learn/evaluation/learning_gate.py
+          .review-venv/bin/ruff check --select F,E9 src/oeis_learn/discovery src/oeis_learn/sandbox/logical_ir.py src/oeis_learn/sandbox/wide_helpers.py src/oeis_learn/sandbox/streaming.py src/oeis_learn/evaluation/discovery_gate.py tests/unit/test_foundation_extended_wat.py tests/integration/test_foundation_discovery.py tests/integration/test_foundation_extended_wat.py tests/contract/test_foundation_discovery_cli.py
       - name: Spec Kit prerequisites and artifact consistency
         env:
           SPECIFY_FEATURE_DIRECTORY: specs/007-experiment-foundation
@@ -71,6 +73,8 @@ jobs:
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
             PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase8.py --evidence /evidence
+            oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
+            PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase9.py --evidence /evidence
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4
@@ -87,6 +91,12 @@ jobs:
             phase7-evidence/rust-tests.txt
             phase7-evidence/native/parity.json
             phase7-evidence/build-info/
+            phase7-evidence/discovery/*.xml
+            phase7-evidence/discovery/g9.json
+            phase7-evidence/discovery-qualification-cli.json
+            phase7-evidence/discovery/cli-acceptance.json
+            phase7-evidence/discovery/cli-discovery/discovery.json
+            phase7-evidence/discovery/cli-certificate/certificate-check.json
             phase7-evidence/learning/*.xml
             phase7-evidence/learning/g8.json
             phase7-evidence/learning/cli-acceptance.json

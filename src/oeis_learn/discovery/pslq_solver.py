@@ -1,105 +1,163 @@
-"""High-precision numerical sampling and PSLQ integer relation solver."""
+"""Exact sequence relations; PSLQ is restricted to approximate real constants."""
 
-from __future__ import annotations
-
-import math
-from typing import List, Mapping, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from itertools import product
+from math import gcd, lcm
+import time
+from typing import Sequence
 import mpmath
-from oeis_learn.data.models import LatentDiscoveryCandidate
+import sympy as sp
+
+
+def exact_integer(value):
+    if type(value) is int and value.bit_length() <= 4096:
+        return value
+    if isinstance(value, str) and len(value) <= 1235:
+        integer = int(value)
+        if integer.bit_length() <= 4096 and str(integer) == value:
+            return integer
+    raise ValueError("canonical exact integer of at most 4096 bits required")
+
+
+def primitive(values):
+    denominators = lcm(*(int(v.q) for v in values))
+    integers = [int(v * denominators) for v in values]
+    divisor = gcd(*integers)
+    if not divisor:
+        raise ValueError("zero relation")
+    integers = [v // divisor for v in integers]
+    if next(v for v in integers if v) < 0:
+        integers = [-v for v in integers]
+    return integers
+
+
+@dataclass(frozen=True)
+class RelationFit:
+    status: str
+    coefficients: tuple[int, ...] | None
+    rank: int | None
+    nullity: int | None
+    support: int | None
+    attempts: int
+    minimal_support: None = None
 
 
 class PslqRelationSolver:
-    """Solves integer relations using the PSLQ algorithm at arbitrary precision (>500 digits)."""
+    """Compatibility entry point, now using exact multi-index integer fitting."""
 
-    def __init__(self, precision_digits: int = 500, max_coeff: int = 1000):
-        self.precision_digits = precision_digits
-        self.max_coeff = max_coeff
+    def __init__(self, precision_digits=500, max_coeff=1000, *, max_attempts=4096):
+        if not 1 <= max_coeff <= 10**9 or not 1 <= max_attempts <= 4096:
+            raise ValueError("relation search bounds exceeded")
+        self.precision_digits, self.max_coeff = precision_digits, max_coeff
+        self.max_attempts = max_attempts
 
-    def find_relation(
-        self,
-        sequence_vectors: Sequence[Sequence[int]],
-        term_index: int = 10,
-    ) -> Tuple[Optional[List[int]], float]:
-        """Finds integer vector a in Z^k such that sum_i a_i * x_i = 0.
+    def fit(self, sequence_vectors: Sequence[Sequence[int]], indices, *, seconds=2):
+        from oeis_learn.sandbox.contained import run_contained
 
-        Args:
-            sequence_vectors: List of sequences [seq_1, seq_2, ..., seq_k]
-            term_index: Term index n to evaluate for integer relation
-
-        Returns:
-            Tuple of (integer relation vector or None, confidence ratio drop)
-        """
+        indices = tuple(indices)
         k = len(sequence_vectors)
-        if k < 2:
+        if not 2 <= k <= 8 or not 1 <= len(indices) <= 120 or len(set(indices)) != len(indices):
+            raise ValueError("bounded arity and 1..120 unique fitting indices required")
+        if any(
+            type(i) is not int or i < 0 or any(i >= len(s) for s in sequence_vectors)
+            for i in indices
+        ):
+            raise ValueError("missing fitting index")
+        if not 0 < seconds <= 10:
+            raise ValueError("bounded fitting deadline required")
+        # Copy only the bounded fitting partition into a killable 1-GiB worker.
+        vectors = [[exact_integer(s[i]) for i in indices] for s in sequence_vectors]
+        status, result = run_contained(
+            _fit_worker,
+            (self, vectors, seconds),
+            timeout_ms=max(1, int(seconds * 1000)),
+            proof=True,
+        )
+        return result if status == "ok" else RelationFit("UNKNOWN", None, None, None, None, 0)
+
+    def _fit(self, sequence_vectors, indices, *, seconds):
+        k = len(sequence_vectors)
+        indices = tuple(indices)
+        if not 2 <= k <= 8 or not indices or len(set(indices)) != len(indices):
+            raise ValueError("bounded arity and nonempty unique fitting indices required")
+        if any(
+            type(i) is not int or i < 0 or any(i >= len(s) for s in sequence_vectors)
+            for i in indices
+        ):
+            raise ValueError("missing fitting index")
+        if not 0 < seconds <= 10:
+            raise ValueError("bounded fitting deadline required")
+        deadline = time.monotonic() + seconds
+        matrix = sp.Matrix([[exact_integer(s[i]) for s in sequence_vectors] for i in indices])
+        rank = matrix.rank()
+        basis = matrix.nullspace()
+        if not basis:
+            return RelationFit("NO_RELATION", None, rank, k - rank, None, 0)
+        # A basis need not contain a bounded full-support vector. Search combinations;
+        # budget exhaustion never establishes UNSAT or minimality.
+        combinations = ([int(i == j) for i in range(len(basis))] for j in range(len(basis)))
+        from itertools import chain
+
+        attempts = 0
+        for weights in chain(combinations, product(range(-2, 3), repeat=len(basis))):
+            if attempts >= self.max_attempts or time.monotonic() >= deadline:
+                break
+            if not any(weights):
+                continue
+            attempts += 1
+            vector = sum((w * b for w, b in zip(weights, basis)), sp.zeros(k, 1))
+            if not any(vector):
+                continue
+            candidate = primitive(vector)
+            if all(candidate) and max(map(abs, candidate)) <= self.max_coeff:
+                return RelationFit("FIT", tuple(candidate), rank, k - rank, k, attempts)
+        return RelationFit("UNKNOWN", None, rank, k - rank, None, attempts)
+
+    def find_relation(self, sequence_vectors, term_index=10, *, fitting_indices=None):
+        if len(sequence_vectors) < 2 or not all(sequence_vectors):
             return None, 1.0
+        indices = (
+            fitting_indices
+            if fitting_indices is not None
+            else range(min(20, min(map(len, sequence_vectors))))
+        )
+        result = self.fit(sequence_vectors, indices)
+        return (list(result.coefficients), 0.0) if result.coefficients else (None, 1.0)
 
-        min_len = min((len(seq) for seq in sequence_vectors), default=0)
-        if min_len <= 0:
-            return None, 1.0
-
-        # Ensure term_index is within valid bounds
-        eval_index = min(max(0, term_index), min_len - 1)
-
+    def approximate_real_relation(self, values, *, contract):
+        if contract != {
+            "kind": "approximate_real_constants",
+            "precision_digits": self.precision_digits,
+            "max_coefficient": self.max_coeff,
+        }:
+            raise ValueError("explicit approximate-real contract required")
         with mpmath.workdps(self.precision_digits):
-            # Form vector of terms at index n
-            terms = [mpmath.mpf(seq[eval_index]) for seq in sequence_vectors]
+            relation = mpmath.pslq(
+                mpmath.matrix([mpmath.mpf(v) for v in values]), maxcoeff=self.max_coeff
+            )
+        return {
+            "kind": "approximate_real_proposal",
+            "coefficients": relation,
+            "proof_status": "not_claimed",
+        }
 
-            try:
-                # Run PSLQ algorithm
-                relation = mpmath.pslq(terms, maxcoeff=self.max_coeff)
-            except Exception:
-                relation = None
-
-            if relation is None:
-                return None, 1.0
-
-            # Compute error residual sum_i a_i * x_i
-            residual = abs(sum(r * t for r, t in zip(relation, terms)))
-            max_val = max(abs(t) for t in terms)
-            confidence_ratio = float(residual / (max_val + 1e-100))
-
-            return list(relation), confidence_ratio
-
-    def verify_candidate(
-        self,
-        candidate: LatentDiscoveryCandidate,
-        sequence_terms_dict: Mapping[str, Sequence[int]],
-    ) -> LatentDiscoveryCandidate:
-        """Verifies candidate sequences using PSLQ across multiple term indices."""
-        seq_vectors = [sequence_terms_dict[sid] for sid in candidate.sequences if sid in sequence_terms_dict]
-        if len(seq_vectors) != len(candidate.sequences):
-            candidate.status = "REJECTED"
+    def verify_candidate(self, candidate, sequence_terms_dict):
+        if any(s not in sequence_terms_dict for s in candidate.sequences):
+            candidate.status = "INSUFFICIENT_EVIDENCE"
             return candidate
-
-        min_len = min((len(s) for s in seq_vectors), default=0)
-        if min_len < 3:
-            candidate.status = "REJECTED"
-            return candidate
-
-        # Run PSLQ on terms at target evaluation index
-        eval_idx = min(15, min_len - 1)
-        relation, conf = self.find_relation(seq_vectors, term_index=eval_idx)
-        if relation is not None and conf < 1e-30:
-            # Reject trivial zero coefficients
-            if any(c == 0 for c in relation):
-                candidate.status = "REJECTED"
-                return candidate
-
-            # Multi-term consistency check
-            consistent = True
-            for c_idx in [0, min(5, min_len - 1), min(10, min_len - 1)]:
-                res_val = sum(r * s[c_idx] for r, s in zip(relation, seq_vectors))
-                if res_val != 0:
-                    consistent = False
-                    break
-
-            if consistent:
-                candidate.pslq_vector = relation
-                candidate.pslq_confidence_ratio = conf
-                candidate.status = "PSLQ_VERIFIED"
-            else:
-                candidate.status = "REJECTED"
+        vectors = [sequence_terms_dict[s] for s in candidate.sequences]
+        relation, conf = self.find_relation(vectors)
+        if relation and all(
+            sum(c * s[i] for c, s in zip(relation, vectors)) == 0
+            for i in range(min(map(len, vectors)))
+        ):
+            candidate.pslq_vector = relation
+            candidate.pslq_confidence_ratio = conf
+            candidate.status = "EXACT_FINITE_VERIFIED"
         else:
-            candidate.status = "REJECTED"
-
+            candidate.status = "UNKNOWN"
         return candidate
+
+
+def _fit_worker(solver, vectors, seconds):
+    return solver._fit(vectors, range(len(vectors[0])), seconds=seconds)

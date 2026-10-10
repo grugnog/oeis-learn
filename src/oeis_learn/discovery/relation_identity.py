@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 from oeis_learn.data.models import CanonicalRelation, SequenceRef
-from oeis_learn.evaluation.protocol import canonical_json_dumps, canonical_json_hash
+from oeis_learn.evaluation.protocol import canonical_json_hash
 
 
 def is_trivial_relation(
@@ -13,7 +13,9 @@ def is_trivial_relation(
     coefficients: Sequence[int | str],
 ) -> Tuple[bool, Optional[str]]:
     """Checks whether a proposed linear relation is trivial or degenerate."""
-    int_coeffs = [int(c) for c in coefficients]
+    from oeis_learn.discovery.pslq_solver import exact_integer
+
+    int_coeffs = [exact_integer(c) for c in coefficients]
     if len(operands) != len(int_coeffs):
         return True, "Operands and coefficients length mismatch"
 
@@ -39,10 +41,22 @@ def canonicalize_relation(
     coefficients: Sequence[int | str],
 ) -> CanonicalRelation:
     """Reduces and deterministically canonicalizes a linear sequence relation."""
-    int_coeffs = [int(c) for c in coefficients]
+    from oeis_learn.discovery.pslq_solver import exact_integer
+
+    int_coeffs = [exact_integer(c) for c in coefficients]
+
+    if len(operands) != len(int_coeffs) or not 2 <= len(operands) <= 8:
+        raise ValueError("bounded equal-length operands and coefficients required")
+    combined = {}
+    for operand, coefficient in zip(operands, int_coeffs):
+        key = (operand.oeis_id, operand.index_scale, operand.index_shift)
+        previous = combined.get(key, (operand, 0))[1]
+        combined[key] = (operand, previous + coefficient)
+    paired = [pair for pair in combined.values() if pair[1]]
+    if len(paired) < 2:
+        raise ValueError("zero or single-operand relation after combining coefficients")
 
     # 1. Pair operands and coefficients, then sort lexicographically by operand identity
-    paired = list(zip(operands, int_coeffs))
     paired.sort(key=lambda item: (item[0].oeis_id, item[0].index_scale, item[0].index_shift))
 
     sorted_ops = [p[0] for p in paired]

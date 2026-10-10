@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from oeis_learn.data.models import SequenceRef
 from oeis_learn.discovery.numerical_validator import validate_numerical_relation
 
@@ -20,7 +19,8 @@ def test_validate_numerical_relation_exact_true():
         operands=ops,
         coefficients=coeffs,
         sequence_terms_dict=seq_terms,
-        validation_indices=list(range(20)),
+        search_indices=list(range(10, 20)),
+        validation_indices=list(range(10)),
         unseen_indices=list(range(20, 120)),
     )
     assert res.outcome == "VERIFIED"
@@ -40,9 +40,42 @@ def test_validate_numerical_relation_counterexample_detected():
         operands=ops,
         coefficients=coeffs,
         sequence_terms_dict=seq_terms,
-        validation_indices=list(range(20)),
+        search_indices=list(range(10, 20)),
+        validation_indices=list(range(10)),
         unseen_indices=list(range(20, 120)),
     )
     assert res.outcome == "COUNTEREXAMPLE"
     assert res.first_counterexample is not None
     assert res.first_counterexample["index"] == 2
+
+
+def test_missing_evidence_is_unknown_without_fabricated_metadata():
+    result = validate_numerical_relation(
+        [SequenceRef("a"), SequenceRef("b")],
+        [1, -1],
+        {"a": [1]},
+        search_indices=[0],
+        validation_indices=[1],
+        unseen_indices=[2],
+    )
+    assert result.outcome == "INSUFFICIENT_EVIDENCE"
+    assert (
+        result.source_sha256 is None
+        and result.matrix_rank is None
+        and result.matrix_nullity is None
+    )
+    assert result.pslq_precision_digits is None and result.pslq_max_coefficient is None
+
+
+def test_duplicate_operands_use_the_combined_exact_matrix():
+    a, b = SequenceRef("a"), SequenceRef("b")
+    result = validate_numerical_relation(
+        [a, a, b],
+        [1, 1, -2],
+        {"a": [1, 2, 3], "b": [1, 2, 3]},
+        search_indices=[0],
+        validation_indices=[1],
+        unseen_indices=[2],
+    )
+    assert result.outcome == "VERIFIED" and result.coefficients == ["1", "-1"]
+    assert result.matrix_rank == 1 and result.matrix_nullity == 1

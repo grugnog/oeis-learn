@@ -43,9 +43,9 @@ def _receive(channel, deadline):
     return pickle.loads(read(size))
 
 
-def _child(channel, function, args):
+def _child(channel, function, args, cpu_seconds):
     try:
-        resource.setrlimit(resource.RLIMIT_CPU, (3, 3))
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
         resource.setrlimit(resource.RLIMIT_AS, (1 << 30, 1 << 30))
         _send(channel, ("ok", function(*args)))
     except BaseException as exc:
@@ -57,13 +57,17 @@ def _child(channel, function, args):
         channel.close()
 
 
-def run_contained(function, args=(), *, timeout_ms=2000):
-    if type(timeout_ms) is not int or not 1 <= timeout_ms <= 2000:
+def run_contained(function, args=(), *, timeout_ms=2000, proof=False):
+    if (
+        type(proof) is not bool
+        or type(timeout_ms) is not int
+        or not 1 <= timeout_ms <= (10000 if proof else 2000)
+    ):
         raise ValueError("worker deadline must be an integer in 1..2000 ms")
     deadline = time.monotonic() + timeout_ms / 1000
     receive, send = socket.socketpair()
     process = mp.get_context("spawn").Process(
-        target=_child, args=(send, function, args), daemon=True
+        target=_child, args=(send, function, args, 10 if proof else 3), daemon=True
     )
     try:
         process.start()

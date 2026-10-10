@@ -36,7 +36,7 @@ def test_pslq_discovery_e2e_pipeline():
     verified_candidate = None
     for cand in candidates:
         res = pslq_solver.verify_candidate(cand, terms_dict)
-        if res.status == "PSLQ_VERIFIED":
+        if res.status == "EXACT_FINITE_VERIFIED":
             verified_candidate = res
             break
 
