@@ -1341,7 +1341,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:dda08822174014398687da063a7d7222ebf4375f5180b881d5ac5fa1b55fc573",
+  "implementation_sha256": "sha256:d0e4f822614686800dccd047ebe3d1c05d7e5c42511314c37a74125a8c1c84eb",
   "prior_validation": {
     "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
     "local_focused": {
@@ -1377,10 +1377,22 @@
     "additional_development_scoring": {
       "passed": 1
     },
-    "cpu_ci": "pending current revision",
+    "cpu_ci": {
+      "code_revision": "c0d2bd6241f8d77dde6698e6382b219b8f7cc7b3",
+      "passed": 698,
+      "skipped": 56,
+      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38086521998",
+      "followup_revision": "pending"
+    },
     "installed_native_ci": "pending current revision",
     "gpu_acceptance": "PENDING",
     "real_release_source": "PENDING",
-    "g10": "PARTIAL"
-  }
+    "g10": "PARTIAL",
+    "repair_regressions": {
+      "passed": 16,
+      "skipped": 1,
+      "scope": "archive admission, CLI error boundary and worker timeout replacement; actual Docker skipped"
+    }
+  },
+  "implementation_hash_method": "canonical qualification source inventory"
 }

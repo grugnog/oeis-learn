@@ -58,42 +58,72 @@ class DockerRunner:
         self.root.mkdir(parents=True, exist_ok=True)
         self.log = EventLog(self.root / "events")
         self.executor = ThreadPoolExecutor(max_workers=workers)
+        self.maintenance = ThreadPoolExecutor(max_workers=workers)
+        self.closing = threading.Event()
         self.worker_count = workers
         self.mutex = threading.Lock()
         self.slots = Queue()
         self.services = []
         self.started = False
 
+    def _spawn(self):
+        root = self.root / f"service-{uuid.uuid4().hex}"
+        view, output = root / "input", root / "output"
+        view.mkdir(parents=True)
+        output.mkdir()
+        name = "oeis-worker-" + uuid.uuid4().hex
+        process = subprocess.Popen(
+            container_command(
+                role="worker",
+                image=self.image,
+                inputs=view,
+                output=output,
+                name=name,
+                command=["python", "-m", "oeis_learn.tracking.role_worker", "serve"],
+            ),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        slot = dict(name=name, process=process, view=view, output=output)
+        with self.mutex:
+            self.services.append(slot)
+        return slot
+
+    def _ready(self, slot, deadline):
+        while not (slot["output"] / "ready.json").exists():
+            if (
+                self.closing.is_set()
+                or time.monotonic() >= deadline
+                or slot["process"].poll() is not None
+            ):
+                raise RuntimeError("bounded worker setup failed")
+            time.sleep(0.01)
+
+    def _replace(self):
+        # Replacement is setup work charged to the containing role clock. It
+        # never regenerates the timed-out request or extends its deadline.
+        if self.closing.is_set():
+            return
+        slot = self._spawn()
+        try:
+            self._ready(slot, time.monotonic() + 20)
+            if not self.closing.is_set():
+                self.slots.put(slot)
+                return
+        except RuntimeError:
+            pass
+        reclaim(slot["name"], slot["process"])
+        slot["reclaimed"] = True
+
     def start(self):
         if self.started:
             return
         try:
-            for number in range(self.worker_count):
-                root = self.root / f"service-{uuid.uuid4().hex}"
-                view, output = root / "input", root / "output"
-                view.mkdir(parents=True)
-                output.mkdir()
-                name = "oeis-worker-" + uuid.uuid4().hex
-                process = subprocess.Popen(
-                    container_command(
-                        role="worker",
-                        image=self.image,
-                        inputs=view,
-                        output=output,
-                        name=name,
-                        command=["python", "-m", "oeis_learn.tracking.role_worker", "serve"],
-                    ),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                slot = dict(name=name, process=process, view=view, output=output)
-                self.services.append(slot)
+            for _ in range(self.worker_count):
+                self._spawn()
             deadline = time.monotonic() + 20
             for slot in self.services:
-                while not (slot["output"] / "ready.json").exists():
-                    if time.monotonic() >= deadline or slot["process"].poll() is not None:
-                        raise RuntimeError("bounded worker setup failed")
-                    time.sleep(0.01)
+                self._ready(slot, deadline)
                 self.slots.put(slot)
             self.started = True
         except BaseException:
@@ -173,8 +203,15 @@ class DockerRunner:
                 else:
                     reclaim(slot["name"], slot["process"])
                     slot["reclaimed"] = True
+                    self.maintenance.submit(self._replace)
                 request_path.unlink(missing_ok=True)
                 result_path.unlink(missing_ok=True)
+        except BaseException:
+            if slot is not None and not slot.get("reclaimed"):
+                reclaim(slot["name"], slot["process"])
+                slot["reclaimed"] = True
+                self.maintenance.submit(self._replace)
+            raise
         finally:
             if slot is not None and not slot.get("reclaimed"):
                 self.slots.put(slot)
@@ -203,12 +240,20 @@ class DockerRunner:
         return run_escalating(self, source, indices, **kwargs)
 
     def close(self):
+        self.closing.set()
         self.executor.shutdown(wait=True, cancel_futures=True)
+        self.maintenance.shutdown(wait=True, cancel_futures=True)
         failures = []
-        for slot in self.services:
-            if not slot.get("reclaimed"):
+        live = [slot for slot in self.services if not slot.get("reclaimed")]
+        # Reap concurrently so the two-second reclamation allowance is not
+        # multiplied by the number of worker cgroups.
+        with ThreadPoolExecutor(max_workers=self.worker_count) as reaper:
+            futures = [
+                (slot, reaper.submit(reclaim, slot["name"], slot["process"])) for slot in live
+            ]
+            for slot, future in futures:
                 try:
-                    reclaim(slot["name"], slot["process"])
+                    future.result()
                     slot["reclaimed"] = True
                 except BaseException as exc:
                     failures.append(exc)

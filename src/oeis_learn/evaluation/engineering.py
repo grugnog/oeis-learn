@@ -192,6 +192,11 @@ def precision_fixture(encoder, decoder, rows, dtype, *, updates=32):
                 )
                 scaler.step(optimizer)
                 scaler.update()
+                if any(
+                    not torch.isfinite(p).all()
+                    for p in list(encoder.parameters()) + list(decoder.parameters())
+                ):
+                    raise FloatingPointError("precision nonfinite parameters")
                 torch.cuda.synchronize(device)
                 losses[label].append(float(loss.detach()))
         difference = abs(losses["amp"][-1] - losses["fp32"][-1]) / max(

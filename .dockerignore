@@ -34,7 +34,10 @@ checkpoints
 runs
 research
 reports
-.specify
+.specify/*
+!.specify/memory
+.specify/memory/*
+!.specify/memory/constitution.md
 .pi
 
 # Local phase review diagnostics

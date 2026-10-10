@@ -819,10 +819,11 @@ def cmd_prepare_measurement(
     from oeis_learn.discovery.program_archive import ProgramArchive
     from oeis_learn.experiments.learning_profiles import load_holdouts
 
-    selected = None if holdouts is None else load_holdouts(load_json(Path(holdouts).read_bytes()))
-    return _phase4_command(
-        "prepare-measurement",
-        lambda: prepare_measurement(
+    def action():
+        selected = (
+            None if holdouts is None else load_holdouts(load_json(Path(holdouts).read_bytes()))
+        )
+        return prepare_measurement(
             ProgramArchive(archive, holdouts=selected),
             cohort,
             gate_report,
@@ -832,7 +833,11 @@ def cmd_prepare_measurement(
             output,
             baseline_report=baseline_report,
             baseline_checkpoint=baseline_checkpoint,
-        ),
+        )
+
+    return _phase4_command(
+        "prepare-measurement",
+        action,
         as_json,
     )
 

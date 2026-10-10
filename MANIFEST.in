@@ -1,0 +1,10 @@
+include Dockerfile MANIFEST.in uv.lock
+include .specify/memory/constitution.md
+include specs/007-experiment-foundation/validation/adoption.md
+recursive-include tests *.py *.wat *.json *.yaml *.yml
+recursive-include crates/oeis_wasm_evaluator *.rs *.toml *.lock
+recursive-include configs/foundation *.json *.yaml *.yml
+recursive-include docker/dev *.sh
+recursive-include scripts *.py *.sh *.json *.yaml *.yml
+recursive-include specs/007-experiment-foundation/contracts *.json
+recursive-include specs/005-trustworthy-synthesis-readiness/contracts *.json

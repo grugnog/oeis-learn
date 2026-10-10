@@ -198,6 +198,75 @@ def test_live_qualification_rejects_status_only_and_missing_role_evidence(tmp_pa
         require_containment({"status": "complete"}, None)
 
 
+def test_diagnostic_hypotheses_require_archive_admission_and_original_holdouts(tmp_path):
+    from copy import deepcopy
+    from oeis_learn.tracking.role_worker import admit_training_hypothesis
+    from oeis_learn.evaluation.search import SearchSession
+    from oeis_learn.sandbox.pipeline import Runtime
+    from oeis_learn.data.structural_splits import structural_signature, split_for_structure
+
+    source = "i256.const 7"
+    seed = next(
+        s for s in range(100) if split_for_structure(structural_signature(source), s) == "train"
+    )
+    policy = dict(seed=seed, reserved_compositions=[])
+
+    class Runner:
+        runtime = Runtime()
+
+        def run_single(self, source, indices, **kwargs):
+            return self.runtime.evaluate(source, indices)
+
+    class Proposer:
+        def stochastic(self, visible, seed, ledger, **kwargs):
+            ledger.charge(expansions=1, tokens=len(encode_body(source)))
+            return source, dict(
+                method="greedy", encoder_sha256=digest("e"), decoder_sha256=digest("d")
+            )
+
+    runner = Runner()
+    candidate = SearchSession([7] * 20, portfolio="greedy").run(Proposer(), runner)["results"][0]
+    admitted = admit_training_hypothesis(
+        candidate, [7] * 100, runner, tmp_path / "valid", holdouts=policy, request_id="valid"
+    )
+    assert admitted["entry"]["training_eligible"] and admitted["entry"][
+        "validation_indices"
+    ] == list(range(20, 100))
+    for name, changed, values, holdouts in (
+        ("mismatch", candidate, [7] * 20 + [8] * 80, policy),
+        ("reserved", candidate, [7] * 100, dict(policy, reserved_prefixes=[digest(["7"] * 20)])),
+        ("forged", deepcopy(candidate), [7] * 100, policy),
+    ):
+        if name == "forged":
+            changed["provenance"]["hypothesis"]["encoder_sha256"] = digest("forged")
+        assert (
+            admit_training_hypothesis(
+                changed, values, runner, tmp_path / name, holdouts=holdouts, request_id=name
+            )
+            is None
+        )
+        assert not (tmp_path / name / "index.json").exists()
+
+
+def test_measurement_cli_reports_invalid_holdout_without_traceback(tmp_path, capsys):
+    from oeis_learn.cli.foundation import cmd_prepare_measurement
+
+    code = cmd_prepare_measurement(
+        archive=str(tmp_path),
+        cohort=str(tmp_path),
+        gate_report="missing",
+        learning_gate_report="missing",
+        image="sha256:" + "a" * 64,
+        output=str(tmp_path / "out"),
+        baseline_report="missing",
+        baseline_checkpoint="missing",
+        holdouts=str(tmp_path / "absent"),
+        as_json=True,
+    )
+    assert code == 2
+    assert json.loads(capsys.readouterr().out)["status"] == "invalid"
+
+
 def test_live_paired_scheduler_uses_one_contrast_and_isolated_evaluations(tmp_path):
     from oeis_learn.evaluation.live_measurement import run_pilot
     from oeis_learn.evaluation.experiment_runner import fixture_manifest

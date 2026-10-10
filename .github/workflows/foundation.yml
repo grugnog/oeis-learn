@@ -9,6 +9,11 @@ on:
       - 'pyproject.toml'
       - 'setup.py'
       - 'Dockerfile'
+      - '.dockerignore'
+      - 'MANIFEST.in'
+      - '.specify/memory/constitution.md'
+      - 'specs/005-trustworthy-synthesis-readiness/contracts/**'
+      - 'specs/007-experiment-foundation/validation/adoption.md'
       - '.github/workflows/foundation.yml'
 permissions:
   contents: read

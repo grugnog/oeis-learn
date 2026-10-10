@@ -37,7 +37,10 @@ def collect_snapshot(root):
             and "target" not in p.parts
             and p.name != "qualification-sources.json"
         )
-    files.update(root / name for name in ("Dockerfile", "pyproject.toml", "uv.lock", "setup.py"))
+    files.update(
+        root / name
+        for name in ("Dockerfile", "MANIFEST.in", "pyproject.toml", "uv.lock", "setup.py")
+    )
     snapshot = {
         str(p.relative_to(root)): file_digest(p.read_bytes()) for p in sorted(files) if p.exists()
     }

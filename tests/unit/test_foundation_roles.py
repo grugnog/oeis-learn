@@ -81,6 +81,50 @@ def test_coordinator_excludes_second_controller_and_bounds_operations(tmp_path):
         first.close()
 
 
+def test_deadline_reclaims_then_replaces_without_regenerating_request(tmp_path, monkeypatch):
+    import threading
+    import time
+    from oeis_learn.tracking import role_coordinator as module
+
+    class Process:
+        def poll(self):
+            return None
+
+    runner = DockerRunner(tmp_path, "sha256:" + "a" * 64, workers=1)
+    view, output = tmp_path / "input", tmp_path / "output"
+    view.mkdir()
+    output.mkdir()
+    dead = dict(name="timed-out", process=Process(), view=view, output=output)
+    runner.services.append(dead)
+    runner.slots.put(dead)
+    replaced = threading.Event()
+    calls = []
+    monkeypatch.setattr(module, "reclaim", lambda name, process: calls.append(name))
+
+    def replace():
+        assert dead["reclaimed"] and calls == ["timed-out"]
+        replaced.set()
+
+    monkeypatch.setattr(runner, "_replace", replace)
+    try:
+        result = runner.run_single(
+            "i256.const 7",
+            range(20),
+            request_id="deadline",
+            deadline_ns=time.monotonic_ns() + 10_000_000,
+        )
+        assert replaced.wait(2)
+        assert result.outcome == "execution_limit" and result.fuel == 50000000
+        assert not list(view.iterdir()) and runner.slots.empty()
+        assert (
+            runner.run_single("i256.const 7", range(20), request_id="deadline").to_dict()
+            == result.to_dict()
+        )
+        assert calls == ["timed-out"]
+    finally:
+        runner.close()
+
+
 def test_role_command_is_confined_and_cpu_generation_is_explicit(tmp_path):
     inputs = tmp_path / "input"
     inputs.mkdir()

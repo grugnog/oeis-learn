@@ -290,12 +290,49 @@ def train(inputs, output):
     )
 
 
+def admit_training_hypothesis(candidate, values, runner, archive_root, *, holdouts, request_id):
+    """Count/reuse a search result only after shared, held-out archive admission."""
+    from oeis_learn.data.structural_splits import StructuralHoldouts
+    from oeis_learn.discovery.program_archive import ProgramArchive
+
+    h = holdouts or {}
+    policy = StructuralHoldouts(
+        seed=h.get("seed", 20260913),
+        reserved_structures=frozenset(h.get("reserved_structures", [])),
+        reserved_compositions=tuple(
+            frozenset(s) for s in h.get("reserved_compositions", [["i64.xor", "i64.mul"]])
+        ),
+        reserved_parameter_bits=h.get("reserved_parameter_bits", 128),
+        reserved_prefixes=frozenset(h.get("reserved_prefixes", [])),
+    )
+    source = candidate["source"]
+    if not policy.decision(source, values[:20])[0]:
+        return None
+    packet = candidate["provenance"]["hypothesis"]
+    archive = ProgramArchive(archive_root, holdouts=policy)
+    try:
+        key = archive.admit(
+            source,
+            values[:20],
+            values,
+            origin="training_prefix_hypothesis",
+            provenance={"search": packet},
+            runner=runner,
+            request_id=request_id,
+            model_sha256=digest([packet["encoder_sha256"], packet["decoder_sha256"]]),
+        )
+    except ValueError:
+        # A visible fit need not match the independent training continuation.
+        return None
+    item = archive.get(key)
+    return dict(key=key, **item) if item["entry"]["training_eligible"] else None
+
+
 def self_training_round(
     rows, encoder, decoder, runner, counter, log, *, holdouts=None, archive_root
 ):
     """Search only fixture training prefixes; continuation verification precedes SFT use."""
     from oeis_learn.evaluation.search import SearchSession, ModelProposer
-    from oeis_learn.discovery.program_archive import ProgramArchive
 
     proposer = ModelProposer(encoder, decoder)
     admitted = []
@@ -309,48 +346,18 @@ def self_training_round(
             source = result.get("source")
             if result.get("status") != "visible_fit" or not source or source in seen:
                 continue
-            evidence = runner.run_single(
-                source, range(100), request_id=f"selftraining-{counter}-{len(seen)}"
-            ).to_dict()
-            if evidence["outcome"] is not None:
-                continue
-            if (
-                evidence["outputs"] != [str(v) for v in values]
-                or evidence["reference_outputs"] != evidence["outputs"]
-            ):
-                continue
-            # Original fixture holdouts still apply; a searched source cannot bypass them.
-            from oeis_learn.data.structural_splits import StructuralHoldouts
-
-            h = holdouts or {}
-            policy = StructuralHoldouts(
-                seed=h.get("seed", 20260913),
-                reserved_structures=frozenset(h.get("reserved_structures", [])),
-                reserved_compositions=tuple(
-                    frozenset(s) for s in h.get("reserved_compositions", [["i64.xor", "i64.mul"]])
-                ),
-                reserved_parameter_bits=h.get("reserved_parameter_bits", 128),
-                reserved_prefixes=frozenset(h.get("reserved_prefixes", [])),
-            )
-            if not policy.decision(source, values[:20])[0]:
-                continue
-            packet = result["provenance"]["hypothesis"]
-            archive = ProgramArchive(archive_root, holdouts=policy)
-            key = archive.admit(
-                source,
-                values[:20],
+            item = admit_training_hypothesis(
+                result,
                 values,
-                origin="training_prefix_hypothesis",
-                provenance={"search": packet},
-                runner=runner,
+                runner,
+                archive_root,
+                holdouts=holdouts,
                 request_id=f"selftraining-admit-{counter}-{len(seen)}",
-                model_sha256=digest([packet["encoder_sha256"], packet["decoder_sha256"]]),
             )
-            item = archive.get(key)
-            if not item["entry"]["training_eligible"]:
+            if item is None:
                 continue
             seen.add(source)
-            admitted.append(dict(key=key, **item))
+            admitted.append(item)
     log.append(
         "selftraining-" + str(counter),
         dict(admitted=len(admitted), sources_sha256=digest(admitted), training_only=True),
@@ -437,14 +444,15 @@ def diagnostic(inputs, output):
             valid += int(bool(execution) and execution.get("outcome") is None)
             rewards.append(int(status == "visible_fit"))
             if status == "visible_fit" and "hypothesis" in candidate.get("provenance", {}):
-                full = runner.run_single(
-                    candidate["source"], range(100), request_id=f"diag-new-{number}-{attempted}"
-                ).to_dict()
-                if (
-                    full["outcome"] is None
-                    and full["outputs"] == row["entry"]["outputs"]
-                    and full["reference_outputs"] == full["outputs"]
-                ):
+                item = admit_training_hypothesis(
+                    candidate,
+                    [int(v) for v in row["entry"]["outputs"]],
+                    runner,
+                    output / "diagnostic-archive",
+                    holdouts=examples.get("holdouts"),
+                    request_id=f"diag-new-{number}-{attempted}",
+                )
+                if item is not None:
                     signature = structural_signature(candidate["source"])
                     if signature not in original:
                         new_structures.add(signature)

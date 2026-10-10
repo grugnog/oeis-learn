@@ -9,8 +9,7 @@ ENV PATH=/opt/venv/bin:/opt/cargo/bin:${PATH} \
 COPY docker/dev /opt/oeis-setup
 COPY pyproject.toml uv.lock README.md setup.py /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh gpu
-COPY src /opt/oeis-build/src
-COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
+COPY . /opt/oeis-build
 RUN bash /opt/oeis-setup/build-native.sh
 ENV PYTHONPATH=/workspace/src
 WORKDIR /workspace
@@ -28,8 +27,7 @@ COPY docker/dev /opt/oeis-setup
 COPY pyproject.toml uv.lock README.md setup.py /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh cpu
 ENV VIRTUAL_ENV=/opt/oeis-venv
-COPY src /opt/oeis-build/src
-COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
+COPY . /opt/oeis-build
 RUN bash /opt/oeis-setup/build-native.sh
 COPY . /workspace
 RUN cp /opt/oeis-build-info/Cargo.lock /workspace/crates/oeis_wasm_evaluator/Cargo.lock
@@ -49,8 +47,7 @@ COPY pyproject.toml uv.lock README.md setup.py /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh cpu
 ENV VIRTUAL_ENV=/opt/oeis-venv \
     PATH=/opt/oeis-venv/bin:/opt/cargo/bin:${PATH}
-COPY src /opt/oeis-build/src
-COPY crates/oeis_wasm_evaluator /opt/oeis-build/crates/oeis_wasm_evaluator
+COPY . /opt/oeis-build
 RUN bash /opt/oeis-setup/build-native.sh
 ENV PYTHONPATH=/workspace/src
 COPY --chown=root:root --chmod=555 system/lab-gpu* /usr/local/bin/
