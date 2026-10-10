@@ -7,6 +7,7 @@ activation requires complete evidence bound to the current implementation.
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -36,8 +37,19 @@ SUITES = {
         "tests/integration/test_native_phase7.py",
         "tests/contract/test_ffi_contract.py",
     ],
+    "synthesis_consumers": [
+        "tests/unit/test_synthesis_pipeline.py",
+        "tests/contract/test_synthesis_evaluation_contract.py",
+        "tests/integration/test_synthesis_entrypoint_parity.py",
+    ],
+    "discovery_consumers": [
+        "tests/contract/test_discovery_report_contract.py",
+        "tests/integration/test_discovery_pipeline.py",
+        "tests/integration/test_pslq_discovery_e2e.py",
+        "tests/integration/test_real_data_e2e.py",
+    ],
 }
-REQUIRED_CHECKS = (*SUITES, "native_parity")
+REQUIRED_CHECKS = (*SUITES, "rust_tests", "native_parity")
 
 
 def implementation_identity():
@@ -45,6 +57,9 @@ def implementation_identity():
     paths += list((ROOT / "src/oeis_learn").rglob("*.wat"))
     paths += list((ROOT / "src/oeis_learn").rglob("*.json"))
     paths += list((ROOT / "crates/oeis_wasm_evaluator/src").rglob("*.rs"))
+    paths += list((ROOT / "crates/oeis_wasm_evaluator/tests").rglob("*.rs"))
+    if (ROOT / "crates/oeis_wasm_evaluator/Cargo.lock").exists():
+        paths.append(ROOT / "crates/oeis_wasm_evaluator/Cargo.lock")
     paths += [
         ROOT / p
         for p in (
@@ -92,6 +107,16 @@ def _artifact(root, entry):
     return path
 
 
+def _rust_results(path):
+    results = re.findall(
+        r"test result: ok\. (\d+) passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;",
+        path.read_text(),
+    )
+    if len(results) != 3 or sum(map(int, results)) < 11 or int(results[1]) < 2:
+        raise ValueError("Rust unit/phase7/doc-test execution evidence incomplete")
+    return sum(map(int, results))
+
+
 def require_g7(report, *, evidence_root=None):
     if not isinstance(report, dict) or set(report) != {
         "gate",
@@ -116,6 +141,7 @@ def require_g7(report, *, evidence_root=None):
         raise ValueError("complete G7 evidence directory required")
     for suite in SUITES:
         _junit(_artifact(evidence_root, report["checks"][suite]), suite)
+    _rust_results(_artifact(evidence_root, report["checks"]["rust_tests"]))
     from oeis_learn.sandbox.native_conformance import check_native_transcript
 
     check_native_transcript(
@@ -163,6 +189,19 @@ def run_qualification(output):
         return {"path": str(path.relative_to(output)), "sha256": digest_bytes(path.read_bytes())}
 
     try:
+        rust = subprocess.run(
+            ["cargo", "test", "--locked", "--no-default-features"],
+            cwd=ROOT / "crates/oeis_wasm_evaluator",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=600,
+        )
+        rust_path = output / "rust-tests.txt"
+        rust_path.write_bytes(rust.stdout)
+        if rust.returncode != 0:
+            raise ValueError("Rust owning regression failed")
+        _rust_results(rust_path)
+        report["checks"]["rust_tests"] = reference(rust_path)
         for name, paths in SUITES.items():
             path = output / (name + ".xml")
             result = subprocess.run(
@@ -185,6 +224,10 @@ def run_qualification(output):
         report["report_sha256"] = compute_canonical_digest(report, "report_sha256")
         require_g7(report, evidence_root=output)
         _exercise_activation(report, output)
+        print(
+            "G7 PASS: owning regressions, complete native parity, portable replay "
+            "and ordinary qualified-service activation"
+        )
     except BaseException:
         report["status"] = "PARTIAL"
         report["report_sha256"] = compute_canonical_digest(report, "report_sha256")
@@ -202,10 +245,30 @@ def _exercise_activation(report, output):
     from oeis_learn.discovery.formula_checker import check_scoped_evidence
     from oeis_learn.sandbox.rewrite_checker import check_rewrite
     from oeis_learn.data.models import LatentDiscoveryCandidate
+    from oeis_learn.experiments.profiles import profile_inventory
+    from oeis_learn.evaluation.readiness import require_architecture_measurement_gates
+
+    require_architecture_measurement_gates(report, evidence_root=output)
 
     base = load_config(ROOT / "configs/foundation/wat_smoke.yaml").to_dict()
     base_sha = compute_canonical_digest(base)
     refs = {base_sha: base}
+    inventory = profile_inventory()
+    common = {
+        "language": inventory["language"],
+        "runtime": report["runtime"],
+        "codec": inventory["codec"],
+        "model": base["model"],
+        "objective": base["learning"],
+        "sampling": {"enabled": False, "purpose": "software qualification only"},
+        "search": {"enabled": False, "purpose": "pending G8"},
+        "admission": inventory["evaluation"],
+    }
+    profile_refs = {}
+    for name, value in common.items():
+        sha = compute_canonical_digest(value)
+        refs[sha] = value
+        profile_refs[name] = sha
     settings = {
         "solver": {"coefficient_bound": 1000, "timeout_ms": 2000, "max_parameters": 8},
         "optimizer": {"waste_threshold_percent": 30},
@@ -221,19 +284,7 @@ def _exercise_activation(report, output):
     contract = seal_record(
         "qualified_contract",
         base_contract_sha256=base_sha,
-        profiles={
-            name: base_sha
-            for name in (
-                "language",
-                "runtime",
-                "codec",
-                "model",
-                "objective",
-                "sampling",
-                "search",
-                "admission",
-            )
-        },
+        profiles=profile_refs,
         gates={"G7": report["report_sha256"], "G8": None, "G9": None},
         track="strict_generic",
         initialization="random",
@@ -288,6 +339,11 @@ def _exercise_activation(report, output):
     }
     activation["identity_sha256"] = compute_canonical_digest(activation, "identity_sha256")
     (output / "activation.json").write_bytes(canonical_bytes(activation))
+    (output / "qualified-contract.json").write_bytes(canonical_bytes(contract))
+    profiles = output / "profiles"
+    profiles.mkdir()
+    for sha, value in refs.items():
+        (profiles / (sha.removeprefix("sha256:") + ".json")).write_bytes(canonical_bytes(value))
 
 
 def main():

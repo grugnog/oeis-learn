@@ -341,9 +341,10 @@ def validate_record(record: dict) -> None:
     from oeis_learn.experiments.artifacts import canonical_bytes
 
     try:
-        _require(len(canonical_bytes(record)) <= 1 << 20, "qualified record exceeds 1 MiB")
-    except (TypeError, RecursionError, OverflowError) as exc:
+        encoded = canonical_bytes(record)
+    except (TypeError, ValueError, RecursionError, OverflowError) as exc:
         raise ValueError("qualified record must be finite, acyclic JSON") from exc
+    _require(len(encoded) <= 1 << 20, "qualified record exceeds 1 MiB")
     kind = record.get("kind")
     _require(kind in SCHEMAS, "unknown qualified record kind")
     validate_shape(record, SCHEMAS[kind])
@@ -425,6 +426,47 @@ def validate_record(record: dict) -> None:
             solution or not record["parameter_values"],
             "unresolved result cannot provide accepted parameters",
         )
+        if solution:
+            from dataclasses import fields
+            from oeis_learn.sandbox.pipeline import ExecutionEvidence, digest_bytes
+
+            evidence = record["execution"]
+            core = {"production", "reference", "fit_terms", "final_source_sha256"}
+            expected = (
+                core | {f.name for f in fields(ExecutionEvidence)}
+                if "outputs" in evidence
+                else core | {"scope"}
+            )
+            _require(set(evidence) == expected, "unknown/incomplete grounding execution fields")
+            _require(
+                evidence["final_source_sha256"] == digest_bytes(record["source"].encode()),
+                "grounding final source mismatch",
+            )
+            for name in ("production", "reference", "fit_terms"):
+                values = evidence[name]
+                _require(
+                    isinstance(values, list) and len(values) == len(record["fit_indices"]),
+                    "grounding execution arity mismatch",
+                )
+                for value in values:
+                    validate_shape(value, Z)
+                    _require(-(1 << 255) <= int(value) < (1 << 255), "grounding output range")
+            _require(
+                evidence["production"] == evidence["reference"] == evidence["fit_terms"],
+                "grounding execution does not match fit terms",
+            )
+            if "outputs" in evidence:
+                _require(
+                    evidence["indices"] == record["fit_indices"]
+                    and evidence["source_sha256"] == evidence["final_source_sha256"]
+                    and evidence["outputs"]
+                    == evidence["reference_outputs"]
+                    == evidence["fit_terms"]
+                    and evidence["outcome"] is None,
+                    "grounding execution binding mismatch",
+                )
+            else:
+                _require(evidence["scope"] == "visible_prefix", "unsupported grounding scope")
     elif kind == "proof_evidence":
         _require(
             len(record["transforms"]) == len(record["expression_sha256"]), "proof operand arity"

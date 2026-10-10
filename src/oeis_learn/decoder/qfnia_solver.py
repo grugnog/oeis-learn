@@ -1,4 +1,5 @@
 """Bounded mathematical-integer solving with truthful outcomes."""
+
 from dataclasses import dataclass
 import time
 import z3
@@ -29,11 +30,17 @@ def solve_integer_constraints(unknown_count, constraints_builder, bound=1000, ti
     status = solver.check()
     elapsed = (time.monotonic() - started) * 1000
     if status == z3.sat:
-        return IntegerSolution("verified_solution", tuple(solver.model().eval(c, model_completion=True).as_long() for c in variables), elapsed)
+        return IntegerSolution(
+            "verified_solution",
+            tuple(solver.model().eval(c, model_completion=True).as_long() for c in variables),
+            elapsed,
+        )
     if status == z3.unsat:
         return IntegerSolution("proved_unsat_in_scope", elapsed_ms=elapsed)
     reason = solver.reason_unknown()
-    return IntegerSolution("timeout" if "timeout" in reason.lower() else "unknown", elapsed_ms=elapsed, reason=reason)
+    return IntegerSolution(
+        "timeout" if "timeout" in reason.lower() else "unknown", elapsed_ms=elapsed, reason=reason
+    )
 
 
 def solve_qfnia_tactical(unknown_count, constraints_builder, bound=1000, timeout_ms=240):

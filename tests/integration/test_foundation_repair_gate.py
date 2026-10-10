@@ -184,5 +184,10 @@ def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeyp
     )
     assert services.ground("i256.const_?", [5] * 20) == "result"
     assert seen == [("gate", {"diagnostic": "test"}), ("solver", {"bound": 5, "timeout_ms": 123})]
+    profile["settings"]["coefficient_bound"] = 999
+    leaked = services._settings("solver")
+    leaked["coefficient_bound"] = 888
+    assert services._settings("solver")["coefficient_bound"] == 5
+    assert services.capabilities == ("solver",)
     with pytest.raises(ValueError, match="disabled"):
         services.optimize("i256.const 7")

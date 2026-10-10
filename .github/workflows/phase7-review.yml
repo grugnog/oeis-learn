@@ -64,10 +64,9 @@ jobs:
             cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/
             cp crates/oeis_wasm_evaluator/build.rs /evidence/build-info/
             rustfmt --edition 2021 /evidence/build-info/src/*.rs /evidence/build-info/build.rs
-            cd crates/oeis_wasm_evaluator
-            cargo test --locked --no-default-features
             cd /workspace
             python -m oeis_learn.evaluation.repair_gate --output /evidence
+            oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4
         if: always()
@@ -77,5 +76,9 @@ jobs:
             phase7-evidence/*.xml
             phase7-evidence/g7.json
             phase7-evidence/activation.json
+            phase7-evidence/activation-cli.json
+            phase7-evidence/qualified-contract.json
+            phase7-evidence/profiles/
+            phase7-evidence/rust-tests.txt
             phase7-evidence/native/parity.json
             phase7-evidence/build-info/

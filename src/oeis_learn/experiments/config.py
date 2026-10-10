@@ -528,12 +528,49 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
         )
         _require(
             base["profiles"] == profile_digests()
+            and type(base["observed_terms"]) is int
             and base["observed_terms"] == 20
+            and type(base["total_terms"]) is int
             and base["total_terms"] == 100
             and base["index_policy"] == "prefix_rebased_zero"
             and base["enabled_subsystems"] == ["sft"],
             "incompatible base profiles/horizon",
         )
+        from uuid import UUID
+        import re
+        from oeis_learn.experiments.models import check_digest
+
+        _require(base["purpose"] in ("diagnostic", "training"), "invalid base purpose")
+        _require(isinstance(base["run_id"], str), "base run identity must be a string")
+        _require(
+            str(UUID(base["run_id"])) == base["run_id"], "canonical base run identity required"
+        )
+        provenance = base["run_provenance"]
+        required_provenance = {
+            "source_revision",
+            "dependency_lock",
+            "base_image_digest",
+            "final_image_id",
+            "environment_report",
+            "dataset_manifest",
+            "benchmark_manifest",
+            "evaluation_protocol",
+            "effective_config",
+        }
+        _require(
+            isinstance(provenance, dict) and set(provenance) == required_provenance,
+            "complete base provenance required",
+        )
+        for name, value in provenance.items():
+            if value is None and base["purpose"] == "diagnostic":
+                continue
+            if name == "source_revision":
+                _require(
+                    isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) is not None,
+                    "resolved base source revision required",
+                )
+            else:
+                check_digest(value, "base." + name)
     for item in contract["parent_chain"]:
         parent = resolve_checked(item["contract_sha256"])
         validate_record(parent)

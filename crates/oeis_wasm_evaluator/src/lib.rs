@@ -3,7 +3,7 @@ pub mod sandbox;
 
 use pyo3::prelude::*;
 
-use sandbox::{evaluate_profile, EvaluatorResult, Compiled};
+use sandbox::{evaluate_profile, Compiled, EvaluatorResult};
 
 /// Python-visible execution result dictionary / struct
 #[pyclass(dict)]
@@ -104,7 +104,15 @@ pub fn evaluate_wat_single(
 ) -> PyResult<ExecutionResult> {
     let engine = engine::create_fuel_engine()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
-    let res = py.allow_threads(|| evaluate_profile(&engine, wat_code, fuel_budget, terms_to_generate, result_profile));
+    let res = py.allow_threads(|| {
+        evaluate_profile(
+            &engine,
+            wat_code,
+            fuel_budget,
+            terms_to_generate,
+            result_profile,
+        )
+    });
     Ok(res.into())
 }
 
@@ -122,13 +130,16 @@ pub fn evaluate_wat_batch(
     let engine = engine::create_fuel_engine()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
-    if wat_programs.len()>32 {return Err(pyo3::exceptions::PyValueError::new_err("batch cap is 32"));}
+    if wat_programs.len() > 32 {
+        return Err(pyo3::exceptions::PyValueError::new_err("batch cap is 32"));
+    }
     // The Python worker pool owns concurrency; native execution is single-threaded.
     let results: Vec<ExecutionResult> = py.allow_threads(|| {
         wat_programs
             .iter()
             .map(|wat| {
-                let res = evaluate_profile(&engine, wat, fuel_budget, terms_to_generate, result_profile);
+                let res =
+                    evaluate_profile(&engine, wat, fuel_budget, terms_to_generate, result_profile);
                 res.into()
             })
             .collect()
@@ -137,36 +148,51 @@ pub fn evaluate_wat_batch(
     Ok(results)
 }
 
-
 #[pyclass]
-pub struct NativeModule { compiled:Compiled }
+pub struct NativeModule {
+    compiled: Compiled,
+}
 #[pymethods]
 impl NativeModule {
     #[new]
-    fn new(source:&str)->PyResult<Self> {
-        let engine=engine::create_fuel_engine().map_err(|e|pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
-        let compiled=Compiled::new(&engine,source,"wat_i256_checked_v1").map_err(pyo3::exceptions::PyValueError::new_err)?;
-        Ok(Self {compiled})
+    fn new(source: &str) -> PyResult<Self> {
+        let engine = engine::create_fuel_engine()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        let compiled = Compiled::new(&engine, source, "wat_i256_checked_v1")
+            .map_err(pyo3::exceptions::PyValueError::new_err)?;
+        Ok(Self { compiled })
     }
-    fn term(&self,py:Python<'_>,index:i32,fuel:u64)->PyResult<(Option<Vec<i64>>,u64,Option<String>,Option<String>)> {
-        if !(0..100).contains(&index) || fuel>1_000_000 {return Err(pyo3::exceptions::PyValueError::new_err("term bounds"));}
-        let t=py.allow_threads(||self.compiled.term(index,fuel));
-        Ok((t.values,t.fuel,t.outcome,t.reason))
+    fn term(
+        &self,
+        py: Python<'_>,
+        index: i32,
+        fuel: u64,
+    ) -> PyResult<(Option<Vec<i64>>, u64, Option<String>, Option<String>)> {
+        if !(0..100).contains(&index) || fuel > 1_000_000 {
+            return Err(pyo3::exceptions::PyValueError::new_err("term bounds"));
+        }
+        let t = py.allow_threads(|| self.compiled.term(index, fuel));
+        Ok((t.values, t.fuel, t.outcome, t.reason))
     }
     fn close(&self) {}
-    fn serialize(&self)->PyResult<Vec<u8>> {
-        self.compiled.module.serialize().map_err(|e|pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+    fn serialize(&self) -> PyResult<Vec<u8>> {
+        self.compiled
+            .module
+            .serialize()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
     }
 }
 #[pyfunction]
-fn source_identity_bytes()->Vec<u8> {include_bytes!(concat!(env!("OUT_DIR"),"/source_identity.bin")).to_vec()}
+fn source_identity_bytes() -> Vec<u8> {
+    include_bytes!(concat!(env!("OUT_DIR"), "/source_identity.bin")).to_vec()
+}
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn oeis_wasm_evaluator(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<ExecutionResult>()?;
     m.add_class::<NativeModule>()?;
-    m.add_function(wrap_pyfunction!(source_identity_bytes,m)?)?;
+    m.add_function(wrap_pyfunction!(source_identity_bytes, m)?)?;
     m.add_function(wrap_pyfunction!(evaluate_wat_single, m)?)?;
     m.add_function(wrap_pyfunction!(evaluate_wat_batch, m)?)?;
     Ok(())

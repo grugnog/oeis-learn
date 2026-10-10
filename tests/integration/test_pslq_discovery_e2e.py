@@ -48,5 +48,11 @@ def test_pslq_discovery_e2e_pipeline():
         verified_candidate,
         formulas=["a(n) = n", "a(n) = 2*n", "a(n) = 3*n"],
     )
-    assert proven.status == "PROVEN"
+    assert proven.status == "FORMULA_IDENTITY"
     assert proven.symbolic_proof is not None
+    from oeis_learn.experiments.artifacts import load_json
+    from oeis_learn.discovery.formula_checker import check_scoped_evidence
+
+    evidence = load_json(proven.symbolic_proof)
+    assert check_scoped_evidence(evidence)
+    assert evidence["assumptions"]  # Formula/OEIS correspondence is conditional.

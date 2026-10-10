@@ -656,7 +656,9 @@ def handle_synthesize(args: argparse.Namespace) -> int:
             "fuel_per_invocation": min(10000, args.fuel_per_invocation),
             "memory_limit_mib": min(16, args.memory_limit_mib),
             "mdl_ratio_max": min(1.20, args.mdl_max),
-            "native_evaluator_required": True,
+            # This legacy 20+100 protocol is a diagnostic, with an explicit
+            # Python backend. Qualified native admission uses the G7 service.
+            "native_evaluator_required": False,
             "code_revision": "trustworthy-v1",
             "environment_fingerprint": "sha256:" + "0" * 64,
         })

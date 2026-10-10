@@ -1,4 +1,5 @@
 """Exact bounded affine solving. The historical API name is retained, not its false Dixon claim."""
+
 from fractions import Fraction
 import time
 from oeis_learn.decoder.mersenne61_filter import evaluate_modular_filter
@@ -26,8 +27,15 @@ def solve_exact_bounded(matrix_a, vector_b, unknown_count, bound=1000, timeout_m
                 scale = rows[r][column]
                 rows[r] = [x - scale * y for x, y in zip(rows[r], rows[position])]
         pivots.append(column)
+
     def result(outcome, values=()):
-        return IntegerSolution(outcome, tuple(values), (time.monotonic() - started) * 1000, method="exact_rational_elimination")
+        return IntegerSolution(
+            outcome,
+            tuple(values),
+            (time.monotonic() - started) * 1000,
+            method="exact_rational_elimination",
+        )
+
     if any(not any(row[:k]) and row[k] for row in rows):
         return result("proved_unsat_in_scope")
     if len(pivots) == k:
@@ -37,12 +45,24 @@ def solve_exact_bounded(matrix_a, vector_b, unknown_count, bound=1000, timeout_m
             if value.denominator != 1 or abs(value) > bound:
                 return result("proved_unsat_in_scope")
             values[column] = int(value)
-        assert all(sum(a * c for a, c in zip(row, values)) == b for row, b in zip(matrix_a, vector_b))
+        assert all(
+            sum(a * c for a, c in zip(row, values)) == b for row, b in zip(matrix_a, vector_b)
+        )
         return result("verified_solution", values)
-    return solve_integer_constraints(k, lambda cs: [sum(a * c for a, c in zip(row, cs)) == b for row, b in zip(matrix_a, vector_b)], bound, timeout_ms)
+    return solve_integer_constraints(
+        k,
+        lambda cs: [sum(a * c for a, c in zip(row, cs)) == b for row, b in zip(matrix_a, vector_b)],
+        bound,
+        timeout_ms,
+    )
 
 
 def solve_dixon_bounded(matrix_a, vector_b, unknown_count, bound=1000):
     certificate = evaluate_modular_filter(matrix_a, vector_b, unknown_count)
     result = solve_exact_bounded(matrix_a, vector_b, unknown_count, bound)
-    return result.outcome == "verified_solution", list(result.constants), result.elapsed_ms, certificate
+    return (
+        result.outcome == "verified_solution",
+        list(result.constants),
+        result.elapsed_ms,
+        certificate,
+    )

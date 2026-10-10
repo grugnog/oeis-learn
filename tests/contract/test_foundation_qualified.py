@@ -17,6 +17,15 @@ D = "sha256:" + "1" * 64
 E = "sha256:" + "2" * 64
 
 
+def test_record_boundary_rejects_oversize_and_cyclic_objects():
+    with pytest.raises(ValueError, match="1 MiB"):
+        validate_record({"kind": "grounding_result", "source": "x" * (1 << 20)})
+    cyclic = {"kind": "grounding_result"}
+    cyclic["execution"] = cyclic
+    with pytest.raises(ValueError, match="acyclic"):
+        validate_record(cyclic)
+
+
 def fixtures():
     modes = {m: {"enabled": False, "profile_sha256": None} for m in MODES}
     return {

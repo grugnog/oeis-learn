@@ -69,6 +69,7 @@ def test_symbolic_definitions_conforms(validate_contract):
                     "content_sha256": h,
                 },
                 "expression": "n**2",
+                "expression_sha256": h,
                 "domain": {
                     "integer_only": True,
                     "lower_bound": 0,

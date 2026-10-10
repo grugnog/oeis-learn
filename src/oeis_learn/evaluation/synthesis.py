@@ -59,7 +59,10 @@ def evaluate_candidate_stages(
         memory_limit_mib=protocol.memory_limit_mib,
     )
     if protocol.native_evaluator_required:
-        raise ValueError("Native qualification is pending phase 7 conformance")
+        raise ValueError(
+            "Legacy synthesis is diagnostic; qualified native execution requires "
+            "the G7-activated FoundationRunner service"
+        )
     cand_id = f"{evaluation_id}_c{candidate_index}"
 
     stage_records: List[StageRecord] = []
