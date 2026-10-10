@@ -12,18 +12,18 @@ class NumericalValidationResult:
     """Numerical verification outcome and evidence."""
 
     outcome: str  # VERIFIED, COUNTEREXAMPLE, TRIVIAL, INSUFFICIENT_EVIDENCE
-    source_sha256: str = "sha256:" + "0" * 64
+    source_sha256: str | None = None
     search_indices: List[int] = field(default_factory=list)
     validation_indices: List[int] = field(default_factory=list)
     unseen_indices: List[int] = field(default_factory=list)
-    coefficient_method: str = "PSLQ_500DIGITS"
-    pslq_precision_digits: int = 500
-    pslq_max_coefficient: int = 1000
+    coefficient_method: str = "EXACT_INTEGER_NULLSPACE"
+    pslq_precision_digits: int | None = None
+    pslq_max_coefficient: int | None = None
     coefficients: List[str] = field(default_factory=list)
     validation_residuals: List[str] = field(default_factory=list)
     unseen_residuals: List[str] = field(default_factory=list)
-    matrix_rank: int = 0
-    matrix_nullity: int = 0
+    matrix_rank: int | None = None
+    matrix_nullity: int | None = None
     minimal_support: Optional[bool] = None
     first_counterexample: Optional[Dict[str, Any]] = None
 
@@ -74,6 +74,15 @@ def validate_numerical_relation(
         raise ValueError("bounded equal-length operands/coefficients required")
     ints = [exact_integer(c) for c in coefficients]
     coeffs = [str(c) for c in ints]
+    if len({(op.oeis_id, op.index_scale, op.index_shift) for op in operands}) < len(operands):
+        from oeis_learn.discovery.relation_identity import canonicalize_relation
+
+        try:
+            canonical = canonicalize_relation(operands, ints)
+        except ValueError:
+            return NumericalValidationResult(outcome="TRIVIAL", coefficients=coeffs)
+        operands, coeffs = canonical.operands, canonical.coefficients
+        ints = [int(c) for c in coeffs]
     if is_trivial_relation(operands, ints)[0]:
         return NumericalValidationResult(outcome="TRIVIAL", coefficients=coeffs)
     rows = []

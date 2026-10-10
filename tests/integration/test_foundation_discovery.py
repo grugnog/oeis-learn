@@ -213,7 +213,7 @@ def test_macro_expansion_cycles_and_trap_order():
         expand_macros("(macro m0)", cyclic)
 
 
-def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp_path):
+def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp_path, monkeypatch):
     from tests.unit.test_foundation_archive_curriculum import generic_fixture
     from oeis_learn.data.generic_programs import default_config
     from oeis_learn.discovery.program_archive import ProgramArchive
@@ -288,6 +288,19 @@ def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp
     index.rows[0]["source"] = "i256.const 999"
     with pytest.raises(ValueError):
         index.validate()
+    import oeis_learn.sandbox.pipeline as runtime_module
+
+    original_identity = runtime_module.runtime_identity
+    with monkeypatch.context() as changed_runtime:
+        changed_runtime.setattr(
+            runtime_module,
+            "runtime_identity",
+            lambda backend="python_wasmtime": dict(
+                original_identity(backend), wasmtime="other-runtime"
+            ),
+        )
+        with pytest.raises(ValueError, match="execution semantics"):
+            ProgramFeatureIndex(archive)
 
 
 @pytest.mark.parametrize("size", [128, 256, 512])

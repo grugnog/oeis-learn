@@ -17,9 +17,11 @@ Base: `933a180` (phase 8 merged). Scope: T080–T092; later release/experiment p
 
 ## Validation and current status
 
-The initial eight discovery regressions failed on the baseline. Focused CPU tests subsequently passed (72 cases before final CLI/scaling additions). Owning legacy expectations were reconciled to exact finite verification rather than PSLQ labels; partition fixtures now use disjoint sets.
+The initial eight discovery regressions failed on the baseline. The review now covers all thirteen phase-9 software tasks, with owning legacy expectations reconciled to exact finite verification and disjoint partitions. Duplicate operands combine before canonical identity; incomplete numerical evidence carries null rank/source/PSLQ metadata. Actual pipeline output is checked against the updated owning report contract.
 
-The full foundation CPU CI suite passed 638 tests with 31 documented capability skips. The expanded local G9/owning review suite passed 99 tests. Broad local accounting tests require Linux boot identity, unavailable in this sandbox; they pass in CI. This workspace lacks Docker, the native toolchain and `lab-gpu`; the PR CI builds the extension through the existing root Dockerfile and runs mandatory native logical-profile parity, G7 and G8 again. Run 38064021453 at 8d00b4b passed the root Docker native build, G7, G8 and G9 (47 logical Python, 32 discovery/certificate/CLI, 13 owning discovery and 12 native cases). Follow-up review expands the native matrix to all advertised operators and adds actual CLI gate replay; its final qualification is pending. Native-dependent task marks stay partial until that final evidence is audited. No GPU is necessary for the phase 9 software gate. All earlier HIP and production-container partial markers are preserved.
+CPU CI passed the full foundation suite (643 passed, 51 documented capability skips on the reviewed code). G9 requires every mandatory case to run without skips. Root Docker qualification passed G7, G8 and G9 at `9ba3be2`, including 47 logical Python, 37 discovery/certificate/CLI, 16 owning discovery and 32 native cases. The last report/semantics review adds three owning cases, bringing G9 to 135 required tests. Each code update is requalified before this PR is made ready; the final source-bound reports and public CLI acceptance are published in the [PR checks](https://github.com/grugnog/oeis-learn/pull/10) and workflow artifacts.
+
+This workspace lacks Docker, the native toolchain and `lab-gpu`. Broad local accounting tests also require an unavailable Linux boot identity; those cases pass in CI. The local public qualification command emits clean JSON, passes every CPU G9 suite and reports native capability as unavailable/PENDING. Native evidence comes from the root Docker image, rather than a local skip. No GPU is necessary for phase 9. Earlier HIP and production-container partial markers are preserved, and phase 10 is unchanged.
 
 Reproduction:
 
@@ -31,7 +33,7 @@ python specs/007-experiment-foundation/validate_artifacts.py
 
 For native qualification, build `Dockerfile --target qualification` and run G9 **inside that same image**. A copied PASS report cannot authorize a different source/build/runtime. CPU fixtures do not authorize accelerated learning or establish throughput.
 
-Further review added external deadlines for exact fitting and certificate construction/template proposal, a bounded driver-index domain for finite-state certificates, checked false-guard arithmetic in loop exit obligations, independent macro expression types, and nonoverlapping description-length accounting. Structural retrieval now proposes ranked two-program relations as well as numerical triples; actual archive tests retain both generated and model-hypothesis implementations, their separate genealogy, and exact finite evidence.
+Further review added external deadlines for exact fitting and certificate construction/template proposal, a bounded driver-index domain for finite-state certificates, checked false-guard arithmetic in loop exit obligations, independent macro expression types, and nonoverlapping description-length accounting. Indexing, macro mining and learned-value targets reject historical execution evidence after runtime/helper changes until independent readmission. Structural retrieval now proposes ranked two-program relations as well as numerical triples; actual archive tests retain both generated and model-hypothesis implementations, their separate genealogy, and exact finite evidence.
 
 ## Capability limits
 

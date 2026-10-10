@@ -94,6 +94,7 @@ def mine_macros(archive, *, snapshot=None, max_macros=64):
     if not 1 <= max_macros <= 64:
         raise ValueError("macro cap64")
     from oeis_learn.sandbox.wat_ast import parse
+    from oeis_learn.discovery.program_features import validate_execution_semantics
 
     snapshot = archive.freeze() if snapshot is None else snapshot
     if len(snapshot["entries"]) > 4096:
@@ -102,6 +103,7 @@ def mine_macros(archive, *, snapshot=None, max_macros=64):
     types = {}
     # Reading this view enforces provenance, holdouts, and independent execution.
     for _, envelope in archive.training_view(snapshot):
+        validate_execution_semantics(envelope)
         source = envelope["source"]
         try:
             program = parse_logical(source)

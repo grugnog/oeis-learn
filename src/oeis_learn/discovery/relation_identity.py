@@ -45,11 +45,18 @@ def canonicalize_relation(
 
     int_coeffs = [exact_integer(c) for c in coefficients]
 
-    if is_trivial_relation(operands, int_coeffs)[0]:
-        raise ValueError("nontrivial equal-length operands and coefficients required")
+    if len(operands) != len(int_coeffs) or not 2 <= len(operands) <= 8:
+        raise ValueError("bounded equal-length operands and coefficients required")
+    combined = {}
+    for operand, coefficient in zip(operands, int_coeffs):
+        key = (operand.oeis_id, operand.index_scale, operand.index_shift)
+        previous = combined.get(key, (operand, 0))[1]
+        combined[key] = (operand, previous + coefficient)
+    paired = [pair for pair in combined.values() if pair[1]]
+    if len(paired) < 2:
+        raise ValueError("zero or single-operand relation after combining coefficients")
 
     # 1. Pair operands and coefficients, then sort lexicographically by operand identity
-    paired = list(zip(operands, int_coeffs))
     paired.sort(key=lambda item: (item[0].oeis_id, item[0].index_scale, item[0].index_shift))
 
     sorted_ops = [p[0] for p in paired]

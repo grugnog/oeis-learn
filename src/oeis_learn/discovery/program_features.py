@@ -5,6 +5,22 @@ from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 from oeis_learn.sandbox.logical_ir import Node, parse_logical, profile_identity
 
 
+def validate_execution_semantics(envelope):
+    """Historical output evidence cannot be relabelled with current semantics."""
+    from oeis_learn.sandbox.pipeline import runtime_identity
+
+    identities = envelope["execution"]["identities"]
+    backend = identities.get("backend", "python_wasmtime")
+    current = runtime_identity(backend)
+    if (
+        envelope["entry"]["runtime_sha256"] != digest(current)
+        or identities["runtime_sha256"] != digest(current)
+        or identities["helper_sha256"] != current["helper_sha256"]
+    ):
+        raise ValueError("archive execution semantics changed; independently readmit programs")
+    return {"backend": backend, "runtime_sha256": digest(current)}
+
+
 def program_features(source):
     program = parse_logical(source)
     names = {}
@@ -72,6 +88,7 @@ class ProgramFeatureIndex:
         # holdouts and origin checks; output fingerprints never merge sources.
         for key, envelope in archive.training_view(snapshot):
             source = envelope["source"]
+            execution = validate_execution_semantics(envelope)
             try:
                 features = program_features(source)
             except ValueError:
@@ -81,6 +98,7 @@ class ProgramFeatureIndex:
                 "source": source,
                 "features": features,
                 "genealogy": envelope["provenance"],
+                "execution": execution,
             }
             size += len(canonical_bytes(row))
             if len(self.rows) >= max_entries or size > max_bytes:
@@ -89,7 +107,13 @@ class ProgramFeatureIndex:
         self.identity = digest(self.rows)
 
     def validate(self):
+        from oeis_learn.sandbox.pipeline import runtime_identity
+
         for row in self.rows:
+            if row["execution"]["runtime_sha256"] != digest(
+                runtime_identity(row["execution"]["backend"])
+            ):
+                raise ValueError("stale feature execution semantics")
             try:
                 current = program_features(row["source"])
             except ValueError:

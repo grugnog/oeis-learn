@@ -62,6 +62,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "mode": {
+      "const": "legacy_embedding_diagnostic"
+    },
+    "program_provenance": {
+      "const": "not_established"
     }
   },
   "$defs": {
@@ -201,7 +207,14 @@
           ]
         },
         "source_sha256": {
-          "$ref": "#/$defs/hash"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "search_indices": {
           "type": "array",
@@ -226,11 +239,17 @@
           "minLength": 1
         },
         "pslq_precision_digits": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 500
         },
         "pslq_max_coefficient": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "coefficients": {
@@ -252,15 +271,24 @@
           }
         },
         "matrix_rank": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "matrix_nullity": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "minimal_support": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "first_counterexample": {
           "type": [

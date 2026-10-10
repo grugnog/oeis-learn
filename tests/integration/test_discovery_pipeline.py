@@ -96,3 +96,13 @@ def test_discovery_pipeline_orchestration(tmp_path):
     assert "summary" in res
     assert "protocol" in res
     assert res["summary"]["latent_candidates"] >= 0
+    import json
+    from pathlib import Path
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    schema = json.loads(
+        Path(
+            "specs/005-trustworthy-synthesis-readiness/contracts/discovery-report.schema.json"
+        ).read_text()
+    )
+    Draft202012Validator(schema, format_checker=FormatChecker()).validate(res)

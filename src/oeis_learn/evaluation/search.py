@@ -576,6 +576,10 @@ def value_guided_repairs(
         {"source": e["source"], "conditioning_values": e["entry"]["conditioning_values"]}
         for e in list(training_view.values())[:64]
     ]
+    from oeis_learn.discovery.program_features import validate_execution_semantics
+
+    for envelope in list(training_view.values())[:64]:
+        validate_execution_semantics(envelope)
     variants = typed_repairs(source, limit=max_expansions)
     scored = []
     for candidate in variants:
