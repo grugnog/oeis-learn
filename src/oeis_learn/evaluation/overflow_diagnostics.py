@@ -35,6 +35,11 @@ class WiderReference(LogicalReference):
             self.violations += 1
         return value
 
+    def expr(self, node):
+        value = super().expr(node)
+        self.maximum_bits = max(self.maximum_bits, abs(value).bit_length())
+        return value
+
 
 def _trace(source):
     ref = WiderReference(source)

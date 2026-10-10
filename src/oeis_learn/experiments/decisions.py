@@ -243,6 +243,7 @@ class PilotSchedule:
             raise ValueError("pilot manifest cannot change on resume")
         self.charged = 0
         self.selected = None
+        self.selection_recorded = False
         self.diagnostic_done = False
         self.pairs = []
         self.pending = None
@@ -271,9 +272,10 @@ class PilotSchedule:
                         self.pairs[-1][1] = event["solved_groups"]
                 self.pending = None
             elif event["type"] == "select":
-                if self.selected or not self.diagnostic_done:
+                if self.selection_recorded or not self.diagnostic_done:
                     raise ValueError("invalid repeated/pre-diagnostic selection")
                 self.selected = event["question"]
+                self.selection_recorded = True
             elif event["type"] == "interrupted":
                 if not self.pending:
                     raise ValueError("interruption without issued work")
@@ -292,15 +294,15 @@ class PilotSchedule:
             self.interrupted = True
 
     def select(self, diagnostic):
-        if self.selected or self.pending or not self.diagnostic_done:
+        if self.selection_recorded or self.pending or not self.diagnostic_done:
             raise ValueError("one post-diagnostic selection permitted")
         selected, states = select_trigger(diagnostic)
-        if selected:
-            self.log.append(
-                str(len(self.log.events)),
-                dict(type="select", question=selected, diagnostic_sha256=digest(diagnostic)),
-            )
-            self.selected = selected
+        self.log.append(
+            str(len(self.log.events)),
+            dict(type="select", question=selected, diagnostic_sha256=digest(diagnostic)),
+        )
+        self.selected = selected
+        self.selection_recorded = True
         return selected, states
 
     def issue(self):

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and install outside checkout; no PYTHONPATH, editable install or source imports.
 set -euo pipefail
-repo=$(git rev-parse --show-toplevel)
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 parent=${OEIS_WHEEL_WORK_ROOT:-$(dirname "$repo")}
 task_root=$(mktemp -d "$parent/installed-wheel-XXXXXX")
 # Keep logs and wheel on failure for review; caller chooses artifact retention.

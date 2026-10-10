@@ -198,3 +198,105 @@ def require_discovery_readiness(report, *, evidence_root):
     from oeis_learn.evaluation.discovery_gate import require_g9
 
     return require_g9(report, evidence_root=evidence_root)
+
+
+def release_readiness(
+    *, checkpoint=None, g7=None, g8=None, g9=None, wheel_junit=None, measurement_root=None
+):
+    """Replay supplied evidence; missing run/hardware gates remain explicit.
+
+    Each extension is a (report, evidence_root) tuple. A status string or schema
+    fixture cannot stand in for its validator. Baseline promotion still requires
+    the phase-6 coordinated device/containment path; this aggregator cannot invent it.
+    """
+    from pathlib import Path
+    import xml.etree.ElementTree as ET
+    from oeis_learn.experiments.artifacts import load_json, compute_canonical_digest as digest
+    from oeis_learn.experiments.qualified_models import validate_record
+    from oeis_learn.evaluation.experiment_runner import validate_manifest
+
+    baseline = (
+        foundation_readiness(checkpoint, software_complete=False)
+        if checkpoint is not None
+        else {"qualified": False, "missing_gates": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"]}
+    )
+    gates = {
+        f"G{i}": dict(status="pending", reason="bound run/device/containment evidence pending")
+        for i in range(7)
+    }
+    for name, value, validator in (
+        ("G7", g7, require_architecture_measurement_gates),
+        ("G8", g8, require_learning_readiness),
+        ("G9", g9, require_discovery_readiness),
+    ):
+        if value is None:
+            gates[name] = dict(status="pending", reason="missing current executable evidence")
+            continue
+        try:
+            report, root = value
+            validator(report, evidence_root=root)
+            gates[name] = dict(status="PASS", report_sha256=report["report_sha256"])
+        except (ValueError, OSError, TypeError, KeyError) as exc:
+            gates[name] = dict(status="FAIL", reason=str(exc))
+    software = {}
+    if wheel_junit:
+        try:
+            cases = ET.parse(wheel_junit).findall(".//testcase")
+            expected = {
+                "test_packaged_resources_and_actual_execution",
+                "test_public_measure_dry_run_and_actual",
+                "test_census_public_invalid_input",
+                "test_installed_native_has_no_fallback",
+            }
+            if (
+                len(cases) != len(expected)
+                or {c.attrib.get("name") for c in cases} != expected
+                or any(
+                    any(c.find(tag) is not None for tag in ("failure", "error", "skipped"))
+                    for c in cases
+                )
+            ):
+                raise ValueError("installed-wheel/native cases missing, failed or skipped")
+            software["installed_wheel_native"] = dict(status="PASS", cases=len(cases))
+        except (ValueError, OSError, ET.ParseError) as exc:
+            software["installed_wheel_native"] = dict(status="FAIL", reason=str(exc))
+    else:
+        software["installed_wheel_native"] = dict(
+            status="pending", reason="no clean-wheel evidence supplied"
+        )
+    if measurement_root:
+        try:
+            root = Path(measurement_root)
+            binding = load_json((root / "manifest.json").read_bytes())
+            validate_manifest(binding["manifest"])
+            report = load_json((root / "measurement.json").read_bytes())
+            if report["manifest_sha256"] != digest(binding) or report["qualified"] is not False:
+                raise ValueError("measurement identity or unsupported qualification claim")
+            for record in report["decisions"]:
+                validate_record(record)
+            software["measurements"] = dict(status="pending", reason=report["stop_reason"])
+        except (ValueError, OSError, TypeError, KeyError) as exc:
+            software["measurements"] = dict(status="FAIL", reason=str(exc))
+    else:
+        software["measurements"] = dict(
+            status="pending", reason="qualified engineering/pilot evidence unavailable"
+        )
+    gates["G10"] = dict(
+        status="FAIL" if any(c["status"] == "FAIL" for c in software.values()) else "pending",
+        checks=software,
+        missing=[
+            "real release source/structural split evidence",
+            "full wrapper/telemetry/overflow integration",
+            "review disposition evidence",
+            "qualified engineering and conditional pilot",
+        ],
+    )
+    return dict(
+        baseline_ready=baseline["qualified"],
+        full_release_qualified=False,
+        state="baseline_ready" if baseline["qualified"] else "baseline_pending",
+        gates=gates,
+        missing_gates=[key for key, value in gates.items() if value["status"] != "PASS"],
+        full_007_complete=False,
+        lifecycle_is_qualification=False,
+    )

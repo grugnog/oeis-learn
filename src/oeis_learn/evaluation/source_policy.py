@@ -29,9 +29,53 @@ def classify_growth_profile(terms):
 def analyze_sequence_cohort(records, horizons=HORIZONS):
     from numpy import percentile
 
+    if not isinstance(records, list):
+        raise ValueError("source records must be an array")
+    normalized = []
     for row in records:
+        if not isinstance(row, dict):
+            raise ValueError("source record must be an object")
+        if "indices" in row or "values" in row:
+            from oeis_learn.experiments.models import INTEGER_TEXT_RE
+
+            indices, values, first = row.get("indices"), row.get("values"), row.get("first_index")
+            if (
+                not isinstance(indices, list)
+                or not isinstance(values, list)
+                or len(indices) != len(values)
+                or type(first) is not int
+            ):
+                raise ValueError("invalid indexed source record")
+            indexed = {}
+            for index, value in zip(indices, values):
+                if (
+                    type(index) is not int
+                    or not isinstance(value, str)
+                    or not INTEGER_TEXT_RE.fullmatch(value)
+                ):
+                    raise ValueError("exact indexed integers required")
+                if index in indexed and indexed[index] != int(value):
+                    raise ValueError("conflicting source indices")
+                indexed[index] = int(value)
+            terms = []
+            while first + len(terms) in indexed:
+                terms.append(indexed[first + len(terms)])
+            metadata = row.get("metadata", {})
+            if not isinstance(metadata, dict):
+                raise ValueError("source metadata must be an object")
+            row = dict(
+                row,
+                terms=terms,
+                offset=first,
+                source_keywords=metadata.get("keywords"),
+                full_observed_terms=[indexed[i] for i in sorted(indexed)],
+            )
         if not isinstance(row.get("terms"), list) or any(type(v) is not int for v in row["terms"]):
             raise ValueError("invalid exact source terms")
+        if row.get("offset") is not None and type(row["offset"]) is not int:
+            raise ValueError("offset must be exact integer or unavailable")
+        normalized.append(row)
+    records = normalized
     result = {"total_sequences": len(records), "horizons": {}}
     for h in horizons:
         if type(h) is not int or h not in HORIZONS:
@@ -63,7 +107,7 @@ def analyze_sequence_cohort(records, horizons=HORIZONS):
             else {},
         }
     result["growth_profile_counts"] = dict(
-        Counter(classify_growth_profile(r["terms"]) for r in records)
+        Counter(classify_growth_profile(r.get("full_observed_terms", r["terms"])) for r in records)
     )
     result["growth_policy"] = "finite_full_series_descriptor/v1"
     result["source_metadata"] = {

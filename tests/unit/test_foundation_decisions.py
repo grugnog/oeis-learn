@@ -125,3 +125,15 @@ def test_pilot_first_pair_failure_prevents_second_contrast(tmp_path):
     with pytest.raises(ValueError, match="one post"):
         pilot.select({"encoder_collisions": 1})
     assert pilot.charged == 8400 * 10**9
+
+
+def test_not_triggered_selection_is_frozen_even_when_no_contrast(tmp_path):
+    from oeis_learn.experiments.decisions import PilotSchedule
+
+    pilot = PilotSchedule(tmp_path, "fixture", clock=lambda: 0)
+    pilot.issue()
+    pilot.complete()
+    pilot.select({"encoder_collisions": 0})
+    restored = PilotSchedule(tmp_path, "fixture", clock=lambda: 0)
+    with pytest.raises(ValueError, match="one post"):
+        restored.select({"encoder_collisions": 1})

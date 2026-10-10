@@ -58,3 +58,41 @@ def test_plan_defaults_match_frozen_config():
     from oeis_learn.experiments.decisions import frozen_protocol
 
     assert yaml.safe_load(open("configs/foundation/experiments.yaml")) == frozen_protocol()
+
+
+def test_production_reference_phase_timings_are_actual_and_separate():
+    from oeis_learn.sandbox.pipeline import Runtime
+
+    evidence = Runtime().evaluate("i256.const 7", range(20))
+    assert evidence.outcome is None
+    assert set(evidence.phase_timings_ns) == {
+        "prepare",
+        "production",
+        "independent_reference",
+        "controller_overhead",
+    }
+    assert all(type(n) is int and n >= 0 for n in evidence.phase_timings_ns.values())
+    assert sum(evidence.phase_timings_ns.values()) == evidence.elapsed_ns
+
+
+def test_release_aggregation_cannot_promote_lifecycle_or_unreplayed_status(tmp_path):
+    from oeis_learn.evaluation.readiness import release_readiness
+
+    report = release_readiness()
+    assert report["missing_gates"] == [
+        "G0",
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7",
+        "G8",
+        "G9",
+        "G10",
+    ]
+    assert not report["full_release_qualified"] and report["state"] == "baseline_pending"
+    forged = release_readiness(g7=({"status": "PASS"}, tmp_path))
+    assert forged["gates"]["G7"]["status"] == "FAIL"
+    assert forged["gates"]["G10"]["status"] == "pending"

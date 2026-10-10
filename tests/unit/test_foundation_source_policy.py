@@ -82,3 +82,51 @@ def test_database_path_required_and_metadata_retained(tmp_path):
     assert report["source_metadata"]["finite"] == 1
     assert report["source_metadata"]["table"] == 1
     assert report["source_metadata"]["offsets"] == {"-2": 1}
+
+
+def test_indexed_gaps_do_not_compress_horizon():
+    from oeis_learn.evaluation.source_policy import analyze_sequence_cohort
+
+    row = record("gapped", range(120), offset=-7)
+    row["indices"].pop(40)
+    row["values"].pop(40)
+    report = analyze_sequence_cohort([row])
+    assert report["horizons"]["horizon_20"]["sequences_evaluated"] == 1
+    assert report["horizons"]["horizon_50"]["sequences_evaluated"] == 0
+    assert report["source_metadata"]["offsets"] == {"-7": 1}
+
+
+def test_release_profile_roundtrip_and_all_member_reserved_prefixes(tmp_path):
+    import json
+    import yaml
+    from oeis_learn.evaluation.foundation_cohort import freeze_cohort, load_cohort, read_ref
+    from oeis_learn.data.program_admission import load_membership
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+
+    rows = [
+        record("a", [n * n for n in range(120)], offset=-3),
+        record("b", [-3 * n * n + 7 for n in range(120)], offset=7),
+    ]
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "records.json").write_text(json.dumps(rows))
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        yaml.safe_dump(
+            dict(
+                schema_version="foundation/v1",
+                profile="prefix20_total100_affine_v2",
+                seed=3,
+                dev_count=1,
+                final_count=0,
+            )
+        )
+    )
+    root = tmp_path / "cohort"
+    frozen = freeze_cohort(source, config, root)
+    assert load_cohort(root) == frozen
+    assert len(frozen["groups"]) == 1 and frozen["census"]["complete120"] == 2
+    membership, _ = load_membership(root)
+    assert membership == {digest(row["values"][:20]) for row in rows}
+    prompt = read_ref(root, frozen["groups"][0]["prompt"])
+    assert "metadata" not in prompt and "first_index" not in prompt
