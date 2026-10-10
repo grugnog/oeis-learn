@@ -82,7 +82,7 @@ def test_modular_filter_underdetermined_system():
 
     cert = evaluate_modular_filter(A, b, unknown_count=2)
     assert cert.status == "UNDERDETERMINED"
-    assert cert.penalty_reward == -0.50
+    assert cert.penalty_reward == 0.0  # Rank deficiency is not evidence of failure.
     assert cert.coefficient_rank == 1
     assert cert.unknown_count == 2
     assert cert.elapsed_microseconds < 500.0

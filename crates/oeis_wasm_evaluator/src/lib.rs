@@ -96,6 +96,7 @@ impl From<EvaluatorResult> for ExecutionResult {
 #[pyfunction]
 #[pyo3(signature = (wat_code, fuel_budget=10000, terms_to_generate=20, result_profile="i64_scalar_v1"))]
 pub fn evaluate_wat_single(
+    py: Python<'_>,
     wat_code: &str,
     fuel_budget: u64,
     terms_to_generate: u32,
@@ -103,7 +104,7 @@ pub fn evaluate_wat_single(
 ) -> PyResult<ExecutionResult> {
     let engine = engine::create_fuel_engine()
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
-    let res = evaluate_profile(&engine, wat_code, fuel_budget, terms_to_generate, result_profile);
+    let res = py.allow_threads(|| evaluate_profile(&engine, wat_code, fuel_budget, terms_to_generate, result_profile));
     Ok(res.into())
 }
 

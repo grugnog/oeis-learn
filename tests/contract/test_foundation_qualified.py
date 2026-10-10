@@ -1,5 +1,7 @@
 """Every qualified kind has positive and adversarial contract coverage."""
 
+from oeis_learn.sandbox.wat_ast import parse
+
 from copy import deepcopy
 import pytest
 from oeis_learn.experiments.qualified_models import (
@@ -186,9 +188,7 @@ def fixtures():
                     dependencies=[],
                     side_conditions=[],
                     equivalence_sha256=D,
-                    expansion_tokens=__import__("oeis_learn.sandbox.wat_ast", fromlist=["parse"])
-                    .parse("i256.const 7")
-                    .body_tokens.__len__(),
+                    expansion_tokens=len(parse("i256.const 7").body_tokens),
                     description_length_benefit=1,
                 )
             ],
@@ -261,11 +261,7 @@ def test_kind_positive_unknown_fields_versions_and_identity(kind):
                         dependencies=["m0"],
                         side_conditions=[],
                         equivalence_sha256=D,
-                        expansion_tokens=__import__(
-                            "oeis_learn.sandbox.wat_ast", fromlist=["parse"]
-                        )
-                        .parse("i256.const 7")
-                        .body_tokens.__len__(),
+                        expansion_tokens=len(parse("i256.const 7").body_tokens),
                         description_length_benefit=1,
                     )
                 ]

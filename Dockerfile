@@ -19,7 +19,7 @@ CMD ["bash"]
 
 # Portable CPU qualification target. Uses the same installer/native build as
 # the development/GPU targets; no compiler or Docker dependency on the host.
-FROM python:3.12.12-slim-bookworm AS qualification
+FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS qualification
 USER root
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo \
     UV_PYTHON_INSTALL_DIR=/opt/oeis-python PATH=/opt/oeis-venv/bin:/opt/cargo/bin:${PATH}
