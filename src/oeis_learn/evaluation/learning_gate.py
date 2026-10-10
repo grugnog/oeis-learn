@@ -53,6 +53,7 @@ SUITES = {
         "tests/unit/test_foundation_search.py",
         "tests/unit/test_foundation_self_training.py",
         "tests/unit/test_foundation_learning_gate.py",
+        "tests/contract/test_foundation_learning_cli.py",
         "tests/integration/test_foundation_qualified_resume.py",
     ],
 }

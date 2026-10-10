@@ -848,6 +848,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         'gate_report', 'profiles', 'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
         'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
+        'learning_gate_report', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 
