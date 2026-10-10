@@ -37,12 +37,15 @@ jobs:
         run: |
           mkdir -p wheel-evidence
           chmod 777 wheel-evidence
+          docker image inspect oeis-foundation-wheel --format '{{.Id}}' > wheel-evidence/image-id.txt
           docker run --rm -v "$PWD/wheel-evidence:/evidence" oeis-foundation-wheel bash -c '
             set -euo pipefail
             trap "chmod -R a+rX /evidence" EXIT
             export OEIS_WHEEL_WORK_ROOT=/evidence
             export OEIS_NATIVE_WHEELS_DIR=/tmp/oeis-wheels
             export OEIS_REQUIRE_NATIVE=1
+            mkdir -p /evidence/native-wheels
+            cp /tmp/oeis-wheels/*.whl /evidence/native-wheels/
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
             oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
@@ -82,7 +85,8 @@ jobs:
             wheel-evidence/discovery/g9.json
             wheel-evidence/phase10.xml
             wheel-evidence/handoff-inputs.json
-            wheel-evidence/handoff/inputs.json
-            wheel-evidence/handoff/handoff.json
+            wheel-evidence/handoff/**
+            wheel-evidence/native-wheels/*.whl
+            wheel-evidence/image-id.txt
             wheel-evidence/learning/cli-acceptance.json
             wheel-evidence/discovery/cli-acceptance.json

@@ -13,12 +13,12 @@ remain half-checked. This review does not declare full spec 007 complete.
 | Operational docs described obsolete image paths, planned CLI aliases and incomplete orchestration. | Reconciled profiles/roles, root Docker targets, actual named commands, migration, full-state recovery, finite certificate scope and conditional decisions. User choices remain separate from planning defaults. |
 | Handoff lacked copied dependency replay and immutable identities. | New public `foundation handoff` inventories bounded hashed files, rejects unsafe/symlink/duplicate/stale/quota inputs, copies into a staged archive, validates copied dependencies, fsyncs and publishes atomically. Archive completion and release qualification are separate. |
 | Documentation slices had no executable driver. | `verify_phase11.py` runs the actual full-model CPU three-update pause/resume, development/finalization/final evaluation, census and measurement slices. It archives failures and prerequisite exclusions honestly. Linux CI executes it without weakening boot/deadline guards. |
-| Clean-wheel gate had no current cross-cutting archive. | Installed acceptance exercises packaged governance and handoff. CI archives/replays real G7/G8/G9, six-case wheel and host Docker integration evidence in the matching qualification runtime. |
+| Clean-wheel gate had no current cross-cutting archive. | Installed acceptance exercises packaged governance and handoff. CI archives/replays real G7/G8/G9, six-case wheel and host Docker integration evidence in the matching qualification runtime. Selection follows declared report dependencies, excluding unrelated sampler trials without increasing caps. |
 
 ## Validation
 
-Focused local regression: **24 passed, 3 explicit native/gate capability skips**.
-The new handoff suite contributes 21 passing tests. The six initially failing
+Focused local regression after closure remediation: **27 passed, 3 explicit native/gate capability skips**.
+The new handoff suite contributes 24 passing tests, including dependency-closure selection with 4,100 unrelated trials and missing/escaping dependencies. The six initially failing
 count-only reconciliation regressions passed after remediation; later cases cover
 forged task markers, altered checklist identity and an unauthorized release claim.
 Compilation and `ruff check --select F,E9` pass for the new modules/drivers/tests.

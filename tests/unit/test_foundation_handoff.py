@@ -179,3 +179,47 @@ def test_stale_implementation_cannot_replay_archived_readiness(tmp_path, monkeyp
     monkeypatch.setattr(runner, "implementation_identity", lambda: "sha256:" + "0" * 64)
     with pytest.raises(ValueError, match="implementation"):
         replay_handoff(tmp_path / "archive")
+
+
+def ci_evidence(root):
+    readiness = {}
+    for key in ("g7", "g8", "g9"):
+        directory = root / key
+        directory.mkdir()
+        (directory / "owning.xml").write_text("<testsuites/>")
+        (directory / "gate.json").write_bytes(
+            canonical_bytes({"status": "PASS", "checks": {"owning": {"path": "owning.xml"}}})
+        )
+        readiness[key] = key + "/gate.json"
+    return readiness
+
+
+def test_ci_archive_selects_declared_closure_without_charging_unrelated_trials(tmp_path):
+    from scripts.archive_phase11 import evidence_inputs
+    from oeis_learn.evaluation.handoff import archive_handoff
+
+    readiness = ci_evidence(tmp_path)
+    trials = tmp_path / "g8/trials"
+    trials.mkdir()
+    for index in range(4100):
+        (trials / str(index)).touch()
+    manifest = evidence_inputs(tmp_path, readiness)
+    assert len(manifest["files"]) == 6
+    report = archive_handoff(manifest, input_root=tmp_path, output=tmp_path / "handoff")
+    assert report["files"] == 6 and not report["readiness"]["full_007_complete"]
+    assert not (tmp_path / "handoff/evidence/g8/trials").exists()
+
+
+@pytest.mark.parametrize("mutation", ["missing", "escape"])
+def test_ci_archive_cannot_omit_or_escape_a_declared_dependency(tmp_path, mutation):
+    from scripts.archive_phase11 import evidence_inputs
+
+    readiness = ci_evidence(tmp_path)
+    if mutation == "missing":
+        (tmp_path / "g7/owning.xml").unlink()
+    else:
+        (tmp_path / "g7/gate.json").write_bytes(
+            canonical_bytes({"checks": {"owning": {"path": "../../outside.xml"}}})
+        )
+    with pytest.raises(ValueError):
+        evidence_inputs(tmp_path, readiness)

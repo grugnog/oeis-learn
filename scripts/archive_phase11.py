@@ -4,8 +4,35 @@ import argparse
 from pathlib import Path
 import shutil
 
-from oeis_learn.evaluation.handoff import archive_handoff, replay_handoff
-from oeis_learn.experiments.artifacts import canonical_bytes, compute_file_hash
+from oeis_learn.evaluation.handoff import archive_handoff, replay_handoff, _file
+from oeis_learn.experiments.artifacts import canonical_bytes, compute_file_hash, load_json
+
+
+def evidence_inputs(root, readiness, *, extra_files=()):
+    """Collect only selected reports and their declared dependency closure.
+
+    Qualification may leave thousands of rejected sampler trials. They are not
+    gate inputs and cannot consume the archive's fixed file/quota budget.
+    """
+    root = Path(root).resolve()
+    paths = {_file(root, path) for path in (*readiness.values(), *extra_files)}
+    for key in ("g7", "g8", "g9"):
+        path = _file(root, readiness[key])
+        report = load_json(path.read_bytes())
+        references = list(report["checks"].values())
+        if report.get("hardware") is not None:
+            references.append(report["hardware"])
+        for ref in references:
+            relative = (path.parent.relative_to(root) / ref["path"]).as_posix()
+            paths.add(_file(root, relative))
+    return dict(
+        version="handoff-inputs/v1",
+        files=[
+            dict(path=p.relative_to(root).as_posix(), sha256=compute_file_hash(p))
+            for p in sorted(paths)
+        ],
+        readiness=readiness,
+    )
 
 
 def main():
@@ -27,21 +54,11 @@ def main():
         role_junit="roles.xml",
         dispositions="dispositions.json",
     )
-    # Deliberate roots only; installed environments/wheels and previous archives
-    # are excluded. Gate validators replay the copied JUnit/native evidence.
-    paths = {p for p in root.iterdir() if p.is_file() and p.suffix in (".json", ".xml", ".txt")}
-    paths.add(wheels[0])
-    for name in ("native", "learning", "discovery"):
-        paths.update(p for p in (root / name).rglob("*") if p.is_file())
-    paths.discard(root / "handoff-inputs.json")
-    manifest = dict(
-        version="handoff-inputs/v1",
-        files=[
-            dict(path=p.relative_to(root).as_posix(), sha256=compute_file_hash(p))
-            for p in sorted(paths)
-        ],
-        readiness=readiness,
-    )
+    native_wheels = list(root.glob("native-wheels/*.whl"))
+    if len(native_wheels) != 1:
+        raise ValueError("exactly one tested native wheel required for later replay")
+    extras = ["image-id.txt", native_wheels[0].relative_to(root).as_posix()]
+    manifest = evidence_inputs(root, readiness, extra_files=extras)
     (root / "handoff-inputs.json").write_bytes(canonical_bytes(manifest))
     report = archive_handoff(manifest, input_root=root, output=root / "handoff")
     assert replay_handoff(root / "handoff") == report

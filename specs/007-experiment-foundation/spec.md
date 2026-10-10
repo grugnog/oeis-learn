@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-16
 
-**Status**: Expanded specification and implementation design; implementation pending. Supersedes the initial narrow foundation scope following the user request to repair all known issues; only native LODA/comparison/transcoding work is deferred.
+**Status**: Expanded specification and implementation design; implemented through the phase 11 review with mandatory workstation, real-source and live-measurement acceptance still partial. Supersedes the initial narrow foundation scope following the user request to repair all known issues; only native LODA/comparison/transcoding work is deferred.
 
 **Input**: Complete the shared foundation needed to compare macro-WAT and native LODA fairly, using programs learned from generic bootstrap data, twenty observed terms, and the available Ryzen workstation. Minimize experiments and preserve evidence of what was actually measured. Include every actionable non-LODA review item, repair known defects in their owning modules, and evaluate uncertain changes with bounded conditional probes. KV caching is included.
 

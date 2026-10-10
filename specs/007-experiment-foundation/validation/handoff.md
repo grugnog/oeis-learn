@@ -23,13 +23,15 @@ Use `python -m oeis_learn.evaluation.handoff --archive DIR` in the pinned
 qualification runtime. Tampering, missing dependencies and changed implementation
 reject. Identical retries replay; changed inputs cannot overwrite the archive.
 
-CI's `archive_phase11.py` selects deliberate actual evidence roots, excluding
-installed virtual environments/wheels and prior archives. It replays copied gate
+CI's `archive_phase11.py` selects the owning reports and their declared dependency
+closure, excluding unrelated sampler trials, installed environments and prior archives. It replays copied gate
 JUnit/native dependencies, the six installed-wheel cases, phase 10/11 and host
 Docker integration reports. Assertions require current G7/G9 and G8 software
 passes, preserve G8 hardware pending, and prevent full-release authorization.
-CI publishes archive manifests/reports and owning results; its full copied
-checkpoint archive is bounded and validated inside the job. Original absolute
+CI publishes the complete selected gate archive, including its actual native
+wheel and resolved image identity, with owning results. The separate CPU
+quickstart checkpoint archive is bounded/replayed inside the job; its reports
+and slice logs are published without large checkpoint blobs. Original absolute
 run-path identities are preserved, not rewritten as portable resume claims.
 
 ## Gate status and acceptance ownership

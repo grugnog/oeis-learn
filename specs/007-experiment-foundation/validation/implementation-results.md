@@ -60,5 +60,13 @@ corrected final-path driver recorded **3 passed / 3 native/gate skips**; package
 reconciliation independently verified all **68** original inputs/tasks outside
 checkout with Python isolated mode.
 
+The first wheel/native CI passed all **6 installed-wheel cases**, **90 integration
+regressions** and **8 actual host Docker role tests**, but its sampler-inclusive
+handoff exceeded the fixed file cap. The collector now selects the owning reports
+and their declared dependencies. A 4,100-unrelated-trial regression proves these
+cannot consume the gate archive, while missing/escaping dependencies still reject.
+No quota or gate was weakened. Latest focused suite: **27 passed / 3 capability
+skips**; lint passes. The current full CI rerun must validate this closure.
+
 Current Linux/native/wheel CI results will be recorded below after execution;
 no future result is treated as passing evidence.
