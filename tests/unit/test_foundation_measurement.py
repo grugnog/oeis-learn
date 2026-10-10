@@ -96,3 +96,13 @@ def test_release_aggregation_cannot_promote_lifecycle_or_unreplayed_status(tmp_p
     forged = release_readiness(g7=({"status": "PASS"}, tmp_path))
     assert forged["gates"]["G7"]["status"] == "FAIL"
     assert forged["gates"]["G10"]["status"] == "pending"
+
+
+def test_expired_escalation_deadline_cannot_issue_work():
+    def forbidden(*args):
+        raise AssertionError("expired work must not execute")
+
+    report = execute_escalating(forbidden, "i256.zero", [0], deadline_ns=0)
+    assert report["attempts"] == [] and not report["completed"]
+    with pytest.raises(ValueError, match="exact external deadline"):
+        execute_escalating(forbidden, "i256.zero", [0], deadline_ns=True)

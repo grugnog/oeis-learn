@@ -44,3 +44,9 @@ phase9-*.log
 debug_stream.py
 .uv-cache
 phase9-evidence
+
+# Disposable review work
+tmp*/
+phase10-*.log
+phase10-*.xml
+phase10-evidence

@@ -4,29 +4,31 @@ Actual current G7/G8/G9 artifacts and a native runtime are mandatory. CPU learni
 is explicitly diagnostic; these fixtures cannot authorize a hardware learning run.
 """
 
+from copy import deepcopy
 from pathlib import Path
 
 from oeis_learn.cli.main import cli
 from oeis_learn.data.generic_programs import default_config
+from oeis_learn.discovery.certificates import make_certificate
 from oeis_learn.discovery.program_archive import ProgramArchive
 from oeis_learn.experiments.artifacts import canonical_bytes, load_json
-from oeis_learn.experiments.learning_profiles import extend_learning_contract
 from oeis_learn.experiments.config import load_qualified_config
+from oeis_learn.experiments.learning_profiles import extend_learning_contract, holdout_profile
+from oeis_learn.sandbox.logical_ir import profile_identity
 from oeis_learn.sandbox.runner import FoundationRunner
 
-
-
-from copy import deepcopy
-from oeis_learn.discovery.certificates import make_certificate
-from oeis_learn.experiments.learning_profiles import holdout_profile
-from oeis_learn.sandbox.logical_ir import profile_identity
 
 def generic_fixture():
     """Small deterministic generated program; no named sequence or teacher injection."""
     from oeis_learn.data.generic_programs import GenericSampler
-    from oeis_learn.data.structural_splits import StructuralHoldouts, structural_signature, split_for_structure
+    from oeis_learn.data.structural_splits import (
+        StructuralHoldouts,
+        split_for_structure,
+        structural_signature,
+    )
     from oeis_learn.sandbox.reference import execute_term
     from oeis_learn.sandbox.wat_ast import parse
+
     sampler = GenericSampler(default_config())
     for counter in range(1000):
         sample = sampler.sample(counter)
@@ -245,4 +247,3 @@ def verify_discovery_cli(evidence):
     }
     (phase / "cli-acceptance.json").write_bytes(canonical_bytes(acceptance))
     return 0
-

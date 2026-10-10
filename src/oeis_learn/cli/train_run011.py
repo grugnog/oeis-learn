@@ -23,6 +23,7 @@ import torch
 import yaml
 
 from oeis_learn.cli.evaluate_canaries import run_canary_evaluation
+from oeis_learn.evaluation.legacy_wrappers import epoch_diagnostics, complete_legacy_run
 from oeis_learn.curriculum.orchestrator import CurriculumOrchestrator
 from oeis_learn.curriculum.scheduler import CurriculumScheduler
 from oeis_learn.curriculum.symple_bandit import AdaGGroupAllocator, Exp3SBanditScheduler
@@ -48,6 +49,8 @@ def launch_run011(
     resume_checkpoint: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Launches production Run 011 training session."""
+    if resume_checkpoint and not os.path.isfile(resume_checkpoint):
+        raise FileNotFoundError(f"Explicit resume checkpoint is missing: {resume_checkpoint}")
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -304,13 +307,17 @@ def launch_run011(
         # Stage Competence Metrics
         stage_competence = {k: v / 100.0 for k, v in stage_solve_rates.items()}
 
+        diagnostic = epoch_diagnostics(all_epoch_metrics)
         run_context.record_multilimb_telemetry(
             epoch=epoch,
             step=global_step,
-            advantage_collapse_rate=1.0 - mean_pass_rate,
-            modular_filter_rejection_rate=0.0,
-            diophantine_solve_duration_ms=0.45,
+            advantage_collapse_rate=diagnostic["advantage_collapse_rate"],
+            modular_filter_rejection_rate=diagnostic["modular_filter_rejection_rate"],
+            diophantine_solve_duration_ms=diagnostic["diophantine_solve_duration_ms"],
             stage_competence=stage_competence,
+            additional_metrics={k: v for k, v in diagnostic.items()
+                                if k not in {"advantage_collapse_rate", "modular_filter_rejection_rate",
+                                             "diophantine_solve_duration_ms"}},
         )
 
         # Save epoch checkpoint
@@ -340,9 +347,9 @@ def launch_run011(
                 fuel_budget=20000,
             )
 
-    run_context.set_status("COMPLETED_QUALIFIED")
+    completion = complete_legacy_run(run_context)
     logger.info("Run 011 training cycle finished successfully.")
-    return {"status": "SUCCESS", "run_id": run_id, "epochs_completed": epochs}
+    return {**completion, "epochs_completed": epochs}
 
 
 def main() -> None:

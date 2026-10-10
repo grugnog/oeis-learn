@@ -30,25 +30,24 @@ logger = logging.getLogger("train_warmstart")
 def evaluate_bridge_model(encoder, decoder, device, sequences, *, runner=None):
     """Sample actual current weights on distinct diagnostic prompts; no teacher injection."""
     sampler = WatProgramSampler(decoder, max_length=256)
-    modes = encoder.training, decoder.training
-    groups = []
-    seeds = []
-    try:
-        encoder.eval()
-        decoder.eval()
-        with torch.no_grad():
-            for index, terms in enumerate(sequences):
-                visible = terms[:20]
-                memory = encoder.forward_from_sequences([visible]*4, device=device)
-                group_seeds = [7001+index*4+i for i in range(4)]
-                seeds.append(group_seeds)
-                groups.append([t.source for t in sampler.sample_trajectories(memory, group_seeds)])
-    finally:
-        encoder.train(modes[0])
-        decoder.train(modes[1])
+    from oeis_learn.rl.policy import scoring_mode
+
+    groups, seeds = [], []
+    with scoring_mode(encoder, decoder), torch.no_grad():
+        for index, terms in enumerate(sequences):
+            visible = terms[:20]
+            memory = encoder.forward_from_sequences([visible] * 4, device=device)
+            group_seeds = [7001 + index * 4 + i for i in range(4)]
+            seeds.append(group_seeds)
+            groups.append([t.source for t in sampler.sample_trajectories(memory, group_seeds)])
     report = TransitionGateEvaluator(runner=runner).evaluate_rollouts(groups, sequences)
-    return {**report, "candidate_origin": "model_sample", "sampling_seeds": seeds,
-            "qualified": False, "purpose": "legacy_model_prefix_diagnostic"}
+    return {
+        **report,
+        "candidate_origin": "model_sample",
+        "sampling_seeds": seeds,
+        "qualified": False,
+        "purpose": "legacy_model_prefix_diagnostic",
+    }
 
 
 def run_warmstart_pipeline(
@@ -83,7 +82,11 @@ def run_warmstart_pipeline(
     if os.path.exists(base_checkpoint_path):
         logger.info(f"Loading weights from base checkpoint: {base_checkpoint_path}")
         ckpt = torch.load(base_checkpoint_path, map_location="cpu", weights_only=False)
-        if not isinstance(ckpt, dict) or not ckpt.get("encoder_state_dict") or not ckpt.get("decoder_state_dict"):
+        if (
+            not isinstance(ckpt, dict)
+            or not ckpt.get("encoder_state_dict")
+            or not ckpt.get("decoder_state_dict")
+        ):
             raise ValueError("warmstart parent must contain both trained model states")
         enc_cfg = ckpt.get("encoder_config") or ckpt.get("provenance", {}).get("encoder_config")
         if enc_cfg:
@@ -122,7 +125,9 @@ def run_warmstart_pipeline(
     decoder.to(device)
 
     # 2. Vocabulary surgery
-    logger.info(f"Executing Phase 1: Vocabulary surgery ({old_vocab_size} -> {VOCAB_SIZE} tokens)...")
+    logger.info(
+        f"Executing Phase 1: Vocabulary surgery ({old_vocab_size} -> {VOCAB_SIZE} tokens)..."
+    )
     old_token_to_id = {tok: idx for idx, tok in enumerate(WAT_VOCABULARY[:old_vocab_size])}
     decoder = perform_vocabulary_surgery(
         decoder=decoder,
@@ -143,8 +148,13 @@ def run_warmstart_pipeline(
         surgery_ckpt_path,
     )
     if stage == "surgery":
-        return {"status": "SUCCESS", "stage": "surgery", "checkpoint": surgery_ckpt_path,
-                "qualified": False, "purpose": "legacy_unverified"}
+        return {
+            "status": "SUCCESS",
+            "stage": "surgery",
+            "checkpoint": surgery_ckpt_path,
+            "qualified": False,
+            "purpose": "legacy_unverified",
+        }
 
     if stage != "gate":
         # 3. Phase 2: Embedding warmup
@@ -175,6 +185,7 @@ def run_warmstart_pipeline(
     # 5. Phase 4: Transition Gate evaluation
     logger.info("Executing Phase 4: Transition Gate evaluation...")
     from oeis_learn.cli.evaluate_canaries import CANARY_METADATA, get_ground_truth_for_canary
+
     sequences = [get_ground_truth_for_canary(meta, count=20) for meta in CANARY_METADATA]
     gate_res = evaluate_bridge_model(encoder, decoder, device, sequences)
     logger.info(f"Transition Gate Results: {gate_res}")
@@ -206,13 +217,25 @@ def run_warmstart_pipeline(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Strategy C Progressive SFT Warmstart Transfer CLI")
-    parser.add_argument("--base-checkpoint", type=str, default="runs/010_overnight_production_curriculum/checkpoints/model_epoch_050.v2.pt")
-    parser.add_argument("--output-dir", type=str, default="runs/011_multilimb_256bit_production/checkpoints")
-    parser.add_argument("--stage", type=str, default="all", choices=["all", "surgery", "warmup", "bridge", "gate"])
+    parser = argparse.ArgumentParser(
+        description="Strategy C Progressive SFT Warmstart Transfer CLI"
+    )
+    parser.add_argument(
+        "--base-checkpoint",
+        type=str,
+        default="runs/010_overnight_production_curriculum/checkpoints/model_epoch_050.v2.pt",
+    )
+    parser.add_argument(
+        "--output-dir", type=str, default="runs/011_multilimb_256bit_production/checkpoints"
+    )
+    parser.add_argument(
+        "--stage", type=str, default="all", choices=["all", "surgery", "warmup", "bridge", "gate"]
+    )
     parser.add_argument("--warmup-steps", type=int, default=1500)
     parser.add_argument("--bridge-steps", type=int, default=5000)
-    parser.add_argument("--dry-run", action="store_true", help="Run 5 steps per phase for sanity checking")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Run 5 steps per phase for sanity checking"
+    )
 
     args = parser.parse_args()
     res = run_warmstart_pipeline(

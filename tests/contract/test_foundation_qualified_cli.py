@@ -102,8 +102,13 @@ def test_installed_train_resume_search(qualified_cli_evidence):
 
     phase = qualified_cli_evidence / "learning"
     report = load_json((phase / "cli-acceptance.json").read_bytes())
-    assert report == dict(status="PASS", qualification="cpu_diagnostic", updates=2,
-                          search_attempts=1, hardware_activation="rejected")
+    assert report == dict(
+        status="PASS",
+        qualification="cpu_diagnostic",
+        updates=2,
+        search_attempts=1,
+        hardware_activation="rejected",
+    )
     assert (phase / "training/qualified-00000001.json").is_file()
 
 

@@ -37,7 +37,8 @@ jobs:
             bash scripts/foundation/test_wheel.sh
             unset OEIS_QUALIFICATION_EVIDENCE
             unset OEIS_REQUIRE_NATIVE
-            python -m pytest -q tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
+            ruff check --select F,E9 src/oeis_learn/evaluation/cli_acceptance.py src/oeis_learn/evaluation/source_policy.py src/oeis_learn/evaluation/experiment_runner.py src/oeis_learn/evaluation/fuel_escalation.py src/oeis_learn/evaluation/overflow_diagnostics.py src/oeis_learn/evaluation/legacy_wrappers.py src/oeis_learn/experiments/decisions.py src/oeis_learn/experiments/source_snapshot.py tests/contract/test_foundation_qualified_cli.py
+            python -m pytest -q tests/integration/test_egca_training_step.py tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
           '
       - uses: actions/upload-artifact@v4
         if: always()

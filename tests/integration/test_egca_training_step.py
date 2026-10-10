@@ -110,6 +110,20 @@ def test_generic_training_prompt_uses_real_body_codec_policy_and_execution(tmp_p
         metrics = trainer.train_step_for_prompt(TrainingPrompt("training-archive-key", (0,) * 20))
     assert metrics["pass_count"] == 2 and torch.isfinite(torch.tensor(metrics["loss"]))
     assert metrics["prompt_kind"] == "generic_training"
+    assert set(metrics["phase_timings_ns"]) == {
+        "behavior_encoder",
+        "generation",
+        "grounding",
+        "runtime",
+        "forward_objective",
+        "backward_optimizer",
+    }
+    assert all(type(v) is int and v >= 0 for v in metrics["phase_timings_ns"].values())
+    assert sum(metrics["phase_timings_ns"].values()) <= metrics["elapsed_s"] * 1e9
+    assert metrics["fuel"]["calls"] == 40 and metrics["fuel"]["aggregate"] > 0
+    assert metrics["resources"]["gpu_allocated"]["state"] == "unavailable"
+    assert metrics["thermal"]["state"] == metrics["power"]["state"] == "unavailable"
+    assert len(metrics["solver_durations_ms"]) == len(metrics["solver_outcomes"]) == 2
     assert len(trainer.last_rollouts) == 2
     assert all(
         p.grad is not None and torch.isfinite(p.grad).all()

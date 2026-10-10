@@ -10,7 +10,14 @@ import time
 
 def execute_escalating(evaluate, source, indices, *, deadline_ns=None):
     indices = list(indices)
-    deadline = deadline_ns or time.monotonic_ns() + 2_000_000_000
+    start = time.monotonic_ns()
+    if deadline_ns is not None and type(deadline_ns) is not int:
+        raise ValueError("exact external deadline required")
+    deadline = (
+        min(deadline_ns, start + 2_000_000_000)
+        if deadline_ns is not None
+        else start + 2_000_000_000
+    )
     used, steps, records = 0, 0, []
     for tier in frozen_protocol()["fuel_tiers"]:
         remaining = deadline - time.monotonic_ns()

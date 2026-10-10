@@ -611,10 +611,10 @@ def run_010(
     save_authoritative_json(readiness_rep.to_dict(), str(ctx.reports_dir / "readiness_report_v1.json"))
 
     with open(ctx.reports_dir / "readiness_report_v1.md", "w", encoding="utf-8") as f:
-        f.write(project_readiness_markdown(readiness_rep))
+        f.write(project_readiness_markdown(readiness_rep.to_dict()))
 
     with open(ctx.reports_dir / "discovered_theorems.md", "w", encoding="utf-8") as f:
-        f.write(project_discovery_markdown(discovery_res))
+        f.write(project_discovery_markdown(discovery_res.to_dict()))
 
     with open(ctx.reports_dir / "summary.md", "w", encoding="utf-8") as f:
         f.write(f"# Run 010 ({ctx.metadata.name}) Execution Summary\n\n")
@@ -627,14 +627,15 @@ def run_010(
         f.write(f"- **Final Pass Rate**: {mean_pass_rate*100:.1f}%\n")
         f.write(f"- **Symbolically Proven Theorems**: {discovery_res.proven_theorems_count}\n")
         f.write(f"- **Numerical Conjectures**: {discovery_res.conjectures_count}\n")
-        f.write(f"- **Readiness State**: {'QUALIFIED' if readiness_rep.overall_passed else 'BLOCKED'}\n\n")
+        f.write(f"- **Readiness State**: {readiness_rep.qualification_state}\n\n")
         f.write("## Benchmark Synthesis Evaluation Results\n\n")
         f.write("| OEIS ID | Status | Fuel | Extrap Passed | MDL Ratio |\n")
         f.write("| :--- | :--- | :--- | :--- | :--- |\n")
         for s in summary_synthesis:
             f.write(f"| `{s['oeis_id']}` | `{s['status']}` | `{s['fuel']}` | `{s['extrap_passed']}` | `{s['mdl_ratio']:.2f}` |\n")
 
-    ctx.set_status("COMPLETED" if readiness_rep.overall_passed else "FINISHED_BLOCKED")
+    ctx.set_qualification_state(readiness_rep.qualification_state)
+    ctx.set_status("COMPLETED")
     logger.info("=" * 80)
     logger.info(f"Readiness Policy Qualification State: {ctx.metadata.status} (Overall Passed: {readiness_rep.overall_passed})")
     logger.info(f"Run 010 Finished Successfully in {total_duration_h:.2f} hours.")

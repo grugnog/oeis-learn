@@ -133,8 +133,16 @@ def test_release_profile_roundtrip_and_all_member_reserved_prefixes(tmp_path):
 
 
 def test_indexed_metadata_preserves_keyword_arrays():
-    report = analyzer().analyze_sequence_cohort([dict(first_index=-2, indices=list(range(-2, 118)),
-        values=["0"] * 120, metadata=dict(keywords=["fini", "tabl", "nonn"]))])
+    report = analyzer().analyze_sequence_cohort(
+        [
+            dict(
+                first_index=-2,
+                indices=list(range(-2, 118)),
+                values=["0"] * 120,
+                metadata=dict(keywords=["fini", "tabl", "nonn"]),
+            )
+        ]
+    )
     assert report["source_metadata"]["finite"] == 1
     assert report["source_metadata"]["table"] == 1
     assert report["source_metadata"]["keywords"] == dict(fini=1, tabl=1, nonn=1)
