@@ -73,7 +73,7 @@ jobs:
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
             PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase8.py --evidence /evidence
-            python -m oeis_learn.evaluation.discovery_gate --native --output /evidence/discovery
+            oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
             PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase9.py --evidence /evidence
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
@@ -93,6 +93,7 @@ jobs:
             phase7-evidence/build-info/
             phase7-evidence/discovery/*.xml
             phase7-evidence/discovery/g9.json
+            phase7-evidence/discovery-qualification-cli.json
             phase7-evidence/discovery/cli-acceptance.json
             phase7-evidence/discovery/cli-discovery/discovery.json
             phase7-evidence/discovery/cli-certificate/certificate-check.json

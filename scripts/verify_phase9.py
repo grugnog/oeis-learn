@@ -16,6 +16,9 @@ def main():
     args = parser.parse_args()
     root = Path(args.evidence)
     phase = root / "discovery"
+    qualification = load_json((root / "discovery-qualification-cli.json").read_bytes())
+    assert qualification == load_json((phase / "g9.json").read_bytes())
+    assert qualification["status"] == "PASS"
     # Reuse the independently admitted generated-program archive from the G8
     # acceptance fixture. Passing its actual holdouts does not waive any check.
     contract = load_json((root / "learning" / "learning-contract.json").read_bytes())

@@ -51,7 +51,10 @@ def implementation_identity():
 
 
 def junit(path, suite):
-    cases = ET.parse(path).findall(".//testcase")
+    try:
+        cases = ET.parse(path).findall(".//testcase")
+    except ET.ParseError as exc:
+        raise ValueError("invalid G9 JUnit evidence") from exc
     if not cases or any(
         any(c.find(tag) is not None for tag in ("failure", "error", "skipped")) for c in cases
     ):
@@ -80,6 +83,8 @@ def run_qualification(output, *, native=False):
             [sys.executable, "-m", "pytest", "-q", *suites, "--junitxml=" + str(path.resolve())],
             cwd=ROOT,
             check=False,
+            stdout=sys.stderr,
+            stderr=sys.stderr,
         )
         try:
             if result.returncode:
