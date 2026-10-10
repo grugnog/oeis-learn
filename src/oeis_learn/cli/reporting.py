@@ -159,13 +159,14 @@ def project_readiness_markdown(
         metric = th.get("metric", "")
         comp = th.get("comparator", "")
         t_val = th.get("threshold", 0.0)
-        m_val = g.get("measured_value", 0.0)
+        m_val = g.get("measured_value")
+        measured_text = "unavailable" if m_val is None else f"{m_val:.4f}"
         passed = g.get("passed", False)
         non_rel = "YES" if th.get("non_relaxable", True) else "NO"
         status_str = "✓ PASS" if passed else "✗ FAIL"
 
         lines.append(
-            f"| `{gid}` | `{metric}` | `{comp}` | {t_val} | {m_val:.4f} | {status_str} | {non_rel} |"
+            f"| `{gid}` | `{metric}` | `{comp}` | {t_val} | {measured_text} | {status_str} | {non_rel} |"
         )
 
     lines.append("")

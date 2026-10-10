@@ -469,8 +469,7 @@ def run_008(
                         "max_placeholders": 4,
                         "fuel_per_invocation": 10000,
                         "memory_limit_mib": 16,
-                        "mdl_ratio_max": 1.20,
-                        "native_evaluator_required": True,
+                                        "native_evaluator_required": True,
                         "code_revision": "run008",
                         "environment_fingerprint": "sha256:" + "0" * 64,
                     })
@@ -523,8 +522,7 @@ def run_008(
                 "max_placeholders": 4,
                 "fuel_per_invocation": 10000,
                 "memory_limit_mib": 16,
-                "mdl_ratio_max": 1.20,
-                "native_evaluator_required": True,
+                        "native_evaluator_required": True,
                 "code_revision": "run008",
                 "environment_fingerprint": "sha256:" + "0" * 64,
             })
@@ -558,16 +556,11 @@ def run_008(
     # Evaluate Readiness Policy
     final_c1, final_cov1 = scheduler.compute_stage_competence(1)
     readiness_metrics = {
-        "assembly_validity_rate": 1.0,
-        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate if trainer.telemetry.latest_record else 0.0),
-        "single_prompt_exact_success_count": 1.0,
+        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate) if trainer.telemetry.latest_record else None,
         "stage1_rolling_competence": float(final_c1),
         "stage1_minimum_coverage": float(final_cov1),
         "stage1_competence_variance": float(scheduler.compute_epoch_variance()),
         "stage1_synthesis_pass_rate": float(epoch_pass_rates[-1]),
-        "verified_task_retention_rate": 1.0,
-        "extrapolation_pass_rate": 1.0,
-        "mdl_ratio_max": 1.20,
         "advantage_collapse_rate": float(trainer.telemetry.current_acr),
     }
 

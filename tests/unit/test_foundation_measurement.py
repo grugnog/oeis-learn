@@ -106,3 +106,25 @@ def test_expired_escalation_deadline_cannot_issue_work():
     assert report["attempts"] == [] and not report["completed"]
     with pytest.raises(ValueError, match="exact external deadline"):
         execute_escalating(forbidden, "i256.zero", [0], deadline_ns=True)
+
+
+def test_replayed_cpu_learning_evidence_keeps_hardware_pending(tmp_path, monkeypatch):
+    import oeis_learn.evaluation.readiness as readiness
+
+    calls = []
+
+    def validator(report, *, evidence_root, diagnostic=False):
+        calls.append((evidence_root, diagnostic))
+        assert diagnostic is True
+
+    monkeypatch.setattr(readiness, "require_learning_readiness", validator)
+    report = readiness.release_readiness(
+        g8=(
+            dict(hardware_status="PENDING", hardware=None, report_sha256="sha256:" + "0" * 64),
+            tmp_path,
+        )
+    )
+    assert calls == [(tmp_path, True)]
+    assert report["gates"]["G8"]["status"] == "pending"
+    assert report["gates"]["G8"]["software_status"] == "PASS"
+    assert not report["full_release_qualified"]

@@ -455,8 +455,7 @@ def run_009(
                         "max_placeholders": 4,
                         "fuel_per_invocation": 10000,
                         "memory_limit_mib": 16,
-                        "mdl_ratio_max": 1.20,
-                        "native_evaluator_required": True,
+                                        "native_evaluator_required": True,
                         "code_revision": "run009",
                         "environment_fingerprint": "sha256:" + "0" * 64,
                     })
@@ -507,8 +506,7 @@ def run_009(
                 "max_placeholders": 4,
                 "fuel_per_invocation": 10000,
                 "memory_limit_mib": 16,
-                "mdl_ratio_max": 1.20,
-                "native_evaluator_required": True,
+                        "native_evaluator_required": True,
                 "code_revision": "run009",
                 "environment_fingerprint": "sha256:" + "0" * 64,
             })
@@ -542,16 +540,11 @@ def run_009(
     # Evaluate Readiness Policy
     final_c2, final_cov2 = scheduler.compute_stage_competence(2)
     readiness_metrics = {
-        "assembly_validity_rate": 1.0,
-        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate if trainer.telemetry.latest_record else 0.0),
-        "single_prompt_exact_success_count": 1.0,
-        "stage1_rolling_competence": 0.870,
-        "stage1_minimum_coverage": 0.50,
+        "runtime_trap_rate": float(trainer.telemetry.latest_record.compiler_trap_rate) if trainer.telemetry.latest_record else None,
+        "stage1_rolling_competence": float(scheduler.compute_stage_competence(1)[0]),
+        "stage1_minimum_coverage": float(scheduler.compute_stage_competence(1)[1]),
         "stage1_competence_variance": float(scheduler.compute_epoch_variance()),
         "stage1_synthesis_pass_rate": float(epoch_pass_rates[-1]),
-        "verified_task_retention_rate": 1.0,
-        "extrapolation_pass_rate": 1.0,
-        "mdl_ratio_max": 1.20,
         "advantage_collapse_rate": float(trainer.telemetry.current_acr),
     }
 

@@ -596,8 +596,6 @@ def run_010(
     c2_final, cov2_final = scheduler.compute_stage_competence(2)
     c3_final, cov3_final = scheduler.compute_stage_competence(3)
     readiness_metrics = {
-        "acr": 1.0,
-        "latency_p99_ms": 4.5,
         "c_s1": c1_final,
         "c_s2": c2_final,
         "c_s3": c3_final,
@@ -605,7 +603,6 @@ def run_010(
         "proven_theorems": discovery_res.proven_theorems_count,
         "conjectures": discovery_res.conjectures_count,
         "checkpoint_present": os.path.exists(final_ckpt),
-        "reproducibility_verified": True,
     }
     readiness_rep = evaluate_readiness_policy(policy, readiness_metrics, run_id=ctx.metadata.run_id)
     save_authoritative_json(readiness_rep.to_dict(), str(ctx.reports_dir / "readiness_report_v1.json"))

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import os
 from typing import Any, Dict, List, Optional
 from oeis_learn.data.models import (
@@ -75,11 +76,18 @@ def evaluate_readiness_policy(
     failed_gate_ids: List[str] = []
 
     for th in policy.thresholds:
-        measured = float(metrics.get(th.metric, 0.0))
+        raw = metrics.get(th.metric)
+        try:
+            measured = float(raw) if raw is not None else None
+        except (TypeError, ValueError, OverflowError):
+            measured = None
+        if measured is not None and not math.isfinite(measured):
+            measured = None
         passed = False
         diagnostics: List[str] = []
-
-        if th.comparator == "GE":
+        if measured is None:
+            diagnostics.append(f"Unavailable finite observation: {th.metric}")
+        elif th.comparator == "GE":
             passed = measured >= th.threshold
         elif th.comparator == "LE":
             passed = measured <= th.threshold
@@ -89,7 +97,7 @@ def evaluate_readiness_policy(
         if not passed:
             failed_gate_ids.append(th.gate_id)
             diagnostics.append(
-                f"Gate '{th.gate_id}' FAILED: {th.metric}={measured:.4f} did not satisfy {th.comparator} {th.threshold}"
+                f"Gate '{th.gate_id}' FAILED: {th.metric}={measured} did not satisfy {th.comparator} {th.threshold}"
             )
 
         evidence = ev_map.get(
@@ -234,6 +242,16 @@ def release_readiness(
             continue
         try:
             report, root = value
+            if name == "G8":
+                validator(report, evidence_root=root, diagnostic=True)
+                if report["hardware_status"] == "PENDING" and report["hardware"] is None:
+                    gates[name] = dict(
+                        status="pending",
+                        software_status="PASS",
+                        reason="replayed CPU evidence; qualified hardware still pending",
+                        report_sha256=report["report_sha256"],
+                    )
+                    continue
             validator(report, evidence_root=root)
             gates[name] = dict(status="PASS", report_sha256=report["report_sha256"])
         except (ValueError, OSError, TypeError, KeyError) as exc:

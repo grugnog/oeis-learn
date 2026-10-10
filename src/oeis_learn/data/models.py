@@ -687,7 +687,7 @@ class ReadinessGateResult:
     """Outcome and diagnostics for one readiness gate."""
 
     gate_id: str
-    measured_value: float
+    measured_value: Optional[float]
     threshold: ReadinessThreshold
     passed: bool
     evaluated_at: str
