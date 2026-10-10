@@ -68,9 +68,10 @@ def launch_run011(
             run_context.set_status("BLOCKED")
             logger.error("Canary Preflight Qualification FAILED. Halting Run 011.")
             return {"status": "BLOCKED", "reason": "Canary preflight failed"}
-        logger.info("Canary Preflight PASSED. Authorizing Run 011.")
+        logger.info("Reference canaries passed; continuing legacy diagnostic Run 011.")
 
-    run_context.set_status("AUTHORIZED")
+    run_context.set_status("RUNNING")
+    run_context.set_qualification_state("legacy_unverified")
 
     # 2. Checkpoint & Model Loading
     device = torch.device(device_str if device_str else ("cuda" if torch.cuda.is_available() else "cpu"))

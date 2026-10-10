@@ -305,6 +305,15 @@ def build_parser() -> argparse.ArgumentParser:
         help='Foundation artifact administration commands (T008).',
     )
     foundation_subparsers = foundation_p.add_subparsers(dest='foundation_command')
+    fm_p = foundation_subparsers.add_parser('measure', help='Validate frozen decisions or run explicitly unqualified CPU fixtures.')
+    fm_p.add_argument('--manifest', required=True)
+    fm_p.add_argument('--output', required=True)
+    fm_p.add_argument('--dry-run', action='store_true')
+    fm_p.add_argument('--json', dest='as_json', action='store_true')
+    census_p = foundation_subparsers.add_parser('census', help='Read-only exact 20/50/100/120-term source census.')
+    census_p.add_argument('--source', required=True)
+    census_p.add_argument('--output', required=True)
+    census_p.add_argument('--json', dest='as_json', action='store_true')
 
     # foundation preflight
     fp_p = foundation_subparsers.add_parser(
@@ -863,6 +872,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
         'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
         'learning_gate_report', 'discovery_gate_report', 'certificate', 'native', 'holdouts', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
+        'manifest', 'dry_run',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

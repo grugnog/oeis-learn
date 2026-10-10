@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import torch
 
 from oeis_learn.experiments.artifacts import compute_canonical_digest as digest, canonical_bytes
-from oeis_learn.evaluation.repair_gate import ROOT, implementation_identity as g7_identity
+from oeis_learn.evaluation.repair_gate import ROOT
 from oeis_learn.sandbox.pipeline import digest_bytes
 
 SUITES = {
@@ -78,19 +78,8 @@ def runtime_identity():
 
 
 def implementation_identity():
-    files = sorted(
-        {ROOT / path for suite in SUITES.values() for path in suite}
-        | {
-            ROOT / "tests/integration/test_foundation_learning_gpu.py",
-            ROOT / "configs/foundation/qualified.yaml",
-        }
-    )
-    return digest(
-        {
-            "g7_implementation": g7_identity(),
-            "owning_tests": {str(p.relative_to(ROOT)): digest_bytes(p.read_bytes()) for p in files},
-        }
-    )
+    from oeis_learn.experiments.source_snapshot import qualification_identity
+    return qualification_identity("G8")
 
 
 def check_junit(path, suite=None):

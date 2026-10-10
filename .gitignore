@@ -92,3 +92,8 @@ debug_stream.py
 .uv-cache/
 
 phase9-evidence/
+
+# Local phase 10 validation output
+phase10-*.log
+phase10-*.xml
+phase10-evidence/

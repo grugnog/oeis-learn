@@ -97,7 +97,7 @@ def load_membership(cohort_root):
     if (
         manifest.get("schema_version") != "foundation/v1"
         or manifest.get("kind") != "cohort_manifest"
-        or manifest.get("profile") != "prefix20_total100_v1"
+        or manifest.get("profile") not in ("prefix20_total100_v1", "prefix20_total100_affine_v2")
         or manifest.get("cohort_id") != digest(manifest, "cohort_id")
     ):
         raise ValueError("missing/corrupt frozen cohort identity")

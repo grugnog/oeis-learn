@@ -1,0 +1,18 @@
+# Frozen planning defaults, not measured hardware evidence.
+version: bounded-decisions/v1
+priority: [encoder, self_training, grpo, search, position, capacity]
+seeds: [7001, 7002, 7003]
+engineering_seconds: 7200
+training_seconds: 21600
+diagnostic_seconds: 1800
+diagnostic_updates: 1000
+arm_seconds: 3300
+evaluation_minutes: [15, 30, 45, 55]
+engineering_prompts: 128
+warmups: 10
+repeats: 30
+workers: [4, 8]
+fuel_tiers: [100000, 250000, 1000000]
+fuel_aggregate: 50000000
+useful_effect: 0.05
+zero_baseline_added_groups: 2

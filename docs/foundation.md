@@ -126,3 +126,30 @@ truth/device/socket paths. Hardware skips are pending evidence, not passes.
 remains fail-closed until adopted-contract, exact-runtime, provenance, isolation,
 resume, real-device/containment and proof-boundary evidence are all bound to the
 run. Full spec 007 also needs G7–G10; a three-update smoke cannot satisfy them.
+
+## Phase 10 source and decision fixtures
+
+Use `oeis-learn foundation census --source records.json --output DIR --json`
+for the read-only exact-horizon census. Source rows contain exact `terms`, an
+explicit or null `offset`, and original keywords; extraction's inferred tags
+are not authoritative OEIS metadata. The precision database analyzer now requires
+`--db FILE`. It reports invalid rows instead of dropping them silently.
+
+Historical cohorts retain `prefix20_total100_v1`. New release cohorts use
+`prefix20_total100_affine_v2` to keep exact affine/shift families together;
+this version must be selected before cohort freezing and training admission.
+No real release source or cohort is supplied by the diagnostic fixtures.
+
+`oeis-learn foundation measure --manifest FILE --output DIR --dry-run --json`
+validates and freezes the bounded schedule without issuing work. The explicit
+`cpu_fixture` mode runs actual cache/runtime timings and reports its sample
+shortfall, unavailable diagnostics and inconclusive decisions. It cannot qualify
+GPU performance or learning. `qualified_device` currently records hardware/
+orchestration unavailability without CPU fallback. Inputs have no final-truth
+path or external comparative-score field.
+
+The wider logical diagnostic and benchmark-only unchecked lowering cannot publish
+training/admission records. Unknown provenance or unavailable development evidence
+is reported as unavailable, never as zero rescued groups. See
+[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
+for remaining acceptance work and exact reproduction commands.

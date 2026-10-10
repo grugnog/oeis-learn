@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from fractions import Fraction
+from functools import reduce
+from math import gcd
 from pathlib import Path
 import uuid
 import yaml
@@ -26,6 +29,37 @@ GROUPING = {
     "window": 80,
     "max_shift": 20,
 }
+RELEASE_GROUPING = {
+    **GROUPING,
+    "version": "equal-prefix-affine-shift/v2",
+    "affine": "exact_nonzero_rational",
+}
+
+
+def affine_key(values):
+    values = list(map(int, values))
+    differences = [v - values[0] for v in values]
+    divisor = reduce(gcd, differences, 0)
+    if not divisor:
+        return tuple(differences)
+    first = next(v for v in differences if v)
+    divisor *= 1 if first > 0 else -1
+    return tuple(v // divisor for v in differences)
+
+
+def affine_transform(a, b):
+    a, b = list(map(int, a)), list(map(int, b))
+    pivot = next((i for i in range(len(a)) if a[i] != a[0]), None)
+    scale = Fraction(b[pivot] - b[0], a[pivot] - a[0]) if pivot is not None else Fraction(1)
+    offset = b[0] - scale * a[0]
+    if not scale or any(scale * x + offset != y for x, y in zip(a, b)):
+        raise ValueError("invalid affine witness")
+    return {
+        "scale_numerator": str(scale.numerator),
+        "scale_denominator": str(scale.denominator),
+        "offset_numerator": str(offset.numerator),
+        "offset_denominator": str(offset.denominator),
+    }
 
 
 def exact_keys(value, keys, name):
@@ -47,7 +81,10 @@ def read_ref(root, ref):
     return load_json(path.read_bytes())
 
 
-def build_cohort(rows, *, seed, dev_count, final_count):
+def build_cohort(rows, *, seed, dev_count, final_count, affine=False):
+    if type(affine) is not bool:
+        raise ValueError("affine must be boolean")
+    grouping = RELEASE_GROUPING if affine else GROUPING
     for name, value in [("seed", seed), ("dev_count", dev_count), ("final_count", final_count)]:
         if type(value) is not int or value < 0:
             raise ValueError(f"{name} must be a nonnegative exact integer")
@@ -63,6 +100,10 @@ def build_cohort(rows, *, seed, dev_count, final_count):
         in_range_complete20=0,
         complete100=0,
         in_range_complete100=0,
+        complete50=0,
+        in_range_complete50=0,
+        complete120=0,
+        in_range_complete120=0,
     )
     for row in rows:
         exact_keys(
@@ -101,7 +142,7 @@ def build_cohort(rows, *, seed, dev_count, final_count):
             while first + count in indexed:
                 count += 1
             available[str(count)] += 1
-            for horizon in (20, 100):
+            for horizon in (20, 50, 100, 120):
                 complete = all(i in indexed for i in range(first, first + horizon))
                 if complete:
                     census[f"complete{horizon}"] += 1
@@ -170,6 +211,21 @@ def build_cohort(rows, *, seed, dev_count, final_count):
                     and values[shift:] == records[other]["values"][: 100 - shift]
                 ):
                     union(name, other, "shift", shift, 100 - shift)
+    if affine:
+        for shift in range(21):
+            buckets = {}
+            for name, row in records.items():
+                buckets.setdefault(affine_key(row["values"][: 100 - shift]), name)
+            for name, row in records.items():
+                other = buckets.get(affine_key(row["values"][shift:]))
+                if other is not None and find(name) != find(other):
+                    transform = affine_transform(
+                        records[other]["values"][: 100 - shift], row["values"][shift:]
+                    )
+                    union(
+                        other, name, "affine" if shift == 0 else "affine_shift", shift, 100 - shift
+                    )
+                    witnesses[-1]["transform"] = transform
     components = defaultdict(list)
     for name in records:
         components[find(name)].append(name)
@@ -178,7 +234,7 @@ def build_cohort(rows, *, seed, dev_count, final_count):
         component_edges[find(edge["a"])].append(edge)
     groups = []
     for members in components.values():
-        group_id = digest({"members": members, "grouping_profile": digest(GROUPING)})
+        group_id = digest({"members": members, "grouping_profile": digest(grouping)})
         groups.append(
             {
                 "group_id": group_id,
@@ -218,13 +274,19 @@ def freeze_cohort(source: Path, config: Path, output: Path):
     exact_keys(
         raw, ("schema_version", "profile", "seed", "dev_count", "final_count"), "cohort config"
     )
-    if raw["schema_version"] != "foundation/v1" or raw["profile"] != "prefix20_total100_v1":
+    if raw["schema_version"] != "foundation/v1" or raw["profile"] not in (
+        "prefix20_total100_v1",
+        "prefix20_total100_affine_v2",
+    ):
         raise ValueError("legacy20+100 or unknown cohort profile")
     source_path = ArtifactPath(Path(source), "records.json").as_path()
     rows = load_json(source_path.read_bytes())
     if not isinstance(rows, list):
         raise ValueError("source records must be an array")
-    built = build_cohort(rows, **{key: raw[key] for key in ("seed", "dev_count", "final_count")})
+    affine = raw["profile"] == "prefix20_total100_affine_v2"
+    built = build_cohort(
+        rows, affine=affine, **{key: raw[key] for key in ("seed", "dev_count", "final_count")}
+    )
     output = Path(output)
     if output.exists() and any(output.iterdir()):
         raise ValueError("cohort output must be empty")
@@ -261,10 +323,10 @@ def freeze_cohort(source: Path, config: Path, output: Path):
     manifest = {
         "schema_version": "foundation/v1",
         "kind": "cohort_manifest",
-        "profile": "prefix20_total100_v1",
+        "profile": raw["profile"],
         "source_sha256": compute_file_hash(source_path),
         "config": raw,
-        "grouping_profile": GROUPING,
+        "grouping_profile": RELEASE_GROUPING if affine else GROUPING,
         "groups": groups,
         "census": built["census"],
         "source_records": private,
@@ -297,8 +359,9 @@ def load_cohort(root: Path):
     )
     if (
         manifest["schema_version"] != "foundation/v1"
-        or manifest["profile"] != "prefix20_total100_v1"
-        or manifest["grouping_profile"] != GROUPING
+        or manifest["profile"] not in ("prefix20_total100_v1", "prefix20_total100_affine_v2")
+        or manifest["grouping_profile"]
+        != (RELEASE_GROUPING if manifest["profile"] == "prefix20_total100_affine_v2" else GROUPING)
         or digest(manifest, "cohort_id") != manifest["cohort_id"]
     ):
         raise ValueError("invalid or legacy cohort identity/profile")
@@ -335,7 +398,8 @@ def load_cohort(root: Path):
             or names != sorted(set(names))
             or members.intersection(names)
             or group["representative"] != names[0]
-            or group["group_id"] != digest({"members": names, "grouping_profile": digest(GROUPING)})
+            or group["group_id"]
+            != digest({"members": names, "grouping_profile": digest(manifest["grouping_profile"])})
         ):
             raise ValueError("invalid/disjoint group membership")
         members.update(names)

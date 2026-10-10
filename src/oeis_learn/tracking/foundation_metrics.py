@@ -150,3 +150,63 @@ def resource_metrics(device):
             )
         )
     return result
+
+
+def fuel_summary(values, *, limit, near_fraction=0.75):
+    """Observed fuel only, including exhausted/failed calls and retries."""
+    if type(limit) is not int or limit <= 0 or not 0 < near_fraction <= 1:
+        raise ValueError("invalid fuel summary limit/fraction")
+    values = list(values)
+    if any(type(v) is not int or not 0 <= v <= limit for v in values):
+        raise ValueError("fuel requires actual bounded exact consumption")
+    ordered = sorted(values)
+
+    def quantile(fraction):
+        return ordered[max(0, math.ceil(len(ordered) * fraction) - 1)] if ordered else None
+
+    return dict(
+        calls=len(values),
+        aggregate=sum(values),
+        maximum=max(values) if values else None,
+        p50=quantile(0.5),
+        p95=quantile(0.95),
+        near_limit_fraction=near_fraction,
+        near_limit_count=sum(v >= near_fraction * limit for v in values),
+        limit=limit,
+    )
+
+
+class PhaseTimer:
+    """Wall phases synchronized at both device boundaries, with explicit sensor availability."""
+
+    def __init__(self, device="cpu", *, clock=None):
+        import time
+
+        self.device, self.clock = device, clock or time.monotonic_ns
+        self.values = {}
+
+    def synchronize(self):
+        import torch
+
+        if torch.device(self.device).type == "cuda":
+            if not torch.cuda.is_available():
+                raise RuntimeError("requested device unavailable; no CPU fallback")
+            torch.cuda.synchronize(self.device)
+
+    def phase(self, name):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def scope():
+            self.synchronize()
+            start = self.clock()
+            try:
+                yield
+            finally:
+                self.synchronize()
+                elapsed = self.clock() - start
+                if elapsed < 0:
+                    raise ValueError("backward phase clock")
+                self.values[name] = self.values.get(name, 0) + elapsed
+
+        return scope()

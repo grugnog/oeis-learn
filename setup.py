@@ -1,0 +1,21 @@
+"""Package build provenance; no runtime dependencies are imported by the hook."""
+
+from pathlib import Path
+import json
+import runpy
+from setuptools import setup
+from setuptools.command.build_py import build_py
+
+
+class QualificationBuild(build_py):
+    def run(self):
+        super().run()
+        root = Path(__file__).resolve().parent
+        collect = runpy.run_path(str(root / "src/oeis_learn/experiments/source_snapshot.py"))[
+            "collect_snapshot"
+        ]
+        path = Path(self.build_lib) / "oeis_learn/experiments/qualification-sources.json"
+        path.write_text(json.dumps(collect(root), sort_keys=True, separators=(",", ":")))
+
+
+setup(cmdclass={"build_py": QualificationBuild})

@@ -31,30 +31,8 @@ SUITES = {
 
 
 def implementation_identity():
-    files = set()
-    for directory in (
-        "src/oeis_learn/discovery",
-        "src/oeis_learn/sandbox",
-        "src/oeis_learn/decoder",
-        "src/oeis_learn/evaluation",
-        "src/oeis_learn/cli",
-        "crates/oeis_wasm_evaluator",
-    ):
-        files.update(
-            p
-            for p in (ROOT / directory).rglob("*")
-            if p.is_file() and p.suffix in (".py", ".rs", ".toml", ".lock", ".wat")
-        )
-    files.update(ROOT / p for suite in SUITES.values() for p in suite)
-    # Bind transitive admission/accounting dependencies and fixture helpers too;
-    # a narrower list could bless current code using obsolete archive evidence.
-    files.update((ROOT / "src/oeis_learn").rglob("*.py"))
-    files.update((ROOT / "tests").rglob("*.py"))
-    files.add(
-        ROOT / "specs/005-trustworthy-synthesis-readiness/contracts/discovery-report.schema.json"
-    )
-    files.add(ROOT / "scripts/verify_phase9.py")
-    return digest({str(p.relative_to(ROOT)): digest(p.read_text()) for p in sorted(files)})
+    from oeis_learn.experiments.source_snapshot import qualification_identity
+    return qualification_identity("G9")
 
 
 def junit(path, suite):

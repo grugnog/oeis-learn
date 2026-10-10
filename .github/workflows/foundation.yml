@@ -1,0 +1,54 @@
+name: Foundation installed wheel and release fixtures
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'configs/foundation/**'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'Dockerfile'
+      - '.github/workflows/foundation.yml'
+permissions:
+  contents: read
+jobs:
+  installed-wheel-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned CPU image and actual Rust extension
+        run: docker build --target qualification -t oeis-foundation-wheel .
+      - name: Wheel acceptance outside checkout, actual native parity, G7 through G9
+        run: |
+          mkdir -p wheel-evidence
+          chmod 777 wheel-evidence
+          docker run --rm -v "$PWD/wheel-evidence:/evidence" oeis-foundation-wheel bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            export OEIS_WHEEL_WORK_ROOT=/evidence
+            export OEIS_NATIVE_WHEELS_DIR=/tmp/oeis-wheels
+            export OEIS_REQUIRE_NATIVE=1
+            bash scripts/foundation/test_wheel.sh
+            python -m oeis_learn.evaluation.repair_gate --output /evidence/g7
+            python -m oeis_learn.evaluation.learning_gate --output /evidence/g8
+            oeis-learn foundation qualify-discovery --native --output /evidence/g9 --json
+            python -m pytest -q tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: foundation-wheel-native
+          path: |
+            wheel-evidence/installed-wheel-*/installed-wheel.xml
+            wheel-evidence/installed-wheel-*/installed-help.txt
+            wheel-evidence/installed-wheel-*/wheels/*.whl
+            wheel-evidence/g7/*.xml
+            wheel-evidence/g7/g7.json
+            wheel-evidence/g7/native/parity.json
+            wheel-evidence/g8/*.xml
+            wheel-evidence/g8/g8.json
+            wheel-evidence/g9/*.xml
+            wheel-evidence/g9/g9.json
+            wheel-evidence/phase10.xml

@@ -53,29 +53,8 @@ REQUIRED_CHECKS = (*SUITES, "rust_tests", "native_parity")
 
 
 def implementation_identity():
-    paths = list((ROOT / "src/oeis_learn").rglob("*.py"))
-    paths += list((ROOT / "src/oeis_learn").rglob("*.wat"))
-    paths += list((ROOT / "src/oeis_learn").rglob("*.json"))
-    paths += list((ROOT / "crates/oeis_wasm_evaluator/src").rglob("*.rs"))
-    paths += list((ROOT / "crates/oeis_wasm_evaluator/tests").rglob("*.rs"))
-    if (ROOT / "crates/oeis_wasm_evaluator/Cargo.lock").exists():
-        paths.append(ROOT / "crates/oeis_wasm_evaluator/Cargo.lock")
-    paths += [
-        ROOT / p
-        for p in (
-            "crates/oeis_wasm_evaluator/build.rs",
-            "crates/oeis_wasm_evaluator/Cargo.toml",
-            "Dockerfile",
-            "uv.lock",
-            "pyproject.toml",
-            "docker/dev/install.sh",
-            "docker/dev/build-native.sh",
-        )
-    ]
-    paths += [ROOT / p for suite in SUITES.values() for p in suite]
-    return compute_canonical_digest(
-        {str(p.relative_to(ROOT)): digest_bytes(p.read_bytes()) for p in sorted(set(paths))}
-    )
+    from oeis_learn.experiments.source_snapshot import qualification_identity
+    return qualification_identity("G7")
 
 
 def _junit(path, suite):
