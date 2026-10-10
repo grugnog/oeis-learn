@@ -90,7 +90,7 @@ class ExecutionEvidence:
         return asdict(self)
 
 
-def runtime_identity() -> dict:
+def runtime_identity(backend="python_wasmtime") -> dict:
     root = Path(__file__).resolve().parent
     implementation = {
         name: digest_bytes((root / name).read_bytes())
@@ -105,7 +105,7 @@ def runtime_identity() -> dict:
             "../experiments/profiles.py",
         )
     }
-    return {
+    identity = {
         "backend": "python_wasmtime",
         "wasmtime": version("wasmtime"),
         "python": platform.python_version(),
@@ -120,6 +120,13 @@ def runtime_identity() -> dict:
         "profiles": profile_digests(),
         "implementation": implementation,
     }
+    if backend == "rust":
+        from oeis_learn.sandbox.native_runtime import native_identity
+
+        identity.update(native_identity())
+    elif backend != "python_wasmtime":
+        raise ValueError("explicit python_wasmtime or rust backend required")
+    return identity
 
 
 def decode_limbs(values) -> int:
@@ -141,7 +148,8 @@ class Runtime:
     The worker address-space limit also covers compilation and the active module.
     """
 
-    def __init__(self, cache_bytes=128 << 20):
+    def __init__(self, cache_bytes=128 << 20, *, backend="python_wasmtime"):
+        self.backend = backend
         if type(cache_bytes) is not int or not 0 <= cache_bytes <= 1 << 30:
             raise ValueError("invalid cache capacity")
         config = wasmtime.Config()
@@ -151,9 +159,13 @@ class Runtime:
         config.memory_reservation = 0
         config.memory_guard_size = 0
         self.engine = wasmtime.Engine(config)
-        self.identity = runtime_identity()
+        self.identity = runtime_identity(backend)
         self.identity_sha256 = compute_canonical_digest(self.identity)
         self.cache, self.cache_size, self.cache_capacity = OrderedDict(), 0, cache_bytes
+        if backend == "rust":
+            # Native Module objects are bounded by the active worker address-space
+            # limit; do not deserialize arbitrary native compiled bytes.
+            self.cache_capacity = 0
 
     def prepare(
         self, source: str, *, proposed_source: str | None = None
@@ -179,7 +191,12 @@ class Runtime:
                 self.cache[key] = compiled
                 module = wasmtime.Module.deserialize(self.engine, compiled)
             else:
-                module = wasmtime.Module(self.engine, lowered)
+                if self.backend == "rust":
+                    from oeis_learn.sandbox.native_runtime import compile_native
+
+                    module = compile_native(lowered)
+                else:
+                    module = wasmtime.Module(self.engine, lowered)
                 compiled = bytes(module.serialize())
                 size = len(compiled) + len(key) + 256
                 if size <= self.cache_capacity:
@@ -188,9 +205,13 @@ class Runtime:
                         self.cache_size -= len(old) + len(old_key) + 256
                     self.cache[key] = compiled
                     self.cache_size += size
-            exports = {item.name: item.type for item in module.exports}
+            exports = (
+                {item.name: item.type for item in module.exports}
+                if self.backend == "python_wasmtime"
+                else {}
+            )
             signature = exports.get("compute")
-            if (
+            if self.backend == "python_wasmtime" and (
                 module.imports
                 or not isinstance(signature, wasmtime.FuncType)
                 or [str(v) for v in signature.params] != ["i32"]
@@ -214,10 +235,17 @@ class Runtime:
             )
         except ExecutionFailure as exc:
             return Failure(exc.outcome, exc.reason)
-        except wasmtime.WasmtimeError as exc:
+        except (wasmtime.WasmtimeError, ValueError) as exc:
             return Failure("invalid_type", f"lowered compilation failed: {exc}")
 
     def production_term(self, prepared, index, fuel):
+        if self.backend == "rust":
+            values, used, outcome, reason = prepared.module.term(index, fuel)
+            return (
+                decode_limbs(values) if values is not None else None,
+                used,
+                Failure(outcome, reason, "execute") if outcome else None,
+            )
         with wasmtime.Store(self.engine) as store:
             store.set_limits(memory_size=0, table_elements=0, instances=1, tables=0, memories=0)
             store.set_fuel(fuel)
@@ -261,6 +289,7 @@ class Runtime:
             prepared.source_sha256,
             indices,
             identities={
+                "backend": self.backend,
                 "runtime_sha256": prepared.runtime_sha256,
                 "helper_sha256": prepared.helper_sha256,
                 "lowered_sha256": prepared.lowered_sha256,
@@ -447,7 +476,7 @@ def verify(
                 or evidence.elapsed_ns > 2_000_000_000
             ):
                 raise ValueError("missing or exceeded resource evidence")
-            identity = runtime_identity()
+            identity = runtime_identity(evidence.identities.get("backend", "python_wasmtime"))
             if (
                 evidence.identities["runtime_sha256"] != compute_canonical_digest(identity)
                 or evidence.identities["helper_sha256"] != identity["helper_sha256"]

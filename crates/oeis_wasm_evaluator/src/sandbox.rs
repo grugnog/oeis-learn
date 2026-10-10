@@ -1,305 +1,111 @@
-use wasmtime::{Engine, Instance, Module, Store, StoreLimits, StoreLimitsBuilder, Val};
+use wasmtime::{Engine, Instance, Module, Store, StoreLimits, StoreLimitsBuilder, Val, ValType, Trap};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExecutionStatus {
-    Success,
-    OutOfFuel,
-    ParseError,
-    CompileError,
-    ExecutionTrap,
-    MissingEntrypoint,
-    ConfigError,
-}
-
+pub enum ExecutionStatus { Success, OutOfFuel, ParseError, CompileError, ExecutionTrap, MissingEntrypoint, ConfigError }
 impl ExecutionStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ExecutionStatus::Success => "SUCCESS",
-            ExecutionStatus::OutOfFuel => "OUT_OF_FUEL",
-            ExecutionStatus::ParseError => "PARSE_ERROR",
-            ExecutionStatus::CompileError => "COMPILE_ERROR",
-            ExecutionStatus::ExecutionTrap => "EXECUTION_TRAP",
-            ExecutionStatus::MissingEntrypoint => "MISSING_ENTRYPOINT",
-            ExecutionStatus::ConfigError => "CONFIG_ERROR",
-        }
-    }
+    pub fn as_str(&self) -> &'static str { match self {
+        Self::Success=>"SUCCESS",Self::OutOfFuel=>"OUT_OF_FUEL",Self::ParseError=>"PARSE_ERROR",
+        Self::CompileError=>"COMPILE_ERROR",Self::ExecutionTrap=>"EXECUTION_TRAP",
+        Self::MissingEntrypoint=>"MISSING_ENTRYPOINT",Self::ConfigError=>"CONFIG_ERROR",
+    }}
 }
-
 #[derive(Debug, Clone)]
 pub struct EvaluatorResult {
-    pub status: ExecutionStatus,
-    pub consumed_fuel: u64,
-    pub max_fuel: u64,
-    pub total_fuel: u64,
-    pub output: Vec<i64>,
-    pub wide_output: Vec<[i64; 4]>,
-    pub error: Option<String>,
+    pub status: ExecutionStatus, pub consumed_fuel:u64, pub max_fuel:u64, pub total_fuel:u64,
+    pub output:Vec<i64>, pub wide_output:Vec<[i64;4]>, pub error:Option<String>,
 }
+pub struct SandboxHostData { pub limits:StoreLimits }
 
-pub struct SandboxHostData {
-    pub limits: StoreLimits,
-}
-
-pub fn evaluate_single_program(
-    engine: &Engine,
-    wat_code: &str,
-    fuel_budget: u64,
-    terms_to_generate: u32,
-) -> EvaluatorResult {
-    // 1. In-memory parse WAT text to WASM binary bytecode
-    let wasm_bytes = match wat::parse_str(wat_code) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            return EvaluatorResult {
-                status: ExecutionStatus::ParseError,
-                consumed_fuel: 0,
-                max_fuel: 0,
-                total_fuel: 0,
-                output: Vec::new(),
-                wide_output: Vec::new(),
-                error: Some(format!("WAT parse error: {}", e)),
-            };
-        }
-    };
-
-    // 2. Compile WASM binary into Module
-    let module = match Module::new(engine, &wasm_bytes) {
-        Ok(m) => m,
-        Err(e) => {
-            return EvaluatorResult {
-                status: ExecutionStatus::CompileError,
-                consumed_fuel: 0,
-                max_fuel: 0,
-                total_fuel: 0,
-                output: Vec::new(),
-                wide_output: Vec::new(),
-                error: Some(format!("WASM compilation error: {}", e)),
-            };
-        }
-    };
-
-    // 3. Configure store with fuel budget and 16 MiB linear memory limit
-    let host_data = SandboxHostData {
-        limits: StoreLimitsBuilder::new()
-            .memory_size(16 * 1024 * 1024) // 16 MiB
-            .instances(1)
-            .tables(10)
-            .memories(1)
-            .build(),
-    };
-
-    let mut store = Store::new(engine, host_data);
-    store.limiter(|data| &mut data.limits);
-
-    if let Err(e) = store.set_fuel(fuel_budget) {
-        return EvaluatorResult {
-            status: ExecutionStatus::ConfigError,
-            consumed_fuel: 0,
-            max_fuel: 0,
-            total_fuel: 0,
-            output: Vec::new(),
-            wide_output: Vec::new(),
-            error: Some(format!("Failed to set fuel: {}", e)),
-        };
+/// A compiled module is reusable; Store and Instance are never reused.
+pub struct Compiled { pub engine:Engine, pub module:Module, pub strict:bool, pub wide:bool, pub input_i64:bool, pub entry:String }
+pub struct Term { pub values:Option<Vec<i64>>, pub fuel:u64, pub outcome:Option<String>, pub reason:Option<String> }
+impl Compiled {
+    pub fn new(engine:&Engine, source:&str, profile:&str) -> Result<Self,String> {
+        let bytes=wat::parse_str(source).map_err(|e|format!("PARSE_ERROR:{e}"))?;
+        let module=Module::new(engine,bytes).map_err(|e|format!("COMPILE_ERROR:{e}"))?;
+        Self::from_module(engine,module,profile)
     }
-
-    // 4. Instantiate module
-    let instance = match Instance::new(&mut store, &module, &[]) {
-        Ok(inst) => inst,
-        Err(e) => {
-            let error_str = e.to_string();
-            let fuel_rem = store.get_fuel().unwrap_or(0);
-            let is_out_of_fuel = fuel_rem == 0
-                || error_str.to_lowercase().contains("fuel")
-                || error_str.to_lowercase().contains("all fuel consumed");
-            let status = if is_out_of_fuel {
-                ExecutionStatus::OutOfFuel
-            } else {
-                ExecutionStatus::ExecutionTrap
-            };
-            let consumed = fuel_budget.saturating_sub(fuel_rem);
-            return EvaluatorResult {
-                status,
-                consumed_fuel: consumed,
-                max_fuel: consumed,
-                total_fuel: consumed,
-                output: Vec::new(),
-                wide_output: Vec::new(),
-                error: Some(format!("Instantiation trap: {}", e)),
-            };
-        }
-    };
-
-    // 5. Locate entrypoint function: try "compute", "generate_term", "a", or the first exported function
-    let func = instance
-        .get_func(&mut store, "compute")
-        .or_else(|| instance.get_func(&mut store, "generate_term"))
-        .or_else(|| instance.get_func(&mut store, "a"))
-        .or_else(|| {
-            // Find any exported func
-            module.exports().find_map(|exp| {
-                if exp.ty().func().is_some() {
-                    instance.get_func(&mut store, exp.name())
-                } else {
-                    None
-                }
-            })
-        });
-
-    let func = match func {
-        Some(f) => f,
-        None => {
-            let fuel_rem = store.get_fuel().unwrap_or(fuel_budget);
-            let consumed = fuel_budget.saturating_sub(fuel_rem);
-            return EvaluatorResult {
-                status: ExecutionStatus::MissingEntrypoint,
-                consumed_fuel: consumed,
-                max_fuel: consumed,
-                total_fuel: consumed,
-                output: Vec::new(),
-                wide_output: Vec::new(),
-                error: Some("No entrypoint function found (looked for 'compute', 'generate_term', 'a', or first export)".to_string()),
-            };
-        }
-    };
-
-    let param_types = func.ty(&store).params().collect::<Vec<_>>();
-    let use_i64_param = match param_types.first() {
-        Some(wasmtime::ValType::I64) => true,
-        _ => false,
-    };
-
-    let result_types = func.ty(&store).results().collect::<Vec<_>>();
-    let is_wide = result_types.len() == 4;
-
-    // 6. Evaluate sequence terms for n = 0..terms_to_generate
-    let mut outputs = Vec::with_capacity(terms_to_generate as usize);
-    let mut wide_outputs = Vec::with_capacity(terms_to_generate as usize);
-    let mut max_fuel_used = 0u64;
-    let mut total_fuel_used = 0u64;
-
-    for n in 0..terms_to_generate {
-        // Reset fuel per invocation
-        if let Err(e) = store.set_fuel(fuel_budget) {
-            return EvaluatorResult {
-                status: ExecutionStatus::ConfigError,
-                consumed_fuel: max_fuel_used,
-                max_fuel: max_fuel_used,
-                total_fuel: total_fuel_used,
-                output: outputs,
-                wide_output: wide_outputs,
-                error: Some(format!("Failed to set fuel: {}", e)),
-            };
-        }
-
-        let arg = if use_i64_param {
-            Val::I64(n as i64)
-        } else {
-            Val::I32(n as i32)
+    pub fn from_module(engine:&Engine,module:Module,profile:&str)->Result<Self,String> {
+        let strict=profile=="wat_i256_checked_v1";
+        let wide=strict || profile=="i256x4_v1";
+        if !strict && !wide && profile!="i64_scalar_v1" { return Err("CONFIG_ERROR:explicit profile required".into()); }
+        if module.imports().next().is_some() { return Err("COMPILE_ERROR:imports forbidden".into()); }
+        let entry=if strict { "compute".to_string() } else {
+            ["compute","generate_term","a"].iter().find(|name|module.get_export(name).and_then(|t|t.func().cloned()).is_some())
+                .ok_or("MISSING_ENTRYPOINT:no supported export")?.to_string()
         };
-
-        if is_wide {
-            let mut results = [Val::I64(0), Val::I64(0), Val::I64(0), Val::I64(0)];
-            match func.call(&mut store, &[arg], &mut results) {
-                Ok(_) => {
-                    let fuel_rem = store.get_fuel().unwrap_or(0);
-                    let call_consumed = fuel_budget.saturating_sub(fuel_rem);
-                    total_fuel_used += call_consumed;
-                    if call_consumed > max_fuel_used {
-                        max_fuel_used = call_consumed;
-                    }
-                    let l0 = match results[0] { Val::I64(v) => v, _ => 0 };
-                    let l1 = match results[1] { Val::I64(v) => v, _ => 0 };
-                    let l2 = match results[2] { Val::I64(v) => v, _ => 0 };
-                    let l3 = match results[3] { Val::I64(v) => v, _ => 0 };
-                    wide_outputs.push([l0, l1, l2, l3]);
-                    outputs.push(l0);
-                }
-                Err(e) => {
-                    let error_str = e.to_string();
-                    let fuel_rem = store.get_fuel().unwrap_or(0);
-                    let call_consumed = fuel_budget.saturating_sub(fuel_rem);
-                    total_fuel_used += call_consumed;
-                    if call_consumed > max_fuel_used {
-                        max_fuel_used = call_consumed;
-                    }
-                    let is_out_of_fuel = fuel_rem == 0
-                        || error_str.to_lowercase().contains("fuel")
-                        || error_str.to_lowercase().contains("all fuel consumed");
-                    let status = if is_out_of_fuel {
-                        ExecutionStatus::OutOfFuel
-                    } else {
-                        ExecutionStatus::ExecutionTrap
-                    };
-                    return EvaluatorResult {
-                        status,
-                        consumed_fuel: max_fuel_used,
-                        max_fuel: max_fuel_used,
-                        total_fuel: total_fuel_used,
-                        output: outputs,
-                        wide_output: wide_outputs,
-                        error: Some(error_str),
-                    };
-                }
+        let ty=module.get_export(&entry).and_then(|t|t.func().cloned()).ok_or("MISSING_ENTRYPOINT:compute required")?;
+        let params:Vec<_>=ty.params().collect(); let results:Vec<_>=ty.results().collect();
+        if params.len()!=1 || !(matches!(params[0],ValType::I32) || (!strict && matches!(params[0],ValType::I64)))
+            || results.len()!=if wide {4} else {1} || !results.iter().all(|v|matches!(v,ValType::I64)) {
+            return Err("COMPILE_ERROR:exact signature mismatch".into());
+        }
+        if strict {
+            let marker=module.get_export("__oeis_numeric_limit").and_then(|t|t.global().cloned()).ok_or("COMPILE_ERROR:overflow marker required")?;
+            if !matches!(marker.content(),ValType::I32) {return Err("COMPILE_ERROR:invalid overflow marker".into());}
+            if module.exports().any(|e|matches!(e.ty(),wasmtime::ExternType::Memory(_) | wasmtime::ExternType::Table(_))) {
+                return Err("COMPILE_ERROR:guest memory/table forbidden".into());
             }
-        } else {
-            let mut results = [Val::I64(0)];
-            match func.call(&mut store, &[arg], &mut results) {
-                Ok(_) => {
-                    let fuel_rem = store.get_fuel().unwrap_or(0);
-                    let call_consumed = fuel_budget.saturating_sub(fuel_rem);
-                    total_fuel_used += call_consumed;
-                    if call_consumed > max_fuel_used {
-                        max_fuel_used = call_consumed;
-                    }
-                    let term = match results[0] {
-                        Val::I64(v) => v,
-                        Val::I32(v) => v as i64,
-                        _ => 0,
-                    };
-                    outputs.push(term);
-                }
-                Err(e) => {
-                    let error_str = e.to_string();
-                    let fuel_rem = store.get_fuel().unwrap_or(0);
-                    let call_consumed = fuel_budget.saturating_sub(fuel_rem);
-                    total_fuel_used += call_consumed;
-                    if call_consumed > max_fuel_used {
-                        max_fuel_used = call_consumed;
-                    }
-                    let is_out_of_fuel = fuel_rem == 0
-                        || error_str.to_lowercase().contains("fuel")
-                        || error_str.to_lowercase().contains("all fuel consumed");
-                    let status = if is_out_of_fuel {
-                        ExecutionStatus::OutOfFuel
-                    } else {
-                        ExecutionStatus::ExecutionTrap
-                    };
-                    return EvaluatorResult {
-                        status,
-                        consumed_fuel: max_fuel_used,
-                        max_fuel: max_fuel_used,
-                        total_fuel: total_fuel_used,
-                        output: outputs,
-                        wide_output: wide_outputs,
-                        error: Some(error_str),
-                    };
-                }
+        }
+        Ok(Self {engine:engine.clone(),module,strict,wide,input_i64:matches!(params[0],ValType::I64),entry})
+    }
+    pub fn term(&self,index:i32,fuel:u64)->Term {
+        let limits=StoreLimitsBuilder::new().memory_size(if self.strict {0}else{16*1024*1024})
+            .instances(1).tables(if self.strict {0}else{10}).memories(if self.strict {0}else{1}).build();
+        let mut store=Store::new(&self.engine,SandboxHostData {limits}); store.limiter(|d|&mut d.limits);
+        if let Err(e)=store.set_fuel(fuel) { return Term {values:None,fuel:0,outcome:Some("runtime_failure".into()),reason:Some(e.to_string())}; }
+        let mut marker=None;
+        let result=(|| -> wasmtime::Result<Vec<i64>> {
+            let instance=Instance::new(&mut store,&self.module,&[])?;
+            marker=instance.get_global(&mut store,"__oeis_numeric_limit");
+            let func=instance.get_func(&mut store,&self.entry).ok_or_else(||wasmtime::Error::msg("missing entrypoint"))?;
+            let input=if self.input_i64 {Val::I64(index as i64)}else{Val::I32(index)};
+            let mut values=vec![Val::I64(0);if self.wide {4}else{1}];
+            func.call(&mut store,&[input],&mut values)?;
+            values.into_iter().map(|v| match v {Val::I64(x)=>Ok(x),_=>Err(wasmtime::Error::msg("non-i64 output"))}).collect()
+        })();
+        let used=fuel.saturating_sub(store.get_fuel().unwrap_or(0));
+        match result {
+            Ok(values)=>Term {values:Some(values),fuel:used,outcome:None,reason:None},
+            Err(error)=>{
+                let overflow=self.strict && marker.map(|g|matches!(g.get(&mut store),Val::I32(1))).unwrap_or(false);
+                let out_of_fuel=matches!(error.downcast_ref::<Trap>(),Some(Trap::OutOfFuel));
+                let (outcome,reason)=if overflow {("numeric_limit".into(),"checked_signed_256_overflow".into())}
+                    else if out_of_fuel {("execution_limit".into(),"wasmtime_fuel".into())}
+                    else {("runtime_failure".into(),format!("wasmtime_trap:{error}"))};
+                Term {values:None,fuel:used,outcome:Some(outcome),reason:Some(reason)}
             }
         }
     }
-
-    EvaluatorResult {
-        status: ExecutionStatus::Success,
-        consumed_fuel: max_fuel_used,
-        max_fuel: max_fuel_used,
-        total_fuel: total_fuel_used,
-        output: outputs,
-        wide_output: wide_outputs,
-        error: None,
-    }
 }
 
+pub fn evaluate_profile(engine:&Engine,source:&str,fuel:u64,count:u32,profile:&str)->EvaluatorResult {
+    let mut res=EvaluatorResult {status:ExecutionStatus::Success,consumed_fuel:0,max_fuel:0,total_fuel:0,output:vec![],wide_output:vec![],error:None};
+    if fuel==0 || fuel>1_000_000 || count==0 || count>120 || source.len()>65536 {
+        res.status=ExecutionStatus::ConfigError; res.error=Some("execution cap exceeded".into()); return res;
+    }
+    let compiled=match Compiled::new(engine,source,profile) {Ok(c)=>c,Err(e)=>{
+        res.status=if e.starts_with("PARSE_ERROR") {ExecutionStatus::ParseError} else if e.starts_with("MISSING_ENTRYPOINT") {ExecutionStatus::MissingEntrypoint} else {ExecutionStatus::CompileError};
+        res.error=Some(e); return res;
+    }};
+    for n in 0..count {
+        let allowance=fuel.min(50_000_000-res.total_fuel);
+        if allowance==0 {res.status=ExecutionStatus::OutOfFuel;res.error=Some("aggregate_fuel".into());break;}
+        let term=compiled.term(n as i32,allowance);res.total_fuel+=term.fuel;res.max_fuel=res.max_fuel.max(term.fuel);res.consumed_fuel=res.max_fuel;
+        if let Some(values)=term.values {
+            if compiled.wide {res.wide_output.push(values.try_into().expect("validated four results"));}
+            else {res.output.push(values[0]);}
+        } else {res.status=if term.outcome.as_deref()==Some("execution_limit") {ExecutionStatus::OutOfFuel}else{ExecutionStatus::ExecutionTrap};res.error=term.reason;break;}
+    }
+    res
+}
+/// Historical Rust diagnostic API: four results are explicit at the FFI boundary.
+pub fn evaluate_single_program(engine:&Engine,source:&str,fuel:u64,count:u32)->EvaluatorResult {
+    let profile=wat::parse_str(source).ok().and_then(|b|Module::new(engine,b).ok())
+        .and_then(|m|m.get_export("compute").and_then(|t|t.func().cloned()))
+        .map(|f|if f.results().len()==4 {"i256x4_v1"}else{"i64_scalar_v1"}).unwrap_or("i64_scalar_v1");
+    evaluate_profile(engine,source,fuel,count,profile)
+}
 #[cfg(test)]
 mod tests {
     use super::*;

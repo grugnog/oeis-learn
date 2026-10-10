@@ -179,7 +179,7 @@ def foundation_readiness(checkpoint, *, software_complete):
     }
 
 
-def require_architecture_measurement_gates(g7_report):
+def require_architecture_measurement_gates(g7_report, *, evidence_root=None):
     """Architecture/learning measurements require G7 independently of smoke."""
     from oeis_learn.evaluation.repair_gate import require_g7
-    require_g7(g7_report)
+    require_g7(g7_report,evidence_root=evidence_root)

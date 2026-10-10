@@ -39,15 +39,18 @@ class WasmRunner:
         self.fuel_budget = fuel_budget
         self.memory_limit_mib = memory_limit_mib
         self.terms_to_generate = terms_to_generate
-        if backend != "python_wasmtime":
-            raise ValueError(
-                "Native execution is pending phase 7 conformance; "
-                "select python_wasmtime explicitly for diagnostics"
-            )
+        if backend not in ("python_wasmtime", "rust"):
+            raise ValueError("explicit python_wasmtime or rust backend required")
+        if use_fallback and backend == "rust":
+            raise ValueError("native selection cannot request fallback")
+        if backend == "rust":
+            from oeis_learn.sandbox.native_runtime import native_identity
+
+            native_identity()
         if memory_limit_mib != 16:
             raise ValueError("Only the fixed 16 MiB memory profile is supported")
         self.backend = backend
-        self.use_fallback = True
+        self.use_fallback = backend == "python_wasmtime"
 
     def run_single(
         self,
@@ -70,7 +73,7 @@ class WasmRunner:
             wat_code = lower_macro_wat(wat_code)
 
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            res = oeis_wasm_evaluator.evaluate_wat_single(wat_code, fuel, terms)
+            res = oeis_wasm_evaluator.evaluate_wat_single(wat_code, fuel, terms, result_profile)
             wide_out = getattr(res, "wide_output", [])
             output = res.output
             if (result_profile == "i256x4_v1" or wide_out) and wide_out:
@@ -114,7 +117,9 @@ class WasmRunner:
                 lowered_programs.append(p)
 
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            results = oeis_wasm_evaluator.evaluate_wat_batch(list(lowered_programs), fuel, terms)
+            results = oeis_wasm_evaluator.evaluate_wat_batch(
+                list(lowered_programs), fuel, terms, result_profile
+            )
             out = []
             for r in results:
                 wide_out = getattr(r, "wide_output", [])
@@ -188,13 +193,13 @@ class FoundationRunner:
     """
 
     def __init__(self, result_dir, *, backend, workers=1, cache_bytes=1 << 30):
-        if backend != "python_wasmtime":
-            raise ValueError(
-                "Only explicit python_wasmtime is qualified; Rust and auto are unavailable"
-            )
+        if backend not in ("python_wasmtime", "rust"):
+            raise ValueError("explicit python_wasmtime or rust backend required")
         from oeis_learn.sandbox.worker_pool import WorkerPool
 
-        self.pool = WorkerPool(result_dir, workers=workers, cache_bytes=cache_bytes)
+        self.pool = WorkerPool(
+            result_dir, workers=workers, cache_bytes=cache_bytes, backend=backend
+        )
 
     def run_single(self, source, indices, *, request_id, **kwargs):
         return self.pool.evaluate(source, indices, request_id=request_id, **kwargs)

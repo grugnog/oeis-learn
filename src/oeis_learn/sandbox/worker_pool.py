@@ -65,11 +65,11 @@ def _receive(channel, deadline=None):
     return load_json(read(length))
 
 
-def _worker(channel, cache_bytes):
+def _worker(channel, cache_bytes, backend="python_wasmtime"):
     # Native compiler/execution stays single-threaded. Set limits before engine
     # creation, so compilation, reference execution and cache all share the cap.
     resource.setrlimit(resource.RLIMIT_AS, (1 << 30, 1 << 30))
-    runtime = Runtime(cache_bytes=cache_bytes)
+    runtime = Runtime(cache_bytes=cache_bytes, backend=backend)
     _send(channel, {"type": "ready", "pid": os.getpid()})
     try:
         while True:
@@ -109,7 +109,8 @@ def _worker(channel, cache_bytes):
 
 
 class _Slot:
-    def __init__(self, cache_bytes, target):
+    def __init__(self, cache_bytes, target, backend):
+        self.backend = backend
         self.cache_bytes, self.target = cache_bytes, target
         self.process = self.channel = None
         self.start()
@@ -117,7 +118,11 @@ class _Slot:
     def start(self):
         parent, child = socket.socketpair()
         process = mp.get_context("spawn").Process(
-            target=self.target, args=(child, self.cache_bytes), daemon=True
+            target=self.target,
+            args=(child, self.cache_bytes, self.backend)
+            if self.target is _worker
+            else (child, self.cache_bytes),
+            daemon=True,
         )
         process.start()
         child.close()
@@ -153,14 +158,22 @@ class WorkerPool:
     including after controller restart, and conflicting reuse fails closed.
     """
 
-    def __init__(self, result_dir: Path, *, workers=1, cache_bytes=1 << 30, _worker_target=_worker):
+    def __init__(
+        self,
+        result_dir: Path,
+        *,
+        workers=1,
+        cache_bytes=1 << 30,
+        backend="python_wasmtime",
+        _worker_target=_worker,
+    ):
         if type(workers) is not int or not 1 <= workers <= 8:
             raise ValueError("worker count must be in 1..8")
         if type(cache_bytes) is not int or not 0 <= cache_bytes <= 1 << 30:
             raise ValueError("aggregate cache must not exceed 1 GiB")
         self.root = Path(result_dir)
         self.root.mkdir(parents=True, exist_ok=True)
-        self.runtime_sha256 = compute_canonical_digest(runtime_identity())
+        self.runtime_sha256 = compute_canonical_digest(runtime_identity(backend))
         self.limit = threading.BoundedSemaphore(32)
         self.lock = threading.Lock()
         self.inflight = {}
@@ -170,7 +183,7 @@ class WorkerPool:
         self.closed = False
         try:
             for _ in range(workers):
-                slot = _Slot(cache_bytes // workers, _worker_target)
+                slot = _Slot(cache_bytes // workers, _worker_target, backend)
                 self.all_slots.append(slot)
                 self.slots.put(slot)
         except BaseException:

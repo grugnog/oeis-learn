@@ -350,6 +350,7 @@ class CanonicalProgramArtifact:
     waste_ratio: float = 0.0
     passes_applied: List[str] = field(default_factory=lambda: ["--vacuum", "--dce", "--remove-unused-locals"])
     is_waste_exceeded: bool = False
+    rewrite_evidence: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

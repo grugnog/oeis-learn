@@ -42,3 +42,20 @@ jobs:
           path: |
             phase7-junit.xml
             phase7-environment.txt
+  native-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build root Dockerfile qualification target
+        run: docker build --target qualification -t oeis-phase7 .
+      - name: Mandatory Rust tests and G7 qualification
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -lc 'cd crates/oeis_wasm_evaluator && cargo test --locked --no-default-features && cd /workspace && python -m oeis_learn.evaluation.repair_gate --output /evidence'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase7-native-qualification
+          path: phase7-evidence
