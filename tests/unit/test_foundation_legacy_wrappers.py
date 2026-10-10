@@ -129,3 +129,24 @@ def test_explicit_missing_run011_resume_never_falls_back(tmp_path):
             config_path=str(tmp_path / "also_missing.yaml"),
             resume_checkpoint=str(tmp_path / "missing.pt"),
         )
+
+
+def test_historical_resume_chooses_numeric_latest_epoch(tmp_path):
+    from oeis_learn.evaluation.legacy_wrappers import latest_legacy_checkpoint
+
+    assert latest_legacy_checkpoint(tmp_path) is None
+    for name in ("model_epoch_999.v2.pt", "model_epoch_1000.v2.pt", "model_epoch_bad.v2.pt"):
+        (tmp_path / name).write_bytes(b"fixture")
+    path, epoch = latest_legacy_checkpoint(tmp_path)
+    assert path.name == "model_epoch_1000.v2.pt" and epoch == 1000
+
+
+def test_historical_launchers_check_resolved_parent_once():
+    import ast
+    from pathlib import Path
+
+    for name in ("run_008_learning_run.py", "run_009_recurrence_sprint.py", "run_010_overnight_curriculum.py"):
+        tree = ast.parse((Path("scripts") / name).read_text())
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+        assert sum(n.func.id == "require_legacy_parent" for n in calls) == 1
+        assert sum(n.func.id == "latest_legacy_checkpoint" for n in calls) == 1

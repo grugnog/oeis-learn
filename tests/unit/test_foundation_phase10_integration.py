@@ -327,3 +327,12 @@ def test_live_paired_scheduler_uses_one_contrast_and_isolated_evaluations(tmp_pa
     assert result["pairs"] == [[1, 1]] and calls.count("diagnostic") == 1
     assert all([e["minute"] for e in a["evaluations"]] == [15, 30, 45, 55] for a in result["arms"])
     assert result["decisions"][0]["status"] == "baseline_retained"
+
+
+def test_review_dispositions_bind_current_package_implementation():
+    from pathlib import Path
+    from oeis_learn.evaluation.experiment_runner import implementation_identity
+
+    report = json.loads(Path("specs/007-experiment-foundation/validation/phase-10-dispositions.json").read_text())
+    assert report["original_inputs"] == len(report["items"]) == 68
+    assert report["implementation_sha256"] == implementation_identity()

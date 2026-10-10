@@ -98,6 +98,21 @@ def require_legacy_parent(path):
         raise FileNotFoundError(f"Explicit historical parent checkpoint missing: {path}")
 
 
+def latest_legacy_checkpoint(directory):
+    """Resolve historical epochs numerically, including runs beyond epoch 999."""
+    import re
+
+    candidates = []
+    for path in Path(directory).glob("model_epoch_*.v2.pt"):
+        match = re.fullmatch(r"model_epoch_(\d+)\.v2\.pt", path.name)
+        if match and path.is_file():
+            candidates.append((int(match.group(1)), str(path), path))
+    if not candidates:
+        return None
+    epoch, _, path = max(candidates)
+    return path, epoch
+
+
 def legacy_readiness_metrics(trainer, scheduler, epoch_metrics, pass_rates):
     observed = epoch_diagnostics(epoch_metrics)
     competence, coverage = scheduler.compute_stage_competence(1)

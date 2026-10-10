@@ -767,7 +767,7 @@
     },
     {
       "id": "A18",
-      "title": "25k\u201350k fuel thresholds",
+      "title": "25k–50k fuel thresholds",
       "design_disposition": "corrected",
       "rationale": "Insufficient thresholds rejected; bounded100k/250k/1M tiers and aggregate accounting.",
       "task_states": {
@@ -868,7 +868,7 @@
     },
     {
       "id": "P04",
-      "title": "3\u20135x cache speedup",
+      "title": "3–5x cache speedup",
       "design_disposition": "corrected",
       "rationale": "Unverified projection rejected; use measured practical-effect rule.",
       "task_states": {
@@ -938,7 +938,7 @@
     },
     {
       "id": "P08",
-      "title": "1.5\u20132x grammar gain",
+      "title": "1.5–2x grammar gain",
       "design_disposition": "corrected",
       "rationale": "Measure end-to-end and phase costs without multiplying speculative gains.",
       "task_states": {
@@ -1247,7 +1247,7 @@
       "id": "D08",
       "title": "Minimal language comparison",
       "design_disposition": "deferred_loda",
-      "rationale": "008 specifies native LODA versus WAT at roughly1\u20133 days each, token/primitive/runtime attribution and effect/stopping rules.",
+      "rationale": "008 specifies native LODA versus WAT at roughly1–3 days each, token/primitive/runtime attribution and effect/stopping rules.",
       "task_states": {},
       "implementation_disposition": "deferred_loda",
       "phase10_acceptance_refs": [],
@@ -1341,7 +1341,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:d0e4f822614686800dccd047ebe3d1c05d7e5c42511314c37a74125a8c1c84eb",
+  "implementation_sha256": "sha256:f1567d40b2cd69269a7f5759525bac6bd9c48afcf76e54a7927e94b052f1f7dc",
   "prior_validation": {
     "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
     "local_focused": {
@@ -1394,5 +1394,5 @@
       "scope": "archive admission, CLI error boundary and worker timeout replacement; actual Docker skipped"
     }
   },
-  "implementation_hash_method": "canonical qualification source inventory"
+  "implementation_hash_method": "experiment_runner.implementation_identity()"
 }

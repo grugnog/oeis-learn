@@ -20,7 +20,6 @@ import time
 from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
-import yaml
 
 from oeis_learn.cli.reporting import (
     project_discovery_markdown,
@@ -56,7 +55,7 @@ from oeis_learn.evaluation.readiness import evaluate_readiness_policy, load_read
 from oeis_learn.evaluation.synthesis import evaluate_cohort_synthesis
 from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
 from oeis_learn.evaluation.legacy_wrappers import (
-    load_legacy_configuration, require_legacy_parent, complete_legacy_run,
+    load_legacy_configuration, require_legacy_parent, complete_legacy_run, latest_legacy_checkpoint,
     legacy_readiness_metrics,
 )
 from oeis_learn.rl.sft_trainer import SftTrainer
@@ -119,16 +118,12 @@ def run_009(
     previous_elapsed_h = 0.0
 
     if resume:
-        ckpt_files = sorted(list(ctx.checkpoints_dir.glob("model_epoch_*.v2.pt")))
-        if ckpt_files:
-            latest_ckpt = ckpt_files[-1]
-            import re
-            m = re.search(r"model_epoch_(\d+)", latest_ckpt.name)
-            if m:
-                last_epoch = int(m.group(1))
-                start_epoch = last_epoch + 1
-                warmstart_checkpoint = str(latest_ckpt)
-                logger.info(f"Resuming Run 009 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
+        latest = latest_legacy_checkpoint(ctx.checkpoints_dir)
+        if latest is not None:
+            latest_ckpt, last_epoch = latest
+            start_epoch = last_epoch + 1
+            warmstart_checkpoint = str(latest_ckpt)
+            logger.info(f"Resuming Run 009 from epoch {start_epoch} using checkpoint: {latest_ckpt}")
 
         if os.path.exists(ctx.log_file):
             with open(ctx.log_file, "r", encoding="utf-8") as f:
@@ -148,7 +143,6 @@ def run_009(
     logger.info(f"Run Directory: {ctx.run_dir}")
     logger.info(f"Device: {device} | Host: {ctx.metadata.host.get('system')} {ctx.metadata.host.get('release')}")
     logger.info(f"Warmstart Checkpoint: {warmstart_checkpoint}")
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     # 3. Model Architecture Configurations
@@ -365,11 +359,9 @@ def run_009(
     )
 
     # 9. Main Reinforcement Learning Loop with Adaptive Orchestrator
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Beginning Run 009 RL Training: {epochs} Epochs x {steps_per_epoch} Steps (Start Epoch {start_epoch})")
     logger.info(f"Curriculum Focus: Stage 2 Recurrences | Replay: Stage 1 Polynomials | Dynamic Budget: 32 Rollouts/step")
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     t_init = float(train_cfg.get("sampling_temperature_initial", 0.75))
@@ -479,10 +471,8 @@ def run_009(
                 logger.info(f"Benchmark Audit @ Epoch {epoch}: {bench_passes}/{len(eval_canaries)} Canaries Extrapolated 100 Terms")
 
     # 10. Post-Run Final Artifact Generation & Readiness Gating
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info("Run 009 Training Completed. Running Comprehensive Evaluation & Readiness Verification...")
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
 
     final_v2_path = ctx.get_checkpoint_path("model_final.v2.pt")
@@ -591,11 +581,9 @@ def run_009(
     })
     complete_legacy_run(ctx)
 
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     logger.info(f"Run {ctx.metadata.run_id} Finished Successfully in {total_hours:.2f} hours.")
     logger.info(f"All artifacts saved to {ctx.run_dir}")
-    require_legacy_parent(warmstart_checkpoint)
     logger.info("=" * 80)
     return 0
 
