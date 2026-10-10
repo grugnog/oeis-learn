@@ -1,12 +1,14 @@
-from copy import deepcopy
 import json
+from copy import deepcopy
 from types import SimpleNamespace
+
 import pytest
+
 from oeis_learn.data.models import LatentDiscoveryCandidate
 from oeis_learn.data.symbolic_definitions import SymbolicDefinitionRegistry
-from oeis_learn.discovery.symbolic_prover import SymbolicProver
 from oeis_learn.discovery.formula_checker import check_certificate
 from oeis_learn.discovery.formula_syntax import parse_formula
+from oeis_learn.discovery.symbolic_prover import SymbolicProver
 
 
 def test_formula_identity_has_independent_certificate_and_external_assumption():
@@ -17,6 +19,42 @@ def test_formula_identity_has_independent_certificate_and_external_assumption():
     mutated = deepcopy(evidence["certificate"])
     mutated["coefficients"] = [1, 1]
     assert not check_certificate(mutated)
+
+
+def test_exact_certificate_proposal_does_not_import_sympy(monkeypatch):
+    import builtins
+
+    from oeis_learn.discovery.symbolic_prover import _proof
+
+    original_import = builtins.__import__
+
+    def reject_sympy(name, *args, **kwargs):
+        if name == "sympy" or name.startswith("sympy."):
+            raise AssertionError("contained proof must not depend on a cold CAS import")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", reject_sympy)
+    status, evidence = _proof(
+        ["n*(n+1)/2", "(n*n+n)/2"],
+        [1, -1],
+        [(1, 0), (1, 0)],
+        [{"integer_only": True, "lower_bound": 0, "upper_bound": None}] * 2,
+        ["Formula-to-OEIS correspondence is an external assumption."],
+    )
+    assert status == "FORMULA_IDENTITY"
+    assert evidence["backend_version"] == "python-fractions/v1"
+    assert check_certificate(evidence["certificate"])
+
+
+def test_everywhere_undefined_expression_cannot_prove_identity():
+    status, evidence = SymbolicProver()._run(["1/(n-n)", "1/(n-n)"], [1, -1])
+    assert status == "UNKNOWN"
+    assert evidence["independently_checked"] is False
+    assert "certificate" not in evidence
+    domain = [{"integer_only": True, "lower_bound": 0, "upper_bound": 3}] * 2
+    assert (
+        SymbolicProver()._run(["1/(n-n)", "1/(n-n)"], [1, -1], domains=domain)[0] == "EMPTY_DOMAIN"
+    )
 
 
 def test_original_pole_survives_cancellation():
@@ -102,10 +140,12 @@ def test_legacy_report_is_not_a_proof(tmp_path):
 
 
 def test_reporting_replays_scope_and_marks_legacy_labels(tmp_path):
-    import copy, json
+    import copy
+    import json
+
     from oeis_learn.cli.reporting import (
-        project_discovery_markdown,
         export_discovered_proofs_markdown,
+        project_discovery_markdown,
     )
     from oeis_learn.data.models import LatentDiscoveryCandidate
 
