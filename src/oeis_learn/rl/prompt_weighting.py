@@ -3,82 +3,38 @@
 from __future__ import annotations
 
 import random
-from typing import Dict, List, Optional, Sequence, Tuple
-import numpy as np
+from typing import Dict, List, Optional, Sequence
 import torch
 from oeis_learn.data.models import LexicaseSelectionBatch
 
 
 def compute_group_advantages(
     rewards: torch.Tensor,  # shape: (group_size,)
-    asymmetric_penalty_weight: float = 1.5,
-    eps: float = 1e-8,
+    asymmetric_penalty_weight: float = 1.0,
+    eps: float = 0.0,
 ) -> torch.Tensor:
-    """Computes group-normalized advantages with asymmetric penalty weighting for failed groups.
+    """Population-normalized sampled rewards; true zero variance gives zero."""
+    from oeis_learn.rl.policy import group_advantages
 
-    If all completions fail (rewards all -1.0), std is 0. Standard GRPO yields advantages = 0.
-    Asymmetric prompt weighting sets advantages = -asymmetric_penalty_weight to apply informative
-    negative gradients to failed program tokens.
-    """
-    mean = rewards.mean()
-    std = rewards.std()
+    if asymmetric_penalty_weight != 1.0 or eps != 0.0:
+        raise ValueError("asymmetric legacy weighting is unsupported")
 
-    if std < eps:
-        if mean < 0.0:
-            # All completions in group failed: apply asymmetric penalty
-            return torch.full_like(rewards, -asymmetric_penalty_weight)
-        elif mean > 0.0:
-            # All completions in group succeeded: apply positive advantage
-            return torch.full_like(rewards, 1.0)
-        else:
-            return torch.zeros_like(rewards)
-
-    advantages = (rewards - mean) / (std + eps)
-    return advantages
+    return group_advantages(rewards)
 
 
 def compute_sgrpo_advantages(
-    rewards: torch.Tensor,  # shape: (group_size,) or (group_size + 1,) if reference injected
-    ref_injected: bool = False,
-    asymmetric_penalty_weight: float = 1.5,
-    use_avspo_anchor: bool = True,
-    eps: float = 1e-8,
-) -> torch.Tensor:
-    """Computes Supervised Group Relative Policy Optimization (S-GRPO) advantages with CGI & AVSPO.
+    rewards, ref_injected=False, asymmetric_penalty_weight=1.0, use_avspo_anchor=False, eps=0.0
+):
+    """Only actual sampled rewards define the group; zero variance gives zero."""
+    from oeis_learn.rl.policy import group_advantages
 
-    Args:
-        rewards: Tensor of rollout rewards
-        ref_injected: Whether a reference solution (r=+1.0) was injected at index 0
-        asymmetric_penalty_weight: Multiplier applied to failed samples
-        use_avspo_anchor: Whether to synthesize a virtual positive anchor if all samples fail without reference
-    """
     if ref_injected:
-        # Group includes injected reference trajectory
-        mean = rewards.mean()
-        std = rewards.std()
-        advantages = (rewards - mean) / (std + eps)
-        return advantages
-
-    mean = rewards.mean()
-    std = rewards.std()
-
-    if std < eps:
-        if mean <= 0.0:
-            if use_avspo_anchor:
-                # AVSPO: Synthesize virtual positive anchor (virtual r=+1.0)
-                virtual_rewards = torch.cat([rewards, torch.tensor([1.0], device=rewards.device)])
-                v_mean = virtual_rewards.mean()
-                v_std = virtual_rewards.std()
-                # Return normalized advantages for the real rollouts
-                adv_real = (rewards - v_mean) / (v_std + eps)
-                return adv_real * asymmetric_penalty_weight
-            else:
-                return torch.full_like(rewards, -asymmetric_penalty_weight)
-        else:
-            return torch.full_like(rewards, 1.0)
-
-    advantages = (rewards - mean) / (std + eps)
-    return advantages
+        raise ValueError("teacher trajectories are SFT-only")
+    if use_avspo_anchor:
+        raise ValueError("virtual anchor is not a sampled outcome")
+    if asymmetric_penalty_weight != 1.0 or eps != 0.0:
+        raise ValueError("asymmetric legacy weighting is unsupported")
+    return group_advantages(rewards)
 
 
 def filter_downsampled_lexicase(
@@ -108,7 +64,9 @@ def filter_downsampled_lexicase(
         return LexicaseSelectionBatch(prompt_id=prompt_id)
 
     rng = random.Random(seed)
-    max_terms = min(len(target_terms), min((len(o) for o in candidates_outputs), default=len(target_terms)))
+    max_terms = min(
+        len(target_terms), min((len(o) for o in candidates_outputs), default=len(target_terms))
+    )
     available_indices = list(range(max(1, max_terms)))
 
     k_sample = min(subsample_size, len(available_indices))
@@ -135,7 +93,9 @@ def filter_downsampled_lexicase(
         step_errs = [candidate_errors[idx][step_idx] for idx in surviving]
         min_err = min(step_errs)
         # Retain only candidates that achieve the minimum error on this individual test case
-        surviving = [idx for idx in surviving if candidate_errors[idx][step_idx] <= min_err + 1.0e-6]
+        surviving = [
+            idx for idx in surviving if candidate_errors[idx][step_idx] <= min_err + 1.0e-6
+        ]
 
     return LexicaseSelectionBatch(
         prompt_id=prompt_id,

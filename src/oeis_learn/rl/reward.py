@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 import numpy as np
-from oeis_learn.data.models import CompositeRewardBreakdown, ExecutionResult, NonTrivialityEvaluation, PotentialState
+from oeis_learn.data.models import (
+    CompositeRewardBreakdown,
+    ExecutionResult,
+    NonTrivialityEvaluation,
+    PotentialState,
+)
 
 
 def compute_empirical_variance(output: Sequence[int]) -> float:
@@ -83,9 +88,7 @@ def evaluate_non_triviality(
     # If target has strong curvature (tgt_d2 > 2.0) and output is purely linear (out_d2 < 1e-6),
     # verify if output actually matches the first 3 terms. If not, penalize as an identity shortcut.
     if tgt_d2 > 2.0 and out_d2 < 1.0e-6:
-        first_terms_match = (
-            check_len >= 3 and list(output[:3]) == list(target_terms[:3])
-        )
+        first_terms_match = check_len >= 3 and list(output[:3]) == list(target_terms[:3])
         if not first_terms_match:
             return NonTrivialityEvaluation(
                 output_variance=out_var,
@@ -158,21 +161,23 @@ def compute_pbrs_potential(
 ) -> PotentialState:
     """Computes Potential-Based Reward Shaping potential Phi(s) over AST completion states."""
     if not wat_code:
-        return PotentialState(step=0, structural_phase="EMPTY", phi_comp=0.0, phi_bind=0.0, total_potential=0.0)
+        return PotentialState(
+            step=0, structural_phase="EMPTY", phi_comp=0.0, phi_bind=0.0, total_potential=0.0
+        )
 
     phi_comp = 0.0
     phi_bind = 0.0
     phase = "BODY"
 
-    if 'export "compute"' in wat_code and '(param $n' in wat_code:
+    if 'export "compute"' in wat_code and "(param $n" in wat_code:
         phi_comp += phi_comp_scale
         phase = "HEADER_VALID"
 
-    if 'local.get $n' in wat_code or 'local.tee' in wat_code:
+    if "local.get $n" in wat_code or "local.tee" in wat_code:
         phi_bind += phi_bind_scale
 
-    if 'loop' in wat_code or 'br_if' in wat_code:
-        phi_bind += (phi_bind_scale * 0.5)
+    if "loop" in wat_code or "br_if" in wat_code:
+        phi_bind += phi_bind_scale * 0.5
 
     total_phi = phi_comp + phi_bind
     return PotentialState(
@@ -192,7 +197,9 @@ def compute_binary_reward(
     reward_fail: float = -1.0,
 ) -> Tuple[float, Optional[int]]:
     """Evaluates strict binary outcome reward (+1.0 / -1.0) and divergence index."""
-    check_len = n_terms if n_terms is not None else min(len(target_terms), len(exec_result.output))
+    check_len = len(target_terms) if n_terms is None else n_terms
+    if type(check_len) is not int or not 1 <= check_len <= len(target_terms):
+        raise ValueError("explicit nonempty reward horizon required")
 
     if exec_result.status != "SUCCESS":
         divergence_step = len(exec_result.output)
@@ -440,4 +447,3 @@ def compute_lexicographic_advantages(
         ordinal_advs[orig_idx] = float(adv)
 
     return ordinal_advs
-

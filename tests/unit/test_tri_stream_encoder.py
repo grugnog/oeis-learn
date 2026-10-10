@@ -1,7 +1,6 @@
 """End-to-end numerical stability test for Tri-Stream Encoder across 1,000 sequences."""
 
 import random
-import pytest
 import torch
 from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
 
@@ -25,7 +24,9 @@ def generate_1000_benchmark_sequences():
             seq = [base**n for n in range(length)]
         elif category == 2:
             # Extreme astronomical values (up to 10^30)
-            seq = [random.randint(10**20, 10**30) * (-1 if n % 2 == 0 else 1) for n in range(length)]
+            seq = [
+                random.randint(10**20, 10**30) * (-1 if n % 2 == 0 else 1) for n in range(length)
+            ]
         elif category == 3:
             # Negative & alternating values
             seq = [(-1) ** n * (n**3 + 10) for n in range(length)]
@@ -61,9 +62,6 @@ def test_tri_stream_encoder_aux_heads():
     encoder = TriStreamEncoder(d_model=128, n_heads=4, n_encoder_layers=2, d_ff=256)
     seqs = [[1, 2, 3, 5, 8, 13], [0, 1, 4, 9, 16, 25]]
     encoded = encoder.forward_from_sequences(seqs)
-    outputs = encoder.aux_heads(encoded)
-
-    assert "pred_magnitude" in outputs
-    assert "pred_sign_logits" in outputs
-    assert outputs["pred_sign_logits"].shape == (2, 6, 3)
-    assert not torch.isnan(outputs["pred_magnitude"]).any()
+    assert not hasattr(encoder, "aux_heads") and not hasattr(encoder, "summary_heads")
+    encoded.square().mean().backward()
+    assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in encoder.parameters())

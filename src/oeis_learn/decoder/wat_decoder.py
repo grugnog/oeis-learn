@@ -75,22 +75,47 @@ class WatTransformerDecoder(nn.Module):
         chunk_size: int = 256,
         logit_cap_threshold: Optional[float] = 30.0,
         codec_sha256: Optional[str] = None,
+        position_style: str = "sinusoidal",
+        attention_backend: str = "sdpa",
     ):
         super().__init__()
         self.codec_sha256 = codec_sha256
         if codec_sha256 is not None:
-            from oeis_learn.decoder.program_codec import codec_digest, FOUNDATION_VOCAB_SIZE, PAD_ID as BODY_PAD
-            if codec_sha256 != codec_digest() or vocab_size != FOUNDATION_VOCAB_SIZE or pad_idx != BODY_PAD:
-                raise ValueError('incompatible foundation codec configuration')
-            self.register_buffer('_codec_identity', torch.tensor(list(codec_sha256.encode()), dtype=torch.uint8))
+            from oeis_learn.decoder.program_codec import (
+                codec_digest,
+                FOUNDATION_VOCAB_SIZE,
+                PAD_ID as BODY_PAD,
+            )
+
+            if (
+                codec_sha256 != codec_digest()
+                or vocab_size != FOUNDATION_VOCAB_SIZE
+                or pad_idx != BODY_PAD
+            ):
+                raise ValueError("incompatible foundation codec configuration")
+            self.register_buffer(
+                "_codec_identity", torch.tensor(list(codec_sha256.encode()), dtype=torch.uint8)
+            )
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.pad_idx = pad_idx
         self.chunk_size = chunk_size
         self.logit_cap_threshold = logit_cap_threshold
+        if position_style not in ("sinusoidal", "rope", "prefix_ancestor"):
+            raise ValueError("unknown decoder position style")
+        if attention_backend not in ("eager", "sdpa"):
+            raise ValueError("unknown attention backend")
+        self.position_style, self.attention_backend = position_style, attention_backend
+        self.ancestor_embedding = (
+            nn.Embedding(7, d_model, padding_idx=0) if position_style == "prefix_ancestor" else None
+        )
 
-        self.token_embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx, dtype=torch.float32)
-        self.pos_encoder = PositionalEncodingDecoder(d_model=d_model, max_len=max_seq_len, dropout=dropout)
+        self.token_embedding = nn.Embedding(
+            vocab_size, d_model, padding_idx=pad_idx, dtype=torch.float32
+        )
+        self.pos_encoder = PositionalEncodingDecoder(
+            d_model=d_model, max_len=max_seq_len, dropout=dropout
+        )
 
         decoder_layer = nn.TransformerDecoderLayer(
             d_model=d_model,
@@ -106,12 +131,16 @@ class WatTransformerDecoder(nn.Module):
         self.final_norm = nn.LayerNorm(d_model, dtype=torch.float32)
         self.lm_head = nn.Linear(d_model, vocab_size, dtype=torch.float32)
 
-    def generate_causal_mask(self, seq_len: int, device: Optional[torch.device] = None) -> torch.Tensor:
+    def generate_causal_mask(
+        self, seq_len: int, device: Optional[torch.device] = None
+    ) -> torch.Tensor:
         """Generates standard lower-triangular causal attention mask."""
         mask = torch.triu(torch.full((seq_len, seq_len), float("-inf"), device=device), diagonal=1)
         return mask
 
-    def project_logits_chunked(self, hidden: torch.Tensor, chunk_size: Optional[int] = None) -> torch.Tensor:
+    def project_logits_chunked(
+        self, hidden: torch.Tensor, chunk_size: Optional[int] = None
+    ) -> torch.Tensor:
         """Projects hidden states into vocabulary logits using mini-chunk projections for VRAM bounding."""
         c_size = chunk_size or self.chunk_size
         if hidden.size(1) <= c_size:
@@ -123,17 +152,21 @@ class WatTransformerDecoder(nn.Module):
             chunks.append(self.lm_head(h_chunk))
         return torch.cat(chunks, dim=1)
 
-    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
-                              missing_keys, unexpected_keys, error_msgs):
-        key = prefix + '_codec_identity'
+    def _load_from_state_dict(
+        self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+    ):
+        key = prefix + "_codec_identity"
         if self.codec_sha256 is not None:
             supplied = state_dict.get(key)
             if supplied is None or not torch.equal(supplied.cpu(), self._codec_identity.cpu()):
-                error_msgs.append('missing or incompatible foundation codec identity; legacy weights forbidden')
+                error_msgs.append(
+                    "missing or incompatible foundation codec identity; legacy weights forbidden"
+                )
         elif key in state_dict:
-            error_msgs.append('foundation weights cannot load into a legacy decoder')
-        super()._load_from_state_dict(state_dict, prefix, local_metadata, strict,
-                                     missing_keys, unexpected_keys, error_msgs)
+            error_msgs.append("foundation weights cannot load into a legacy decoder")
+        super()._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
 
     def forward(
         self,
@@ -158,25 +191,141 @@ class WatTransformerDecoder(nn.Module):
 
         # Enforce exact key padding mask to prevent attention & gradient diffusion across PAD tokens
         if tgt_key_padding_mask is None and (tgt_tokens == self.pad_idx).any():
-            tgt_key_padding_mask = (tgt_tokens == self.pad_idx)
+            tgt_key_padding_mask = tgt_tokens == self.pad_idx
 
         embed = self.token_embedding(tgt_tokens) * math.sqrt(self.d_model)
-        embed = self.pos_encoder(embed)
-
-        hidden = self.transformer_decoder(
-            tgt=embed,
-            memory=memory,
-            tgt_mask=tgt_mask,
-            tgt_key_padding_mask=tgt_key_padding_mask,
-            memory_key_padding_mask=memory_key_padding_mask,
+        positions = torch.arange(tgt_len, device=tgt_tokens.device)[None, :].expand(
+            tgt_tokens.size(0), -1
         )
+        embed = self.position_embeddings(embed, positions, tgt_tokens)
+
+        if self.position_style == "rope":
+            hidden = self._rotary_forward(
+                embed, memory, tgt_key_padding_mask, memory_key_padding_mask, tgt_mask
+            )
+        else:
+            hidden = self.transformer_decoder(
+                tgt=embed,
+                memory=memory,
+                tgt_mask=tgt_mask,
+                tgt_key_padding_mask=tgt_key_padding_mask,
+                memory_key_padding_mask=memory_key_padding_mask,
+            )
         hidden = self.final_norm(hidden)
         logits = self.project_logits_chunked(hidden)
 
         # Hyperbolic tangent logit soft-capping (C_cap = 30.0) to stabilize vocabulary expansion
-        if self.logit_cap_threshold is not None and self.logit_cap_threshold > 0:
-            c_cap = float(self.logit_cap_threshold)
-            logits = c_cap * torch.tanh(logits / c_cap)
+        logits = self.cap_logits(logits)
 
         from typing import cast
+
         return cast(torch.Tensor, logits)
+
+    def cap_logits(self, logits):
+        if self.logit_cap_threshold is not None and self.logit_cap_threshold > 0:
+            cap = float(self.logit_cap_threshold)
+            return cap * torch.tanh(logits / cap)
+        return logits
+
+    def position_embeddings(self, hidden, positions, tokens):
+        if self.position_style == "rope":
+            return self.pos_encoder.dropout(hidden)
+        maximum = tokens.size(1)
+        if maximum > self.pos_encoder.pe.size(1):
+            self.pos_encoder._extend_pe(maximum, hidden.device)
+        hidden = hidden + self.pos_encoder.pe[0][positions].to(hidden.dtype)
+        if self.ancestor_embedding is not None:
+            from oeis_learn.decoder.prefix_positions import ancestor_ids
+            from oeis_learn.decoder.program_codec import ID_TO_TOKEN as BODY_WORDS
+            from oeis_learn.decoder.wat_grammar import ID_TO_TOKEN as LEGACY_WORDS
+
+            words = BODY_WORDS if self.codec_sha256 is not None else LEGACY_WORDS
+            ancestors = ancestor_ids(tokens, words)
+            selected = ancestors.gather(1, positions[..., None].expand(-1, -1, ancestors.size(-1)))
+            hidden = hidden + self.ancestor_embedding(selected).sum(-2)
+        return self.pos_encoder.dropout(hidden)
+
+    def _rotary_forward(self, hidden, memory, padding, memory_padding, mask):
+        from oeis_learn.decoder.inference_cache import project, rotary, attention_output
+
+        batch, length, _ = hidden.shape
+        positions = torch.arange(length, device=hidden.device)[None, :].expand(batch, -1)
+        allowed = (mask == 0 if mask.dtype != torch.bool else ~mask)[None, None].expand(
+            batch, -1, -1, -1
+        )
+        if padding is not None:
+            allowed = allowed & ~padding[:, None, None, :]
+        cross_allowed = torch.ones(
+            (batch, 1, 1, memory.size(1)), device=hidden.device, dtype=torch.bool
+        )
+        if memory_padding is not None:
+            cross_allowed &= ~memory_padding[:, None, None, :]
+        for layer in self.transformer_decoder.layers:
+            value = layer.norm1(hidden)
+            q, k, v = (project(layer.self_attn, value, i) for i in range(3))
+            hidden = hidden + layer.dropout1(
+                attention_output(
+                    layer.self_attn,
+                    rotary(q, positions),
+                    rotary(k, positions),
+                    v,
+                    allowed,
+                    self.attention_backend,
+                )
+            )
+            q = project(layer.multihead_attn, layer.norm2(hidden), 0)
+            hidden = hidden + layer.dropout2(
+                attention_output(
+                    layer.multihead_attn,
+                    q,
+                    project(layer.multihead_attn, memory, 1),
+                    project(layer.multihead_attn, memory, 2),
+                    cross_allowed,
+                    self.attention_backend,
+                )
+            )
+            hidden = hidden + layer.dropout3(
+                layer.linear2(layer.dropout(layer.activation(layer.linear1(layer.norm3(hidden)))))
+            )
+        return hidden
+
+    def prefill(
+        self,
+        tokens,
+        memory,
+        *,
+        capacity=1024,
+        lengths=None,
+        memory_key_padding_mask=None,
+        backend=None,
+    ):
+        from oeis_learn.decoder.inference_cache import create_cache, decode_step
+
+        if torch.is_grad_enabled():
+            raise ValueError("prefill is inference-only")
+        if tokens.ndim != 2 or tokens.size(0) != memory.size(0) or tokens.size(1) > capacity:
+            raise ValueError("invalid prefill shape/capacity")
+        sizes = tokens.ne(self.pad_idx).sum(-1).tolist() if lengths is None else list(lengths)
+        if len(sizes) != tokens.size(0) or any(
+            type(n) is not int or not 1 <= n <= tokens.size(1) for n in sizes
+        ):
+            raise ValueError("nonempty right-padded prefill required")
+        for row, size in enumerate(sizes):
+            if (
+                tokens[row, :size].eq(self.pad_idx).any()
+                or tokens[row, size:].ne(self.pad_idx).any()
+            ):
+                raise ValueError("prefill must be right padded")
+        cache = create_cache(
+            self, memory, capacity, memory_key_padding_mask, backend or self.attention_backend
+        )
+        outputs = [
+            decode_step(self, tokens[:, i], cache, active=[i < n for n in sizes])
+            for i in range(tokens.size(1))
+        ]
+        return torch.cat(outputs, 1), cache
+
+    def decode_step(self, tokens, cache, **kwargs):
+        from oeis_learn.decoder.inference_cache import decode_step
+
+        return decode_step(self, tokens, cache, **kwargs)

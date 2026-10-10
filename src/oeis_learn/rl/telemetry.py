@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 import logging
 from collections import deque
-from dataclasses import asdict
-from typing import Callable, Deque, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 import numpy as np
-import torch
 from oeis_learn.data.models import DiagnosticTelemetryRecord
 
 logger = logging.getLogger("oeis_learn.telemetry")
@@ -139,8 +137,12 @@ class DiagnosticTelemetryTracker:
         active_stage: int = 1,
     ) -> DiagnosticTelemetryRecord:
         """Records a single training rollout batch and computes rolling statistics."""
+        import math
+
+        if not math.isfinite(reward_variance) or reward_variance < 0:
+            raise ValueError("finite actual population reward variance required")
         self.variance_window.append(reward_variance)
-        self.zero_variance_flags.append(reward_variance < 1e-6)
+        self.zero_variance_flags.append(reward_variance == 0)
         self.trap_window.append(compiler_trapped)
         self.prefix_window.append(prefix_length)
         self.entropy_history.append(policy_entropy)
@@ -174,7 +176,9 @@ class DiagnosticTelemetryTracker:
                 f"Premature Entropy Collapse: entropy={rec.policy_entropy:.4f} < {self.entropy_min}"
             )
         elif len(self.entropy_history) >= 5:
-            recent_drop = (self.entropy_history[-5] - rec.policy_entropy) / max(1e-4, self.entropy_history[-5])
+            recent_drop = (self.entropy_history[-5] - rec.policy_entropy) / max(
+                1e-4, self.entropy_history[-5]
+            )
             if recent_drop > 0.70:
                 warnings.append(
                     f"Rapid Entropy Decay: dropped {recent_drop * 100:.1f}% over last 5 steps"

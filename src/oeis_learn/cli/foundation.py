@@ -18,6 +18,9 @@ _SUPPORTED_COMMANDS = frozenset(
         "preflight",
         "qualify-repairs",
         "activate-qualified",
+        "qualify-learning",
+        "learning-train",
+        "learning-search",
         "conformance",
         "freeze-cohort",
         "evaluate",
@@ -112,6 +115,9 @@ def dispatch(command: str, **kwargs) -> int:
         "preflight": cmd_preflight,
         "qualify-repairs": cmd_qualify_repairs,
         "activate-qualified": cmd_activate_qualified,
+        "qualify-learning": cmd_qualify_learning,
+        "learning-train": cmd_learning_train,
+        "learning-search": cmd_learning_search,
         "conformance": cmd_conformance,
         "freeze-cohort": cmd_freeze_cohort,
         "evaluate": cmd_evaluate,
@@ -337,7 +343,9 @@ def cmd_qualify_repairs(output, as_json=False):
     return _phase4_command("qualify-repairs", lambda: run_qualification(output), as_json)
 
 
-def cmd_activate_qualified(config, gate_report, profiles, as_json=False):
+def cmd_activate_qualified(
+    config, gate_report, profiles, as_json=False, learning_gate_report=None, diagnostic=False
+):
     from oeis_learn.experiments.config import load_qualified_config
 
     def operation():
@@ -351,11 +359,312 @@ def cmd_activate_qualified(config, gate_report, profiles, as_json=False):
             g7_report=load_json(Path(gate_report).read_bytes()),
             evidence_root=Path(gate_report).parent,
             resolve=resolve,
+            g8_report=None
+            if learning_gate_report is None
+            else load_json(Path(learning_gate_report).read_bytes()),
+            g8_evidence_root=None
+            if learning_gate_report is None
+            else Path(learning_gate_report).parent,
+            diagnostic=diagnostic,
         )
         return {
+            "g8_sha256": services.g8_sha256,
+            "diagnostic": services.diagnostic,
             "contract_sha256": services.contract_sha256,
             "g7_sha256": services.g7_sha256,
             "capabilities": list(services.capabilities),
         }
 
     return _phase4_command("activate-qualified", operation, as_json)
+
+
+def cmd_qualify_learning(output, hardware=False, as_json=False):
+    from oeis_learn.evaluation.learning_gate import run_qualification
+
+    report = run_qualification(output, hardware=hardware)
+    print(
+        json.dumps(report)
+        if as_json
+        else f"G8 software={report['software_status']} hardware={report['hardware_status']}"
+    )
+    return (
+        0
+        if report["software_status"] == "PASS"
+        and (not hardware or report["hardware_status"] == "PASS")
+        else 4
+    )
+
+
+def _learning_services(config, gate_report, learning_gate_report, profiles, diagnostic):
+    from oeis_learn.experiments.config import load_qualified_config
+
+    root = Path(profiles)
+
+    def resolve(key):
+        return load_json((root / (key[7:] + ".json")).read_bytes())
+
+    return load_qualified_config(
+        config,
+        g7_report=load_json(Path(gate_report).read_bytes()),
+        evidence_root=Path(gate_report).parent,
+        g8_report=load_json(Path(learning_gate_report).read_bytes()),
+        g8_evidence_root=Path(learning_gate_report).parent,
+        resolve=resolve,
+        diagnostic=diagnostic,
+    ), resolve
+
+
+def cmd_learning_train(
+    config,
+    gate_report,
+    learning_gate_report,
+    profiles,
+    archive,
+    output,
+    updates=1,
+    seed=20260913,
+    device="cuda",
+    diagnostic=False,
+    resume=None,
+    as_json=False,
+):
+    """Bounded real training. Diagnostic CPU runs never advertise qualification."""
+
+    def operation():
+        import torch
+        from oeis_learn.discovery.program_archive import ProgramArchive
+        from oeis_learn.experiments.learning_profiles import load_holdouts
+        from oeis_learn.rl.replay import FrozenReplay
+        from oeis_learn.rl.sft_trainer import replay_update
+        from oeis_learn.tracking.training_checkpoint import (
+            QualifiedCheckpointStore,
+            capture_learning_state,
+            restore_learning_state,
+        )
+        from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+        from oeis_learn.sandbox.pipeline import runtime_identity
+
+        services, resolve = _learning_services(
+            config, gate_report, learning_gate_report, profiles, diagnostic
+        )
+        contract = load_json(Path(config).read_bytes())
+        if (
+            type(updates) is not int
+            or not 1 <= updates <= 100
+            or type(seed) is not int
+            or not 0 <= seed < 2**63
+        ):
+            raise ValueError("bounded updates and named seed required")
+        if "replay" not in services.capabilities:
+            raise ValueError("explicit replay capability required")
+        holdouts = load_holdouts(resolve(contract["profiles"]["admission"]))
+        program_archive = ProgramArchive(archive, holdouts=holdouts)
+        torch.manual_seed(seed)
+        encoder, decoder, counts = services.models(device)
+        model_profile = services._settings("learning")["model_profile"]
+        optimizer = torch.optim.AdamW(
+            list(encoder.parameters()) + list(decoder.parameters()), lr=0.0003, weight_decay=0.01
+        )
+        replay = FrozenReplay(program_archive)
+        generic = [
+            key
+            for key, value in program_archive.training_view(replay.snapshot)
+            if value["entry"]["origin"] == "generic_sample"
+        ]
+        if not generic:
+            raise ValueError("verified generic training complement is empty")
+        runtime = digest(runtime_identity("rust"))
+        store = QualifiedCheckpointStore(output, free_floor_bytes=0 if diagnostic else 100 << 30)
+        from oeis_learn.tracking.budget_ledger import BudgetLedger
+        from oeis_learn.experiments.artifacts import atomic_write, ArtifactPath, canonical_bytes
+
+        run_inputs = {
+            "contract": services.contract_sha256,
+            "profile": model_profile["identity_sha256"],
+            "archive_root": replay.snapshot["root_sha256"],
+            "seed": seed,
+            "budget_ns": 300_000_000_000,
+        }
+        atomic_write(
+            ArtifactPath(Path(output), "learning-inputs.json"), canonical_bytes(run_inputs)
+        )
+        ledger = BudgetLedger(output, digest(run_inputs), run_inputs["budget_ns"])
+        ledger.transition("recovery" if resume else "training")
+        sampler_state = {"seed": seed, "cursor": 0}
+        previous = None
+        completed = 0
+        policy = None
+        objective = model_profile["objective"]
+        runner = services.runner(Path(output) / "runtime")
+        try:
+            if objective != "sft":
+                from oeis_learn.rl.trainer import EgcaGrpoTrainer
+                from oeis_learn.curriculum.scheduler import CurriculumScheduler
+
+                policy = EgcaGrpoTrainer(
+                    encoder,
+                    decoder,
+                    CurriculumScheduler(),
+                    wasm_runner=runner,
+                    objective=objective,
+                    seed=seed,
+                    max_program_length=1023,
+                    device=torch.device(device),
+                )
+                optimizer = policy.optimizer
+            if resume:
+                manifest, base, state = store.load_learning(
+                    resume,
+                    expected_contract=services.contract_sha256,
+                    expected_profile=model_profile["identity_sha256"],
+                    expected_runtime=runtime,
+                )
+                sampler_state, _ = restore_learning_state(
+                    state,
+                    encoder,
+                    decoder,
+                    optimizer,
+                    replay=replay,
+                    reference=None if policy is None else policy.reference,
+                    curriculum=None if policy is None else policy.scheduler,
+                )
+                if (
+                    base["ledger_sequence"] > ledger.state["sequence"]
+                    or base["charged_budget_ns"] > ledger.state["charged_budget_ns"]
+                ):
+                    raise ValueError("checkpoint exceeds the durable budget ledger")
+                previous = manifest["qualified"]["identity_sha256"]
+                completed = base["completed_update"]
+                if policy is not None:
+                    policy.rollout_cursor = sampler_state["policy_cursor"]
+            metrics = []
+            ledger.transition("training")
+            for _ in range(updates):
+                if ledger.remaining_ns() <= 0:
+                    raise RuntimeError("bounded training session deadline exhausted")
+                cursor = sampler_state["cursor"]
+                generic_batch = [generic[(cursor * 3 + i) % len(generic)] for i in range(3)]
+                result = replay_update(
+                    encoder, decoder, optimizer, replay, generic=generic_batch, device=device
+                )
+                if policy is not None:
+                    from oeis_learn.rl.trainer import TrainingPrompt
+
+                    value = program_archive.get(generic[cursor % len(generic)])
+                    result["policy"] = policy.train_step_for_prompt(
+                        TrainingPrompt(
+                            prompt_id="training-" + generic[cursor % len(generic)][7:23],
+                            terms=tuple(int(v) for v in value["entry"]["conditioning_values"]),
+                            curriculum_stage=1,
+                        ),
+                        group_size=4,
+                    )
+                    sampler_state["policy_cursor"] = policy.rollout_cursor
+                sampler_state["cursor"] += 1
+                completed += 1
+                metrics.append(result)
+                state = capture_learning_state(
+                    encoder,
+                    decoder,
+                    optimizer,
+                    sampler=sampler_state,
+                    prefetch={"archive_root_sha256": replay.snapshot["root_sha256"], "next": []},
+                    replay=replay,
+                    reference=None if policy is None else policy.reference,
+                    curriculum=None if policy is None else policy.scheduler,
+                )
+                budget = ledger.transition("checkpoint")
+                path = store.save_learning(
+                    state,
+                    contract_sha256=services.contract_sha256,
+                    profile_sha256=model_profile["identity_sha256"],
+                    runtime_sha256=runtime,
+                    ledger_sequence=budget["sequence"],
+                    charged_budget_ns=budget["charged_budget_ns"],
+                    completed_update=completed,
+                    previous=previous,
+                )
+                previous = load_json(path.read_bytes())["qualified"]["identity_sha256"]
+                ledger.transition("training")
+            ledger.transition("paused")
+            return {
+                "command": "learning-train",
+                "status": "complete",
+                "qualified": not diagnostic,
+                "objective": objective,
+                "parameters": counts,
+                "updates": updates,
+                "checkpoint": str(path),
+                "metrics": metrics,
+            }
+        except BaseException:
+            ledger.transition("failed")
+            raise
+        finally:
+            runner.close()
+
+    return _phase4_command("learning-train", operation, as_json)
+
+
+def cmd_learning_search(
+    config,
+    gate_report,
+    learning_gate_report,
+    profiles,
+    archive,
+    checkpoint,
+    prompt,
+    output,
+    portfolio="portfolio32",
+    device="cuda",
+    diagnostic=False,
+    as_json=False,
+):
+    def operation():
+        from oeis_learn.discovery.program_archive import ProgramArchive
+        from oeis_learn.experiments.learning_profiles import load_holdouts
+        from oeis_learn.evaluation.search import SearchSession, ModelProposer
+        from oeis_learn.tracking.training_checkpoint import QualifiedCheckpointStore
+        from oeis_learn.experiments.artifacts import (
+            compute_canonical_digest as digest,
+            canonical_bytes,
+            atomic_write,
+            ArtifactPath,
+        )
+        from oeis_learn.sandbox.pipeline import runtime_identity
+
+        services, resolve = _learning_services(
+            config, gate_report, learning_gate_report, profiles, diagnostic
+        )
+        if "search" not in services.capabilities:
+            raise ValueError("search capability disabled")
+        contract = load_json(Path(config).read_bytes())
+        model = services._settings("learning")["model_profile"]
+        encoder, decoder, counts = services.models(device)
+        store = QualifiedCheckpointStore(Path(checkpoint).parent, free_floor_bytes=0)
+        _, _, state = store.load_learning(
+            checkpoint,
+            expected_contract=services.contract_sha256,
+            expected_profile=model["identity_sha256"],
+            expected_runtime=digest(runtime_identity("rust")),
+        )
+        encoder.load_state_dict(state["encoder"])
+        decoder.load_state_dict(state["decoder"])
+        visible = load_json(Path(prompt).read_bytes())
+        if set(visible) != {"values"}:
+            raise ValueError("proposer accepts visible values only")
+        program_archive = ProgramArchive(
+            archive, holdouts=load_holdouts(resolve(contract["profiles"]["admission"]))
+        )
+        snapshot = state["replay"]["snapshot"]
+        session = SearchSession.with_archive(
+            visible["values"], program_archive, snapshot, portfolio=portfolio
+        )
+        with services.runner(Path(output) / "runtime") as runner:
+            report = session.run(ModelProposer(encoder, decoder), runner)
+        report["qualified"] = not diagnostic
+        report["parameters"] = counts
+        atomic_write(ArtifactPath(Path(output), "search.json"), canonical_bytes(report))
+        return report
+
+    return _phase4_command("learning-search", operation, as_json)

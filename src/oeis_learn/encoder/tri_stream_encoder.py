@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from oeis_learn.encoder.difference_stream import DifferenceStreamEncoder
 from oeis_learn.encoder.film_fusion import HierarchicalFilmFusion
-from oeis_learn.encoder.heads import SummaryRegressionHeads, TriStreamPredictionHeads
 from oeis_learn.encoder.magnitude_stream import MagnitudeStream
 from oeis_learn.encoder.modulo_stream import ModuloStreamEncoder
 
@@ -54,7 +53,7 @@ class TriStreamEncoder(nn.Module):
         max_seq_len: int = 128,
         primes: Optional[Sequence[int]] = None,
         max_valuation: int = 16,
-        moduli_count: int = 16,
+        moduli_count: int = 100,
         base_moduli: Optional[Sequence[int]] = None,
         use_film: bool = True,
         enable_summary_tokens: bool = False,
@@ -68,7 +67,11 @@ class TriStreamEncoder(nn.Module):
         # Streams
         self.s1_magnitude = MagnitudeStream(d_model=d_model, d_ff=d_ff, dropout=dropout)
         self.s2_modulo = ModuloStreamEncoder(
-            d_model=d_model, primes=base_moduli if base_moduli is not None else primes, dropout=dropout
+            d_model=d_model,
+            primes=base_moduli
+            if base_moduli is not None
+            else (primes if primes is not None else list(range(2, 2 + moduli_count))),
+            dropout=dropout,
         )
         self.s3_diff_padic = DifferenceStreamEncoder(
             d_model=d_model, primes=primes, max_valuation=max_valuation, dropout=dropout
@@ -81,11 +84,15 @@ class TriStreamEncoder(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
         )
-        self.fusion = HierarchicalFilmFusion(d_model=d_model, dropout=dropout)
+        self.fusion = HierarchicalFilmFusion(d_model=d_model, dropout=dropout) if use_film else None
+        if use_film:
+            self.concat_projection = None
 
         # Learnable global summary tokens: [z_affine, z_geom]
         if self.enable_summary_tokens:
-            self.summary_tokens = nn.Parameter(torch.randn(1, 2, d_model, dtype=torch.float32) * 0.02)
+            self.summary_tokens = nn.Parameter(
+                torch.randn(1, 2, d_model, dtype=torch.float32) * 0.02
+            )
         else:
             self.summary_tokens = None
 
@@ -107,8 +114,7 @@ class TriStreamEncoder(nn.Module):
         self.final_norm = nn.LayerNorm(d_model, dtype=torch.float32)
 
         # Auxiliary heads
-        self.aux_heads = TriStreamPredictionHeads(d_model=d_model)
-        self.summary_heads = SummaryRegressionHeads(d_model=d_model)
+        # Auxiliary heads belong to an explicit measured objective, not the SFT optimizer.
 
     def forward_from_sequences(
         self,
@@ -143,14 +149,16 @@ class TriStreamEncoder(nn.Module):
             fused = self.fusion(s1, s2, s3)
         else:
             cat_features = torch.cat([s1, s2, s3], dim=-1)  # (batch, seq_len, 3 * d_model)
-            fused = self.concat_projection(cat_features)    # (batch, seq_len, d_model)
+            fused = self.concat_projection(cat_features)  # (batch, seq_len, d_model)
 
         # Prepend learnable summary tokens: [z_affine, z_geom, s_0, ..., s_19]
         if self.enable_summary_tokens and self.summary_tokens is not None:
             sum_tokens = self.summary_tokens.expand(batch_size, -1, -1)
             fused = torch.cat([sum_tokens, fused], dim=1)  # (batch, 2 + seq_len, d_model)
             if pad_mask is not None:
-                false_prefix = torch.zeros((batch_size, 2), dtype=torch.bool, device=pad_mask.device)
+                false_prefix = torch.zeros(
+                    (batch_size, 2), dtype=torch.bool, device=pad_mask.device
+                )
                 pad_mask = torch.cat([false_prefix, pad_mask], dim=1)
 
         # Add positional encoding
@@ -165,21 +173,5 @@ class TriStreamEncoder(nn.Module):
             raise FloatingPointError("TriStreamEncoder produced NaN or Inf in output activations.")
 
         from typing import cast
-        return cast(torch.Tensor, encoded)
 
-        # Hierarchical FiLM fusion
-        fused = self.fusion(s1, s2, s3)
-
-        # Add positional encoding
-        embedded = self.pos_encoder(fused)
-
-        # Transformer Encoding
-        encoded = self.transformer_encoder(embedded, src_key_padding_mask=pad_mask)
-        encoded = self.final_norm(encoded)
-
-        # Sanity check for numerical stability
-        if torch.isnan(encoded).any() or torch.isinf(encoded).any():
-            raise FloatingPointError("TriStreamEncoder produced NaN or Inf in output activations.")
-
-        from typing import cast
         return cast(torch.Tensor, encoded)

@@ -141,3 +141,41 @@ def lower_body(program) -> str:
     locals_ = " ".join(f"(local {n} i64)" for n in I64_LOCAL_NAMES)
     locals_ += " " + " ".join(f"(local {n} i32)" for n in I32_LOCAL_NAMES)
     return f'(module {extract_preamble_funcs()} (func (export "compute") (param $n i32) (result i64 i64 i64 i64) {locals_} {emit(program.instructions)}))'
+
+
+def lower_with_map(program):
+    """Emit guest instruction sites and block paths, excluding helper internals.
+
+    Maps WAT lowering sites; it does not claim instrumented native byte offsets.
+    """
+    from oeis_learn.sandbox.wat_ast import Instruction, Program
+
+    mapping, identities = [], {}
+
+    def nodes(items, path=()):
+        emitted = []
+        for ordinal, node in enumerate(items):
+            node_id = len(mapping)
+            logical_path = path + (ordinal,)
+            identities[id(node)] = node_id
+            mapping.append(
+                {"instruction_id": node_id, "op": node.op, "logical_path": list(logical_path)}
+            )
+            # Unique no-op comment marker, emitted through the same AST lowerer.
+            marker = Instruction(f"(;;oeis-site-{node_id};;) ")
+            mapped = Instruction(
+                node.op,
+                node.arg,
+                nodes(node.body, logical_path + (0,)),
+                nodes(node.otherwise, logical_path + (1,)),
+                node.results,
+                node.has_else,
+            )
+            emitted.extend((marker, mapped))
+        return tuple(emitted)
+
+    annotated = Program(nodes(program.instructions), program.canonical_source, program.body_tokens)
+    lowered = lower_body(annotated)
+    for item in mapping:
+        item["lowered_wat_offset"] = lowered.index(f"(;;oeis-site-{item['instruction_id']};;)")
+    return lowered, mapping, identities

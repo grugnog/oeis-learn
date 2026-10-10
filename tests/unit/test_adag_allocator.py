@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from oeis_learn.curriculum.symple_bandit import AdaGGroupAllocator, Exp3SBanditScheduler
 from oeis_learn.rl.egca_grpo import inject_virtual_sample_if_needed
 
@@ -13,12 +12,12 @@ def test_adag_group_allocation():
 
     # Simulate A000001 as hard frontier (p=0.05), A000002 as easier (p=0.50)
     for _ in range(19):
-        bandit.update_feedback("A000001", success_count=0, group_size=1)
-    bandit.update_feedback("A000001", success_count=1, group_size=1)
+        bandit.update_feedback("A000001", success_count=0, group_size=1, elapsed_s=0.1)
+    bandit.update_feedback("A000001", success_count=1, group_size=1, elapsed_s=0.1)
 
     for _ in range(10):
-        bandit.update_feedback("A000002", success_count=1, group_size=2)
-        bandit.update_feedback("A000002", success_count=0, group_size=2)
+        bandit.update_feedback("A000002", success_count=1, group_size=2, elapsed_s=0.1)
+        bandit.update_feedback("A000002", success_count=0, group_size=2, elapsed_s=0.1)
 
     allocator = AdaGGroupAllocator(total_budget=32, min_g=8, max_g=16)
     group_sizes = allocator.compute_group_sizes(
@@ -38,8 +37,7 @@ def test_virtual_sample_injection_all_failure():
     # When all rollouts fail and sequence has EDB solution
     group_rewards = [0.0, 0.0, 0.0, 0.0]
     injected = inject_virtual_sample_if_needed(group_rewards, has_edb_solution=True)
-    assert len(injected) == 5
-    assert injected[-1] == 1.0
+    assert injected == group_rewards
 
 
 def test_virtual_sample_injection_no_edb():

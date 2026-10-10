@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from typing import Any, Dict, List, Optional, Set, Tuple
-from oeis_learn.curriculum.taxonomy import compute_prompt_difficulty_weight, get_stage_name
+from oeis_learn.curriculum.taxonomy import compute_prompt_difficulty_weight
 from oeis_learn.data.models import CurriculumProgress
 
 
@@ -36,7 +36,9 @@ class CurriculumScheduler:
         self.epoch_competence_history: List[float] = []
         self.graduated_stages: Set[int] = set()
 
-    def register_prompt(self, oeis_id: str, stage: int, tags: Optional[List[str]] = None, term_count: int = 20) -> None:
+    def register_prompt(
+        self, oeis_id: str, stage: int, tags: Optional[List[str]] = None, term_count: int = 20
+    ) -> None:
         """Register a sequence prompt under a specific curriculum stage."""
         if oeis_id not in self.prompt_histories:
             self.prompt_histories[oeis_id] = deque(maxlen=self.window_size)
@@ -50,7 +52,19 @@ class CurriculumScheduler:
         """Record evaluation outcome for a prompt."""
         if oeis_id not in self.prompt_histories:
             self.register_prompt(oeis_id, stage=self.active_stage)
-        self.prompt_histories[oeis_id].append(bool(success))
+        self.record_visit(oeis_id, int(bool(success)), 1)
+
+    def record_visit(self, oeis_id, successes, attempts):
+        if (
+            type(attempts) is not int
+            or attempts <= 0
+            or type(successes) is not int
+            or not 0 <= successes <= attempts
+        ):
+            raise ValueError("valid aggregate visit required")
+        if oeis_id not in self.prompt_histories:
+            self.register_prompt(oeis_id, stage=self.active_stage)
+        self.prompt_histories[oeis_id].append((successes, attempts))
 
     def recalibrate_bandit(self, gamma_floor: float = 0.25) -> None:
         """Recalibrates task selection weights uniformly with exploration floor."""
@@ -63,7 +77,7 @@ class CurriculumScheduler:
         history = self.prompt_histories.get(oeis_id)
         if not history:
             return 0.0
-        return sum(1.0 for x in history if x) / len(history)
+        return sum(s for s, _ in history) / sum(n for _, n in history)
 
     def compute_stage_competence(self, stage: Optional[int] = None) -> Tuple[float, float]:
         """Computes weighted stage competence C(S_k) and minimum coverage min(rho_hat).
@@ -152,3 +166,48 @@ class CurriculumScheduler:
             epoch_variance=self.compute_epoch_variance(),
             graduated_stages=sorted(list(self.graduated_stages)),
         )
+
+    def state_dict(self):
+        from copy import deepcopy
+
+        return deepcopy(
+            {
+                "version": "stage-curriculum/v1",
+                "rng": None,
+                "active_stage": self.active_stage,
+                "settings": [
+                    self.competence_threshold,
+                    self.coverage_min_threshold,
+                    self.variance_threshold,
+                    self.window_size,
+                ],
+                "histories": {key: list(value) for key, value in self.prompt_histories.items()},
+                "metadata": self.prompt_metadata,
+                "epoch_competence": self.epoch_competence_history,
+                "graduated": sorted(self.graduated_stages),
+            }
+        )
+
+    def load_state_dict(self, state):
+        from copy import deepcopy
+
+        if state["version"] != "stage-curriculum/v1" or state["settings"] != [
+            self.competence_threshold,
+            self.coverage_min_threshold,
+            self.variance_threshold,
+            self.window_size,
+        ]:
+            raise ValueError("incompatible stage curriculum state")
+        for visits in state["histories"].values():
+            if len(visits) > self.window_size or any(
+                type(n) is not int or type(s) is not int or not 0 <= s <= n or n <= 0
+                for s, n in visits
+            ):
+                raise ValueError("invalid aggregate curriculum visits")
+        self.prompt_histories = {
+            key: deque(value, maxlen=self.window_size) for key, value in state["histories"].items()
+        }
+        self.prompt_metadata = deepcopy(state["metadata"])
+        self.active_stage = state["active_stage"]
+        self.epoch_competence_history = list(state["epoch_competence"])
+        self.graduated_stages = set(state["graduated"])

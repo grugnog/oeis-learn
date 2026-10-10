@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import random
 from typing import Dict, List, Optional, Tuple
@@ -20,8 +19,12 @@ class EliteSeedDemonstrationBuffer:
     and SYMPLE vulnerability-weighted SFT replay.
     """
 
-    def __init__(self, capacity_per_seq: int = 4):
+    def __init__(self, capacity_per_seq: int = 4, context_limit: int = 1024):
+        if not 1 <= capacity_per_seq <= 4:
+            raise ValueError("at most four training implementations per output")
         self.capacity_per_seq = capacity_per_seq
+        self.context_limit = context_limit
+        self.training_entries = set()
         self.entries: Dict[str, EliteReplayBufferEntry] = {}
         self.canonical_archive: Dict[str, List[EliteDemonstrationEntry]] = {}
         self.last_visited: Dict[str, int] = {}
@@ -29,7 +32,7 @@ class EliteSeedDemonstrationBuffer:
         self.last_replay_visit: Dict[str, int] = {}
         self.discovery_step: Dict[str, int] = {}
         self.last_verified_step: Dict[str, int] = {}
-        self._populate_canonical_defaults()
+        # Legacy canonical teachers are inspection-only and never implicitly seeded.
 
     def record_active_visit(self, oeis_id: str, step: int) -> None:
         """Records active task exploration step."""
@@ -42,15 +45,7 @@ class EliteSeedDemonstrationBuffer:
 
     def add_entry(self, entry: EliteReplayBufferEntry) -> None:
         """Adds or updates a verified canonical program entry."""
-        self.entries[entry.oeis_id] = entry
-        self.add_canonical_entry(
-            oeis_id=entry.oeis_id,
-            wat_code=entry.wat_code,
-            terms=entry.terms,
-            fuel=10,
-            step=0,
-        )
-        logger.debug(f"Added elite reference solution for {entry.oeis_id} (source: {entry.source})")
+        self.add_canonical_entry(entry.oeis_id, entry.wat_code, entry.terms, step=0)
 
     def add_canonical_entry(
         self,
@@ -61,11 +56,21 @@ class EliteSeedDemonstrationBuffer:
         step: int = 0,
     ) -> None:
         """Stores a verified canonical AST program in the sequence archive, bounded by capacity and deduplicated."""
-        tokens = tokenize_wat(wat_code)
-        if len(tokens) > 512:
-            logger.warning(f"Rejecting candidate for {oeis_id}: token length {len(tokens)} exceeds maximum limit 512.")
-            return
+        from oeis_learn.sandbox.runner import WasmRunner
+        from oeis_learn.decoder.grounding_reference import scalar_value
+        from oeis_learn.discovery.program_archive import eligibility
 
+        if not 1 <= len(terms) <= 100 or any(type(v) is not int for v in terms):
+            raise ValueError("real exact conditioning/validation terms required")
+        eligible, _, _ = eligibility(wat_code, self.context_limit, codec="legacy")
+        # Independent straight-line scalar inspection. Other legacy forms must
+        # use strict archive admission; native success alone is not evidence.
+        reference = [scalar_value(wat_code, i) for i in range(len(terms))]
+        result = WasmRunner().run_single(wat_code, terms_to_generate=len(terms))
+        if reference != terms or result.status != "SUCCESS" or result.output != terms:
+            raise ValueError("legacy admission mismatch; archive views unchanged")
+        tokens = tokenize_wat(wat_code)
+        fuel = result.total_fuel
         canonical_str = " ".join(tokens)
         ast_hash = hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
 
@@ -98,9 +103,9 @@ class EliteSeedDemonstrationBuffer:
             terms=terms,
             wat_code=wat_code,
             byte_size=len(wat_code.encode("utf-8")),
-            extrapolation_passed=True,
+            extrapolation_passed=len(terms) > 20,
             mdl_ratio=1.0,
-            source="SYMPLE_DISCOVERY",
+            source="LEGACY_INSPECTION",
         )
         self.last_visited[oeis_id] = step
 
@@ -117,7 +122,11 @@ class EliteSeedDemonstrationBuffer:
 
         Returns list of (oeis_id, shortest_canonical_wat).
         """
-        valid_sids = [sid for sid, items in self.canonical_archive.items() if items]
+        valid_sids = [
+            sid
+            for sid, items in self.canonical_archive.items()
+            if items and sid in self.training_entries
+        ]
         if not valid_sids:
             return []
 
@@ -137,7 +146,9 @@ class EliteSeedDemonstrationBuffer:
         for sid in chosen_sids:
             self.record_replay_visit(str(sid), current_step)
 
-        return [(str(sid), self.canonical_archive[str(sid)][0].canonical_wat) for sid in chosen_sids]
+        return [
+            (str(sid), self.canonical_archive[str(sid)][0].canonical_wat) for sid in chosen_sids
+        ]
 
     def get_entry(self, oeis_id: str) -> Optional[EliteReplayBufferEntry]:
         """Retrieves a reference solution for a prompt sequence ID if available."""
@@ -151,10 +162,10 @@ class EliteSeedDemonstrationBuffer:
         rng: Optional[random.Random] = None,
     ) -> Optional[EliteReplayBufferEntry]:
         """Samples a random verified demonstration from the buffer to preserve multi-modal diversity."""
-        if not self.entries:
+        if not self.training_entries:
             return None
         chooser = rng if rng is not None else random
-        return chooser.choice(list(self.entries.values()))
+        return chooser.choice([self.entries[sid] for sid in sorted(self.training_entries)])
 
     def __len__(self) -> int:
         return len(self.entries)
@@ -252,7 +263,28 @@ class EliteSeedDemonstrationBuffer:
         self.add_entry(
             EliteReplayBufferEntry(
                 oeis_id="A000045",
-                terms=[0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181],
+                terms=[
+                    0,
+                    1,
+                    1,
+                    2,
+                    3,
+                    5,
+                    8,
+                    13,
+                    21,
+                    34,
+                    55,
+                    89,
+                    144,
+                    233,
+                    377,
+                    610,
+                    987,
+                    1597,
+                    2584,
+                    4181,
+                ],
                 wat_code="""(module
   (func (export "compute") (param $n i32) (result i64)
     (local $a i64)
@@ -341,7 +373,28 @@ class EliteSeedDemonstrationBuffer:
         self.add_entry(
             EliteReplayBufferEntry(
                 oeis_id="A000032",
-                terms=[2, 1, 3, 4, 7, 11, 18, 29, 47, 76, 123, 199, 322, 521, 843, 1364, 2207, 3571, 5778, 9349],
+                terms=[
+                    2,
+                    1,
+                    3,
+                    4,
+                    7,
+                    11,
+                    18,
+                    29,
+                    47,
+                    76,
+                    123,
+                    199,
+                    322,
+                    521,
+                    843,
+                    1364,
+                    2207,
+                    3571,
+                    5778,
+                    9349,
+                ],
                 wat_code="""(module
   (func (export "compute") (param $n i32) (result i64)
     (local $a i64)
@@ -375,7 +428,28 @@ class EliteSeedDemonstrationBuffer:
         self.add_entry(
             EliteReplayBufferEntry(
                 oeis_id="A000129",
-                terms=[0, 1, 2, 5, 12, 29, 70, 169, 408, 985, 2378, 5741, 13860, 33461, 80782, 195025, 470832, 1136689, 2744210, 6625109],
+                terms=[
+                    0,
+                    1,
+                    2,
+                    5,
+                    12,
+                    29,
+                    70,
+                    169,
+                    408,
+                    985,
+                    2378,
+                    5741,
+                    13860,
+                    33461,
+                    80782,
+                    195025,
+                    470832,
+                    1136689,
+                    2744210,
+                    6625109,
+                ],
                 wat_code="""(module
   (func (export "compute") (param $n i32) (result i64)
     (local $a i64)
@@ -537,28 +611,23 @@ class EliteSeedDemonstrationBuffer:
                 step=0,
             )
 
-    def inject_into_prompt_group(
-        self,
-        oeis_id: str,
-        candidates: List[str],
-        rewards: List[float],
-        injection_reward: float = 1.0,
-    ) -> Tuple[List[str], List[float], bool]:
-        """Injects a verified canonical trajectory if all sampled candidates failed (all rewards <= 0).
+    def inject_into_prompt_group(self, oeis_id, candidates, rewards):
+        """Compatibility API: imported teachers never become on-policy trajectories."""
+        return list(candidates), list(rewards), False
 
-        Returns (updated_candidates, updated_rewards, was_injected).
-        """
-        all_failed = all(r <= 0.0 for r in rewards) if rewards else True
-        if all_failed and self.has_entry(oeis_id):
-            entry = self.get_entry(oeis_id)
-            if entry is not None:
-                new_cands = list(candidates)
-                new_rews = list(rewards)
-                if new_cands:
-                    new_cands[0] = entry.wat_code
-                    new_rews[0] = injection_reward
-                else:
-                    new_cands.append(entry.wat_code)
-                    new_rews.append(injection_reward)
-                return new_cands, new_rews, True
-        return candidates, rewards, False
+    def admit_from_archive(self, archive, key, oeis_id):
+        value = archive.get(key)
+        if not value["entry"]["training_eligible"]:
+            raise ValueError("ineligible archive entry cannot reach legacy training view")
+        # The strict complete codec is different from legacy module tokens.
+        # This view is retained for inspection; qualified replay reads the same
+        # immutable archive directly with its declared codec.
+        self.entries[oeis_id] = EliteReplayBufferEntry(
+            oeis_id,
+            [int(v) for v in value["entry"]["conditioning_values"]],
+            value["source"],
+            len(value["source"].encode()),
+            bool(value["entry"]["validation_indices"]),
+            1.0,
+            value["entry"]["origin"],
+        )

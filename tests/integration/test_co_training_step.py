@@ -23,7 +23,9 @@ def test_co_training_step_executes_with_sft_blending_and_kl():
     # Pre-populate elite buffer with canonical sequence A000217
     terms = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120, 136, 153, 171, 190]
     wat_code = '(module (func (export "compute") (param $n i32) (result i64) local.get $n i64.extend_i32_s local.get $n i64.extend_i32_s i64.const 1 i64.add i64.mul i64.const 2 i64.div_s))'
-    elite_buffer.add_entry(EliteReplayBufferEntry(oeis_id="A000217", terms=terms, wat_code=wat_code))
+    elite_buffer.add_entry(
+        EliteReplayBufferEntry(oeis_id="A000217", terms=terms, wat_code=wat_code)
+    )
 
     trainer = EgcaGrpoTrainer(
         encoder=encoder,
@@ -32,7 +34,8 @@ def test_co_training_step_executes_with_sft_blending_and_kl():
         elite_buffer=elite_buffer,
         ref_decoder=ref_decoder,
         rollout_group_size=4,
-        beta_sft=0.20,
+        beta_sft=0.0,
+        ref_encoder=TriStreamEncoder(d_model=64, n_heads=2, n_encoder_layers=2),
         beta_kl=0.05,
         alpha_ent=0.01,
     )
@@ -57,11 +60,24 @@ def test_decoder_padding_mask_prevents_gradient_leak():
     memory = torch.randn(2, 10, 64)
 
     # Batch of 2 with padding tokens at the end
-    tgt = torch.tensor([
-        [1, 5, 10, 20, PAD_ID, PAD_ID],
-        [1, 8, 12, 15, 18, 2],
-    ], dtype=torch.long)
+    tgt = torch.tensor(
+        [
+            [1, 5, 10, 20, PAD_ID, PAD_ID],
+            [1, 8, 12, 15, 18, 2],
+        ],
+        dtype=torch.long,
+    )
 
     logits = decoder(tgt, memory)
     assert logits.shape == (2, 6, decoder.vocab_size)
     assert not torch.isnan(logits).any()
+
+
+def test_old_teacher_blending_is_explicitly_rejected():
+    with pytest.raises(ValueError, match="unsupported legacy"):
+        EgcaGrpoTrainer(
+            TriStreamEncoder(d_model=16, n_heads=2, n_encoder_layers=1, d_ff=32),
+            WatTransformerDecoder(d_model=16, n_heads=2, n_decoder_layers=1, d_ff=32),
+            CurriculumScheduler(),
+            enable_cgi=True,
+        )

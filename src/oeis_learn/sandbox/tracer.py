@@ -1,167 +1,80 @@
-"""Execution Trace Analyzer for fine-grained credit assignment, divergence localization, and coverage tracking."""
+"""Real reference events; unsupported native/token-causal traces fail explicitly."""
 
-from __future__ import annotations
-
-from typing import List, Optional, Sequence, Tuple
-from oeis_learn.data.models import ExecutionResult, FineGrainedAttributionSpan
-from oeis_learn.decoder.wat_grammar import TOKEN_TO_ID, tokenize_wat
+from oeis_learn.data.models import FineGrainedAttributionSpan
 
 
-def classify_failure_mode(
-    exec_result: ExecutionResult,
-    target_terms: Sequence[int],
-) -> str:
-    """Classifies rollout outcome into priority-ordered failure modes:
-
-    SYNTAX -> CONSTRAINT -> LOGIC -> CORRECT.
-    """
+def classify_failure_mode(exec_result, target_terms):
     if exec_result.status in ("PARSE_ERROR", "COMPILE_ERROR", "MISSING_ENTRYPOINT", "CONFIG_ERROR"):
         return "SYNTAX"
-
     if exec_result.status in ("OUT_OF_FUEL", "EXECUTION_TRAP"):
         return "CONSTRAINT"
-
-    if exec_result.status == "SUCCESS":
-        check_len = min(len(target_terms), len(exec_result.output))
-        if check_len > 0 and exec_result.output[:check_len] == list(target_terms[:check_len]):
-            return "CORRECT"
-        return "LOGIC"
-
+    if exec_result.status == "SUCCESS" and list(exec_result.output) == list(target_terms):
+        return "CORRECT"
     return "LOGIC"
 
 
-def locate_divergence_token_span(
-    wat_code: str,
-    divergence_step: Optional[int],
-    total_tokens: int,
-) -> Tuple[int, int]:
-    """Maps the sequence term divergence index n_diverge to token span [t_start, t_end].
-
-    If program failed on initial terms, concentrates credit on arithmetic/loop body.
-    """
-    tokens = tokenize_wat(wat_code)
-    n_tok = len(tokens)
-
-    if divergence_step is None or divergence_step < 0:
-        return 0, max(1, min(n_tok, total_tokens))
-
-    # Locate arithmetic or loop instructions in the program body
-    body_start = 0
-    for idx, tok in enumerate(tokens):
-        if tok in ("result", "local") and idx + 3 < n_tok:
-            body_start = idx + 3
-
-    body_end = n_tok - 1
-    for idx in range(n_tok - 1, -1, -1):
-        if tokens[idx] == ")":
-            body_end = idx
-            break
-
-    t_start = min(body_start, n_tok - 1)
-    t_end = max(t_start + 1, min(body_end, total_tokens))
-
-    return t_start, t_end
+def locate_divergence_token_span(*args, **kwargs):
+    raise ValueError("unsupported: term divergence does not establish a causal token span")
 
 
-def locate_causal_divergence_span(
-    wat_code: str,
-    divergence_step: Optional[int],
-    failure_mode: str,
-    total_tokens: int,
-) -> Tuple[int, int]:
-    """Locates the causal bytecode token span T_k* where execution diverged or failed."""
-    tokens = tokenize_wat(wat_code)
-    n_tok = len(tokens)
-    if n_tok == 0:
-        return 0, max(1, total_tokens)
-
-    if failure_mode == "SYNTAX":
-        # Find earliest unparseable token or header defect
-        err_start = 0
-        for idx, tok in enumerate(tokens):
-            if tok in ("func", "param", "result", "local"):
-                err_start = max(0, idx - 1)
-        return err_start, min(n_tok, total_tokens)
-
-    if failure_mode in ("CORRECT", "CONSTRAINT"):
-        return 0, min(n_tok, total_tokens)
-
-    # LOGIC failure mode
-    return locate_divergence_token_span(wat_code, divergence_step, total_tokens)
+def locate_causal_divergence_span(*args, **kwargs):
+    raise ValueError("unsupported: no instrumented native causal trace")
 
 
-def extract_token_coverage(wat_code: str) -> List[bool]:
-    """Extracts runtime basic block coverage flags per token position."""
-    tokens = tokenize_wat(wat_code)
-    n_tok = len(tokens)
-    coverage = [True] * n_tok
-
-    # Flag unreachable instructions after unconditional return or br outside loops
-    unreachable = False
-    for idx, tok in enumerate(tokens):
-        if unreachable:
-            if tok == ")":
-                coverage[idx] = True
-                unreachable = False
-            else:
-                coverage[idx] = False
-        elif tok in ("unreachable", "return"):
-            unreachable = True
-
-    return coverage
+def extract_token_coverage(*args, **kwargs):
+    raise ValueError("unsupported: text is not runtime coverage")
 
 
 def build_fine_grained_attribution(
-    wat_code: str,
-    exec_result: ExecutionResult,
-    target_terms: Sequence[int],
-    total_advantage: float,
-    total_tokens: int,
-) -> FineGrainedAttributionSpan:
-    """Constructs localized per-token advantage operator a_{i,t} with downstream zero-masking
-
-    and exact total advantage mass conservation (sum a_{i,t} = A_i).
-    """
-    mode = classify_failure_mode(exec_result, target_terms)
-    t_start, t_end = locate_causal_divergence_span(
-        wat_code=wat_code,
-        divergence_step=exec_result.divergence_step,
-        failure_mode=mode,
-        total_tokens=total_tokens,
-    )
-
-    t_span_len = max(1, t_end - t_start)
-    advantage_vector = [0.0] * total_tokens
-    coverage_mask = extract_token_coverage(wat_code)
-    if len(coverage_mask) < total_tokens:
-        coverage_mask = coverage_mask + [True] * (total_tokens - len(coverage_mask))
-    else:
-        coverage_mask = coverage_mask[:total_tokens]
-
-    if mode in ("CORRECT", "CONSTRAINT"):
-        # Uniform advantage distribution across sequence
-        weight = total_advantage / max(1, total_tokens)
-        for t in range(total_tokens):
-            advantage_vector[t] = weight
-    else:
-        # LOGIC or SYNTAX failure: concentrate total advantage onto causal error span [t_start, t_end]
-        # and zero-mask all downstream tokens (t > t_end) and upstream tokens (t < t_start)
-        weight = total_advantage / float(t_span_len)
-        for t in range(t_start, min(t_end, total_tokens)):
-            if coverage_mask[t]:
-                advantage_vector[t] = weight
-
-        # Conserve total advantage mass exactly
-        curr_sum = sum(advantage_vector)
-        if abs(curr_sum) > 1.0e-8 and abs(curr_sum - total_advantage) > 1.0e-6:
-            scale = total_advantage / curr_sum
-            advantage_vector = [v * scale for v in advantage_vector]
-
+    wat_code, exec_result, target_terms, total_advantage, total_tokens
+):
+    # Whole-trajectory weights are an objective policy, not execution attribution.
     return FineGrainedAttributionSpan(
-        failure_mode=mode,
-        divergence_step=exec_result.divergence_step,
-        causal_token_start=t_start,
-        causal_token_end=t_end,
-        token_advantage_mask=advantage_vector,
-        executed_token_mask=coverage_mask,
+        classify_failure_mode(exec_result, target_terms),
+        exec_result.divergence_step,
+        0,
+        0,
+        [total_advantage / max(1, total_tokens)] * total_tokens,
+        [],
     )
+
+
+def trace_program(source, index, *, mode="reference", max_events=10000):
+    import time
+    from oeis_learn.sandbox.wat_ast import parse
+    from oeis_learn.sandbox.lowering import lower_with_map
+    from oeis_learn.sandbox.reference import Interpreter
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+
+    if mode != "reference":
+        return {"status": "unsupported", "reason": "native runtime events are not instrumented"}
+    if type(max_events) is not int or not 1 <= max_events <= 10000:
+        raise ValueError("bounded trace event cap required")
+    if type(index) is not int or not 0 <= index <= 99:
+        raise ValueError("exact rebased index required")
+    program = parse(source)
+    lowered, mapping, nodes = lower_with_map(program)
+    events = []
+
+    def event(node, step, stack):
+        if len(events) >= max_events:
+            from oeis_learn.sandbox.wat_ast import ExecutionFailure
+
+            raise ExecutionFailure("execution_limit", "trace_event_cap")
+        node_id = nodes[id(node)]
+        events.append({"instruction_id": node_id, "step": step, "stack_before": list(stack)})
+
+    interpreter = Interpreter(1000000, time.monotonic_ns() + 2000000000, event=event)
+    result = interpreter.run(program, index)
+    return {
+        "version": "reference-trace/v1",
+        "status": "complete" if result.outcome is None else "failed",
+        "source_sha256": digest(source),
+        "lowered_sha256": digest(lowered),
+        "mapping": mapping,
+        "events": events,
+        "value": None if result.value is None else str(result.value),
+        "outcome": result.outcome,
+        "reason": result.reason,
+        "coverage": sorted({e["instruction_id"] for e in events}),
+    }

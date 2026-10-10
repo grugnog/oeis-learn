@@ -301,3 +301,79 @@ MACROS = MappingProxyType(MACROS)
 NUMERIC_RANGES = MappingProxyType(NUMERIC_RANGES)
 RESOURCE_LIMITS = MappingProxyType(RESOURCE_LIMITS)
 EVALUATION_LIMITS = MappingProxyType(EVALUATION_LIMITS)
+
+
+def qualified_model_profile(
+    *, position_style="sinusoidal", attention_backend="sdpa", objective="sft"
+):
+    """Separate, explicit model profile; never replaces frozen foundation/v1."""
+    if (
+        position_style not in ("sinusoidal", "rope", "prefix_ancestor")
+        or attention_backend not in ("eager", "sdpa")
+        or objective not in ("sft", "reinforce", "grpo")
+    ):
+        raise ValueError("unsupported qualified architecture/objective")
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+
+    profile = {
+        "version": "qualified-model/v1",
+        "encoder": "integer_bytes/v1",
+        "d_model": 384,
+        "encoder_layers": 4,
+        "decoder_layers": 6,
+        "heads": 6,
+        "d_ff": 1536,
+        "dropout": 0.0,
+        "context_tokens": 1024,
+        "byte_width": 4,
+        "position_style": position_style,
+        "attention_backend": attention_backend,
+        "objective": objective,
+        "policy": {
+            "temperature": 0.8,
+            "top_p": 1.0,
+            "top_k": None,
+            "clip_eps": 0.2,
+            "kl_coefficient": 0.01,
+            "entropy_coefficient": 0.0,
+            "normalization": "mean-per-program",
+        },
+    }
+    profile["identity_sha256"] = digest(profile)
+    return profile
+
+
+def construct_qualified_models(profile, *, device="cpu"):
+    from oeis_learn.encoder.integer_bytes import IntegerByteEncoder
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+    from oeis_learn.decoder.program_codec import FOUNDATION_VOCAB_SIZE, PAD_ID, codec_digest
+
+    expected = qualified_model_profile(
+        position_style=profile.get("position_style"),
+        attention_backend=profile.get("attention_backend"),
+        objective=profile.get("objective"),
+    )
+    if profile != expected:
+        raise ValueError("changed/unknown qualified model profile")
+    encoder = IntegerByteEncoder(
+        d_model=384, n_heads=6, n_encoder_layers=4, d_ff=1536, dropout=0.0, byte_width=4
+    ).to(device)
+    decoder = WatTransformerDecoder(
+        vocab_size=FOUNDATION_VOCAB_SIZE,
+        d_model=384,
+        n_heads=6,
+        n_decoder_layers=6,
+        d_ff=1536,
+        dropout=0.0,
+        max_seq_len=1024,
+        pad_idx=PAD_ID,
+        codec_sha256=codec_digest(),
+        position_style=profile["position_style"],
+        attention_backend=profile["attention_backend"],
+    ).to(device)
+    counts = {
+        "encoder": sum(p.numel() for p in encoder.parameters()),
+        "decoder": sum(p.numel() for p in decoder.parameters()),
+    }
+    counts["total"] = sum(counts.values())
+    return encoder, decoder, counts
