@@ -63,6 +63,9 @@ class ProgramFeatureIndex:
 
         if not 1 <= max_entries <= 4096 or not 0 < max_bytes <= 16 << 20:
             raise ValueError("bounded program feature index required")
+        snapshot = archive.freeze() if snapshot is None else snapshot
+        if len(snapshot["entries"]) > 4096:
+            raise ValueError("discovery archive snapshot cap4096")
         self.rows = []
         size = 0
         # Every read goes through archive's verified training view, including
@@ -95,6 +98,41 @@ class ProgramFeatureIndex:
                 raise ValueError("stale program semantics/source features")
         if self.identity != digest(self.rows):
             raise ValueError("feature index mutation")
+
+    def ranked_pairs(self, *, max_pairs=32, max_comparisons=4096, seconds=2):
+        """Globally rank considered typed-subtree pairs; incomplete work is UNKNOWN."""
+        import heapq
+        import time
+
+        if not 1 <= max_pairs <= 4096 or not 1 <= max_comparisons <= 4096 or not 0 < seconds <= 2:
+            raise ValueError("bounded structural retrieval required")
+        self.validate()
+        rows = sorted(self.rows, key=lambda row: row["key"])
+        deadline = time.monotonic() + seconds
+        retained, comparisons = [], 0
+        incomplete = False
+        for i, a in enumerate(rows):
+            for b in rows[i + 1 :]:
+                if comparisons >= max_comparisons or time.monotonic() >= deadline:
+                    incomplete = True
+                    break
+                comparisons += 1
+                af, bf = a["features"], b["features"]
+                if af["semantics_sha256"] != bf["semantics_sha256"]:
+                    continue
+                keys = af["subtrees"].keys() | bf["subtrees"].keys()
+                overlap = sum(min(af["subtrees"].get(k, 0), bf["subtrees"].get(k, 0)) for k in keys)
+                total = sum(max(af["subtrees"].get(k, 0), bf["subtrees"].get(k, 0)) for k in keys)
+                if overlap:
+                    retained.append((1 - overlap / total, (a["key"], b["key"])))
+                    retained = heapq.nsmallest(max_pairs, retained)
+            if incomplete:
+                break
+        return tuple(sorted(retained)), {
+            "comparisons": comparisons,
+            "status": "UNKNOWN" if incomplete else "COMPLETE",
+            "features": "typed_subtree_proposals_only",
+        }
 
 
 def legacy_features(source):

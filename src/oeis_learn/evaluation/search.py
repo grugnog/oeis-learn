@@ -565,6 +565,8 @@ def value_guided_repairs(
         or measurement_decision["training_snapshot_sha256"] != training_snapshot["root_sha256"]
     ):
         raise ValueError("measured training-only value pilot gate required")
+    if len(training_snapshot["entries"]) > 4096:
+        raise ValueError("value targets archive snapshot cap4096")
     training_view = dict(archive.training_view(training_snapshot))
     if not training_view or any(
         not e["entry"]["training_eligible"] for e in training_view.values()
@@ -572,7 +574,7 @@ def value_guided_repairs(
         raise ValueError("verified eligible training targets required")
     targets = [
         {"source": e["source"], "conditioning_values": e["entry"]["conditioning_values"]}
-        for e in training_view.values()
+        for e in list(training_view.values())[:64]
     ]
     variants = typed_repairs(source, limit=max_expansions)
     scored = []

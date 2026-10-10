@@ -90,3 +90,5 @@ pytest-of-root/
 phase9-*.xml
 debug_stream.py
 .uv-cache/
+
+phase9-evidence/

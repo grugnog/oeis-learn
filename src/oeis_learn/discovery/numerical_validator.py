@@ -61,9 +61,14 @@ def validate_numerical_relation(
     from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
     parts = [tuple(p) for p in (search_indices, validation_indices, unseen_indices)]
-    if any(
-        not p or len(set(p)) != len(p) or any(type(i) is not int or i < 0 for i in p) for p in parts
-    ) or any(set(parts[i]) & set(parts[j]) for i in range(3) for j in range(i)):
+    if (
+        sum(map(len, parts)) > 120
+        or any(
+            not p or len(set(p)) != len(p) or any(type(i) is not int or i < 0 for i in p)
+            for p in parts
+        )
+        or any(set(parts[i]) & set(parts[j]) for i in range(3) for j in range(i))
+    ):
         raise ValueError("nonempty disjoint exact index partitions required")
     if len(operands) != len(coefficients) or not 2 <= len(operands) <= 8:
         raise ValueError("bounded equal-length operands/coefficients required")
@@ -88,7 +93,12 @@ def validate_numerical_relation(
     rank = int(sp.Matrix(rows[: len(parts[0])]).rank())
     residuals = [sum(c * v for c, v in zip(ints, row)) for row in rows]
     first = next(
-        ({"index": idx, "residual": str(r)} for idx, r in sorted(zip(sum(parts, ()), residuals)) if r), None
+        (
+            {"index": idx, "residual": str(r)}
+            for idx, r in sorted(zip(sum(parts, ()), residuals))
+            if r
+        ),
+        None,
     )
     return NumericalValidationResult(
         outcome="COUNTEREXAMPLE" if first else "VERIFIED",

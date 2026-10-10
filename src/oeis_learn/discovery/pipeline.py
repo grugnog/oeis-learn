@@ -280,9 +280,14 @@ def run_program_discovery(
     from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
     parts = [tuple(p) for p in (fitting_indices, validation_indices, final_indices)]
-    if any(
-        not p or len(set(p)) != len(p) or any(type(i) is not int or i < 0 for i in p) for p in parts
-    ) or any(set(parts[i]) & set(parts[j]) for i in range(3) for j in range(i)):
+    if (
+        sum(map(len, parts)) > 120
+        or any(
+            not p or len(set(p)) != len(p) or any(type(i) is not int or i < 0 for i in p)
+            for p in parts
+        )
+        or any(set(parts[i]) & set(parts[j]) for i in range(3) for j in range(i))
+    ):
         raise ValueError("disjoint nonempty program discovery partitions required")
     snapshot = archive.freeze() if snapshot is None else snapshot
     index = ProgramFeatureIndex(archive, snapshot=snapshot)
@@ -304,12 +309,24 @@ def run_program_discovery(
         numerical = [float(terms[key][i] / scale) for i in parts[0]]
         vectors[key] = np.asarray(numerical, dtype=np.float64)
     search = VectorRelationSearcher(neighbors=8, max_pairs=4096)
-    candidates = search.search_additive_triples(vectors, max_candidates=max_candidates)
+    if type(max_candidates) is not int or not 1 <= max_candidates <= 4096:
+        raise ValueError("bounded proposal count required")
+    pairs, structural_metrics = index.ranked_pairs(max_pairs=min(32, max_candidates))
+    hypotheses = [
+        ("typed_subtrees", pair) for _, pair in pairs if all(key in terms for key in pair)
+    ]
+    remaining = max_candidates - len(hypotheses)
+    candidates = (
+        search.search_additive_triples(vectors, max_candidates=remaining) if remaining else []
+    )
+    hypotheses.extend(
+        ("normalized_output_fingerprints", candidate.sequences) for candidate in candidates
+    )
     claims = []
     seen = set()
     fit_solver = PslqRelationSolver()
-    for candidate in candidates:
-        sources = list(candidate.sequences)
+    for retrieval_method, candidate in hypotheses:
+        sources = list(candidate)
         fit = fit_solver.fit([terms[k] for k in sources], parts[0])
         if fit.status != "FIT":
             continue
@@ -338,7 +355,8 @@ def run_program_discovery(
                 "fit_rank": fit.rank,
                 "fit_nullity": fit.nullity,
                 "fit_attempts": fit.attempts,
-                "operator_priors": {"integer_linear_arity3": 1},
+                "operator_priors": {"integer_linear_arity2": 1, "integer_linear_arity3": 1},
+                "retrieval_method": retrieval_method,
                 "evidence_kind": "empirical_relation",
                 "proof_status": "not_claimed",
             }
@@ -362,14 +380,17 @@ def run_program_discovery(
             }
         )
     from oeis_learn.discovery.transforms import discover_transforms
-    transformations=discover_transforms(terms,fit_indices=parts[0],validation_indices=parts[1],final_indices=parts[2])
+
+    transformations = discover_transforms(
+        terms, fit_indices=parts[0], validation_indices=parts[1], final_indices=parts[2]
+    )
     report = {
         "version": "program-discovery/v1",
         "archive_root_sha256": snapshot["root_sha256"],
         "claims": claims,
         "unavailable": missing,
-        "retrieval": search.last_metrics,
-        "proposals": len(candidates),
+        "retrieval": {"numerical": search.last_metrics, "structural": structural_metrics},
+        "proposals": len(hypotheses),
         "information_policy": "verified_training_programs_only",
         "external_lookup_performed": False,
         "transforms": transformations,

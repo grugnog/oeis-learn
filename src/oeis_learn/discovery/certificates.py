@@ -154,6 +154,23 @@ def derive(kind, statement, template):
 
 
 def make_certificate(kind, sources, coefficients, *, domain=None, template=None):
+    from oeis_learn.sandbox.contained import run_contained
+    from oeis_learn.experiments.artifacts import canonical_bytes
+
+    if len(canonical_bytes([sources, coefficients, domain, template])) > 512 << 10:
+        raise ValueError("certificate request cap512KiB")
+    status, result = run_contained(
+        _make_certificate,
+        (kind, sources, coefficients, domain, template),
+        timeout_ms=10000,
+        proof=True,
+    )
+    if status != "ok":
+        raise ValueError("certificate obligations unproved: " + str(result))
+    return result
+
+
+def _make_certificate(kind, sources, coefficients, domain, template):
     from oeis_learn.sandbox.lowering import lower_logical
 
     if kind not in KINDS:
@@ -170,7 +187,12 @@ def make_certificate(kind, sources, coefficients, *, domain=None, template=None)
             for p in programs
         ],
         "coefficients": [str(c) for c in coefficients],
-        "domain": domain or {"start": 0, "end": None, "excluded_indices": []},
+        "domain": domain
+        or {
+            "start": 0,
+            "end": (1 << 31) - 2 if kind == "finite_state" else None,
+            "excluded_indices": [],
+        },
         "semantics": "mathematical_integer_ir" if mathematical else "checked_logical_ir",
         "assumptions": [MATH_ASSUMPTION] if mathematical else [],
     }

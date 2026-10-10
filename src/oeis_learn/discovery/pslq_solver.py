@@ -10,11 +10,13 @@ import sympy as sp
 
 
 def exact_integer(value):
-    if type(value) is int:
+    if type(value) is int and value.bit_length() <= 4096:
         return value
-    if isinstance(value, str) and str(int(value)) == value:
-        return int(value)
-    raise ValueError("canonical exact integer required")
+    if isinstance(value, str) and len(value) <= 1235:
+        integer = int(value)
+        if integer.bit_length() <= 4096 and str(integer) == value:
+            return integer
+    raise ValueError("canonical exact integer of at most 4096 bits required")
 
 
 def primitive(values):
@@ -33,8 +35,8 @@ def primitive(values):
 class RelationFit:
     status: str
     coefficients: tuple[int, ...] | None
-    rank: int
-    nullity: int
+    rank: int | None
+    nullity: int | None
     support: int | None
     attempts: int
     minimal_support: None = None
@@ -50,6 +52,30 @@ class PslqRelationSolver:
         self.max_attempts = max_attempts
 
     def fit(self, sequence_vectors: Sequence[Sequence[int]], indices, *, seconds=2):
+        from oeis_learn.sandbox.contained import run_contained
+
+        indices = tuple(indices)
+        k = len(sequence_vectors)
+        if not 2 <= k <= 8 or not 1 <= len(indices) <= 120 or len(set(indices)) != len(indices):
+            raise ValueError("bounded arity and 1..120 unique fitting indices required")
+        if any(
+            type(i) is not int or i < 0 or any(i >= len(s) for s in sequence_vectors)
+            for i in indices
+        ):
+            raise ValueError("missing fitting index")
+        if not 0 < seconds <= 10:
+            raise ValueError("bounded fitting deadline required")
+        # Copy only the bounded fitting partition into a killable 1-GiB worker.
+        vectors = [[exact_integer(s[i]) for i in indices] for s in sequence_vectors]
+        status, result = run_contained(
+            _fit_worker,
+            (self, vectors, seconds),
+            timeout_ms=max(1, int(seconds * 1000)),
+            proof=True,
+        )
+        return result if status == "ok" else RelationFit("UNKNOWN", None, None, None, None, 0)
+
+    def _fit(self, sequence_vectors, indices, *, seconds):
         k = len(sequence_vectors)
         indices = tuple(indices)
         if not 2 <= k <= 8 or not indices or len(set(indices)) != len(indices):
@@ -131,3 +157,7 @@ class PslqRelationSolver:
         else:
             candidate.status = "UNKNOWN"
         return candidate
+
+
+def _fit_worker(solver, vectors, seconds):
+    return solver._fit(vectors, range(len(vectors[0])), seconds=seconds)

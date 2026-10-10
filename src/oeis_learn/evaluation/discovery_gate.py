@@ -12,12 +12,16 @@ from oeis_learn.sandbox.streaming import identity as logical_identity
 ROOT = Path(__file__).resolve().parents[3]
 SUITES = {
     "logical_python": ["tests/unit/test_foundation_extended_wat.py"],
-    "discovery_certificates": ["tests/integration/test_foundation_discovery.py", "tests/contract/test_foundation_discovery_cli.py"],
+    "discovery_certificates": [
+        "tests/integration/test_foundation_discovery.py",
+        "tests/contract/test_foundation_discovery_cli.py",
+    ],
     "owning_discovery": [
         "tests/unit/test_vector_search_normalized.py",
         "tests/unit/test_pslq_solver.py",
         "tests/unit/test_numerical_validator.py",
         "tests/unit/test_relation_identity.py",
+        "tests/unit/test_vicreg_loss.py",
         "tests/integration/test_pslq_discovery_e2e.py",
         "tests/integration/test_discovery_pipeline.py",
         "tests/contract/test_discovery_report_contract.py",
@@ -42,6 +46,7 @@ def implementation_identity():
             if p.is_file() and p.suffix in (".py", ".rs", ".toml", ".lock", ".wat")
         )
     files.update(ROOT / p for suite in SUITES.values() for p in suite)
+    files.add(ROOT / "scripts/verify_phase9.py")
     return digest({str(p.relative_to(ROOT)): digest(p.read_text()) for p in sorted(files)})
 
 

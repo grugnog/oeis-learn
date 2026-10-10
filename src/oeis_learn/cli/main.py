@@ -367,6 +367,7 @@ def build_parser() -> argparse.ArgumentParser:
     fdc_p=foundation_subparsers.add_parser('discover',help='G9-gated program discovery from the verified training archive.')
     for name in ('archive','discovery-gate-report','output'):
         fdc_p.add_argument('--'+name,required=True)
+    fdc_p.add_argument('--holdouts',help='Exact expanded holdout profile bound to the archive.')
     fdc_p.add_argument('--json',dest='as_json',action='store_true')
     fcc_p=foundation_subparsers.add_parser('check-certificate',help='Fresh bounded scoped certificate replay without model weights.')
     for name in ('certificate','profile','output'):
@@ -761,7 +762,7 @@ def handle_discover(args: argparse.Namespace) -> int:
         print(f"Validation error: discovery protocol not found: {args.protocol}")
         return 2
 
-    print(f"Running latent manifold discovery and PSLQ theorem prover (seed: {args.seed})...")
+    print(f"Running bounded latent retrieval and exact finite verification (seed: {args.seed})...")
 
     try:
         report_data = run_discovery_pipeline(
@@ -861,7 +862,7 @@ def handle_foundation(args: argparse.Namespace) -> int:
         'gate_report', 'profiles', 'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
         'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
         'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
-        'learning_gate_report', 'discovery_gate_report', 'certificate', 'native', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
+        'learning_gate_report', 'discovery_gate_report', 'certificate', 'native', 'holdouts', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
     ) if hasattr(args, k)}
     return dispatch(args.foundation_command, **kw)
 

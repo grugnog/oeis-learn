@@ -686,23 +686,15 @@ def cmd_qualify_discovery(output, native=False, as_json=False):
 
 def cmd_check_certificate(certificate, profile, output, as_json=False):
     from oeis_learn.discovery.certificate_checker import check_certificate
-    from oeis_learn.sandbox.logical_ir import profile_identity
+    from oeis_learn.sandbox.logical_ir import parse_logical, profile_identity
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
     from oeis_learn.tracking.foundation_metrics import replace_json
 
     def action():
         data = load_json(Path(certificate).read_bytes())
         selected = load_json(Path(profile).read_bytes())
-        modes = {
-            __import__("oeis_learn.sandbox.logical_ir", fromlist=["parse_logical"])
-            .parse_logical(p["source"])
-            .profile
-            for p in data["statement"]["programs"]
-        }
-        if len(modes) != 1 or __import__(
-            "oeis_learn.experiments.artifacts", fromlist=["compute_canonical_digest"]
-        ).compute_canonical_digest(selected) != __import__(
-            "oeis_learn.experiments.artifacts", fromlist=["compute_canonical_digest"]
-        ).compute_canonical_digest(profile_identity(next(iter(modes)))):
+        modes = {parse_logical(p["source"]).profile for p in data["statement"]["programs"]}
+        if len(modes) != 1 or digest(selected) != digest(profile_identity(next(iter(modes)))):
             raise ValueError("certificate/profile mismatch")
         result = check_certificate(data)
         replace_json(Path(output) / "certificate-check.json", result)
@@ -717,7 +709,7 @@ def cmd_check_certificate(certificate, profile, output, as_json=False):
     return _phase4_command("check-certificate", action, as_json)
 
 
-def cmd_discover(archive, discovery_gate_report, output, as_json=False):
+def cmd_discover(archive, discovery_gate_report, output, holdouts=None, as_json=False):
     from oeis_learn.evaluation.readiness import require_discovery_readiness
     from oeis_learn.discovery.program_archive import ProgramArchive
     from oeis_learn.discovery.pipeline import run_program_discovery
@@ -726,7 +718,12 @@ def cmd_discover(archive, discovery_gate_report, output, as_json=False):
     def action():
         report = load_json(Path(discovery_gate_report).read_bytes())
         require_discovery_readiness(report, evidence_root=Path(discovery_gate_report).parent)
-        result = run_program_discovery(ProgramArchive(archive))
+        from oeis_learn.experiments.learning_profiles import load_holdouts
+
+        selected = (
+            None if holdouts is None else load_holdouts(load_json(Path(holdouts).read_bytes()))
+        )
+        result = run_program_discovery(ProgramArchive(archive, holdouts=selected))
         replace_json(Path(output) / "discovery.json", result)
         return result
 

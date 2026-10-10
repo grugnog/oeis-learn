@@ -220,6 +220,8 @@ def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp
     from oeis_learn.sandbox.runner import FoundationRunner
     from oeis_learn.discovery.program_features import ProgramFeatureIndex
     from oeis_learn.discovery.pipeline import run_program_discovery
+    from oeis_learn.evaluation.search import SearchSession
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
     sample, outputs, holdouts = generic_fixture()
     archive = ProgramArchive(tmp_path / "archive", holdouts=holdouts)
@@ -233,9 +235,44 @@ def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp
             runner=runner,
             request_id="phase9-generated",
         )
+        # A second model hypothesis has identical verified terms and distinct
+        # source/genealogy. Find a permitted structure without waiving holdouts.
+        second = next(
+            sample["canonical_source"] + " i256.const 0 i256.add" * count
+            for count in range(1, 20)
+            if holdouts.decision(
+                sample["canonical_source"] + " i256.const 0 i256.add" * count, outputs[:20]
+            )[0]
+        )
+
+        class Proposer:
+            def stochastic(self, visible, seed, ledger, **kwargs):
+                return second, {
+                    "method": "greedy",
+                    "encoder_sha256": digest("fixture-encoder"),
+                    "decoder_sha256": digest("fixture-decoder"),
+                }
+
+        result = SearchSession(outputs[:20], portfolio="greedy").run(Proposer(), runner)
+        packet = result["results"][0]["provenance"]["hypothesis"]
+        second_key = archive.admit(
+            second,
+            outputs[:20],
+            outputs,
+            origin="training_prefix_hypothesis",
+            provenance={"search": packet},
+            model_sha256=digest([packet["encoder_sha256"], packet["decoder_sha256"]]),
+            runner=runner,
+            request_id="phase9-second-implementation",
+        )
     index = ProgramFeatureIndex(archive)
     index.validate()
-    assert index.rows[0]["key"] == key and index.rows[0]["genealogy"]["sample"] == sample
+    by_key = {row["key"]: row for row in index.rows}
+    assert set(by_key) == {key, second_key} and by_key[key]["genealogy"]["sample"] == sample
+    pairs, metrics = index.ranked_pairs()
+    index.rows.reverse()
+    index.identity = digest(index.rows)
+    assert index.ranked_pairs() == (pairs, metrics)
     report = run_program_discovery(
         archive,
         fitting_indices=range(8),
@@ -245,6 +282,9 @@ def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp
     assert report["information_policy"] == "verified_training_programs_only"
     assert report["external_lookup_performed"] is False
     assert report["archive_root_sha256"] == archive.freeze()["root_sha256"]
+    assert len(report["claims"]) == 1 and report["claims"][0]["status"] == "FINITE_VALIDATED"
+    assert report["claims"][0]["proposal"]["retrieval_method"] == "typed_subtrees"
+    assert {p["key"] for p in report["claims"][0]["proposal"]["programs"]} == {key, second_key}
     index.rows[0]["source"] = "i256.const 999"
     with pytest.raises(ValueError):
         index.validate()
@@ -294,3 +334,153 @@ def test_certificate_resealed_semantics_compiler_and_coefficient_mutations():
         changed["statement_sha256"] = digest(changed["statement"])
         changed["certificate_sha256"] = digest(changed, "certificate_sha256")
         assert check_certificate(changed)["result"] != "verified"
+
+
+def test_loop_template_proposer_and_false_guard_overflow():
+    from oeis_learn.discovery.loop_certificate import propose_loop_templates, check_loop
+
+    domain = {"start": 0, "end": 100, "excluded_indices": []}
+    proposed = propose_loop_templates(LOOP, domain)
+    assert proposed["result"] == "verified" and proposed["attempts"] <= 64
+    assert make_certificate(
+        "loop_invariant", [LOOP], [1], domain=domain, template=proposed["template"]
+    )
+    minimum = -(1 << 255)
+    source = f"(pure (set 0 (const {minimum})) (while (gt (sub (get 0) (const 1)) (const 0)) (set 0 (const 0))) (return (const 0)))"
+    okay, evidence = check_loop(
+        source,
+        domain,
+        {
+            "invariants": [f"(eq (get 0) (const {minimum}))"],
+            "ranking": "(const 1)",
+            "postcondition": "(eq (const 0) (const 0))",
+        },
+    )
+    assert not okay and evidence["obligations"]["exit"] == "sat"
+
+
+def test_state_certificate_requires_bounded_driver_index():
+    with pytest.raises(ValueError, match="driver domain"):
+        make_certificate(
+            "finite_state",
+            [STATE_A, STATE_B],
+            [1, -1],
+            domain={"start": 0, "end": None, "excluded_indices": []},
+        )
+    certificate = make_certificate("finite_state", [STATE_A, STATE_B], [1, -1])
+    assert certificate["statement"]["domain"]["end"] == (1 << 31) - 2
+    assert certificate["payload"]["closure"] == "exact_data_state_with_bounded_driver_index"
+
+
+def test_matrix_proposer_caps_and_external_deadline():
+    solver = PslqRelationSolver()
+    with pytest.raises(ValueError, match="120"):
+        solver.fit([list(range(121))] * 2, range(121))
+    with pytest.raises(ValueError, match="4096"):
+        solver.fit([[1 << 4097], [1 << 4097]], [0])
+    result = solver.fit([[1] * 20, [1] * 20], range(20), seconds=0.001)
+    assert result.status == "UNKNOWN" and result.rank is None and result.nullity is None
+
+
+def test_actual_archive_macro_mining_value_repair_and_costs(tmp_path):
+    from oeis_learn.discovery.program_archive import ProgramArchive
+    from oeis_learn.discovery.macro_mining import mine_macros, expand_macros
+    from oeis_learn.data.structural_splits import (
+        StructuralHoldouts,
+        structural_signature,
+        split_for_structure,
+    )
+    from oeis_learn.evaluation.search import (
+        SearchSession,
+        SearchLedger,
+        value_guided_repairs,
+        typed_repairs,
+    )
+    from oeis_learn.decoder.program_codec import encode_body, decode_body
+    from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
+    from oeis_learn.sandbox.runner import FoundationRunner
+
+    block = "( block ( result i64 i64 i64 i64 ) i256.const 2 )"
+    source = decode_body(encode_body(block + (" " + block + " i256.add") * 3))
+    signature = structural_signature(source)
+    seed = next(i for i in range(1000) if split_for_structure(signature, i) == "train")
+    holdouts = StructuralHoldouts(seed=seed, reserved_compositions=())
+    archive = ProgramArchive(tmp_path / "archive", holdouts=holdouts)
+
+    class Proposer:
+        def stochastic(self, visible, seed, ledger, **kwargs):
+            ledger.charge(expansions=1, tokens=len(encode_body(source)))
+            return source, {
+                "method": "greedy",
+                "encoder_sha256": digest("fixture-encoder"),
+                "decoder_sha256": digest("fixture-decoder"),
+            }
+
+    with FoundationRunner(tmp_path / "runtime", backend="python_wasmtime") as runner:
+        report = SearchSession([8] * 20, portfolio="greedy").run(Proposer(), runner)
+        packet = report["results"][0]["provenance"]["hypothesis"]
+        archive.admit(
+            source,
+            [8] * 20,
+            [8] * 24,
+            origin="training_prefix_hypothesis",
+            provenance={"search": packet},
+            model_sha256=digest([packet["encoder_sha256"], packet["decoder_sha256"]]),
+            runner=runner,
+            request_id="phase9-mining",
+        )
+    snapshot = archive.freeze()
+    dictionary = mine_macros(archive, snapshot=snapshot)
+    assert len(dictionary["definitions"]) == 1 and dictionary["net_token_benefit"] > 0
+    name, record = next(iter(dictionary["definitions"].items()))
+    compressed = source.replace(record["source"], f"(macro {name})")
+    assert compressed != source and expand_macros(compressed, dictionary) == source
+    assert len(encode_body(source)) > len(compressed.split())
+    ledger = SearchLedger()
+    decision = {
+        "branch": "value_guided_repair",
+        "disposition": "pilot_selected",
+        "training_snapshot_sha256": snapshot["root_sha256"],
+        "baseline_failure_observed": True,
+    }
+    seen = []
+
+    def value_model(candidate, targets):
+        assert targets == [{"source": source, "conditioning_values": ["8"] * 20}]
+        seen.append(candidate)
+        return float(len(seen))
+
+    ranked = value_guided_repairs(
+        source,
+        value_model,
+        archive=archive,
+        training_snapshot=snapshot,
+        measurement_decision=decision,
+        ledger=ledger,
+        max_expansions=3,
+    )
+    assert ranked == tuple(reversed(seen)) and set(ranked) <= set(typed_repairs(source))
+    assert ledger.expansions == 3 and ledger.tokens == sum(len(encode_body(s)) for s in ranked)
+    for mutation in (
+        {"baseline_failure_observed": False},
+        {"training_snapshot_sha256": digest("other-view")},
+    ):
+        with pytest.raises(ValueError, match="pilot gate"):
+            value_guided_repairs(
+                source,
+                value_model,
+                archive=archive,
+                training_snapshot=snapshot,
+                measurement_decision=dict(decision, **mutation),
+                ledger=SearchLedger(),
+            )
+    with pytest.raises(ValueError, match="finite"):
+        value_guided_repairs(
+            source,
+            lambda *_: float("nan"),
+            archive=archive,
+            training_snapshot=snapshot,
+            measurement_decision=decision,
+            ledger=SearchLedger(),
+            max_expansions=1,
+        )

@@ -11,6 +11,12 @@ from oeis_learn.sandbox.logical_ir import parse_logical
 
 def check_loop(source, domain, template):
     if (
+        type(domain["start"]) is not int
+        or type(domain["end"]) is not int
+        or not -(1 << 31) <= domain["start"] <= domain["end"] < (1 << 31)
+    ):
+        raise NotImplementedError("restricted loop requires a finite signed-i32 input domain")
+    if (
         set(template) != {"invariants", "ranking", "postcondition"}
         or not 1 <= len(template["invariants"]) <= 64
     ):
@@ -113,7 +119,8 @@ def check_loop(source, domain, template):
         ),
         "ranking": z3.Implies(z3.And(assumptions, inv, guard), z3.And(r >= 0, ra >= 0, ra < r)),
         "exit": z3.Implies(
-            z3.And(assumptions, inv, z3.Not(guard)), z3.And(post_exit, safe(exit_ranges))
+            z3.And(assumptions, inv, z3.Not(guard)),
+            z3.And(post_exit, safe(guard_ranges + exit_ranges)),
         ),
     }
     results = {}
@@ -137,6 +144,17 @@ def check_loop(source, domain, template):
 
 
 def propose_loop_templates(source, domain, *, cap=64):
+    from oeis_learn.sandbox.contained import run_contained
+
+    if not 1 <= cap <= 64:
+        raise ValueError("loop template cap64")
+    status, result = run_contained(
+        _propose_loop_templates, (source, domain, cap), timeout_ms=10000, proof=True
+    )
+    return result if status == "ok" else {"result": "unknown", "attempts": None, "template": None}
+
+
+def _propose_loop_templates(source, domain, cap):
     """Bounded task-independent countdown candidates; every obligation is replayed."""
     if not 1 <= cap <= 64:
         raise ValueError("loop template cap64")
