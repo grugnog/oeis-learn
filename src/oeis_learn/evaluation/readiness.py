@@ -247,6 +247,8 @@ def release_readiness(
                 "test_public_measure_dry_run_and_actual",
                 "test_census_public_invalid_input",
                 "test_installed_native_has_no_fallback",
+                "test_installed_train_resume_search",
+                "test_installed_discover_and_fresh_certificate",
             }
             if (
                 len(cases) != len(expected)

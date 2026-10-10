@@ -130,3 +130,11 @@ def test_release_profile_roundtrip_and_all_member_reserved_prefixes(tmp_path):
     assert membership == {digest(row["values"][:20]) for row in rows}
     prompt = read_ref(root, frozen["groups"][0]["prompt"])
     assert "metadata" not in prompt and "first_index" not in prompt
+
+
+def test_indexed_metadata_preserves_keyword_arrays():
+    report = analyzer().analyze_sequence_cohort([dict(first_index=-2, indices=list(range(-2, 118)),
+        values=["0"] * 120, metadata=dict(keywords=["fini", "tabl", "nonn"]))])
+    assert report["source_metadata"]["finite"] == 1
+    assert report["source_metadata"]["table"] == 1
+    assert report["source_metadata"]["keywords"] == dict(fini=1, tabl=1, nonn=1)

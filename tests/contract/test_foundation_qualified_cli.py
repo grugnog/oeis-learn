@@ -82,3 +82,35 @@ def test_installed_native_has_no_fallback():
     assert identity["backend"] == "rust"
     result = Runtime(backend="rust").evaluate("i256.const -1", range(20))
     assert result.outcome is None and result.outputs == ["-1"] * 20
+
+
+@pytest.fixture(scope="module")
+def qualified_cli_evidence():
+    evidence = os.getenv("OEIS_QUALIFICATION_EVIDENCE")
+    if not evidence:
+        if os.getenv("OEIS_REQUIRE_NATIVE") == "1":
+            pytest.fail("mandatory native acceptance requires actual G7/G8/G9 evidence")
+        pytest.skip("actual native G7/G8/G9 artifacts required")
+    from oeis_learn.evaluation.cli_acceptance import verify_learning_cli
+
+    verify_learning_cli(evidence)
+    return Path(evidence)
+
+
+def test_installed_train_resume_search(qualified_cli_evidence):
+    from oeis_learn.experiments.artifacts import load_json
+
+    phase = qualified_cli_evidence / "learning"
+    report = load_json((phase / "cli-acceptance.json").read_bytes())
+    assert report == dict(status="PASS", qualification="cpu_diagnostic", updates=2,
+                          search_attempts=1, hardware_activation="rejected")
+    assert (phase / "training/qualified-00000001.json").is_file()
+
+
+def test_installed_discover_and_fresh_certificate(qualified_cli_evidence):
+    from oeis_learn.evaluation.cli_acceptance import verify_discovery_cli
+    from oeis_learn.experiments.artifacts import load_json
+
+    verify_discovery_cli(qualified_cli_evidence)
+    report = load_json((qualified_cli_evidence / "discovery/cli-acceptance.json").read_bytes())
+    assert report["status"] == "PASS" and report["stale_evidence"] == "rejected"

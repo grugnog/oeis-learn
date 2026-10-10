@@ -60,6 +60,16 @@ def run_warmstart_pipeline(
     dry_run: bool = False,
 ) -> Dict[str, Any]:
     """Runs the progressive warmstart transfer pipeline."""
+    if stage not in {"all", "surgery", "warmup", "bridge", "gate"}:
+        raise ValueError("unsupported warmstart stage")
+    for name, steps, needed in (
+        ("warmup", warmup_steps, stage in {"all", "warmup", "bridge"}),
+        ("bridge", bridge_steps, stage in {"all", "bridge"}),
+    ):
+        if needed and (type(steps) is not int or steps <= 0):
+            raise ValueError(f"{name} requires positive exact steps")
+    if not os.path.isfile(base_checkpoint_path):
+        raise FileNotFoundError(f"Explicit warmstart parent is missing: {base_checkpoint_path}")
     os.makedirs(output_dir, exist_ok=True)
     if dry_run:
         warmup_steps = min(warmup_steps, 5)
@@ -73,6 +83,8 @@ def run_warmstart_pipeline(
     if os.path.exists(base_checkpoint_path):
         logger.info(f"Loading weights from base checkpoint: {base_checkpoint_path}")
         ckpt = torch.load(base_checkpoint_path, map_location="cpu", weights_only=False)
+        if not isinstance(ckpt, dict) or not ckpt.get("encoder_state_dict") or not ckpt.get("decoder_state_dict"):
+            raise ValueError("warmstart parent must contain both trained model states")
         enc_cfg = ckpt.get("encoder_config") or ckpt.get("provenance", {}).get("encoder_config")
         if enc_cfg:
             encoder = TriStreamEncoder(**enc_cfg)
@@ -131,32 +143,34 @@ def run_warmstart_pipeline(
         surgery_ckpt_path,
     )
     if stage == "surgery":
-        return {"status": "SUCCESS", "stage": "surgery", "checkpoint": surgery_ckpt_path}
+        return {"status": "SUCCESS", "stage": "surgery", "checkpoint": surgery_ckpt_path,
+                "qualified": False, "purpose": "legacy_unverified"}
 
-    # 3. Phase 2: Embedding warmup
-    trainer = SftTrainer(
-        dataset_path="data/sft_multilimb_demonstrations.json",
-        output_checkpoint=os.path.join(output_dir, "sft_warmup.pt"),
-        encoder=encoder,
-        decoder=decoder,
-        device=device,
-        multilimb=True,
-    )
-    logger.info(f"Executing Phase 2: Embedding warmup ({warmup_steps} steps)...")
-    warmup_res = trainer.train_embedding_warmup(steps=warmup_steps, lr=1e-4)
-    if stage == "warmup":
-        return warmup_res
+    if stage != "gate":
+        # 3. Phase 2: Embedding warmup
+        trainer = SftTrainer(
+            dataset_path="data/sft_multilimb_demonstrations.json",
+            output_checkpoint=os.path.join(output_dir, "sft_warmup.pt"),
+            encoder=encoder,
+            decoder=decoder,
+            device=device,
+            multilimb=True,
+        )
+        logger.info(f"Executing Phase 2: Embedding warmup ({warmup_steps} steps)...")
+        warmup_res = trainer.train_embedding_warmup(steps=warmup_steps, lr=1e-4)
+        if stage == "warmup":
+            return {**warmup_res, "qualified": False, "purpose": "legacy_unverified"}
 
-    # 4. Phase 3: Joint SFT bridge
-    logger.info(f"Executing Phase 3: Joint SFT bridge ({bridge_steps} steps)...")
-    bridge_res = trainer.train_joint_bridge(
-        steps=bridge_steps,
-        encoder_lr=1e-5,
-        decoder_lr=5e-5,
-        heads_lr=1e-4,
-    )
-    if stage == "bridge":
-        return bridge_res
+        # 4. Phase 3: Joint SFT bridge
+        logger.info(f"Executing Phase 3: Joint SFT bridge ({bridge_steps} steps)...")
+        bridge_res = trainer.train_joint_bridge(
+            steps=bridge_steps,
+            encoder_lr=1e-5,
+            decoder_lr=5e-5,
+            heads_lr=1e-4,
+        )
+        if stage == "bridge":
+            return {**bridge_res, "qualified": False, "purpose": "legacy_unverified"}
 
     # 5. Phase 4: Transition Gate evaluation
     logger.info("Executing Phase 4: Transition Gate evaluation...")
@@ -183,7 +197,7 @@ def run_warmstart_pipeline(
 
     return {
         "status": "SUCCESS",
-        "stage": "all",
+        "stage": stage,
         "checkpoint": final_ckpt_path,
         "gate_results": gate_res,
         "qualified": False,

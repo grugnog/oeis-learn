@@ -145,4 +145,10 @@ def analyze_sequence_cohort(records, horizons=HORIZONS):
 
 
 def keywords(tags):
-    return set(re.findall(r"[a-z]+", tags.lower())) if isinstance(tags, str) else set()
+    if tags is None:
+        return set()
+    if isinstance(tags, str):
+        return set(re.findall(r"[a-z]+", tags.lower()))
+    if isinstance(tags, list) and all(isinstance(tag, str) for tag in tags):
+        return {keyword for tag in tags for keyword in keywords(tag)}
+    raise ValueError("source keywords must be text, text array or unavailable")
