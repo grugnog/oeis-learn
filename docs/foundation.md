@@ -153,3 +153,17 @@ training/admission records. Unknown provenance or unavailable development eviden
 is reported as unavailable, never as zero rescued groups. See
 [phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
 for remaining acceptance work and exact reproduction commands.
+
+The installed-wheel CI uses actual G7/G8/G9 artifacts to exercise two diagnostic
+learning updates across resume, bounded search, generated-archive discovery,
+fresh isolated certificate verification and stale-evidence rejection. It requires
+all six standalone acceptance cases without skips. These CPU updates do not
+qualify hardware learning. Legacy readiness reports preserve missing observations
+as null with failed gates, including upper bounds; Run 011 lifecycle completion
+keeps its `legacy_unverified` qualification label.
+
+`evaluation.readiness.release_readiness` replays current extension artifacts and
+keeps verified G8 software separate from pending hardware. Missing G0–G6 or full
+G10 evidence prevents release authorization. The [input disposition report](../specs/007-experiment-foundation/validation/phase-10-dispositions.json)
+records all 68 review inputs and task states; a checkbox or diagnostic timer
+cannot substitute for an executable gate.

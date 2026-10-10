@@ -1,0 +1,1289 @@
+{
+  "schema_version": "review-disposition/v1",
+  "phase": 10,
+  "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
+  "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
+  "scope": "Task and review evidence traceability; no runtime or hardware qualification inferred from checklist markers.",
+  "full_007_complete": false,
+  "items": [
+    {
+      "id": "R01",
+      "title": "Exact integer arithmetic",
+      "design_disposition": "included",
+      "rationale": "Negative scalar correction, full literals, independent oracle, checked logical overflow and wider-intermediate diagnostic.",
+      "task_states": {
+        "T009": "X",
+        "T013": "X",
+        "T014": "X",
+        "T019": "X",
+        "T082": "X",
+        "T097": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_foundation_overflow_diagnostics.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-3-review.md"
+      ]
+    },
+    {
+      "id": "R02",
+      "title": "Genuine checkpoint qualification",
+      "design_disposition": "included",
+      "rationale": "Actual weights, full length, selected top-one/any scores, original launcher qualification and warmstart repair; historical evidence stays diagnostic.",
+      "task_states": {
+        "T021": "X",
+        "T023": "/",
+        "T024": "/",
+        "T025": "X",
+        "T027": "X",
+        "T029": "X",
+        "T049": "/",
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "R03",
+      "title": "Constant grounding",
+      "design_disposition": "included",
+      "rationale": "Exact affine/nonlinear classification, modular pivots and rank deficiency, genuine QF_NIA/BV distinction, recurrence structure/cache, measured outcomes and final verification.",
+      "task_states": {
+        "T050": "X",
+        "T054": "X",
+        "T055": "X",
+        "T056": "X",
+        "T061": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "R04",
+      "title": "Common execution",
+      "design_disposition": "included",
+      "rationale": "Lower before compile, four results, pure/batch/native parity and typed optimizer local.tee/control/trap correctness.",
+      "task_states": {
+        "T012": "X",
+        "T015": "X",
+        "T017": "X",
+        "T052": "X",
+        "T058": "X",
+        "T059": "X",
+        "T083": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-3-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "R05",
+      "title": "Immediate symbolic proof soundness",
+      "design_disposition": "included",
+      "rationale": "Repair both existing APIs, controlled symbol table, shifted domains/poles, scoped certificates and concrete disproof witnesses before experiments.",
+      "task_states": {
+        "T051": "X",
+        "T053": "X",
+        "T057": "X",
+        "T061": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "R06",
+      "title": "Data eligibility and isolation",
+      "design_disposition": "included",
+      "rationale": "Exact indexed truth, finite/table/growth metadata, separate horizons, affine/shift grouping, synthetic structure/parameter/operator holdouts.",
+      "task_states": {
+        "T020": "X",
+        "T022": "X",
+        "T024": "/",
+        "T065": "X",
+        "T069": "X",
+        "T093": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_source_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md"
+      ]
+    },
+    {
+      "id": "R07",
+      "title": "RL policy mathematics",
+      "design_disposition": "included",
+      "rationale": "Real behavior probabilities/support, frozen encoder+decoder, forced-action exclusion, module modes, entropy/variance and real trace evidence.",
+      "task_states": {
+        "T063": "X",
+        "T070": "X",
+        "T071": "X",
+        "T077": "X",
+        "T079": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "R08",
+      "title": "Reproducibility and infrastructure",
+      "design_disposition": "included",
+      "rationale": "Complete active checkpoints, truthful metrics/config, external hashes, clean wheel/resources, actual native CI and shared lifecycle.",
+      "task_states": {
+        "T005": "/",
+        "T038": "X",
+        "T041": "X",
+        "T042": "/",
+        "T043": "/",
+        "T077": "X",
+        "T094": "X",
+        "T095": "/",
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        ".github/workflows/foundation.yml",
+        "scripts/foundation/test_wheel.sh",
+        "tests/integration/test_egca_training_step.py",
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_measurement.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "R09",
+      "title": "Generation performance",
+      "design_disposition": "included",
+      "rationale": "KV and cross-projection caches, batching/buffers, dynamic masks, invalidation and equivalence; actual end-to-end timings.",
+      "task_states": {
+        "T062": "/",
+        "T066": "/",
+        "T067": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "R10",
+      "title": "Typed representation and complete codec",
+      "design_disposition": "included",
+      "rationale": "Complete constants/locals, typed logical WAT, consistent EOS/wrapper/length, atomic elite/CGI eligibility and long-program archive.",
+      "task_states": {
+        "T006": "X",
+        "T007": "/",
+        "T012": "X",
+        "T073": "X",
+        "T082": "X"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md",
+        "specs/007-experiment-foundation/validation/phase-3-review.md"
+      ]
+    },
+    {
+      "id": "R11",
+      "title": "Generic data and self-training",
+      "design_disposition": "included",
+      "rationale": "Diverse generic constructs, parameter/family isolation, multiple implementations/Pareto archive, near-miss training reuse and revalidation.",
+      "task_states": {
+        "T030": "X",
+        "T032": "X",
+        "T033": "X",
+        "T065": "X",
+        "T069": "X",
+        "T073": "X",
+        "T076": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-5-review.md"
+      ]
+    },
+    {
+      "id": "R12",
+      "title": "Bounded search",
+      "design_disposition": "included",
+      "rationale": "Sampling/beam/repair, skeleton cache, sound pruning, visible counterexamples and permitted retrieval; equal-budget selection.",
+      "task_states": {
+        "T056": "X",
+        "T075": "X",
+        "T076": "X",
+        "T090": "X",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "R13",
+      "title": "Curriculum/replay defects",
+      "design_disposition": "included",
+      "rationale": "Per-visit observations, actual adaptive allocations, uncertainty/cost/exploration, nonzero replay gradients and complete state.",
+      "task_states": {
+        "T064": "X",
+        "T072": "X",
+        "T073": "X",
+        "T074": "X",
+        "T077": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "R14",
+      "title": "Runtime expressiveness and resource calibration",
+      "design_disposition": "included",
+      "rationale": "Pure plus streaming/block and arrays, full wide ops, reset/state parity, calibrated bounded fuel tiers and near-limit counts.",
+      "task_states": {
+        "T080": "X",
+        "T082": "X",
+        "T083": "X",
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "R15",
+      "title": "Exact input representation",
+      "design_disposition": "included",
+      "rationale": "Signed bytes and rebased indices, exact differences/residues, parity/powers-of-two, active heads and bounded prefix/encoder comparisons.",
+      "task_states": {
+        "T065": "X",
+        "T068": "X",
+        "T078": "/",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "R16",
+      "title": "Ryzen configuration",
+      "design_disposition": "included",
+      "rationale": "Actual GPU updates, Docker AMD identity/shared-memory accounting, synchronized sustained timing, finite AMP and bounded4/8-worker comparisons.",
+      "task_states": {
+        "T001": "X",
+        "T040": "/",
+        "T046": "/",
+        "T047": " ",
+        "T096": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "R17",
+      "title": "Generated-program discovery",
+      "design_disposition": "included",
+      "rationale": "Archive-derived graph/features/transforms, multiple implementations, checked typed rewrites/learned macros and post-seal novelty.",
+      "task_states": {
+        "T073": "X",
+        "T084": "X",
+        "T086": "X",
+        "T090": "X",
+        "T091": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/phase9-review.md"
+      ]
+    },
+    {
+      "id": "R18",
+      "title": "Relation-search defects",
+      "design_disposition": "included",
+      "rationale": "Ranked bounded retrieval, actual configured multi-index exact nullspace, nonempty disjoint validation, honest metrics and negative controls.",
+      "task_states": {
+        "T081": "X",
+        "T085": "X",
+        "T086": "X",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "R19",
+      "title": "Scoped proof capabilities",
+      "design_disposition": "included",
+      "rationale": "Polynomial/rational, recurrence, finite-state, restricted-loop and bounded-machine certificates with domain/compiler-link limits and independent replay.",
+      "task_states": {
+        "T053": "X",
+        "T057": "X",
+        "T087": "X",
+        "T088": "X",
+        "T089": "X",
+        "T092": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "R20",
+      "title": "Position and capacity decisions",
+      "design_disposition": "included",
+      "rationale": "Keep sinusoidal baseline, fixture-test RoPE/ancestor-path/25M-class options, select at most one triggered paired contrast; no future AST leakage or assumed superiority.",
+      "task_states": {
+        "T062": "/",
+        "T078": "/",
+        "T098": "/",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/contract/test_foundation_qualified_cli.py",
+        "tests/unit/test_foundation_decisions.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A01",
+      "title": "Sinusoidal corruption",
+      "design_disposition": "not_adopted",
+      "rationale": "Unsupported defect diagnosis; no such claim adopted.",
+      "task_states": {},
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "A02",
+      "title": "Fixed positional-buffer crash",
+      "design_disposition": "already_present",
+      "rationale": "Dynamic extension already exists; retain long-length regression instead of inventing a missing fix.",
+      "task_states": {
+        "T062": "/",
+        "T078": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "A03",
+      "title": "RoPE",
+      "design_disposition": "included",
+      "rationale": "Implemented selectable variant, cache-offset tests and bounded conditional comparison.",
+      "task_states": {
+        "T062": "/",
+        "T078": "/",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A04",
+      "title": "Unconstrained RoPE extrapolation",
+      "design_disposition": "corrected",
+      "rationale": "Reject guarantee; explicit length/cache/memory limits and held-out length evidence.",
+      "task_states": {
+        "T062": "/",
+        "T078": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "A05",
+      "title": "Depth/sibling Tree-RoPE",
+      "design_disposition": "corrected",
+      "rationale": "Replace colliding coordinates with generated-prefix ancestor paths; binding remains statically checked.",
+      "task_states": {
+        "T065": "X",
+        "T078": "/",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A06",
+      "title": "Consolidated lifecycle",
+      "design_disposition": "included",
+      "rationale": "Shared launch/resume/canaries/stages plus original-wrapper parity.",
+      "task_states": {
+        "T041": "X",
+        "T045": "/",
+        "T077": "X",
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "A07",
+      "title": "Extraction/manifests",
+      "design_disposition": "included",
+      "rationale": "Indexed sources, checksums, synthetic identity, group split and shared extraction.",
+      "task_states": {
+        "T022": "X",
+        "T069": "X",
+        "T093": "/",
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_foundation_source_policy.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md"
+      ]
+    },
+    {
+      "id": "A08",
+      "title": "Four-horizon census",
+      "design_disposition": "included",
+      "rationale": "Separate20/50/100/120 complete denominators and exact signed range.",
+      "task_states": {
+        "T093": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/unit/test_foundation_source_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A09",
+      "title": "Qualification CLI",
+      "design_disposition": "included",
+      "rationale": "Actual checkpoint synthesis and machine-readable gates; reference diagnostics separate.",
+      "task_states": {
+        "T024": "/",
+        "T027": "X",
+        "T028": "X",
+        "T049": "/",
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "A10",
+      "title": "All logic in CLI classes",
+      "design_disposition": "corrected",
+      "rationale": "Reusable services with thin CLI adapters; classes only for stateful needs.",
+      "task_states": {
+        "T008": "X",
+        "T045": "/",
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "A11",
+      "title": "Additional command aliases",
+      "design_disposition": "not_adopted",
+      "rationale": "Existing oeis-learn command namespace suffices; optional names are not a defect.",
+      "task_states": {},
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "A12",
+      "title": "Retire obsolete wrappers",
+      "design_disposition": "included",
+      "rationale": "Archive after parity with original configs and evidence preserved.",
+      "task_states": {
+        "T095": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_transition_gate.py",
+        "tests/unit/test_foundation_legacy_wrappers.py",
+        "tests/unit/test_readiness_policy.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A13",
+      "title": "512 default or RoPE removes limits",
+      "design_disposition": "corrected",
+      "rationale": "Existing dynamic buffer plus one explicit context contract; no unlimited length claim.",
+      "task_states": {
+        "T006": "X",
+        "T007": "/",
+        "T062": "/",
+        "T078": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md"
+      ]
+    },
+    {
+      "id": "A14",
+      "title": "85+160 universal token minimum",
+      "design_disposition": "corrected",
+      "rationale": "Actual body/wrapper/BOS/EOS accounting; fixed benchmark estimate is not universal.",
+      "task_states": {
+        "T006": "X",
+        "T007": "/",
+        "T073": "X"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md"
+      ]
+    },
+    {
+      "id": "A15",
+      "title": "Elite canonical limit",
+      "design_disposition": "included",
+      "rationale": "Repair legacy insertion-before-validation and retain valid long programs outside training.",
+      "task_states": {
+        "T064": "X",
+        "T073": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "A16",
+      "title": "CGI length guard",
+      "design_disposition": "corrected",
+      "rationale": "Existing guard becomes profile-derived with common eligibility, not hardcoded512.",
+      "task_states": {
+        "T064": "X",
+        "T073": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "A17",
+      "title": "Static helper fuel estimates",
+      "design_disposition": "corrected",
+      "rationale": "Actual per-call and aggregate fuel measured; no copied instruction estimate.",
+      "task_states": {
+        "T013": "X",
+        "T096": "/",
+        "T097": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/integration/test_foundation_overflow_diagnostics.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-3-review.md"
+      ]
+    },
+    {
+      "id": "A18",
+      "title": "25k\u201350k fuel thresholds",
+      "design_disposition": "corrected",
+      "rationale": "Insufficient thresholds rejected; bounded100k/250k/1M tiers and aggregate accounting.",
+      "task_states": {
+        "T080": "X",
+        "T083": "X",
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "A19",
+      "title": "75% fuel warnings",
+      "design_disposition": "included",
+      "rationale": "Configurable near-limit counts and summaries, not a learned optimum.",
+      "task_states": {
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P01",
+      "title": "Historical generation timings",
+      "design_disposition": "corrected",
+      "rationale": "Historical G16 bottleneck is evidence; actual Ryzen phase timings still required.",
+      "task_states": {
+        "T096": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P02",
+      "title": "KV caching",
+      "design_disposition": "included",
+      "rationale": "Include self/cross caches with bounded state/equivalence and measured benefit.",
+      "task_states": {
+        "T062": "/",
+        "T066": "/",
+        "T067": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P03",
+      "title": "Attention complexity",
+      "design_disposition": "corrected",
+      "rationale": "Correct aggregate dense attention O(T^3) to O(T^2), not O(T^2) to O(T); no universal speed promise.",
+      "task_states": {
+        "T066": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P04",
+      "title": "3\u20135x cache speedup",
+      "design_disposition": "corrected",
+      "rationale": "Unverified projection rejected; use measured practical-effect rule.",
+      "task_states": {
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P05",
+      "title": "Grammar allocation work",
+      "design_disposition": "corrected",
+      "rationale": "Instrument actual sets/loops/synchronization; do not assert143 checks per step universally.",
+      "task_states": {
+        "T067": "/",
+        "T096": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P06",
+      "title": "uint128 masks",
+      "design_disposition": "corrected",
+      "rationale": "Reject insufficient width; sized boolean/word masks cover the full vocabulary.",
+      "task_states": {
+        "T006": "X",
+        "T007": "/",
+        "T067": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md"
+      ]
+    },
+    {
+      "id": "P07",
+      "title": "Batched grammar masks",
+      "design_disposition": "included",
+      "rationale": "Preallocated static components plus dynamic stack/local/scope state.",
+      "task_states": {
+        "T067": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "P08",
+      "title": "1.5\u20132x grammar gain",
+      "design_disposition": "corrected",
+      "rationale": "Measure end-to-end and phase costs without multiplying speculative gains.",
+      "task_states": {
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P09",
+      "title": "CUDA deployment",
+      "design_disposition": "corrected",
+      "rationale": "AMD-compatible Docker runtime and actual HIP tensors, not NVIDIA wheels.",
+      "task_states": {
+        "T001": "X",
+        "T046": "/",
+        "T047": " "
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "P10",
+      "title": "Weight/VRAM size",
+      "design_disposition": "corrected",
+      "rationale": "Record actual parameters and peak shared-host/device memory; weight storage is not full footprint.",
+      "task_states": {
+        "T040": "/",
+        "T043": "/",
+        "T078": "/",
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "P11",
+      "title": "GPU 10x/sub50ms claim",
+      "design_disposition": "corrected",
+      "rationale": "Unsupported bound rejected; synchronized steady-state end-to-end measurements.",
+      "task_states": {
+        "T099": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P12",
+      "title": "Entropy/ACR causal claim",
+      "design_disposition": "corrected",
+      "rationale": "Repair unrestricted entropy/proxy fields and measure actual group variance; no invented historical causality.",
+      "task_states": {
+        "T063": "X",
+        "T070": "X",
+        "T071": "X",
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P13",
+      "title": "Temperature lower bound",
+      "design_disposition": "corrected",
+      "rationale": "0.8 explicit baseline, not an established optimum; changing schedule requires one selected contrast.",
+      "task_states": {
+        "T070": "X",
+        "T098": "/",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/contract/test_foundation_qualified_cli.py",
+        "tests/unit/test_foundation_decisions.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P14",
+      "title": "Entropy coefficient0.03",
+      "design_disposition": "corrected",
+      "rationale": "No evidence for optimum; repaired legal entropy with explicit0 default and bounded objective contrast.",
+      "task_states": {
+        "T063": "X",
+        "T070": "X",
+        "T098": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/contract/test_foundation_qualified_cli.py",
+        "tests/unit/test_foundation_decisions.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "P15",
+      "title": "top_p0.95 diversity",
+      "design_disposition": "corrected",
+      "rationale": "Top-p1 policy baseline; legality and useful diversity measured, unsupported truncated policy rejected.",
+      "task_states": {
+        "T063": "X",
+        "T070": "X",
+        "T075": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md"
+      ]
+    },
+    {
+      "id": "P16",
+      "title": "Recurrence speed/100% claim",
+      "design_disposition": "corrected",
+      "rationale": "Exact solver and final checks; actual time and independent continuation evidence, no unsupported rate.",
+      "task_states": {
+        "T050": "X",
+        "T054": "X",
+        "T055": "X",
+        "T056": "X",
+        "T096": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_egca_training_step.py",
+        "tests/unit/test_foundation_measurement.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "P17",
+      "title": "AST solver routing",
+      "design_disposition": "included",
+      "rationale": "Verified dependency/recurrence structure and exact cached systems; unsupported/rank-deficient not automatically UNSAT.",
+      "task_states": {
+        "T054": "X",
+        "T056": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "D01",
+      "title": "Generic bootstrap and no imported teachers",
+      "design_disposition": "included",
+      "rationale": "D001 preserved: random roots, mechanically generated bootstrap and later admitted generated hypotheses; no imported solutions/metadata guidance.",
+      "task_states": {
+        "T030": "X",
+        "T032": "X",
+        "T033": "X",
+        "T035": "X",
+        "T069": "X",
+        "T076": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-5-review.md"
+      ]
+    },
+    {
+      "id": "D02",
+      "title": "Immediate proof/arith repairs",
+      "design_disposition": "included",
+      "rationale": "Original decision sequencing restored; owning prover/solver defects fixed before architectural measurements.",
+      "task_states": {
+        "T013": "X",
+        "T051": "X",
+        "T057": "X",
+        "T061": "X"
+      },
+      "implementation_disposition": "task_checklist_complete_not_release_authorization",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-3-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    },
+    {
+      "id": "D03",
+      "title": "Per-experiment contract",
+      "design_disposition": "included",
+      "rationale": "Frozen question/hypothesis/baseline/variants/manifests/seeds/budgets/metric/effect/stop/inconclusive rules; no final tuning.",
+      "task_states": {
+        "T098": "/",
+        "T099": "-",
+        "T100": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/contract/test_foundation_qualified_cli.py",
+        "tests/unit/test_foundation_decisions.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ]
+    },
+    {
+      "id": "D04",
+      "title": "Spec/plan notes/research",
+      "design_disposition": "included",
+      "rationale": "Completed plan.md replaces preliminary plan-notes; research and contracts distinguish decisions from outcomes.",
+      "task_states": {
+        "T103": "-",
+        "T104": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "D05",
+      "title": "Unconfirmed overflow semantics",
+      "design_disposition": "included",
+      "rationale": "D002 is not falsely labeled approved. Checked256 is a planning default; independently measure cost/intermediate range and unique rescues.",
+      "task_states": {
+        "T009": "X",
+        "T013": "X",
+        "T097": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "tests/integration/test_foundation_overflow_diagnostics.py"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-3-review.md"
+      ]
+    },
+    {
+      "id": "D06",
+      "title": "Native LODA C++ first",
+      "design_disposition": "deferred_loda",
+      "rationale": "Only deferred package: pin native interpreter/subset and data boundaries in008. Later user direction supersedes compiler-first proposal.",
+      "task_states": {},
+      "implementation_disposition": "deferred_loda",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "D07",
+      "title": "Conditional LODA-to-WASM",
+      "design_disposition": "deferred_loda",
+      "rationale": "Transcoder only if a demonstrated issue justifies it; no mandatory compiler assumed.",
+      "task_states": {},
+      "implementation_disposition": "deferred_loda",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "D08",
+      "title": "Minimal language comparison",
+      "design_disposition": "deferred_loda",
+      "rationale": "008 specifies native LODA versus WAT at roughly1\u20133 days each, token/primitive/runtime attribution and effect/stopping rules.",
+      "task_states": {},
+      "implementation_disposition": "deferred_loda",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": []
+    },
+    {
+      "id": "D09",
+      "title": "NixOS/Python/Docker/Ryzen",
+      "design_disposition": "included",
+      "rationale": "Beyond-venv dependencies and native builds in Docker, actual device feasibility, no automatic host changes.",
+      "task_states": {
+        "T001": "X",
+        "T046": "/",
+        "T047": " ",
+        "T094": "X"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        ".github/workflows/foundation.yml",
+        "scripts/foundation/test_wheel.sh"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "D10",
+      "title": "Twenty observed terms",
+      "design_disposition": "included",
+      "rationale": "20 is confirmed;100 total and rebased indices remain explicit planning defaults, diagnostic5/10 prefixes use separate manifests.",
+      "task_states": {
+        "T004": "X",
+        "T021": "X",
+        "T024": "/",
+        "T068": "X"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md"
+      ]
+    },
+    {
+      "id": "D11",
+      "title": "Fresh weights/breaking compatibility",
+      "design_disposition": "included",
+      "rationale": "New codecs/models may break compatibility; old weights remain diagnostic, strict parent chains root at random.",
+      "task_states": {
+        "T007": "/",
+        "T023": "/",
+        "T033": "X",
+        "T044": "X",
+        "T078": "/"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/validation/phase-2-review.md",
+        "specs/007-experiment-foundation/validation/phase-4-review.md",
+        "specs/007-experiment-foundation/validation/phase-5-review.md",
+        "specs/007-experiment-foundation/validation/phase-6-review.md"
+      ]
+    },
+    {
+      "id": "D12",
+      "title": "Only LODA deferred; KV discretionary",
+      "design_disposition": "included",
+      "rationale": "Latest instruction supersedes containment-only scope. KV included. Known defects require repair; uncertain optimizations have bounded decisions within007.",
+      "task_states": {
+        "T061": "X",
+        "T066": "/",
+        "T079": "/",
+        "T092": "X",
+        "T101": "X",
+        "T105": "-"
+      },
+      "implementation_disposition": "partial_or_pending",
+      "phase10_acceptance_refs": [
+        "specs/007-experiment-foundation/validation/phase-10-review.md"
+      ],
+      "review_evidence_refs": [
+        "specs/007-experiment-foundation/phase8-review.md",
+        "specs/007-experiment-foundation/phase9-review.md",
+        "specs/007-experiment-foundation/validation/phase-10-review.md",
+        "specs/007-experiment-foundation/validation/phase-7-review.md"
+      ]
+    }
+  ],
+  "validation": {
+    "code_revision": "f50f144bf78a38605b16bdc945c305526f0eecd1",
+    "local_focused": {
+      "passed": 56,
+      "skipped": 3
+    },
+    "local_installed_wheel": {
+      "passed": 3,
+      "skipped": 3
+    },
+    "cpu_ci": {
+      "passed": 680,
+      "skipped": 54,
+      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38074159609"
+    },
+    "installed_native_ci": {
+      "passed": 6,
+      "skipped": 0,
+      "run": "https://github.com/grugnog/oeis-learn/actions/runs/38074159601"
+    },
+    "g7": "PASS",
+    "g8_software": "PASS",
+    "g8_hardware": "PENDING",
+    "g9": "PASS",
+    "g10": "PARTIAL"
+  }
+}
