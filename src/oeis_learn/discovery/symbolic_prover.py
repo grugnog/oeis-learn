@@ -224,7 +224,7 @@ class SymbolicProver:
         import re
 
         if any(
-            not isinstance(c, str) or not re.fullmatch(r"-?(0|[1-9][0-9]*)", c) or len(c) > 80
+            not isinstance(c, str) or not re.fullmatch(r"(0|-?[1-9][0-9]*)", c) or len(c) > 80
             for c in relation.coefficients
         ):
             return "UNSUPPORTED", {

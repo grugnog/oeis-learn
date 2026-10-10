@@ -62,6 +62,15 @@ class WasmRunner:
         """Evaluates a single WAT program string."""
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
+        if (
+            type(fuel) is not int
+            or not 0 < fuel <= 1_000_000
+            or type(terms) is not int
+            or not 0 < terms <= 120
+        ):
+            raise ValueError("exact fuel/term bounds required")
+        if result_profile not in ("i64_scalar_v1", "i256x4_v1", "wat_i256_checked_v1"):
+            raise ValueError("explicit result profile required")
 
         if result_profile == "wat_i256_checked_v1":
             raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
@@ -103,6 +112,15 @@ class WasmRunner:
         """Evaluates a batch of WAT programs concurrently across CPU threads."""
         fuel = fuel_budget if fuel_budget is not None else self.fuel_budget
         terms = terms_to_generate if terms_to_generate is not None else self.terms_to_generate
+        if (
+            type(fuel) is not int
+            or not 0 < fuel <= 1_000_000
+            or type(terms) is not int
+            or not 0 < terms <= 120
+        ):
+            raise ValueError("exact fuel/term bounds required")
+        if result_profile not in ("i64_scalar_v1", "i256x4_v1", "wat_i256_checked_v1"):
+            raise ValueError("explicit result profile required")
 
         if result_profile == "wat_i256_checked_v1":
             raise ValueError("Strict body execution requires FoundationRunner and explicit backend")
@@ -117,9 +135,13 @@ class WasmRunner:
                 lowered_programs.append(p)
 
         if not self.use_fallback and HAS_NATIVE_EVALUATOR:
-            results = oeis_wasm_evaluator.evaluate_wat_batch(
-                list(lowered_programs), fuel, terms, result_profile
-            )
+            results = []
+            for offset in range(0, len(lowered_programs), 32):
+                results.extend(
+                    oeis_wasm_evaluator.evaluate_wat_batch(
+                        lowered_programs[offset : offset + 32], fuel, terms, result_profile
+                    )
+                )
             out = []
             for r in results:
                 wide_out = getattr(r, "wide_output", [])

@@ -482,11 +482,49 @@ def activate_qualified_contract(contract, *, g7_report, evidence_root, resolve):
         return value
 
     base = resolve_checked(contract["base_contract_sha256"])
-    if (
-        base.get("schema_version") != "foundation/v1"
-        or base.get("track", base.get("learning", {}).get("track")) != "strict_generic"
-    ):
-        raise ConfigError("qualified base must be a strict generic foundation contract")
+    if base.get("kind") == "smoke":
+        _expect(("map", _TOP_SCHEMA), "qualified.base", base)
+        _validate_semantics(base, "qualified.base")
+    else:
+        required = {
+            "schema_version",
+            "kind",
+            "purpose",
+            "run_id",
+            "profiles",
+            "track",
+            "initialization",
+            "objective",
+            "constitution_version",
+            "observed_terms",
+            "total_terms",
+            "index_policy",
+            "enabled_subsystems",
+            "run_provenance",
+            "contract_id",
+        }
+        _require(set(base) == required, "complete foundation base contract required")
+        _require(
+            base["contract_id"] == compute_canonical_digest(base, "contract_id"),
+            "base contract identity mismatch",
+        )
+        _require(
+            base["schema_version"] == "foundation/v1"
+            and base["kind"] == "experiment_contract"
+            and base["track"] == "strict_generic"
+            and base["initialization"] == "random"
+            and base["objective"] == "sft"
+            and base["constitution_version"] == "2.0.0",
+            "incompatible base contract",
+        )
+        _require(
+            base["profiles"] == profile_digests()
+            and base["observed_terms"] == 20
+            and base["total_terms"] == 100
+            and base["index_policy"] == "prefix_rebased_zero"
+            and base["enabled_subsystems"] == ["sft"],
+            "incompatible base profiles/horizon",
+        )
     for item in contract["parent_chain"]:
         parent = resolve_checked(item["contract_sha256"])
         validate_record(parent)

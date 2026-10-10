@@ -93,6 +93,8 @@ def check_scoped_evidence(record):
         envelope = (
             record.get("checker_report") if record.get("kind") == "proof_evidence" else record
         )
+        if record.get("kind") == "proof_evidence" and set(envelope) != {"statement"}:
+            return False
         statement = envelope["statement"]
         if set(statement) != {
             "formulas",
@@ -148,6 +150,8 @@ def check_scoped_evidence(record):
             return check_certificate(certificate)
         if result in ("counterexample", "COUNTEREXAMPLE"):
             witness = record["witness"]
+            if set(witness) != {"index", "values", "residual"}:
+                return False
             index = witness["index"]
             if (
                 type(index) is not int

@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'src/oeis_learn/**'
+      - 'crates/oeis_wasm_evaluator/**'
+      - 'Dockerfile'
+      - 'docker/dev/**'
       - 'tests/**'
       - '.github/workflows/phase7-review.yml'
 permissions:
@@ -53,7 +56,7 @@ jobs:
         run: |
           mkdir -p phase7-evidence
           chmod 777 phase7-evidence
-          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -lc 'cd crates/oeis_wasm_evaluator && cargo test --locked --no-default-features && cd /workspace && python -m oeis_learn.evaluation.repair_gate --output /evidence'
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c 'cd crates/oeis_wasm_evaluator && cargo test --locked --no-default-features && cd /workspace && python -m oeis_learn.evaluation.repair_gate --output /evidence'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

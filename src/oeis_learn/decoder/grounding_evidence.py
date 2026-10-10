@@ -116,8 +116,15 @@ def check_grounding_record(record):
         rec = recognize_grounded(source)
         if rec is not None:
             initial, coeffs = rec
+            from oeis_learn.sandbox.runner import WasmRunner
+
+            production = WasmRunner(fuel_budget=1000000).run_single(
+                source, terms_to_generate=len(terms), result_profile="i256x4_v1"
+            )
             return (
                 record["numeric_semantics"] == "checked_i256"
+                and production.status == "SUCCESS"
+                and production.output == list(terms)
                 and reference(initial, coeffs, len(terms)) == list(terms)
                 and evidence["production"] == evidence["reference"] == [str(t) for t in terms]
             )

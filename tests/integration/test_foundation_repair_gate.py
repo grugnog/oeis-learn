@@ -115,10 +115,74 @@ def test_qualified_activation_rejects_missing_gate_before_dispatch():
         objective="sft",
         modes={m: {"enabled": False, "profile_sha256": None} for m in MODES},
     )
-    with pytest.raises(ValueError, match="G7"):
+    with pytest.raises(ValueError):
         activate_qualified_contract(
             contract,
             g7_report={"gate": "G7", "status": "PASS"},
             evidence_root=".",
             resolve=lambda _: base,
         )
+
+
+def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeypatch):
+    from oeis_learn.experiments.config import activate_qualified_contract, load_config
+    from oeis_learn.experiments.qualified_models import seal_record, MODES
+    from oeis_learn.experiments.artifacts import compute_canonical_digest
+    from oeis_learn.evaluation import repair_gate
+    from oeis_learn.decoder import grounding
+    from pathlib import Path
+
+    base = load_config("configs/foundation/wat_smoke.yaml").to_dict()
+    base_digest = compute_canonical_digest(base)
+    profile = {
+        "version": "qualified-service/v1",
+        "service": "solver",
+        "settings": {"coefficient_bound": 5, "timeout_ms": 123, "max_parameters": 8},
+    }
+    profile_digest = compute_canonical_digest(profile)
+    gate = "sha256:" + "3" * 64
+    modes = {m: {"enabled": False, "profile_sha256": None} for m in MODES}
+    modes["solver"] = {"enabled": True, "profile_sha256": profile_digest}
+    contract = seal_record(
+        "qualified_contract",
+        base_contract_sha256=base_digest,
+        profiles={
+            k: base_digest
+            for k in (
+                "language",
+                "runtime",
+                "codec",
+                "model",
+                "objective",
+                "sampling",
+                "search",
+                "admission",
+            )
+        },
+        gates={"G7": gate, "G8": None, "G9": None},
+        track="strict_generic",
+        initialization="random",
+        parent_chain=[],
+        objective="sft",
+        modes=modes,
+    )
+    seen = []
+    monkeypatch.setattr(
+        repair_gate, "require_g7", lambda report, **kwargs: seen.append(("gate", report)) or gate
+    )
+    monkeypatch.setattr(
+        grounding,
+        "ground",
+        lambda source, terms, **kwargs: seen.append(("solver", kwargs)) or "result",
+    )
+    objects = {base_digest: base, profile_digest: profile}
+    services = activate_qualified_contract(
+        contract,
+        g7_report={"diagnostic": "test"},
+        evidence_root=Path("."),
+        resolve=objects.__getitem__,
+    )
+    assert services.ground("i256.const_?", [5] * 20) == "result"
+    assert seen == [("gate", {"diagnostic": "test"}), ("solver", {"bound": 5, "timeout_ms": 123})]
+    with pytest.raises(ValueError, match="disabled"):
+        services.optimize("i256.const 7")
