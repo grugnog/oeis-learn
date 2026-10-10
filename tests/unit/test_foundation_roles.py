@@ -214,3 +214,31 @@ def test_actual_docker_role_views_and_reclamation(tmp_path):
         assert value.phase_timings_ns and all(v >= 0 for v in value.phase_timings_ns.values())
     finally:
         runner.close()
+
+
+def test_reclamation_shares_one_two_second_deadline(monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.tracking import role_coordinator as module
+
+    tick = [10.0]
+    calls = []
+
+    def remove(argv, *, timeout, capture_output):
+        calls.append(("remove", timeout))
+        tick[0] += 1.5
+        return SimpleNamespace(returncode=0)
+
+    class Process:
+        def poll(self):
+            return None
+
+        def kill(self):
+            calls.append(("kill", None))
+
+        def wait(self, *, timeout):
+            calls.append(("wait", timeout))
+
+    monkeypatch.setattr(module.time, "monotonic", lambda: tick[0])
+    monkeypatch.setattr(module.subprocess, "run", remove)
+    module.reclaim("fixture", Process())
+    assert calls == [("remove", 2.0), ("kill", None), ("wait", 0.5)]

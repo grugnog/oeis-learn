@@ -336,3 +336,27 @@ def test_review_dispositions_bind_current_package_implementation():
     report = json.loads(Path("specs/007-experiment-foundation/validation/phase-10-dispositions.json").read_text())
     assert report["original_inputs"] == len(report["items"]) == 68
     assert report["implementation_sha256"] == implementation_identity()
+
+
+@pytest.mark.parametrize(
+    "question,arm,binding",
+    [("encoder", "baseline", False), ("encoder", "challenger", False),
+     ("position", "challenger", False), ("position", "challenger", True),
+     ("capacity", "challenger", False)],
+)
+def test_closed_pilot_variants_execute_finite_forward_backward(question, arm, binding, record_property):
+    profile = pilot_profile(question, arm, binding_scope_cause=binding)
+    encoder, decoder = construct_pilot_models(profile, "cpu")
+    memory = encoder.forward_from_sequences([[7] * 20], device="cpu")
+    tokens = torch.tensor([[BOS_ID] + encode_body("i256.const 7")])
+    logits = decoder(tokens, memory)
+    loss = logits.square().mean()
+    assert torch.isfinite(loss)
+    loss.backward()
+    parameters = list(encoder.parameters()) + list(decoder.parameters())
+    assert all(torch.isfinite(p.grad).all() for p in parameters if p.grad is not None)
+    assert any(p.grad is not None and p.grad.abs().sum() > 0 for p in encoder.parameters())
+    count = sum(p.numel() for p in parameters)
+    record_property("parameter_count", count)
+    if question == "capacity":
+        assert profile["d_ff"] == 2048 and 25_000_000 <= count <= 26_000_000

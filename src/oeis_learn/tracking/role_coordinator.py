@@ -38,14 +38,19 @@ def copy_view(root, files):
 
 
 def reclaim(name, process):
+    deadline = time.monotonic() + 2
     try:
-        removed = subprocess.run(["docker", "rm", "--force", name], timeout=2, capture_output=True)
+        removed = subprocess.run(
+            ["docker", "rm", "--force", name],
+            timeout=max(0, deadline - time.monotonic()),
+            capture_output=True,
+        )
         if removed.returncode:
             raise RuntimeError("Docker cgroup reclamation failed")
     finally:
         if process.poll() is None:
             process.kill()
-        process.wait(timeout=2)
+        process.wait(timeout=max(0, deadline - time.monotonic()))
 
 
 class DockerRunner:
