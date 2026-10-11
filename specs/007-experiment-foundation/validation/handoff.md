@@ -45,10 +45,10 @@ run-path identities are preserved, not rewritten as portable resume claims.
 | G4 | Complete-state CPU recovery/resume tests and quickstart pause/resume; actual baseline binding still required. | Pending baseline binding |
 | G5 | Actual HIP updates, allocator/preflight and host-coordinated GPU containment unavailable here. | Pending GPU |
 | G6 | Finite-result/scoped-certificate regressions; baseline report must bind executed proof-boundary suites. | Pending baseline binding |
-| G7 | Owning repaired solver/prover/optimizer and actual Rust/native qualification in current CI. | Current CI result recorded below |
-| G8 | Owning learning/cache/policy/resume software in current CI; actual hardware suite separate. | Software result below; hardware pending |
-| G9 | Logical/streaming/discovery/fresh certificate/native qualification in current CI. | Current CI result recorded below |
-| G10 | Current wheel, Docker integration and 68-input reconciliation; real source audit and qualified measurement decisions missing. | Pending |
+| G7 | Owning repaired solver/prover/optimizer and actual Rust/native qualification in current CI. | PASS |
+| G8 | Owning learning/cache/policy/resume software in current CI; actual hardware suite separate. | Software PASS; hardware pending |
+| G9 | Logical/streaming/discovery/fresh certificate/native qualification in current CI. | PASS |
+| G10 | Six wheel cases, 101 combined integration/Docker cases and 68-input reconciliation PASS; real source audit and qualified measurement decisions missing. | Pending |
 
 Earlier accepted software evidence: phase 10 executable revision
 `ba89b9694128775cd136b890f77a249b650a70ae`, CPU/native run
@@ -57,8 +57,24 @@ wheel/native/Docker run
 [38088372595](https://github.com/grugnog/oeis-learn/actions/runs/38088372595).
 Those passed G7/G9 and G8 software, six wheel cases and eight actual Docker role
 tests. They are historical records, not authorization for phase 11 changed code.
-Current phase 11 tested commit/results are recorded in
+Current phase 11 tested code is `e8b64943078484f53f7de16ec6fd1aea22910962`:
+[CPU/native review](https://github.com/grugnog/oeis-learn/actions/runs/38096255204)
+and [installed-wheel/native/Docker](https://github.com/grugnog/oeis-learn/actions/runs/38096255200)
+both pass. The package implementation identity is
+`sha256:c3253cb1c4ddf4baeab32a6899e422eaa996cbb2dcb44900434b3111b85cda0a`.
+Final documentation records these results without changing qualification source
+bytes or task markers. Full commands/counts are in
 [implementation-results.md](implementation-results.md).
+
+The published
+[gate archive](https://github.com/grugnog/oeis-learn/actions/runs/38096255200/artifacts/11686525939)
+contains **30 copied files / 41,960,097 bytes**, including the actual native wheel
+and resolved image ID. Its input manifest is
+`sha256:bd4083ab47c3fbaebb59ed610cde136e933f1d6acdc2e876ed6d13ca475c86e6`;
+the freshly replayed report is
+`sha256:5a36dbcf9a70d526b127561a824ab977914894a87b9262e9baa28df120a8000a`.
+The report preserves G0–G6 pending, G8 hardware pending and G10 source/measurement
+pending, with `full_007_complete=false` and `archive_is_authorization=false`.
 
 ## Quickstart and experiment decisions
 
@@ -69,10 +85,13 @@ timings and bounded archive replay. The initial driver supplied malformed census
 terms; it now preserves the original indexed records instead. Pool construction fails closed
 where Linux `/proc/sys/kernel/random/boot_id` is absent; training/resume and
 finalization/evaluation then remain prerequisite failures. The Linux CI driver
-must execute all those slices, with saved commands/stdout/stderr and no fallback.
+at `e8b64943078484f53f7de16ec6fd1aea22910962` executed all 11 slices successfully,
+with saved commands/stdout/stderr and no fallback. Its bounded CPU archive also
+replayed successfully.
 
-CPU measurement decisions are diagnostic: `qualified=false`, shortfalls and
-unavailable observations remain explicit. No GPU throughput, power/thermal,
+CPU measurement decisions are diagnostic: `qualified=false`, four measured
+prompts and a 124-prompt shortfall. All six conditional decisions remain
+inconclusive because required diagnostics are unavailable. No GPU throughput, power/thermal,
 overflow population, learning improvement or conditional trigger is inferred.
 Missing evidence stays unavailable/inconclusive; the baseline is retained. Real
 measurement/v2 requires accepted baseline/G7/G8, real release development source,

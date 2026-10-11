@@ -29,6 +29,14 @@ The Linux/native/wheel workflows are the executable authority for capabilities
 unavailable in this workspace. CI artifacts bind the exact tested commit; earlier
 phase 10 runs remain historical and are not presented as validation of changed code.
 
+Final code `e8b64943078484f53f7de16ec6fd1aea22910962` passes current Linux CI:
+**736 CPU tests / 56 capability skips**, all **11 CPU quickstart slices**,
+native G7/G8-software/G9 qualification, **6 installed-wheel cases**, **93 integration
+tests**, **8 Docker role tests** and the complete copied gate archive replay.
+The reconciled source distribution passes **25 tests** and its rebuilt wheel
+verifies **395** exact source/resource bindings. T104/T105 remain half-checked
+because workstation/source/trained-model and bounded live acceptance is pending.
+
 ## Semantic design review
 
 The review compares all eight stories, FR-001–038, SC-001–014, 108 tasks,

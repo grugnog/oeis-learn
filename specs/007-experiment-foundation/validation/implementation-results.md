@@ -66,7 +66,7 @@ handoff exceeded the fixed file cap. The collector now selects the owning report
 and their declared dependencies. A 4,100-unrelated-trial regression proves these
 cannot consume the gate archive, while missing/escaping dependencies still reject.
 No quota or gate was weakened. Latest focused suite: **27 passed / 3 capability
-skips**; lint passes. The current full CI rerun must validate this closure.
+skips**; lint passes. The full CI run below validates this closure.
 
 At `252e6372d557625d515a91b31d7847338bfcbb38`,
 [review CI](https://github.com/grugnog/oeis-learn/actions/runs/38095379995)
@@ -86,5 +86,46 @@ and scripts first on `sys.path`. Direct and rebuilt wheels verify **395**
 source/resource bindings. This packaging-only change receives fresh native/wheel
 CI below; Python service and driver bytes remain those validated at `252e637`.
 
-Final packaging CI result will be recorded after execution; pending runtime
-acceptance remains explicit.
+Final packaging code is `e8b64943078484f53f7de16ec6fd1aea22910962`.
+[Review CI](https://github.com/grugnog/oeis-learn/actions/runs/38096255204)
+passed **736 CPU tests / 56 explicit capability skips**, code-quality and Spec Kit
+checks, all **11 actual CPU quickstart slices** plus immutable replay, and native
+G7/G8-software/G9 qualification. The rebuilt wheel from the reconciled source
+distribution independently verifies all **395** exact source/resource bindings.
+
+The CPU diagnostic archive contains **3,125 files / 207,117,355 bytes**.
+Its input manifest is
+`sha256:6471743bd4d8fc002f6e5feeedf2595ee8f090b2e85e2b315707e3d97bfd3faf`;
+its report is
+`sha256:9eda29e812caa8bbb1577565dab882fc09ecf27c2251a8b756684c879fa92264`.
+The published CPU results artifact
+[11685674791](https://github.com/grugnog/oeis-learn/actions/runs/38096255204/artifacts/11685674791)
+has digest
+`sha256:079f3074b178f51f5a1b50dbca43274c30dab0bf7f66d51dc9494d6524264c4e`,
+verified after download. It includes the report and slice logs, with large
+checkpoint blobs retained only inside the bounded CI replay. Four measured
+fixture prompts leave a 124-prompt shortfall; all six conditional decisions are
+inconclusive, `qualified=false`, and every release gate in that diagnostic archive
+is pending. These are executed diagnostics, not adopted experiment outcomes.
+
+[Installed-wheel/native/Docker CI](https://github.com/grugnog/oeis-learn/actions/runs/38096255200)
+on the same final packaging code passed **6 installed-wheel cases with no skips**,
+**93 integration regressions**, **8 actual Docker role tests**, and copied gate
+archive publication/replay. The archive contains **30 files / 41,960,097 bytes**;
+its input manifest is
+`sha256:bd4083ab47c3fbaebb59ed610cde136e933f1d6acdc2e876ed6d13ca475c86e6`
+and its report is
+`sha256:5a36dbcf9a70d526b127561a824ab977914894a87b9262e9baa28df120a8000a`.
+G7/G9 PASS; G8 software PASS/hardware pending; G10's six wheel cases, 101 combined
+integration/Docker cases and 68-input reconciliation PASS. G0–G6 baseline/device
+binding and G10 source/qualified measurement acceptance remain pending.
+
+The complete selected archive, actual native wheel and resolved image are in
+[artifact 11686525939](https://github.com/grugnog/oeis-learn/actions/runs/38096255200/artifacts/11686525939),
+whose digest is
+`sha256:8770f4eb2e44a4edac247eff1fb3e01417f94ade795e8b125eee45d869fbac0c`.
+After download, ZIP integrity, the artifact digest and every one of the 30
+copied dependency hashes/file counts/byte counts independently verified.
+The final evidence update changes documentation and restores the original
+Markdown file mode only; qualification source bytes and task markers remain
+identical to this tested code. No pending acceptance is promoted to a pass.
