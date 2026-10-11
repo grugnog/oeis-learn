@@ -308,58 +308,58 @@ Each row names substantive test/implementation work as well as final release che
 
 | Requirement | Task IDs | Acceptance gate |
 | --- | --- | --- |
-| FR-001 | T106, T107, T108, T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041, T053, T060, T104 | Mapped story gate; G10 release |
+| FR-001 | T106, T107, T108, T003, T004, T005, T007, T008, T012, T017, T023, T031, T033, T041, T053, T060, T104, T111, T115 | Mapped story gate; G10 release |
 | FR-002 | T004, T009, T010, T013, T097, T104 | Mapped story gate; G10 release |
 | FR-003 | T009, T010, T013, T014, T015, T019, T033, T037, T050, T054, T059, T080, T082, T097, T104 | Mapped story gate; G10 release |
 | FR-004 | T006, T007, T011, T012, T015, T017, T019, T033, T050, T052, T056, T058, T104 | Mapped story gate; G10 release |
-| FR-005 | T003, T004, T011, T014, T015, T017, T019, T025, T055, T104 | Mapped story gate; G10 release |
+| FR-005 | T003, T004, T011, T014, T015, T017, T019, T025, T055, T104, T110 | Mapped story gate; G10 release |
 | FR-006 | T010, T011, T012, T014, T016, T017, T019, T040, T046, T052, T059, T083, T104 | Mapped story gate; G10 release |
 | FR-007 | T003, T004, T020, T022, T028, T029, T093, T104 | Mapped story gate; G10 release |
 | FR-008 | T003, T004, T021, T022, T024, T025, T028, T029, T035, T046, T056, T075, T097, T104 | Mapped story gate; G10 release |
 | FR-009 | T020, T021, T022, T025, T026, T028, T029, T093, T104 | Mapped story gate; G10 release |
 | FR-010 | T020, T021, T022, T025, T026, T028, T029, T075, T104 | Mapped story gate; G10 release |
 | FR-011 | T008, T015, T021, T023, T024, T025, T026, T027, T028, T029, T045, T049, T095, T104 | Mapped story gate; G10 release |
-| FR-012 | T004, T005, T024, T030, T031, T032, T033, T034, T035, T036, T037, T044, T069, T076, T091, T104 | Mapped story gate; G10 release |
-| FR-013 | T006, T007, T012, T015, T022, T030, T031, T032, T033, T034, T035, T036, T037, T073, T076, T104 | Mapped story gate; G10 release |
+| FR-012 | T004, T005, T024, T030, T031, T032, T033, T034, T035, T036, T037, T044, T069, T076, T091, T104, T109 | Mapped story gate; G10 release |
+| FR-013 | T006, T007, T012, T015, T022, T030, T031, T032, T033, T034, T035, T036, T037, T073, T076, T104, T109 | Mapped story gate; G10 release |
 | FR-014 | T003, T008, T023, T026, T031, T034, T038, T041, T042, T044, T045, T048, T064, T066, T072, T077, T098, T102, T104 | Mapped story gate; G10 release |
 | FR-015 | T005, T008, T027, T028, T039, T043, T044, T045, T049, T060, T068, T104 | Mapped story gate; G10 release |
 | FR-016 | T013, T016, T019, T025, T027, T031, T032, T034, T036, T038, T039, T042, T043, T044, T048, T049, T056, T070, T071, T096, T098, T104 | Mapped story gate; G10 release |
-| FR-017 | T001, T005, T040, T045, T046, T047, T049, T059, T094, T104 | Mapped story gate; G10 release |
+| FR-017 | T001, T005, T040, T045, T046, T047, T049, T059, T094, T104, T111, T115 | Mapped story gate; G10 release |
 | FR-018 | T004, T005, T011, T016, T036, T039, T040, T041, T042, T043, T046, T047, T049, T096, T104 | Mapped story gate; G10 release |
 | FR-019 | T003, T004, T018, T021, T027, T049, T051, T057, T089, T091, T102, T104 | Mapped story gate; G10 release |
-| FR-020 | T002, T008, T027, T049, T095, T103, T104, T105 | Mapped story gate; G10 release |
+| FR-020 | T002, T008, T027, T049, T095, T103, T104, T105, T111, T114, T117 | Mapped story gate; G10 release |
 | FR-021 | T050, T053, T054, T055, T056, T060, T061, T082, T104 | Mapped story gate; G10 release |
 | FR-022 | T051, T053, T057, T060, T061, T087, T104 | Mapped story gate; G10 release |
 | FR-023 | T052, T058, T059, T060, T061, T083, T094, T104 | Mapped story gate; G10 release |
-| FR-024 | T065, T069, T093, T101, T104 | Mapped story gate; G10 release |
-| FR-025 | T062, T066, T067, T078, T079, T099, T104 | Mapped story gate; G10 release |
-| FR-026 | T065, T068, T078, T079, T100, T104 | Mapped story gate; G10 release |
+| FR-024 | T065, T069, T093, T101, T104, T113 | Mapped story gate; G10 release |
+| FR-025 | T062, T066, T067, T078, T079, T099, T104, T116 | Mapped story gate; G10 release |
+| FR-026 | T065, T068, T078, T079, T100, T104, T120 | Mapped story gate; G10 release |
 | FR-027 | T053, T063, T070, T071, T074, T077, T079, T100, T104 | Mapped story gate; G10 release |
-| FR-028 | T053, T064, T072, T073, T074, T077, T079, T100, T104 | Mapped story gate; G10 release |
-| FR-029 | T064, T069, T073, T074, T075, T076, T077, T079, T084, T090, T100, T104 | Mapped story gate; G10 release |
+| FR-028 | T053, T064, T072, T073, T074, T077, T079, T100, T104, T109 | Mapped story gate; G10 release |
+| FR-029 | T064, T069, T073, T074, T075, T076, T077, T079, T084, T090, T100, T104, T109 | Mapped story gate; G10 release |
 | FR-030 | T080, T082, T083, T088, T092, T104 | Mapped story gate; G10 release |
 | FR-031 | T081, T084, T085, T086, T092, T104 | Mapped story gate; G10 release |
 | FR-032 | T053, T057, T081, T085, T087, T088, T089, T092, T104 | Mapped story gate; G10 release |
 | FR-033 | T081, T084, T086, T090, T091, T092, T100, T104 | Mapped story gate; G10 release |
-| FR-034 | T094, T095, T101, T102, T104 | Mapped story gate; G10 release |
-| FR-035 | T067, T071, T096, T099, T104 | Mapped story gate; G10 release |
-| FR-036 | T078, T090, T098, T099, T100, T101, T104 | Mapped story gate; G10 release |
-| FR-037 | T097, T099, T104 | Mapped story gate; G10 release |
-| FR-038 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105 | Mapped story gate; G10 release |
+| FR-034 | T094, T095, T101, T102, T104, T114, T117 | Mapped story gate; G10 release |
+| FR-035 | T067, T071, T096, T099, T104, T114, T118 | Mapped story gate; G10 release |
+| FR-036 | T078, T090, T098, T099, T100, T101, T104, T119, T120 | Mapped story gate; G10 release |
+| FR-037 | T097, T099, T104, T114, T118 | Mapped story gate; G10 release |
+| FR-038 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105, T110, T112, T121 | Mapped story gate; G10 release |
 | SC-001 | T009, T010, T011, T013, T014, T015, T016, T017, T019, T049, T104 | Mapped story gate; G10 release |
 | SC-002 | T015, T020, T021, T023, T024, T025, T026, T027, T029, T049, T104 | Mapped story gate; G10 release |
-| SC-003 | T030, T031, T033, T034, T035, T036, T037, T044, T049, T104 | Mapped story gate; G10 release |
+| SC-003 | T030, T031, T033, T034, T035, T036, T037, T044, T049, T104, T109 | Mapped story gate; G10 release |
 | SC-004 | T031, T034, T038, T039, T041, T042, T044, T045, T048, T049, T104 | Mapped story gate; G10 release |
-| SC-005 | T001, T016, T040, T043, T045, T046, T047, T049, T104 | Mapped story gate; G10 release |
+| SC-005 | T001, T016, T040, T043, T045, T046, T047, T049, T104, T111, T115 | Mapped story gate; G10 release |
 | SC-006 | T018, T021, T027, T049, T104 | Mapped story gate; G10 release |
 | SC-007 | T050, T051, T052, T053, T054, T055, T056, T057, T058, T059, T060, T061, T104 | Mapped story gate; G10 release |
-| SC-008 | T062, T066, T067, T078, T079, T099, T104 | Mapped story gate; G10 release |
-| SC-009 | T053, T063, T064, T070, T071, T072, T073, T074, T075, T076, T077, T079, T102, T104 | Mapped story gate; G10 release |
-| SC-010 | T065, T068, T069, T076, T078, T079, T093, T104 | Mapped story gate; G10 release |
+| SC-008 | T062, T066, T067, T078, T079, T099, T104, T116, T119 | Mapped story gate; G10 release |
+| SC-009 | T053, T063, T064, T070, T071, T072, T073, T074, T075, T076, T077, T079, T102, T104, T109 | Mapped story gate; G10 release |
+| SC-010 | T065, T068, T069, T076, T078, T079, T093, T104, T113 | Mapped story gate; G10 release |
 | SC-011 | T053, T080, T081, T082, T083, T084, T085, T086, T087, T088, T089, T090, T091, T092, T102, T104 | Mapped story gate; G10 release |
-| SC-012 | T093, T094, T095, T101, T102, T104 | Mapped story gate; G10 release |
-| SC-013 | T078, T090, T096, T097, T098, T099, T100, T101, T104 | Mapped story gate; G10 release |
-| SC-014 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105 | Mapped story gate; G10 release |
+| SC-012 | T093, T094, T095, T101, T102, T104, T113, T114, T117 | Mapped story gate; G10 release |
+| SC-013 | T078, T090, T096, T097, T098, T099, T100, T101, T104, T114, T118, T119, T120 | Mapped story gate; G10 release |
+| SC-014 | T060, T061, T079, T092, T098, T101, T102, T103, T104, T105, T112, T121 | Mapped story gate; G10 release |
 
 ## Implementation strategy
 
@@ -371,3 +371,33 @@ Deliver reviewed story increments with expected failing regressions before fixes
 - [X] T107 Create `tests/fixtures/foundation/` directory with fixture payloads for artifact schema examples, cohort YAML, and evaluation JSON as required by T008/T022/T028 (missing)
 - [X] T108 Create `src/oeis_learn/cli/foundation.py` with the strict command group wired into the primary CLI; the Click group in `artifacts.py` is orphaned and `main.py` uses argparse — the separate module is explicitly named in T008's path list (missing)
 
+## Phase 13: Convergence fixes and CPU validation
+
+**Goal**: Fix the confirmed code defects and complete CPU-executable validation before GPU qualification.
+
+This cross-phase assessment accepts the root Dockerfile development VM and SSH-accessible Dockerized GPU environment with a shared filesystem as the phase-1 architecture. Qualification must establish suitability for the remaining design without requiring the superseded container layout. Per the requested two-phase handoff, the earlier draft convergence section is reorganized here; T001–T108 and all their existing checkboxes remain unchanged. T112 is half-checked for the CI inventory/traceability repair; its fresh wheel and qualification checks remain pending. All other new tasks remain unchecked.
+
+The recheck confirms three code defects: archive/measurement callers discard `validate_sample()` rejection results; the G8 runner serializes an executed nonzero hardware process as `PENDING`; and G0 accepts a preflight payload without validating identity bindings. Isolated current-function probes and call-site inspection confirm these findings, but are not full integration or GPU qualification. T112 addresses inventory/evidence bookkeeping caused by the newly appended tasks, not an additional application runtime defect. The original assessment covered 38 functional requirements, 14 success criteria, 32 story acceptance scenarios, seven edge cases, 20 grouped plan obligations, six constitution principles and 108 tasks. Its 12 findings are now expressed as 13 tasks because CPU portions of the mixed wrapper/overflow acceptance work are split from GPU work.
+
+**Order and acceptance**: Implement T109–T111 with CPU negative regressions first, then complete T112 against the final task inventory and current software evidence. T113–T114 are CPU validation/input prerequisites, not code defects or GPU blockers; missing authoritative data or trained artifacts must be recorded separately and leave the affected acceptance unchecked. Reuse available immutable artifacts; do not wait for GPU access to run executable CPU checks. Code remediation is ready for GPU qualification once T109–T112 pass; missing inputs for T113–T114 block only the acceptance tasks that consume them. Phase 13 itself remains incomplete while a required task is unchecked. Do not mark an unfinished task complete merely because its blocker is documented.
+
+- [ ] T109 CRITICAL [C1] Enforce every generic-sample rejection returned by `validate_sample()` in `src/oeis_learn/discovery/program_archive.py` and `src/oeis_learn/evaluation/measurement_inputs.py`; both currently discard the reason and accept an outer `generic_sample` with a prohibited inner origin. Share the rejection contract across archive admission, packet reload and frozen measurement loading, and add negative regressions in `tests/` for prohibited origin and mutated config, seed, sample counter, statistics and tokens, asserting failed admission leaves archive objects/index unchanged and measurement loading rejects tampered provenance. Requalify affected G3/G8/G10 software evidence per Constitution V, FR-012, FR-013, FR-028, FR-029, SC-003, SC-009 and T073 (contradicts)
+- [ ] T110 HIGH [C2] Preserve executed hardware failures as `FAIL` with durable process/JUnit diagnostics in `src/oeis_learn/evaluation/learning_gate.py` and its owning report validators/readiness consumers; currently a nonzero hardware process or rejected hardware JUnit leaves `hardware_record` absent and is serialized as `PENDING`. Reserve `PENDING` for work not executed, preserve fail-closed release behavior, and add CPU regression tests in `tests/` for nonzero exit, missing/unreadable/malformed/incomplete/skipped hardware JUnit, process-launch failure and genuinely unrequested hardware work; actual accelerator qualification remains T116 per FR-005, FR-038, US6/AC1 and T079/T104 (contradicts)
+- [ ] T111 HIGH [C3] Validate and cross-bind G0 preflight configuration, observed device and runtime identity in `src/oeis_learn/evaluation/baseline_gate.py` against the selected baseline checkpoint/containment evidence and the report emitted by `src/oeis_learn/cli/foundation_preflight.py`; the current validator accepts a report lacking `device_name`, `config_digest` and `environment_report`. Treat the existing `config_digest` as a base-image digest rather than a hash of the effective configuration; define distinct required identity fields and their semantics, bind the configured image/lock/effective preflight configuration and selected runtime without relying on caller-supplied `hip`/`cuda` strings alone, and add CPU regressions in `tests/` for missing identity, mismatched image/runtime/device and rehashed foreign evidence. Keep actual ready-G0 hardware execution pending under T115 per FR-001, FR-017, FR-020, SC-005, plan G0 and T049 (partial)
+- [/] T112 MEDIUM [C4] Integrate append-only convergence task inventories into `specs/007-experiment-foundation/validate_artifacts.py` and the owning coverage/dependency/disposition records under `specs/007-experiment-foundation/validation/`; the structural validator currently hard-codes exactly T001–T108 and requires their exact coverage/dependency set, while adding this section also invalidates prior task-inventory hash bindings. Support sequential new tasks and their source references without weakening checks or rewriting completed task history, update coverage/dependencies and current dispositions, test malformed/duplicate/unmapped additions in `tests/`, rebuild packaged governance resources and requalify affected checks against the final inventory. Preserve earlier immutable evidence as historical rather than rebinding it to new bytes per FR-038, SC-014 and T101/T104 (partial)
+- [ ] T113 HIGH [V3] Qualify an actual authoritative indexed source release with `src/oeis_learn/evaluation/release_source.py` and `src/oeis_learn/evaluation/source_policy.py`: verify offsets/keywords, finite/table exclusions, exact signed horizons at 20/50/100/120 positions, affine-shift grouping and every member's reserved prefix, and bind a nonempty strict structurally partitioned training archive. Run this qualification on CPU after T109–T111; missing authoritative source data is an external-input blocker, not a GPU blocker. Record unavailable external data explicitly; synthetic fixtures alone do not satisfy real-source acceptance per FR-024, SC-010, SC-012 and T093 (partial)
+- [ ] T114 MEDIUM [V4/V5 CPU prerequisites] Complete the CPU-executable portions of historical-wrapper and overflow acceptance using `tests/unit/test_foundation_legacy_wrappers.py`, `tests/integration/test_foundation_overflow_diagnostics.py`, `src/oeis_learn/evaluation/legacy_wrappers.py` and `src/oeis_learn/evaluation/overflow_diagnostics.py`: check actual available parent weights/configuration identities and wrapper behavior, freeze valid available bootstrap/model/verified strata, replay provenance and independent 4096-bit-capped traces, and run in-range CPU checked/unchecked comparisons plus sealed development scoring where inputs exist. Keep the existing sample, warmup/repeat, fuel and deadline bounds. Record missing trained/source artifacts as external-input blockers without substituting fixtures or relabeling CPU work as GPU-dependent; leave missing mandatory acceptance unchecked. Hand immutable evidence to T117–T118 so the GPU phase runs only outstanding hardware- or GPU-produced-artifact-dependent portions per FR-020, FR-034, FR-035, FR-037, SC-012, SC-013 and T095/T096/T097 (partial)
+
+## Phase 14: GPU-dependent tests and validation runs
+
+**Goal**: Complete real accelerator/host-container qualification, GPU-dependent trained-artifact validation and the bounded measurement protocol, then assemble the final release evidence.
+
+**Dependencies and execution**: T109–T112 must pass before accepting any phase-14 qualification. Run GPU commands through `lab-gpu exec --` in the accepted root-image environment; make any dependency changes through the Dockerfile/locks and `lab-gpu image ensure`. T115–T116 qualify the platform/accelerator; T117–T118 reuse T113–T114 CPU evidence and complete only outstanding GPU runs or checks requiring newly produced GPU artifacts; T119 precedes conditional T120; T121 is the final join. Source-data and CPU checks are not blocked merely by missing GPU access. Track missing source/model artifacts independently. Never replace required GPU runs with CPU passes. Keep each task unchecked or half-checked until its owning acceptance passes, preserve failures distinctly from unexecuted work, and enforce the original two-hour engineering and six-hour pilot caps.
+
+- [ ] T115 HIGH [V1] Run strict workstation HIP and host-container qualification through the accepted root-image/SSH shared-filesystem workflow, using `tests/integration/test_foundation_gpu.py`, `tests/integration/test_foundation_resources.py` and their owning G0–G6 runners: three real optimizer updates, containment/memory/quota/kill behavior, ready preflight and a baseline bundle bound to the actual checkpoint, image/runtime, JUnit and durable budget evidence. Apply T109–T112 first and consume the relevant T113–T114 qualified inputs; do not substitute CPU fallback or mark T047/other partial tasks complete on software-only evidence per FR-001, FR-017, SC-005 and T005/T007/T023/T024/T040/T042/T043/T045/T046/T047/T049 (partial)
+- [ ] T116 HIGH [V2] Execute the owning accelerator qualification in `tests/integration/test_foundation_learning_gpu.py` with the qualified model configurations: all 12 FP32 full/prefill parity cases across the declared context lengths and all three FP16/GradScaler optimizer-update cases, with finite gradients and the declared numerical tolerances. The 15 existing GPU cases cover full/prefill parity and finite AMP updates; retain the owning CPU cache/mask/batch regressions and use T119 for live batching/cache memory measurements rather than claiming those are all asserted by this GPU file. Persist role-owned G8 results through the corrected failure-status contract from T110, leaving unexecuted work `PENDING` and recording executed failures as `FAIL` per FR-025, SC-008 and T062/T066/T067/T078/T079 (partial)
+- [ ] T117 MEDIUM [V4] Complete the GPU-dependent train/resume/warm-start/evaluate wrapper parity runs against actual trained weights and effective configurations, consuming the CPU checks and artifact identities from T114, using the owning legacy wrapper tests in `tests/` and evaluation/report paths in `src/oeis_learn/evaluation/`; preserve legacy labels, runtime modes and parent-checkpoint identity, record substantive behavior comparisons and leave sustained GPU runs pending when unavailable per FR-020, FR-034, SC-012 and T095 (partial)
+- [ ] T118 HIGH [V5] Complete the remaining GPU-produced model/verified strata and live GPU telemetry acceptance in `src/oeis_learn/evaluation/` with up to 256 distinct programs per available raw bootstrap/model/verified stratum, frozen input indices 0–99 and independent reference traces capped at 4096-bit intermediates, checked/unchecked in-range paired timings, and sealed 20+80 horizon reports of rescued programs and unique groups. Use truthful synchronized sensor availability and actual runtime measurements; distinguish unavailable evidence from semantic impossibility. Reuse T114 CPU traces, paired CPU timings and development scoring; only run outstanding artifact-dependent checks after real GPU sampling/training, and keep hardware-dependent timing/telemetry pending until measured per FR-035, FR-037, SC-013 and T096/T097 (partial)
+- [ ] T119 HIGH [V6] Run the frozen engineering experiments using `src/oeis_learn/evaluation/experiment_runner.py` and `src/oeis_learn/evaluation/live_measurement.py` after T109–T116 and the required T117–T118 input/evidence preparation: 128 prompts, seeds 7001–7003, ten warmups and 30 repeats for cache/batch/grammar/SDPA, FP32/AMP and four/eight workers, then the required ten-minute steady measurements with relation growth, fuel and available power/thermal telemetry. Bind actual role-owned model/runtime and immutable result evidence and enforce the two-hour engineering cap per FR-036, SC-008, SC-013 and T098/T099 (partial)
+- [ ] T120 HIGH [V7] Execute the conditional paired pilot through `src/oeis_learn/evaluation/experiment_runner.py` and the owning pilot runners after T119: frozen-priority 30-minute diagnostic, one challenger only when its registered trigger fires, seed 7001 first with 55-minute paired arms, proceeding to the remaining 220 minutes for seeds 7002/7003 only if the registered useful-effect rule passes; evaluate at minutes 15/30/45/55 and charge diagnostics, bootstrap, updates, evaluation, checkpointing and interrupted work within the six-hour cap. Persist the actual baseline-retained/not-triggered/inconclusive decision when appropriate rather than inventing missing measurements; exclude LODA and extra sweeps per FR-026, FR-036, SC-013 and T100 (partial)
+- [ ] T121 HIGH [V8] Assemble and validate the final current G0–G10 release/readiness handoff under `specs/007-experiment-foundation/validation/` using the owning `src/oeis_learn/evaluation/` validators after T109–T120; rebuild and verify clean-wheel/native/governance bindings, current task dispositions, authoritative source and measurement identities, and rerun checks affected by code changes. Preserve earlier reports as historical, leave GPU/evidence-dependent tasks unchecked until their runs pass, and assert full spec-007 completion only with all required evidence present; only the explicit LODA work remains deferred to spec 008 per FR-038, SC-014 and T102/T104/T105 (partial)

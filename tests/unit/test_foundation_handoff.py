@@ -12,7 +12,7 @@ from oeis_learn.evaluation.readiness import release_readiness
 
 def dispositions():
     record = load_json(
-        Path("specs/007-experiment-foundation/validation/phase-11-dispositions.json").read_bytes()
+        Path("specs/007-experiment-foundation/validation/current-dispositions.json").read_bytes()
     )
     record["implementation_sha256"] = implementation_identity()
     return record
