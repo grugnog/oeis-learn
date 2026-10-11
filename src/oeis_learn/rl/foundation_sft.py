@@ -30,7 +30,12 @@ from oeis_learn.experiments.artifacts import (
 from oeis_learn.experiments.config import load_config
 from oeis_learn.experiments.profiles import profile_digests
 from oeis_learn.rl.sft_trainer import teacher_forced_logits
-from oeis_learn.tracking.foundation_metrics import metric, resource_metrics, PhaseTimer, sensor_metrics
+from oeis_learn.tracking.foundation_metrics import (
+    metric,
+    resource_metrics,
+    PhaseTimer,
+    sensor_metrics,
+)
 from oeis_learn.tracking.training_checkpoint import CheckpointStore
 
 
@@ -53,9 +58,11 @@ def runtime_record(device, *, run=None):
         machine=platform.machine(),
         device=str(device),
         hip=torch.version.hip,
-        device_name=torch.cuda.get_device_name(0)
-        if device.type == "cuda"
-        else platform.processor(),
+        device_name=(
+            torch.cuda.get_device_name(torch.cuda.current_device())
+            if device.type == "cuda"
+            else platform.processor()
+        ),
         deterministic_algorithms=True,
         float32_matmul_precision="highest",
         allow_tf32=False,
@@ -95,10 +102,20 @@ def prepare_run(
     runtime = runtime_record(device)
     if run_provenance is not None:
         import re
-        expected = {"source_revision", "dependency_lock", "base_image_digest", "final_image_id", "environment_report"}
+
+        expected = {
+            "source_revision",
+            "dependency_lock",
+            "base_image_digest",
+            "final_image_id",
+            "environment_report",
+        }
         if not isinstance(run_provenance, dict) or set(run_provenance) != expected:
             raise ValueError("closed preflight run provenance required")
-        if any(not isinstance(v, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", v) for v in run_provenance.values()):
+        if any(
+            not isinstance(v, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", v)
+            for v in run_provenance.values()
+        ):
             raise ValueError("content-bound preflight run provenance required")
     cfg = load_config(config)
     pool_manifest = load_json((Path(pool) / "manifest.json").read_bytes())
@@ -209,8 +226,11 @@ class FoundationTrainer:
             self.bundle, free_floor_bytes=self.run["free_disk_floor_bytes"]
         )
         if self.device.type == "cuda":
-            total = torch.cuda.get_device_properties(self.device).total_memory
-            torch.cuda.set_per_process_memory_fraction(min(0.8, (64 << 30) / total), self.device)
+            # Allocator configuration requires an explicit index, whereas
+            # device-property lookup also accepts the unindexed "cuda" alias.
+            index = torch.cuda.current_device()
+            total = torch.cuda.get_device_properties(index).total_memory
+            torch.cuda.set_per_process_memory_fraction(min(0.8, (64 << 30) / total), index)
         self.named_rng = {
             name: torch.Generator().manual_seed(self.run["seed"] + i)
             for i, name in enumerate(("initialization", "data_order", "sampling"))
@@ -379,11 +399,11 @@ class FoundationTrainer:
                 cached_gaussian=numpy[4],
             ),
             torch_cpu_rng=torch.get_rng_state(),
-            torch_gpu_rng={
-                str(i): torch.cuda.get_rng_state(i) for i in range(torch.cuda.device_count())
-            }
-            if self.device.type == "cuda"
-            else {},
+            torch_gpu_rng=(
+                {str(i): torch.cuda.get_rng_state(i) for i in range(torch.cuda.device_count())}
+                if self.device.type == "cuda"
+                else {}
+            ),
             named_rng={name: rng.get_state() for name, rng in self.named_rng.items()},
             data_order=deepcopy(self.order),
         )
