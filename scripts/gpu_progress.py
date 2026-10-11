@@ -170,12 +170,22 @@ def file_hash(path):
     return h.hexdigest()
 
 
+def walk_error(error):
+    # os.walk otherwise silently omits inaccessible evidence directories.
+    raise error
+
+
 def tree_hashes(path, *, source=False):
     path = Path(path)
+    if source:
+        try:
+            path.stat()
+        except FileNotFoundError:
+            return {}  # source identity also binds the absence of optional paths
     if path.is_file():
         return {path.name: file_hash(path)}
     files = []
-    for directory, children, names in os.walk(path):
+    for directory, children, names in os.walk(path, onerror=walk_error):
         children[:] = [
             name
             for name in children
@@ -424,6 +434,46 @@ def check_shared_io(out, settings):
         ) from e
 
 
+def publish_outputs(out):
+    """Make this identity's retained stage evidence readable across VM mappings.
+
+    Default ACLs can keep other::--- even with umask 022. Explicit mode changes
+    are needed for third-party writers (pytest, torch.save, etc.). Only owned
+    files under this stage are changed; no extra write permission is granted.
+    Links are rejected rather than changing or retaining external input inodes.
+    """
+
+    def publish(path):
+        info = path.lstat()
+        if stat.S_ISLNK(info.st_mode):
+            raise Blocked(f"Shared stage output must not be a symlink: {path}")
+        if info.st_uid != os.geteuid():
+            return  # controller-created files stay under the controller's ownership
+        directory = stat.S_ISDIR(info.st_mode)
+        if not directory and (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1):
+            raise Blocked(f"Shared stage output must be a regular file with one link: {path}")
+        readable = 0o055 if directory else 0o044
+        mode = stat.S_IMODE(info.st_mode)
+        if mode & readable != readable:
+            path.chmod(mode | readable)
+            if stat.S_IMODE(path.stat().st_mode) & readable != readable:
+                raise Blocked(f"Shared output mode did not retain read/traverse access: {path}")
+
+    out = Path(out)
+    try:
+        publish(out)
+        for directory, children, names in os.walk(out, onerror=walk_error):
+            for name in children + names:
+                publish(Path(directory) / name)
+    except OSError as e:
+        raise Blocked(
+            f"Cannot publish shared stage evidence at {e.filename or out}: {e}. "
+            "The worker must be able to set read permissions on its own outputs; "
+            "check the workspace mount and host ACLs. Retained evidence and budgets "
+            "must be preserved."
+        ) from e
+
+
 def require_idle(out):
     out = Path(out)
     if not out.exists():
@@ -459,6 +509,10 @@ def supervise(argv, log, seconds):
     process = None
     Path(log).parent.mkdir(parents=True, exist_ok=True)
     with Path(log).open("ab") as stream:
+        # Share live logs before launching, including if the broker later kills
+        # the container before Python's finally blocks can run.
+        mode = stat.S_IMODE(os.fstat(stream.fileno()).st_mode)
+        os.fchmod(stream.fileno(), mode | 0o044)
         stream.write((json.dumps([str(a) for a in argv]) + "\n").encode())
         stream.flush()
         try:
@@ -542,7 +596,10 @@ def remote_watchdog(name, settings, state, seconds):
         # The host broker removes its rootless container and restores inference.
         # The project process has no container API or authority to clear a stale
         # host lease. supervise() handles only this worker's process group.
-        held.close()
+        try:
+            publish_outputs(out)
+        finally:
+            held.close()
     return code
 
 
@@ -575,6 +632,8 @@ def execute_worker(name, settings, state, seconds):
         write(out / "blocked.json", dict(error=str(e)))
         print(f"BLOCKED: {e}", file=sys.stderr, flush=True)
         return 3
+    finally:
+        publish_outputs(out)
 
 
 def run(cfg, state, until=None):
