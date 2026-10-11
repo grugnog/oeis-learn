@@ -1,9 +1,9 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Current convergence inventory repair; historical phase-11 runtime evidence is not rebound or carried forward.",
+  "code_revision": "Phase 13 software fixes; bound to current code/inventory bytes. Historical qualification is not carried forward.",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
-  "scope": "Current original-input/task traceability only. Convergence fixes and GPU qualification remain pending; no checklist or archive completion grants release authorization.",
+  "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
   "items": [
     {
@@ -1755,9 +1755,9 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:c3253cb1c4ddf4baeab32a6899e422eaa996cbb2dcb44900434b3111b85cda0a",
+  "implementation_sha256": "sha256:1a89244c8e1f14f668469d47287b13a13d1d6d74d003e9570e919c1415719088",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
-  "task_inventory_sha256": "sha256:ec7cafc52f2cee8d8d798efebcdfe8129584216fb745f005d44fe95ea07dc248",
+  "task_inventory_sha256": "sha256:88ac8302b19e76d599d7277b19e26bb2428b33355296ff29ca901ce792fb2a3a",
   "historical_template": {
     "path": "specs/007-experiment-foundation/validation/phase-11-dispositions.json",
     "sha256": "sha256:fa6a5408220a63a053e80f83dec81d852c1bca75e5d782591161e662297f3a91"

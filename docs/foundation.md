@@ -142,3 +142,24 @@ questions move to 008. Remaining GPU/source/measurement acceptance remains in 00
 `lab-gpu image ensure` / `lab-gpu exec --` workflow and actual HIP tests, including
 `test_foundation_gpu.py`, `test_foundation_learning_gpu.py` and the GPU coordinator
 test with `OEIS_GPU_ROLE_IMAGE`. Skips leave those tasks half-checked.
+
+## Phase 13 evidence identities
+
+New preflight evidence uses `preflight-report/v2`. The preflight-only configuration
+requires a resolved `base_image_digest`, the observed built `final_image_id`, and
+confined `dockerfile`/`dependency_lock` file paths relative to that configuration.
+The emitted `config_digest` hashes the complete effective preflight configuration;
+it no longer stands for the parent-image digest. The report separately hashes the
+Dockerfile and dependency lock and records observed runtime/device details.
+`foundation qualify-baseline` requires `--preflight-config` in addition to the
+report, actual checkpoint, run events and owning suites. G0 copies/replays those
+selected inputs and checks image/runtime/device against checkpoint provenance and
+containment. Old preflight reports remain historical and cannot qualify G0.
+
+G8 reports use `g8/v2`: software JUnit plus optional hardware process/JUnit
+evidence. Unrequested hardware is `PENDING`; nonzero exit, launch failure or
+rejected/missing hardware JUnit is `FAIL` with durable diagnostics. Even diagnostic
+replay rejects a recorded hardware failure. Actual accelerator acceptance remains
+a separate phase-14 run. CPU input diagnostics can be replayed with
+`python scripts/verify_phase13.py --output DIR`; missing indexed source and trained
+artifacts stay explicit and cannot qualify T113/T114.

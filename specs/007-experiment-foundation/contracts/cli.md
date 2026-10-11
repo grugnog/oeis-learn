@@ -31,7 +31,7 @@ preserve their explicit status alongside the exit code.
 | `census --source FILE --output DIR` | Exact JSON records; independent 20/50/100/120 denominators with offsets/tags and exclusions. |
 | `prepare-release --manifest FILE --config FILE --output DIR` | Hashed indexed source files, authoritative metadata, affine cohort; real structural archive audit still required. |
 | `coordinated-smoke --config FILE --pool DIR --image ID --output DIR` | Host-owned Docker strict GPU updates/containment; `--seconds` and `--resume-run` keep actual budgets/state. |
-| `qualify-baseline --checkpoint FILE --run-dir DIR --preflight FILE --suites FILE --output DIR` | Actual run-bound G0–G6, native parity, executed GPU containment and non-skipped owning suites. |
+| `qualify-baseline --checkpoint FILE --run-dir DIR --preflight FILE --preflight-config FILE --suites FILE --output DIR` | Actual run-bound G0–G6, native parity, executed GPU containment and non-skipped owning suites. |
 | `diagnose-overflow --strata FILE --output DIR` | Sealed bounded wider-reference traces; optional provenance/archive/holdouts/development; unchecked bytes cannot enter training. |
 | `prepare-measurement` | Explicit archive/cohort/holdouts, G7/G8, baseline report/checkpoint, resolved image and output; `measurement/v2` roles contain no final truth. |
 | `measure --manifest FILE --output DIR [--dry-run]` | Frozen capped diagnostic/live protocol; records explicit failure/unavailable/inconclusive decisions. |

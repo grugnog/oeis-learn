@@ -125,9 +125,9 @@ def prepare_measurement(
         ("g7", g7, Path(evidence_root)),
         ("g8", g8, Path(g8_path).parent),
     ):
-        refs = list(report["checks"].values())
-        if label == "g8" and report["hardware"] is not None:
-            refs.append(report["hardware"])
+        from oeis_learn.evaluation.learning_gate import evidence_references
+
+        refs = evidence_references(report) if label == "g8" else list(report["checks"].values())
         for ref in refs:
             file = ArtifactPath(original, ref["path"]).as_path()
             name = "assets/gates/" + label + "/" + ref["path"]
@@ -186,7 +186,7 @@ def load_assets(manifest, root, *, hardware=False, replay_gates=True):
     from oeis_learn.evaluation.repair_gate import require_g7
     from oeis_learn.evaluation.learning_gate import require_g8
     from oeis_learn.data.generic_programs import GenericSampler
-    from oeis_learn.data.program_admission import validate_sample
+    from oeis_learn.data.program_admission import require_sample
 
     root = Path(root)
     assets = manifest["assets"]
@@ -270,7 +270,7 @@ def load_assets(manifest, root, *, hardware=False, replay_gates=True):
             if draw != provenance["structure"]:
                 raise ValueError("structural draw mismatch")
         else:
-            validate_sample(provenance["sample"], GenericSampler(provenance["config"]))
+            require_sample(provenance["sample"], GenericSampler(provenance["config"]))
         if provenance["sample"]["canonical_source"] != row["source"]:
             raise ValueError("generic fixture source mismatch")
     from oeis_learn.data.structural_splits import StructuralHoldouts, split_for_structure

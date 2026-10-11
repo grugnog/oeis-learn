@@ -21,6 +21,7 @@ SUITES = {
         "test_foundation_sampler",
         "test_foundation_admission",
         "test_foundation_pool",
+        "test_foundation_provenance",
     },
     "G4": {"test_foundation_resume"},
     "G5": {"test_foundation_resources", "test_foundation_roles", "test_foundation_gpu"},
@@ -64,7 +65,15 @@ def require_junit(root, reference, gate):
     return len(cases)
 
 
-def validate_preflight(report):
+def validate_preflight(
+    report,
+    *,
+    config=None,
+    checkpoint=None,
+    containment=None,
+    dependency_lock_sha256=None,
+    dockerfile_sha256=None,
+):
     if (
         report.get("status") != "ready"
         or report.get("gate") != "passed"
@@ -78,6 +87,85 @@ def validate_preflight(report):
         or report.get("peak_memory_bytes_after", 0) <= 0
     ):
         raise ValueError("complete actual-device1024-token preflight required")
+    identity_fields = {
+        "schema_version",
+        "device_name",
+        "config_digest",
+        "environment_report",
+        "effective_config",
+        "base_image_digest",
+        "final_image_id",
+        "runtime",
+        "dependency_lock_sha256",
+        "dockerfile_sha256",
+        "evidence_sha256",
+    }
+    if (
+        not identity_fields <= set(report)
+        or report["schema_version"] != "preflight-report/v2"
+        or report["evidence_sha256"] != digest(report, "evidence_sha256")
+        or config is None
+        or checkpoint is None
+        or containment is None
+    ):
+        raise ValueError("complete selected preflight identity bindings required")
+    from oeis_learn.experiments.models import check_digest
+
+    for name in (
+        "config_digest",
+        "base_image_digest",
+        "final_image_id",
+        "dependency_lock_sha256",
+        "dockerfile_sha256",
+    ):
+        check_digest(report[name], name)
+    effective = config.to_dict()
+    provenance = checkpoint.contract["run_provenance"]
+    env, runtime = report["environment_report"], report["runtime"]
+    fields = {"python", "machine", "torch", "hip", "device", "device_name"}
+    if (
+        report["effective_config"] != effective
+        or report["config_digest"] != digest(effective)
+        or report["base_image_digest"] != effective["base_image_digest"]
+        or report["final_image_id"] != effective["final_image_id"]
+        or report["base_image_digest"] != provenance["base_image_digest"]
+        or report["final_image_id"] != provenance["final_image_id"]
+        or report["final_image_id"] != containment["image"]
+        or report["dependency_lock_sha256"] != dependency_lock_sha256
+        or report["dependency_lock_sha256"] != provenance["dependency_lock"]
+        or report["dockerfile_sha256"] != dockerfile_sha256
+        or digest(env) != provenance["environment_report"]
+        or set(runtime) != fields
+        or any(not isinstance(runtime[k], str) or not runtime[k] for k in fields)
+        or any(runtime[k] != checkpoint.runtime.get(k) for k in fields)
+        or report["requested_device"] != effective["requested_device"]
+        or report["dtype"] != effective["dtype"]
+        or any(
+            report.get(k) is not True
+            for k in ("no_cpu_fallback", "no_driver_install", "no_privileged_container")
+        )
+    ):
+        raise ValueError("preflight configuration/image/runtime identity mismatch")
+    hip = env.get("hip", {})
+    if (
+        hip.get("available") is not True
+        or hip.get("cuda_available") is not True
+        or type(hip.get("device_count")) is not int
+        or hip["device_count"] < 1
+        or len(hip.get("devices", [])) != hip["device_count"]
+        or hip["devices"][0].get("name") != report["device_name"]
+        or type(hip["devices"][0].get("total_memory")) is not int
+        or hip["devices"][0]["total_memory"] <= 0
+        or hip.get("hip_version") != report["hip_version"]
+        or runtime["hip"] != hip.get("hip_version")
+        or runtime["torch"] != hip.get("torch_version")
+        or runtime["python"] != env.get("python")
+        or runtime["machine"] != env.get("machine")
+        or runtime["device"] != "cuda"
+        or runtime["device_name"] != report["device_name"]
+        or report["device"] != "cuda:0"
+    ):
+        raise ValueError("observed preflight device/runtime identity mismatch")
     if len(report.get("steps", [])) != 3:
         raise ValueError("three measured preflight updates required")
     for i, row in enumerate(report["steps"]):
@@ -90,7 +178,8 @@ def validate_preflight(report):
             or row["grad_finite"] is not True
             or row["params_changed"] <= 0
             or row["max_abs_param_change"] <= 0
-            or not str(row["device"]).startswith("cuda")
+            or row["device"] != report["device"]
+            or row.get("device_name") != report["device_name"]
             or not math.isfinite(row["loss"])
         ):
             raise ValueError("invalid actual device update")
@@ -114,10 +203,37 @@ def require_baseline(bundle, checkpoint, *, evidence_root):
     ):
         raise ValueError("complete current run/checkpoint-bound G0–G6 evidence required")
     checks, root = bundle["checks"], Path(evidence_root)
-    if set(checks["G0"]) != {"preflight", "adoption"}:
+    if set(checks["G0"]) != {
+        "preflight",
+        "preflight_config",
+        "dependency_lock",
+        "dockerfile",
+        "adoption",
+    }:
         raise ValueError("G0 references incomplete")
     preflight = read_ref(root, checks["G0"]["preflight"])
-    validate_preflight(preflight)
+    from oeis_learn.cli.foundation_preflight import load_config
+    from oeis_learn.experiments.artifacts import ArtifactPath
+
+    for name in ("preflight_config", "dependency_lock", "dockerfile"):
+        ref = checks["G0"][name]
+        if set(ref) != {"path", "sha256"}:
+            raise ValueError("selected preflight identity reference required")
+        file = ArtifactPath(root, ref["path"]).as_path()
+        if compute_file_hash(file) != ref["sha256"]:
+            raise ValueError("selected preflight identity bytes changed")
+    config = load_config(
+        str(ArtifactPath(root, checks["G0"]["preflight_config"]["path"]).as_path())
+    )
+    containment = read_ref(root, checks["G2"]["containment"])
+    validate_preflight(
+        preflight,
+        config=config,
+        checkpoint=checkpoint,
+        containment=containment,
+        dependency_lock_sha256=checks["G0"]["dependency_lock"]["sha256"],
+        dockerfile_sha256=checks["G0"]["dockerfile"]["sha256"],
+    )
     adoption = read_ref(root, checks["G0"]["adoption"])
     if (
         set(adoption) != {"version", "constitution_sha256", "adoption_sha256"}
@@ -181,7 +297,9 @@ def require_baseline(bundle, checkpoint, *, evidence_root):
     return gates
 
 
-def assemble_baseline_bundle(checkpoint_path, run_root, preflight, junit, output):
+def assemble_baseline_bundle(
+    checkpoint_path, run_root, preflight, junit, output, *, preflight_config
+):
     """Bind existing executed reports and actual run events, then replay every gate."""
     from oeis_learn.evaluation.checkpoint import load_foundation_checkpoint
     from oeis_learn.tracking.foundation_metrics import EventLog
@@ -198,6 +316,16 @@ def assemble_baseline_bundle(checkpoint_path, run_root, preflight, junit, output
         return dict(path=name, sha256=compute_file_hash(target.as_path()))
 
     checks["G0"]["preflight"] = copy("preflight.json", preflight)
+    from oeis_learn.cli.foundation_preflight import load_config
+
+    cfg = load_config(str(preflight_config))
+    checks["G0"]["preflight_config"] = copy("preflight-config.yaml", preflight_config)
+    for name, relative in (
+        ("dependency_lock", cfg.dependency_lock),
+        ("dockerfile", cfg.dockerfile),
+    ):
+        source = ArtifactPath(Path(preflight_config).parent, relative).as_path()
+        checks["G0"][name] = copy("preflight-inputs/" + name, source)
     repo = Path(__file__).resolve().parents[3]
     constitution = repo / ".specify/memory/constitution.md"
     record = repo / "specs/007-experiment-foundation/validation/adoption.md"

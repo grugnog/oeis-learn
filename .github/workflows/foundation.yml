@@ -75,6 +75,8 @@ jobs:
         with:
           name: foundation-wheel-native
           path: |
+            wheel-evidence/installed-wheel-*/source-distribution.xml
+            wheel-evidence/installed-wheel-*/rebuilt/*.whl
             wheel-evidence/installed-wheel-*/installed-wheel.xml
             wheel-evidence/installed-wheel-*/installed-help.txt
             wheel-evidence/installed-wheel-*/wheels/*.whl

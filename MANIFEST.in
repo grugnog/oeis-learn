@@ -11,3 +11,9 @@ recursive-include docker/dev *.sh
 recursive-include scripts *.py *.sh *.json *.yaml *.yml
 recursive-include specs/007-experiment-foundation/contracts *.json
 recursive-include specs/005-trustworthy-synthesis-readiness/contracts *.json
+
+# Current convergence validation must work from the extracted source distribution.
+recursive-include specs/007-experiment-foundation *.md *.json *.py *.yaml *.yml
+include docs/foundation.md USAGE.md
+include .github/workflows/foundation.yml
+include specs/007-experiment-foundation/validation/phase-13-review.md
