@@ -59,6 +59,28 @@ gate override or CPU fallback.
 
 ## Required inputs
 
+To discover input candidates already present in the checkout, run in the VM:
+
+```sh
+python scripts/gpu_progress_settings.py
+cat tmp-gpu-inputs/settings.auto.json
+python scripts/gpu_progress.py --config tmp-gpu-inputs/settings.auto.json
+```
+
+The helper matches an existing archive with its exact holdout identity, selects
+the latest numerically named `model_epoch_*.v2.pt` per historical run with a
+matching configuration, and generates an explicit small cohort configuration
+with two development and two final groups. A pre-007 checkpoint is appropriate
+for the legacy compatibility checks; strict foundation training uses random
+initialization. Discovery does not establish checkpoint compatibility or source
+authority: the owning progression stages validate the actual candidate bytes.
+Missing or ambiguous source/archive candidates remain null and are printed.
+The helper excludes tests, retained progression attempts, hidden/build trees
+and symlink inputs. It writes only generated files under `tmp-gpu-inputs`, does
+not download source records or build an admitted archive, and cannot unlock
+host role stages. Checkpoints with other filenames can be listed manually in
+`legacy-cases.json` when they meet the actual loader's format requirements.
+
 Paths in settings are relative to the repository root or absolute shared paths.
 Keep local settings and data in top-level `tmp-*` directories. Missing inputs
 block their consumers; independent checks continue.
