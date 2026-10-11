@@ -6,6 +6,10 @@ case "$mode" in cpu|gpu) ;; *) exit 2 ;; esac
 apt-get update
 apt-get install -y --no-install-recommends \
   ca-certificates curl build-essential cmake ninja-build pkg-config git
+if [[ "$mode" == gpu ]]; then
+  # Controller client only; no daemon or socket enters workload roles.
+  apt-get install -y --no-install-recommends docker.io openssh-client
+fi
 rm -rf /var/lib/apt/lists/*
 
 export RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo

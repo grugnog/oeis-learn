@@ -368,7 +368,13 @@ class RoleCoordinator:
         from oeis_learn.tracking.foundation_controller import ResourceGuard
 
         guard = ResourceGuard(self.root.parent, free_floor=20 << 30)
-        process = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        stdout = (output / "role.stdout.log").open("wb")
+        stderr = (output / "role.stderr.log").open("wb")
+        try:
+            process = subprocess.Popen(argv, stdout=stdout, stderr=stderr)
+        finally:
+            stdout.close()
+            stderr.close()
         issued, futures = set(), {}
         low_samples, next_memory_sample = 0, start
         try:
@@ -436,7 +442,7 @@ class RoleCoordinator:
                         del futures[key]
                 time.sleep(0.01)
             if process.returncode:
-                raise RuntimeError("role container failed")
+                raise RuntimeError(f"role container failed with exit {process.returncode}; see {output / 'role.stderr.log'}")
             return load_json((output / "result.json").read_bytes())
         finally:
             reclaim(name, process)

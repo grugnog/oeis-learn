@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Phase 13 software fixes; bound to current code/inventory bytes. Historical qualification is not carried forward.",
+  "code_revision": "Phase 13 software fixes plus reconstructed VM GPU progression integration repairs; bound to current implementation bytes. Historical qualification is not carried forward.",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:1a89244c8e1f14f668469d47287b13a13d1d6d74d003e9570e919c1415719088",
+  "implementation_sha256": "sha256:0b744c148613a32cb84fe9f14c3669a1e1e2b28472d4d936188da5812f9a3328",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:f04520074a370a9276b17fa38527180764cf17955a629c771a62217366a673f2",
   "historical_template": {

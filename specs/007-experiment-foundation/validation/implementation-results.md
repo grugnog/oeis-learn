@@ -129,3 +129,60 @@ copied dependency hashes/file counts/byte counts independently verified.
 The final evidence update changes documentation and restores the original
 Markdown file mode only; qualification source bytes and task markers remain
 identical to this tested code. No pending acceptance is promoted to a pass.
+
+## Reconstructed VM GPU progression runner (2026-10-11)
+
+The previous transient checkout and unpushed local commit `b522f6b` were no longer
+available. GitHub had neither that commit nor its intended branch. The runner
+and integration repairs were reconstructed from the recorded session history;
+the prior version's test results are not transferred to these new bytes.
+
+The disposable `scripts/gpu_progress.py` controller and worker module inventory
+all earlier unfinished tasks before phase-13/14 owning checks. They cover CPU
+input work, real HIP smoke/checkpoint/constructor checks, all 15 accelerator
+cases, host containment, preflight and baseline, actual historical artifacts,
+GPU-produced overflow strata/telemetry, the immutable two/six-hour engineering
+and conditional pilot schedule, native/installed-package/readiness handoff and
+one final diagnostic lifecycle. Task and checklist markers remain unchanged.
+
+Receipts bind source, settings, recursively referenced inputs, dependency
+identities and retained outputs. Verified successes skip on rerun; temporary
+dependency failure preserves their receipts. Remote locks/watchdogs and saved
+lease-scoped reclamation protect against duplicates and abandoned Docker roles.
+Measurement issuance is non-reissuable. The final stage has a persistent one-hour
+default wall allowance, maximum twelve hours, including transport/cleanup grace;
+its separate three-update training ledger remains capped at ten minutes. The
+last stage pauses/resumes isolated training, evaluates a small original-partition
+cohort, freezes stopping/finalization, evaluates sealed final truth and writes
+planning metrics. Three updates are lifecycle diagnostics, not convergence.
+
+Reconstructed code-path repairs include foundation CLI argument forwarding,
+closed preflight run provenance, coordinated pause/resume configuration binding,
+caller-interruption reclamation of a detached learner/controller session, role
+stdout/stderr retention, Docker controller clients in the GPU image and image
+cache input closure. The guide records the required source/weights/host inputs
+and remaining sustained historical launcher acceptance.
+
+Fresh validation:
+
+- `OMP_NUM_THREADS=2 .venv/bin/python -m pytest -q tests/unit/test_foundation_gpu_progress.py tests/unit/test_foundation_run_provenance.py tests/unit/test_foundation_preflight_identity.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_roles.py tests/unit/test_foundation_config.py tests/contract/test_foundation_artifacts.py tests/unit/test_foundation_handoff.py tests/unit/test_foundation_task_inventory.py tests/unit/test_foundation_phase10_integration.py`: **231 passed, one explicit Docker capability skip**.
+- The four `tests/integration/test_foundation_legacy_artifacts.py` cases executed
+  against a generated tiny CPU v2 checkpoint/configuration: **4 passed**. This
+  verifies the test harness, not actual historical parent/GPU acceptance.
+- Black on all five new Python files and Ruff F/E9 on all changed Python files
+  pass. `git diff --check` passes.
+- Offline direct wheel/source-distribution builds and an extracted-source wheel
+  rebuild pass. All **181** package files match byte-for-byte; the source
+  distribution includes the controller, worker, guide, settings and tests.
+  Generated compiler/package metadata is excluded from source-cache identity;
+  a regression verifies real source edits still invalidate it.
+- `python scripts/gpu_progress.py --plan` and Spec Kit prerequisites pass.
+  The artifact validator passes: 52 requirements, 121 tasks, 68 original findings,
+  83 local links and 14 negative schema cases. No extension hooks are registered;
+  both existing requirements/design checklists have zero unchecked items.
+
+This host lacks `lab-gpu`, Docker, native compilation and the required actual
+source/historical artifacts; Linux boot identity is unavailable here. Live
+hardware, host containment, source, sustained launcher, engineering/pilot and
+final training/evaluation acceptance remain pending. No missing acceptance is
+promoted to passing or replaced with fixture evidence.

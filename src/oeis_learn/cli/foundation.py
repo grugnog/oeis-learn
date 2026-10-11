@@ -888,13 +888,14 @@ def cmd_diagnose_overflow(
     return _phase4_command("diagnose-overflow", action, as_json)
 
 
-def cmd_coordinated_smoke(config, pool, image, output, seconds=600, resume_run=None, as_json=False):
+def cmd_coordinated_smoke(config, pool, image, output, seconds=600, resume_run=None, run_provenance=None, as_json=False):
     from oeis_learn.evaluation.coordinated_smoke import coordinated_smoke
 
     return _phase4_command(
         "coordinated-smoke",
         lambda: coordinated_smoke(
-            config, pool, image, output, seconds=seconds, resume_run=resume_run
+            config, pool, image, output, seconds=seconds, resume_run=resume_run,
+            run_provenance=json.loads(Path(run_provenance).read_text()) if run_provenance else None
         ),
         as_json,
     )

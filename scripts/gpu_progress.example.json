@@ -1,0 +1,11 @@
+{
+  "image_id": null,
+  "docker_host": null,
+  "preflight_config": null,
+  "source_manifest": null,
+  "cohort_config": null,
+  "archive": null,
+  "holdouts": null,
+  "legacy_cases": null,
+  "final_seconds": 3600
+}

@@ -41,9 +41,13 @@ def pool_capabilities(root):
     return files
 
 
-def coordinated_smoke(config, pool, image, output, *, seconds=600, resume_run=None):
+def coordinated_smoke(config, pool, image, output, *, seconds=600, resume_run=None, run_provenance=None, stop_after=None):
     if type(seconds) is not int or not 0 < seconds <= 600:
         raise ValueError("bounded600-second smoke required")
+    if stop_after is not None and (type(stop_after) is not int or not 1 <= stop_after <= 3):
+        raise ValueError("stop_after must be a completed update boundary in 1..3")
+    if run_provenance is not None and (not isinstance(run_provenance, dict) or run_provenance.get("final_image_id") != image):
+        raise ValueError("run provenance must bind the selected role image")
     root = Path(output)
     root.mkdir(parents=True, exist_ok=False)
     files = {"config.yaml": Path(config)}
@@ -54,6 +58,12 @@ def coordinated_smoke(config, pool, image, output, *, seconds=600, resume_run=No
         previous = Path(resume_run)
         if not (previous / "run.json").exists():
             raise ValueError("complete previous smoke run required")
+        if Path(config).read_bytes() != (previous / "checkpoints/config.yaml").read_bytes():
+            raise ValueError("resume cannot override the frozen smoke configuration")
+        if run_provenance is not None:
+            prior = load_json((previous / "checkpoints/contract.json").read_bytes())["run_provenance"]
+            if any(prior.get(key) != value for key, value in run_provenance.items()):
+                raise ValueError("resume cannot override frozen run provenance")
         for directory in ("trainer", "checkpoints", "budget-events", "events"):
             for file in (previous / directory).rglob("*"):
                 if file.is_file():
@@ -61,7 +71,8 @@ def coordinated_smoke(config, pool, image, output, *, seconds=600, resume_run=No
         files["run/run.json"] = previous / "run.json"
     inputs = write_view(
         root / "input",
-        {"settings.json": {"device": "cuda", "seconds": seconds, "resume": resume_run is not None}},
+        {"settings.json": {"device": "cuda", "seconds": seconds, "resume": resume_run is not None,
+                           "run_provenance": run_provenance, "stop_after": stop_after}},
         files,
     )
     coordinator = RoleCoordinator(root / "coordination", image, workers=4)

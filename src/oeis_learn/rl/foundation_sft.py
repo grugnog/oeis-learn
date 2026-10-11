@@ -78,6 +78,7 @@ def prepare_run(
     seed=20260913,
     budget_ns=600_000_000_000,
     diagnostic_small_host=False,
+    run_provenance=None,
 ):
     """Controller validates full admission archive before exposing only trainer data."""
     if not diagnostic:
@@ -92,6 +93,13 @@ def prepare_run(
     ):
         raise ValueError("invalid seed or smoke budget (maximum ten minutes)")
     runtime = runtime_record(device)
+    if run_provenance is not None:
+        import re
+        expected = {"source_revision", "dependency_lock", "base_image_digest", "final_image_id", "environment_report"}
+        if not isinstance(run_provenance, dict) or set(run_provenance) != expected:
+            raise ValueError("closed preflight run provenance required")
+        if any(not isinstance(v, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", v) for v in run_provenance.values()):
+            raise ValueError("content-bound preflight run provenance required")
     cfg = load_config(config)
     pool_manifest = load_json((Path(pool) / "manifest.json").read_bytes())
     admitted = load_pool(pool, expected_pool_id=pool_manifest["pool_id"])
@@ -141,6 +149,8 @@ def prepare_run(
             effective_config=effective_hash,
         ),
     )
+    if run_provenance is not None:
+        contract["run_provenance"].update(run_provenance)
     contract["contract_id"] = digest(contract)
     run = dict(
         schema_version="foundation/v1",
