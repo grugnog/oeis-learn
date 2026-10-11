@@ -44,6 +44,7 @@ def test_unknown_settings_and_unresolved_image_fail(tmp_path):
         dict(force=True),
         dict(image_id="gpu:latest"),
         dict(docker_host="tcp://host:2375"),
+        dict(docker_host="ssh://labgpu-oeis-learn@10.77.0.1:2222"),
     ):
         g.write(p, value)
         with pytest.raises(ValueError):
@@ -104,6 +105,9 @@ def driver(monkeypatch, tmp_path, steps):
     monkeypatch.setattr(g, "STEPS", steps)
     monkeypatch.setattr(g, "task_inventory", lambda: [])
     monkeypatch.setattr(g, "source_identity", lambda: "source")
+    # Exercise existing issuance/receipt semantics with a hypothetical future
+    # launcher. Separate tests assert actual broker stages are blocked today.
+    monkeypatch.setattr(g, "HOST_STEPS", set())
     calls = []
 
     def fake(argv, log, seconds):
@@ -164,31 +168,29 @@ def test_final_changed_inputs_preserve_old_issuance(monkeypatch, tmp_path):
     assert g.read(tmp_path / "receipts.json")["end-to-end"] == original
 
 
-def test_cleanup_only_targets_its_saved_lease(monkeypatch, tmp_path):
-    lease = "a" * 32
-    g.write(tmp_path / "lease.json", dict(lease=lease, docker_host="ssh://accepted"))
+def test_watchdog_uses_broker_cleanup_without_docker_or_lease_environment(monkeypatch, tmp_path):
+    settings = tmp_path / "cfg.json"
+    g.write(settings, {})
+    monkeypatch.delenv("OEIS_ROLE_LEASE", raising=False)
     calls = []
+    monkeypatch.setattr(g, "supervise", lambda argv, log, seconds: calls.append(seconds) or 0)
+    monkeypatch.setattr(g.subprocess, "run", lambda *a, **kw: pytest.fail("no Docker/SSH cleanup"))
+    assert g.remote_watchdog("gpu-smoke", settings, tmp_path, 600) == 0
+    lease = g.read(tmp_path / "gpu-smoke/lease.json")
+    assert lease["backend"] == "lab-gpu" and lease["cleanup_owner"] == "host broker"
+    assert "docker_host" not in lease and "OEIS_ROLE_LEASE" not in g.os.environ
+    assert calls == [560]
+    assert not (tmp_path / "gpu-smoke/reclamation.json").exists()
+    # No residual worker lock after normal execution.
+    g.require_idle(tmp_path / "gpu-smoke")
 
-    def fake(argv, **kw):
-        calls.append((argv, kw))
-        return subprocess.CompletedProcess(argv, 0, "abcdef123456\n" if "ps" in argv else "", "")
 
-    monkeypatch.setattr(g.subprocess, "run", fake)
-    g.reclaim_lease(tmp_path)
-    assert calls[0][0][-1] == "label=oeis.progression=" + lease
-    assert calls[1][0] == ["docker", "rm", "-f", "abcdef123456"]
-    assert calls[0][1]["env"]["DOCKER_HOST"] == "ssh://accepted"
-    assert g.read(tmp_path / "reclamation.json")["status"] == "complete"
-
-
-def test_cleanup_failure_blocks_success(monkeypatch, tmp_path):
-    g.write(tmp_path / "lease.json", dict(lease="a" * 32, docker_host=None))
-    monkeypatch.setattr(
-        g.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess([], 1, "", "denied")
-    )
-    with pytest.raises(RuntimeError, match="denied"):
-        g.reclaim_lease(tmp_path)
-    assert g.read(tmp_path / "reclamation.json")["status"] == "failed"
+def test_reclamation_requires_administrator_without_another_broker_request(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [str(g.SCRIPT), "--reclaim", "baseline"])
+    monkeypatch.setattr(g, "supervise", lambda *a: pytest.fail("no remote cleanup authority"))
+    with pytest.raises(SystemExit) as e:
+        g.main()
+    assert e.value.code == 2
 
 
 def test_junit_requires_cases_and_explicit_skips(tmp_path):
@@ -349,16 +351,15 @@ def test_detached_controller_reclaimed_when_caller_interrupted(tmp_path, monkeyp
     assert killed == reaped == [123456]
 
 
-def test_remote_final_deadline_uses_original_wall_budget(tmp_path, monkeypatch):
-    settings = tmp_path / "cfg.json"
-    g.write(settings, {})
-    g.write(tmp_path / "final-budget.json", dict(started_utc=1000, limit_seconds=600))
-    monkeypatch.setattr(g.time, "time", lambda: 1190)
-    calls = []
-    monkeypatch.setattr(g, "supervise", lambda argv, log, seconds: calls.append(seconds) or 0)
-    monkeypatch.setattr(g, "reclaim_lease", lambda out: None)
-    assert g.remote_watchdog("end-to-end", settings, tmp_path, 1000) == 0
-    assert calls == [370]
+@pytest.mark.parametrize("name", sorted(g.HOST_STEPS))
+def test_private_roles_are_rejected_before_lease_or_work_issuance(name, tmp_path, monkeypatch):
+    monkeypatch.setattr(g, "supervise", lambda *a: pytest.fail("unsupported role issued"))
+    with pytest.raises(g.Blocked, match="no Docker/Podman API"):
+        g.remote_watchdog(name, tmp_path / "missing-settings", tmp_path, 600)
+    worker = worker_module()
+    with pytest.raises(g.Blocked, match="private mounts"):
+        worker.execute(name, {}, tmp_path, tmp_path / name, 600)
+    assert not (tmp_path / name).exists()
 
 
 def test_build_products_do_not_invalidate_source_but_source_edits_do(tmp_path):
@@ -374,3 +375,176 @@ def test_build_products_do_not_invalidate_source_but_source_edits_do(tmp_path):
     assert g.source_identity(tmp_path) == original
     (src / "model.py").write_text("changed")
     assert g.source_identity(tmp_path) != original
+
+
+@pytest.mark.parametrize("raw", ["a" * 64 + "\n", "sha256:" + "a" * 64 + "\n"])
+def test_broker_image_stdout_resolves_without_docker(raw, monkeypatch):
+    worker = worker_module()
+    calls = []
+
+    def fake(argv, **kw):
+        calls.append((argv, kw))
+        return subprocess.CompletedProcess(argv, 0, raw, "")
+
+    monkeypatch.setattr(worker.subprocess, "run", fake)
+    report = worker.ensure_image({})
+    assert report["runtime"]["image_id"] == "sha256:" + "a" * 64
+    assert calls[0][0] == ["lab-gpu", "image", "ensure"]
+    assert "stderr" not in calls[0][1]  # build/SSH errors stay in transport.log
+
+
+@pytest.mark.parametrize("raw", ["gpu:latest", "", "a" * 64 + "\nextra", "sha256:" + "b" * 64])
+def test_broker_image_rejects_invalid_output_or_pin_mismatch(raw, monkeypatch):
+    worker = worker_module()
+    monkeypatch.setattr(
+        worker.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, raw, "")
+    )
+    with pytest.raises((ValueError, g.Blocked)):
+        worker.ensure_image({"image_id": "sha256:" + "a" * 64})
+
+
+def test_resolved_broker_image_reaches_preflight_and_invalidates_gpu_receipts(
+    tmp_path, monkeypatch
+):
+    steps = (
+        g.Step("image", (), 60),
+        g.Step("gpu-environment", ("image",), 120, True),
+        g.Step("preflight", ("gpu-environment",), 600, True, ("image_id",)),
+    )
+    calls, _ = driver(monkeypatch, tmp_path, steps)
+    selected = ["sha256:" + "a" * 64]
+
+    def fake(argv, log, seconds):
+        name, settings = argv[-4:-2]
+        cfg = g.read(settings)
+        runtime = dict(image_id=selected[0])
+        if name != "image":
+            assert cfg["image_id"] == selected[0]
+        g.write(
+            tmp_path / name / "step-result.json",
+            dict(result=dict(runtime=runtime, observed_utc=g.time.time())),
+        )
+        calls.append(name)
+        return 0
+
+    monkeypatch.setattr(g, "supervise", fake)
+    cfg = {"final_seconds": 600}
+    assert g.run(cfg, tmp_path) == 0
+    assert "image_id" not in cfg  # caller's optional pin stays separate from resolution
+    assert g.run(cfg, tmp_path) == 0
+    assert calls == ["image", "gpu-environment", "preflight", "image", "gpu-environment"]
+    selected[0] = "sha256:" + "b" * 64
+    assert g.run(cfg, tmp_path) == 0
+    assert calls[-3:] == ["image", "gpu-environment", "preflight"]
+
+
+def test_optional_pin_mismatch_blocks_gpu_launch(tmp_path, monkeypatch):
+    calls, _ = driver(
+        monkeypatch, tmp_path, (g.Step("image", (), 60), g.Step("gpu-smoke", ("image",), 600, True))
+    )
+
+    def fake(argv, log, seconds):
+        name = argv[-4]
+        g.write(
+            tmp_path / name / "step-result.json",
+            dict(result=dict(runtime=dict(image_id="sha256:" + "b" * 64))),
+        )
+        calls.append(name)
+        return 0
+
+    monkeypatch.setattr(g, "supervise", fake)
+    assert g.run({"image_id": "sha256:" + "a" * 64, "final_seconds": 600}, tmp_path) == 1
+    assert calls == ["image"]
+
+
+def test_full_plan_blocks_private_stages_without_spending_budgets(tmp_path, monkeypatch):
+    steps = tuple(s for s in g.STEPS if s.name in g.HOST_STEPS)
+    monkeypatch.setattr(g, "STEPS", steps)
+    monkeypatch.setattr(g, "task_inventory", lambda: [])
+    monkeypatch.setattr(g, "source_identity", lambda: "source")
+    monkeypatch.setattr(g, "supervise", lambda *a: pytest.fail("no host stage can launch"))
+    assert g.run({"final_seconds": 600}, tmp_path) == 1
+    receipts = g.read(tmp_path / "receipts.json")
+    assert all(r["status"] == "BLOCKED" and not r["issued"] for r in receipts.values())
+    assert all("Host launcher integration is required" in r["error"] for r in receipts.values())
+    assert not (tmp_path / "final-budget.json").exists()
+
+
+def test_short_gpu_path_needs_no_release_archive_or_legacy_inputs():
+    names = [s.name for s in g.STEPS]
+    early = g.STEPS[: names.index("preflight") + 1]
+    assert early[:3] == g.STEPS[:3]
+    assert [s.name for s in early[:3]] == ["inventory", "image", "gpu-environment"]
+    assert all(s.name not in g.HOST_STEPS for s in early)
+    assert {k for s in early for k in s.inputs} == {"image_id"}
+
+
+def test_overflow_accepts_owning_verified_solutions_key():
+    worker = worker_module()
+    from oeis_learn.evaluation.overflow_diagnostics import STRATA
+
+    strata = {name: [dict(source="fixture")] for name in STRATA}
+    worker.require_sampling_strata(strata)
+    strata["verified_solutions"] = []
+    with pytest.raises(g.Blocked, match="verified stratum"):
+        worker.require_sampling_strata(strata)
+
+
+def test_smolfile_is_parseable_and_gpu_client_is_configured():
+    import tomllib
+
+    cfg = tomllib.loads((g.ROOT / "Smolfile").read_text())
+    assert cfg["gpu"] is False
+    assert "LAB_GPU_IDENTITY=/home/agent/.ssh/lab-gpu" in cfg["env"]
+
+
+def test_old_null_docker_setting_migrates_without_enabling_an_endpoint(tmp_path):
+    path = tmp_path / "settings.json"
+    g.write(path, dict(docker_host=None))
+    assert "docker_host" not in g.load_settings(path)
+
+
+@pytest.mark.parametrize("missing", [None, "lab-gpu", "ssh", "user", "key", "unreadable", "cwd"])
+def test_vm_client_checks_need_ssh_and_project_identity_but_no_docker(
+    tmp_path, monkeypatch, missing
+):
+    worker = worker_module()
+    key = tmp_path / "dedicated-key"
+    key.write_text("fixture key contents are never read")
+    monkeypatch.setattr(worker, "ROOT", Path("/workspace"))
+    monkeypatch.setenv("LAB_GPU_USER", "labgpu-oeis-learn")
+    monkeypatch.setenv("LAB_GPU_IDENTITY", str(key))
+    calls = []
+
+    def which(name):
+        calls.append(name)
+        assert name in {"lab-gpu", "ssh"}
+        return None if name == missing else "/usr/bin/" + name
+
+    monkeypatch.setattr(worker.shutil, "which", which)
+    if missing == "user":
+        monkeypatch.delenv("LAB_GPU_USER")
+    if missing == "key":
+        key.unlink()
+    if missing == "unreadable":
+        monkeypatch.setattr(worker.os, "access", lambda *a: False)
+    if missing == "cwd":
+        monkeypatch.setattr(worker, "ROOT", Path("/opt/checkout"))
+    if missing:
+        with pytest.raises(g.Blocked):
+            worker.check_broker_client()
+    else:
+        worker.check_broker_client()
+        assert calls == ["lab-gpu", "ssh"]
+
+
+def test_future_final_launcher_still_clamps_to_original_wall_budget(tmp_path, monkeypatch):
+    # Only a future real host integration can enable this path. Preserve the
+    # original lifetime invariant independently of today's capability blocker.
+    monkeypatch.setattr(g, "HOST_STEPS", set())
+    g.write(tmp_path / "final-budget.json", dict(started_utc=1000, limit_seconds=600))
+    monkeypatch.setattr(g.time, "time", lambda: 1190)
+    calls = []
+    monkeypatch.setattr(g, "supervise", lambda argv, log, seconds: calls.append(seconds) or 0)
+    assert g.remote_watchdog("end-to-end", tmp_path / "cfg.json", tmp_path, 1000) == 0
+    assert calls == [370]

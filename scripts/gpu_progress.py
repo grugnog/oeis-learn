@@ -19,6 +19,21 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
+HOST_STEPS = {
+    "host-containment",
+    "baseline",
+    "overflow-gpu",
+    "measurement",
+    "release-handoff",
+    "end-to-end",
+}
+ISOLATED_ROLES_BLOCKER = (
+    "lab-gpu supports image ensure and one workspace-mounted exec container only; "
+    "it exposes no Docker/Podman API, host shell, or isolated role launch operation. "
+    "This stage needs the owning host-side role launcher with separate private mounts. "
+    "Host launcher integration is required; installing Docker in the VM/GPU image or "
+    "using the lab-gpu SSH identity as a Docker endpoint cannot provide it."
+)
 
 
 class Blocked(RuntimeError):
@@ -36,7 +51,14 @@ class Step:
 
 STEPS = (
     Step("inventory", (), 60),
+    Step("image", ("inventory",), 3600),
+    Step("gpu-environment", ("image",), 120, True),
     Step("cpu-regressions", ("inventory",), 3600),
+    Step("gpu-smoke", ("gpu-environment", "cpu-regressions"), 1800, True),
+    Step("gpu-learning", ("gpu-smoke",), 7200, True),
+    Step("preflight", ("gpu-smoke",), 600, True, ("image_id",)),
+    Step("legacy-cpu", ("cpu-regressions",), 3600, inputs=("legacy_cases",)),
+    Step("legacy-gpu", ("legacy-cpu", "gpu-smoke"), 3600, True, ("legacy_cases",)),
     Step("phase13-inputs", ("cpu-regressions",), 3600),
     Step(
         "release-source",
@@ -44,15 +66,8 @@ STEPS = (
         3600,
         inputs=("source_manifest", "cohort_config", "archive", "holdouts"),
     ),
-    Step("image", ("inventory",), 3600),
-    Step("gpu-environment", ("image",), 120, True),
-    Step("gpu-smoke", ("gpu-environment", "cpu-regressions"), 1800, True),
-    Step("gpu-learning", ("gpu-smoke",), 7200, True),
     Step("host-containment", ("gpu-environment",), 1800, True, ("image_id",)),
-    Step("preflight", ("gpu-smoke",), 600, True, ("image_id",)),
     Step("baseline", ("preflight", "host-containment", "release-source"), 7200, True),
-    Step("legacy-cpu", ("cpu-regressions",), 3600, inputs=("legacy_cases",)),
-    Step("legacy-gpu", ("legacy-cpu", "gpu-smoke"), 3600, True, ("legacy_cases",)),
     Step(
         "overflow-gpu", ("phase13-inputs", "release-source", "gpu-learning", "baseline"), 3600, True
     ),
@@ -88,13 +103,13 @@ FIELDS = {
 STEP_CONFIG = {
     "phase13-inputs": ("archive", "holdouts"),
     "gpu-environment": ("image_id",),
-    "host-containment": ("docker_host",),
+    "host-containment": (),
     "preflight": ("preflight_config",),
-    "baseline": ("image_id", "docker_host"),
-    "overflow-gpu": ("image_id", "docker_host"),
-    "measurement": ("image_id", "docker_host"),
-    "release-handoff": ("image_id", "docker_host"),
-    "end-to-end": ("image_id", "docker_host", "final_seconds"),
+    "baseline": ("image_id",),
+    "overflow-gpu": ("image_id",),
+    "measurement": ("image_id",),
+    "release-handoff": ("image_id",),
+    "end-to-end": ("image_id", "final_seconds"),
 }
 PROBES = {"inventory", "image", "gpu-environment"}
 
@@ -227,12 +242,13 @@ def load_settings(path=None):
         raise ValueError("final_seconds must be an integer in 600..43200")
     if cfg.get("image_id") and not re.fullmatch(r"sha256:[0-9a-f]{64}", cfg["image_id"]):
         raise ValueError("Actual sha256 image ID required")
-    if cfg.get("docker_host") and (
-        not isinstance(cfg["docker_host"], str)
-        or not cfg["docker_host"].startswith("ssh://")
-        or any(c.isspace() for c in cfg["docker_host"])
-    ):
-        raise ValueError("docker_host must be an accepted ssh:// endpoint")
+    # Accept null from old example files, but never send Docker requests through
+    # the forced-command SSH broker or seek an endpoint from inside its sandbox.
+    if cfg.get("docker_host") is not None:
+        raise ValueError(
+            "docker_host is unsupported by the lab-gpu broker. " + ISOLATED_ROLES_BLOCKER
+        )
+    cfg.pop("docker_host", None)
     for name in FIELDS - {"image_id", "docker_host", "final_seconds"}:
         if cfg.get(name):
             cfg[name] = str((ROOT / cfg[name]).resolve())
@@ -320,7 +336,7 @@ def require_idle(out):
     f.close()
     p = out / "reclamation.json"
     if p.exists() and read(p)["status"] != "complete":
-        raise Blocked("Lease cleanup failed; use --reclaim " + out.name)
+        raise Blocked("Earlier lease cleanup failed; host administrator recovery required")
 
 
 def final_remaining(state, limit, now=None):
@@ -397,59 +413,20 @@ def worker_argv(step, settings, state, seconds):
     return ["lab-gpu", "exec", "--", "python", *args] if step.gpu else [sys.executable, *args]
 
 
-def reclaim_lease(out):
-    path = out / "lease.json"
-    if not path.exists():
-        return
-    lease = read(path)
-    if not re.fullmatch(r"[0-9a-f]{32}", lease["lease"]):
-        raise ValueError("Invalid saved Docker lease")
-    env = dict(os.environ)
-    if lease.get("docker_host"):
-        env["DOCKER_HOST"] = lease["docker_host"]
-
-    def docker(args):
-        p = subprocess.run(["docker", *args], env=env, capture_output=True, text=True, timeout=5)
-        if p.returncode:
-            raise RuntimeError(p.stderr.strip() or "Docker reclamation failed")
-        return p.stdout.strip()
-
-    try:
-        ids = docker(["ps", "-aq", "--filter", "label=oeis.progression=" + lease["lease"]]).split()
-        if any(not re.fullmatch(r"[0-9a-f]{12,64}", i) for i in ids):
-            raise ValueError("Unexpected Docker container ID")
-        if ids:
-            docker(["rm", "-f", *ids])
-        write(out / "reclamation.json", dict(status="complete", containers=ids))
-    except BaseException as e:
-        write(out / "reclamation.json", dict(status="failed", error=str(e)))
-        raise
-
-
-HOST_STEPS = {
-    "host-containment",
-    "baseline",
-    "overflow-gpu",
-    "measurement",
-    "release-handoff",
-    "end-to-end",
-}
-
-
 def remote_watchdog(name, settings, state, seconds):
-    cfg = read(settings)
+    if name in HOST_STEPS:
+        raise Blocked(ISOLATED_ROLES_BLOCKER)
     state = Path(state)
     out = state / name
     out.mkdir(parents=True, exist_ok=True)
     held = lock(out / "worker.lock")
     lease = uuid.uuid4().hex
-    env_lease = os.environ.get("OEIS_ROLE_LEASE")
-    os.environ["OEIS_ROLE_LEASE"] = lease
     write(
         out / "lease.json",
         dict(
             lease=lease,
-            docker_host=cfg.get("docker_host"),
+            backend="lab-gpu",
+            cleanup_owner="host broker",
             pid=os.getpid(),
             issued_utc=time.time(),
             seconds=seconds,
@@ -465,15 +442,10 @@ def remote_watchdog(name, settings, state, seconds):
             max(1, seconds - 40),
         )
     finally:
-        try:
-            if name in HOST_STEPS:
-                reclaim_lease(out)
-        finally:
-            if env_lease is None:
-                os.environ.pop("OEIS_ROLE_LEASE", None)
-            else:
-                os.environ["OEIS_ROLE_LEASE"] = env_lease
-            held.close()
+        # The host broker removes its rootless container and restores inference.
+        # The project process has no container API or authority to clear a stale
+        # host lease. supervise() handles only this worker's process group.
+        held.close()
     return code
 
 
@@ -518,6 +490,7 @@ def run(cfg, state, until=None):
 
 
 def _run(cfg, state, until):
+    cfg = dict(cfg)
     task_inventory()
     source = source_identity()
     settings = state / ("settings-" + digest(cfg) + ".json")
@@ -535,6 +508,8 @@ def _run(cfg, state, until):
         issued = False
         code = None
         try:
+            if step.name in HOST_STEPS:
+                raise Blocked(ISOLATED_ROLES_BLOCKER)
             missing = [n for n in step.needs if statuses.get(n) not in {"PASS", "SKIP"}]
             if missing:
                 raise Blocked("Prerequisites not successful: " + ", ".join(missing))
@@ -594,6 +569,13 @@ def _run(cfg, state, until):
                     issued = False
                 if code == 0:
                     result = read(out / "step-result.json")["result"]
+                    if step.name == "image":
+                        actual = result["runtime"]["image_id"]
+                        if cfg.get("image_id") and cfg["image_id"] != actual:
+                            raise Blocked("Configured image_id differs from lab-gpu image ensure")
+                        cfg["image_id"] = actual
+                        settings = state / ("settings-" + digest(cfg) + ".json")
+                        write(settings, cfg)
                     if (
                         step.name == "gpu-environment"
                         and not launched - 5 <= result["observed_utc"] <= finished + 5
@@ -644,19 +626,13 @@ def _run(cfg, state, until):
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in {"_worker", "_watchdog", "_reclaim"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"_worker", "_watchdog"}:
         kind, name, settings, state, seconds = sys.argv[1:]
         try:
             if kind == "_worker":
                 return execute_worker(name, settings, state, seconds)
             if kind == "_watchdog":
                 return remote_watchdog(name, settings, state, float(seconds))
-            held = lock(Path(state) / name / "worker.lock")
-            try:
-                reclaim_lease(Path(state) / name)
-            finally:
-                held.close()
-            return 0
         except Blocked as e:
             print(str(e), file=sys.stderr)
             return 3
@@ -669,30 +645,22 @@ def main():
     args = parser.parse_args()
     if args.plan:
         for s in STEPS:
-            print(
-                f'{s.name}: {"lab-gpu" if s.gpu else "VM"}; cap {s.seconds}s; needs {",".join(s.needs) or "-"}'
+            runner = (
+                "BLOCKED: isolated host roles unavailable"
+                if s.name in HOST_STEPS
+                else ("lab-gpu" if s.gpu else "VM")
             )
+            print(f'{s.name}: {runner}; cap {s.seconds}s; needs {",".join(s.needs) or "-"}')
         print(json.dumps(task_inventory(), indent=2))
         return 0
     state = (ROOT / args.state_dir).resolve()
     if state.parent != ROOT or not state.name.startswith("tmp-"):
         parser.error("State must be a top-level tmp-* directory inside the checkout")
     if args.reclaim:
-        return supervise(
-            [
-                "lab-gpu",
-                "exec",
-                "--",
-                "python",
-                SCRIPT,
-                "_reclaim",
-                args.reclaim,
-                state / "settings-resolved.json",
-                state,
-                30,
-            ],
-            state / "reclaim.log",
-            60,
+        parser.error(
+            "Broker cleanup belongs to the host administrator. Follow grugnog/lab "
+            "docs/lab/gpu-runner.md Lifecycle and recovery; do not clear a live host lease. "
+            "Old Docker role leases require review at their originally recorded host endpoint."
         )
     try:
         return run(load_settings(args.config), state, args.until)
