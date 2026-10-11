@@ -1,6 +1,7 @@
 """Actual HIP gate. CPU/fixture success never replaces these checks."""
 
 from pathlib import Path
+import os
 import pytest
 import torch
 from oeis_learn.rl.foundation_sft import prepare_run
@@ -21,7 +22,11 @@ def test_unavailable_gpu_never_falls_back(tmp_path):
 )
 def test_actual_hip_three_updates(training_inputs, tmp_path):
     # Full frozen small backbone, not the reduced CPU unit-test shape.
-    root = tmp_path / "run"
+    # The progression runner retains this run on workspace storage. The lab
+    # container's /tmp tmpfs cannot meet the frozen 100 GiB free-space floor.
+    # Standalone pytest callers keep their normal temporary-directory behavior.
+    retained = os.environ.get("OEIS_GPU_SMOKE_RUN_DIR")
+    root = Path(retained) if retained else tmp_path / "run"
     prepare_run(
         Path("configs/foundation/wat_smoke.yaml"),
         training_inputs[1],
@@ -49,15 +54,28 @@ pytest_plugins = ["tests.helpers.foundation_training"]
 
 
 @pytest.mark.gpu
-@pytest.mark.skipif(not torch.cuda.is_available() or not torch.version.hip, reason="actual HIP device required")
-def test_actual_coordinated_hip_smoke(training_inputs,tmp_path):
+@pytest.mark.skipif(
+    not torch.cuda.is_available() or not torch.version.hip, reason="actual HIP device required"
+)
+def test_actual_coordinated_hip_smoke(training_inputs, tmp_path):
     import os
     from oeis_learn.evaluation.coordinated_smoke import coordinated_smoke
-    image=os.environ.get("OEIS_GPU_ROLE_IMAGE")
+
+    image = os.environ.get("OEIS_GPU_ROLE_IMAGE")
     if not image:
         pytest.skip("explicit resolved ROCm Docker image required for host-enforced acceptance")
-    result=coordinated_smoke(Path("configs/foundation/wat_smoke.yaml"),training_inputs[1],image,tmp_path/"coordinated")
-    assert result["result"]["completed_updates"]==3 and result["result"]["device"]=="cuda"
-    checkpoint=load_foundation_checkpoint(tmp_path/"coordinated/smoke/run/checkpoints"/result["result"]["checkpoint_name"],device="cuda",include_payload=True)
+    result = coordinated_smoke(
+        Path("configs/foundation/wat_smoke.yaml"),
+        training_inputs[1],
+        image,
+        tmp_path / "coordinated",
+    )
+    assert result["result"]["completed_updates"] == 3 and result["result"]["device"] == "cuda"
+    checkpoint = load_foundation_checkpoint(
+        tmp_path / "coordinated/smoke/run/checkpoints" / result["result"]["checkpoint_name"],
+        device="cuda",
+        include_payload=True,
+    )
     from oeis_learn.evaluation.baseline_gate import require_containment
-    assert require_containment(result,checkpoint)
+
+    assert require_containment(result, checkpoint)

@@ -170,6 +170,17 @@ the capability explanation with `issued=false`. Earlier run journals and
 `final-budget.json`, if present, remain preserved. Running commands print a
 heartbeat every 30 seconds.
 
+The GPU smoke training run is retained under `gpu-smoke/training-run/`, including
+its configuration, training report, event/budget journals and checkpoints. The
+broker mounts `/tmp` as a 2 GiB tmpfs, which cannot satisfy this run's frozen
+100 GiB free-disk floor. The owning HIP test therefore receives a workspace run
+path from the progression worker. Ordinary pytest fixtures still use their
+normal temporary paths; retaining the whole pytest tree would also retain
+temporary aliases and unrelated test inputs. The run's disk/memory limits,
+model and three-update training contract stay unchanged. Disk guard failures
+now distinguish run quota from filesystem free-space failures and include the
+actual run path, measured bytes and required capacity.
+
 Receipts bind source, settings, recursively referenced input bytes, dependency
 evidence and every retained output. Changed/tampered bytes invalidate success.
 Inventory, image and cheap GPU probes repeat; stable runtime identities preserve
