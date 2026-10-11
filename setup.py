@@ -20,7 +20,9 @@ class QualificationBuild(build_py):
         governance = Path(self.build_lib) / "oeis_learn/evaluation/governance"
         governance.mkdir(parents=True, exist_ok=True)
         for name, source in (("constitution.md", root / ".specify/memory/constitution.md"),
-                             ("adoption.md", root / "specs/007-experiment-foundation/validation/adoption.md")):
+                             ("adoption.md", root / "specs/007-experiment-foundation/validation/adoption.md"),
+                             ("review-inputs.json", root / "specs/007-experiment-foundation/validation/review-inputs.json"),
+                             ("tasks.md", root / "specs/007-experiment-foundation/tasks.md")):
             shutil.copyfile(source, governance / name)
         schemas = Path(self.build_lib) / "oeis_learn/cli/contracts"
         schemas.mkdir(parents=True, exist_ok=True)

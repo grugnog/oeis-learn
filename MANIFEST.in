@@ -1,6 +1,9 @@
 include Dockerfile MANIFEST.in uv.lock
 include .specify/memory/constitution.md
 include specs/007-experiment-foundation/validation/adoption.md
+include specs/007-experiment-foundation/validation/review-inputs.json
+include specs/007-experiment-foundation/validation/phase-11-dispositions.json
+include specs/007-experiment-foundation/tasks.md
 recursive-include tests *.py *.wat *.json *.yaml *.yml
 recursive-include crates/oeis_wasm_evaluator *.rs *.toml *.lock
 recursive-include configs/foundation *.json *.yaml *.yml

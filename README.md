@@ -1,144 +1,55 @@
-# OEIS Learn: Neuro-Symbolic Synthesis & Mathematical Discovery
+# OEIS Learn
 
-`oeis-learn` is a Neuro-Symbolic AI framework designed to learn continuous mathematical representation spaces, perform automated theorem discovery, and synthesize exact generating algorithms in WebAssembly Text (WAT) format for integer sequences from the Online Encyclopedia of Integer Sequences (OEIS).
+`oeis-learn` explores synthesis of exact integer-sequence programs in WebAssembly
+Text (WAT). Its foundation workflow separates generic training data, twenty
+visible terms, private evaluation truth, executable evidence and scoped proofs.
+The tri-stream encoder, Transformer decoder, independent arithmetic oracle,
+contained execution, solver repairs, learning/search and program-derived discovery
+are implemented. Workstation, real release-source and bounded experimental
+acceptance remain partial; no corpus coverage or speedup is claimed.
 
----
+Start with the [spec 007 quickstart](specs/007-experiment-foundation/quickstart.md).
+[Foundation operations](docs/foundation.md) explains profiles, roles, continuation,
+proof limits and measurement decisions. The [handoff](specs/007-experiment-foundation/validation/handoff.md)
+records which gates have executable evidence and which still require acceptance.
 
-## 🏛️ System Architecture
+## Setup and CPU diagnostics
 
-```mermaid
-graph TD
-    Seq["OEIS Integer Sequence"] --> S1["S1: Signed Log-Magnitude"]
-    Seq --> S2["S2: 100-Moduli Fourier Phase"]
-    Seq --> S3["S3: Differences + p-Adic Valuations"]
-    S1 --> FiLM1["Stage 1 FiLM: S2 modulates S1"]
-    S2 --> FiLM1
-    FiLM1 --> FiLM2["Stage 2 FiLM: S3 modulates H12"]
-    S3 --> FiLM2
-    FiLM2 --> TransEnc["Bidirectional Transformer Encoder (Strict FP32)"]
-    TransEnc --> LatentZ["Continuous Latent Representation Z"]
-    
-    LatentZ --> WatDec["Transformer Decoder with llguidance Grammar Masker"]
-    WatDec --> WATCode["Synthesized WebAssembly Text"]
-    
-    WATCode --> SandBox["Native Rust PyO3 Rayon WASM Sandbox (10,000 Fuel Limit)"]
-    SandBox --> ExecRes["Execution Output & Divergence Trace"]
-    
-    ExecRes --> EGCA["EGCA-GRPO RL Optimizer with Asymmetric Weighting"]
-    EGCA --> WatDec
-
-    LatentZ --> VICReg["VICReg Self-Supervised Manifold"]
-    VICReg --> UMAP["UMAP / HDBSCAN Clustering"]
-    UMAP --> PSLQ["mpmath PSLQ Arbitrary Precision Search (>500 digits)"]
-    PSLQ --> SymPy["SymPy Machine-Verified Theorems & Proofs"]
-```
-
----
-
-## 🚀 Key Features
-
-1. **Tri-Stream Continuous Neural Encoder (Strict FP32)**:
-   - $S_1$ Continuous signed logarithmic scalar projection ($v_i = \text{sign}(x_i) \cdot (1 + \log_{10}(|x_i| + 1))$)
-   - $S_2$ 200-dimensional trigonometric Fourier phase embeddings across 100 base moduli ($m \in [2, 101]$)
-   - $S_3$ Finite differences ($\Delta x_i, \Delta^2 x_i$) and 6-prime $p$-adic valuation embeddings ($p \in \{2, 3, 5, 7, 11, 13\}$, $k_{\max}=16$)
-   - Hierarchical Two-Stage FiLM Fusion in strict single-precision float32.
-
-2. **Provably Sound WAT Synthesis & Environment-Indexed Grammars**:
-   - Dynamic Earley trie logit masking with sub-$20\,\mu\text{s}$ per-token latency.
-   - Lexical variable scope ($\text{Vars}_t$), stack depth, and parameter `$n` binding tracking enforcing **No-Ghost Soundness** (100% syntactically and semantically valid WASM bytecode).
-
-3. **High-Throughput Sandboxed Execution (`oeis_wasm_evaluator`)**:
-   - Native Rust PyO3 extension compiling WAT to WASM in-memory with Cranelift JIT.
-   - Exact 10,000 instruction fuel limit trapping infinite loops in $<0.1\,\text{ms}$.
-   - 16 MiB linear memory ceiling.
-   - Rayon multi-threaded worker pool executing $>5,500$ module evaluations per second releasing the Python GIL.
-
-4. **Anti-Shortcut Regularization & Demonstration Co-Training**:
-   - Non-triviality reward gating: empirical output variance $\mathbb{Var}_n[P(n)]$ and input sensitivity $\mathcal{S}_{\text{input}}(P) = \sum |P(n+1) - P(n)|$ zeroing surrogate rewards for constant shortcuts.
-   - Batch-level cross-input mutual information proxy ($R_{\text{MI}}$) penalizing identical outputs across distinct prompts.
-   - Hybrid co-training blending online policy gradients with teacher-forced SFT demonstration loss ($\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{RL}} + \beta_{\text{SFT}}\mathcal{L}_{\text{SFT}}$) and unbiased Schulman per-token KL divergence ($\beta_{\text{KL}}$).
-
-5. **Fine-Grained Execution-Grounded Credit Assignment (EGCA) & PBRS**:
-   - Sequence divergence to token span mapping ($k^* \to T_{k^*}$) with downstream token zero-masking ($t > \max T_{k^*}$) and total advantage mass conservation ($\sum a_{i,t} = A_i$).
-   - Potential-Based Reward Shaping (PBRS) over AST structural phases and variable bindings ($\phi_{\text{bind}}$) guaranteeing policy invariance.
-   - Down-sampled lexicase rollout selection over randomized test cases.
-
-6. **5-Stage Taxonomy Curriculum & Generalization Extrapolation**:
-   - Stage 1 (Polynomials) $\rightarrow$ Stage 2 (Linear Recurrences) $\rightarrow$ Stage 3 (Holonomic) $\rightarrow$ Stage 4 (Combinatorics) $\rightarrow$ Stage 5 (Search & Graph Invariants).
-   - Extrapolation Horizon ($N+K$, $K=100$) and Minimum Description Length ($M_{\text{MDL}} \le 1.20$) anti-memorization verification.
-
-7. **Self-Supervised Latent Discovery & Theorem Prover**:
-   - Non-contrastive Kernel VICReg learning with additive homomorphism loss ($\mathcal{L}_{\text{add}}$).
-   - Arbitrary-precision ($>500$ digits) `mpmath` sampling with PSLQ integer relation solver ($<10^{-50}$ confidence drop) and SymPy automated symbolic proofs.
-
-8. **4 × i64 Multi-Limb Execution & Decoupled Grounding (`i256x4_v1`)**:
-   - 255-bit signed multi-limb representation covering 99.51% of all OEIS sequences without overflow.
-   - Hybrid macro-synthesized lowering to pure value-stack static arithmetic preamble ($0$ heap memory, $10{,}000$ fuel ceiling).
-   - Three-tier decoupled symbolic grounding (Mersenne-61 fast filter $<0.5\text{ ms} \to$ Dixon Diophantine solver $<1.0\text{ ms} \to$ Z3 tactical QF_NIA $<240\text{ ms}$).
-   - Strategy C continual learning bridge transfer with Transition Gate and Elite Demonstration Buffer anti-collapse injection. See [docs/multi_limb_synthesis.md](docs/multi_limb_synthesis.md).
-
----
-
-## 🛠️ Setup (uv)
-
-This project is managed with [uv](https://docs.astral.sh/uv/). The environment
-and exact dependency versions are locked in `uv.lock` at the repository root.
+Python dependencies and developer tools are locked in `uv.lock`:
 
 ```bash
-# Create/refresh the environment (installs runtime + dev deps, incl. the console script)
-uv sync
-
-# Run any command inside the environment
-uv run python -m oeis_learn.cli.main --help
-
-# Install only the runtime deps
-uv sync --no-dev
-
-# Add a dependency (updates pyproject.toml + uv.lock)
-uv add duckdb
-
-# Run the test suite with the dev tooling
-uv run pytest -v
+uv sync --locked
+uv run oeis-learn foundation --help
+OMP_NUM_THREADS=2 uv run python scripts/verify_phase11.py --output runs/007-cpu-review
 ```
 
-> The foundation images in `docker/foundation/` also use uv. The ROCm image
-> installs its hash-pinned deps via `uv pip install` into the base image's
-> `/opt/venv` (so the base ROCm torch is preserved; see
-> `docker/foundation/Dockerfile`), and the minimal CPU image installs the
-> project with `uv pip install --system .` (see `Dockerfile.simple`).
+Use a new output directory for each quickstart. The script freezes a small fixture
+cohort, builds a verified generic pool, pauses/resumes a three-update CPU smoke,
+evaluates actual weights, executes census/measurement diagnostics and archives
+results. It requires Linux boot-identity access. Failures and skipped dependent
+slices are recorded; a CPU diagnostic cannot qualify GPU training or release.
 
----
+## Native and installed-wheel validation
 
-## 💻 CLI Usage
+The root `Dockerfile` is the sole image build: `qualification` for CPU/native CI,
+`gpu` for the existing ROCm workstation workflow, and the default `smolvm` target
+for development. Install native build dependencies through these images:
 
 ```bash
-# 1. Ingest OEIS records into local DuckDB storage
-python -m oeis_learn.cli.main ingest --subset-stage 1 --db-path data/oeis_learn.duckdb
-
-# 2. Convert legacy checkpoint to strict Checkpoint v2 format
-python -m oeis_learn.cli.main convert-checkpoint --input-checkpoint checkpoints/stage1.pt --config configs/train_tier1.yaml --output-checkpoint checkpoints/stage1.v2.pt
-
-# 3. Run Progressive Readiness validation with versioned policy gating
-python -m oeis_learn.cli.main test-progressive --policy configs/readiness_tier1_v1.json --output-report reports/readiness_report.json
-
-# 4. Synthesize WebAssembly algorithm with 20-observed and 100-unseen extrapolation verification
-python -m oeis_learn.cli.main synthesize --oeis-id A000290 --checkpoint checkpoints/stage1.v2.pt --benchmark-manifest data/benchmarks/trustworthy_synthesis_v1.json --candidate-budget 8 --seed 42 --output-json reports/synthesis_A000290.json
-
-# 5. Run paired experiment ablations (inference or curriculum training)
-python -m oeis_learn.cli.main run-ablations --manifest configs/experiments/trustworthy_inference_v1.json --output-directory reports/experiments
-
-# 6. Discover mathematical theorems with exact numerical validation and SymPy reduction
-python -m oeis_learn.cli.main discover --checkpoint checkpoints/stage1.v2.pt --benchmark-manifest data/benchmarks/trustworthy_synthesis_v1.json --protocol configs/discovery_protocol_v1.json --definitions data/benchmarks/symbolic_definitions_v1.json --output-json reports/discovery.json
+docker build --target qualification -t oeis-007-qualification .
+docker run --rm oeis-007-qualification python -m pytest -q tests/unit/test_foundation_handoff.py
 ```
 
----
+[Foundation CI](.github/workflows/foundation.yml) builds the actual Rust extension,
+executes G7/G8/G9, installs the wheel outside the checkout with `PYTHONPATH` unset,
+and runs all six installed acceptance cases plus Docker role tests. GPU tests run
+separately using `lab-gpu exec --`; hardware skips remain pending evidence.
 
-## 🧪 Running Tests
+## Historical interfaces
 
-```bash
-# Run all Python tests (uv-managed environment)
-uv run pytest -v
-
-# Run Rust WASM evaluator unit tests
-cd crates/oeis_wasm_evaluator && cargo test
-```
+The original ingestion, training, synthesis and discovery interfaces remain for
+historical experiments. Legacy weights, imported teachers and old readiness labels
+cannot qualify the strict foundation track. Conversion preserves history and does
+not manufacture missing optimizer, RNG, provenance or containment evidence.
+See [foundation migration and recovery](docs/foundation.md#migration-and-recovery)
+before reusing old artifacts. Long-run or LODA comparisons are separate work.

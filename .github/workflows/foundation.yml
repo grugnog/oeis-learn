@@ -13,7 +13,15 @@ on:
       - 'MANIFEST.in'
       - '.specify/memory/constitution.md'
       - 'specs/005-trustworthy-synthesis-readiness/contracts/**'
+      - 'specs/007-experiment-foundation/contracts/**'
+      - 'specs/007-experiment-foundation/tasks.md'
+      - 'specs/007-experiment-foundation/quickstart.md'
+      - 'specs/007-experiment-foundation/validate_artifacts.py'
       - 'specs/007-experiment-foundation/validation/adoption.md'
+      - 'specs/007-experiment-foundation/validation/review-inputs.json'
+      - 'specs/007-experiment-foundation/validation/phase-11-dispositions.json'
+      - 'docs/foundation.md'
+      - 'README.md'
       - '.github/workflows/foundation.yml'
 permissions:
   contents: read
@@ -29,19 +37,22 @@ jobs:
         run: |
           mkdir -p wheel-evidence
           chmod 777 wheel-evidence
+          docker image inspect oeis-foundation-wheel --format '{{.Id}}' > wheel-evidence/image-id.txt
           docker run --rm -v "$PWD/wheel-evidence:/evidence" oeis-foundation-wheel bash -c '
             set -euo pipefail
             trap "chmod -R a+rX /evidence" EXIT
             export OEIS_WHEEL_WORK_ROOT=/evidence
             export OEIS_NATIVE_WHEELS_DIR=/tmp/oeis-wheels
             export OEIS_REQUIRE_NATIVE=1
+            mkdir -p /evidence/native-wheels
+            cp /tmp/oeis-wheels/*.whl /evidence/native-wheels/
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
             oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
             export OEIS_QUALIFICATION_EVIDENCE=/evidence
             bash scripts/foundation/test_wheel.sh
             ruff check --select F,E9 src/oeis_learn/evaluation/cli_acceptance.py src/oeis_learn/evaluation/source_policy.py src/oeis_learn/evaluation/experiment_runner.py src/oeis_learn/evaluation/fuel_escalation.py src/oeis_learn/evaluation/overflow_diagnostics.py src/oeis_learn/evaluation/legacy_wrappers.py src/oeis_learn/experiments/decisions.py src/oeis_learn/experiments/source_snapshot.py tests/contract/test_foundation_qualified_cli.py
-            python -m pytest -q tests/integration/test_egca_training_step.py tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/unit/test_foundation_phase10_integration.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
+            python -m pytest -q tests/integration/test_egca_training_step.py tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/unit/test_foundation_phase10_integration.py tests/unit/test_foundation_handoff.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
           '
       - name: Actual Docker role and persistent worker acceptance from host
         run: |
@@ -50,6 +61,13 @@ jobs:
           .role-venv/bin/pip install -e . pytest
           export OEIS_ROLE_TEST_IMAGE=$(docker image inspect oeis-foundation-wheel --format '{{.Id}}')
           OMP_NUM_THREADS=2 .role-venv/bin/python -m pytest -q tests/unit/test_foundation_roles.py --junitxml=wheel-evidence/roles.xml
+      - name: Archive and freshly replay current cross-cutting evidence
+        run: |
+          docker run --rm -v "$PWD/wheel-evidence:/evidence" oeis-foundation-wheel bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            python scripts/archive_phase11.py --evidence /evidence
+          '
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -66,5 +84,9 @@ jobs:
             wheel-evidence/discovery/*.xml
             wheel-evidence/discovery/g9.json
             wheel-evidence/phase10.xml
+            wheel-evidence/handoff-inputs.json
+            wheel-evidence/handoff/**
+            wheel-evidence/native-wheels/*.whl
+            wheel-evidence/image-id.txt
             wheel-evidence/learning/cli-acceptance.json
             wheel-evidence/discovery/cli-acceptance.json

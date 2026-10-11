@@ -50,6 +50,9 @@ phase9-evidence
 
 # Disposable review work
 tmp*/
+.review-venv
+.venv-*
+phase11-evidence
 phase10-*.log
 phase10-*.xml
 phase10-evidence

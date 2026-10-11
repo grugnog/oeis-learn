@@ -1,205 +1,144 @@
-# Foundation training and continuation
+# Foundation operations and evidence
 
-The phase 6 implementation improves the existing package. It uses the production
-tri-stream encoder, WAT Transformer decoder, and a shared teacher-forcing
-operation from `rl/sft_trainer.py`. It does not call that legacy trainer's
-demonstration generator or accept its weights-only checkpoints.
+Spec 007 implements the shared WAT foundation through phase 11. Its CPU, native,
+installed-wheel and isolation tests establish bounded software behavior. Actual
+Ryzen/HIP updates, real indexed release-source acceptance and the capped
+measurement/pilot protocol still require evidence. Run lifecycle completion,
+archive creation and checked task markers never authorize a full release.
+See the [quickstart](../specs/007-experiment-foundation/quickstart.md),
+[CLI contract](../specs/007-experiment-foundation/contracts/cli.md) and
+[gate handoff](../specs/007-experiment-foundation/validation/handoff.md).
 
-The supported run is the frozen three-update SFT smoke. Every run currently
-requires `--diagnostic`: a completed smoke is not workstation readiness or an
-authorization for long training. Coordinated container isolation and the
-provenance-backed qualification path remain incomplete.
+## Choices and frozen profiles
 
-## CPU diagnostic
+User-confirmed choices are twenty observed terms, generic bootstrap learning,
+shared WAT/LODA comparison preparation, the available Ryzen machine, KV caching,
+repair of actionable non-LODA findings, and bounded experiments. The 100-term
+horizon (20 visible + 80 private), model shape, seed, corpus counts, numerical
+thresholds and experiment caps are explicit planning defaults, not additional
+user approvals. Changing a frozen profile requires a new identity/run.
 
-First build a verified pool using the phase 5 `foundation build-pool` command.
-Use its output directory below. Pool verification reads the full admission
-archive in the controller; the learner receives a copied, pinned view containing
-only program IDs, twenty visible terms and complete body tokens.
+| Profile or mode | Implemented boundary |
+| --- | --- |
+| `foundation/v1`, `wat_i256_checked_v1` | Checked signed-256 logical results; declared i32/i64 bit-vector semantics; independent exact reference; fresh calls. |
+| `wat_body_decimal_v1` | Lossless signed-decimal literals and distinct PAD/BOS/EOS; body cap 1,024 tokens. Unknown/truncated tokens reject before admission. |
+| `ryzen_foundation_v1` | 1M fuel per term, 50M aggregate, two-second candidate/reclaim deadlines; quotas frozen in `wat_profile.yaml`. |
+| `prefix20_total100_v1` | Historical indexed cohorts; prefix rebased to model index zero with original offsets preserved as provenance. |
+| `prefix20_total100_affine_v2` | New release cohorts keep exact affine/shift families and reserved prefixes together; select before admission. |
+| `strict_generic`, baseline smoke | Random initialization; admitted generic programs; SFT FP32, d=256, four encoder/decoder layers, four heads, feed-forward 1,024; three updates, batch four. Baseline input features can be lossy. |
+| `qualified/v1` learning | Separate closed learning contract, exact-byte conditioning, cache/policy/replay/curriculum evidence, full active-state checkpoint; owning G7/G8 prerequisites. No in-place reinterpretation of baseline checkpoints. |
+| Richer WAT/streaming/discovery profiles | Versioned bounded arrays, wide helpers and streaming state; generated archive and structural holdouts; owning G9 validation. |
+| `cpu_fixture` measurements | Actual CPU timings with shortfalls/unavailable observations; diagnostic decisions cannot adopt a GPU optimization. |
+| `qualified_device`, `measurement/v2` | Run-bound baseline, G7/G8, generic archive, private development cohort and resolved image; coordinated live execution without final truth. |
 
-```bash
-python -m oeis_learn.cli.main foundation train \
-  --config configs/foundation/wat_smoke.yaml --pool /path/to/verified-pool \
-  --run-dir /path/to/new-run --device cpu --diagnostic --json
+`configs/foundation/` and [execution.md](../specs/007-experiment-foundation/contracts/execution.md)
+contain the exact effective settings and hashes. Optional disabled baseline solvers,
+optimizers, RL and proving do not imply that their qualified repairs are complete;
+their owning executable gates are separate.
 
-python -m oeis_learn.cli.main foundation inspect --run-dir /path/to/new-run --json
-```
+## Roles and information boundaries
 
-The default resource floors remain 100 GiB free disk and 16 GiB available host
-memory. On a small CPU test host, `--diagnostic-small-host` explicitly freezes
-lower floors of 1 GiB free disk and 256 MiB available host memory. This deviation
-is recorded in `run.json`, inspection and the training report and cannot qualify.
-It does not change the model, arithmetic, batch, objective or checkpoint format.
+The host `RoleCoordinator` owns Docker launch, IPC, deadlines and cgroup
+reclamation. At most one main role and eight workers are active: the main role
+has 88 GiB/four CPUs/512 PIDs; workers each have 1 GiB/one CPU/64 PIDs, within the
+96 GiB declared container cap. Equal memory/swap limits disable swap. GPU exposure
+is limited to learner/preflight roles; workers have no GPU capability.
 
-Use `--stop-after-update 1` for a clean interrupted smoke. Resume takes no model,
-optimizer, device, pool, seed or resource overrides:
+| Role | Supplied view |
+| --- | --- |
+| Controller/admission | Original sources, membership/holdout policy, exact execution evidence and durable accounting. |
+| Learner | Copied admitted IDs, twenty visible values and complete body tokens; no evaluation truth or imported solution archive. |
+| Generator | Visible prompts and pinned weights/settings; candidates are sealed before hidden scoring. |
+| Evaluator | Sealed candidates and private development/final values; final access requires the decision lock. |
+| Execution worker | Enumerated request and bounded output, CPU-only native cache; no truth, Docker socket or network. |
 
-```bash
-python -m oeis_learn.cli.main foundation resume --run-dir /path/to/new-run --json
-```
+The root filesystem and input mounts are read-only, networking disabled, with
+nonoverlapping output mounts and Docker default seccomp. Host kill deadlines
+reclaim stuck roles/workers. Shared development files alone are not containment
+evidence. `scripts/foundation/run_container.sh` takes named `--role`, `--image`,
+`--inputs`, `--output`, `--seconds` arguments and a command after `--`; it uses an
+existing immutable `sha256:...` image ID. The root Dockerfile remains the sole
+build, with no host ROCm/compiler installation or driver changes.
 
-The optional `--checkpoint` is an assertion about the newest valid manifest, not
-permission to force an older state. JSON output supplies the actual checkpoint
-manifest path. `--prepare-only` validates and freezes inputs without starting the
-training arm. A finalized run cannot resume training.
+## Migration and recovery
 
-Continuation pins the complete package source/resource inventory, software and
-device identity, and the full run settings including resource floors. Changes
-require a new run; matching tensor shapes alone cannot establish compatible
-forward computation. FP32 matmul precision is explicitly `highest`, with TF32
-disabled and deterministic algorithms enabled.
+Historical wrappers use shared validation where supported and preserve historical
+configurations/status. `legacy_unverified`, threshold-only readiness and
+weights-only checkpoints do not become strict training or release evidence.
+Random initialization from an admitted pool creates a new strict identity;
+conversion cannot reconstruct unrecorded optimizer/RNG/provenance state.
 
-## What is restored and charged
+CPU smoke requires `--device cpu --diagnostic`. The explicit
+`--diagnostic-small-host` freezes lower floors of 1 GiB free disk and 256 MiB
+available memory instead of the ordinary 100 GiB/16 GiB floors. Inspection and
+reports preserve this deviation; it cannot qualify. `--prepare-only` freezes
+inputs without starting updates, and `--stop-after-update 1` creates a clean pause.
 
-At each completed update, gradients are cleared and the writer saves model,
-AdamW, explicit null scheduler/scaler, Python/NumPy/CPU/all-active-GPU RNGs, named
-initialization/data-order/sampling RNGs, epoch/permutation/cursor/next IDs and all
-manifest counters. BOS is input only; all nonpadding target tokens including EOS
-contribute to each program's mean cross-entropy, followed by the batch mean.
-The smoke uses FP32, AdamW 3e-4/0.01, norm cap 1, batch 4 and three updates.
+`foundation resume --run-dir DIR` restores the newest valid complete update-boundary
+state without model, seed, device, pool or budget overrides. Optional `--checkpoint`
+asserts that newest state; it cannot force rollback. Checkpoints include model,
+AdamW, explicit disabled scheduler/scaler, Python/NumPy/CPU/all-active-GPU and named
+RNGs, permutation/cursor/next IDs, counters and complete qualified active state.
+Package sources/resources, runtime/device and profiles are pinned. Drift requires
+a new run even when tensor shapes match. FP32 precision is `highest`, TF32 is
+disabled and deterministic algorithms enabled; unsupported HIP operations fail
+visibly. Same-environment CPU continuation is tested; cross-device bitwise equality
+is not claimed.
 
-Checkpoint blobs are flushed, fsynced and hashed before immutable publication.
-The external manifest identifies final bytes; the latest pointer is only a hint.
-Recovery scans newest-to-oldest, quarantines incomplete/corrupt generations,
-preserves generation numbers across rollback, and retains two valid generations
-plus a separately pinned final. Checkpoints including quarantine have a 40 GiB
-cap, with twice the largest estimated/existing blob reserved before saving.
-Quarantine is retained under quota rather than silently deleted.
+Blobs are fsynced/hashed before immutable manifest publication. The latest pointer
+is a hint; recovery scans newest-to-oldest and quarantines corrupt/incomplete
+generations without reusing numbers. Retain two valid generations and a pinned
+final, with quarantine inside the 40 GiB checkpoint quota and twice the estimated
+largest blob reserved for writes. Finalized runs cannot resume training.
 
-A separate controller durably writes start/phase/one-second heartbeat events
-while the learner runs. A second process enforces the controller deadline. Clean
-pauses exclude downtime. An unclean gap is charged through recovery and labeled
-estimated; same-boot time uses monotonic intervals, cross-boot recovery uses UTC,
-and backward/inconsistent clocks fail closed. Model rollback never rewinds this
-ledger. Training, recovery and checkpoint costs are integrated. The ledger API
-also supports bootstrap, validation and evaluation phases. Standalone pool and
-evaluation commands retain their own bounded reports. The live measurement/v2
-controller charges setup, training, checkpointing, generation and development
-evaluation to the same capped diagnostic/paired-arm schedule; standalone timing
-reports cannot substitute for that complete schedule.
+A separate controller writes durable start/phase/heartbeat events while a deadline
+process enforces limits. Clean pauses exclude downtime. Unclean gaps are charged
+through recovery; monotonic same-boot and UTC cross-boot accounting fail closed
+on inconsistent clocks. Model rollback never rolls back charges. Events have
+64 MiB segments and separate 1 GiB budget/metric quotas. Retried updates remain
+visible; the checkpoint's committed update counts progress. Unavailable metrics
+are null, measured zero remains zero, and overlapping APU/RSS allocations are not
+summed as a purported total.
 
-Events are append-only bounded segments (64 MiB each; 1 GiB for budget events
-and 1 GiB for metrics), with duplicate/conflicting event checks and torn-tail
-quarantine. Retried update attempts remain visible; the selected checkpoint's
-`completed_update`, not a count of update events, is committed learning progress.
-Typed metrics preserve measured zero and use null for unavailable/disabled values.
-RSS, available host memory, and device allocator statistics overlap on an APU;
-do not add them into a purported total allocation.
+## Finite evidence and certificates
 
-## Ryzen checks still required
+Matching a prefix or all 100 terms establishes only that finite match. Wrong
+values, incomplete output, overflow, timeout, unsupported syntax and infrastructure
+failure remain separate outcomes. Any-of-budget and selected top-one scores use
+the fixed denominator and pre-hidden selector. Final evaluation requires a locked
+checkpoint/protocol/stopping decision and per-target seals; repeated evaluation
+reuses those seals rather than drawing again after hidden feedback.
 
-Use the existing root Dockerfile and `lab-gpu` workflow. No second Dockerfile,
-host ROCm installation or driver change is introduced. On the configured machine:
+Grounding assignments and optimizer rewrites pass final exact execution. Solver
+UNKNOWN differs from scoped UNSAT. Discovery starts from actual admitted programs
+and sealed relation proposals. Certificates distinguish fitting, independent
+validation, bounded machine checking and class-specific polynomial-program, linear-recurrence,
+finite-state, loop-invariant and bounded-machine evidence. Unsupported families return UNKNOWN.
+A checked mathematical certificate does not prove the WAT compiler/lowering:
+`wasm_theorem` remains false without a formal link proof. Novelty lookup occurs
+only after sealing; no finite match automatically claims a theorem or novelty.
 
-```bash
-lab-gpu exec -- python -m pytest -q tests/integration/test_foundation_gpu.py -ra
-```
+## Measurement decisions and handoff
 
-The GPU test requires actual HIP, uses the full configured backbone and a real
-admitted generic pool, and checks three finite parameter-changing updates,
-encoder/decoder residency and allocator evidence. CPU equality is tested within
-one pinned software/device environment; no cross-device or cross-version bitwise
-GPU continuation guarantee is made. Unsupported deterministic HIP operations
-must remain visible failures, not trigger a silent precision/device fallback.
+One capped engineering session (two hours) precedes at most one six-hour
+diagnostic-plus-paired learning contrast. The frozen trigger order, practical
+effect rules and three paired seeds come from the experiments contract. Every
+attempt, recovery and evaluation is charged; there is no Cartesian sweep.
+Reports distinguish adopted, baseline_retained, not_triggered, inconclusive,
+unavailable and failed outcomes. Missing source, trained-model, device or thermal
+observations cannot become zero, a speedup promise or an experiment winner.
 
-`scripts/foundation/run_container.sh` launches the existing local image by its
-immutable `sha256:...` image ID. It applies two explicit, nonoverlapping role
-mounts, read-only input/root filesystem, no network or Docker socket, equal
-memory/swap caps, CPU/PID caps, and GPU device exposure only for learner/preflight.
-Workers get 1 GiB/one CPU/64 PIDs; other roles get 88 GiB/four CPUs/512 PIDs.
-It uses host-side `docker rm --force` at the deadline to reclaim the cgroup.
-Do not launch multiple 88 GiB roles concurrently or infer an aggregate cap from
-this single-container launcher.
+`foundation handoff` copies only explicitly enumerated hashed files into an atomic
+archive (4,096 files/40 GiB cap), replays G0–G10 from copied dependencies and records
+identities, decisions and pending/failing gates. Replays check current package
+implementation; stale evidence rejects. The 68-item disposition inventory is bound
+to the original source and actual task checklist. Neither archive completion nor
+that reconciliation grants release authorization. Preserve earlier phase evidence
+as history rather than rebinding its validation to changed code.
 
-The single-container launcher remains available for explicit role invocations.
-Phase 10's host `RoleCoordinator` supplies the coordinated live protocol used by
-`coordinated-smoke` and measurement/v2: one main role, at most eight workers,
-enumerated views, no worker GPU capability and host-owned deadlines/reclamation.
-The older standalone evaluation process boundary sends only visible prompts;
-release authorization still requires executed run-bound containment evidence.
-The shared development filesystem alone is not isolation evidence. Actual GPU
-broker/device deployment remains subject to the machine acceptance tests.
-
-The Docker-marked test requires Docker and `OEIS_FOUNDATION_TEST_IMAGE` set to the
-resolved local image ID; it actually checks visible/read-only mounts and absent
-truth/device/socket paths. Hardware skips are pending evidence, not passes.
-
-`foundation inspect` keeps lifecycle separate from qualification. Readiness
-remains fail-closed until adopted-contract, exact-runtime, provenance, isolation,
-resume, real-device/containment and proof-boundary evidence are all bound to the
-run. Full spec 007 also needs G7–G10; a three-update smoke cannot satisfy them.
-
-## Phase 10 source and decision fixtures
-
-Use `oeis-learn foundation census --source records.json --output DIR --json`
-for the read-only exact-horizon census. Source rows contain exact `terms`, an
-explicit or null `offset`, and original keywords; extraction's inferred tags
-are not authoritative OEIS metadata. The precision database analyzer now requires
-`--db FILE`. It reports invalid rows instead of dropping them silently.
-
-Historical cohorts retain `prefix20_total100_v1`. New release cohorts use
-`prefix20_total100_affine_v2` to keep exact affine/shift families together;
-this version must be selected before cohort freezing and training admission.
-No real release source or cohort is supplied by the diagnostic fixtures.
-
-`oeis-learn foundation measure --manifest FILE --output DIR --dry-run --json`
-validates and freezes the bounded schedule without issuing work. The explicit
-`cpu_fixture` mode runs actual cache/runtime timings and reports its sample
-shortfall, unavailable diagnostics and inconclusive decisions. It cannot qualify
-GPU performance or learning. `qualified_device` uses the measurement/v2 bundle
-from `prepare-measurement` for coordinated live execution. Legacy manifests
-without that bundle and missing host/device capabilities report unavailable
-without CPU fallback. Inputs have no final-truth path or external comparative-score
-field.
-
-The wider logical diagnostic and benchmark-only unchecked lowering cannot publish
-training/admission records. Unknown provenance or unavailable development evidence
-is reported as unavailable, never as zero rescued groups. See
-[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
-for remaining acceptance work and exact reproduction commands.
-
-The installed-wheel CI uses actual G7/G8/G9 artifacts to exercise two diagnostic
-learning updates across resume, bounded search, generated-archive discovery,
-fresh isolated certificate verification and stale-evidence rejection. It requires
-all six standalone acceptance cases without skips. These CPU updates do not
-qualify hardware learning. Legacy readiness reports preserve missing observations
-as null with failed gates, including upper bounds; Run 011 lifecycle completion
-keeps its `legacy_unverified` qualification label.
-
-`evaluation.readiness.release_readiness` replays current extension artifacts and
-keeps verified G8 software separate from pending hardware. Missing G0–G6 or full
-G10 evidence prevents release authorization. The [input disposition report](../specs/007-experiment-foundation/validation/phase-10-dispositions.json)
-records all 68 review inputs and task states; a checkbox or diagnostic timer
-cannot substitute for an executable gate.
-
-### Phase 10 live integration
-
-The phase 10 implementation now provides `foundation prepare-release`,
-`diagnose-overflow`, `coordinated-smoke`, `qualify-baseline`,
-`prepare-measurement` and `measure`. Use `--help` for the closed arguments.
-Source preparation requires hashed indexed term files and authoritative metadata;
-its audit replays the original files, grouping and archive holdouts. Real source
-inputs remain necessary even on a CPU host.
-
-`coordinated-smoke` requires an explicit resolved ROCm image and generic pool.
-It runs the three-update smoke under host Docker containment. GPU acceptance
-uses `OEIS_GPU_ROLE_IMAGE` with the separately marked actual HIP test. Its
-checkpoint is under `OUTPUT/smoke/run/checkpoints/`; `--resume-run` points to the
-previous `OUTPUT/smoke/run` and preserves its budget and state.
-
-`qualify-baseline --suites` takes a JSON map of G1–G6 JUnit paths plus
-`native_parity` and `containment` paths. The latter is the executed
-`coordinated-smoke.json`, bound to that GPU checkpoint. Missing/skipped mandatory
-suites, CPU checkpoint labels or unmeasured containment cannot authorize it.
-`prepare-measurement` must run in the same image/runtime as its replayed gate
-artifacts and requires `--baseline-report`, `--baseline-checkpoint`, G7/G8,
-real release cohort and archive; provide the archive's explicit `--holdouts`
-profile when it uses release prefixes. The host `measure` command receives that
-bundle's `manifest-input.json`; roles independently replay prerequisites.
-
-The live path enforces the two-hour engineering cap and six-hour diagnostic/one
-contrast cap. It never carries final truth into measurement assets. CPU workers
-use persistent native caches and host kill deadlines. GPU, real release-source
-and trained-model acceptance remain half-checked. See the current
-[phase 10 review](../specs/007-experiment-foundation/validation/phase-10-review.md)
-for the exact remaining evidence; no performance or learning adoption is claimed.
+Only native LODA runtime, paired language comparison and conditional transcoding
+questions move to 008. Remaining GPU/source/measurement acceptance remains in 007;
+008 experiments must wait for applicable 007 gates. GPU acceptance uses the existing
+`lab-gpu image ensure` / `lab-gpu exec --` workflow and actual HIP tests, including
+`test_foundation_gpu.py`, `test_foundation_learning_gpu.py` and the GPU coordinator
+test with `OEIS_GPU_ROLE_IMAGE`. Skips leave those tasks half-checked.

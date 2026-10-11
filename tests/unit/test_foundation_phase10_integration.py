@@ -333,7 +333,7 @@ def test_review_dispositions_bind_current_package_implementation():
     from pathlib import Path
     from oeis_learn.evaluation.experiment_runner import implementation_identity
 
-    report = json.loads(Path("specs/007-experiment-foundation/validation/phase-10-dispositions.json").read_text())
+    report = json.loads(Path("specs/007-experiment-foundation/validation/phase-11-dispositions.json").read_text())
     assert report["original_inputs"] == len(report["items"]) == 68
     assert report["implementation_sha256"] == implementation_identity()
 

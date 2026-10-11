@@ -48,6 +48,9 @@ def collect_snapshot(root):
         "evaluation/governance/constitution.md": root / ".specify/memory/constitution.md",
         "evaluation/governance/adoption.md": root
         / "specs/007-experiment-foundation/validation/adoption.md",
+        "evaluation/governance/review-inputs.json": root
+        / "specs/007-experiment-foundation/validation/review-inputs.json",
+        "evaluation/governance/tasks.md": root / "specs/007-experiment-foundation/tasks.md",
     }
     resources.update(
         {
