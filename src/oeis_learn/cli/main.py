@@ -314,6 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
         smoke_p.add_argument('--'+name,required=True)
     smoke_p.add_argument('--seconds',type=int,default=600)
     smoke_p.add_argument('--resume-run')
+    smoke_p.add_argument('--run-provenance', help='Closed JSON binding the source, lock, image and preflight environment.')
     smoke_p.add_argument('--json',dest='as_json',action='store_true')
     overflow_p = foundation_subparsers.add_parser('diagnose-overflow',help='Trace sealed draws and archive sources under bounded wider arithmetic.')
     for name in ('strata','output'):
@@ -897,13 +898,10 @@ def handle_foundation(args: argparse.Namespace) -> int:
         print('Foundation commands: preflight, conformance, freeze-cohort, evaluate, finalize, build-pool, train, resume, inspect')
         return 1
     from oeis_learn.cli.foundation import dispatch
-    kw = {k: getattr(args, k) for k in (
-        'gate_report', 'profiles', 'as_json', 'config', 'schema', 'artifacts', 'root', 'limit', 'output', 'profile',
-        'source', 'checkpoint', 'protocol', 'cohort', 'finalization', 'split', 'run_dir', 'stopping_record', 'device',
-        'pool', 'diagnostic', 'diagnostic_small_host', 'prepare_only', 'seed', 'stop_after_update',
-        'learning_gate_report', 'discovery_gate_report', 'certificate', 'native', 'holdouts', 'archive', 'updates', 'resume', 'hardware', 'prompt', 'portfolio',
-        'manifest', 'dry_run',
-    ) if hasattr(args, k)}
+    # argparse restricts fields to the selected subcommand. Forward every field
+    # rather than silently dropping new image/preflight/strata arguments.
+    kw = {key: value for key, value in vars(args).items()
+          if key not in {'command', 'foundation_command'}}
     return dispatch(args.foundation_command, **kw)
 
 

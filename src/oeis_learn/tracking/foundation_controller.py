@@ -270,7 +270,16 @@ def run_training(
             target=_controller_target, args=(root, resume, stop_after, child_target)
         )
         process.start()
-        process.join(allowance + 2)
+        try:
+            process.join(allowance + 2)
+        except BaseException:
+            # Reclaim the detached controller session and its learner on caller interruption.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            _reap(process)
+            raise
         if process.is_alive():
             # Kill the process group, including a blocked learner, even if the
             # heartbeat controller itself is wedged. No inherited host group.

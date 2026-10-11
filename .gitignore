@@ -103,3 +103,5 @@ phase10-evidence/
 .review-venv/
 .venv-*/
 phase11-evidence/
+
+/tmp-gpu-*/

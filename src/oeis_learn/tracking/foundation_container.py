@@ -63,6 +63,11 @@ def container_command(*, role, image, inputs, output, name, command, render_node
         "--env",
         "OMP_NUM_THREADS=" + cpus,
     ]
+    lease = os.environ.get("OEIS_ROLE_LEASE")
+    if lease is not None:
+        if re.fullmatch(r"[0-9a-f]{32}", lease) is None:
+            raise ValueError("invalid progression lease")
+        argv.extend(["--label", "oeis.progression=" + lease])
     use_gpu = role in ("learner", "preflight") if gpu is None else gpu
     if type(use_gpu) is not bool or (use_gpu and role not in ("learner", "preflight", "generation")):
         raise ValueError("invalid role GPU capability")

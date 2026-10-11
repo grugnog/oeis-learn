@@ -674,18 +674,20 @@ def smoke(inputs, output):
             device="cuda",
             diagnostic=True,
             budget_ns=settings["seconds"] * 10**9,
+            run_provenance=settings.get("run_provenance"),
         )
-    result = run_training(run, resume=settings["resume"])
-    if result["completed_update"] != 3:
+    result = run_training(run, resume=settings["resume"], stop_after=settings.get("stop_after"))
+    expected = settings.get("stop_after") or 3
+    if result["completed_update"] != expected:
         raise ValueError("strict GPU smoke incomplete")
     return dict(
-        status="complete",
+        status="complete" if expected == 3 else "paused",
         run_id=result["run_id"],
         checkpoint_sha256=result["checkpoint_sha256"],
         checkpoint_name=Path(result["checkpoint"]).name,
         run_root="smoke/run",
         device="cuda",
-        completed_updates=3,
+        completed_updates=result["completed_update"],
         run_sha256=compute_file_hash(run / "run.json"),
         final_truth_available=False,
     )
