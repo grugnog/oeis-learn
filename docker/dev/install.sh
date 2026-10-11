@@ -5,11 +5,9 @@ mode=${1:?cpu or gpu}
 case "$mode" in cpu|gpu) ;; *) exit 2 ;; esac
 apt-get update
 apt-get install -y --no-install-recommends \
-  ca-certificates curl build-essential cmake ninja-build pkg-config git
-if [[ "$mode" == gpu ]]; then
-  # Controller client only; no daemon or socket enters workload roles.
-  apt-get install -y --no-install-recommends docker.io openssh-client
-fi
+  ca-certificates curl build-essential cmake ninja-build pkg-config git openssh-client
+# The VM uses the SSH lab-gpu client. Container management belongs to the host
+# broker; neither the VM nor its GPU workload needs a Docker daemon/client.
 rm -rf /var/lib/apt/lists/*
 
 export RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo

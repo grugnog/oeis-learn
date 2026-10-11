@@ -5,12 +5,22 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import runpy
 import shutil
 import subprocess
 import sys
 import time
-from gpu_progress import ROOT, Blocked, read, write, check_junit, task_inventory
+from gpu_progress import (
+    ROOT,
+    HOST_STEPS,
+    ISOLATED_ROLES_BLOCKER,
+    Blocked,
+    read,
+    write,
+    check_junit,
+    task_inventory,
+)
 
 
 def command(argv, **kwargs):
@@ -34,34 +44,30 @@ def archive(cfg):
 
 
 def host_capability(cfg, out):
-    if not cfg.get("image_id"):
-        raise Blocked("Resolved local image ID required")
-    if cfg.get("docker_host"):
-        os.environ["DOCKER_HOST"] = cfg["docker_host"]
-    if not shutil.which("docker"):
-        raise Blocked(
-            "GPU image lacks Docker controller CLI; rebuild through Dockerfile and lab-gpu image ensure"
-        )
-    subprocess.run(["docker", "info"], check=True, timeout=20, stdout=subprocess.DEVNULL)
+    raise Blocked(ISOLATED_ROLES_BLOCKER)
+
+
+def ensure_image(cfg):
+    """The broker prints only the immutable content ID to stdout, logs to stderr."""
     result = subprocess.run(
-        ["docker", "image", "inspect", "--format", "{{.Id}}", cfg["image_id"]],
+        ["lab-gpu", "image", "ensure"],
+        cwd=ROOT,
         check=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
         text=True,
-        timeout=20,
     )
-    if result.stdout.strip() != cfg["image_id"]:
-        raise ValueError("Host Docker image does not match selected ID")
-    for name in ("OEIS_ROLE_TEST_IMAGE", "OEIS_FOUNDATION_TEST_IMAGE", "OEIS_GPU_ROLE_IMAGE"):
-        os.environ[name] = cfg["image_id"]
-    write(
-        out / "host-capability.json",
-        dict(
-            image=cfg["image_id"],
-            endpoint=cfg.get("docker_host"),
-            shared_paths="must be identical on accepted Docker host",
-        ),
-    )
+    actual = result.stdout.strip()
+    if not re.fullmatch(r"(?:sha256:)?[0-9a-f]{64}", actual):
+        raise ValueError("lab-gpu image ensure did not return one immutable image ID")
+    actual = "sha256:" + actual.removeprefix("sha256:")
+    if cfg.get("image_id") and cfg["image_id"] != actual:
+        raise Blocked("Configured image_id differs from lab-gpu image ensure")
+    return dict(runtime=dict(image_id=actual, image_inputs=read(ROOT / "gpu-project.json")))
+
+
+def require_sampling_strata(strata):
+    if not strata["model_samples"] or not strata["verified_solutions"]:
+        raise Blocked("No valid actual model/verified stratum; inspect retained sampling failures")
 
 
 def preflight_config(cfg, out):
@@ -137,6 +143,21 @@ def provenance(cfg, state):
     )
 
 
+def check_broker_client():
+    for binary in ("lab-gpu", "ssh"):
+        if not shutil.which(binary):
+            raise Blocked(f"{binary} client unavailable; rebuild the root-Dockerfile VM")
+    if not os.environ.get("LAB_GPU_USER") or not os.environ.get("LAB_GPU_IDENTITY"):
+        raise Blocked("LAB_GPU_USER and LAB_GPU_IDENTITY must be set by Smolfile")
+    key = Path(os.environ["LAB_GPU_IDENTITY"])
+    if not key.is_file() or not os.access(key, os.R_OK):
+        raise Blocked("LAB_GPU_IDENTITY must name a readable dedicated SSH key")
+    try:
+        ROOT.relative_to("/workspace")
+    except ValueError:
+        raise Blocked("The VM checkout must be mounted under /workspace for lab-gpu")
+
+
 def inventory(out):
     versions = {
         n: importlib.metadata.version(n)
@@ -154,8 +175,7 @@ def inventory(out):
     )
     if not Path("/proc/sys/kernel/random/boot_id").is_file():
         raise Blocked("Linux boot identity unavailable; run inside the root-Dockerfile VM")
-    if not shutil.which("lab-gpu"):
-        raise Blocked("lab-gpu unavailable; run inside the root-Dockerfile VM")
+    check_broker_client()
     from oeis_learn.sandbox.pipeline import runtime_identity
 
     runtime["native"] = runtime_identity("rust")
@@ -190,7 +210,7 @@ def cpu_regressions(out):
     )
 
 
-def gpu_environment(out):
+def gpu_environment(out, cfg):
     import torch
     from oeis_learn.cli.foundation_preflight import inspect_host, host_supports_rocm
     from oeis_learn.sandbox.pipeline import runtime_identity
@@ -204,6 +224,7 @@ def gpu_environment(out):
     if not torch.equal(y, torch.full_like(y, 128)):
         raise ValueError("HIP matrix multiplication mismatch")
     runtime = dict(
+        image_id=cfg["image_id"],
         torch=str(torch.__version__),
         hip=torch.version.hip,
         device_name=torch.cuda.get_device_name(0),
@@ -431,8 +452,7 @@ def overflow(cfg, state, out):
         )
     for name in STRATA:
         combined[name] = list({row["source"]: row for row in combined[name]}.values())[:256]
-    if not combined["model_samples"] or not combined["verified_archive"]:
-        raise Blocked("No valid actual model/verified stratum; inspect retained sampling failures")
+    require_sampling_strata(combined)
     origin = verify_origins(combined, a, snapshot, provenance_packets=packets)
     cache = {
         (r["source"], r["provenance_sha256"]): r
@@ -934,13 +954,14 @@ def end_to_end(cfg, state, out):
 
 
 def execute(name, cfg, state, out, seconds):
+    if name in HOST_STEPS:
+        raise Blocked(ISOLATED_ROLES_BLOCKER)
     if name == "inventory":
         return inventory(out)
     if name == "cpu-regressions":
         return cpu_regressions(out)
     if name == "image":
-        command(["lab-gpu", "image", "ensure"])
-        return dict(runtime=dict(image_inputs=read(ROOT / "gpu-project.json")))
+        return ensure_image(cfg)
     if name == "phase13-inputs":
         verify = runpy.run_path(str(ROOT / "scripts/verify_phase13.py"))["verify_inputs"]
         return verify(
@@ -961,7 +982,7 @@ def execute(name, cfg, state, out, seconds):
             raise Blocked("Authoritative source/structural archive did not qualify")
         return report
     if name == "gpu-environment":
-        return gpu_environment(out)
+        return gpu_environment(out, cfg)
     if name == "gpu-smoke":
         return pytest(
             out,
