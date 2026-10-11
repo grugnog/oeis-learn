@@ -55,3 +55,55 @@ Those protections remain intact. Fresh Ubuntu CI runs the complete CPU suite,
 actual quickstart, Rust/native G7–G9, Docker roles and installed-wheel cases.
 Phase 13 is not fully accepted while T113 or T114 lacks mandatory evidence;
 phase 14 and full spec 007 release remain pending.
+
+## Executed local checks
+
+The current implementation passes 91 focused owning-path/wrapper/overflow checks,
+47 source-policy/admission/integration checks, and 37 extracted-distribution
+inventory/handoff/current-binding checks, each with zero failures or skips. The
+original and source-distribution-rebuilt wheels have identical bytes for all 181
+packaged source/resource files. Lint and the structural validator pass: all 121
+tasks and all 52 requirements remain mapped, with 68 original review inputs.
+
+The actual diagnostic driver issued counters 0–255 and rejected 18 invalid draws
+under the existing prior, leaving 238 distinct valid raw programs. Provenance was
+replayed for every selected program; 108 independently in-range programs received
+CPU checked/unchecked timing. Bounded reference execution records 113 runtime
+failures and 14 unknown results explicitly. Two diagnostic candidate rescues do
+not establish development matching or admission eligibility. Ten historical
+configuration files and eleven wrapper files were hashed; no parent weights were
+available. The 24-record stripped sample contains 20 full 20-term prefixes, two
+full 50-term prefixes and no full 100/120-term prefixes, with all offsets and
+keywords missing. None of these diagnostics qualifies T113 or completes T114.
+
+Local CPU input evidence was generated against implementation identity
+`sha256:1a89244c8e1f14f668469d47287b13a13d1d6d74d003e9570e919c1415719088`.
+Its `cpu-inputs.json` report digest is
+`sha256:35c071cece6e93d259a1f6a6be96b9a2a8a240d1f02832cd5c983a1e3a79f02c`;
+its overflow report digest is
+`sha256:683d94cb07dd9dd3e31df2b0708e6a25da6efc13b9c211bc79c69fb8b1170dee`.
+These identities describe this execution; subsequent inventory changes require
+fresh evidence, rather than rebinding these historical results.
+
+## CI software requalification
+
+The implementation at `bcc92cd8ebf1c795a642a3b72d9b0ae0779a546b` was tested in
+[review run 38113973427](https://github.com/grugnog/oeis-learn/actions/runs/38113973427)
+and [wheel run 38113973428](https://github.com/grugnog/oeis-learn/actions/runs/38113973428).
+The complete CPU suite passed 788 tests with 56 explicit capability skips; the
+actual CPU quickstart and immutable archive replay passed. Native G7 and G9
+reports passed, and G8 software passed with hardware correctly pending. Every
+native JUnit suite had zero failures, errors or skips. Downloaded native artifact
+`11693201321` matches ZIP digest
+`sha256:e3e638c04bed9df2c8c369680af232f8a35d93e55173bfb1b86063f95fe63fb3`;
+its G7/G8/G9 report digests and implementation bindings were independently checked.
+The clean installed-wheel/native acceptance and extracted-source rebuild step
+also passed. These executed checks complete T112's outstanding software and
+packaging acceptance.
+
+Completing the task marker changes the packaged inventory identity. Current
+dispositions are bound to that final inventory; the PR's final workflows rebuild
+and requalify those bytes. The preceding execution records keep their original
+identity. Docker-role and handoff checks are additionally exercised in the wheel
+workflow. Passing software checks does not complete real-source, trained-parent,
+HIP, throughput or live-experiment acceptance.

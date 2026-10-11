@@ -1757,7 +1757,7 @@
   "original_inputs": 68,
   "implementation_sha256": "sha256:1a89244c8e1f14f668469d47287b13a13d1d6d74d003e9570e919c1415719088",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
-  "task_inventory_sha256": "sha256:88ac8302b19e76d599d7277b19e26bb2428b33355296ff29ca901ce792fb2a3a",
+  "task_inventory_sha256": "sha256:f04520074a370a9276b17fa38527180764cf17955a629c771a62217366a673f2",
   "historical_template": {
     "path": "specs/007-experiment-foundation/validation/phase-11-dispositions.json",
     "sha256": "sha256:fa6a5408220a63a053e80f83dec81d852c1bca75e5d782591161e662297f3a91"
