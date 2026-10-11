@@ -803,3 +803,251 @@ def test_gpu_directory_error_includes_both_acl_types_and_actual_mode(tmp_path, m
     assert "mode=0750" in error
     assert "both access and default ACLs" in error
     assert "stage directories are recreated" in error
+
+
+@pytest.mark.parametrize("name", ["transport.log", "worker.log"])
+def test_live_logs_are_readable_before_child_launch_and_preserve_appends(
+    tmp_path, monkeypatch, name
+):
+    log = tmp_path / name
+    original = Path.open
+
+    def inherited_private_acl(self, mode="r", *args, **kwargs):
+        stream = original(self, mode, *args, **kwargs)
+        if self == log and mode == "ab":
+            # Model inherited other::---, which a permissive umask cannot fix.
+            os.fchmod(stream.fileno(), 0o660)
+        return stream
+
+    monkeypatch.setattr(Path, "open", inherited_private_acl)
+    code = (
+        "from pathlib import Path; import sys; "
+        "assert Path(sys.argv[1]).stat().st_mode & 0o044 == 0o044; print('live output')"
+    )
+    argv = [sys.executable, "-c", code, log]
+    assert g.supervise(argv, log, 5) == 0
+    inode = log.stat().st_ino
+    assert g.supervise(argv, log, 5) == 0
+    assert log.stat().st_ino == inode
+    assert log.read_text().count("\nlive output\n") == 2
+    assert stat.S_IMODE(log.stat().st_mode) == 0o664
+
+
+def test_publish_nested_reports_and_checkpoints_without_granting_write_access(tmp_path):
+    out = tmp_path / "stage"
+    nested = out / "legacy/0/checkpoints"
+    old = os.umask(0o077)
+    try:
+        nested.mkdir(parents=True)
+        (nested / "model.pt").write_bytes(b"checkpoint bytes")
+        (out / "tests.xml").write_text("<testsuite/>")
+    finally:
+        os.umask(old)
+    (out / "tests.xml").chmod(0o660)
+    before = {p: (p.stat(), p.read_bytes()) for p in out.rglob("*") if p.is_file()}
+    g.publish_outputs(out)
+    for directory in (out, out / "legacy", out / "legacy/0", nested):
+        assert stat.S_IMODE(directory.stat().st_mode) == 0o755
+    for path, (info, contents) in before.items():
+        after = path.stat()
+        assert stat.S_IMODE(after.st_mode) == stat.S_IMODE(info.st_mode) | 0o044
+        assert (after.st_uid, after.st_gid, after.st_ino) == (info.st_uid, info.st_gid, info.st_ino)
+        assert path.read_bytes() == contents
+    assert len(g.tree_hashes(out)) == 2
+
+
+def test_publish_leaves_foreign_controller_files_untouched(tmp_path, monkeypatch):
+    lock = tmp_path / "worker.lock"
+    lock.write_text("stable inode")
+    lock.chmod(0o444)
+    original = Path.lstat
+    before = lock.stat()
+
+    def foreign_owner(self):
+        info = original(self)
+        if self == lock:
+            fields = list(info)
+            fields[4] = os.geteuid() + 1
+            return os.stat_result(fields)
+        return info
+
+    monkeypatch.setattr(Path, "lstat", foreign_owner)
+    g.publish_outputs(tmp_path)
+    assert lock.stat() == before
+    assert lock.read_text() == "stable inode"
+
+
+@pytest.mark.parametrize("kind", ["file-symlink", "directory-symlink", "hardlink", "fifo"])
+def test_publish_rejects_links_and_special_files_without_changing_external_inputs(tmp_path, kind):
+    source = tmp_path / "input"
+    source.mkdir()
+    target = source / "parent.pt"
+    target.write_bytes(b"actual input")
+    target.chmod(0o600)
+    out = tmp_path / "stage"
+    out.mkdir()
+    link = out / "linked-output"
+    if kind == "file-symlink":
+        link.symlink_to(target)
+    elif kind == "directory-symlink":
+        link.symlink_to(source, target_is_directory=True)
+    elif kind == "hardlink":
+        os.link(target, link)
+    else:
+        os.mkfifo(link)
+    before = target.stat()
+    with pytest.raises(g.Blocked, match="Shared stage output must"):
+        g.publish_outputs(out)
+    assert target.stat() == before and target.read_bytes() == b"actual input"
+
+
+@pytest.mark.parametrize("silent", [False, True])
+def test_publish_permission_failure_reports_path_and_preserves_artifacts(
+    tmp_path, monkeypatch, silent
+):
+    path = tmp_path / "model.pt"
+    path.write_bytes(b"retained checkpoint")
+    path.chmod(0o600)
+    original = Path.chmod
+
+    def deny(self, mode, *args, **kwargs):
+        if self == path:
+            if silent:
+                return
+            raise PermissionError(13, "Permission denied", str(path))
+        return original(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", deny)
+    with pytest.raises(g.Blocked) as e:
+        g.publish_outputs(tmp_path)
+    assert str(path) in str(e.value)
+    assert path.read_bytes() == b"retained checkpoint"
+
+
+@pytest.mark.parametrize("code", [0, 1, 124, 130])
+def test_watchdog_publishes_partial_outputs_and_releases_lock_for_all_exits(
+    tmp_path, monkeypatch, code
+):
+    settings = tmp_path / "cfg.json"
+    g.write(settings, {})
+    out = tmp_path / "gpu-smoke"
+
+    def partial_worker(argv, log, seconds):
+        nested = out / "partial"
+        nested.mkdir(mode=0o700)
+        report = nested / "tests.xml"
+        report.write_text("retained test results")
+        report.chmod(0o600)
+        log.write_text("retained worker output")
+        log.chmod(0o660)
+        return code
+
+    monkeypatch.setattr(g, "supervise", partial_worker)
+    assert g.remote_watchdog("gpu-smoke", settings, tmp_path, 600) == code
+    assert (out / "partial").stat().st_mode & 0o055 == 0o055
+    for path in (out / "partial/tests.xml", out / "worker.log"):
+        assert path.stat().st_mode & 0o044 == 0o044
+    g.require_idle(out)
+
+
+def test_watchdog_releases_lock_when_publication_fails(tmp_path, monkeypatch):
+    settings = tmp_path / "cfg.json"
+    g.write(settings, {})
+    monkeypatch.setattr(g, "supervise", lambda *args: 0)
+
+    def deny(out):
+        raise g.Blocked("cannot publish")
+
+    monkeypatch.setattr(g, "publish_outputs", deny)
+    with pytest.raises(g.Blocked, match="cannot publish"):
+        g.remote_watchdog("gpu-smoke", settings, tmp_path, 600)
+    g.require_idle(tmp_path / "gpu-smoke")
+
+
+@pytest.mark.parametrize("disposition", ["pass", "blocked", "error"])
+def test_worker_publishes_third_party_outputs_on_success_and_failure(
+    tmp_path, monkeypatch, disposition
+):
+    worker = worker_module()
+    monkeypatch.setitem(sys.modules, "gpu_progress_steps", worker)
+    settings = tmp_path / "cfg.json"
+    g.write(settings, {})
+
+    def execute(name, cfg, state, out, seconds):
+        report = out / "tests.xml"
+        report.write_text("retained junit")
+        report.chmod(0o600)
+        if disposition == "blocked":
+            raise g.Blocked("actual device unavailable")
+        if disposition == "error":
+            raise RuntimeError("actual test failed")
+        return dict(value="actual test result")
+
+    monkeypatch.setattr(worker, "execute", execute)
+    if disposition == "error":
+        with pytest.raises(RuntimeError, match="actual test failed"):
+            g.execute_worker("gpu-smoke", settings, tmp_path, 600)
+    else:
+        assert g.execute_worker("gpu-smoke", settings, tmp_path, 600) == (
+            0 if disposition == "pass" else 3
+        )
+    assert (tmp_path / "gpu-smoke/tests.xml").stat().st_mode & 0o044 == 0o044
+
+
+def test_unreadable_directory_cannot_be_silently_omitted_from_receipt(tmp_path, monkeypatch):
+    def denied_walk(path, *, onerror):
+        onerror(PermissionError(13, "Permission denied", str(path / "private")))
+        yield  # retain os.walk's generator interface
+
+    monkeypatch.setattr(g.os, "walk", denied_walk)
+    with pytest.raises(PermissionError, match="private"):
+        g.success_receipt("identity", tmp_path, {}, 1, g.Step("gpu-smoke", (), 1, True))
+
+
+@pytest.mark.parametrize("publication", [False, True])
+def test_controller_can_receipt_and_skip_gpu_owned_outputs(tmp_path, monkeypatch, publication):
+    stage = g.Step("gpu-probe", (), 120, True)
+    driver(monkeypatch, tmp_path, (stage,))
+    if not publication:
+        monkeypatch.setattr(g, "publish_outputs", lambda out: None)
+    original = Path.open
+    in_gpu = False
+    issued = []
+
+    def vm_read(self, mode="r", *args, **kwargs):
+        if not in_gpu and mode in {"r", "rb"} and self.is_file():
+            # The VM's mapped identity cannot use the GPU owner's/group's bits.
+            if not self.stat().st_mode & 0o004:
+                raise PermissionError(13, "Permission denied", str(self))
+        return original(self, mode, *args, **kwargs)
+
+    def transport(argv, log, seconds):
+        nonlocal in_gpu
+        if argv[0] == "lab-gpu":
+            issued.append(stage.name)
+            in_gpu = True
+            try:
+                return g.remote_watchdog(stage.name, Path(argv[-3]), tmp_path, seconds)
+            finally:
+                in_gpu = False
+        out = tmp_path / stage.name
+        nested = out / "nested"
+        nested.mkdir(mode=0o700)
+        (nested / "model.pt").write_bytes(b"checkpoint")
+        (nested / "model.pt").chmod(0o600)
+        log.write_text("successful GPU worker")
+        log.chmod(0o660)
+        g.write(out / "step-result.json", dict(result=dict(value="successful GPU check")))
+        return 0
+
+    monkeypatch.setattr(Path, "open", vm_read)
+    monkeypatch.setattr(g, "supervise", transport)
+    assert g.run({"final_seconds": 600}, tmp_path) == (0 if publication else 1)
+    receipt = g.read(tmp_path / "receipts.json")[stage.name]
+    if publication:
+        assert receipt["status"] == "PASS"
+        assert {"worker.log", "nested/model.pt"} <= receipt["files"].keys()
+        assert g.run({"final_seconds": 600}, tmp_path) == 0
+        assert issued == [stage.name]
+    else:
+        assert receipt["status"] == "FAIL" and "Permission denied" in receipt["error"]

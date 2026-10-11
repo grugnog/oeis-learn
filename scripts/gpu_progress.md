@@ -184,6 +184,37 @@ GPU write permission. Settings and atomic report replacements are readable
 `0644` files; each writer uses a new temporary rather than truncating the other
 identity's file. Existing lock files are never replaced to bypass contention.
 
+Logs receive explicit group/other read permission before a subprocess starts,
+so live GPU logs can be read from the VM even if the host later kills the
+container. After each worker exits, its own retained stage files receive read
+permission and its nested output directories receive read/traverse permission.
+This includes third-party JUnit reports and checkpoints, and partial outputs
+after failures or watchdog timeouts. A permissive umask alone cannot override
+an inherited default ACL with `other::---`. The publication step does not grant
+write access, change ownership, or change source/input files outside the stage.
+It leaves foreign controller-owned files alone and rejects symbolic links,
+multiply linked files and special files rather than touching external inodes.
+Permission publication failures block acceptance; unreadable directories cannot
+be silently omitted from receipt hashes.
+
+If an older GPU attempt finished but the VM reported `Permission denied` while
+hashing `worker.log`, inspect its readable `step-result.json`: worker success
+and controller receipt acceptance are separate. Pull this fix and rerun using
+the same state directory. Existing failed attempts are archived, and new
+outputs are published before acceptance. To inspect an old log immediately,
+run this scoped repair on the **host**, with the checkout path filled below:
+
+```sh
+OEIS_HOST_WORKSPACE=/absolute/path/to/host/checkout
+sudo chmod a+r "$OEIS_HOST_WORKSPACE/tmp-gpu-progress/gpu-environment/worker.log"
+```
+
+This repairs the retained log only. Do not make the workspace world-writable,
+replace live locks, or remove receipts/budgets. If the host broker kills the
+entire container before either worker cleanup or watchdog cleanup runs, live
+logs remain readable; unpublished partial artifacts may still need a scoped
+host repair for inspection. Such a terminated stage cannot receive a PASS.
+
 The GPU worker first probes settings readability and output-directory creation
 under its actual host identity. The host project workspace/default ACL setup
 in the linked lab guide must allow both identities to traverse/read inputs and
