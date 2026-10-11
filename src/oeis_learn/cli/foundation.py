@@ -852,13 +852,14 @@ def cmd_prepare_measurement(
     )
 
 
-def cmd_qualify_baseline(checkpoint, run_dir, preflight, suites, output, as_json=False):
+def cmd_qualify_baseline(checkpoint, run_dir, preflight, suites, output, preflight_config, as_json=False):
     from oeis_learn.evaluation.baseline_gate import assemble_baseline_bundle
 
     return _phase4_command(
         "qualify-baseline",
         lambda: assemble_baseline_bundle(
-            checkpoint, run_dir, preflight, load_json(Path(suites).read_bytes()), output
+            checkpoint, run_dir, preflight, load_json(Path(suites).read_bytes()), output,
+            preflight_config=preflight_config
         ),
         as_json,
     )

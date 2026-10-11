@@ -17,6 +17,27 @@ fi
 if [[ "${OEIS_REQUIRE_NATIVE:-0}" == 1 ]]; then
   "$task_root/env/bin/python" -I -c 'import oeis_wasm_evaluator; assert oeis_wasm_evaluator.source_identity_bytes()'
 fi
+# Rebuild from the extracted distribution and retain qualification resource bytes.
+uv build --sdist --out-dir "$task_root/wheels" "$repo"
+mkdir "$task_root/source"
+tar -xzf "$task_root"/wheels/*.tar.gz -C "$task_root/source"
+task_source=$(find "$task_root/source" -mindepth 1 -maxdepth 1 -type d)
+(
+  cd "$task_source"
+  PYTHONPATH=src "$task_root/env/bin/python" -m pytest -q tests/unit/test_foundation_task_inventory.py tests/unit/test_foundation_handoff.py tests/unit/test_foundation_phase10_integration.py::test_review_dispositions_bind_current_package_implementation --junitxml="$task_root/source-distribution.xml"
+)
+uv build --wheel --out-dir "$task_root/rebuilt" "$task_source"
+"$task_root/env/bin/python" - "$task_root" <<'PY'
+import sys, zipfile
+from pathlib import Path
+root = Path(sys.argv[1])
+def resources(path):
+    with zipfile.ZipFile(path) as archive:
+        return {name: archive.read(name) for name in archive.namelist() if name.startswith("oeis_learn/")}
+original = resources(next((root / "wheels").glob("*.whl")))
+rebuilt = resources(next((root / "rebuilt").glob("*.whl")))
+assert original == rebuilt, "source-distribution rebuild changed packaged qualification resources"
+PY
 mkdir "$task_root/acceptance"
 cp "$repo/tests/contract/test_foundation_qualified_cli.py" "$task_root/acceptance/test_installed_cli.py"
 cd "$task_root/acceptance"

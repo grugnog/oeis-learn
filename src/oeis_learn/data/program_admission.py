@@ -81,6 +81,13 @@ def validate_sample(sample, sampler):
     return None
 
 
+def require_sample(sample, sampler):
+    """Enforce the shared rejection contract at exception-based trust boundaries."""
+    reason = validate_sample(sample, sampler)
+    if reason is not None:
+        raise AdmissionGateError(f"generic sample rejected: {reason}")
+
+
 def program_core(sample):
     source = sample["canonical_source"]
     return {

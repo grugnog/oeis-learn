@@ -332,7 +332,7 @@ def build_parser() -> argparse.ArgumentParser:
     prep_p.add_argument('--holdouts')
     prep_p.add_argument('--json', dest='as_json', action='store_true')
     baseline_p = foundation_subparsers.add_parser('qualify-baseline', help='Replay actual run-bound G0-G6 evidence.')
-    for name in ('checkpoint','run-dir','preflight','suites','output'):
+    for name in ('checkpoint','run-dir','preflight','preflight-config','suites','output'):
         baseline_p.add_argument('--'+name,required=True)
     baseline_p.add_argument('--json',dest='as_json',action='store_true')
     fm_p = foundation_subparsers.add_parser('measure', help='Replay frozen measurements or execute an isolated live capability bundle.')

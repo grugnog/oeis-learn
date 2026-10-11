@@ -20,8 +20,9 @@ def evidence_inputs(root, readiness, *, extra_files=()):
         path = _file(root, readiness[key])
         report = load_json(path.read_bytes())
         references = list(report["checks"].values())
-        if report.get("hardware") is not None:
-            references.append(report["hardware"])
+        if key == "g8":
+            from oeis_learn.evaluation.learning_gate import evidence_references
+            references = evidence_references(report)
         for ref in references:
             relative = (path.parent.relative_to(root) / ref["path"]).as_posix()
             paths.add(_file(root, relative))

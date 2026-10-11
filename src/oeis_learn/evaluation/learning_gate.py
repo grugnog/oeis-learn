@@ -35,6 +35,7 @@ SUITES = {
     ],
     "archive_curriculum": [
         "tests/unit/test_foundation_archive_curriculum.py",
+        "tests/unit/test_foundation_provenance.py",
         "tests/unit/test_elite_buffer_replay.py",
         "tests/unit/test_symple_curriculum.py",
         "tests/unit/test_adag_allocator.py",
@@ -79,6 +80,7 @@ def runtime_identity():
 
 def implementation_identity():
     from oeis_learn.experiments.source_snapshot import qualification_identity
+
     return qualification_identity("G8")
 
 
@@ -123,6 +125,29 @@ def check_hardware_junit(path):
     return count
 
 
+def _read_evidence(root, reference, *, junit=False):
+    from oeis_learn.experiments.artifacts import ArtifactPath
+
+    fields = {"path", "sha256", "cases"} if junit else {"path", "sha256"}
+    if not isinstance(reference, dict) or set(reference) != fields:
+        raise ValueError("invalid G8 artifact reference")
+    path = ArtifactPath(root, reference["path"]).as_path()
+    raw = path.read_bytes()
+    if digest_bytes(raw) != reference["sha256"]:
+        raise ValueError("G8 evidence changed")
+    return raw
+
+
+def evidence_references(report):
+    """Enumerate software plus process/JUnit closure for immutable transport."""
+    refs = list(report["checks"].values())
+    if report.get("hardware") is not None:
+        refs.append(report["hardware"]["process"])
+        if report["hardware"]["junit"] is not None:
+            refs.append(report["hardware"]["junit"])
+    return refs
+
+
 def require_g8(report, *, evidence_root, diagnostic=False):
     if (
         set(report)
@@ -138,7 +163,7 @@ def require_g8(report, *, evidence_root, diagnostic=False):
             "report_sha256",
         }
         or report["gate"] != "G8"
-        or report["version"] != "g8/v1"
+        or report["version"] != "g8/v2"
         or report["report_sha256"] != digest(report, "report_sha256")
         or report["implementation_sha256"] != implementation_identity()
         or report["software_status"] != "PASS"
@@ -157,18 +182,49 @@ def require_g8(report, *, evidence_root, diagnostic=False):
             or check_junit(path, name) != record["cases"]
         ):
             raise ValueError("G8 evidence changed")
+    status, hardware = report["hardware_status"], report["hardware"]
+    if status == "PENDING":
+        if hardware is not None:
+            raise ValueError("unexecuted G8 hardware must have no execution record")
+    elif status in ("PASS", "FAIL"):
+        if not isinstance(hardware, dict) or set(hardware) != {"process", "junit"}:
+            raise ValueError("durable G8 hardware process diagnostics required")
+        process = _read_evidence(root, hardware["process"])
+        from oeis_learn.experiments.artifacts import load_json
+
+        process = load_json(process)
+        if (
+            set(process) != {"requested", "launched", "returncode", "stdout", "stderr", "error"}
+            or process["requested"] is not True
+            or type(process["launched"]) is not bool
+            or not isinstance(process["stdout"], str)
+            or not isinstance(process["stderr"], str)
+        ):
+            raise ValueError("invalid G8 process diagnostics")
+        if status == "FAIL":
+            if not isinstance(process["error"], str) or not process["error"]:
+                raise ValueError("failed G8 hardware requires a failure reason")
+            raise ValueError("G8 hardware qualification failed: " + process["error"])
+        if (
+            process["launched"] is not True
+            or type(process["returncode"]) is not int
+            or process["returncode"] != 0
+            or process["error"] is not None
+        ):
+            raise ValueError("G8 accelerator process did not pass")
+        record = hardware["junit"]
+        if not isinstance(record, dict) or set(record) != {"path", "sha256", "cases"}:
+            raise ValueError("G8 accelerator JUnit required")
+        _read_evidence(root, record, junit=True)
+        if check_hardware_junit(root / record["path"]) != record["cases"]:
+            raise ValueError("G8 accelerator evidence mismatch")
+    else:
+        raise ValueError("invalid G8 hardware status")
     if not diagnostic:
-        if report["hardware_status"] != "PASS" or report["hardware"] is None:
+        if status != "PASS":
             raise ValueError(
                 "G8 hardware qualification remains pending; CPU diagnostics cannot authorize it"
             )
-        path = (root / report["hardware"]["path"]).resolve()
-        if (
-            root not in path.parents
-            or digest_bytes(path.read_bytes()) != report["hardware"]["sha256"]
-            or check_hardware_junit(path) != report["hardware"]["cases"]
-        ):
-            raise ValueError("G8 accelerator evidence mismatch")
         if not torch.cuda.is_available():
             raise ValueError("qualified accelerator unavailable in this execution environment")
     return report["report_sha256"]
@@ -195,42 +251,74 @@ def run_qualification(output, *, hardware=False):
             }
         except (ValueError, OSError) as exc:
             errors.append(str(exc))
-    hardware_record = None
+    hardware_record, hardware_status = None, "PENDING"
     if hardware:
+        from oeis_learn.experiments.artifacts import atomic_write, ArtifactPath
+
         path = output / "gpu.xml"
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                "-q",
-                "tests/integration/test_foundation_learning_gpu.py",
-                "--junitxml=" + str(path.resolve()),
-            ],
-            cwd=ROOT,
-            check=False,
+        # A failed launch must never reuse a passing JUnit from an earlier run.
+        if path.is_file():
+            path.unlink()
+        process = dict(
+            requested=True, launched=False, returncode=None, stdout="", stderr="", error=None
         )
-        if not result.returncode:
-            try:
-                hardware_record = {
-                    "path": path.name,
-                    "sha256": digest_bytes(path.read_bytes()),
-                    "cases": check_hardware_junit(path),
-                }
-            except ValueError:
-                pass
+        junit = None
+        hardware_status = "FAIL"
+        try:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "-q",
+                    "tests/integration/test_foundation_learning_gpu.py",
+                    "--junitxml=" + str(path.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            process.update(
+                launched=True,
+                returncode=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+            if path.is_file():
+                junit = dict(path=path.name, sha256=digest_bytes(path.read_bytes()), cases=None)
+            if result.returncode:
+                raise ValueError(f"hardware pytest exited with status {result.returncode}")
+            count = check_hardware_junit(path)
+            junit["cases"] = count
+            hardware_status = "PASS"
+        except (ValueError, OSError, ET.ParseError) as exc:
+            process["error"] = f"{type(exc).__name__}: {exc}"
+        payload = canonical_bytes(process)
+        atomic_write(
+            ArtifactPath(output, "gpu-process-" + digest_bytes(payload)[7:] + ".json"), payload
+        )
+        hardware_record = dict(
+            process=dict(
+                path="gpu-process-" + digest_bytes(payload)[7:] + ".json",
+                sha256=digest_bytes(payload),
+            ),
+            junit=junit,
+        )
     report = {
         "gate": "G8",
-        "version": "g8/v1",
+        "version": "g8/v2",
         "implementation_sha256": implementation_identity(),
         "software_status": "PASS" if not errors else "FAIL",
-        "hardware_status": "PASS" if hardware_record else "PENDING",
+        "hardware_status": hardware_status,
         "checks": checks,
         "runtime": runtime_identity(),
         "hardware": hardware_record,
     }
     report["report_sha256"] = digest(report)
-    (output / "g8.json").write_bytes(canonical_bytes(report))
+    from oeis_learn.tracking.foundation_metrics import replace_json
+
+    replace_json(output / "g8.json", report)
     return report
 
 

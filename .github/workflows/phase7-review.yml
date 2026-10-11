@@ -11,6 +11,7 @@ on:
       - 'scripts/verify_phase8.py'
       - 'scripts/verify_phase9.py'
       - 'scripts/verify_phase11.py'
+      - 'scripts/verify_phase13.py'
       - 'specs/007-experiment-foundation/contracts/**'
       - 'specs/007-experiment-foundation/tasks.md'
       - 'specs/007-experiment-foundation/quickstart.md'
@@ -57,6 +58,8 @@ jobs:
       - name: Foundation and phase 7 CPU regression suite
         run: |
           .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
+      - name: Execute phase 13 available CPU input diagnostics
+        run: .review-venv/bin/python scripts/verify_phase13.py --output phase13-evidence
       - name: Execute actual CPU quickstart and replay immutable archive
         run: |
           .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
@@ -68,6 +71,7 @@ jobs:
           path: |
             phase7-junit.xml
             phase7-environment.txt
+            phase13-evidence/**
             phase11-evidence/quickstart/*.stdout
             phase11-evidence/quickstart/*.stderr
             phase11-evidence/quickstart/quickstart.json

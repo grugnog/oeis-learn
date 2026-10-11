@@ -28,11 +28,13 @@ Exit codes (match contracts/cli.md):
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import datetime
 import hashlib
 import json
-import math
 import os
+import platform
+from pathlib import Path
 import sys
 import time
 from typing import Any, Dict, List, Optional
@@ -48,16 +50,42 @@ EXIT_RESOURCE = 5
 
 # ── Allowed config schema (unknown fields are rejected) ───────
 _ALLOWED_TOP = {
-    "schema_version", "kind", "base_image", "base_image_digest", "dockerfile",
-    "dependency_lock", "requested_device", "dtype", "no_cpu_fallback",
-    "no_driver_install", "no_privileged_container", "updates", "optimizer",
-    "visible_terms", "body_tokens", "timeout_minutes", "fixtures", "model",
+    "schema_version",
+    "kind",
+    "base_image",
+    "base_image_digest",
+    "dockerfile",
+    "dependency_lock",
+    "final_image_id",
+    "requested_device",
+    "dtype",
+    "no_cpu_fallback",
+    "no_driver_install",
+    "no_privileged_container",
+    "updates",
+    "optimizer",
+    "visible_terms",
+    "body_tokens",
+    "timeout_minutes",
+    "fixtures",
+    "model",
 }
 _ALLOWED_FIXTURE = {"kind"}
 _ALLOWED_MODEL = {
-    "encoder", "decoder", "d_model", "n_heads", "n_encoder_layers",
-    "n_decoder_layers", "d_ff", "dropout", "max_seq_len", "max_valuation",
-    "moduli_count", "use_film", "enable_summary_tokens", "seed",
+    "encoder",
+    "decoder",
+    "d_model",
+    "n_heads",
+    "n_encoder_layers",
+    "n_decoder_layers",
+    "d_ff",
+    "dropout",
+    "max_seq_len",
+    "max_valuation",
+    "moduli_count",
+    "use_film",
+    "enable_summary_tokens",
+    "seed",
 }
 _FIXTURE_KINDS = {"zero", "alternating_signed256_extremes", "adjacent_large_integer_prefixes"}
 _SIGNED_256_MAX = (1 << 255) - 1
@@ -75,10 +103,27 @@ class PreflightConfig:
             raise ValueError(f"unsupported schema_version: {data.get('schema_version')!r}")
         if data.get("kind") != "preflight_config":
             raise ValueError(f"unsupported kind: {data.get('kind')!r}")
-        if not isinstance(data.get("base_image_digest"), str) or not data["base_image_digest"].startswith(
-            "sha256:"
+        from oeis_learn.experiments.models import check_digest
+
+        for field in ("base_image_digest", "final_image_id"):
+            check_digest(data.get(field), field)
+        for field in ("dockerfile", "dependency_lock"):
+            from oeis_learn.experiments.artifacts import ArtifactPath
+
+            ArtifactPath(Path(source).parent, data.get(field)).as_path()
+        for field in ("no_cpu_fallback", "no_driver_install", "no_privileged_container"):
+            if data.get(field, True) is not True:
+                raise ValueError(f"{field} must be true")
+        for field, expected in (("updates", 3), ("visible_terms", 20), ("body_tokens", 1024)):
+            if type(data.get(field)) is not int or data[field] != expected:
+                raise ValueError(f"{field} must be exactly {expected}")
+        if (
+            type(data.get("timeout_minutes", 10)) is not int
+            or not 0 < data.get("timeout_minutes", 10) <= 10
         ):
-            raise ValueError("base_image_digest must be a sha256: digest")
+            raise ValueError("preflight timeout must be at most ten minutes")
+        if data.get("optimizer", "adamw") != "adamw":
+            raise ValueError("preflight optimizer must be adamw")
 
         fixtures = data.get("fixtures", [])
         if not isinstance(fixtures, list) or len(fixtures) < 1:
@@ -97,6 +142,7 @@ class PreflightConfig:
         self.kind = data["kind"]
         self.base_image = data["base_image"]
         self.base_image_digest = data["base_image_digest"]
+        self.final_image_id = data["final_image_id"]
         self.dockerfile = data.get("dockerfile", "")
         self.dependency_lock = data.get("dependency_lock", "")
         self.requested_device = data["requested_device"]
@@ -110,7 +156,32 @@ class PreflightConfig:
         self.body_tokens = int(data["body_tokens"])
         self.timeout_minutes = int(data.get("timeout_minutes", 10))
         self.fixtures = fixtures
-        self.model = model
+        self.model = {
+            "encoder": "TriStreamEncoder",
+            "decoder": "WatTransformerDecoder",
+            "max_seq_len": 1024,
+            "max_valuation": 16,
+            "moduli_count": 16,
+            "use_film": True,
+            "enable_summary_tokens": False,
+            "seed": 20260913,
+            **model,
+        }
+        if (
+            self.model["encoder"] != "TriStreamEncoder"
+            or self.model["decoder"] != "WatTransformerDecoder"
+        ):
+            raise ValueError("preflight requires the declared encoder/decoder constructors")
+        for field in (
+            "d_model",
+            "n_heads",
+            "n_encoder_layers",
+            "n_decoder_layers",
+            "d_ff",
+            "dropout",
+        ):
+            if field not in self.model:
+                raise ValueError(f"explicit model {field} required")
         self.source = source
 
         if self.dtype != "float32":
@@ -130,6 +201,7 @@ class PreflightConfig:
             "kind": self.kind,
             "base_image": self.base_image,
             "base_image_digest": self.base_image_digest,
+            "final_image_id": self.final_image_id,
             "dockerfile": self.dockerfile,
             "dependency_lock": self.dependency_lock,
             "requested_device": self.requested_device,
@@ -139,8 +211,8 @@ class PreflightConfig:
             "visible_terms": self.visible_terms,
             "body_tokens": self.body_tokens,
             "timeout_minutes": self.timeout_minutes,
-            "fixtures": self.fixtures,
-            "model": self.model,
+            "fixtures": deepcopy(self.fixtures),
+            "model": deepcopy(self.model),
             "no_cpu_fallback": self.no_cpu_fallback,
             "no_driver_install": self.no_driver_install,
             "no_privileged_container": self.no_privileged_container,
@@ -175,16 +247,14 @@ def _read_stat(path: str) -> Optional[Dict[str, Any]]:
 
 def inspect_host() -> Dict[str, Any]:
     """Inspects existing host GPU/device permissions (ROCm/KFD/render nodes)."""
-    report: Dict[str, Any] = {}
+    report: Dict[str, Any] = {"python": platform.python_version(), "machine": platform.machine()}
     report["kfd"] = _read_stat("/dev/kfd")
     report["render_nodes"] = {}
     dri_dir = "/dev/dri"
     if os.path.isdir(dri_dir):
         for name in sorted(os.listdir(dri_dir)):
             report["render_nodes"][name] = _read_stat(os.path.join(dri_dir, name))
-    report["any_render_node"] = any(
-        n.get("exists") for n in report["render_nodes"].values()
-    )
+    report["any_render_node"] = any(n.get("exists") for n in report["render_nodes"].values())
 
     # HIP/ROCm runtime identity (lazy torch import; missing torch is itself
     # a host environment diagnostic, never a silent CPU fallback).
@@ -196,6 +266,17 @@ def inspect_host() -> Dict[str, Any]:
         hip["hip_version"] = getattr(torch.version, "hip", None)
         hip["cuda_available"] = bool(torch.cuda.is_available())
         hip["device_count"] = int(torch.cuda.device_count())
+        hip["devices"] = (
+            [
+                dict(
+                    name=torch.cuda.get_device_properties(i).name,
+                    total_memory=torch.cuda.get_device_properties(i).total_memory,
+                )
+                for i in range(hip["device_count"])
+            ]
+            if hip["cuda_available"]
+            else []
+        )
         hip["available"] = bool(
             hip["cuda_available"] and hip["device_count"] > 0 and hip["hip_version"]
         )
@@ -374,9 +455,7 @@ def run_updates(cfg: PreflightConfig, env_report: Dict[str, Any]) -> Dict[str, A
         )
 
         if elapsed_total > cfg.timeout_minutes * 60.0:
-            raise TimeoutError(
-                f"preflight exceeded {cfg.timeout_minutes}-minute wall-time budget"
-            )
+            raise TimeoutError(f"preflight exceeded {cfg.timeout_minutes}-minute wall-time budget")
 
     peak_after = torch.cuda.max_memory_allocated(device)
     return {
@@ -426,6 +505,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     try:
         cfg = load_config(args.config)
+        from oeis_learn.experiments.artifacts import compute_file_hash, compute_canonical_digest
+
+        lock_hash = compute_file_hash(Path(cfg.source).parent / cfg.dependency_lock)
+        dockerfile_hash = compute_file_hash(Path(cfg.source).parent / cfg.dockerfile)
     except Exception as exc:
         print(f"invalid config: {exc}", file=sys.stderr)
         return EXIT_INVALID
@@ -434,9 +517,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     base_report: Dict[str, Any] = {
         "command": "foundation preflight",
         "status": "pending",
-        "schema_version": "preflight/v1",
+        "schema_version": "preflight-report/v2",
         "created_at": now,
-        "config_digest": cfg.base_image_digest,
+        "config_digest": compute_canonical_digest(cfg.to_dict()),
+        "effective_config": cfg.to_dict(),
+        "base_image_digest": cfg.base_image_digest,
+        "final_image_id": cfg.final_image_id,
+        "dependency_lock_sha256": lock_hash,
+        "dockerfile_sha256": dockerfile_hash,
         "requested_device": cfg.requested_device,
         "dtype": cfg.dtype,
         "updates": cfg.updates,
@@ -455,10 +543,21 @@ def main(argv: Optional[List[str]] = None) -> int:
         base_report["diagnostics"] = _hardware_diagnostics(env_report)
         base_report["gate"] = "pending"
         path = write_evidence(args.output, base_report)
-        print(f"hardware_not_ready: host cannot support {cfg.requested_device} image; "
-              "no CPU fallback, no driver install, no privileged container.", file=sys.stderr)
-        print(json.dumps({"command": "foundation preflight", "status": "hardware_not_ready",
-                          "evidence": path, "exit_code": EXIT_HARDWARE}))
+        print(
+            f"hardware_not_ready: host cannot support {cfg.requested_device} image; "
+            "no CPU fallback, no driver install, no privileged container.",
+            file=sys.stderr,
+        )
+        print(
+            json.dumps(
+                {
+                    "command": "foundation preflight",
+                    "status": "hardware_not_ready",
+                    "evidence": path,
+                    "exit_code": EXIT_HARDWARE,
+                }
+            )
+        )
         return EXIT_HARDWARE
 
     try:
@@ -477,11 +576,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         return EXIT_GATE
 
     base_report.update(update_report)
+    base_report["runtime"] = dict(
+        python=env_report["python"],
+        machine=env_report["machine"],
+        torch=env_report["hip"]["torch_version"],
+        hip=env_report["hip"]["hip_version"],
+        device="cuda",
+        device_name=update_report["device_name"],
+    )
     base_report["status"] = "ready"
     base_report["gate"] = "passed"
     path = write_evidence(args.output, base_report)
-    print(json.dumps({"command": "foundation preflight", "status": "ready",
-                      "evidence": path, "exit_code": EXIT_OK}))
+    print(
+        json.dumps(
+            {
+                "command": "foundation preflight",
+                "status": "ready",
+                "evidence": path,
+                "exit_code": EXIT_OK,
+            }
+        )
+    )
     return EXIT_OK
 
 
