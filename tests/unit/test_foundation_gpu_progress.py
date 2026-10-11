@@ -1,6 +1,9 @@
 """Controller safety and recovery checks run without the broker or GPU."""
 
 import importlib.util
+import os
+import fcntl
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -544,7 +547,161 @@ def test_future_final_launcher_still_clamps_to_original_wall_budget(tmp_path, mo
     monkeypatch.setattr(g, "HOST_STEPS", set())
     g.write(tmp_path / "final-budget.json", dict(started_utc=1000, limit_seconds=600))
     monkeypatch.setattr(g.time, "time", lambda: 1190)
+    g.write(tmp_path / "cfg.json", {})
     calls = []
     monkeypatch.setattr(g, "supervise", lambda argv, log, seconds: calls.append(seconds) or 0)
     assert g.remote_watchdog("end-to-end", tmp_path / "cfg.json", tmp_path, 1000) == 0
     assert calls == [370]
+
+
+def test_readonly_vm_owned_lock_still_excludes_a_second_worker(tmp_path, monkeypatch):
+    path = tmp_path / "worker.lock"
+    path.write_text("stable lock inode")
+    path.chmod(0o444)
+    inode = path.stat().st_ino
+    original = Path.open
+
+    def cross_user_open(self, mode="r", *args, **kwargs):
+        # Model a different identity with read access but no write permission.
+        # This also reproduces the failure when tests themselves run as root.
+        if self == path and any(c in mode for c in "wax+"):
+            raise PermissionError(13, "Permission denied", str(self))
+        return original(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", cross_user_open)
+    held = g.lock(path)
+    try:
+        assert fcntl.fcntl(held.fileno(), fcntl.F_GETFL) & os.O_ACCMODE == os.O_RDONLY
+        with pytest.raises(g.Blocked, match="Active worker/controller lock"):
+            g.lock(path)
+        with pytest.raises(g.Blocked):
+            g.require_idle(tmp_path)
+    finally:
+        held.close()
+    g.require_idle(tmp_path)
+    assert path.stat().st_ino == inode
+    assert path.read_text() == "stable lock inode" and stat.S_IMODE(path.stat().st_mode) == 0o444
+
+
+def test_new_lock_and_settings_remain_readable_with_restrictive_umask(tmp_path):
+    old = os.umask(0o077)
+    try:
+        g.lock(tmp_path / "worker.lock").close()
+        g.write(tmp_path / "settings.json", dict(image_id="fixture"))
+    finally:
+        os.umask(old)
+    for name in ("worker.lock", "settings.json"):
+        assert stat.S_IMODE((tmp_path / name).stat().st_mode) == 0o644
+
+
+def test_lock_creation_race_uses_other_creators_inode(tmp_path, monkeypatch):
+    path = tmp_path / "worker.lock"
+    original = Path.open
+    inode = []
+
+    def racing_open(self, mode="r", *args, **kwargs):
+        if self == path and mode == "x":
+            with original(self, "w") as f:
+                f.write("created by the other identity")
+            inode.append(path.stat().st_ino)
+            raise FileExistsError(str(path))
+        return original(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", racing_open)
+    g.lock(path).close()
+    assert path.stat().st_ino == inode[0]
+    assert path.read_text() == "created by the other identity"
+
+
+def test_unreadable_lock_reports_workspace_access_blocker(tmp_path, monkeypatch):
+    original = Path.open
+
+    def deny(self, *args, **kwargs):
+        if self.name == "worker.lock":
+            raise PermissionError(13, "Permission denied", str(self))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", deny)
+    with pytest.raises(g.Blocked, match="workspace traversal/read"):
+        g.lock(tmp_path / "worker.lock")
+
+
+def test_atomic_report_replaces_foreign_file_without_reusing_foreign_temporary(
+    tmp_path, monkeypatch
+):
+    target = tmp_path / "report.json"
+    target.write_text('{"old": true}')
+    stale = tmp_path / "report.json.new"
+    stale.write_text("interrupted foreign writer")
+    for p in (target, stale):
+        p.chmod(0o444)
+    original = Path.open
+
+    def cross_user_open(self, mode="r", *args, **kwargs):
+        if self in (target, stale) and any(c in mode for c in "wax+"):
+            raise PermissionError(13, "Permission denied", str(self))
+        return original(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", cross_user_open)
+    old_inode = target.stat().st_ino
+    g.write(target, dict(new=True))
+    assert g.read(target) == dict(new=True) and target.stat().st_ino != old_inode
+    assert stale.read_text() == "interrupted foreign writer"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["report.json", "report.json.new"]
+
+
+def test_failed_atomic_replace_preserves_original_and_removes_its_temporary(tmp_path, monkeypatch):
+    target = tmp_path / "report.json"
+    g.write(target, dict(old=True))
+
+    def deny(*args):
+        raise PermissionError("rename denied")
+
+    monkeypatch.setattr(g.os, "replace", deny)
+    with pytest.raises(PermissionError, match="rename denied"):
+        g.write(target, dict(new=True))
+    assert g.read(target) == dict(old=True)
+    assert list(tmp_path.iterdir()) == [target]
+
+
+@pytest.mark.parametrize("missing", ["settings_read", "output_write"])
+def test_broker_permission_probe_blocks_before_worker_and_releases_lock(
+    tmp_path, monkeypatch, missing
+):
+    settings = tmp_path / "settings.json"
+    g.write(settings, {})
+    if missing == "settings_read":
+        original = g.read
+
+        def deny(path):
+            if path == settings:
+                raise PermissionError("settings unreadable")
+            return original(path)
+
+        monkeypatch.setattr(g, "read", deny)
+        expected = "settings are not readable"
+    else:
+
+        def deny(**kwargs):
+            raise PermissionError("output unwritable")
+
+        monkeypatch.setattr(g.tempfile, "TemporaryFile", deny)
+        expected = "output directory is not writable"
+    monkeypatch.setattr(g, "supervise", lambda *args: pytest.fail("must not issue the worker"))
+    with pytest.raises(g.Blocked, match=expected):
+        g.remote_watchdog("gpu-environment", settings, tmp_path, 120)
+    out = tmp_path / "gpu-environment"
+    assert not (out / "lease.json").exists()
+    g.require_idle(out)
+
+
+def test_shared_permission_probe_leaves_no_artifacts_or_mode_changes(tmp_path):
+    settings = tmp_path / "settings.json"
+    g.write(settings, {})
+    out = tmp_path / "gpu-environment"
+    out.mkdir()
+    modes = (settings.stat().st_mode, out.stat().st_mode)
+    before = g.tree_hashes(tmp_path)
+    g.check_shared_io(out, settings)
+    assert g.tree_hashes(tmp_path) == before
+    assert modes == (settings.stat().st_mode, out.stat().st_mode)

@@ -13,6 +13,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -121,13 +122,32 @@ def read(path):
 def write(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".new")
-    with tmp.open("w") as f:
-        json.dump(value, f, indent=2, sort_keys=True)
-        f.write("\n")
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    # VM and rootless host workers can own different files in the shared
+    # directory. Replacing a file needs directory permission, not permission to
+    # truncate another user's file. A unique temporary also avoids reopening an
+    # interrupted writer's foreign-owned .new file.
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix="." + path.name + ".",
+            suffix=".new",
+            delete=False,
+        ) as f:
+            tmp = Path(f.name)
+            json.dump(value, f, indent=2, sort_keys=True)
+            f.write("\n")
+            f.flush()
+            # Receipts/settings must remain readable by the other project
+            # identity, including when this process has a restrictive umask.
+            os.fchmod(f.fileno(), 0o644)
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
     fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(fd)
@@ -319,13 +339,52 @@ def success_receipt(identity, out, result, elapsed, step):
 def lock(path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    f = path.open("a+")
+    try:
+        try:
+            f = path.open("r")
+        except FileNotFoundError:
+            try:
+                with path.open("x") as created:
+                    os.fchmod(created.fileno(), 0o644)
+            except FileExistsError:
+                pass  # another identity created it first; lock the same inode
+            f = path.open("r")
+    except PermissionError as e:
+        raise Blocked(
+            f"Shared lock is not readable: {path}. Check workspace traversal/read "
+            "permissions for the VM user and labgpu project account. See the lab "
+            "GPU runner workspace ACL setup; do not replace a live lock."
+        ) from e
     try:
         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         f.close()
         raise Blocked(f"Active worker/controller lock: {path}")
+    except BaseException:
+        f.close()
+        raise
     return f
+
+
+def check_shared_io(out, settings):
+    """Probe the broker's real namespace without retained output or mode changes."""
+    try:
+        read(settings)
+    except PermissionError as e:
+        raise Blocked(
+            f"VM settings are not readable by the host GPU account: {settings}. "
+            "Check project workspace traversal/read permissions."
+        ) from e
+    try:
+        with tempfile.TemporaryFile(dir=out):
+            pass
+    except PermissionError as e:
+        raise Blocked(
+            f"GPU output directory is not writable by the host GPU account: {out}. "
+            "The VM user and labgpu project account need create/rename access here; "
+            "apply the lab GPU runner workspace/default ACL setup on the host and "
+            "verify the VM's mount mapping. Do not delete receipts or reset budgets."
+        ) from e
 
 
 def require_idle(out):
@@ -420,22 +479,23 @@ def remote_watchdog(name, settings, state, seconds):
     out = state / name
     out.mkdir(parents=True, exist_ok=True)
     held = lock(out / "worker.lock")
-    lease = uuid.uuid4().hex
-    write(
-        out / "lease.json",
-        dict(
-            lease=lease,
-            backend="lab-gpu",
-            cleanup_owner="host broker",
-            pid=os.getpid(),
-            issued_utc=time.time(),
-            seconds=seconds,
-        ),
-    )
-    if name == "end-to-end":
-        budget = read(state / "final-budget.json")
-        seconds = min(seconds, budget["started_utc"] + budget["limit_seconds"] - time.time())
     try:
+        check_shared_io(out, settings)
+        lease = uuid.uuid4().hex
+        write(
+            out / "lease.json",
+            dict(
+                lease=lease,
+                backend="lab-gpu",
+                cleanup_owner="host broker",
+                pid=os.getpid(),
+                issued_utc=time.time(),
+                seconds=seconds,
+            ),
+        )
+        if name == "end-to-end":
+            budget = read(state / "final-budget.json")
+            seconds = min(seconds, budget["started_utc"] + budget["limit_seconds"] - time.time())
         code = supervise(
             [sys.executable, SCRIPT, "_worker", name, settings, state, max(1, seconds - 40)],
             out / "worker.log",
@@ -545,7 +605,9 @@ def _run(cfg, state, until):
                     history.mkdir(exist_ok=True)
                     out.rename(history / (step.name + "-" + str(time.time_ns())))
                 out.mkdir(parents=True, exist_ok=True)
-                (out / "worker.lock").touch(exist_ok=True)
+                # Pre-create a readable stable inode so both identities can
+                # flock it, without requiring write access to its contents.
+                lock(out / "worker.lock").close()
                 receipts[step.name] = dict(status="RUNNING", identity=identity, issued=True)
                 write(path, receipts)
                 issued = True

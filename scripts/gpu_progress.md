@@ -177,6 +177,22 @@ expensive successful results. Ordinary failed attempts move to `history/`.
 Remote locks prevent duplicate work and moving a live output directory. A
 successful receipt survives temporary dependency failures.
 
+The VM user and the host rootless `labgpu-oeis-learn` account can have different
+UIDs. Lock files are stable, readable coordination inodes: both sides use
+read-only handles for Linux `flock`, so a VM-owned `0644` lock does not require
+GPU write permission. Settings and atomic report replacements are readable
+`0644` files; each writer uses a new temporary rather than truncating the other
+identity's file. Existing lock files are never replaced to bypass contention.
+
+The GPU worker first probes settings readability and output-directory creation
+under its actual host identity. The host project workspace/default ACL setup
+in the linked lab guide must allow both identities to traverse/read inputs and
+create/rename outputs, including VM-created directories. A failed probe reports
+the exact path as `BLOCKED` before the test worker starts. This script does not
+change workspace ownership or broadly relax permissions. After updating the
+runner, rerun the same command and state directory; preserve receipts/history
+and all existing budgets.
+
 Exit 75 is broker busy; 124 is deadline expiry. A watchdog inside the broker
 container enforces its own worker deadline if the VM transport disconnects.
 The host broker owns container cleanup and inference restoration; project code
