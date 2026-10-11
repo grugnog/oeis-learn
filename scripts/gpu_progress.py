@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -366,6 +367,38 @@ def lock(path):
     return f
 
 
+def prepare_shared_directory(path):
+    """Honor configured host ACLs on controller-created run directories.
+
+    A VM mount can pass an already umask-filtered 0750 mkdir mode to the host.
+    That constrains inherited named-user ACLs through the access ACL mask, even
+    when the parent default ACL grants the project worker rwx. Restore the
+    group-class bits after creation; on an extended ACL these are its mask.
+    Only the state root, history directory and newly prepared stage roots call
+    this helper. Existing output contents/owners and other-user bits stay intact.
+    """
+    path = Path(path)
+    path.mkdir(parents=True, exist_ok=True)
+    mode = stat.S_IMODE(path.stat().st_mode)
+    shared_mode = mode | stat.S_IRWXG
+    if shared_mode != mode:
+        try:
+            path.chmod(shared_mode)
+        except PermissionError as e:
+            raise Blocked(
+                f"VM cannot restore the shared directory ACL mask on {path} "
+                f"(mode {mode:04o}). Set host access and default ACLs for the VM "
+                "owner and labgpu project account, including mask::rwx."
+            ) from e
+    actual = stat.S_IMODE(path.stat().st_mode)
+    if actual & stat.S_IRWXG != stat.S_IRWXG:
+        raise Blocked(
+            f"Shared directory mode did not retain group-class/ACL-mask rwx: {path} "
+            f"(mode {actual:04o}). Check the VM mount mapping and host access/default ACLs."
+        )
+    return path
+
+
 def check_shared_io(out, settings):
     """Probe the broker's real namespace without retained output or mode changes."""
     try:
@@ -379,11 +412,15 @@ def check_shared_io(out, settings):
         with tempfile.TemporaryFile(dir=out):
             pass
     except PermissionError as e:
+        info = Path(out).stat()
         raise Blocked(
             f"GPU output directory is not writable by the host GPU account: {out}. "
-            "The VM user and labgpu project account need create/rename access here; "
-            "apply the lab GPU runner workspace/default ACL setup on the host and "
-            "verify the VM's mount mapping. Do not delete receipts or reset budgets."
+            f"Directory mode={stat.S_IMODE(info.st_mode):04o}, owner={info.st_uid}:{info.st_gid}, "
+            f"worker={os.geteuid()}:{os.getegid()}. On the host, apply both access "
+            "and default ACLs for the VM owner and labgpu project account with "
+            "mask::rwx. Default ACLs alone do not repair existing directories; "
+            "stage directories are recreated on retries. Verify the VM mount "
+            "mapping. Do not delete receipts or reset budgets."
         ) from e
 
 
@@ -541,7 +578,7 @@ def execute_worker(name, settings, state, seconds):
 
 
 def run(cfg, state, until=None):
-    state.mkdir(parents=True, exist_ok=True)
+    prepare_shared_directory(state)
     held = lock(state / "controller.lock")
     try:
         return _run(cfg, state, until)
@@ -602,9 +639,9 @@ def _run(cfg, state, until):
                 )
                 if out.exists() and step.name != "end-to-end":
                     history = state / "history"
-                    history.mkdir(exist_ok=True)
+                    prepare_shared_directory(history)
                     out.rename(history / (step.name + "-" + str(time.time_ns())))
-                out.mkdir(parents=True, exist_ok=True)
+                prepare_shared_directory(out)
                 # Pre-create a readable stable inode so both identities can
                 # flock it, without requiring write access to its contents.
                 lock(out / "worker.lock").close()

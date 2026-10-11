@@ -47,7 +47,7 @@ def test_unknown_settings_and_unresolved_image_fail(tmp_path):
         dict(force=True),
         dict(image_id="gpu:latest"),
         dict(docker_host="tcp://host:2375"),
-        dict(docker_host="ssh://labgpu-oeis-learn@10.77.0.1:2222"),
+        dict(docker_host="ssh://labgpu-fixture@10.77.0.1:2222"),
     ):
         g.write(p, value)
         with pytest.raises(ValueError):
@@ -515,7 +515,7 @@ def test_vm_client_checks_need_ssh_and_project_identity_but_no_docker(
     key = tmp_path / "dedicated-key"
     key.write_text("fixture key contents are never read")
     monkeypatch.setattr(worker, "ROOT", Path("/workspace"))
-    monkeypatch.setenv("LAB_GPU_USER", "labgpu-oeis-learn")
+    monkeypatch.setenv("LAB_GPU_USER", "labgpu-fixture")
     monkeypatch.setenv("LAB_GPU_IDENTITY", str(key))
     calls = []
 
@@ -705,3 +705,101 @@ def test_shared_permission_probe_leaves_no_artifacts_or_mode_changes(tmp_path):
     g.check_shared_io(out, settings)
     assert g.tree_hashes(tmp_path) == before
     assert modes == (settings.stat().st_mode, out.stat().st_mode)
+
+
+@pytest.mark.parametrize("umask", [0o022, 0o027, 0o077])
+def test_stage_retry_keeps_shared_write_access_under_restrictive_vm_umask(
+    tmp_path, monkeypatch, umask
+):
+    stage = g.Step("gpu-probe", (), 120, True)
+    calls, fake = driver(monkeypatch, tmp_path, (stage,))
+    attempts = []
+
+    def check_and_run(argv, log, seconds):
+        out = tmp_path / stage.name
+        assert stat.S_IMODE(out.stat().st_mode) & 0o070 == 0o070
+        assert stat.S_IMODE(tmp_path.stat().st_mode) & 0o070 == 0o070
+        attempts.append(out.stat().st_ino)
+        return 3 if len(attempts) == 1 else fake(argv, log, seconds)
+
+    monkeypatch.setattr(g, "supervise", check_and_run)
+    old = os.umask(umask)
+    try:
+        assert g.run({"final_seconds": 600}, tmp_path) == 1
+        assert g.run({"final_seconds": 600}, tmp_path) == 0
+    finally:
+        os.umask(old)
+    assert len(attempts) == 2 and attempts[0] != attempts[1]
+    assert stat.S_IMODE((tmp_path / "history").stat().st_mode) & 0o070 == 0o070
+    archived = list((tmp_path / "history").iterdir())
+    assert len(archived) == 1 and archived[0].stat().st_ino == attempts[0]
+
+
+@pytest.mark.parametrize("initial", [0o700, 0o750, 0o755, 0o770, 0o2750])
+def test_shared_directory_mask_change_preserves_ownership_and_other_bits(tmp_path, initial):
+    path = tmp_path / "stage"
+    path.mkdir()
+    path.chmod(initial)
+    before = path.stat()
+    assert g.prepare_shared_directory(path) == path
+    after = path.stat()
+    assert stat.S_IMODE(after.st_mode) == (stat.S_IMODE(before.st_mode) | 0o070)
+    assert (after.st_uid, after.st_gid, after.st_ino) == (
+        before.st_uid,
+        before.st_gid,
+        before.st_ino,
+    )
+
+
+def test_cache_success_does_not_change_retained_output_directory_modes(tmp_path, monkeypatch):
+    stage = g.Step("probe", (), 120)
+    calls, _ = driver(monkeypatch, tmp_path, (stage,))
+    assert g.run({"final_seconds": 600}, tmp_path) == 0
+    out = tmp_path / stage.name
+    out.chmod(0o750)
+    assert g.run({"final_seconds": 600}, tmp_path) == 0
+    assert stat.S_IMODE(out.stat().st_mode) == 0o750
+    assert calls == [stage.name]
+
+
+@pytest.mark.parametrize("silent", [False, True])
+def test_shared_mask_failure_prevents_step_or_budget_issuance(tmp_path, monkeypatch, silent):
+    path = tmp_path / "state"
+    path.mkdir()
+    path.chmod(0o750)
+    original = Path.chmod
+
+    def fail(self, *args, **kwargs):
+        if self == path:
+            if silent:
+                return
+            raise PermissionError("mount rejects chmod")
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", fail)
+    monkeypatch.setattr(
+        g, "supervise", lambda *args: pytest.fail("no work after permission failure")
+    )
+    with pytest.raises(g.Blocked, match="ACL"):
+        g.run({"final_seconds": 600}, path)
+    assert not (path / "receipts.json").exists()
+    assert not (path / "final-budget.json").exists()
+
+
+def test_gpu_directory_error_includes_both_acl_types_and_actual_mode(tmp_path, monkeypatch):
+    out = tmp_path / "gpu-environment"
+    out.mkdir()
+    out.chmod(0o750)
+    settings = tmp_path / "settings.json"
+    g.write(settings, {})
+
+    def deny(**kwargs):
+        raise PermissionError("no named-user write permission")
+
+    monkeypatch.setattr(g.tempfile, "TemporaryFile", deny)
+    with pytest.raises(g.Blocked) as e:
+        g.check_shared_io(out, settings)
+    error = str(e.value)
+    assert "mode=0750" in error
+    assert "both access and default ACLs" in error
+    assert "stage directories are recreated" in error

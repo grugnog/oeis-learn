@@ -177,7 +177,7 @@ expensive successful results. Ordinary failed attempts move to `history/`.
 Remote locks prevent duplicate work and moving a live output directory. A
 successful receipt survives temporary dependency failures.
 
-The VM user and the host rootless `labgpu-oeis-learn` account can have different
+The VM user and the host rootless project account can have different
 UIDs. Lock files are stable, readable coordination inodes: both sides use
 read-only handles for Linux `flock`, so a VM-owned `0644` lock does not require
 GPU write permission. Settings and atomic report replacements are readable
@@ -188,10 +188,38 @@ The GPU worker first probes settings readability and output-directory creation
 under its actual host identity. The host project workspace/default ACL setup
 in the linked lab guide must allow both identities to traverse/read inputs and
 create/rename outputs, including VM-created directories. A failed probe reports
-the exact path as `BLOCKED` before the test worker starts. This script does not
-change workspace ownership or broadly relax permissions. After updating the
-runner, rerun the same command and state directory; preserve receipts/history
-and all existing budgets.
+the exact path, directory mode/owner and worker identity as `BLOCKED` before
+the test worker starts.
+
+VM-created `0750` directories can mask an inherited named-user `rwx` ACL down
+to `r-x`. The controller now restores group-class/ACL-mask `rwx` on the state
+root, history directory and each newly prepared stage root, including after
+retry recreation. Owner, other-user permissions, named ACL entries and default
+ACLs are preserved. It does not change workspace ownership or source/input
+permissions. Both accounts still need actual host ACL entries; changing the
+mask alone cannot grant a missing named account access.
+
+Stop the runner and apply **access and default** ACLs to its existing run
+directories from the host. Fill these values from the confirmed host policy:
+
+```sh
+OEIS_HOST_WORKSPACE=/absolute/path/to/host/checkout
+OEIS_HOST_OWNER=your-host-user
+OEIS_GPU_ACCOUNT=registered-project-account
+sudo find "$OEIS_HOST_WORKSPACE/tmp-gpu-progress" -type d -exec \
+  setfacl -m "u:$OEIS_GPU_ACCOUNT:rwx,u:$OEIS_HOST_OWNER:rwx,m::rwx,d:u:$OEIS_GPU_ACCOUNT:rwx,d:u:$OEIS_HOST_OWNER:rwx,d:m::rwx" {} +
+getfacl -p "$OEIS_HOST_WORKSPACE/tmp-gpu-progress/gpu-environment"
+```
+
+The access entry must show effective `rwx`, with `mask::rwx`; the default entry
+and default mask must also be `rwx`. `d:u:…` changes inheritance only. A chmod
+on one stage directory is temporary because ordinary reruns archive and
+recreate that directory. After pulling this fix, rerun the same command in the
+VM with the same state directory; preserve receipts/history and all budgets:
+
+```sh
+python scripts/gpu_progress.py --until gpu-environment
+```
 
 Exit 75 is broker busy; 124 is deadline expiry. A watchdog inside the broker
 container enforces its own worker deadline if the VM transport disconnects.
