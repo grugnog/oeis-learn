@@ -1051,3 +1051,77 @@ def test_controller_can_receipt_and_skip_gpu_owned_outputs(tmp_path, monkeypatch
         assert issued == [stage.name]
     else:
         assert receipt["status"] == "FAIL" and "Permission denied" in receipt["error"]
+
+
+def test_gpu_smoke_keeps_training_on_workspace_storage_without_broker_env_overrides(
+    tmp_path, monkeypatch
+):
+    worker = worker_module()
+    monkeypatch.setenv("OEIS_GPU_SMOKE_RUN_DIR", "previous-run")
+    monkeypatch.setenv("HIP_VISIBLE_DEVICES", "fixture-device")
+    calls = []
+
+    def launch(argv, **kwargs):
+        calls.append((argv, kwargs))
+        path = Path(argv[-1].removeprefix("--junitxml="))
+        path.write_text('<testsuite><testcase name="fixture"/></testsuite>')
+
+    monkeypatch.setattr(worker, "command", launch)
+    result = worker.execute("gpu-smoke", {}, tmp_path, tmp_path, 1800)
+    argv, kwargs = calls[0]
+    assert len(calls) == 1 and result["tests"] == 1
+    assert kwargs["env"]["OEIS_GPU_SMOKE_RUN_DIR"] == str(tmp_path / "training-run")
+    assert kwargs["env"]["HIP_VISIBLE_DEVICES"] == "fixture-device"
+    assert os.environ["OEIS_GPU_SMOKE_RUN_DIR"] == "previous-run"
+    assert "tests/integration/test_foundation_gpu.py::test_actual_hip_three_updates" in argv
+    assert not any(arg.startswith("--basetemp") for arg in argv)
+    assert argv[:4] == [sys.executable, "-m", "pytest", "-q"]
+
+
+@pytest.mark.parametrize("retained", [False, True])
+def test_smoke_training_root_uses_actual_run_filesystem_and_frozen_disk_floor(
+    tmp_path, monkeypatch, retained
+):
+    from types import SimpleNamespace
+    from tests.integration import test_foundation_gpu as smoke
+    from oeis_learn.tracking import foundation_controller as controller
+
+    temporary = tmp_path / "container-tmp"
+    workspace = tmp_path / "workspace/gpu-smoke/training-run"
+    temporary.mkdir()
+    if retained:
+        monkeypatch.setenv("OEIS_GPU_SMOKE_RUN_DIR", str(workspace))
+    else:
+        monkeypatch.delenv("OEIS_GPU_SMOKE_RUN_DIR", raising=False)
+    roots = []
+
+    def prepare(config, pool, root, **kwargs):
+        assert config == Path("configs/foundation/wat_smoke.yaml")
+        assert kwargs == dict(device="cuda", diagnostic=True)
+        root.mkdir(parents=True)
+        roots.append(root)
+
+    class ReachedTraining(RuntimeError):
+        pass
+
+    def run(root):
+        # Model the actual broker: 2 GiB /tmp, adequate workspace storage.
+        guard = controller.ResourceGuard(
+            root,
+            free_floor=100 << 30,
+            disk_usage=lambda measured: SimpleNamespace(
+                free=(200 if measured == workspace else 2) << 30
+            ),
+        )
+        guard.check()
+        raise ReachedTraining("storage guard passed; actual HIP training is not run by this test")
+
+    monkeypatch.setattr(smoke, "prepare_run", prepare)
+    monkeypatch.setattr(smoke, "run_training", run)
+    monkeypatch.setattr(
+        controller, "resource_metrics", lambda device: {"host_available": {"state": "unavailable"}}
+    )
+    expected = ReachedTraining if retained else OSError
+    with pytest.raises(expected):
+        smoke.test_actual_hip_three_updates(("unused-config", "fixture-pool"), temporary)
+    assert roots == [workspace if retained else temporary / "run"]

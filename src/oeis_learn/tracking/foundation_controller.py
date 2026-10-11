@@ -117,8 +117,18 @@ class ResourceGuard:
         self.host_floor = host_floor
 
     def check(self):
-        if tree_bytes(self.root) >= self.quota or self.disk_usage(self.root).free < self.free_floor:
-            raise OSError("run disk quota/free-space floor exhausted")
+        used = tree_bytes(self.root)
+        if used >= self.quota:
+            raise OSError(
+                f"run disk quota exhausted: root={self.root}, "
+                f"used_bytes={used}, quota_bytes={self.quota}"
+            )
+        free = self.disk_usage(self.root).free
+        if free < self.free_floor:
+            raise OSError(
+                f"run disk free-space floor exhausted: root={self.root}, "
+                f"free_bytes={free}, minimum_free_bytes={self.free_floor}"
+            )
         resources = resource_metrics("cpu")
         memory = resources["host_available"]
         self.low_memory = (

@@ -28,9 +28,12 @@ def command(argv, **kwargs):
     subprocess.run([str(a) for a in argv], cwd=kwargs.pop("cwd", ROOT), check=True, **kwargs)
 
 
-def pytest(out, nodes, *, name="tests", allowed_skips=(), extra=()):
+def pytest(out, nodes, *, name="tests", allowed_skips=(), extra=(), env=None):
     path = out / (name + ".xml")
-    command([sys.executable, "-m", "pytest", "-q", *nodes, *extra, "--junitxml=" + str(path)])
+    command(
+        [sys.executable, "-m", "pytest", "-q", *nodes, *extra, "--junitxml=" + str(path)],
+        env=env,
+    )
     return dict(tests=check_junit(path, allowed_skips), junit=str(path))
 
 
@@ -984,6 +987,10 @@ def execute(name, cfg, state, out, seconds):
     if name == "gpu-environment":
         return gpu_environment(out, cfg)
     if name == "gpu-smoke":
+        # The broker's /tmp is a 2 GiB tmpfs. Keep the full training run on
+        # workspace storage so its frozen 100 GiB free-space guard measures the
+        # actual run filesystem, and retain its diagnostics in the stage receipt.
+        env = dict(os.environ, OEIS_GPU_SMOKE_RUN_DIR=str((out / "training-run").resolve()))
         return pytest(
             out,
             [
@@ -992,6 +999,7 @@ def execute(name, cfg, state, out, seconds):
                 "tests/unit/test_foundation_sampler.py::test_complete_effective_constructors_and_real_forward_backward[cuda]",
             ],
             name="gpu-smoke",
+            env=env,
         )
     if name == "gpu-learning":
         from oeis_learn.evaluation.learning_gate import run_qualification, require_g8
