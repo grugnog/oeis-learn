@@ -20,6 +20,8 @@ on:
       - 'specs/007-experiment-foundation/validation/adoption.md'
       - 'specs/007-experiment-foundation/validation/review-inputs.json'
       - 'specs/007-experiment-foundation/validation/phase-11-dispositions.json'
+      - 'specs/007-experiment-foundation/validation/current-dispositions.json'
+      - 'specs/007-experiment-foundation/validation/task-dependencies.json'
       - 'docs/foundation.md'
       - 'README.md'
       - '.github/workflows/foundation.yml'

@@ -40,7 +40,7 @@ def main():
     parser.add_argument("--evidence", required=True)
     args = parser.parse_args()
     root = Path(args.evidence).resolve()
-    disposition = Path("specs/007-experiment-foundation/validation/phase-11-dispositions.json")
+    disposition = Path("specs/007-experiment-foundation/validation/current-dispositions.json")
     shutil.copyfile(disposition, root / "dispositions.json")
     wheels = list(root.glob("installed-wheel-*/installed-wheel.xml"))
     if len(wheels) != 1:

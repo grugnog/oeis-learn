@@ -24,6 +24,45 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def validate_task_inventory(tasks: str, expected: list[str], dependencies: dict) -> tuple:
+    """Keep the original inventory and validate each appended task explicitly."""
+    rows = re.findall(r"^- \[([ xX/-])\] (T\d{3}) (?:\[P\] )?(?:\[US(\d)\] )?(.+)$", tasks, re.M)
+    ids = [row[1] for row in rows]
+    require(len(ids) >= 108 and ids == [f"T{n:03}" for n in range(1, len(ids) + 1)],
+            "Expected sequential unique tasks starting with T001..T108")
+    require(len(re.findall(r"^- \[[ xX/-]\] T", tasks, re.M)) == len(rows), "Malformed task checkbox line")
+    counts = {"setup_and_foundation": 0, **{f"US{n}": 0 for n in range(1, 9)}, "cross_cutting": 0}
+    source_refs = {}
+    for _, task_id, story, description in rows:
+        num = int(task_id[1:])
+        wanted = "1" if 9 <= num <= 19 else "2" if 20 <= num <= 29 else "3" if 30 <= num <= 37 else "4" if 38 <= num <= 49 else "5" if 50 <= num <= 61 else "6" if 62 <= num <= 79 else "7" if 80 <= num <= 92 else "8" if 93 <= num <= 102 else ""
+        require(story == wanted, f"Incorrect/missing story label on {task_id}")
+        require(re.search(r"`[^`]*(?:src/|tests/|configs/|docker/|scripts/|specs/|docs/|README|\.specify/|\.github/)[^`]*`", description) is not None, f"Task lacks concrete path: {task_id}")
+        if num > 108:
+            refs = set(re.findall(r"\b(?:FR|SC)-\d{3}\b", description))
+            require(bool(refs) and refs <= set(expected), f"Invalid/missing convergence source reference: {task_id}")
+            require(re.search(r"\((?:missing|partial|contradicts|unrequested)\)$", description) is not None,
+                    f"Missing convergence gap type: {task_id}")
+            source_refs[task_id] = refs
+        counts[f"US{story}" if story else "setup_and_foundation" if num <= 8 else "cross_cutting"] += 1
+
+    coverage = {}
+    for key, cell in re.findall(r"^\| ((?:FR|SC)-\d{3}) \| ([^|]+) \|", tasks, re.M):
+        require(key not in coverage, f"Duplicate coverage row: {key}")
+        covered = re.findall(r"T\d{3}", cell)
+        require(bool(covered) and len(covered) == len(set(covered)) and set(covered) <= set(ids), f"Invalid/empty coverage: {key}")
+        coverage[key] = covered
+    require(set(coverage) == set(expected), "Requirement coverage incomplete or contains unknown requirement")
+    require(set().union(*(set(v) for v in coverage.values())) == set(ids), "Unmapped implementation task")
+    for task_id, refs in source_refs.items():
+        require(all(task_id in coverage[ref] for ref in refs), f"Unmapped convergence source: {task_id}")
+    require(set(dependencies) == set(ids), "Dependency graph must contain every task exactly once")
+    for task, prerequisites in dependencies.items():
+        require(isinstance(prerequisites, list) and len(set(prerequisites)) == len(prerequisites), f"Invalid dependencies for {task}")
+        require(all(p in ids and ids.index(p) < ids.index(task) for p in prerequisites), f"Forward/cyclic/missing dependency for {task}")
+    return rows, ids, counts, coverage
+
+
 def main() -> dict:
     required = [
         "spec.md", "plan.md", "tasks.md", "research.md", "data-model.md",
@@ -49,32 +88,8 @@ def main() -> dict:
     for heading in ["Summary", "Technical Context", "Constitution Check", "Project Structure", "Complexity Tracking"]:
         require(f"## {heading}" in (ROOT / "plan.md").read_text(), f"Missing plan section: {heading}")
 
-    rows = re.findall(r"^- \[([ xX/-])\] (T\d{3}) (?:\[P\] )?(?:\[US(\d)\] )?(.+)$", tasks, re.M)
-    ids = [row[1] for row in rows]
-    require(ids == [f"T{n:03}" for n in range(1, 109)], "Expected sequential unique T001..T108")
-    require(len(re.findall(r"^- \[[ xX/-]\] T", tasks, re.M)) == len(rows), "Malformed task checkbox line")
-    counts = {"setup_and_foundation": 0, **{f"US{n}": 0 for n in range(1, 9)}, "cross_cutting": 0}
-    for _, task_id, story, description in rows:
-        num = int(task_id[1:])
-        wanted = "1" if 9 <= num <= 19 else "2" if 20 <= num <= 29 else "3" if 30 <= num <= 37 else "4" if 38 <= num <= 49 else "5" if 50 <= num <= 61 else "6" if 62 <= num <= 79 else "7" if 80 <= num <= 92 else "8" if 93 <= num <= 102 else ""
-        require(story == wanted, f"Incorrect/missing story label on {task_id}")
-        require(re.search(r"`[^`]*(?:src/|tests/|configs/|docker/|scripts/|specs/|docs/|README|\.specify/|\.github/)[^`]*`", description) is not None, f"Task lacks concrete path: {task_id}")
-        counts[f"US{story}" if story else "setup_and_foundation" if num <= 8 else "cross_cutting"] += 1
-
-    coverage = {}
-    for key, cell in re.findall(r"^\| ((?:FR|SC)-\d{3}) \| ([^|]+) \|", tasks, re.M):
-        require(key not in coverage, f"Duplicate coverage row: {key}")
-        covered = re.findall(r"T\d{3}", cell)
-        require(bool(covered) and set(covered) <= set(ids), f"Invalid/empty coverage: {key}")
-        coverage[key] = covered
-    require(set(coverage) == set(expected), "Requirement coverage incomplete or contains unknown requirement")
-    require(set().union(*(set(v) for v in coverage.values())) == set(ids), "Unmapped implementation task")
-
     dependencies = json.loads((ROOT / "validation/task-dependencies.json").read_text())
-    require(set(dependencies) == set(ids), "Dependency graph must contain every task exactly once")
-    for task, prerequisites in dependencies.items():
-        require(isinstance(prerequisites, list) and len(set(prerequisites)) == len(prerequisites), f"Invalid dependencies for {task}")
-        require(all(p in ids and ids.index(p) < ids.index(task) for p in prerequisites), f"Forward/cyclic/missing dependency for {task}")
+    rows, ids, counts, coverage = validate_task_inventory(tasks, expected, dependencies)
 
     # External review coverage is a separate inventory, not inferred from FR presence.
     review = json.loads((ROOT / "validation/review-inputs.json").read_text())
