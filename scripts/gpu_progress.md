@@ -9,6 +9,14 @@ standalone GPU diagnostics. Its protocol cannot launch the isolated foundation
 roles needed for the baseline, measurement and complete end-to-end run. Those
 stages now report `BLOCKED` before issuing work or spending a lifetime budget.
 
+The optional new `lab-gpu foundation` host integration provides a separate fresh
+training diagnostic workflow. See [fresh-training.md](../docs/fresh-training.md)
+for bulk OEIS preparation, private SFT/evaluation, checkpoint recovery and
+analysis bundles. It does not execute or waive this runner's owning spec-007
+Docker/resource/measurement qualification stages; those remain explicitly
+blocked until their own launcher integration and evidence exist. The broker
+description below documents the original `image ensure`/`exec` interface.
+
 ## How the VM reaches the GPU
 
 Reviewed against [grugnog/lab at ebb54858](https://github.com/grugnog/lab/tree/ebb54858b1ed2f80dd6fdb4b752d96cfdd9852de),

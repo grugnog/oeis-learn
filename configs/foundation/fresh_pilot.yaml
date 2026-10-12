@@ -1,0 +1,25 @@
+version: fresh-workflow/v1
+data:
+  cache: tmp-oeis-bulk
+  revision: null  # Resolve once, then retain the exact Git commit.
+  seed: 20260913
+  max_records: 5000
+  max_download_bytes: 21474836480  # 20 GiB; LFS plus checkout can use twice this.
+  free_disk_floor_bytes: 107374182400
+cohort:
+  seed: 20260913
+  dev_count: 8
+  final_count: 8
+sampler_config: configs/foundation/generic_sampler.yaml
+archive:
+  training_prompts: 256
+  development_structures: 8
+  seconds: 1800
+run:
+  seed: 20260913
+  training_seconds: 1800
+  evaluation:
+    groups: 8
+    attempts: 2
+    tokens: 128
+    per_group_seconds: 30
