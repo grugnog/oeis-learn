@@ -7,7 +7,8 @@ spec-007 release gates. The historical vocabulary failure remains outstanding.
 
 ## Install the host integration once
 
-Apply the companion `grugnog/lab` foundation-runner change and rebuild the host
+Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)
+and rebuild the host
 using that repository's normal NixOS deployment procedure. The OEIS project
 policy enables `foundation = true` and `foundationTimeout = 4200`: project runs
 still have their own 1,800-second smoke or 3,600-second pilot lifetime cap. The
@@ -53,17 +54,17 @@ python scripts/foundation_run.py check --inputs tmp-fresh-inputs
 
 `configs/foundation/fresh_pilot.yaml` controls preparation. The initial defaults
 are a deterministic selection of at most 5,000 entries without finite/table keywords, with
-LFS b-files, at most20GiB of b-file objects, eight development/eight final groups,
+LFS b-files, at most 20 GiB of b-file objects, eight development/eight final groups,
 256 distinct training prompts and eight structural development examples. LFS
 objects plus checkout can occupy twice their declared size. Both acquisition
-and checkpointing preserve the100GiB free-disk floor. Source selection is a
+and checkpointing preserve the 100 GiB free-disk floor. Source selection is a
 bounded diagnostic subset; coverage/shortfalls remain in the import report.
 
 Acquisition clones `https://github.com/oeis/oeisdata.git` shallowly, freezes its
 commit and export timestamp, and fetches b-file objects in Git LFS batches at
 that revision. There are no individual sequence HTTP requests and no historical
 `git lfs fetch --all`. Repeating acquisition verifies/reuses completed objects.
-Set `data.revision` to an exact40-character commit to choose a particular
+Set `data.revision` to an exact 40-character commit to choose a particular
 snapshot before the first fetch. Changing the snapshot/config needs a new
 cache and input set; existing pins are never overwritten.
 
@@ -76,11 +77,11 @@ OEIS provides evaluation targets and exclusion information. Training labels are
 generated generic programs admitted through the existing native executor plus
 independent reference evaluator. Cohorts and all-member reserved prefixes are
 frozen before admission. Structural development/final programs cannot enter
-the training view. Preparation has its own1,800-second lifetime ledger;
+the training view. Preparation has its own 1,800-second lifetime ledger;
 shortfalls preserve decisions and remaining budget rather than receiving a
 fresh allowance. Lowering a frozen target is not a resume operation.
 
-The bulk source is available under CC BY-SA4.0 from the OEIS Foundation. Keep
+The bulk source is available under CC BY-SA 4.0 from the OEIS Foundation. Keep
 the source commit, attribution and license with derived data.
 
 ## Start, recover and evaluate
@@ -96,7 +97,7 @@ python scripts/foundation_run.py train \
 Smoke checkpoints random weights, scores the initial model on development,
 performs one update, reloads complete state, performs updates two/three, scores
 development, freezes checkpoint selection and evaluates final groups. Its
-outer cap is30minutes; this is distinct from the original frozen smoke test.
+outer cap is 30 minutes; this is distinct from the original frozen smoke test.
 
 The one-hour pilot targets two15-minute training segments, with initial and
 post-segment development evaluation. Reserve time includes loading, checkpoints,
