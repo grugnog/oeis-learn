@@ -30,11 +30,12 @@ HOST_STEPS = {
     "end-to-end",
 }
 ISOLATED_ROLES_BLOCKER = (
-    "lab-gpu supports image ensure and one workspace-mounted exec container only; "
-    "it exposes no Docker/Podman API, host shell, or isolated role launch operation. "
-    "This stage needs the owning host-side role launcher with separate private mounts. "
-    "Host launcher integration is required; installing Docker in the VM/GPU image or "
-    "using the lab-gpu SSH identity as a Docker endpoint cannot provide it."
+    "Host launcher integration is required for the spec-007 qualification stages. "
+    "These gates require their owning qualification launchers with private mounts. "
+    "The optional lab-gpu foundation operation runs fresh diagnostics only; it cannot "
+    "execute this stage's owning Docker/resource/measurement gates. Use "
+    "scripts/foundation_run.py for fresh training. There is no Docker/Podman API "
+    "exposed to the VM, and Docker access in the VM is not required."
 )
 
 

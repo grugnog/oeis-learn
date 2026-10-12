@@ -33,6 +33,7 @@ allow_hosts = [
   "sh.rustup.rs",
   "static.rust-lang.org",
   "github.com",
+  "oeis.org",
   "static.crates.io",
   "registry.npmjs.org",
 ]

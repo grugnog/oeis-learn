@@ -9,6 +9,12 @@ See the [quickstart](../specs/007-experiment-foundation/quickstart.md),
 [CLI contract](../specs/007-experiment-foundation/contracts/cli.md) and
 [gate handoff](../specs/007-experiment-foundation/validation/handoff.md).
 
+For a new random-initialized diagnostic, use the separate
+[fresh training workflow](fresh-training.md). It acquires bulk indexed OEIS
+data, admits generic programs, trains through private host roles and packages
+analysis results while keeping historical compatibility and release
+qualification outstanding.
+
 ## Choices and frozen profiles
 
 User-confirmed choices are twenty observed terms, generic bootstrap learning,

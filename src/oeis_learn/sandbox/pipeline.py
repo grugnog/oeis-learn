@@ -261,13 +261,22 @@ class Runtime:
                     value = decode_limbs(exports["compute"](store, index))
                     return value, fuel - store.get_fuel(), None
                 except wasmtime.Trap as exc:
+                    # Wasmtime20's Python enum lacks the C API's fuel trap
+                    # code; accessing trap_code can itself raise ValueError.
+                    try:
+                        trap_code = exc.trap_code
+                    except ValueError:
+                        trap_code = None
+                    out_of_fuel = getattr(wasmtime.TrapCode, "OUT_OF_FUEL", None)
                     if exports["__oeis_numeric_limit"].value(store) == 1:
                         failure = Failure("numeric_limit", "checked_signed_256_overflow", "execute")
-                    elif exc.trap_code == wasmtime.TrapCode.OUT_OF_FUEL:
+                    elif (out_of_fuel is not None and trap_code == out_of_fuel) or (
+                        store.get_fuel() == 0 and "all fuel consumed" in exc.message
+                    ):
                         failure = Failure("execution_limit", "wasmtime_fuel", "execute")
                     else:
                         failure = Failure(
-                            "runtime_failure", f"wasmtime_trap:{exc.trap_code}", "execute"
+                            "runtime_failure", f"wasmtime_trap:{trap_code}", "execute"
                         )
                     return None, fuel - store.get_fuel(), failure
             except ExecutionFailure as exc:
@@ -289,7 +298,10 @@ class Runtime:
         ):
             raise ValueError("indices must be nonempty, unique ascending exact integers in 0..99")
         start = time.monotonic_ns()
-        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(
+            deadline_ns if deadline_ns is not None else start + limits.deadline_ns,
+            start + limits.deadline_ns,
+        )
         evidence = ExecutionEvidence(
             prepared.source_sha256,
             indices,
@@ -317,9 +329,7 @@ class Runtime:
                 reason = (
                     "candidate_deadline"
                     if time.monotonic_ns() >= deadline
-                    else "aggregate_fuel"
-                    if fuel <= 0
-                    else "aggregate_reference_steps"
+                    else "aggregate_fuel" if fuel <= 0 else "aggregate_reference_steps"
                 )
                 failure = Failure("execution_limit", reason, "execute")
             else:
@@ -394,7 +404,10 @@ class Runtime:
         proposed_source=None,
     ):
         start = time.monotonic_ns()
-        deadline = min(deadline_ns if deadline_ns is not None else start + limits.deadline_ns, start + limits.deadline_ns)
+        deadline = min(
+            deadline_ns if deadline_ns is not None else start + limits.deadline_ns,
+            start + limits.deadline_ns,
+        )
         prepared = self.prepare(source, proposed_source=proposed_source)
         prepare_ns = time.monotonic_ns() - start
         if isinstance(prepared, Failure):

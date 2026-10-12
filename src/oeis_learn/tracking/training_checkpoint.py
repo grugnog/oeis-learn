@@ -288,12 +288,14 @@ def capture_learning_state(
                 "torch": torch.get_rng_state(),
                 "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
             },
-            "reference": None
-            if reference is None
-            else {
-                "encoder": reference.encoder.state_dict(),
-                "decoder": reference.decoder.state_dict(),
-            },
+            "reference": (
+                None
+                if reference is None
+                else {
+                    "encoder": reference.encoder.state_dict(),
+                    "decoder": reference.decoder.state_dict(),
+                }
+            ),
             **{key: None if obj is None else obj.state_dict() for key, obj in components.items()},
             "sampler": sampler,
             "prefetch": prefetch,
@@ -427,7 +429,7 @@ class QualifiedCheckpointStore(CheckpointStore):
 
         generations = [
             int(match.group(1))
-            for p in self.root.iterdir()
+            for p in self.root.rglob("*")
             if (match := re.search(r"qualified-([0-9]{8})", p.name))
         ]
         generation = max(generations, default=-1) + 1
@@ -490,33 +492,43 @@ class QualifiedCheckpointStore(CheckpointStore):
             base_manifest_sha256=base_hash,
             contract_sha256=contract_sha256,
             modes=modes,
-            reference_encoder_sha256=None
-            if state["reference"] is None
-            else learning_state_digest(state["reference"]["encoder"]),
-            reference_decoder_sha256=None
-            if state["reference"] is None
-            else learning_state_digest(state["reference"]["decoder"]),
-            replay_state=None
-            if replay is None
-            else {
-                "archive_root_sha256": replay["snapshot"]["root_sha256"],
-                "cursor": replay["cursor"],
-            },
-            frozen_round=None
-            if state["self_training"] is None
-            else state["self_training"]["round"],
-            curriculum_state=None
-            if curriculum is None
-            else {
-                "statistics_sha256": identities["curriculum"],
-                "rng_sha256": learning_state_digest(curriculum["rng"]),
-            },
-            search_state=None
-            if search is None
-            else {
-                "frontier_sha256": learning_state_digest(search["frontier"]),
-                "cursor": search["cursor"],
-            },
+            reference_encoder_sha256=(
+                None
+                if state["reference"] is None
+                else learning_state_digest(state["reference"]["encoder"])
+            ),
+            reference_decoder_sha256=(
+                None
+                if state["reference"] is None
+                else learning_state_digest(state["reference"]["decoder"])
+            ),
+            replay_state=(
+                None
+                if replay is None
+                else {
+                    "archive_root_sha256": replay["snapshot"]["root_sha256"],
+                    "cursor": replay["cursor"],
+                }
+            ),
+            frozen_round=(
+                None if state["self_training"] is None else state["self_training"]["round"]
+            ),
+            curriculum_state=(
+                None
+                if curriculum is None
+                else {
+                    "statistics_sha256": identities["curriculum"],
+                    "rng_sha256": learning_state_digest(curriculum["rng"]),
+                }
+            ),
+            search_state=(
+                None
+                if search is None
+                else {
+                    "frontier_sha256": learning_state_digest(search["frontier"]),
+                    "cursor": search["cursor"],
+                }
+            ),
             sampler_sha256=identities["sampler"],
             prefetch_sha256=identities["prefetch"],
             scaler_sha256=identities["scaler"],
@@ -663,5 +675,15 @@ class QualifiedCheckpointStore(CheckpointStore):
                 EOFError,
                 pickle.UnpicklingError,
             ) as exc:
+                # Runtime/contract drift is not corrupt storage. Leave valid
+                # bytes untouched and require a compatible continuation.
+                if isinstance(exc, ValueError) and str(exc) == "checkpoint identity mismatch":
+                    raise
                 failures.append(str(exc))
+                for component in (
+                    path.with_suffix(".pt"),
+                    path.with_name(path.stem + "-base.json"),
+                    path,
+                ):
+                    self._quarantine(component)
         raise ValueError("no complete qualified checkpoint remains: " + "; ".join(failures))

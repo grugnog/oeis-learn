@@ -5,7 +5,7 @@ mode=${1:?cpu or gpu}
 case "$mode" in cpu|gpu) ;; *) exit 2 ;; esac
 apt-get update
 apt-get install -y --no-install-recommends \
-  ca-certificates curl build-essential cmake ninja-build pkg-config git openssh-client
+  ca-certificates curl build-essential cmake ninja-build pkg-config git git-lfs openssh-client
 # The VM uses the SSH lab-gpu client. Container management belongs to the host
 # broker; neither the VM nor its GPU workload needs a Docker daemon/client.
 rm -rf /var/lib/apt/lists/*
