@@ -23,6 +23,7 @@ user = "agent"
 [network]
 allow_cidrs = ["10.77.0.1/32"]
 allow_hosts = [
+  "oeis.org",
   "index.docker.io",
   "auth.docker.io",
   "registry-1.docker.io",
