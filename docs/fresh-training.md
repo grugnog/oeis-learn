@@ -5,6 +5,67 @@ foundation codec and exact integer-byte model. It does not promote historical
 checkpoints, change the frozen three-update foundation smoke, or complete the
 spec-007 release gates. The historical vocabulary failure remains outstanding.
 
+## Run directly from the lab host
+
+For sustained preparation/training, use `scripts/foundation_local.py` from the
+registered OEIS checkout on the lab host. It reuses the GPU Dockerfile target
+and the existing rootless Podman image store. Fresh CPU containers bind the host
+checkout directly at `/workspace`, bypassing SmolVM's shared-filesystem layer.
+GPU operations call the installed host broker locally with bounded JSON; there
+is no SSH or VM hop. The broker still owns inference shutdown/restoration,
+GPU locking, private roles, resource limits and pinned run images.
+
+The existing host integration below must be deployed, including `foundation =
+true`. The host entrypoint needs only Python's standard library and your host
+sudo access; model/native dependencies remain in the image. Run as your usual
+host user, not with `sudo python` against checkout code:
+
+```bash
+# On the lab host, from the registered OEIS checkout:
+sudo -v
+python3 scripts/foundation_local.py image ensure
+sudo -v  # renew credentials after a potentially long first image build
+python3 scripts/foundation_local.py data fetch
+python3 scripts/foundation_local.py prepare --output tmp-fresh-inputs-host
+python3 scripts/foundation_local.py check --inputs tmp-fresh-inputs-host
+python3 scripts/foundation_local.py smoke \
+  --inputs tmp-fresh-inputs-host --run runs/fresh-host-smoke
+python3 scripts/foundation_local.py train \
+  --inputs tmp-fresh-inputs-host --run runs/fresh-host-001
+```
+
+The default bulk cache remains `tmp-oeis-bulk` in this same checkout, so existing
+downloads are reused. A new preparation directory is recommended when switching
+images/runtimes: an incomplete admission plan freezes its runtime identity.
+New containers are created for each CPU command and reclaimed on exit; the
+image and bind-mounted artifacts persist. Only bulk acquisition gets outbound
+networking; preparation/check containers receive no GPU devices or runtime
+socket. GPU training/evaluation remain offline in separate private containers,
+rather than running inside the workspace-mounted preparation container.
+
+```bash
+python3 scripts/foundation_local.py status --run runs/fresh-host-001
+python3 scripts/foundation_local.py cancel --run runs/fresh-host-001
+python3 scripts/foundation_local.py resume --run runs/fresh-host-001
+python3 scripts/foundation_local.py evaluate \
+  --run runs/fresh-host-001 --split development
+python3 scripts/foundation_local.py pack \
+  --run runs/fresh-host-001 --output tmp-analysis/fresh-host-001.zip
+```
+
+Packaging runs directly as your host user using the standard-library bundle
+writer, so it needs no container, GPU image, or sudo credentials. CPU commands
+enter the project account once and perform cleanup there; an expired sudo ticket
+cannot prevent cleanup at the end of a long preparation run. Run `sudo -v` again
+before starting a new privileged command if the ticket has expired.
+
+Status/cancel bypass image rebuilding and GPU acquisition, using the existing
+host broker's control path. The final pilot remains capped at one hour and
+automatically publishes an analysis ZIP. `foundation_run.py` and `lab-gpu`
+remain available inside the VM for testing. Never invoke their SSH-based
+training transport from inside a `lab-gpu exec` container: that would nest
+requests behind the same project/GPU lease.
+
 ## Install the host integration once
 
 Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)

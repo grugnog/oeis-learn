@@ -119,3 +119,24 @@ def test_prepare_open_file_exhaustion_reports_limit_and_traceback(tmp_path, monk
     assert "Open-file limit: soft=" in error and "hard=" in error
     assert "Traceback (most recent call last)" in error
     assert "too many open files" in error
+
+
+@pytest.mark.parametrize("inputs_only", [False, True])
+def test_check_can_validate_cpu_inputs_without_nested_gpu_transport(
+    tmp_path, monkeypatch, inputs_only
+):
+    from oeis_learn.fresh import inputs
+
+    monkeypatch.chdir(tmp_path)
+    argv = ["check", "--inputs", "tmp-inputs"] + (["--inputs-only"] if inputs_only else [])
+    with (
+        patch.object(cli, "ROOT", tmp_path),
+        patch.object(inputs, "check_inputs", return_value={"identity": "input-identity"}) as check,
+        patch.object(cli, "remote") as remote,
+    ):
+        assert cli.main(argv) == 0
+        check.assert_called_once_with(tmp_path / "tmp-inputs")
+        if inputs_only:
+            remote.assert_not_called()
+        else:
+            remote.assert_called_once_with("check")
