@@ -93,6 +93,14 @@ The published `RUN/roles/*/stderr.log` contains the underlying role error, and
 `tmp-analysis/BASENAME.zip` includes it for analysis. Packaging a failed run is
 successful evidence capture; the original command still exits with the failure.
 
+Worker shutdown and container removal are charged to the existing run budget.
+The controller reports `cleanup` while shutting down and publishes `complete`
+only after successful reclamation. A cleanup failure or exhausted budget exits
+with an error and retains the completed updates, selected checkpoint and scores
+in the published reports and analysis ZIP. Older images may report `complete`
+despite a cleanup exception; retain their evidence and test the repair in a new
+run directory rather than treating that status as successful shutdown.
+
 ## Install the host integration once
 
 Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)

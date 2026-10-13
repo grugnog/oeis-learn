@@ -574,20 +574,23 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 results.append(
                     coordinator.run("probe", role, inputs, root / (role + "-output"), 120)
                 )
-            ledger.record("complete")
-            print(
-                json.dumps(
-                    {
-                        "status": "PASS",
-                        "roles": results,
-                        "image": image,
-                        "scope": "mount/device/memory probes; full spec007 kill/quota acceptance remains pending",
-                    }
-                )
-            )
-            return 0
         finally:
-            coordinator.close()
+            try:
+                ledger.record("cleanup")
+            finally:
+                coordinator.close()
+        ledger.record("complete")
+        print(
+            json.dumps(
+                {
+                    "status": "PASS",
+                    "roles": results,
+                    "image": image,
+                    "scope": "mount/device/memory probes; full spec007 kill/quota acceptance remains pending",
+                }
+            )
+        )
+        return 0
     output_name = argv[2] if action == "run" else argv[1]
     destination = confined(workspace, output_name)
     if not (output_name.startswith(("runs/", "tmp-"))):
@@ -739,11 +742,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     else split + "-" + checkpoint_files(job, latest)[1]["blob_sha256"][7:23]
                 )
                 evaluation(job, coordinator, ledger, settings, latest, split, label)
-                ledger.record("paused")
+                ledger.record("evaluation-finished")
                 write(
                     job / "status.json",
                     {
-                        "status": "complete" if split == "final" else "paused",
+                        "status": "cleanup",
+                        "pending_status": "complete" if split == "final" else "paused",
                         "checkpoint": latest,
                         "budget": ledger.previous,
                     },
@@ -751,11 +755,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 return 0
             if action == "finalize":
                 finalize(job, settings, argv[2])
-                ledger.record("paused")
+                ledger.record("finalization-finished")
                 write(
                     job / "status.json",
                     {
-                        "status": "finalized",
+                        "status": "cleanup",
+                        "pending_status": "finalized",
                         "checkpoint": read(job / "finalization.json")["checkpoint"],
                         "budget": ledger.previous,
                     },
@@ -870,11 +875,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             finalize(job, settings, "best-development")
             selected = read(job / "finalization.json")["checkpoint"]
             final = evaluation(job, coordinator, ledger, settings, selected, "final", "final")
-            ledger.record("complete")
+            ledger.record("final-scored")
             write(
                 job / "status.json",
                 {
-                    "status": "complete",
+                    "status": "cleanup",
+                    "pending_status": "complete",
                     "checkpoint": selected,
                     "completed_updates": result["completed_updates"],
                     "final_score": final,
@@ -909,9 +915,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise
             finally:
                 status = read(job / "status.json")
+                pending_status = status.pop("pending_status", None)
                 if cleanup_error is not None:
                     status.update(status="interrupted", cleanup_error=cleanup_error)
                     status.setdefault("error", cleanup_error)
+                elif pending_status is not None:
+                    status["status"] = pending_status
                 terminal = (
                     "complete"
                     if status["status"] == "complete"
@@ -923,9 +932,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     status.update(
                         status="interrupted", error="cleanup exceeded frozen lifetime cap"
                     )
+                    ledger.record("interrupted")
+                    status["budget"] = ledger.previous
                 write(job / "status.json", status)
                 job.joinpath("active.json").unlink(missing_ok=True)
                 publish(job, destination)
+                if cleanup_error is None and ledger.previous["charged_ns"] > ledger.cap:
+                    raise TimeoutError("cleanup exceeded frozen lifetime cap")
 
 
 def finalize(job, settings, selection):
