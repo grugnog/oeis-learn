@@ -229,18 +229,23 @@ class Coordinator:
         return name, process
 
     def reclaim(self, name):
-        process = self.live.pop(name)
+        process = self.live.get(name)
+        if process is None:
+            return
         try:
             subprocess.run(
-                [self.policy["podman"], "rm", "--force", "--ignore", name],
+                [self.policy["podman"], "rm", "--force", "--time=0", "--ignore", name],
                 check=True,
-                timeout=2,
+                timeout=30,
                 capture_output=True,
             )
         finally:
             if process.poll() is None:
                 process.kill()
-            process.wait(timeout=2)
+            process.wait(timeout=5)
+        # A failed removal stays tracked for another cleanup attempt and the
+        # broker's independent fallback; killing the client alone is insufficient.
+        self.live.pop(name, None)
 
     def start_workers(self):
         if self.workers:
@@ -893,11 +898,20 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             )
             raise
         finally:
+            cleanup_error = None
             try:
-                ledger.record("cleanup")
-                coordinator.close()
+                try:
+                    ledger.record("cleanup")
+                finally:
+                    coordinator.close()
+            except BaseException as exc:
+                cleanup_error = f"{type(exc).__name__}: {exc}"
+                raise
             finally:
                 status = read(job / "status.json")
+                if cleanup_error is not None:
+                    status.update(status="interrupted", cleanup_error=cleanup_error)
+                    status.setdefault("error", cleanup_error)
                 terminal = (
                     "complete"
                     if status["status"] == "complete"
