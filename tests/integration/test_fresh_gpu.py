@@ -1,5 +1,6 @@
 """Actual HIP fresh-worker checkpoints. Use a workspace --basetemp, not broker /tmp."""
 
+import math
 import shutil
 
 import pytest
@@ -44,11 +45,15 @@ def test_actual_hip_fresh_update_and_complete_state_resume(tmp_path):
         )
         return output, result, state
 
-    initial, _, before = run(tmp_path / "initial", 0)
+    initial, baseline, before = run(tmp_path / "initial", 0)
+    assert baseline["completed_updates"] == 0
+    assert math.isfinite(baseline["validation_loss"])
     first, result, state = run(tmp_path / "first", 1, initial)
     assert result["device"] == "cuda" and result["completed_updates"] == 1
+    assert math.isfinite(result["validation_loss"])
     assert not torch.equal(state["decoder"]["lm_head.weight"], before["decoder"]["lm_head.weight"])
     _resumed, result, state = run(tmp_path / "resumed", 3, first)
     assert result["completed_updates"] == 3 and result["recovery"]["completed"] == 1
+    assert math.isfinite(result["validation_loss"])
     assert state["rng"]["cuda"] and state["sampler"]["completed"] == 3
     assert all(torch.isfinite(p).all() for p in state["decoder"].values() if p.is_floating_point())

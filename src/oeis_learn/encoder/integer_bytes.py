@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-from oeis_learn.experiments.profiles import I256_MIN, I256_MAX
+from oeis_learn.experiments.profiles import I256_MAX, I256_MIN
 
 
 def encode_integer(value, width=32):
