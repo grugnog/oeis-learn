@@ -146,8 +146,9 @@ def main(argv=None):
                     )
                 )
             else:
+                from oeis_learn.fresh.inputs import prepare as prepare_inputs
 
-                result = prepare(config, cache, ROOT / relative(args.output))
+                result = prepare_inputs(config, cache, ROOT / relative(args.output))
                 print(
                     json.dumps(
                         {"identity": result["identity"], "output": args.output, "qualified": False},
