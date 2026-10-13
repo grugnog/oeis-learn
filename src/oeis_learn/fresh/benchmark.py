@@ -25,11 +25,44 @@ def hardware_sample():
     return result
 
 
-def benchmark(inputs, output):
+def training_step(
+    encoder, decoder, optimizer, rows, order, cursor, size, generator, buckets, *, device="cuda"
+):
     import torch
 
     from oeis_learn.decoder.program_codec import BOS_ID, PAD_ID
     from oeis_learn.rl.sft_trainer import supervised_step
+
+    if cursor + size > len(order):
+        order, cursor = permutation(rows, generator, size, buckets), 0
+    batch = [rows[i] for i in order[cursor : cursor + size]]
+    cursor += len(batch)
+    tokens = [[BOS_ID] + row["tokens"] for row in batch]
+    tensor = torch.full(
+        (len(batch), max(map(len, tokens))), PAD_ID, device=device, dtype=torch.long
+    )
+    for i, ids in enumerate(tokens):
+        tensor[i, : len(ids)] = torch.tensor(ids, device=device)
+    result = supervised_step(
+        encoder,
+        decoder,
+        optimizer,
+        [[int(v) for v in row["values"]] for row in batch],
+        tensor,
+        device=device,
+        pad_id=PAD_ID,
+    )
+    return (
+        result,
+        sum(len(row["tokens"]) for row in batch),
+        tensor.numel() - len(batch),
+        order,
+        cursor,
+    )
+
+
+def benchmark(inputs, output):
+    import torch
 
     from .worker import models, runtime
 
@@ -45,7 +78,7 @@ def benchmark(inputs, output):
             encoder = decoder = optimizer = None
             stop, samples = threading.Event(), []
 
-            def observe():
+            def observe(stop=stop, samples=samples):
                 while not stop.is_set():
                     samples.append(hardware_sample())
                     stop.wait(1)
@@ -65,47 +98,25 @@ def benchmark(inputs, output):
                 order = permutation(rows, generator, size, bucketed)
                 cursor = 0
 
-                def step():
-                    nonlocal cursor, order
-                    if cursor + size > len(order):
-                        order = permutation(rows, generator, size, bucketed)
-                        cursor = 0
-                    batch = [rows[i] for i in order[cursor : cursor + size]]
-                    cursor += len(batch)
-                    tokens = [[BOS_ID] + row["tokens"] for row in batch]
-                    tensor = torch.full(
-                        (len(batch), max(map(len, tokens))), PAD_ID, device="cuda", dtype=torch.long
-                    )
-                    for i, ids in enumerate(tokens):
-                        tensor[i, : len(ids)] = torch.tensor(ids, device="cuda")
-                    result = supervised_step(
-                        encoder,
-                        decoder,
-                        optimizer,
-                        [[int(v) for v in row["values"]] for row in batch],
-                        tensor,
-                        device="cuda",
-                        pad_id=PAD_ID,
-                    )
-                    return (
-                        result,
-                        sum(len(row["tokens"]) for row in batch),
-                        tensor.numel() - len(batch),
-                    )
-
                 # Warm kernels and also stress the longest observed training shape.
                 torch.cuda.reset_peak_memory_stats()
                 order = sorted(range(len(rows)), key=lambda i: len(rows[i]["tokens"]), reverse=True)
-                step()
+                _, _, _, order, cursor = training_step(
+                    encoder, decoder, optimizer, rows, order, cursor, size, generator, bucketed
+                )
                 order, cursor = permutation(rows, generator, size, bucketed), 0
                 for _ in range(3):
-                    step()
+                    _, _, _, order, cursor = training_step(
+                        encoder, decoder, optimizer, rows, order, cursor, size, generator, bucketed
+                    )
                 stress_peak = torch.cuda.max_memory_allocated()
                 torch.cuda.reset_peak_memory_stats()
                 observer.start()
                 start, tokens, padded, steps, losses = time.monotonic(), 0, 0, 0, []
                 while time.monotonic() - start < 20:
-                    result, count, capacity = step()
+                    result, count, capacity, order, cursor = training_step(
+                        encoder, decoder, optimizer, rows, order, cursor, size, generator, bucketed
+                    )
                     losses.append(result["loss"])
                     tokens += count
                     padded += capacity

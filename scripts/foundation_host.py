@@ -472,6 +472,7 @@ def publish(job, destination):
         "preparation-report.json",
         "input-manifest.json",
         "issuance.json",
+        "early-stop.json",
     ):
         path = job / name
         if path.exists():
@@ -662,7 +663,8 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("admitted training/development input shortfall")
             config = manifest["config"]["run"]
             if profile == "fresh-extended-12h" and (
-                config.get("profile") != profile or len(examples["training"]) < 2048
+                config.get("profile") != profile
+                or len({digest(row["values"]) for row in examples["training"]}) < 2048
             ):
                 raise ValueError("extended training requires its config and 2048 admitted prompts")
             if profile == "fresh-pilot-1h" and config["training_seconds"] > 1800:

@@ -101,6 +101,85 @@ in the published reports and analysis ZIP. Older images may report `complete`
 despite a cleanup exception; retain their evidence and test the repair in a new
 run directory rather than treating that status as successful shutdown.
 
+## Measure batching before a longer run
+
+The first HIP pilot ran 7,615 updates on `cuda:0` at about 9,165 non-padding
+tokens/s during updates. It repeated 256 prompts for 118 epochs: training loss
+fell to 0.146, while structural validation worsened from 1.221 after the first
+segment to 1.848 after the second. The 128-token generation cap also censored
+almost every candidate. Repeating that input set for twelve hours is therefore
+not the next experiment.
+
+Merge [OEIS PR #33](https://github.com/grugnog/oeis-learn/pull/33) and the companion
+[lab PR #31](https://github.com/grugnog/lab/pull/31), then deploy the lab host
+using its normal NixOS procedure. Its OEIS policy must have
+`foundationTimeout = 44100`: the controller retains a fixed 43,200-second
+lifetime cap, with transport/cleanup allowance owned by the broker. The
+benchmark remains capped at ten minutes. Existing smoke/one-hour caps remain
+unchanged. Run from the registered host checkout:
+
+```bash
+git pull --ff-only
+sudo -v
+python3 scripts/foundation_local.py image ensure
+sudo -v
+python3 scripts/foundation_local.py benchmark \
+  --inputs tmp-fresh-inputs-host --run runs/fresh-benchmark-001
+```
+
+The benchmark performs actual FP32 SFT at batches 4, 8, 16, 32 and 64, both
+with random ordering and with length grouping. It warms kernels, stresses the
+longest observed shapes, measures non-padding throughput and padding efficiency,
+and records allocator memory, power, temperature and GPU busy percentage when
+available. OOM trials are recorded without recommending them. Selection uses
+the smallest safe batch within 5% of the fastest measured configuration, with
+at most 48 GiB of peak allocations. Memory occupancy alone is not utilization.
+No precision, clock, model-size or deterministic-policy change is made.
+
+Upload `tmp-analysis/fresh-benchmark-001.zip` for review before allocating the
+overnight run. Generate its preparation settings without host dependencies or
+sudo, then prepare a new immutable data set using the existing bulk cache:
+
+```bash
+python3 scripts/foundation_local.py extended-settings \
+  --benchmark runs/fresh-benchmark-001 \
+  --output tmp-analysis/fresh-extended-settings.json
+sudo -v
+python3 scripts/foundation_local.py prepare \
+  --config tmp-analysis/fresh-extended-settings.json \
+  --output tmp-fresh-inputs-extended
+```
+
+This raises the target to 2,048 distinct admitted training prompts and 128
+development structures, with a two-hour preparation budget. It sets the measured
+batch/order configuration, a 1,023-token generation limit and up to 60 seconds
+per evaluation group. Preparation may still fail if the bounded admission target
+is not reached; retain its journal rather than weakening the target or refunding
+time. It never downloads OEIS sequences individually.
+
+```bash
+sudo -v
+python3 scripts/foundation_local.py train \
+  --profile fresh-extended-12h \
+  --inputs tmp-fresh-inputs-extended --run runs/fresh-host-12h-001
+```
+
+This is a new random-initialized diagnostic, targeting ten one-hour training
+segments inside twelve hours total, including evaluation and cleanup. It saves
+complete checkpoints every minute and restores optimizer/RNG/sample order
+between segments. Grouping changes only the reproducible order and padding;
+every training example appears once per epoch. The run stops after two segments
+without at least 0.01 nats of structural-validation improvement. Development
+solve/top-one counts remain the selection criterion; structural validation loss
+breaks ties for this extended profile. Final truth is scored only after selection.
+An early stop is successful diagnostic completion, not a budget refund or
+permission to resume a finalized run. Its reason is included in the reports.
+
+Use `status`, `cancel`, `resume` and `pack` with the same host entrypoint as
+above. Upload `tmp-analysis/fresh-host-12h-001.zip` when it finishes. This remains
+diagnostic work on a finite cohort; historical compatibility and spec-007 release
+gates remain pending. No deployment or live GPU benchmark is claimed by CPU tests.
+
 ## Install the host integration once
 
 Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)

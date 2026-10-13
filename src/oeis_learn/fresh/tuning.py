@@ -1,5 +1,7 @@
 """Reproducible length batching and measured diagnostic batch selection."""
 
+import math
+
 
 def permutation(rows, generator, batch_size, buckets=False):
     import torch
@@ -19,7 +21,11 @@ def choose_trial(trials):
     eligible = [
         t
         for t in trials
-        if t["status"] == "PASS" and t["steps"] >= 3 and t["peak_allocated_bytes"] <= 48 << 30
+        if t["status"] == "PASS"
+        and t["steps"] >= 3
+        and t["peak_allocated_bytes"] <= 48 << 30
+        and math.isfinite(t["tokens_per_second"])
+        and t["tokens_per_second"] > 0
     ]
     if not eligible:
         raise ValueError("no benchmark batch passed with memory headroom")
