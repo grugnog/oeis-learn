@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -59,3 +60,44 @@ def test_paths_outside_shared_checkout_reject(tmp_path):
         pytest.raises(ValueError, match="shared checkout"),
     ):
         cli.relative(tmp_path)
+
+
+@pytest.mark.parametrize("output", [None, "tmp-custom-inputs"])
+def test_prepare_command_dispatches_to_input_preparation(tmp_path, monkeypatch, capsys, output):
+    from oeis_learn.fresh import inputs
+
+    value = config()
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump(value))
+    monkeypatch.chdir(tmp_path)
+    argv = ["prepare", "--config", str(path)]
+    if output is not None:
+        argv += ["--output", output]
+    with (
+        patch.object(cli, "ROOT", tmp_path),
+        patch.object(inputs, "prepare", return_value={"identity": "prepared-identity"}) as prepare,
+    ):
+        assert cli.main(argv) == 0
+        effective, cache, destination = prepare.call_args.args
+        assert effective["run"]["model"]["encoder"] == "integer_bytes/v1"
+        assert cache == tmp_path / value["data"]["cache"]
+        assert destination == tmp_path / (output or "tmp-fresh-inputs")
+    assert json.loads(capsys.readouterr().out) == {
+        "identity": "prepared-identity",
+        "output": output or "tmp-fresh-inputs",
+        "qualified": False,
+    }
+
+
+def test_prepare_command_reports_preparation_failure(tmp_path, monkeypatch, capsys):
+    from oeis_learn.fresh import inputs
+
+    value = config()
+    monkeypatch.chdir(tmp_path)
+    with (
+        patch.object(cli, "ROOT", tmp_path),
+        patch.object(cli, "configuration", return_value=value),
+        patch.object(inputs, "prepare", side_effect=OSError("admission budget exhausted")),
+    ):
+        assert cli.main(["prepare"]) == 1
+    assert "ERROR: admission budget exhausted" in capsys.readouterr().err
