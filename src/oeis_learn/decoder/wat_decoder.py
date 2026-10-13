@@ -42,10 +42,20 @@ class PositionalEncodingDecoder(nn.Module):
     ):
         pe_key = prefix + "pe"
         if pe_key in state_dict:
-            loaded_len = state_dict[pe_key].size(1)
-            target_len = max(self.pe.size(1), loaded_len)
-            self._build_pe(target_len, device=state_dict[pe_key].device)
-            state_dict[pe_key] = self.pe
+            loaded = state_dict[pe_key]
+            if loaded.ndim == 3 and loaded.size(0) == 1 and loaded.size(2) == self.d_model:
+                loaded_len = loaded.size(1)
+                if loaded_len != self.pe.size(1):
+                    # Checkpoints are deserialized on CPU. Resize on the module's
+                    # device, retaining its dtype and the saved values, so loading
+                    # cannot strand a positional buffer away from GPU parameters.
+                    if loaded_len > self.pe.size(1):
+                        dtype = self.pe.dtype
+                        self._build_pe(loaded_len, device=self.pe.device)
+                        self.pe = self.pe.to(dtype=dtype)
+                    extended = self.pe.detach().clone()
+                    extended[:, :loaded_len].copy_(loaded)
+                    state_dict[pe_key] = extended
         super()._load_from_state_dict(
             state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
         )
