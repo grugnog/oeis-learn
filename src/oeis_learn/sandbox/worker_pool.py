@@ -7,17 +7,17 @@ not claim that spawning a process alone establishes container isolation.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
 import multiprocessing as mp
 import os
-from pathlib import Path
-from queue import Queue, Full
 import resource
 import socket
 import struct
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict
+from pathlib import Path
+from queue import Full, Queue
 
 from oeis_learn.experiments.artifacts import (
     ArtifactPath,
@@ -117,34 +117,39 @@ class _Slot:
 
     def start(self):
         parent, child = socket.socketpair()
-        process = mp.get_context("spawn").Process(
-            target=self.target,
-            args=(child, self.cache_bytes, self.backend)
-            if self.target is _worker
-            else (child, self.cache_bytes),
-            daemon=True,
-        )
-        process.start()
-        child.close()
-        self.process, self.channel = process, parent
+        self.channel = parent
         try:
+            self.process = mp.get_context("spawn").Process(
+                target=self.target,
+                args=(
+                    (child, self.cache_bytes, self.backend)
+                    if self.target is _worker
+                    else (child, self.cache_bytes)
+                ),
+                daemon=True,
+            )
+            self.process.start()
+            child.close()
             ready = _receive(parent, time.monotonic_ns() + 2_000_000_000)
             if ready.get("type") != "ready":
                 raise RuntimeError("invalid worker startup acknowledgment")
         except BaseException:
             self.stop()
             raise
+        finally:
+            child.close()
 
     def stop(self):
         start = time.monotonic()
         if self.channel is not None:
             self.channel.close()
         if self.process is not None:
-            if self.process.is_alive():
-                self.process.kill()
-            self.process.join(timeout=2)
-            if self.process.is_alive():
-                raise RuntimeError("worker reclamation exceeded two seconds")
+            if self.process.pid is not None:
+                if self.process.is_alive():
+                    self.process.kill()
+                self.process.join(timeout=2)
+                if self.process.is_alive():
+                    raise RuntimeError("worker reclamation exceeded two seconds")
             self.process.close()
         self.process = self.channel = None
         return time.monotonic() - start
@@ -336,8 +341,16 @@ class WorkerPool:
         with self.lock:
             self.closed = True
         self.executor.shutdown(wait=True, cancel_futures=True)
+        # Reclaim other slots even if one fails its reclamation deadline.
+        failure = None
         for slot in self.all_slots:
-            slot.stop()
+            try:
+                slot.stop()
+            except (OSError, RuntimeError, ValueError) as exc:
+                if failure is None:
+                    failure = exc
+        if failure is not None:
+            raise failure
 
     def __enter__(self):
         return self

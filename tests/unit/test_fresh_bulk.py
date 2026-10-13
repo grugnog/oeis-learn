@@ -1,3 +1,5 @@
+import resource
+import sqlite3
 from unittest.mock import patch
 
 import pytest
@@ -139,3 +141,82 @@ def test_fetch_is_batched_pinned_and_rerun_uses_verified_objects(tmp_path):
         with pytest.raises(ValueError, match="already pinned"):
             bulk.fetch(dict(config, revision="b" * 40), tmp_path)
     assert read(tmp_path / "fetch-result.json")["complete"]
+
+
+def import_fixture(cache):
+    repo = cache / "oeisdata"
+    seq = repo / "seq/A000/A000001.seq"
+    terms = repo / "files/A000/b000001.txt"
+    seq.parent.mkdir(parents=True)
+    terms.parent.mkdir(parents=True)
+    seq.write_text(entry())
+    terms.write_text("".join(f"{i} {i}\n" for i in range(-2, 118)))
+    write(
+        cache / "fetch-plan.json",
+        {
+            "snapshot": {"commit": "a" * 40},
+            "selected": [
+                {
+                    "aid": "A000001",
+                    "path": "files/A000/b000001.txt",
+                    "sha256": file_hash(terms),
+                    "entry_sha256": file_hash(seq),
+                    "metadata": bulk.metadata(seq.read_text(), "A000001", "fixture"),
+                }
+            ],
+        },
+    )
+    write(cache / "fetch-result.json", {"plan_sha256": file_hash(cache / "fetch-plan.json")})
+    return terms
+
+
+@pytest.mark.parametrize("failure", [None, "changed_source", "empty_source"])
+def test_import_closes_sqlite_on_success_and_failure(tmp_path, failure):
+    cache, output = tmp_path / "cache", tmp_path / "import"
+    terms = import_fixture(cache)
+    if failure == "changed_source":
+        terms.write_text("tampered")
+    elif failure == "empty_source":
+        plan = read(cache / "fetch-plan.json")
+        plan["selected"] = []
+        write(cache / "fetch-plan.json", plan)
+        write(cache / "fetch-result.json", {"plan_sha256": file_hash(cache / "fetch-plan.json")})
+    connect, connections = sqlite3.connect, []
+
+    def retain_connection(*args, **kwargs):
+        db = connect(*args, **kwargs)
+        connections.append(db)  # Prevent GC from hiding missing explicit closure.
+        return db
+
+    with patch.object(bulk.sqlite3, "connect", retain_connection):
+        if failure:
+            with pytest.raises(ValueError):
+                bulk.import_snapshot(cache, output)
+        else:
+            bulk.import_snapshot(cache, output)
+    assert len(connections) == 1
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        connections[0].execute("SELECT 1")
+
+
+def test_repeated_import_under_low_open_file_limit(tmp_path):
+    cache, output = tmp_path / "cache", tmp_path / "import"
+    import_fixture(cache)
+    connect, connections = sqlite3.connect, []
+
+    def retain_connection(*args, **kwargs):
+        db = connect(*args, **kwargs)
+        connections.append(db)
+        return db
+
+    previous = resource.getrlimit(resource.RLIMIT_NOFILE)
+    limit = min(64, previous[0])
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (limit, previous[1]))
+        with patch.object(bulk.sqlite3, "connect", retain_connection):
+            for _ in range(128):
+                assert bulk.import_snapshot(cache, output)["records"] == 1
+    finally:
+        resource.setrlimit(resource.RLIMIT_NOFILE, previous)
+        for db in connections:
+            db.close()
