@@ -85,8 +85,12 @@ def train(inputs, output):
     store = QualifiedCheckpointStore(store_root, free_floor_bytes=settings["free_disk_floor_bytes"])
     binding = identities(settings)
     rng = torch.Generator().manual_seed(settings["seed"] + 1)
+    from .tuning import permutation
+
     order = {
-        "permutation": torch.randperm(len(rows), generator=rng).tolist(),
+        "permutation": permutation(
+            rows, rng, settings["batch_size"], settings.get("length_buckets", False)
+        ),
         "cursor": 0,
         "completed": 0,
         "epoch": 0,
@@ -168,7 +172,9 @@ def train(inputs, output):
             update_started = time.monotonic_ns()
             if order["cursor"] == len(rows):
                 order.update(
-                    permutation=torch.randperm(len(rows), generator=rng).tolist(),
+                    permutation=permutation(
+                        rows, rng, settings["batch_size"], settings.get("length_buckets", False)
+                    ),
                     cursor=0,
                     epoch=order["epoch"] + 1,
                 )
@@ -457,7 +463,15 @@ def main():
     import sys
 
     operation = sys.argv[1]
-    handlers = {"train": train, "generate": generate, "score": score, "probe": probe}
+    from .benchmark import benchmark
+
+    handlers = {
+        "train": train,
+        "generate": generate,
+        "score": score,
+        "probe": probe,
+        "benchmark": benchmark,
+    }
     result = handlers[operation](Path("/work/input"), Path("/work/output"))
     write(Path("/work/output/result.json"), result)
 

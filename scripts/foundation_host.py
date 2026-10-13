@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/oeis_learn/fresh"))
 from common import canonical, confined, digest, file_hash, inventory, read, write
 
-PROFILES = {"smoke", "fresh-pilot-1h"}
+PROFILES = {"smoke", "fresh-pilot-1h", "fresh-benchmark", "fresh-extended-12h"}
 
 
 def clock():
@@ -613,6 +613,8 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             profile = argv[3]
             if profile not in PROFILES:
                 raise ValueError("unknown fresh profile")
+            if profile == "fresh-extended-12h" and policy.get("foundationTimeout", 0) < 44100:
+                raise ValueError("extended profile requires deployed foundationTimeout >=44100")
             if (job / "run.json").exists():
                 old = read(job / "run.json")
                 requested = read(confined(workspace, argv[1]) / "prepared.json")
@@ -659,9 +661,20 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if len(examples["training"]) < 128 or not examples["development"]:
                 raise ValueError("admitted training/development input shortfall")
             config = manifest["config"]["run"]
+            if profile == "fresh-extended-12h" and (
+                config.get("profile") != profile or len(examples["training"]) < 2048
+            ):
+                raise ValueError("extended training requires its config and 2048 admitted prompts")
+            if profile == "fresh-pilot-1h" and config["training_seconds"] > 1800:
+                raise ValueError("long training configuration requires the extended profile")
             settings = {
                 "profile": profile,
-                "seconds": 1800 if profile == "smoke" else 3600,
+                "seconds": {
+                    "smoke": 1800,
+                    "fresh-pilot-1h": 3600,
+                    "fresh-benchmark": 600,
+                    "fresh-extended-12h": 43200,
+                }[profile],
                 "training_seconds": 120 if profile == "smoke" else config["training_seconds"],
                 "protocol": dict(
                     config["evaluation"],
@@ -671,7 +684,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "model": config["model"],
                     "seed": config["seed"],
                     "device": "cuda",
-                    "batch_size": 4,
+                    "batch_size": 4 if profile == "smoke" else config.get("batch_size", 4),
+                    "length_buckets": (
+                        False if profile == "smoke" else config.get("length_buckets", False)
+                    ),
                     "learning_rate": 0.0003,
                     "checkpoint_every_seconds": 60,
                     "checkpoint_reserve_seconds": 20,
@@ -720,6 +736,37 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
         write(job / "active.json", active)
         try:
             roles = job / "roles"
+            if settings["profile"] == "fresh-benchmark":
+                benchmark_output = roles / "benchmark"
+                if not (benchmark_output / "result.json").exists():
+                    inputs = roles / "benchmark-input"
+                    if not inputs.exists():
+                        copy_view(
+                            inputs,
+                            {
+                                "examples.json": read(job / "inputs/examples.json"),
+                                "settings.json": settings["learner"],
+                            },
+                        )
+                    coordinator.run(
+                        "benchmark",
+                        "learner",
+                        inputs,
+                        benchmark_output,
+                        min(500, ledger.remaining() - 10),
+                    )
+                ledger.record("benchmark-finished")
+                write(
+                    job / "status.json",
+                    {
+                        "status": "cleanup",
+                        "pending_status": "complete",
+                        "benchmark": read(benchmark_output / "result.json"),
+                        "budget": ledger.previous,
+                        "qualified": False,
+                    },
+                )
+                return 0
             stages = sorted(roles.glob("train-[0-9][0-9][0-9][0-9][0-9][0-9]/result.json"))
             latest = None
             if stages:
@@ -811,7 +858,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 job, coordinator, ledger, settings, initial_checkpoint, "development", "initial"
             )
             # Three smoke updates include a real boundary after update one.
-            boundaries = (1, 3) if settings["profile"] == "smoke" else (None, None)
+            extended = settings["profile"] == "fresh-extended-12h"
+            boundaries = (
+                (1, 3)
+                if settings["profile"] == "smoke"
+                else ((None,) * 10 if extended else (None, None))
+            )
+            best_validation, stale = float("inf"), 0
             for number, cap in enumerate(boundaries, 1):
                 stage = roles / f"train-{number:06d}"
                 if (stage / "result.json").exists():
@@ -828,7 +881,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         if list((p / "checkpoints").glob("qualified-[0-9]*.json"))
                     ]
                     recovery = retained[-1] if retained else checkpoint_files(job, latest)[0].parent
-                    seconds = min(settings["training_seconds"] / 2, ledger.remaining() - 900)
+                    seconds = min(
+                        settings["training_seconds"] / len(boundaries),
+                        ledger.remaining() - (1800 if extended else 900),
+                    )
                     if settings["profile"] == "smoke":
                         seconds = min(60, ledger.remaining() - 300)
                     if seconds < 25:
@@ -870,6 +926,24 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     f"development-{number}",
                 )
                 publish(job, destination)
+                if extended:
+                    loss = result.get("validation_loss")
+                    if loss is None or not __import__("math").isfinite(loss):
+                        raise ValueError("extended run needs finite structural validation loss")
+                    if loss < best_validation - 0.01:
+                        best_validation, stale = loss, 0
+                    else:
+                        stale += 1
+                    if stale >= 2:
+                        write(
+                            job / "early-stop.json",
+                            {
+                                "reason": "two segments without validation improvement",
+                                "best_validation_loss": best_validation,
+                                "completed_updates": result["completed_updates"],
+                            },
+                        )
+                        break
             if settings["profile"] == "smoke" and result["completed_updates"] != 3:
                 raise ValueError("three actual smoke updates required")
             finalize(job, settings, "best-development")
@@ -958,6 +1032,11 @@ def finalize(job, settings, selection):
                     (
                         len(score["solved_groups"]),
                         len(score["top_one_groups"]),
+                        (
+                            -result.get("validation_loss", float("inf"))
+                            if settings["profile"] == "fresh-extended-12h"
+                            else 0
+                        ),
                         -result["completed_updates"],
                         str((stage.parent / "checkpoints" / result["checkpoint"]).relative_to(job)),
                     )
@@ -973,7 +1052,12 @@ def finalize(job, settings, selection):
         "truth_sha256": digest(
             read(job / "inputs/truth.json")["final"][: settings["protocol"]["groups"]]
         ),
-        "criterion": "solved groups, top-one groups, then earliest update",
+        "criterion": "solved groups, top-one groups, then "
+        + (
+            "structural validation loss, then earliest update"
+            if settings["profile"] == "fresh-extended-12h"
+            else "earliest update"
+        ),
         "selected_using": "development",
         "diagnostic": True,
         "final_cohort_consumed_on_evaluation": True,

@@ -24,6 +24,7 @@ REPORT_NAMES = {
     "stdout.log",
     "stderr.log",
     "metrics.jsonl",
+    "early-stop.json",
 }
 
 
