@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import math
 from typing import Optional
+
 import torch
 import torch.nn as nn
+
 from oeis_learn.decoder.wat_grammar import PAD_ID, VOCAB_SIZE
 
 
@@ -92,8 +94,10 @@ class WatTransformerDecoder(nn.Module):
         self.codec_sha256 = codec_sha256
         if codec_sha256 is not None:
             from oeis_learn.decoder.program_codec import (
-                codec_digest,
                 FOUNDATION_VOCAB_SIZE,
+                codec_digest,
+            )
+            from oeis_learn.decoder.program_codec import (
                 PAD_ID as BODY_PAD,
             )
 
@@ -256,7 +260,7 @@ class WatTransformerDecoder(nn.Module):
         return self.pos_encoder.dropout(hidden)
 
     def _rotary_forward(self, hidden, memory, padding, memory_padding, mask):
-        from oeis_learn.decoder.inference_cache import project, rotary, attention_output
+        from oeis_learn.decoder.inference_cache import attention_output, project, rotary
 
         batch, length, _ = hidden.shape
         positions = torch.arange(length, device=hidden.device)[None, :].expand(batch, -1)
