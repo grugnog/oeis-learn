@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-from oeis_learn.experiments.profiles import I256_MIN, I256_MAX
+from oeis_learn.experiments.profiles import I256_MAX, I256_MIN
 
 
 def encode_integer(value, width=32):
@@ -105,8 +105,14 @@ class IntegerByteEncoder(nn.Module):
 
     def forward_from_sequences(self, sequences, pad_mask=None, device=None):
         actual_device = next(self.parameters()).device
-        if device is not None and torch.device(device) != actual_device:
-            raise ValueError("encoder and requested device differ")
+        if device is not None:
+            requested_device = torch.device(device)
+            # An unindexed CUDA/HIP device names the current accelerator. Model
+            # parameters carry its concrete index, so compare resolved devices.
+            if requested_device.type == "cuda" and requested_device.index is None:
+                requested_device = torch.device("cuda", torch.cuda.current_device())
+            if requested_device != actual_device:
+                raise ValueError("encoder and requested device differ")
         batch = encode_sequences(sequences, device=actual_device)
         if pad_mask is not None and not torch.equal(pad_mask, batch.padding):
             raise ValueError("padding must match actual visible lengths")

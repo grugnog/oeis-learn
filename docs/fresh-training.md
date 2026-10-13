@@ -66,6 +66,30 @@ remain available inside the VM for testing. Never invoke their SSH-based
 training transport from inside a `lab-gpu exec` container: that would nest
 requests behind the same project/GPU lease.
 
+### Recover from a failed smoke
+
+An interrupted run retains its issued budget. Repeating `smoke` against that
+same output requires `resume`; it cannot issue another allowance. Resume also
+retains the original image, so rebuilding the image does not repair an existing
+run that failed because of a code defect. Keep that run and its analysis ZIP as
+failure evidence, then use a new output directory with the repaired image:
+
+```bash
+sudo -v
+python3 scripts/foundation_local.py image ensure
+sudo -v
+python3 scripts/foundation_local.py smoke \
+  --inputs tmp-fresh-inputs-host --run runs/fresh-host-smoke-002
+```
+
+For the encoder device-alias repair, completed prepared inputs and bulk downloads
+can be reused: the repair changes the learner's device check, not source admission.
+For a recoverable interruption using the same image and remaining budget, use
+`sudo -v` followed by `python3 scripts/foundation_local.py resume --run RUN`.
+The published `RUN/roles/*/stderr.log` contains the underlying role error, and
+`tmp-analysis/BASENAME.zip` includes it for analysis. Packaging a failed run is
+successful evidence capture; the original command still exits with the failure.
+
 ## Install the host integration once
 
 Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)
