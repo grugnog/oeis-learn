@@ -6,6 +6,7 @@ import shutil
 import sqlite3
 import subprocess
 from collections import Counter
+from contextlib import closing
 from pathlib import Path
 
 from .common import digest, file_hash, lock, read, write
@@ -299,7 +300,12 @@ def import_snapshot(cache, output):
     repo = cache / "oeisdata"
     output.mkdir(parents=True, exist_ok=True)
     records, exclusions, horizons = [], Counter(), Counter()
-    with lock(output / "import.lock"), sqlite3.connect(output / "index.sqlite") as db:
+    # Connection.__exit__ commits/rolls back but does not close SQLite's files.
+    with (
+        lock(output / "import.lock"),
+        closing(sqlite3.connect(output / "index.sqlite")) as db,
+        db,
+    ):
         db.execute(
             "CREATE TABLE IF NOT EXISTS entries (aid TEXT PRIMARY KEY, source_sha TEXT, status TEXT, terms INTEGER)"
         )

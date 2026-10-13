@@ -1,3 +1,4 @@
+import errno
 import importlib.util
 import json
 from pathlib import Path
@@ -101,3 +102,20 @@ def test_prepare_command_reports_preparation_failure(tmp_path, monkeypatch, caps
     ):
         assert cli.main(["prepare"]) == 1
     assert "ERROR: admission budget exhausted" in capsys.readouterr().err
+
+
+def test_prepare_open_file_exhaustion_reports_limit_and_traceback(tmp_path, monkeypatch, capsys):
+    from oeis_learn.fresh import inputs
+
+    value = config()
+    monkeypatch.chdir(tmp_path)
+    with (
+        patch.object(cli, "ROOT", tmp_path),
+        patch.object(cli, "configuration", return_value=value),
+        patch.object(inputs, "prepare", side_effect=OSError(errno.EMFILE, "too many open files")),
+    ):
+        assert cli.main(["prepare"]) == 1
+    error = capsys.readouterr().err
+    assert "Open-file limit: soft=" in error and "hard=" in error
+    assert "Traceback (most recent call last)" in error
+    assert "too many open files" in error
