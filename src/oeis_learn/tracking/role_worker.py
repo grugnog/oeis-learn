@@ -160,7 +160,8 @@ def train(inputs, output):
         state = load_state(inputs, settings["device"])
         optimizer.load_state_dict(state["optimizer"])
         completed = state["completed"]
-        import random, numpy as np
+        import random
+        import numpy as np
 
         random.setstate(state["python_rng"])
         n = state["numpy_rng"]
@@ -247,7 +248,8 @@ def train(inputs, output):
                 holdouts=examples.get("holdouts"),
                 archive_root=output / "replay-archive",
             )
-    import random, numpy as np
+    import random
+    import numpy as np
 
     n = np.random.get_state()
     state = dict(
@@ -714,7 +716,8 @@ def main():
 
 
 def save_state(root, state):
-    import torch, os
+    import torch
+    import os
     from oeis_learn.experiments.artifacts import compute_file_hash
     from oeis_learn.tracking.foundation_metrics import fsync_directory
 
