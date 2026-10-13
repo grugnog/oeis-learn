@@ -86,6 +86,20 @@ the source commit, attribution and license with derived data.
 
 ## Start, recover and evaluate
 
+If preparation reports `too many open files`, retain the complete stderr output.
+The CLI prints the open-file soft/hard limits and traceback for `EMFILE`/`ENFILE`.
+SQLite import connections and failed worker-start sockets/process handles are
+explicitly closed; increasing `ulimit` is not a substitute for cleanup.
+
+An incomplete preparation freezes its runtime identity in `archive-plan.json`.
+After updating execution code, use a new input directory if that frozen plan
+rejects the changed runtime; retain the old journal and budget evidence. The
+existing bulk download cache is reused:
+
+```bash
+python scripts/foundation_run.py prepare --output tmp-fresh-inputs-fd-fix
+```
+
 ```bash
 python scripts/foundation_run.py smoke \
   --inputs tmp-fresh-inputs --run runs/fresh-smoke

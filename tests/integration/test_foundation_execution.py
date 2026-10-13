@@ -1,10 +1,14 @@
 """Strict runtime regressions including real external process supervision."""
 
+import os
+import resource
 import time
 import uuid
+
 import pytest
-from oeis_learn.sandbox.pipeline import Runtime, Limits, Failure, verify, digest_bytes
-from oeis_learn.sandbox.worker_pool import WorkerPool, _send, _receive
+
+from oeis_learn.sandbox.pipeline import Failure, Limits, Runtime, digest_bytes, verify
+from oeis_learn.sandbox.worker_pool import WorkerPool, _receive, _send
 
 
 def test_real_worker_executes_and_persists_idempotent_results(tmp_path):
@@ -234,3 +238,44 @@ def test_inherited_deadline_does_not_change_idempotency_key(tmp_path):
             "i256.zero", [0], request_id="short", deadline_ns=time.monotonic_ns() + 30_000_000
         )
         assert result.outcome == "execution_limit" and time.monotonic() - begin < 2.1
+
+
+def test_many_candidates_and_worker_replacement_under_low_file_limit(tmp_path):
+    previous = resource.getrlimit(resource.RLIMIT_NOFILE)
+    limit = min(64, previous[0])
+
+    def open_descriptors():
+        count = 0
+        for fd in range(limit):
+            try:
+                os.fstat(fd)
+            except OSError:
+                continue
+            count += 1
+        return count
+
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (limit, previous[1]))
+        before = open_descriptors()
+        with WorkerPool(tmp_path, workers=4) as pool:
+            baseline = open_descriptors()
+            for chunk in range(16):
+                futures = [
+                    pool.submit(f"i256.const {n}", range(100), request_id=f"many-{n}")
+                    for n in range(chunk * 8, (chunk + 1) * 8)
+                ]
+                for n, future in enumerate(futures, chunk * 8):
+                    result = future.result()
+                    assert result.outcome is None
+                    assert result.outputs == result.reference_outputs == [str(n)] * 100
+                assert open_descriptors() == baseline
+            slot = pool.all_slots[0]
+            # Startup failure cleanup is covered separately; exercise real
+            # reclamation and replacement without relying on a candidate timeout.
+            slot.stop()
+            slot.start()
+            assert open_descriptors() == baseline
+        # multiprocessing's process-global resource tracker keeps one pipe.
+        assert open_descriptors() <= before + 1
+    finally:
+        resource.setrlimit(resource.RLIMIT_NOFILE, previous)

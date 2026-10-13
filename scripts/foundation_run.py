@@ -2,6 +2,7 @@
 """Fresh diagnostics from the VM: bulk data, preparation, private training and analysis."""
 
 import argparse
+import errno
 import json
 import subprocess
 import sys
@@ -195,6 +196,13 @@ def main(argv=None):
             remote(args.command, relative(args.run), *extra)
         return 0
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+        if isinstance(exc, OSError) and exc.errno in {errno.EMFILE, errno.ENFILE}:
+            import resource
+            import traceback
+
+            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+            print(f"Open-file limit: soft={soft}, hard={hard}. Traceback follows:", file=sys.stderr)
+            traceback.print_exc()
         print(f"ERROR: {exc}", file=sys.stderr)
         return exc.returncode if isinstance(exc, subprocess.CalledProcessError) else 1
 
