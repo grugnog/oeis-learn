@@ -16,6 +16,7 @@ from oeis_learn.data.synthetic_generator import (
 from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 from oeis_learn.decoder.wat_grammar import BOS_ID, EOS_ID, PAD_ID, encode_wat
 from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+from oeis_learn.rl.token_loss import token_cross_entropy
 
 logger = logging.getLogger("oeis_learn.sft_trainer")
 
@@ -80,7 +81,7 @@ def replay_update(encoder, decoder, optimizer, replay, *, batch_size=4, generic=
             encoder, decoder, sequences, tokens, device=device, pad_id=BODY_PAD, timer=timer
         )
         target = tokens[:, 1:]
-        losses = torch.nn.functional.cross_entropy(logits.transpose(1, 2), target, reduction="none")
+        losses = token_cross_entropy(logits, target)
         loss = trajectory_mean(losses, target.ne(BODY_PAD))
         if not torch.isfinite(loss):
             raise FloatingPointError("nonfinite replay loss")
@@ -126,8 +127,7 @@ def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, p
                                   device=device, pad_id=pad_id, timer=timer)
     targets = tokens[:, 1:]
     with timer.phase("objective"):
-        loss = trajectory_mean(torch.nn.functional.cross_entropy(
-            logits.transpose(1, 2), targets, reduction="none"), targets.ne(pad_id))
+        loss = trajectory_mean(token_cross_entropy(logits, targets), targets.ne(pad_id))
     if not torch.isfinite(loss):
         raise FloatingPointError("nonfinite supervised loss")
     with timer.phase("backward_optimizer"):

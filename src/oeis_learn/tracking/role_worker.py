@@ -505,6 +505,7 @@ def diagnostic(inputs, output):
 def validation_loss(encoder, decoder, rows, device):
     import torch
     from oeis_learn.rl.sft_trainer import teacher_forced_logits
+    from oeis_learn.rl.token_loss import token_cross_entropy
     from oeis_learn.rl.policy import scoring_mode
     from oeis_learn.decoder.program_codec import BOS_ID, PAD_ID
 
@@ -520,9 +521,7 @@ def validation_loss(encoder, decoder, rows, device):
                 device=device,
                 pad_id=PAD_ID,
             )
-            losses.append(
-                float(torch.nn.functional.cross_entropy(logits.transpose(1, 2), tokens[:, 1:]))
-            )
+            losses.append(float(token_cross_entropy(logits, tokens[:, 1:]).mean()))
     return sum(losses) / len(losses)
 
 
