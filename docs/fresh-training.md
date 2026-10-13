@@ -24,6 +24,7 @@ host user, not with `sudo python` against checkout code:
 # On the lab host, from the registered OEIS checkout:
 sudo -v
 python3 scripts/foundation_local.py image ensure
+sudo -v  # renew credentials after a potentially long first image build
 python3 scripts/foundation_local.py data fetch
 python3 scripts/foundation_local.py prepare --output tmp-fresh-inputs-host
 python3 scripts/foundation_local.py check --inputs tmp-fresh-inputs-host
@@ -38,7 +39,7 @@ downloads are reused. A new preparation directory is recommended when switching
 images/runtimes: an incomplete admission plan freezes its runtime identity.
 New containers are created for each CPU command and reclaimed on exit; the
 image and bind-mounted artifacts persist. Only bulk acquisition gets outbound
-networking; preparation/check/pack containers receive no GPU devices or runtime
+networking; preparation/check containers receive no GPU devices or runtime
 socket. GPU training/evaluation remain offline in separate private containers,
 rather than running inside the workspace-mounted preparation container.
 
@@ -51,6 +52,12 @@ python3 scripts/foundation_local.py evaluate \
 python3 scripts/foundation_local.py pack \
   --run runs/fresh-host-001 --output tmp-analysis/fresh-host-001.zip
 ```
+
+Packaging runs directly as your host user using the standard-library bundle
+writer, so it needs no container, GPU image, or sudo credentials. CPU commands
+enter the project account once and perform cleanup there; an expired sudo ticket
+cannot prevent cleanup at the end of a long preparation run. Run `sudo -v` again
+before starting a new privileged command if the ticket has expired.
 
 Status/cancel bypass image rebuilding and GPU acquisition, using the existing
 host broker's control path. The final pilot remains capped at one hour and

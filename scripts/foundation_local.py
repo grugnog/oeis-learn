@@ -3,8 +3,10 @@
 
 import argparse
 import json
+import os
 import pwd
 import re
+import signal
 import stat
 import subprocess
 import sys
@@ -13,6 +15,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = Path("/etc/lab/gpu-runner.json")
+
+
+def pack_run(run, output, *, checkpoint=False):
+    sys.path.insert(0, str(ROOT / "src"))
+    from oeis_learn.fresh.bundle import pack
+
+    result = pack(ROOT / relative(run), ROOT / relative(output), checkpoint=checkpoint)
+    print(json.dumps(result, indent=2))
+    return result
 
 
 def relative(value):
@@ -100,9 +111,38 @@ class Host:
         ]
 
     def cpu(self, *argv, network=False, timeout=10800):
-        policy, account, image = self.policy, self.account, self.ensure()
-        name = "lab-foundation-cpu-" + policy["project"] + "-" + uuid.uuid4().hex
+        if network != (list(argv[:2]) == ["data", "fetch"]):
+            raise ValueError("only bulk fetch may receive networking")
         command = self.as_project(
+            self.policy["python"],
+            "-I",
+            str(ROOT / "scripts/foundation_local.py"),
+            "_cpu-worker",
+            self.policy["project"],
+            self.ensure(),
+            str(timeout),
+            json.dumps(argv),
+        )
+        # One sudo transition per command. The running project-account worker
+        # owns its Podman cleanup even after the administrator's ticket expires.
+        return subprocess.run(command, check=True, timeout=timeout + 45, stdin=subprocess.DEVNULL)
+
+    def cpu_worker(self, image, argv, timeout):
+        if os.getuid() != self.account.pw_uid:
+            raise ValueError("CPU worker must run as the registered rootless project account")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
+            raise ValueError("immutable CPU image required")
+        if not argv or argv[0] not in {"data", "prepare", "check"}:
+            raise ValueError("invalid CPU operation")
+        if argv[0] == "data" and argv[1:2] != ["fetch"]:
+            raise ValueError("only bulk fetch is a CPU data operation")
+        if argv[0] == "check" and "--inputs-only" not in argv:
+            raise ValueError("CPU check cannot launch nested GPU requests")
+        if not 1 <= timeout <= 14400:
+            raise ValueError("CPU deadline must be 1..14400 seconds")
+        policy, account = self.policy, self.account
+        name = "lab-foundation-cpu-" + policy["project"] + "-" + uuid.uuid4().hex
+        command = [
             policy["podman"],
             "--runtime=crun",
             "run",
@@ -112,7 +152,7 @@ class Host:
             name,
             "--label",
             "lab.foundation.cpu=" + policy["project"],
-            "--network=" + ("slirp4netns" if network else "none"),
+            "--network=" + ("slirp4netns" if argv[:2] == ["data", "fetch"] else "none"),
             "--read-only",
             "--read-only-tmpfs=false",
             "--image-volume=ignore",
@@ -151,17 +191,26 @@ class Host:
             image,
             "/workspace/scripts/foundation_run.py",
             *argv,
-        )
+        ]
+        failure = None
         try:
             return subprocess.run(command, check=True, timeout=timeout, stdin=subprocess.DEVNULL)
+        except BaseException as exc:
+            failure = exc
+            raise
         finally:
-            cleanup = subprocess.run(
-                self.as_project(policy["podman"], "rm", "--force", "--ignore", name),
-                timeout=30,
-                check=False,
-            )
-            if cleanup.returncode:
-                raise RuntimeError(f"CPU container cleanup failed: {name}")
+            try:
+                subprocess.run(
+                    [policy["podman"], "rm", "--force", "--ignore", name],
+                    timeout=30,
+                    check=True,
+                    stdin=subprocess.DEVNULL,
+                )
+            except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+                message = f"CPU container cleanup failed: {name}: {exc}"
+                if failure is None:
+                    raise RuntimeError(message) from exc
+                print(message, file=sys.stderr)
 
 
 def main(argv=None):
@@ -192,6 +241,9 @@ def main(argv=None):
             command.add_argument("--checkpoint", action="store_true")
     args = parser.parse_args(argv)
     try:
+        if args.command == "pack":
+            pack_run(args.run, args.output, checkpoint=args.checkpoint)
+            return 0
         host = Host(load_policy(args.project))
         if args.command == "image":
             print(host.ensure())
@@ -203,16 +255,6 @@ def main(argv=None):
             host.cpu(
                 "prepare", "--config", relative(args.config), "--output", relative(args.output)
             )
-        elif args.command == "pack":
-            host.cpu(
-                "pack",
-                "--run",
-                relative(args.run),
-                "--output",
-                relative(args.output),
-                *(["--checkpoint"] if args.checkpoint else []),
-                timeout=600,
-            )
         elif args.command in {"check", "train", "smoke"}:
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=600)
@@ -220,6 +262,7 @@ def main(argv=None):
                 host.broker("foundation", "check")
             else:
                 run = relative(args.run)
+                failure = None
                 try:
                     host.broker(
                         "foundation",
@@ -228,16 +271,17 @@ def main(argv=None):
                         run,
                         "smoke" if args.command == "smoke" else "fresh-pilot-1h",
                     )
+                except BaseException as exc:
+                    failure = exc
+                    raise
                 finally:
                     if (ROOT / run / "run.json").is_file():
-                        host.cpu(
-                            "pack",
-                            "--run",
-                            run,
-                            "--output",
-                            "tmp-analysis/" + Path(run).name + ".zip",
-                            timeout=600,
-                        )
+                        try:
+                            pack_run(run, "tmp-analysis/" + Path(run).name + ".zip")
+                        except (ValueError, OSError, RuntimeError) as exc:
+                            if failure is None:
+                                raise
+                            print(f"Analysis packaging also failed: {exc}", file=sys.stderr)
         else:
             extra = (
                 [args.split, "latest"]
@@ -247,6 +291,11 @@ def main(argv=None):
             # In particular status/cancel do not build images or acquire the GPU.
             host.broker("foundation", args.command, relative(args.run), *extra)
         return 0
+    except KeyboardInterrupt:
+        print(
+            "Interrupted; use status/cancel to inspect any still-active GPU run.", file=sys.stderr
+        )
+        return 130
     except subprocess.TimeoutExpired as exc:
         print(f"ERROR: host container deadline exceeded: {exc}", file=sys.stderr)
         return 124
@@ -256,4 +305,40 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt
+
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, interrupted)
+    if sys.argv[1:2] == ["_cpu-worker"]:
+        try:
+            project, image, seconds, payload = sys.argv[2:]
+            if len(payload.encode()) > 65536:
+                raise ValueError("CPU argument payload exceeds64KiB")
+            arguments = json.loads(payload)
+            if (
+                not isinstance(arguments, list)
+                or len(arguments) > 32
+                or any(not isinstance(a, str) or "\x00" in a for a in arguments)
+            ):
+                raise ValueError("invalid bounded CPU argv")
+            Host(load_policy(project)).cpu_worker(image, arguments, int(seconds))
+        except KeyboardInterrupt:
+            raise SystemExit(130) from None
+        except (
+            ValueError,
+            OSError,
+            RuntimeError,
+            KeyError,
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+        ) as exc:
+            print(f"ERROR: CPU worker: {exc}", file=sys.stderr)
+            raise SystemExit(
+                124
+                if isinstance(exc, subprocess.TimeoutExpired)
+                else exc.returncode if isinstance(exc, subprocess.CalledProcessError) else 1
+            ) from None
+    else:
+        raise SystemExit(main())
