@@ -54,7 +54,7 @@ def fixture_inputs(root):
     write(root / "prepared.json", manifest)
 
 
-def fixture_coordinator(clock, *, interrupt_stage=None):
+def fixture_coordinator(clock, *, interrupt_stage=None, cleanup_error=False):
     class CPUFixture:
         calls: ClassVar[list] = []
 
@@ -128,7 +128,11 @@ def fixture_coordinator(clock, *, interrupt_stage=None):
             return result
 
         def close(self):
+            status = read(self.root.parent / "status.json")
+            assert status["status"] in {"cleanup", "interrupted"}
             clock.n += 10**9
+            if cleanup_error:
+                raise RuntimeError("injected reclamation failure")
 
     return CPUFixture
 
@@ -263,3 +267,103 @@ def test_interrupted_initialization_can_resume_without_refunding_time(tmp_path):
         )
         status = read(workspace / "runs/smoke/status.json")
         assert status["status"] == "complete" and status["budget"]["charged_ns"] >= 5 * 10**9
+
+
+@pytest.mark.parametrize("interrupt_stage", [None, 1])
+def test_cleanup_failure_publishes_interrupted_state_without_losing_results(
+    tmp_path, interrupt_stage
+):
+    workspace, policy = run_environment(tmp_path)
+    clock = FakeClock()
+    with (
+        patch.object(host, "clock", clock),
+        patch.object(host, "process_identity", lambda pid: {"pid": pid}),
+        pytest.raises(RuntimeError, match="injected reclamation failure"),
+    ):
+        host.execute(
+            policy,
+            "sha256:" + "a" * 64,
+            ["run", "inputs", "runs/smoke", "smoke"],
+            coordinator_factory=fixture_coordinator(
+                clock, interrupt_stage=interrupt_stage, cleanup_error=True
+            ),
+        )
+    root = workspace / "runs/smoke"
+    status = read(root / "status.json")
+    assert status["status"] == "interrupted"
+    assert "injected reclamation failure" in status["cleanup_error"]
+    assert status["budget"]["status"] == "interrupted"
+    assert status["budget"]["charged_ns"] == clock.n
+    if interrupt_stage is None:
+        assert status["completed_updates"] == 3 and status["final_score"]["denominator"] == 1
+        assert (root / "roles/final-score/result.json").is_file()
+        assert "injected reclamation failure" in status["error"]
+    else:
+        assert "injected interruption" in status["error"]
+    output = tmp_path / "cleanup-failure.zip"
+    pack(root, output)
+    assert output.is_file()
+
+
+def test_cleanup_ledger_error_still_reclaims_and_charges_time(tmp_path):
+    workspace, policy = run_environment(tmp_path)
+    clock = FakeClock()
+    base = fixture_coordinator(clock)
+    reclaimed = []
+
+    class ObservedCleanup(base):
+        def close(self):
+            reclaimed.append(True)
+            super().close()
+
+    original = host.Ledger.record
+
+    def record(ledger, status, **kwargs):
+        if status == "cleanup":
+            raise OSError("injected cleanup ledger failure")
+        return original(ledger, status, **kwargs)
+
+    with (
+        patch.object(host, "clock", clock),
+        patch.object(host, "process_identity", lambda pid: {"pid": pid}),
+        patch.object(host.Ledger, "record", record),
+        pytest.raises(OSError, match="injected cleanup ledger failure"),
+    ):
+        host.execute(
+            policy,
+            "sha256:" + "a" * 64,
+            ["run", "inputs", "runs/smoke", "smoke"],
+            coordinator_factory=ObservedCleanup,
+        )
+    assert reclaimed == [True]
+    status = read(workspace / "runs/smoke/status.json")
+    assert status["status"] == "interrupted" and status["completed_updates"] == 3
+    assert "injected cleanup ledger failure" in status["cleanup_error"]
+    assert status["budget"]["charged_ns"] == clock.n
+
+
+def test_cleanup_over_budget_cannot_publish_success(tmp_path):
+    workspace, policy = run_environment(tmp_path)
+    clock = FakeClock()
+    base = fixture_coordinator(clock)
+
+    class SlowCleanup(base):
+        def close(self):
+            super().close()
+            clock.n += 1800 * 10**9
+
+    with (
+        patch.object(host, "clock", clock),
+        patch.object(host, "process_identity", lambda pid: {"pid": pid}),
+        pytest.raises(TimeoutError, match="cleanup exceeded"),
+    ):
+        host.execute(
+            policy,
+            "sha256:" + "a" * 64,
+            ["run", "inputs", "runs/smoke", "smoke"],
+            coordinator_factory=SlowCleanup,
+        )
+    status = read(workspace / "runs/smoke/status.json")
+    assert status["status"] == status["budget"]["status"] == "interrupted"
+    assert status["budget"]["charged_ns"] == clock.n
+    assert status["budget"]["charged_ns"] > status["budget"]["cap_ns"]
