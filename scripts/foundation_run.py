@@ -108,6 +108,9 @@ def main(argv=None):
     prepare.add_argument("--output", default="tmp-fresh-inputs")
     check = commands.add_parser("check")
     check.add_argument("--inputs", required=True)
+    check.add_argument(
+        "--inputs-only", action="store_true", help="validate inputs without launching GPU probes"
+    )
     for operation in ("train", "smoke"):
         command = commands.add_parser(operation)
         command.add_argument("--inputs", required=True)
@@ -169,7 +172,8 @@ def main(argv=None):
             from oeis_learn.fresh.inputs import check_inputs
 
             print("INPUTS PASS", check_inputs(ROOT / relative(args.inputs))["identity"], flush=True)
-            remote("check")
+            if not args.inputs_only:
+                remote("check")
         elif args.command in {"train", "smoke"}:
             from oeis_learn.fresh.inputs import check_inputs
 
