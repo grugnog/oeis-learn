@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import math
 from typing import Optional
+
 import torch
 import torch.nn as nn
+
 from oeis_learn.decoder.wat_grammar import PAD_ID, VOCAB_SIZE
 
 
@@ -42,10 +44,20 @@ class PositionalEncodingDecoder(nn.Module):
     ):
         pe_key = prefix + "pe"
         if pe_key in state_dict:
-            loaded_len = state_dict[pe_key].size(1)
-            target_len = max(self.pe.size(1), loaded_len)
-            self._build_pe(target_len, device=state_dict[pe_key].device)
-            state_dict[pe_key] = self.pe
+            loaded = state_dict[pe_key]
+            if loaded.ndim == 3 and loaded.size(0) == 1 and loaded.size(2) == self.d_model:
+                loaded_len = loaded.size(1)
+                if loaded_len != self.pe.size(1):
+                    # Checkpoints are deserialized on CPU. Resize on the module's
+                    # device, retaining its dtype and the saved values, so loading
+                    # cannot strand a positional buffer away from GPU parameters.
+                    if loaded_len > self.pe.size(1):
+                        dtype = self.pe.dtype
+                        self._build_pe(loaded_len, device=self.pe.device)
+                        self.pe = self.pe.to(dtype=dtype)
+                    extended = self.pe.detach().clone()
+                    extended[:, :loaded_len].copy_(loaded)
+                    state_dict[pe_key] = extended
         super()._load_from_state_dict(
             state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
         )
@@ -82,8 +94,10 @@ class WatTransformerDecoder(nn.Module):
         self.codec_sha256 = codec_sha256
         if codec_sha256 is not None:
             from oeis_learn.decoder.program_codec import (
-                codec_digest,
                 FOUNDATION_VOCAB_SIZE,
+                codec_digest,
+            )
+            from oeis_learn.decoder.program_codec import (
                 PAD_ID as BODY_PAD,
             )
 
@@ -246,7 +260,7 @@ class WatTransformerDecoder(nn.Module):
         return self.pos_encoder.dropout(hidden)
 
     def _rotary_forward(self, hidden, memory, padding, memory_padding, mask):
-        from oeis_learn.decoder.inference_cache import project, rotary, attention_output
+        from oeis_learn.decoder.inference_cache import attention_output, project, rotary
 
         batch, length, _ = hidden.shape
         positions = torch.arange(length, device=hidden.device)[None, :].expand(batch, -1)

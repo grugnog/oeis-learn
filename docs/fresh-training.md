@@ -82,10 +82,11 @@ python3 scripts/foundation_local.py smoke \
   --inputs tmp-fresh-inputs-host --run runs/fresh-host-smoke-002
 ```
 
-For the encoder device-alias and deterministic token-loss repairs, completed
-prepared inputs and bulk downloads can be reused: these changes affect learner
-math/device handling, not source admission. The token-loss repair keeps strict
-determinism enabled and retains the existing per-program/padding/EOS reductions.
+For the encoder device-alias, deterministic token-loss and positional checkpoint
+repairs, completed prepared inputs and bulk downloads can be reused: these
+changes affect learner/generator math/device handling, not source admission.
+The token-loss repair keeps strict determinism enabled and retains the existing
+per-program/padding/EOS reductions.
 For a recoverable interruption using the same image and remaining budget, use
 `sudo -v` followed by `python3 scripts/foundation_local.py resume --run RUN`.
 The published `RUN/roles/*/stderr.log` contains the underlying role error, and

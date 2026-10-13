@@ -8,7 +8,7 @@ import torch
 
 from oeis_learn.decoder.program_codec import EOS_ID, FOUNDATION_VOCAB_SIZE, PAD_ID
 from oeis_learn.fresh import worker
-from oeis_learn.fresh.common import write
+from oeis_learn.fresh.common import digest, write
 from oeis_learn.rl.policy import trajectory_mean
 from oeis_learn.rl.token_loss import token_cross_entropy
 from oeis_learn.tracking.training_checkpoint import QualifiedCheckpointStore
@@ -53,6 +53,30 @@ def test_actual_hip_fresh_update_and_complete_state_resume(tmp_path):
     initial, baseline, before = run(tmp_path / "initial", 0)
     assert baseline["completed_updates"] == 0
     assert math.isfinite(baseline["validation_loss"])
+    # Exercise the real CPU-deserialized checkpoint -> HIP cached-generation
+    # path, which simple update/resume tests did not previously reach.
+    generation_input = tmp_path / "generation-input"
+    generation_input.mkdir()
+    shutil.copytree(initial / "checkpoints", generation_input / "checkpoints")
+    cfg = dict(
+        settings(examples(), 0),
+        device="cuda",
+        checkpoint=baseline["checkpoint"],
+        attempts=1,
+        generation_tokens=8,
+        per_group_seconds=10,
+        protocol_sha256=digest("hip-generation-test"),
+    )
+    write(generation_input / "settings.json", cfg)
+    write(
+        generation_input / "visible.json",
+        [{"group_id": digest("gpu-visible"), "values": ["0"] * 20}],
+    )
+    generation_output = tmp_path / "generation-output"
+    generation_output.mkdir()
+    seal = worker.generate(generation_input, generation_output)
+    assert seal["checkpoint_sha256"] == baseline["checkpoint_sha256"]
+    assert len(seal["records"]) == 1 and len(seal["records"][0]["attempts"]) == 1
     first, result, state = run(tmp_path / "first", 1, initial)
     assert result["device"] == "cuda" and result["completed_updates"] == 1
     assert math.isfinite(result["validation_loss"])
@@ -62,6 +86,35 @@ def test_actual_hip_fresh_update_and_complete_state_resume(tmp_path):
     assert math.isfinite(result["validation_loss"])
     assert state["rng"]["cuda"] and state["sampler"]["completed"] == 3
     assert all(torch.isfinite(p).all() for p in state["decoder"].values() if p.is_floating_point())
+
+
+@pytest.mark.parametrize("saved_length,destination_length", [(8, 8), (16, 8), (4, 8)])
+def test_actual_hip_cpu_checkpoint_restores_positions_and_cached_logits(
+    saved_length, destination_length
+):
+    from tests.unit.test_foundation_cache import decoder
+
+    source = decoder(max_seq_len=saved_length, attention_backend="eager").to("cuda")
+    source.pos_encoder.pe.add_(0.125)
+    state = {name: value.cpu().clone() for name, value in source.state_dict().items()}
+    target = decoder(max_seq_len=destination_length, attention_backend="eager").to("cuda")
+    target.load_state_dict(state)
+    device = next(target.parameters()).device
+    assert all(value.device == device for value in target.buffers())
+    torch.testing.assert_close(
+        target.pos_encoder.pe[:, :saved_length].cpu(), state["pos_encoder.pe"], rtol=0, atol=0
+    )
+    tokens = torch.tensor([[1, 2, 3]], device=device)
+    memory = torch.randn(1, 3, 16, generator=torch.Generator().manual_seed(19)).to(device)
+    with torch.no_grad():
+        expected = source(tokens, memory)
+        actual = target(tokens, memory)
+        cached, cache = target.prefill(tokens, memory, capacity=destination_length)
+        continued = target.decode_step(torch.tensor([4], device=device), cache)
+        full = target(torch.tensor([[1, 2, 3, 4]], device=device), memory)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    torch.testing.assert_close(cached, actual, rtol=1e-4, atol=1e-5)
+    torch.testing.assert_close(continued, full[:, -1:], rtol=1e-4, atol=1e-5)
 
 
 @pytest.mark.parametrize("reduction", ["validation", "per_program"])
