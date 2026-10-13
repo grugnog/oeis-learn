@@ -160,7 +160,8 @@ def train(inputs, output):
         state = load_state(inputs, settings["device"])
         optimizer.load_state_dict(state["optimizer"])
         completed = state["completed"]
-        import random, numpy as np
+        import random
+        import numpy as np
 
         random.setstate(state["python_rng"])
         n = state["numpy_rng"]
@@ -247,7 +248,8 @@ def train(inputs, output):
                 holdouts=examples.get("holdouts"),
                 archive_root=output / "replay-archive",
             )
-    import random, numpy as np
+    import random
+    import numpy as np
 
     n = np.random.get_state()
     state = dict(
@@ -505,6 +507,7 @@ def diagnostic(inputs, output):
 def validation_loss(encoder, decoder, rows, device):
     import torch
     from oeis_learn.rl.sft_trainer import teacher_forced_logits
+    from oeis_learn.rl.token_loss import token_cross_entropy
     from oeis_learn.rl.policy import scoring_mode
     from oeis_learn.decoder.program_codec import BOS_ID, PAD_ID
 
@@ -520,9 +523,7 @@ def validation_loss(encoder, decoder, rows, device):
                 device=device,
                 pad_id=PAD_ID,
             )
-            losses.append(
-                float(torch.nn.functional.cross_entropy(logits.transpose(1, 2), tokens[:, 1:]))
-            )
+            losses.append(float(token_cross_entropy(logits, tokens[:, 1:]).mean()))
     return sum(losses) / len(losses)
 
 
@@ -715,7 +716,8 @@ def main():
 
 
 def save_state(root, state):
-    import torch, os
+    import torch
+    import os
     from oeis_learn.experiments.artifacts import compute_file_hash
     from oeis_learn.tracking.foundation_metrics import fsync_directory
 

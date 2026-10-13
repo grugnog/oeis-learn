@@ -13,7 +13,6 @@ import random
 import uuid
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 from oeis_learn.data.program_pool import load_pool, load_trainer_view
 from oeis_learn.decoder.program_codec import BOS_ID, PAD_ID
@@ -191,11 +190,13 @@ def prepare_run(
 
 
 def per_program_loss(logits, targets):
+    from oeis_learn.rl.token_loss import token_cross_entropy
+
     mask = targets != PAD_ID
     counts = mask.sum(dim=1)
     if not bool((counts > 0).all()):
         raise ValueError("empty program target")
-    losses = F.cross_entropy(logits.transpose(1, 2), targets, ignore_index=PAD_ID, reduction="none")
+    losses = token_cross_entropy(logits, targets, ignore_index=PAD_ID)
     return ((losses * mask).sum(dim=1) / counts).mean()
 
 
