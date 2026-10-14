@@ -36,7 +36,6 @@ def models(settings):
     torch.manual_seed(settings["seed"])
     if settings["device"] == "cuda":
         index = torch.cuda.current_device()
-        total = torch.cuda.get_device_properties(index).total_memory
         torch.cuda.set_per_process_memory_fraction(0.8, index)
     return construct_qualified_models(settings["model"], device=settings["device"])
 

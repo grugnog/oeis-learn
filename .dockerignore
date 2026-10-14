@@ -56,3 +56,13 @@ phase11-evidence
 phase10-*.log
 phase10-*.xml
 phase10-evidence
+
+# Persistent local application artifacts
+run-state/
+container-cache/
+
+# Local credentials and obsolete untracked development files are never image inputs.
+system/
+**/.ssh/
+.env
+.env.*

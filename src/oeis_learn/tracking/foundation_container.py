@@ -85,7 +85,7 @@ def launch(*, seconds, **kwargs):
         finally:
             if process.poll() is None:
                 process.kill()
-                process.wait(timeout=2)
+                process.wait(timeout=5)
 
 
 def main():

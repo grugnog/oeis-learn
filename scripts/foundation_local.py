@@ -124,6 +124,12 @@ class Host:
                 "adapter_sha256": file_hash(ROOT / "src/oeis_learn/container_runtime.py"),
             },
         }
+        self.policy["runtime"].update(
+            {
+                key: self.policy[key]
+                for key in ("workers", "cpu_memory_bytes", "free_disk_floor_bytes")
+            }
+        )
         self.image = None
 
     def ensure(self):
@@ -213,7 +219,7 @@ class Host:
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGTERM)
                     try:
-                        process.wait(timeout=15)
+                        process.wait(timeout=45)
                     except subprocess.TimeoutExpired:
                         os.killpg(process.pid, signal.SIGKILL)
                         process.wait(timeout=5)

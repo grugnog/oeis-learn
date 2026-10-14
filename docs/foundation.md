@@ -144,8 +144,8 @@ as history rather than rebinding its validation to changed code.
 
 Only native LODA runtime, paired language comparison and conditional transcoding
 questions move to 008. Remaining GPU/source/measurement acceptance remains in 007;
-008 experiments must wait for applicable 007 gates. GPU acceptance uses the existing
-`lab-gpu image ensure` / `lab-gpu exec --` workflow and actual HIP tests, including
+008 experiments must wait for applicable 007 gates. GPU acceptance uses the portable
+[Docker/Podman host wrapper](fresh-training.md) and actual HIP tests, including
 `test_foundation_gpu.py`, `test_foundation_learning_gpu.py` and the GPU coordinator
 test with `OEIS_GPU_ROLE_IMAGE`. Skips leave those tasks half-checked.
 

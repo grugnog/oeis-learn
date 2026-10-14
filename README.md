@@ -32,8 +32,10 @@ slices are recorded; a CPU diagnostic cannot qualify GPU training or release.
 ## Native and installed-wheel validation
 
 The root `Dockerfile` is the sole image build: `qualification` for CPU/native CI,
-`gpu` for the existing ROCm workstation workflow, and the default `smolvm` target
-for development. Install native build dependencies through these images:
+`gpu` (the default) for portable ROCm training. The host wrapper needs only
+standard-library Python and your normal Docker/Podman connection. See
+[fresh training](docs/fresh-training.md) for reusable inputs, validation and long runs.
+Install native build dependencies through these images:
 
 ```bash
 docker build --target qualification -t oeis-007-qualification .
@@ -43,7 +45,8 @@ docker run --rm oeis-007-qualification python -m pytest -q tests/unit/test_found
 [Foundation CI](.github/workflows/foundation.yml) builds the actual Rust extension,
 executes G7/G8/G9, installs the wheel outside the checkout with `PYTHONPATH` unset,
 and runs all six installed acceptance cases plus Docker role tests. GPU tests run
-separately using `lab-gpu exec --`; hardware skips remain pending evidence.
+through `python3 scripts/foundation_run.py --engine podman validate --suite gpu`;
+hardware skips remain pending evidence.
 
 ## Historical interfaces
 

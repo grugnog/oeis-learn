@@ -1,4 +1,4 @@
-"""Actual HIP fresh-worker checkpoints. Use a workspace --basetemp, not broker /tmp."""
+"""Actual HIP fresh-worker checkpoints; use a persistent --basetemp."""
 
 import math
 import shutil
@@ -32,7 +32,7 @@ def test_actual_hip_fresh_update_and_complete_state_resume(tmp_path):
         cfg = dict(
             settings(data, cap),
             device="cuda",
-            free_disk_floor_bytes=100 << 30,
+            free_disk_floor_bytes=1 << 30,
             seconds=120,
             checkpoint_reserve_seconds=20,
         )

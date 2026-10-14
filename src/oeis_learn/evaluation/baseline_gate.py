@@ -55,9 +55,9 @@ def require_junit(root, reference, gate):
     if not SUITES[gate] <= names:
         raise ValueError("owning-suite coverage incomplete")
     if gate in ("G2", "G5") and not any(
-        c.attrib.get("name") == "test_actual_docker_role_views_and_reclamation" for c in cases
+        c.attrib.get("name") == "test_actual_container_role_views_and_reclamation" for c in cases
     ):
-        raise ValueError("actual Docker containment execution required")
+        raise ValueError("actual container containment execution required")
     if gate == "G5" and not any(
         c.attrib.get("name") == "test_actual_hip_three_updates" for c in cases
     ):
@@ -256,11 +256,11 @@ def require_baseline(bundle, checkpoint, *, evidence_root):
         if set(checks[gate]) != (
             {"junit", "run_updates"}
             if gate == "G5"
-            else {"junit", "containment"}
-            if gate == "G2"
-            else {"junit", "native_parity"}
-            if gate == "G1"
-            else {"junit"}
+            else (
+                {"junit", "containment"}
+                if gate == "G2"
+                else {"junit", "native_parity"} if gate == "G1" else {"junit"}
+            )
         ):
             raise ValueError("closed owning-suite evidence required")
         gates[gate] = dict(status="PASS", cases=require_junit(root, checks[gate]["junit"], gate))

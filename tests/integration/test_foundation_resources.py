@@ -101,7 +101,10 @@ def test_role_mount_plan_never_exposes_workspace_socket_or_gpu_to_workers(tmp_pa
     inputs, output = tmp_path / "input", tmp_path / "output"
     inputs.mkdir()
     output.mkdir()
+    from oeis_learn.container_runtime import Engine
+
     args = dict(
+        engine=Engine("docker", executable="docker", details={}),
         role="worker",
         image="sha256:" + "a" * 64,
         inputs=inputs,
@@ -113,8 +116,8 @@ def test_role_mount_plan_never_exposes_workspace_socket_or_gpu_to_workers(tmp_pa
     for flag in (
         "--network=none",
         "--read-only",
-        "--memory=1g",
-        "--memory-swap=1g",
+        "--memory=1073741824",
+        "--memory-swap=1073741824",
         "--pids-limit=64",
         "--cpus=1",
         "--cap-drop=ALL",
@@ -199,14 +202,16 @@ def test_worker_oom_is_reaped_and_replaced(tmp_path):
 
 
 @pytest.mark.docker
-def test_actual_docker_worker_mount_and_device_isolation(tmp_path):
+def test_actual_container_worker_mount_and_device_isolation(tmp_path):
     import os
-    import shutil
     import subprocess
 
     image = os.environ.get("OEIS_FOUNDATION_TEST_IMAGE")
-    if not shutil.which("docker") or not image:
-        pytest.skip("Docker and explicit pinned OEIS_FOUNDATION_TEST_IMAGE required")
+    if not image:
+        pytest.skip("explicit pinned OEIS_FOUNDATION_TEST_IMAGE required")
+    from oeis_learn.container_runtime import resolve_engine
+
+    engine = resolve_engine()
     inputs, output = tmp_path / "visible", tmp_path / "output"
     inputs.mkdir()
     output.mkdir()
@@ -222,6 +227,7 @@ def test_actual_docker_worker_mount_and_device_isolation(tmp_path):
         "Path('/work/output/pass').write_text('isolated')"
     )
     command = container_command(
+        engine=engine,
         role="worker",
         image=image,
         inputs=inputs,
@@ -234,18 +240,13 @@ def test_actual_docker_worker_mount_and_device_isolation(tmp_path):
         assert result.returncode == 0, result.stderr
         assert (output / "pass").read_text() == "isolated"
     finally:
-        subprocess.run(
-            ["docker", "rm", "--force", "oeis-foundation-isolation-test"],
-            timeout=2,
-            check=False,
-            capture_output=True,
-        )
+        engine.remove("oeis-foundation-isolation-test")
 
 
 pytest_plugins = ["tests.helpers.foundation_training"]
 
 
-def test_docker_removal_timeout_still_reaps_local_client(tmp_path, monkeypatch):
+def test_engine_removal_timeout_still_reaps_local_client(tmp_path, monkeypatch):
     import subprocess
     from oeis_learn.tracking.foundation_container import launch
 
@@ -276,5 +277,7 @@ def test_docker_removal_timeout_still_reaps_local_client(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("oeis_learn.tracking.foundation_container.subprocess.run", failed_remove)
     with pytest.raises(subprocess.TimeoutExpired):
-        launch(seconds=1)
+        from oeis_learn.container_runtime import Engine
+
+        launch(seconds=1, engine=Engine("docker", executable="docker", details={}))
     assert client.killed

@@ -194,7 +194,7 @@ def test_missing_truth_invalidates_before_generation(tmp_path, monkeypatch):
 
 @pytest.mark.skipif(
     torch.version.hip is None or not torch.cuda.is_available(),
-    reason="requires AMD HIP GPU via lab-gpu; CPU fixture is not device evidence",
+    reason="requires AMD HIP GPU in a GPU-enabled container; CPU fixture is not device evidence",
 )
 def test_gpu_checkpoint_loading_and_prefix_only_generation(tmp_path):
     import torch

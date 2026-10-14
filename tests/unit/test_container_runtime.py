@@ -64,3 +64,47 @@ def test_cleanup_does_not_swallow_engine_connection_errors():
     ):
         with pytest.raises(RuntimeError, match="reclamation"):
             engine.remove("oeis-test")
+
+
+def test_auto_detect_tries_next_usable_connection():
+    def call(engine, *args, **kwargs):
+        if engine.name == "docker":
+            raise RuntimeError("daemon unavailable")
+        return {"host": {}}
+
+    with (
+        patch("shutil.which", side_effect=lambda name: "/bin/" + name),
+        patch.object(Engine, "info", call),
+    ):
+        engine = Engine("auto")
+    assert engine.name == "podman" and engine.executable == "/bin/podman"
+
+
+def test_rootless_docker_maps_namespace_root_to_caller():
+    engine = Engine("docker", executable="docker", details={"SecurityOptions": ["name=rootless"]})
+    assert engine.user_args() == ["--user", "0:0"]
+
+
+@pytest.mark.parametrize("name", ["docker", "podman"])
+def test_gpu_devices_are_explicit_and_cpu_cannot_receive_them(tmp_path, name):
+    engine = Engine(name, executable=name, details={})
+    options = dict(
+        image=IMAGE, name="test", mounts=[(tmp_path, "/work/input", False)], argv=["python"]
+    )
+    with patch.object(engine, "device_args", return_value=["--device", "/dev/kfd"]) as devices:
+        assert "--device" in engine.command(**options, gpu=True, render_node="/dev/dri/renderD128")
+        devices.assert_called_once_with("/dev/dri/renderD128")
+    with pytest.raises(ValueError, match="forbidden"):
+        engine.command(**options, gpu=False, render_node="/dev/dri/renderD128")
+
+
+def test_cleanup_filters_exact_run_and_attempts_all_reclamations():
+    engine = Engine("docker", executable="docker", details={})
+    with (
+        patch.object(engine, "call", return_value=Mock(stdout=b"oeis-one\noeis-two\n")) as call,
+        patch.object(engine, "remove", side_effect=[RuntimeError("failed"), None]) as remove,
+    ):
+        with pytest.raises(RuntimeError, match="cleanup failed"):
+            engine.cleanup("token")
+    assert "label=oeis.run=token" in call.call_args.args[0]
+    assert remove.call_count == 2

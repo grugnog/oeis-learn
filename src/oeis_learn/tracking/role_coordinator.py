@@ -47,7 +47,7 @@ def reclaim(name, process, *, engine=None):
         process.wait(timeout=5)
 
 
-class DockerRunner:
+class ContainerRunner:
     """Host candidate service; each request is durably issued before its container starts."""
 
     def __init__(self, root, image, *, workers=4, engine=None):
@@ -289,7 +289,7 @@ class QueueRunner:
                     raise ValueError("controller response binding mismatch")
                 return ExecutionEvidence(**value["evidence"])
             time.sleep(0.01)
-        return DockerRunner._lost(
+        return ContainerRunner._lost(
             source, request["indices"], limits, "controller transport deadline"
         )
 
@@ -315,7 +315,7 @@ class RoleCoordinator:
         self.resources.update(resources or {})
         self.root, self.image, self.render_node = Path(root), image, render_node
         self.root.mkdir(parents=True, exist_ok=True)
-        self.runner = DockerRunner(self.root / "workers", image, workers=workers, engine=engine)
+        self.runner = ContainerRunner(self.root / "workers", image, workers=workers, engine=engine)
         self.log = EventLog(self.root / "roles")
         from oeis_learn.tracking.foundation_controller import run_lock
 
@@ -379,7 +379,8 @@ class RoleCoordinator:
         guard = ResourceGuard(
             self.root.parent,
             free_floor=self.resources["free_floor_bytes"],
-            quota_bytes=self.resources["quota_bytes"],
+            quota=self.resources["quota_bytes"],
+            host_floor=self.resources["host_floor_bytes"],
         )
         stdout = (output / "role.stdout.log").open("wb")
         stderr = (output / "role.stderr.log").open("wb")
@@ -484,4 +485,4 @@ class RoleCoordinator:
 
 
 # Historical public name remains import-compatible; both engines use this runner.
-ContainerRunner = DockerRunner
+DockerRunner = ContainerRunner  # Historical import compatibility; both engines are supported.

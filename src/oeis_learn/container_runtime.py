@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 IMAGE_ID = re.compile(r"(?:sha256:)?[0-9a-f]{64}")
@@ -232,8 +233,17 @@ class Engine:
             capture_output=True,
             timeout=30,
         )
-        for name in result.stdout.decode().splitlines():
-            self.remove(name)
+        names = result.stdout.decode().splitlines()
+        if names:
+            failures = []
+            with ThreadPoolExecutor(max_workers=min(8, len(names))) as pool:
+                for future in [pool.submit(self.remove, name) for name in names]:
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        failures.append(str(exc))
+            if failures:
+                raise RuntimeError("run container cleanup failed: " + "; ".join(failures))
 
 
 def resolve_engine(engine=None):

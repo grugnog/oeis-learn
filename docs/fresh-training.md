@@ -1,468 +1,174 @@
-# Fresh training from the VM
+# Portable fresh training on ROCm
 
-This workflow starts a new random-initialized FP32 SFT diagnostic using the
-foundation codec and exact integer-byte model. It does not promote historical
-checkpoints, change the frozen three-update foundation smoke, or complete the
-spec-007 release gates. The historical vocabulary failure remains outstanding.
+Run `scripts/foundation_run.py` from a Linux host with Python 3.11+ and an already
+usable Docker or Podman connection. Python on the host needs only its standard
+library. Model dependencies, PyTorch/ROCm and the Rust evaluator are built into
+the public `Dockerfile` GPU target. `foundation_local.py` is a compatibility alias.
+The wrapper uses your current engine connection and never changes host services,
+accounts or permissions. Rootless engines need working device access and delegated
+cgroup memory/CPU controls. The `check` command verifies these inside the roles.
 
-## Run directly from the lab host
+Choose an engine explicitly (replace `podman` with `docker` throughout), or omit
+`--engine` to select the first usable connection. Engine options precede the
+subcommand. All bind paths must be visible to the engine on the same Linux host;
+a remote engine with a different filesystem is not supported. Run the wrapper
+on the host, rather than inside a training container.
 
-For sustained preparation/training, use `scripts/foundation_local.py` from the
-registered OEIS checkout on the lab host. It reuses the GPU Dockerfile target
-and the existing rootless Podman image store. Fresh CPU containers bind the host
-checkout directly at `/workspace`, bypassing SmolVM's shared-filesystem layer.
-GPU operations call the installed host broker locally with bounded JSON; there
-is no SSH or VM hop. The broker still owns inference shutdown/restoration,
-GPU locking, private roles, resource limits and pinned run images.
-
-The existing host integration below must be deployed, including `foundation =
-true`. The host entrypoint needs only Python's standard library and your host
-sudo access; model/native dependencies remain in the image. Run as your usual
-host user, not with `sudo python` against checkout code:
-
-When started from a terminal, the wrapper renews sudo authentication immediately
-before each privileged transition. If a long image build or input check outlasts
-the ticket, it prompts in your terminal before starting the next stage. The
-broker request remains a separate noninteractive JSON call. Noninteractive
-launches require valid cached credentials or the host's existing sudo policy.
+## Build and validate
 
 ```bash
-# On the lab host, from the registered OEIS checkout:
-sudo -v
-python3 scripts/foundation_local.py image ensure
-sudo -v  # renew credentials after a potentially long first image build
-python3 scripts/foundation_local.py data fetch
-python3 scripts/foundation_local.py prepare --output tmp-fresh-inputs-host
-python3 scripts/foundation_local.py check --inputs tmp-fresh-inputs-host
-python3 scripts/foundation_local.py smoke \
-  --inputs tmp-fresh-inputs-host --run runs/fresh-host-smoke
-python3 scripts/foundation_local.py train \
-  --inputs tmp-fresh-inputs-host --run runs/fresh-host-001
+python3 scripts/foundation_run.py --engine podman image ensure
+python3 scripts/foundation_run.py --engine podman validate --suite cpu --output tmp-validation/cpu
+python3 scripts/foundation_run.py --engine podman validate --suite gpu --output tmp-validation/gpu
 ```
 
-The default bulk cache remains `tmp-oeis-bulk` in this same checkout, so existing
-downloads are reused. A new preparation directory is recommended when switching
-images/runtimes: an incomplete admission plan freezes its runtime identity.
-New containers are created for each CPU command and reclaimed on exit; the
-image and bind-mounted artifacts persist. Only bulk acquisition gets outbound
-networking; preparation/check containers receive no GPU devices or runtime
-socket. GPU training/evaluation remain offline in separate private containers,
-rather than running inside the workspace-mounted preparation container.
+CPU validation runs unit/contract regressions and native Rust/reference parity.
+GPU validation requires actual HIP matrix operations, full-model updates and exact
+checkpoint continuation, checkpoint-to-generation device restoration, deterministic
+loss, G8 learning/cache/FP16 acceptance, then private-role containment probes.
+It fails if a selected GPU regression skips. Every stage writes stdout/stderr,
+JUnit where applicable, and a receipt bound to the image, code, runtime and output
+hashes. Repeats skip verified successful stages; changed inputs or logs invalidate
+them. PASS receipts are written only after container reclamation. A passing smoke
+or validation suite is diagnostic evidence, not release qualification.
+
+To reuse a prebuilt image, pass `--image IMAGE` before the subcommand. It is
+inspected to an immutable ID. `--gpu-base-image REF` overrides the public pinned
+ROCm base for a new build; qualify that runtime again. The default build target
+is `gpu`; `docker build --target qualification -t oeis-learn:cpu .` builds the
+separate CPU/native CI image. Supply it with `--image oeis-learn:cpu` only for CPU
+operations and `validate --suite cpu`.
+
+With multiple GPUs, select the matching render device using
+`--render-node /dev/dri/renderD128`. Only `/dev/kfd` and that render node enter
+GPU roles. CPU roles and execution workers receive no GPU devices. GPU paths
+never fall back to CPU. The ROCm base must support your GPU and host driver.
+
+## Reuse existing prepared data
+
+Your sealed `tmp-fresh-inputs-extended-002` and bulk downloads are reusable. The
+launcher change does not require admitting the archive again. Check its bytes
+and start with a new smoke run:
 
 ```bash
-python3 scripts/foundation_local.py status --run runs/fresh-host-001
-python3 scripts/foundation_local.py cancel --run runs/fresh-host-001
-python3 scripts/foundation_local.py resume --run runs/fresh-host-001
-python3 scripts/foundation_local.py evaluate \
-  --run runs/fresh-host-001 --split development
-python3 scripts/foundation_local.py pack \
-  --run runs/fresh-host-001 --output tmp-analysis/fresh-host-001.zip
+python3 scripts/foundation_run.py --engine podman check --inputs tmp-fresh-inputs-extended-002
+python3 scripts/foundation_run.py --engine podman smoke \
+  --inputs tmp-fresh-inputs-extended-002 --run runs/portable-smoke-001
 ```
 
-Packaging runs directly as your host user using the standard-library bundle
-writer, so it needs no container, GPU image, or sudo credentials. CPU commands
-enter the project account once and perform cleanup there; an expired sudo ticket
-cannot prevent cleanup at the end of a long preparation run. Terminal launches
-refresh authentication before the next broker/project-account transition.
-
-If an older wrapper prints `INPUTS PASS` followed by `sudo: a password is
-required`, the GPU run has not been issued and no training archive is expected.
-After updating the wrapper, repeat the original `train` command with the same
-unused run directory; it will authenticate after input verification. Once a
-run has actually been issued, use `resume` to preserve its existing budget.
-
-Status/cancel bypass image rebuilding and GPU acquisition, using the existing
-host broker's control path. The final pilot remains capped at one hour and
-automatically publishes an analysis ZIP. `foundation_run.py` and `lab-gpu`
-remain available inside the VM for testing. Never invoke their SSH-based
-training transport from inside a `lab-gpu exec` container: that would nest
-requests behind the same project/GPU lease.
-
-### Recover from a failed smoke
-
-An interrupted run retains its issued budget. Repeating `smoke` against that
-same output requires `resume`; it cannot issue another allowance. Resume also
-retains the original image, so rebuilding the image does not repair an existing
-run that failed because of a code defect. Keep that run and its analysis ZIP as
-failure evidence, then use a new output directory with the repaired image:
+If an earlier admission stopped at 2,008/2,048 training prompts, explicitly seal
+that retained journal only if accepting the shortfall is your intended choice:
 
 ```bash
-sudo -v
-python3 scripts/foundation_local.py image ensure
-sudo -v
-python3 scripts/foundation_local.py smoke \
-  --inputs tmp-fresh-inputs-host --run runs/fresh-host-smoke-002
-```
-
-For the encoder device-alias, deterministic token-loss and positional checkpoint
-repairs, completed prepared inputs and bulk downloads can be reused: these
-changes affect learner/generator math/device handling, not source admission.
-The token-loss repair keeps strict determinism enabled and retains the existing
-per-program/padding/EOS reductions.
-For a recoverable interruption using the same image and remaining budget, use
-`sudo -v` followed by `python3 scripts/foundation_local.py resume --run RUN`.
-The published `RUN/roles/*/stderr.log` contains the underlying role error, and
-`tmp-analysis/BASENAME.zip` includes it for analysis. Packaging a failed run is
-successful evidence capture; the original command still exits with the failure.
-
-Worker shutdown and container removal are charged to the existing run budget.
-The controller reports `cleanup` while shutting down and publishes `complete`
-only after successful reclamation. A cleanup failure or exhausted budget exits
-with an error and retains the completed updates, selected checkpoint and scores
-in the published reports and analysis ZIP. Older images may report `complete`
-despite a cleanup exception; retain their evidence and test the repair in a new
-run directory rather than treating that status as successful shutdown.
-
-## Measure batching before a longer run
-
-The first HIP pilot ran 7,615 updates on `cuda:0` at about 9,165 non-padding
-tokens/s during updates. It repeated 256 prompts for 118 epochs: training loss
-fell to 0.146, while structural validation worsened from 1.221 after the first
-segment to 1.848 after the second. The 128-token generation cap also censored
-almost every candidate. Repeating that input set for twelve hours is therefore
-not the next experiment.
-
-Merge [OEIS PR #33](https://github.com/grugnog/oeis-learn/pull/33) and the companion
-[lab PR #31](https://github.com/grugnog/lab/pull/31), then deploy the lab host
-using its normal NixOS procedure. Its OEIS policy must have
-`foundationTimeout = 44100`: the controller retains a fixed 43,200-second
-lifetime cap, with transport/cleanup allowance owned by the broker. The
-benchmark remains capped at ten minutes. Existing smoke/one-hour caps remain
-unchanged. Run from the registered host checkout:
-
-```bash
-git pull --ff-only
-sudo -v
-python3 scripts/foundation_local.py image ensure
-sudo -v
-python3 scripts/foundation_local.py benchmark \
-  --inputs tmp-fresh-inputs-host --run runs/fresh-benchmark-001
-```
-
-The benchmark performs actual FP32 SFT at batches 4, 8, 16, 32 and 64, both
-with random ordering and with length grouping. It warms kernels, stresses the
-longest observed shapes, measures non-padding throughput and padding efficiency,
-and records allocator memory, power, temperature and GPU busy percentage when
-available. OOM trials are recorded without recommending them. Selection uses
-the smallest safe batch within 5% of the fastest measured configuration, with
-at most 48 GiB of peak allocations. Memory occupancy alone is not utilization.
-No precision, clock, model-size or deterministic-policy change is made.
-
-Upload `tmp-analysis/fresh-benchmark-001.zip` for review before allocating the
-overnight run. Generate its preparation settings without host dependencies or
-sudo, then prepare a new immutable data set using the existing bulk cache:
-
-```bash
-python3 scripts/foundation_local.py extended-settings \
-  --benchmark runs/fresh-benchmark-001 \
-  --output tmp-analysis/fresh-extended-settings.json
-sudo -v
-python3 scripts/foundation_local.py prepare \
-  --config tmp-analysis/fresh-extended-settings.json \
-  --output tmp-fresh-inputs-extended
-```
-
-This raises the target to 2,048 distinct admitted training prompts and 128
-development structures, with a two-hour preparation budget. Admission uses up to
-64 independent, deterministically seeded generic sampler shards, each bounded
-by the sampler's existing 10,000-draw cap. The first shard retains the original
-stream. Shard seeds, sampler configuration and admission decisions are frozen;
-each archive packet remains independently replayable. The two-hour lifetime
-budget applies across all shards, and sampling stops as soon as both targets
-are reached. This removes candidate exhaustion as the immediate limit; it does
-not guarantee sufficient distinct prompt yield within the time budget.
-It sets the measured
-batch/order configuration, a 1,023-token generation limit and up to 60 seconds
-per evaluation group. Preparation may still fail if the bounded admission target
-is not reached; retain its journal and budget. It never downloads OEIS sequences
-individually.
-
-If an older extended preset stopped at counter 9,999 with time remaining, it
-exhausted its single sampler shard. Repeating that frozen input set cannot draw
-new candidates. After updating and rebuilding the image, preserve the old
-journal, generate new settings and use a new input directory. The completed
-GPU benchmark still supplies the batch recommendation; bulk downloads are reused:
-
-```bash
-git pull --ff-only
-sudo -v
-python3 scripts/foundation_local.py image ensure
-python3 scripts/foundation_local.py extended-settings \
-  --benchmark runs/fresh-benchmark-001 \
-  --output tmp-analysis/fresh-extended-settings-002.json
-sudo -v
-python3 scripts/foundation_local.py prepare \
-  --config tmp-analysis/fresh-extended-settings-002.json \
-  --output tmp-fresh-inputs-extended-002
-```
-
-Only after preparation succeeds, pass `--inputs tmp-fresh-inputs-extended-002`
-to the extended training command. Within one unchanged preparation/runtime,
-repeating `prepare` restores admitted packets, skips saved decisions and charges
-the same lifetime ledger. Changing the frozen shard count or runtime requires
-a new input set. Failure reports disclose the candidate limit and distinguish
-`candidate_limit`, `lifetime_budget` and interruption from successful completion.
-
-```bash
-sudo -v
-python3 scripts/foundation_local.py train \
-  --profile fresh-extended-12h \
-  --inputs tmp-fresh-inputs-extended --run runs/fresh-host-12h-001
-```
-
-This is a new random-initialized diagnostic, targeting ten one-hour training
-segments inside twelve hours total, including evaluation and cleanup. It saves
-complete checkpoints every minute and restores optimizer/RNG/sample order
-between segments. Grouping changes only the reproducible order and padding;
-every training example appears once per epoch. The run stops after two segments
-without at least 0.01 nats of structural-validation improvement. Development
-solve/top-one counts remain the selection criterion; structural validation loss
-breaks ties for this extended profile. Final truth is scored only after selection.
-An early stop is successful diagnostic completion, not a budget refund or
-permission to resume a finalized run. Its reason is included in the reports.
-
-Use `status`, `cancel`, `resume` and `pack` with the same host entrypoint as
-above. Upload `tmp-analysis/fresh-host-12h-001.zip` when it finishes. This remains
-diagnostic work on a finite cohort; historical compatibility and spec-007 release
-gates remain pending. No deployment or live GPU benchmark is claimed by CPU tests.
-
-### Seal a near-complete extended diagnostic
-
-If the full two-hour budget ends with at least 1,946 of the requested 2,048
-distinct training prompts (95%) and the structural-development target is met,
-the existing archive can be explicitly sealed for this diagnostic. For example,
-2,008 training prompts and 2,017 development structures are sufficient. This
-does not rewrite the requested target, reset the budget or execute new
-candidates. The retained source, holdouts, archive packets/provenance and
-exhausted ledger are checked before export. Original admission runtime evidence
-is retained even after rebuilding the image for the sealing command.
-
-After updating and rebuilding, seal the existing input directory:
-
-```bash
-git pull --ff-only
-sudo -v
-python3 scripts/foundation_local.py image ensure
-sudo -v
-python3 scripts/foundation_local.py seal-inputs \
+python3 scripts/foundation_run.py --engine podman seal-inputs \
   --inputs tmp-fresh-inputs-extended-002 --accept-shortfall
-sudo -v
-python3 scripts/foundation_local.py train \
-  --profile fresh-extended-12h \
-  --inputs tmp-fresh-inputs-extended-002 --run runs/fresh-host-12h-001
 ```
 
-Only train after sealing succeeds. `admission-completion.json` records the
-requested and actual training counts, explicit shortfall acceptance, original
-charged budget and validation counts. It is included in the published run and
-analysis ZIP. All admitted development evidence remains in the archive, while
-the exported learner validation view is deterministically limited to its
-configured target (128), avoiding thousands of unintended validation examples.
-An interrupted sealing export can be rerun with the same command. Inputs below
-95%, a development shortfall, an unexhausted/missing ledger or changed evidence
-are rejected. This exception applies only to extended diagnostics and does not
-satisfy any historical compatibility or spec-007 release qualification gate.
+The command records the actual counts and original requested counts; it neither
+relabels a shortfall as full admission nor reissues the spent preparation budget.
+Already sealed inputs only need `check`. Historical pre-007 checkpoints remain
+historical and are not required to train fresh models.
 
-## Install the host integration once
-
-Apply the companion [lab host integration PR #29](https://github.com/grugnog/lab/pull/29)
-and rebuild the host
-using that repository's normal NixOS deployment procedure. The OEIS project
-policy enables `foundation = true` and `foundationTimeout = 4200`: project runs
-still have their own 1,800-second smoke or 3,600-second pilot lifetime cap. The
-extra host allowance covers staging/transport/reclamation; it cannot extend a
-run's ledger. GPU inference locking/restoration remains host-owned.
-
-Refresh the VM client without recreating the existing VM. On the host, from the
-OEIS checkout:
+## New data and preparation
 
 ```bash
-cp /etc/nixos/packages/lab-gpu/lab-gpu* system/
-smolvm machine exec -i --name oeis -- sudo install -m 555 \
-  /workspace/system/lab-gpu /workspace/system/lab-gpu.py /usr/local/bin/
+python3 scripts/foundation_run.py --engine podman data fetch --config configs/foundation/fresh_pilot.yaml
+python3 scripts/foundation_run.py --engine podman prepare \
+  --config configs/foundation/fresh_pilot.yaml --output tmp-fresh-inputs
+python3 scripts/foundation_run.py --engine podman check --inputs tmp-fresh-inputs
 ```
 
-The Dockerfile installer now includes Git LFS. Rebuild the VM image with your
-usual workflow when it lacks `git lfs`; `start.sh` deletes/recreates the VM, so
-do not run it merely to refresh the client. The updated Smolfile permits
-`oeis.org`, which hosts the official Git LFS endpoint. Apply the VM network
-configuration using the owning SmolVM workflow when updating an existing VM.
+Acquisition uses the bulk `oeis/oeisdata` Git/LFS repository and freezes its exact
+revision. It does not download sequences individually. `data.cache`, disk/download
+limits, seed and record limits live in the configuration. A local bulk snapshot
+can also be supplied through the data configuration. Inspect `foundation_tasks.py`
+help for the image's CPU task interface; ordinary operations use the host wrapper.
+Only bulk acquisition receives network access. Preparation resumes its existing
+journal and lifetime budget; preserve its configuration and output directory.
+An exhausted admission needs explicit shortfall sealing or a new planned dataset.
 
-The GPU image must include these changes. From `/workspace` in the VM:
+## Benchmark, then train
+
+Use the existing inputs first; changing container transport alone is not a reason
+to rebuild them. Measure batch sizes and length bucketing on the selected GPU:
 
 ```bash
-lab-gpu image ensure
+python3 scripts/foundation_run.py --engine podman benchmark \
+  --inputs tmp-fresh-inputs-extended-002 --run runs/portable-benchmark-001
+python3 scripts/foundation_run.py extended-settings \
+  --benchmark runs/portable-benchmark-001 --output tmp-analysis/portable-extended.json
 ```
 
-The VM does not need Docker or Podman. The broker extracts the coordinator from
-the pinned image and executes it as the project account. Roles use rootless
-Podman with private enumerated mounts, read-only roots/inputs, offline networking
-and no runtime socket. Learner/generator receive GPU devices; native candidate
-workers and the scorer do not. The host keeps private role views under its
-project state directory, outside the whole-workspace diagnostics mount.
+`extended-settings` derives a new preparation config from the measured winner;
+use a new inputs directory if adopting different frozen settings. Do not overwrite
+a sealed dataset's config. Benchmark results require actual parameter changes,
+finite gradients and memory observations. GPU allocation is capped at 80% of the
+reported device memory, and selection keeps a 30% measured peak-memory margin.
+This is not a claim of optimal utilization: compare throughput, phase timing,
+allocator peaks and available hardware sensors in the archive.
 
-## Bulk source and admitted training data
+Once the portable smoke succeeds, a complete fresh run has a 12-hour lifetime cap,
+including evaluation, checkpointing and cleanup:
 
 ```bash
-cd /workspace
-python scripts/foundation_run.py data fetch
-python scripts/foundation_run.py prepare --output tmp-fresh-inputs
-python scripts/foundation_run.py check --inputs tmp-fresh-inputs
+python3 scripts/foundation_run.py --engine podman train \
+  --profile fresh-extended-12h --inputs tmp-fresh-inputs-extended-002 \
+  --run runs/fresh-portable-12h-001
 ```
 
-`configs/foundation/fresh_pilot.yaml` controls preparation. The initial defaults
-are a deterministic selection of at most 5,000 entries without finite/table keywords, with
-LFS b-files, at most 20 GiB of b-file objects, eight development/eight final groups,
-256 distinct training prompts and eight structural development examples. LFS
-objects plus checkout can occupy twice their declared size. Both acquisition
-and checkpointing preserve the 100 GiB free-disk floor. Source selection is a
-bounded diagnostic subset; coverage/shortfalls remain in the import report.
+Keep it in your usual terminal/session manager. Each run path is single use.
+`--memory-gib 24 --cpus 8` can increase container resources when the host has room;
+use the same options for subsequent commands on that run. Defaults use at most
+half the engine's reported RAM (16 GiB cap) and four CPUs, with a bounded private
+execution worker pool. No unrelated GPU job or inference service is stopped.
+Check hardware availability yourself before committing to a long run.
 
-Acquisition clones `https://github.com/oeis/oeisdata.git` shallowly, freezes its
-commit and export timestamp, and fetches b-file objects in Git LFS batches at
-that revision. There are no individual sequence HTTP requests and no historical
-`git lfs fetch --all`. Repeating acquisition verifies/reuses completed objects.
-Set `data.revision` to an exact 40-character commit to choose a particular
-snapshot before the first fetch. Changing the snapshot/config needs a new
-cache and input set; existing pins are never overwritten.
-
-Import preserves original indices, signed terms, offset/keyword metadata and
-raw entry hashes; unresolved LFS pointers, malformed records, incomplete
-horizons and exclusions are reported. The SQLite index and term projections
-bound VM memory use. Names/formulas/program text do not enter learner inputs.
-
-OEIS provides evaluation targets and exclusion information. Training labels are
-generated generic programs admitted through the existing native executor plus
-independent reference evaluator. Cohorts and all-member reserved prefixes are
-frozen before admission. Structural development/final programs cannot enter
-the training view. Preparation has its own 1,800-second lifetime ledger;
-shortfalls preserve decisions and remaining budget rather than receiving a
-fresh allowance. Lowering a frozen target is not a resume operation.
-
-The bulk source is available under CC BY-SA 4.0 from the OEIS Foundation. Keep
-the source commit, attribution and license with derived data.
-
-## Start, recover and evaluate
-
-If preparation reports `too many open files`, retain the complete stderr output.
-The CLI prints the open-file soft/hard limits and traceback for `EMFILE`/`ENFILE`.
-SQLite import connections and failed worker-start sockets/process handles are
-explicitly closed; increasing `ulimit` is not a substitute for cleanup.
-
-An incomplete preparation freezes its runtime identity in `archive-plan.json`.
-After updating execution code, use a new input directory if that frozen plan
-rejects the changed runtime; retain the old journal and budget evidence. The
-existing bulk download cache is reused:
+## Status, recovery and analysis
 
 ```bash
-python scripts/foundation_run.py prepare --output tmp-fresh-inputs-fd-fix
+python3 scripts/foundation_run.py status --run runs/fresh-portable-12h-001
+python3 scripts/foundation_run.py cancel --run runs/fresh-portable-12h-001
+python3 scripts/foundation_run.py --engine podman resume --run runs/fresh-portable-12h-001
+python3 scripts/foundation_run.py --engine podman evaluate \
+  --run runs/fresh-portable-12h-001 --split development
+python3 scripts/foundation_run.py pack --run runs/fresh-portable-12h-001 \
+  --output tmp-analysis/fresh-portable-12h-001.zip
 ```
 
-```bash
-python scripts/foundation_run.py smoke \
-  --inputs tmp-fresh-inputs --run runs/fresh-smoke
+Run/resume/evaluate automatically publish a compact analysis ZIP, including on
+failure once a run exists. It includes configuration, image/runtime identities,
+input digests, budgets, training metrics, development/final results, role logs and
+explicit omissions. Share this ZIP for analysis. Add `--checkpoint` to `pack` only
+when you need the larger checkpoint payload. `pack`, `status`, `cancel` and
+`extended-settings` do not need an engine or GPU. Private source/truth material
+is not a general-purpose role mount.
 
-python scripts/foundation_run.py train \
-  --inputs tmp-fresh-inputs --run runs/fresh-001
-```
+Resume inspects the original image and rejects runtime/resource/controller drift;
+it does not silently rebuild the image or reset elapsed budget. Preserve the
+checkout location, `run-state/`, image store and run files while a run is active.
+Completed/finalized runs cannot restart training or reissue their budgets. Old
+controller runs are historical: begin a new portable run with the existing inputs.
 
-Smoke checkpoints random weights, scores the initial model on development,
-performs one update, reloads complete state, performs updates two/three, scores
-development, freezes checkpoint selection and evaluates final groups. Its
-outer cap is 30 minutes; this is distinct from the original frozen smoke test.
+## State and containment
 
-The one-hour pilot targets two15-minute training segments, with initial and
-post-segment development evaluation. Reserve time includes loading, checkpoints,
-native scoring and cleanup; budget pressure can shorten training or fail a
-stage. The initial model is the existing qualified-model shape: integer bytes,
-d=384, four encoder/six decoder layers, six heads, feed-forward1,536,
-context1,024, sinusoidal positions, eager attention, FP32, AdamW at0.0003,
-batch four. This diagnostic does not assert qualification by using that shape.
+| Artifact | Location under the checkout |
+| --- | --- |
+| Bulk OEIS snapshot/cache | `data.cache`, normally `tmp-oeis-bulk/` |
+| Admission journal and sealed inputs | `--output` inputs directory |
+| Private controller, roles, locks and ledgers | `run-state/` |
+| Published metrics, manifests and role logs | `--run` directory |
+| Persistent container caches | `container-cache/` |
+| Validation receipts/logs and analysis ZIPs | `tmp-validation/`, `tmp-analysis/` |
 
-```bash
-python scripts/foundation_run.py status --run runs/fresh-001
-python scripts/foundation_run.py cancel --run runs/fresh-001
-python scripts/foundation_run.py resume --run runs/fresh-001
-python scripts/foundation_run.py evaluate \
-  --run runs/fresh-001 --checkpoint latest --split development
-python scripts/foundation_run.py finalize \
-  --run runs/fresh-001 --checkpoint best-development
-python scripts/foundation_run.py evaluate --run runs/fresh-001 --split final
-```
+Container paths `/workspace`, `/work/input`, `/work/output` and `/cache` map to
+these persistent host directories. Temporary `/tmp` and `/run` mounts are
+intentionally disposable. Engine-managed images/layers remain in your engine's
+normal storage. Build context exclusions prevent state, checkpoints, downloads
+and old local credentials from entering an image.
 
-Commands are synchronous. Status/cancel can run in another VM terminal without
-waiting for the active project/GPU lease. Ctrl-C also requests interruption.
-Logs include periodic progress and bounded role deadlines. The host owns final
-reclamation; broker busy is75, host timeout124. A stale lease requires the lab
-administrator recovery procedure.
-
-Resume restores model, AdamW, module modes, Python/NumPy/Torch/device RNGs,
-permutation, cursor and committed update. Runtime, profile and input identity
-drift rejects. Invalid checkpoint blobs are quarantined; generations are not
-reused. Failed updates can repeat after restoring a committed checkpoint, but
-their wall time remains charged. An interrupted gap is conservatively charged
-until recovery; finalized runs cannot resume training. Keep the same run and
-host state, including its budget journal.
-
-The selection rule is development solved-group count, then selected top-one
-count, then earliest update. It is locked before final truth is mounted. Final
-evaluation reuses sealed candidates on rerun. A zero solved count is valid.
-These are finite100-term results from20 visible terms, not theorem claims.
-Once inspected to guide another experiment, this diagnostic final cohort is
-consumed; freeze an independent final cohort for later assessment.
-
-## Upload results for analysis
-
-```bash
-python scripts/foundation_run.py pack \
-  --run runs/fresh-001 --output tmp-analysis/fresh-001.zip
-
-# Optional separate complete checkpoint package, up to40GiB:
-python scripts/foundation_run.py pack --checkpoint \
-  --run runs/fresh-001 --output tmp-analysis/fresh-001-checkpoint.zip
-```
-
-Training also attempts to create the small ZIP after success or failure. Upload
-`tmp-analysis/fresh-001.zip` here first. It includes a summary, frozen settings,
-source/admission coverage, losses/gradient/entropy/resource/sensor metrics,
-development candidate failures, final aggregate scores, budgets, runtime and
-checkpoint metadata, logs, and a verified bundle inventory. Default report
-payloads are capped at25MiB; long logs use their last1MiB and large metric streams
-retain first/last100 rows. Every omission/sampling operation records original
-size/hash. Bulk sources, private inputs, hidden values and weight tensors are
-excluded. The optional checkpoint package adds only the selected complete blob
-and matching manifests/settings; retain local recovery state as well.
-
-Throughput uses explicitly measured training phases, not a promise of steady
-state. Attempt records can include work rolled back during recovery. Unavailable
-sensors are null with a reason; GPU and host memory on the APU overlap and must
-not be summed. Use this report to set corpus, evaluation and checkpoint budgets
-before increasing duration or changing one model/learning setting.
-
-## Validation scope
-
-CPU tests cover parsing and batched fetch/resume, real Python-Wasmtime/reference
-admission against synthetic source fixtures, exact real-model update/resume
-parity, corrupt-generation recovery, host budget accounting, private role view
-construction, sealed finite scoring, interruption recovery and ZIP verification.
-Broker tests cover named-operation restrictions, disabled-policy rejection,
-rootless extraction and status/cancel dispatch. These fixtures do not establish
-real OEIS/Rust acceptance, rootless Podman containment or HIP performance.
-
-The wrapper prefers the copied `system/lab-gpu.py` client, so refreshing that
-host-managed copy is sufficient for its commands even before replacing the
-installed VM client. Direct `lab-gpu foundation` commands require the new client.
-
-The separate actual-device regression uses the full configured model and a
-workspace temporary directory that can satisfy the disk floor:
-
-```bash
-lab-gpu exec -- python -m pytest -q tests/integration/test_fresh_gpu.py \
-  --basetemp=/workspace/tmp-fresh-gpu-tests
-```
-
-Run `check`, `smoke` and the first pilot on the actual host to obtain those
-observations. Full T115 host kill/quota acceptance, T117 historical wrappers,
-T118 overflow strata, fixed T119/T120 measurements and T121 release handoff stay
-under their owning progression gates. The new workflow does not remove those
-blockers or mark their tasks complete.
+The host is the only engine client. Learner, generation and CPU scoring containers
+receive separate enumerated inputs and outputs; no workload receives an engine
+socket or the full private run directory. Containers have read-only roots,
+explicit memory/CPU/pid bounds and no network except bulk acquisition. Cleanup
+removes only this run's labeled containers, waits for reclamation, then publishes
+success. Failure and interruption preserve the durable ledger and diagnostics.

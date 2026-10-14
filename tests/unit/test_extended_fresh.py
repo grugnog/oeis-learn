@@ -109,7 +109,7 @@ def test_extended_config_stays_closed_and_bounded(tmp_path, invalid):
         assert loaded["run"]["model"]["attention_backend"] == "eager"
 
 
-def test_settings_from_completed_benchmark_need_no_sudo_or_host_policy(tmp_path):
+def test_settings_from_completed_benchmark_need_no_engine(tmp_path):
     root = tmp_path / "runs/benchmark"
     cfg = config()
     cfg["run"]["model"] = {"remove": "constructor field"}
