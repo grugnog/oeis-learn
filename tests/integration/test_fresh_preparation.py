@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import yaml
 
 from oeis_learn.experiments.profiles import qualified_model_profile
 from oeis_learn.fresh.bulk import metadata
@@ -13,7 +14,8 @@ from oeis_learn.fresh.inputs import prepare
 from oeis_learn.tracking.budget_ledger import BudgetLedger
 
 
-def test_real_generic_admission_bulk_source_and_small_fixture_rejection(tmp_path):
+@pytest.mark.parametrize("mode", ["legacy", "sharded", "interrupted", "exhausted"])
+def test_real_generic_admission_bulk_source_and_small_fixture_rejection(tmp_path, mode):
     cache = tmp_path / "cache"
     repo = cache / "oeisdata"
     records = []
@@ -57,6 +59,13 @@ def test_real_generic_admission_bulk_source_and_small_fixture_rejection(tmp_path
             "evaluation": {"groups": 2, "attempts": 2, "tokens": 128, "per_group_seconds": 30},
         },
     }
+    if mode != "legacy":
+        sampler_path = tmp_path / "sampler.yaml"
+        sampler_cfg = yaml.safe_load(Path(config["sampler_config"]).read_text())
+        sampler_cfg["max_attempts"] = 8
+        sampler_path.write_text(yaml.safe_dump(sampler_cfg))
+        config["sampler_config"] = str(sampler_path)
+        config["archive"]["sampling_shards"] = 1 if mode == "exhausted" else 64
 
     def fixture_clock():
         return {
@@ -69,7 +78,39 @@ def test_real_generic_admission_bulk_source_and_small_fixture_rejection(tmp_path
         return BudgetLedger(*args, clock=fixture_clock)
 
     with patch("oeis_learn.tracking.budget_ledger.BudgetLedger", fixture_ledger):
+        if mode == "exhausted":
+            with pytest.raises(ValueError, match="archive shortfall \\(candidate_limit\\)"):
+                prepare(config, cache, root, backend="python_wasmtime")
+            report = read(root / "archive-preparation-report.json")
+            assert report["candidate_limit"] == 8
+            assert report["stop_reason"] == "candidate_limit"
+            assert report["budget"]["charged_budget_ns"] < 120 * 10**9
+            assert not (root / "prepared.json").exists()
+            return
+        retained_decisions = {}
+        if mode == "interrupted":
+
+            def interrupt(path, *args, **kwargs):
+                if path.parent.name == "decisions" and path.name == "00000016.json":
+                    raise RuntimeError("injected shard interruption")
+                return write(path, *args, **kwargs)
+
+            with patch("oeis_learn.fresh.inputs.write", interrupt):
+                with pytest.raises(RuntimeError, match="injected shard interruption"):
+                    prepare(config, cache, root, backend="python_wasmtime")
+            retained_decisions = {p: file_hash(p) for p in (root / "decisions").glob("*.json")}
+            report = read(root / "archive-preparation-report.json")
+            assert report["stop_reason"] == "interrupted"
+            charged = report["budget"]["charged_budget_ns"]
         manifest = prepare(config, cache, root, backend="python_wasmtime")
+        report = read(root / "archive-preparation-report.json")
+        assert report["stop_reason"] == "target_reached"
+        if mode != "legacy":
+            assert report["candidate_limit"] == 512
+            assert (root / "decisions/00000008.json").exists()
+        if mode == "interrupted":
+            assert report["budget"]["charged_budget_ns"] >= charged
+            assert all(file_hash(p) == sha for p, sha in retained_decisions.items())
         assert not manifest["qualified"]
         assert manifest["files"]["archive-plan.json"]["sha256"] == file_hash(
             root / "archive-plan.json"
