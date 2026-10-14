@@ -1,0 +1,66 @@
+import subprocess
+from unittest.mock import Mock, patch
+
+import pytest
+
+from oeis_learn.container_runtime import Engine, normalized_image
+
+IMAGE = "sha256:" + "a" * 64
+
+
+@pytest.mark.parametrize("name", ["docker", "podman"])
+def test_role_bounds_and_mounts_are_portable(tmp_path, name):
+    source, output = tmp_path / "inputs", tmp_path / "output"
+    source.mkdir()
+    output.mkdir()
+    engine = Engine(name, executable=name, details={})
+    command = engine.command(
+        image=IMAGE,
+        name="oeis-test",
+        mounts=[(source, "/work/input", False), (output, "/work/output", True)],
+        argv=["python", "worker.py"],
+    )
+    assert command[0] == name and "--network=none" in command
+    assert f"type=bind,src={source},dst=/work/input,readonly" in command
+    assert "--privileged" not in command and "--runtime=crun" not in command
+    assert not any("sock" in value for value in command)
+    assert command[-2:] == [IMAGE, "worker.py"]
+
+
+def test_podman_rootless_mapping_and_supplementary_groups():
+    engine = Engine(
+        "podman",
+        executable="podman",
+        details={"host": {"security": {"rootless": True}, "ociRuntime": {"name": "crun"}}},
+    )
+    assert "--userns=keep-id" in engine.user_args()
+    assert "--group-add=keep-groups" in engine.user_args()
+
+
+@pytest.mark.parametrize("name", ["docker", "podman"])
+def test_reclamation_is_engine_specific_and_bounded(name):
+    engine = Engine(name, executable=name, details={})
+    with patch.object(engine, "call") as call:
+        engine.remove("oeis-test")
+    args = call.call_args.args[0]
+    assert ("--time=0" in args) == (name == "podman")
+    assert call.call_args.kwargs["timeout"] == 30
+
+
+def test_inspect_normalizes_actual_image_identity():
+    engine = Engine("podman", executable="podman", details={})
+    with patch.object(engine, "call", return_value=Mock(stdout=("a" * 64).encode())):
+        assert engine.image("tag") == IMAGE
+    with pytest.raises(ValueError):
+        normalized_image("tag:latest")
+
+
+def test_cleanup_does_not_swallow_engine_connection_errors():
+    engine = Engine("docker", executable="docker", details={})
+    with patch.object(
+        engine,
+        "call",
+        side_effect=subprocess.CalledProcessError(1, ["docker"], stderr=b"daemon unavailable"),
+    ):
+        with pytest.raises(RuntimeError, match="reclamation"):
+            engine.remove("oeis-test")

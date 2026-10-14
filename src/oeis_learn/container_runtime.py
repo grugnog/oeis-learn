@@ -1,0 +1,218 @@
+"""Standard-library Docker/Podman adapter for host-side orchestration.
+
+All engine calls use the caller's normal engine connection and permissions.
+Workloads never receive the engine executable, connection credentials or socket.
+"""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+IMAGE_ID = re.compile(r"(?:sha256:)?[0-9a-f]{64}")
+
+
+def normalized_image(value):
+    value = value.strip()
+    if not IMAGE_ID.fullmatch(value):
+        raise ValueError("an inspected immutable image ID is required")
+    return value if value.startswith("sha256:") else "sha256:" + value
+
+
+class Engine:
+    def __init__(self, name="auto", *, executable=None, details=None):
+        if name not in {"auto", "docker", "podman"}:
+            raise ValueError("engine must be auto, docker or podman")
+        if name == "auto":
+            failures = []
+            for candidate in ("docker", "podman"):
+                if shutil.which(candidate):
+                    try:
+                        selected = Engine(candidate)
+                        selected.info()
+                        self.__dict__.update(selected.__dict__)
+                        return
+                    except (OSError, RuntimeError) as exc:
+                        failures.append(str(exc))
+            raise RuntimeError("No usable Docker/Podman connection. " + "; ".join(failures))
+        self.name = name
+        self.executable = executable or shutil.which(name)
+        if not self.executable:
+            raise RuntimeError(f"{name} CLI is unavailable; select an installed container engine")
+        self.details = details
+
+    def call(self, args, **kwargs):
+        return subprocess.run([self.executable, *map(str, args)], check=True, **kwargs)
+
+    def info(self):
+        if self.details is None:
+            try:
+                result = self.call(
+                    ["info", "--format", "{{json .}}"], capture_output=True, timeout=30
+                )
+                self.details = json.loads(result.stdout)
+            except (subprocess.SubprocessError, ValueError) as exc:
+                raise RuntimeError(
+                    f"Cannot use {self.name} with this account/connection: {exc}"
+                ) from exc
+        return self.details
+
+    def facts(self):
+        info = self.info()
+        if self.name == "podman":
+            host = info.get("host", {})
+            security = host.get("security", {})
+            return {
+                "engine": self.name,
+                "memory_bytes": host.get("memTotal", 0),
+                "cpus": host.get("cpus", 1),
+                "rootless": security.get("rootless", False),
+                "selinux": security.get("selinuxEnabled", False),
+                "runtime": host.get("ociRuntime", {}).get("name"),
+                "version": info.get("version", {}).get("Version", "unknown"),
+            }
+        return {
+            "engine": self.name,
+            "memory_bytes": info.get("MemTotal", 0),
+            "cpus": info.get("NCPU", 1),
+            "rootless": any("rootless" in str(v) for v in info.get("SecurityOptions", [])),
+            "selinux": any("selinux" in str(v) for v in info.get("SecurityOptions", [])),
+            "runtime": info.get("DefaultRuntime"),
+            "version": info.get("ServerVersion", "unknown"),
+        }
+
+    def image(self, reference):
+        result = self.call(
+            ["image", "inspect", reference, "--format", "{{.Id}}"], capture_output=True, timeout=30
+        )
+        return normalized_image(result.stdout.decode())
+
+    def build(self, root, *, target="gpu", tag="oeis-learn:gpu", base_image=None):
+        args = ["build", "--target", target, "--tag", tag]
+        if base_image:
+            args += ["--build-arg", "GPU_BASE_IMAGE=" + base_image]
+        self.call([*args, str(Path(root).resolve())], timeout=3600)
+        return self.image(tag)
+
+    def user_args(self):
+        facts = self.facts()
+        args = ["--user", f"{os.getuid()}:{os.getgid()}"]
+        if self.name == "podman" and facts["rootless"]:
+            args += ["--userns=keep-id"]
+            if facts["runtime"] == "crun":
+                args += ["--group-add=keep-groups"]
+        if facts["selinux"]:
+            # Explicit mounts remain the access boundary; do not relabel a user's checkout.
+            args += ["--security-opt=label=disable"]
+        return args
+
+    def command(
+        self,
+        *,
+        image,
+        name,
+        mounts,
+        argv,
+        gpu=False,
+        render_node=None,
+        memory_bytes=4 << 30,
+        cpus=2,
+        pids=512,
+        network=False,
+        workdir="/work",
+        environment=None,
+        labels=None,
+        tmp_bytes=64 << 20,
+    ):
+        image = normalized_image(image)
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}", name):
+            raise ValueError("invalid container name")
+        if type(memory_bytes) is not int or memory_bytes <= 0 or not 0 < cpus <= 256:
+            raise ValueError("positive bounded memory/CPU limits required")
+        if not argv or type(gpu) is not bool or type(network) is not bool:
+            raise ValueError("explicit command and device/network capabilities required")
+        args = [
+            self.executable,
+            "run",
+            "--name",
+            name,
+            "--pull=never",
+            "--rm",
+            "--network=" + ("bridge" if network else "none"),
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges",
+            "--memory=" + str(memory_bytes),
+            "--memory-swap=" + str(memory_bytes),
+            "--cpus=" + str(cpus),
+            "--pids-limit=" + str(pids),
+            "--ipc=private",
+            "--shm-size=1g",
+            "--tmpfs",
+            f"/tmp:rw,noexec,nosuid,nodev,size={tmp_bytes},mode=1777",
+            "--tmpfs",
+            "/run:rw,nosuid,nodev,size=16m,mode=755",
+            "--workdir",
+            workdir,
+            *self.user_args(),
+        ]
+        for source, destination, writable in mounts:
+            source = Path(source).resolve(strict=True)
+            if not source.is_dir() or any(c in str(source) + destination for c in (",", "\n")):
+                raise ValueError("regular directory mount with representable paths required")
+            if not destination.startswith("/") or type(writable) is not bool:
+                raise ValueError("explicit absolute mount target and write capability required")
+            args += [
+                "--mount",
+                f"type=bind,src={source},dst={destination}" + ("" if writable else ",readonly"),
+            ]
+        if gpu:
+            node = Path(render_node) if render_node else self.render_node()
+            if not re.fullmatch(r"/dev/dri/renderD[0-9]+", str(node)):
+                raise ValueError("specific ROCm render device required")
+            for path in (Path("/dev/kfd"), node):
+                if not path.is_char_device():
+                    raise RuntimeError(f"ROCm device unavailable on this host: {path}")
+                args += ["--device", str(path)]
+                if not (self.name == "podman" and self.facts()["rootless"]):
+                    args += ["--group-add", str(path.stat().st_gid)]
+        elif render_node:
+            raise ValueError("GPU device is forbidden for a CPU container")
+        for key, value in (environment or {}).items():
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+                raise ValueError("invalid environment name")
+            args += ["--env", f"{key}={value}"]
+        for key, value in (labels or {}).items():
+            args += ["--label", f"{key}={value}"]
+        return [*args, "--entrypoint", argv[0], image, *argv[1:]]
+
+    @staticmethod
+    def render_node():
+        nodes = sorted(p for p in Path("/dev/dri").glob("renderD*") if p.is_char_device())
+        if len(nodes) != 1:
+            raise RuntimeError(
+                "Select --render-node explicitly when zero or multiple render devices are visible"
+            )
+        return nodes[0]
+
+    def remove(self, name):
+        args = ["rm", "--force"]
+        if self.name == "podman":
+            args += ["--time=0", "--ignore"]
+        try:
+            self.call([*args, name], capture_output=True, timeout=30)
+        except subprocess.CalledProcessError as exc:
+            error = (exc.stderr or b"").decode(errors="replace").lower()
+            if not any(v in error for v in ("no such container", "does not exist")):
+                raise RuntimeError(f"Container reclamation failed for {name}: {error}") from exc
+
+    def cleanup(self, label):
+        result = self.call(
+            ["ps", "--all", "--filter", "label=oeis.run=" + label, "--format", "{{.Names}}"],
+            capture_output=True,
+            timeout=30,
+        )
+        for name in result.stdout.decode().splitlines():
+            self.remove(name)
