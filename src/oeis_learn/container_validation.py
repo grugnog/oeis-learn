@@ -7,9 +7,28 @@ import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from .fresh.common import digest, file_hash, read, write
+from .fresh.common import digest, file_hash, lock, read, write
+from contextlib import nullcontext
 
-CPU_NODES = ["tests/unit", "tests/contract"]
+ROOT = Path(__file__).resolve().parents[2]
+CPU_NODES = sorted(
+    {
+        str(p.relative_to(ROOT))
+        for area in ("unit", "contract", "integration")
+        for pattern in (
+            "test_foundation*.py",
+            "test_fresh*.py",
+            "test_container*.py",
+            "test_extended_fresh.py",
+        )
+        for p in (ROOT / "tests" / area).glob(pattern)
+        if p.name
+        not in {"test_foundation_gpu.py", "test_foundation_learning_gpu.py", "test_fresh_gpu.py"}
+    }
+) + [
+    "tests/test_dev_images.py",
+    "tests/integration/test_foundation_gpu.py::test_unavailable_gpu_never_falls_back",
+]
 GPU_NODES = [
     "tests/integration/test_portable_gpu.py",
     "tests/integration/test_fresh_gpu.py",
@@ -18,7 +37,7 @@ GPU_NODES = [
 ]
 
 
-def validate(host, suite, output):
+def _stages(host, suite, output):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     image = host.ensure()
@@ -31,6 +50,8 @@ def validate(host, suite, output):
         }
     )
     gpu = suite == "gpu"
+    if gpu:
+        host.select_gpu()
     stages = [
         (
             "environment",
@@ -43,7 +64,7 @@ def validate(host, suite, output):
                     if gpu
                     else ""
                 )
-                + "print(json.dumps({'torch':torch.__version__,'hip':torch.version.hip,'gpu_available':torch.cuda.is_available()}))",
+                + "print(json.dumps({'torch':torch.__version__,'hip':torch.version.hip,'gpu_available':torch.cuda.is_available(),'devices':[{'name':torch.cuda.get_device_properties(i).name,'total_memory':torch.cuda.get_device_properties(i).total_memory} for i in range(torch.cuda.device_count())]}))",
             ],
         ),
         (
@@ -54,6 +75,7 @@ def validate(host, suite, output):
                 "pytest",
                 "-q",
                 *(GPU_NODES if gpu else CPU_NODES),
+                *([] if gpu else ["-m", "not gpu and not docker"]),
                 "--basetemp=/work/output/pytest",
                 "--junitxml=/work/output/results.xml",
             ],
@@ -85,10 +107,14 @@ def validate(host, suite, output):
                 "suite": suite,
                 "argv": argv,
                 "runtime": host.policy["runtime"],
+                "observed_environment": results.get("environment", {}).get("files"),
             }
         )
-        if receipt.exists():
-            saved = read(receipt)
+        if receipt.exists() and not (gpu and name == "environment"):
+            try:
+                saved = read(receipt)
+            except (OSError, ValueError):
+                saved = {}
             files = saved.get("files", {})
             if (
                 saved.get("identity") == identity
@@ -106,6 +132,7 @@ def validate(host, suite, output):
             image=image,
             name=container,
             mounts=[(inputs, "/work/input", False), (out, "/work/output", True)],
+            auto_remove=False,
             argv=argv,
             gpu=gpu,
             render_node=host.policy.get("render_node") if gpu else None,
@@ -113,6 +140,9 @@ def validate(host, suite, output):
             cpus=host.policy["cpus"],
             workdir="/opt/oeis-build",
             tmp_bytes=2 << 30,
+            labels={
+                "oeis.run": digest([host.policy["workspace"], str(output), "validation"])[7:39]
+            },
             environment={
                 "HOME": "/tmp",
                 "PYTHONPATH": "/opt/oeis-build/src",
@@ -120,6 +150,9 @@ def validate(host, suite, output):
                 "OEIS_TEST_OUTPUT": "/work/output/gpu",
             },
         )
+        # A new launch must produce new evidence, never consume stale JUnit.
+        for stale in out.glob("*.xml"):
+            stale.unlink()
         process = None
         print(f"RUN {name}; log: {out / 'stdout.log'}", flush=True)
         try:
@@ -197,10 +230,26 @@ def validate(host, suite, output):
             raise RuntimeError(
                 f"{name} failed; inspect {out / 'stderr.log'} and {out / 'stdout.log'}"
             ) from exc
-    if gpu:
-        host.pipeline("check")
-    write(
-        output / "validation.json",
-        {"suite": suite, "image": image, "results": results, "qualified": False},
-    )
-    print(json.dumps({"status": "PASS", "output": str(output), "qualified": False}))
+    return image, results
+
+
+def validate(host, suite, output):
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+    token = digest([host.policy["workspace"], str(output), "validation"])[7:39]
+    with lock(output / "validation.lock"):
+        (output / "validation.json").unlink(missing_ok=True)
+        # Do not overlap regression kernels with training in this workspace.
+        with host.gpu_lock() if suite == "gpu" else nullcontext():
+            host.engine.cleanup(token)
+            try:
+                image, results = _stages(host, suite, output)
+            finally:
+                host.engine.cleanup(token)
+        if suite == "gpu":
+            host.pipeline("check")
+        write(
+            output / "validation.json",
+            {"suite": suite, "image": image, "results": results, "qualified": False},
+        )
+        print(json.dumps({"status": "PASS", "output": str(output), "qualified": False}))

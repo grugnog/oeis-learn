@@ -2,6 +2,7 @@
 """Portable foundation host wrapper; foundation_run.py is the public entrypoint."""
 
 import argparse
+from contextlib import contextmanager
 import fcntl
 import json
 import os
@@ -83,10 +84,12 @@ class Host:
         facts = self.engine.facts()
         available = facts["memory_bytes"] or 8 << 30
         memory = (
-            int(args.memory_gib * (1 << 30)) if args.memory_gib else min(16 << 30, available // 2)
+            int(args.memory_gib * (1 << 30))
+            if args.memory_gib is not None
+            else min(16 << 30, available // 2)
         )
         memory = memory // (1 << 20) * (1 << 20)
-        cpus = args.cpus or min(4, facts["cpus"])
+        cpus = args.cpus if args.cpus is not None else min(4, facts["cpus"])
         if memory < 1 << 30 or memory > available or not 0 < cpus <= facts["cpus"]:
             raise ValueError("requested memory/CPU limits exceed the engine's available resources")
         details = (
@@ -114,6 +117,7 @@ class Host:
             "cpus": cpus,
             "workers": max(1, min(4, int((available - memory) / (2 << 30)))),
             "free_disk_floor_bytes": args.free_disk_gib << 30,
+            "host_free_memory_bytes": int(args.host_free_memory_gib * (1 << 30)),
             "runtime": {
                 "engine": self.engine.name,
                 "engine_version": facts["version"],
@@ -127,7 +131,12 @@ class Host:
         self.policy["runtime"].update(
             {
                 key: self.policy[key]
-                for key in ("workers", "cpu_memory_bytes", "free_disk_floor_bytes")
+                for key in (
+                    "workers",
+                    "cpu_memory_bytes",
+                    "free_disk_floor_bytes",
+                    "host_free_memory_bytes",
+                )
             }
         )
         self.image = None
@@ -150,6 +159,7 @@ class Host:
             image=self.ensure(),
             name=name,
             mounts=[(ROOT, "/workspace", True), (cache, "/cache", True)],
+            auto_remove=False,
             argv=["python", "/opt/oeis-build/scripts/foundation_tasks.py", *argv],
             memory_bytes=self.policy["cpu_memory_bytes"],
             cpus=self.policy["cpus"],
@@ -181,7 +191,26 @@ class Host:
             raise ValueError("controller is not active; use resume to reclaim retained containers")
         os.kill(active["pid"], signal.SIGTERM)
 
+    @contextmanager
+    def gpu_lock(self):
+        state = ROOT / "run-state"
+        state.mkdir(exist_ok=True)
+        with (state / "gpu.lock").open("a+") as held:
+            try:
+                fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise RuntimeError(
+                    "another foundation GPU operation is active in this workspace"
+                ) from None
+            yield
+
+    def select_gpu(self):
+        node = self.policy["render_node"] or str(self.engine.render_node())
+        self.policy["render_node"] = node
+        self.policy["runtime"]["render_node"] = node
+
     def pipeline(self, action, *argv):
+        self.select_gpu()
         run = argv[1] if action == "run" else argv[0] if argv else None
         image = (
             self.ensure()
@@ -192,15 +221,7 @@ class Host:
         token = digest([str(ROOT), run or "probe"])[7:39]
         policy["run_token"] = token
         cap = CAPS[argv[2]] if action == "run" else 300 if action == "check" else 43200
-        state = ROOT / "run-state"
-        state.mkdir(exist_ok=True)
-        with (state / "gpu.lock").open("a+") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                raise RuntimeError(
-                    "another foundation GPU operation is active in this workspace"
-                ) from None
+        with self.gpu_lock():
             self.engine.cleanup(token)
             command = [
                 sys.executable,
@@ -241,6 +262,7 @@ def parser():
     p.add_argument("--memory-gib", type=float)
     p.add_argument("--cpus", type=int)
     p.add_argument("--free-disk-gib", type=int, default=5)
+    p.add_argument("--host-free-memory-gib", type=float, default=1)
     commands = p.add_subparsers(dest="command", required=True)
     commands.add_parser("image").add_argument("operation", choices=["ensure"])
     data = commands.add_parser("data")
@@ -289,8 +311,8 @@ def main(argv=None):
         if args.command == "extended-settings":
             extended_settings(args.benchmark, args.output)
             return 0
-        if args.free_disk_gib < 1:
-            raise ValueError("free disk reserve must be positive")
+        if args.free_disk_gib < 1 or not args.host_free_memory_gib > 0:
+            raise ValueError("disk and host memory reserves must be positive")
         if args.command in {"status", "cancel"}:
             Host.control(args.command, relative(args.run))
             return 0

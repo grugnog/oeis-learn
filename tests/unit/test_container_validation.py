@@ -11,22 +11,31 @@ from tests.unit import test_foundation_local as fixtures
 host = fixtures.host
 
 
-def launch(host, *, skipped=False, missing=False, failure=False):
+def launch(host, *, skipped=False, missing=False, failure=False, environment=b"GPU-A"):
+    pending = {}
+
     def command(**options):
-        out = options["mounts"][1][0]
-        if "pytest" in options["argv"] and not missing:
+        pending.update(options)
+        return ["engine", "run"]
+
+    process = Mock()
+    process.wait.return_value = 1 if failure else 0
+    process.poll.return_value = 0
+
+    def spawn(*args, **kwargs):
+        out = pending["mounts"][1][0]
+        if "-c" in pending["argv"]:
+            kwargs["stdout"].write(environment)
+        if "pytest" in pending["argv"] and not missing:
             (out / "results.xml").write_text(
                 '<testsuite><testcase name="actual">'
                 + ("<skipped/>" if skipped else "")
                 + "</testcase></testsuite>"
             )
-        return ["engine", "run"]
+        return process
 
     host.engine.command.side_effect = command
-    process = Mock()
-    process.wait.return_value = 1 if failure else 0
-    process.poll.return_value = 0
-    return patch("oeis_learn.container_validation.subprocess.Popen", return_value=process)
+    return patch("oeis_learn.container_validation.subprocess.Popen", side_effect=spawn)
 
 
 def test_verified_receipts_skip_but_output_tampering_reruns(host, tmp_path):
@@ -58,3 +67,26 @@ def test_gpu_skips_fail_and_do_not_run_containment(host, tmp_path):
     with launch(host, skipped=True), pytest.raises(RuntimeError):
         validate(host, "gpu", tmp_path / "validation")
     assert read(tmp_path / "validation/gpu-regressions/receipt.json")["status"] == "FAIL"
+
+
+def test_gpu_environment_is_rechecked_and_changed_hardware_invalidates_receipts(host, tmp_path):
+    output = tmp_path / "validation"
+    with patch.object(host, "pipeline"), launch(host) as spawn:
+        validate(host, "gpu", output)
+        assert spawn.call_count == 3
+        validate(host, "gpu", output)
+        assert spawn.call_count == 4
+    with patch.object(host, "pipeline"), launch(host, environment=b"GPU-B") as spawn:
+        validate(host, "gpu", output)
+        assert spawn.call_count == 3
+
+
+def test_failed_rerun_removes_old_summary_and_corrupt_receipt_is_not_a_pass(host, tmp_path):
+    output = tmp_path / "validation"
+    with launch(host):
+        validate(host, "cpu", output)
+    (output / "cpu-regressions/receipt.json").write_text("truncated")
+    with launch(host, missing=True), pytest.raises(RuntimeError):
+        validate(host, "cpu", output)
+    assert not (output / "validation.json").exists()
+    assert read(output / "cpu-regressions/receipt.json")["status"] == "FAIL"

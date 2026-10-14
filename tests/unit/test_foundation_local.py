@@ -35,6 +35,7 @@ def host(tmp_path):
         "runtime": "crun",
         "version": "test",
     }
+    engine.render_node.return_value = "/dev/dri/renderD128"
     engine.image.return_value = IMAGE
     engine.build.return_value = IMAGE
     engine.command.side_effect = lambda **kw: ["podman", "run", kw["name"]]
@@ -160,3 +161,14 @@ def test_main_training_routes_through_cpu_check_and_direct_pipeline(tmp_path):
         factory.return_value.pipeline.assert_called_once_with(
             "run", "inputs", "runs/new", "fresh-extended-12h"
         )
+
+
+def test_selected_gpu_is_frozen_in_runtime_identity(host):
+    host.select_gpu()
+    assert host.policy["runtime"]["render_node"] == "/dev/dri/renderD128"
+
+
+@pytest.mark.parametrize("options", [["--cpus", "0"], ["--memory-gib", "0"]])
+def test_explicit_zero_resource_limits_are_rejected(host, options):
+    with pytest.raises(ValueError, match="memory/CPU"):
+        local.Host(local.parser().parse_args([*options, "image", "ensure"]))

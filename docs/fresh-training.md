@@ -22,14 +22,17 @@ python3 scripts/foundation_run.py --engine podman validate --suite cpu --output 
 python3 scripts/foundation_run.py --engine podman validate --suite gpu --output tmp-validation/gpu
 ```
 
-CPU validation runs unit/contract regressions and native Rust/reference parity.
+CPU validation runs the foundation, fresh-workflow and runtime unit/contract/
+integration regressions plus native Rust/reference parity. Historical experiment
+tests remain available through ordinary pytest, separately from this workflow.
 GPU validation requires actual HIP matrix operations, full-model updates and exact
 checkpoint continuation, checkpoint-to-generation device restoration, deterministic
 loss, G8 learning/cache/FP16 acceptance, then private-role containment probes.
 It fails if a selected GPU regression skips. Every stage writes stdout/stderr,
 JUnit where applicable, and a receipt bound to the image, code, runtime and output
 hashes. Repeats skip verified successful stages; changed inputs or logs invalidate
-them. PASS receipts are written only after container reclamation. A passing smoke
+them. GPU environment checks always rerun and bind subsequent receipts to the
+observed device and runtime. PASS receipts are written only after container reclamation. A passing smoke
 or validation suite is diagnostic evidence, not release qualification.
 
 To reuse a prebuilt image, pass `--image IMAGE` before the subcommand. It is
@@ -120,7 +123,8 @@ Keep it in your usual terminal/session manager. Each run path is single use.
 `--memory-gib 24 --cpus 8` can increase container resources when the host has room;
 use the same options for subsequent commands on that run. Defaults use at most
 half the engine's reported RAM (16 GiB cap) and four CPUs, with a bounded private
-execution worker pool. No unrelated GPU job or inference service is stopped.
+execution worker pool. `--host-free-memory-gib` sets the host reserve (default
+1 GiB); `--free-disk-gib` sets the workspace free-space reserve (default 5 GiB). No unrelated GPU job or inference service is stopped.
 Check hardware availability yourself before committing to a long run.
 
 ## Status, recovery and analysis

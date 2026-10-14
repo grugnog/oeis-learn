@@ -152,6 +152,7 @@ def container_command(policy, image, name, role, inputs, output, command):
         image=image,
         name=name,
         mounts=[(inputs, "/work/input", False), (output, "/work/output", True)],
+        auto_remove=False,
         argv=command,
         gpu=gpu,
         render_node=policy.get("render_node") if gpu else None,
@@ -219,10 +220,13 @@ class Coordinator:
         # wrapper watchdog; killing the client alone is insufficient.
         self.live.pop(name, None)
 
-    def start_workers(self):
+    def start_workers(self, *, deadline=None):
         if self.workers:
             return
-        deadline = time.monotonic() + min(30, self.ledger.remaining())
+        deadline = min(
+            time.monotonic() + min(120, self.ledger.remaining()),
+            deadline if deadline is not None else float("inf"),
+        )
         for n in range(self.policy.get("workers", 4)):
             root = self.root / "workers" / str(n)
             inputs, output = root / "input", root / "output"
@@ -294,10 +298,10 @@ class Coordinator:
         allowance = min(seconds, self.ledger.remaining() - 5)
         if allowance <= 0:
             raise TimeoutError("run lifetime budget exhausted")
-        if role == "evaluator":
-            self.start_workers()
-        name, process = self.spawn(role, inputs, output, operation)
         deadline, heartbeat = time.monotonic() + allowance, time.monotonic()
+        if role == "evaluator":
+            self.start_workers(deadline=deadline)
+        name, process = self.spawn(role, inputs, output, operation)
         pending, issued, free = {}, set(), set(range(self.policy.get("workers", 4)))
         try:
             while process.poll() is None or pending:
@@ -337,8 +341,9 @@ class Coordinator:
                         line.split(":", 1)
                         for line in Path("/proc/meminfo").read_text().splitlines()
                     )
-                    if int(memory["MemAvailable"].split()[0]) * 1024 < 16 << 30:
-                        raise MemoryError("host available memory below 16 GiB")
+                    floor = self.policy.get("host_free_memory_bytes", 1 << 30)
+                    if int(memory["MemAvailable"].split()[0]) * 1024 < floor:
+                        raise MemoryError(f"host available memory below reserve {floor} bytes")
                 queue = output / "runtime-queue"
                 for path in sorted(queue.glob("*.request.json")):
                     if path.name in issued or not free:

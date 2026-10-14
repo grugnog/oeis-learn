@@ -120,7 +120,7 @@ jobs:
             tests/unit/test_container_runtime.py tests/unit/test_container_validation.py \
             tests/unit/test_foundation_roles.py \
             tests/integration/test_foundation_resources.py::test_actual_container_worker_mount_and_device_isolation \
-            --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
+            --basetemp=tmp-engine-evidence/pytest --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

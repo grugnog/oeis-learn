@@ -194,7 +194,18 @@ def test_actual_container_role_views_and_reclamation(tmp_path):
     )
     process = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        stdout, stderr = process.communicate(timeout=30)
+        # Rootless Podman may prepare a user-mapped image layer on first use.
+        # Setup remains bounded independently from candidate execution.
+        try:
+            stdout, stderr = process.communicate(timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            (output / "client.stdout.log").write_bytes(exc.stdout or b"")
+            (output / "client.stderr.log").write_bytes(exc.stderr or b"")
+            diagnostic = subprocess.run(
+                [engine.executable, "inspect", name], capture_output=True, timeout=10
+            )
+            (output / "container-inspect.json").write_bytes(diagnostic.stdout)
+            raise
         assert process.returncode == 0, (stdout, stderr)
         record = load_json((output / "result.json").read_bytes())
         assert record["outcome"] is None and record["outputs"] == ["7"] * 100
@@ -238,3 +249,24 @@ def test_reclamation_is_bounded_and_reaps_the_client(monkeypatch):
     engine.remove.assert_called_once_with("fixture")
     process.kill.assert_called_once()
     process.wait.assert_called_once_with(timeout=5)
+
+
+def test_cold_worker_setup_cannot_extend_callers_deadline(tmp_path, monkeypatch):
+    import time
+    from unittest.mock import Mock
+    from oeis_learn.tracking import role_coordinator as module
+
+    runner = DockerRunner(tmp_path, "sha256:" + "a" * 64, workers=1)
+    slot = {"name": "cold", "process": Mock(), "output": tmp_path / "output"}
+    slot["process"].poll.return_value = None
+    reclaimed = []
+
+    def spawn():
+        runner.services.append(slot)
+        return slot
+
+    monkeypatch.setattr(runner, "_spawn", spawn)
+    monkeypatch.setattr(module, "reclaim", lambda name, process, **kw: reclaimed.append(name))
+    with pytest.raises(RuntimeError, match="bounded worker setup failed"):
+        runner.start(deadline=time.monotonic() - 1)
+    assert reclaimed == ["cold"] and not runner.started

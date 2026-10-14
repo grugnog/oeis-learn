@@ -30,17 +30,20 @@ preserve their explicit status alongside the exit code.
 | `check-certificate --certificate FILE --profile FILE --output DIR` | Fresh bounded scoped replay, independent of neural weights; no automatic WAT theorem. |
 | `census --source FILE --output DIR` | Exact JSON records; independent 20/50/100/120 denominators with offsets/tags and exclusions. |
 | `prepare-release --manifest FILE --config FILE --output DIR` | Hashed indexed source files, authoritative metadata, affine cohort; real structural archive audit still required. |
-| `coordinated-smoke --config FILE --pool DIR --image ID --output DIR` | Host-owned Docker strict GPU updates/containment; `--seconds` and `--resume-run` keep actual budgets/state. |
+| `coordinated-smoke --config FILE --pool DIR --image ID --output DIR` | Host-owned Docker/Podman strict GPU updates/containment; `--seconds` and `--resume-run` keep actual budgets/state. |
 | `qualify-baseline --checkpoint FILE --run-dir DIR --preflight FILE --preflight-config FILE --suites FILE --output DIR` | Actual run-bound G0–G6, native parity, executed GPU containment and non-skipped owning suites. |
 | `diagnose-overflow --strata FILE --output DIR` | Sealed bounded wider-reference traces; optional provenance/archive/holdouts/development; unchecked bytes cannot enter training. |
 | `prepare-measurement` | Explicit archive/cohort/holdouts, G7/G8, baseline report/checkpoint, resolved image and output; `measurement/v2` roles contain no final truth. |
 | `measure --manifest FILE --output DIR [--dry-run]` | Frozen capped diagnostic/live protocol; records explicit failure/unavailable/inconclusive decisions. |
 | `handoff --manifest FILE --output DIR` | Closed enumerated hashed file inventory and readiness selections; copied evidence replay, atomic publication, no inferred authorization. |
 
-The root Dockerfile owns `qualification`, `gpu` and default `smolvm` targets.
+The root Dockerfile owns `qualification` and default `gpu` targets.
+Fresh runs use the standard-library host wrapper `scripts/foundation_run.py`
+with `--engine docker|podman`; see [fresh training](../../../docs/fresh-training.md).
+Generic qualification coordinators also honor `OEIS_CONTAINER_ENGINE`.
 Existing device nodes/numeric groups only; no host driver installation,
 privileged mode, host IPC/network or architecture spoofing. Host coordinator owns
-Docker socket/deadlines; roles have read-only enumerated inputs, bounded output,
-no network/socket and GPU devices only for learner/preflight. See
+the engine connection and deadlines; roles have read-only enumerated inputs, bounded output,
+no network/socket and GPU devices only for learner/preflight/generation. See
 [operations](../../../docs/foundation.md) and [quickstart](../quickstart.md) for
 resource caps, migration, recovery, actual validation and pending acceptance.

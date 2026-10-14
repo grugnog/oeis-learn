@@ -1755,9 +1755,9 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:03e075eb162947e23bf40700f4a9b11a86794885cd144e1a5c65ec620e5ac03b",
+  "implementation_sha256": "sha256:048c2ccfe662a288d079ae05472fc37eea357f4666797e117e74a1b09e487064",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
-  "task_inventory_sha256": "sha256:f04520074a370a9276b17fa38527180764cf17955a629c771a62217366a673f2",
+  "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {
     "path": "specs/007-experiment-foundation/validation/phase-11-dispositions.json",
     "sha256": "sha256:fa6a5408220a63a053e80f83dec81d852c1bca75e5d782591161e662297f3a91"

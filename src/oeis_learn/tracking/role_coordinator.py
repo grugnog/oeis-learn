@@ -72,19 +72,23 @@ class ContainerRunner:
         view.mkdir(parents=True)
         output.mkdir()
         name = "oeis-worker-" + uuid.uuid4().hex
-        process = subprocess.Popen(
-            container_command(
-                engine=self.engine,
-                role="worker",
-                image=self.image,
-                inputs=view,
-                output=output,
-                name=name,
-                command=["python", "-m", "oeis_learn.tracking.role_worker", "serve"],
-            ),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        with (
+            (output / "stdout.log").open("wb") as stdout,
+            (output / "stderr.log").open("wb") as stderr,
+        ):
+            process = subprocess.Popen(
+                container_command(
+                    engine=self.engine,
+                    role="worker",
+                    image=self.image,
+                    inputs=view,
+                    output=output,
+                    name=name,
+                    command=["python", "-m", "oeis_learn.tracking.role_worker", "serve"],
+                ),
+                stdout=stdout,
+                stderr=stderr,
+            )
         slot = dict(name=name, process=process, view=view, output=output)
         with self.mutex:
             self.services.append(slot)
@@ -97,7 +101,9 @@ class ContainerRunner:
                 or time.monotonic() >= deadline
                 or slot["process"].poll() is not None
             ):
-                raise RuntimeError("bounded worker setup failed")
+                raise RuntimeError(
+                    f"bounded worker setup failed; inspect {slot['output'] / 'stderr.log'}"
+                )
             time.sleep(0.01)
 
     def _replace(self):
@@ -116,13 +122,15 @@ class ContainerRunner:
         reclaim(slot["name"], slot["process"], engine=self.engine)
         slot["reclaimed"] = True
 
-    def start(self):
+    def start(self, *, deadline=None):
         if self.started:
             return
         try:
             for _ in range(self.worker_count):
                 self._spawn()
-            deadline = time.monotonic() + 20
+            deadline = min(
+                time.monotonic() + 120, deadline if deadline is not None else float("inf")
+            )
             for slot in self.services:
                 self._ready(slot, deadline)
                 self.slots.put(slot)
@@ -371,7 +379,7 @@ class RoleCoordinator:
             ),
         )
         start = time.monotonic()
-        self.runner.start()
+        self.runner.start(deadline=start + seconds)
         if time.monotonic() >= start + seconds:
             raise TimeoutError("role setup exhausted external deadline")
         from oeis_learn.tracking.foundation_controller import ResourceGuard
