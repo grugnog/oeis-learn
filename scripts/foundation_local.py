@@ -34,6 +34,40 @@ def relative(value):
         raise ValueError("paths must remain inside the registered host checkout") from None
 
 
+def extended_settings(benchmark, output):
+    root = ROOT / relative(benchmark)
+    run = json.loads((root / "run.json").read_bytes())
+    status = json.loads((root / "status.json").read_bytes())
+    if run["settings"]["profile"] != "fresh-benchmark" or status["status"] != "complete":
+        raise ValueError("settings require a successfully completed hardware benchmark")
+    measured = json.loads((root / "roles/benchmark/result.json").read_bytes())["recommended"]
+    if (
+        measured["batch_size"] not in {4, 8, 16, 32, 64}
+        or type(measured["length_buckets"]) is not bool
+    ):
+        raise ValueError("invalid measured batch recommendation")
+    cfg = json.loads((root / "input-manifest.json").read_bytes())["config"]
+    cfg["run"].pop("model", None)
+    cfg["archive"].update(training_prompts=2048, development_structures=128, seconds=7200)
+    cfg["run"].update(
+        profile="fresh-extended-12h",
+        training_seconds=36000,
+        batch_size=measured["batch_size"],
+        length_buckets=measured["length_buckets"],
+    )
+    cfg["run"]["evaluation"].update(tokens=1023, per_group_seconds=60)
+    target = ROOT / relative(output)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        raise ValueError("settings output already exists; keep immutable experiment evidence")
+    with target.open("x") as stream:
+        json.dump(cfg, stream, indent=2)
+        stream.write("\n")
+    print(
+        json.dumps({"output": str(target), "recommended": measured, "qualified": False}, indent=2)
+    )
+
+
 def load_policy(project):
     if not re.fullmatch(r"[a-z][a-z0-9-]{0,19}", project):
         raise ValueError("invalid project name")
@@ -227,10 +261,19 @@ def main(argv=None):
     prepare.add_argument("--output", default="tmp-fresh-inputs-host")
     check = commands.add_parser("check")
     check.add_argument("--inputs", required=True)
-    for operation in ("train", "smoke"):
+    plan = commands.add_parser("extended-settings")
+    plan.add_argument("--benchmark", required=True)
+    plan.add_argument("--output", default="tmp-analysis/fresh-extended-settings.json")
+    for operation in ("train", "smoke", "benchmark"):
         command = commands.add_parser(operation)
         command.add_argument("--inputs", required=True)
         command.add_argument("--run", required=True)
+        if operation == "train":
+            command.add_argument(
+                "--profile",
+                default="fresh-pilot-1h",
+                choices=["fresh-pilot-1h", "fresh-extended-12h"],
+            )
     for operation in ("resume", "status", "cancel", "evaluate", "finalize", "pack"):
         command = commands.add_parser(operation)
         command.add_argument("--run", required=True)
@@ -244,6 +287,9 @@ def main(argv=None):
         if args.command == "pack":
             pack_run(args.run, args.output, checkpoint=args.checkpoint)
             return 0
+        if args.command == "extended-settings":
+            extended_settings(args.benchmark, args.output)
+            return 0
         host = Host(load_policy(args.project))
         if args.command == "image":
             print(host.ensure())
@@ -255,7 +301,7 @@ def main(argv=None):
             host.cpu(
                 "prepare", "--config", relative(args.config), "--output", relative(args.output)
             )
-        elif args.command in {"check", "train", "smoke"}:
+        elif args.command in {"check", "train", "smoke", "benchmark"}:
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=600)
             if args.command == "check":
@@ -269,7 +315,9 @@ def main(argv=None):
                         "run",
                         inputs,
                         run,
-                        "smoke" if args.command == "smoke" else "fresh-pilot-1h",
+                        {"smoke": "smoke", "benchmark": "fresh-benchmark"}.get(
+                            args.command, getattr(args, "profile", "fresh-pilot-1h")
+                        ),
                     )
                 except BaseException as exc:
                     failure = exc

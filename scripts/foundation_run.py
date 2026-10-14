@@ -38,13 +38,14 @@ def configuration(path):
         "run": {"seed", "training_seconds", "evaluation"},
     }
     for section, keys in schemas.items():
-        if set(value[section]) != keys:
+        optional = {"profile", "batch_size", "length_buckets"} if section == "run" else set()
+        if not keys <= set(value[section]) or set(value[section]) - keys - optional:
             raise ValueError(f"unknown/missing {section} configuration")
     if set(value["run"]["evaluation"]) != {"groups", "attempts", "tokens", "per_group_seconds"}:
         raise ValueError("closed evaluation configuration required")
     for section in ("data", "cohort", "archive", "run"):
         for name, number in value[section].items():
-            if name in {"cache", "revision", "evaluation"}:
+            if name in {"cache", "revision", "evaluation", "profile", "length_buckets"}:
                 continue
             if type(number) is not int or number < 0:
                 raise ValueError(f"exact nonnegative integer required: {section}.{name}")
@@ -68,8 +69,16 @@ def configuration(path):
         or not 1 <= value["cohort"]["final_count"] <= 1000
     ):
         raise ValueError("nonempty bounded development/final cohorts required")
-    if not 60 <= value["run"]["training_seconds"] <= 1800:
-        raise ValueError("first sustained pilot training target must be 60..1800 seconds")
+    profile = value["run"].get("profile", "fresh-pilot-1h")
+    if profile not in {"fresh-pilot-1h", "fresh-extended-12h"}:
+        raise ValueError("unknown training profile")
+    maximum = 36000 if profile == "fresh-extended-12h" else 1800
+    if not 60 <= value["run"]["training_seconds"] <= maximum:
+        raise ValueError("training target exceeds the selected profile")
+    if value["run"].get("batch_size", 4) not in {4, 8, 16, 32, 64}:
+        raise ValueError("batch size must be one of 4, 8, 16, 32, 64")
+    if type(value["run"].get("length_buckets", False)) is not bool:
+        raise ValueError("length_buckets must be an explicit boolean")
     evaluation = value["run"]["evaluation"]
     if (
         not 1 <= evaluation["attempts"] <= 32
@@ -111,12 +120,16 @@ def main(argv=None):
     check.add_argument(
         "--inputs-only", action="store_true", help="validate inputs without launching GPU probes"
     )
-    for operation in ("train", "smoke"):
+    for operation in ("train", "smoke", "benchmark"):
         command = commands.add_parser(operation)
         command.add_argument("--inputs", required=True)
         command.add_argument("--run", required=True)
         if operation == "train":
-            command.add_argument("--profile", default="fresh-pilot-1h", choices=["fresh-pilot-1h"])
+            command.add_argument(
+                "--profile",
+                default="fresh-pilot-1h",
+                choices=["fresh-pilot-1h", "fresh-extended-12h"],
+            )
     for operation in ("resume", "status", "cancel", "evaluate", "finalize", "pack"):
         command = commands.add_parser(operation)
         command.add_argument("--run", required=True)
@@ -174,7 +187,7 @@ def main(argv=None):
             print("INPUTS PASS", check_inputs(ROOT / relative(args.inputs))["identity"], flush=True)
             if not args.inputs_only:
                 remote("check")
-        elif args.command in {"train", "smoke"}:
+        elif args.command in {"train", "smoke", "benchmark"}:
             from oeis_learn.fresh.inputs import check_inputs
 
             check_inputs(ROOT / relative(args.inputs))
@@ -183,7 +196,9 @@ def main(argv=None):
                     "run",
                     relative(args.inputs),
                     relative(args.run),
-                    "smoke" if args.command == "smoke" else args.profile,
+                    {"smoke": "smoke", "benchmark": "fresh-benchmark"}.get(
+                        args.command, getattr(args, "profile", "fresh-pilot-1h")
+                    ),
                 )
             finally:
                 if (ROOT / args.run / "run.json").exists():
