@@ -151,11 +151,45 @@ python3 scripts/foundation_local.py prepare \
 ```
 
 This raises the target to 2,048 distinct admitted training prompts and 128
-development structures, with a two-hour preparation budget. It sets the measured
+development structures, with a two-hour preparation budget. Admission uses up to
+64 independent, deterministically seeded generic sampler shards, each bounded
+by the sampler's existing 10,000-draw cap. The first shard retains the original
+stream. Shard seeds, sampler configuration and admission decisions are frozen;
+each archive packet remains independently replayable. The two-hour lifetime
+budget applies across all shards, and sampling stops as soon as both targets
+are reached. This removes candidate exhaustion as the immediate limit; it does
+not guarantee sufficient distinct prompt yield within the time budget.
+It sets the measured
 batch/order configuration, a 1,023-token generation limit and up to 60 seconds
 per evaluation group. Preparation may still fail if the bounded admission target
 is not reached; retain its journal rather than weakening the target or refunding
 time. It never downloads OEIS sequences individually.
+
+If an older extended preset stopped at counter 9,999 with time remaining, it
+exhausted its single sampler shard. Repeating that frozen input set cannot draw
+new candidates. After updating and rebuilding the image, preserve the old
+journal, generate new settings and use a new input directory. The completed
+GPU benchmark still supplies the batch recommendation; bulk downloads are reused:
+
+```bash
+git pull --ff-only
+sudo -v
+python3 scripts/foundation_local.py image ensure
+python3 scripts/foundation_local.py extended-settings \
+  --benchmark runs/fresh-benchmark-001 \
+  --output tmp-analysis/fresh-extended-settings-002.json
+sudo -v
+python3 scripts/foundation_local.py prepare \
+  --config tmp-analysis/fresh-extended-settings-002.json \
+  --output tmp-fresh-inputs-extended-002
+```
+
+Only after preparation succeeds, pass `--inputs tmp-fresh-inputs-extended-002`
+to the extended training command. Within one unchanged preparation/runtime,
+repeating `prepare` restores admitted packets, skips saved decisions and charges
+the same lifetime ledger. Changing the frozen shard count or runtime requires
+a new input set. Failure reports disclose the candidate limit and distinguish
+`candidate_limit`, `lifetime_budget` and interruption from successful completion.
 
 ```bash
 sudo -v

@@ -149,6 +149,7 @@ def prepare(config, cache, output, *, backend="rust"):
         observe(archive.freeze()["entries"])
         ledger.transition("bootstrap")
         reasons = Counter()
+        stop_reason = "interrupted"
         try:
             with FoundationRunner(
                 root / "execution",
@@ -246,6 +247,12 @@ def prepare(config, cache, output, *, backend="rust"):
                             f"ADMIT counter={counter}/{series.limit} shard={counter // sampler_config['max_attempts']} train={len(training)}/{spec['training_prompts']} structural_dev={len(development)}/{spec['development_structures']} remaining={ledger.remaining_ns()/1e9:.0f}s",
                             flush=True,
                         )
+            stop_reason = (
+                "target_reached"
+                if len(training) >= spec["training_prompts"]
+                and len(development) >= spec["development_structures"]
+                else "lifetime_budget" if ledger.remaining_ns() <= 0 else "candidate_limit"
+            )
         finally:
             ledger.transition("paused")
             write(
@@ -259,6 +266,7 @@ def prepare(config, cache, output, *, backend="rust"):
                     "reasons": dict(reasons),
                     "sampling_shards": series.shards,
                     "candidate_limit": series.limit,
+                    "stop_reason": stop_reason,
                     "budget": ledger.snapshot(),
                 },
             )
@@ -266,7 +274,11 @@ def prepare(config, cache, output, *, backend="rust"):
             len(training) < spec["training_prompts"]
             or len(development) < spec["development_structures"]
         ):
-            raise ValueError("archive shortfall; journal and remaining lifetime budget retained")
+            raise ValueError(
+                f"archive shortfall ({stop_reason}): train={len(training)}/{spec['training_prompts']}, "
+                f"structural_dev={len(development)}/{spec['development_structures']}, "
+                f"candidate_limit={series.limit}; journal and remaining lifetime budget retained"
+            )
         release = root / "release"
         if not release.exists():
             prepare_release(root / "indexed-source/manifest.json", root / "cohort.yaml", release)

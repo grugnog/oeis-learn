@@ -138,6 +138,7 @@ def test_settings_from_completed_benchmark_need_no_sudo_or_host_policy(tmp_path)
         )
     output = cli.configuration(tmp_path / "tmp-plan.json")
     assert output["archive"]["training_prompts"] == 2048
+    assert output["archive"]["sampling_shards"] == 64
     assert output["run"]["evaluation"]["tokens"] == 1023
     assert output["run"]["batch_size"] == 16
 
