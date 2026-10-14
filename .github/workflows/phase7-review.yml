@@ -96,12 +96,12 @@ jobs:
             cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/
             cp crates/oeis_wasm_evaluator/build.rs /evidence/build-info/
             rustfmt --edition 2021 /evidence/build-info/src/*.rs /evidence/build-info/build.rs
-            cd /workspace
+            cd /opt/oeis-build
             python -m oeis_learn.evaluation.repair_gate --output /evidence
             python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
-            PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase8.py --evidence /evidence
+            PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build python scripts/verify_phase8.py --evidence /evidence
             oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
-            PYTHONPATH=/workspace/src:/workspace python scripts/verify_phase9.py --evidence /evidence
+            PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build python scripts/verify_phase9.py --evidence /evidence
             oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
           '
       - uses: actions/upload-artifact@v4
