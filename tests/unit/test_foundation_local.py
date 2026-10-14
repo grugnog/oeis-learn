@@ -123,6 +123,116 @@ def test_image_ensure_reuses_one_immutable_identity(host):
     }
 
 
+def test_terminal_authentication_precedes_broker_json_request(host):
+    with (
+        patch.object(local.sys.stdin, "isatty", return_value=True),
+        patch.object(
+            local.subprocess,
+            "run",
+            side_effect=[Mock(returncode=0), Mock(stdout=(IMAGE + "\n").encode())],
+        ) as run,
+    ):
+        assert host.ensure() == IMAGE
+    assert run.call_args_list[0].args[0] == ["sudo", "-v"]
+    assert run.call_args_list[0].kwargs == {"check": True}
+    assert json.loads(run.call_args_list[1].kwargs["input"])["op"] == "ensure"
+
+
+def test_expired_ticket_after_input_check_is_renewed_before_training(host, tmp_path):
+    transitions = []
+    authenticated = False
+
+    def checked(*args, **kwargs):
+        nonlocal authenticated
+        authenticated = False
+        transitions.append("inputs-pass")
+
+    def command(argv, **kwargs):
+        nonlocal authenticated
+        if argv == ["sudo", "-v"]:
+            authenticated = True
+            transitions.append("authenticate")
+        else:
+            assert authenticated
+            request = json.loads(kwargs["input"])
+            assert request["argv"] == ["run", "inputs", "runs/long", "fresh-extended-12h"]
+            transitions.append("start-broker")
+        return Mock(returncode=0)
+
+    with (
+        patch.object(local, "ROOT", tmp_path),
+        patch.object(local, "load_policy", return_value=host.policy),
+        patch.object(local, "Host", return_value=host),
+        patch.object(host, "cpu", side_effect=checked),
+        patch.object(local.sys.stdin, "isatty", return_value=True),
+        patch.object(local.subprocess, "run", side_effect=command),
+    ):
+        assert (
+            local.main(
+                [
+                    "train",
+                    "--profile",
+                    "fresh-extended-12h",
+                    "--inputs",
+                    "inputs",
+                    "--run",
+                    "runs/long",
+                ]
+            )
+            == 0
+        )
+    assert transitions == ["inputs-pass", "authenticate", "start-broker"]
+
+
+def test_long_image_build_authentication_is_renewed_before_cpu_transition(host):
+    transitions = []
+    authenticated = False
+
+    def command(argv, **kwargs):
+        nonlocal authenticated
+        if argv == ["sudo", "-v"]:
+            authenticated = True
+            transitions.append("authenticate")
+        elif "input" in kwargs:
+            assert authenticated
+            authenticated = False  # Simulate expiry while the image builds.
+            transitions.append("build-image")
+            return Mock(stdout=(IMAGE + "\n").encode())
+        else:
+            assert authenticated and argv[:4] == ["sudo", "-n", "-u", "labgpu-oeis-learn"]
+            transitions.append("start-cpu")
+        return Mock(returncode=0)
+
+    with (
+        patch.object(local.sys.stdin, "isatty", return_value=True),
+        patch.object(local.subprocess, "run", side_effect=command),
+    ):
+        host.cpu("prepare", "--output", "inputs")
+    assert transitions == ["authenticate", "build-image", "authenticate", "start-cpu"]
+
+
+def test_authentication_failure_does_not_issue_broker_request(host):
+    with (
+        patch.object(local.sys.stdin, "isatty", return_value=True),
+        patch.object(
+            local.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["sudo", "-v"])
+        ) as run,
+        pytest.raises(subprocess.CalledProcessError),
+    ):
+        host.broker("foundation", "run", "inputs", "runs/new", "smoke")
+    run.assert_called_once_with(["sudo", "-v"], check=True)
+
+
+def test_noninteractive_broker_retains_noninteractive_sudo(host):
+    with (
+        patch.object(local.sys.stdin, "isatty", return_value=False),
+        patch.object(local.subprocess, "run", return_value=Mock(returncode=0)) as run,
+    ):
+        host.broker("foundation", "status", "runs/long")
+    run.assert_called_once()
+    assert run.call_args.args[0][:3] == ["sudo", "-n", "--"]
+
+
 @pytest.mark.parametrize("value", ["tag:latest", "a" * 63, "sha256:" + "g" * 64])
 def test_mutable_or_malformed_image_identity_rejects(host, value):
     with (
@@ -146,6 +256,9 @@ def test_cpu_container_uses_native_bind_and_no_gpu_or_transport_socket(host, ope
     )
     with (
         patch.object(host, "ensure", return_value=IMAGE),
+        patch.object(
+            host, "authenticate", side_effect=AssertionError("rootless child must not authenticate")
+        ),
         patch.object(local.subprocess, "run", return_value=Mock(returncode=0)) as run,
     ):
         host.cpu_worker(IMAGE, argv, 600)

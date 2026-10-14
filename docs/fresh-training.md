@@ -20,6 +20,12 @@ true`. The host entrypoint needs only Python's standard library and your host
 sudo access; model/native dependencies remain in the image. Run as your usual
 host user, not with `sudo python` against checkout code:
 
+When started from a terminal, the wrapper renews sudo authentication immediately
+before each privileged transition. If a long image build or input check outlasts
+the ticket, it prompts in your terminal before starting the next stage. The
+broker request remains a separate noninteractive JSON call. Noninteractive
+launches require valid cached credentials or the host's existing sudo policy.
+
 ```bash
 # On the lab host, from the registered OEIS checkout:
 sudo -v
@@ -56,8 +62,14 @@ python3 scripts/foundation_local.py pack \
 Packaging runs directly as your host user using the standard-library bundle
 writer, so it needs no container, GPU image, or sudo credentials. CPU commands
 enter the project account once and perform cleanup there; an expired sudo ticket
-cannot prevent cleanup at the end of a long preparation run. Run `sudo -v` again
-before starting a new privileged command if the ticket has expired.
+cannot prevent cleanup at the end of a long preparation run. Terminal launches
+refresh authentication before the next broker/project-account transition.
+
+If an older wrapper prints `INPUTS PASS` followed by `sudo: a password is
+required`, the GPU run has not been issued and no training archive is expected.
+After updating the wrapper, repeat the original `train` command with the same
+unused run directory; it will authenticate after input verification. Once a
+run has actually been issued, use `resume` to preserve its existing budget.
 
 Status/cancel bypass image rebuilding and GPU acquisition, using the existing
 host broker's control path. The final pilot remains capped at one hour and
