@@ -132,9 +132,18 @@ def test_mutable_or_malformed_image_identity_rejects(host, value):
         host.ensure()
 
 
-@pytest.mark.parametrize("network", [False, True])
-def test_cpu_container_uses_native_bind_and_no_gpu_or_transport_socket(host, network):
-    argv = ["data", "fetch"] if network else ["prepare", "--output", "tmp-host"]
+@pytest.mark.parametrize("operation", ["fetch", "prepare", "seal"])
+def test_cpu_container_uses_native_bind_and_no_gpu_or_transport_socket(host, operation):
+    network = operation == "fetch"
+    argv = (
+        ["data", "fetch"]
+        if network
+        else (
+            ["seal-inputs", "--inputs", "inputs", "--accept-shortfall"]
+            if operation == "seal"
+            else ["prepare", "--output", "tmp-host"]
+        )
+    )
     with (
         patch.object(host, "ensure", return_value=IMAGE),
         patch.object(local.subprocess, "run", return_value=Mock(returncode=0)) as run,
@@ -203,7 +212,13 @@ def test_cpu_uses_one_sudo_transition_with_project_worker_cleanup(host):
 
 
 @pytest.mark.parametrize(
-    "argv", [["train"], ["check", "--inputs", "tmp-inputs"], ["data", "other"]]
+    "argv",
+    [
+        ["train"],
+        ["check", "--inputs", "tmp-inputs"],
+        ["data", "other"],
+        ["seal-inputs", "--inputs", "inputs"],
+    ],
 )
 def test_cpu_worker_rejects_nested_gpu_or_unknown_operations(host, argv):
     with pytest.raises(ValueError):

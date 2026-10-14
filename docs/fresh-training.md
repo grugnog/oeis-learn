@@ -162,8 +162,8 @@ not guarantee sufficient distinct prompt yield within the time budget.
 It sets the measured
 batch/order configuration, a 1,023-token generation limit and up to 60 seconds
 per evaluation group. Preparation may still fail if the bounded admission target
-is not reached; retain its journal rather than weakening the target or refunding
-time. It never downloads OEIS sequences individually.
+is not reached; retain its journal and budget. It never downloads OEIS sequences
+individually.
 
 If an older extended preset stopped at counter 9,999 with time remaining, it
 exhausted its single sampler shard. Repeating that frozen input set cannot draw
@@ -213,6 +213,43 @@ Use `status`, `cancel`, `resume` and `pack` with the same host entrypoint as
 above. Upload `tmp-analysis/fresh-host-12h-001.zip` when it finishes. This remains
 diagnostic work on a finite cohort; historical compatibility and spec-007 release
 gates remain pending. No deployment or live GPU benchmark is claimed by CPU tests.
+
+### Seal a near-complete extended diagnostic
+
+If the full two-hour budget ends with at least 1,946 of the requested 2,048
+distinct training prompts (95%) and the structural-development target is met,
+the existing archive can be explicitly sealed for this diagnostic. For example,
+2,008 training prompts and 2,017 development structures are sufficient. This
+does not rewrite the requested target, reset the budget or execute new
+candidates. The retained source, holdouts, archive packets/provenance and
+exhausted ledger are checked before export. Original admission runtime evidence
+is retained even after rebuilding the image for the sealing command.
+
+After updating and rebuilding, seal the existing input directory:
+
+```bash
+git pull --ff-only
+sudo -v
+python3 scripts/foundation_local.py image ensure
+sudo -v
+python3 scripts/foundation_local.py seal-inputs \
+  --inputs tmp-fresh-inputs-extended-002 --accept-shortfall
+sudo -v
+python3 scripts/foundation_local.py train \
+  --profile fresh-extended-12h \
+  --inputs tmp-fresh-inputs-extended-002 --run runs/fresh-host-12h-001
+```
+
+Only train after sealing succeeds. `admission-completion.json` records the
+requested and actual training counts, explicit shortfall acceptance, original
+charged budget and validation counts. It is included in the published run and
+analysis ZIP. All admitted development evidence remains in the archive, while
+the exported learner validation view is deterministically limited to its
+configured target (128), avoiding thousands of unintended validation examples.
+An interrupted sealing export can be rerun with the same command. Inputs below
+95%, a development shortfall, an unexhausted/missing ledger or changed evidence
+are rejected. This exception applies only to extended diagnostics and does not
+satisfy any historical compatibility or spec-007 release qualification gate.
 
 ## Install the host integration once
 

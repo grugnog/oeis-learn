@@ -473,6 +473,7 @@ def publish(job, destination):
         "input-manifest.json",
         "issuance.json",
         "early-stop.json",
+        "admission-completion.json",
     ):
         path = job / name
         if path.exists():
@@ -670,6 +671,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 and completion.get("actual_training_prompts") == count
                 and completion.get("minimum_training_prompts") == 1946
                 and 1946 <= count < 2048
+                and completion.get("qualified") is False
+                and completion.get("exported_development_structures")
+                == len(examples["development"])
+                and manifest["config"]["archive"]["training_prompts"] == 2048
+                and completion.get("budget", {}).get("status") == "paused"
+                and completion.get("budget", {}).get("charged_budget_ns", 0)
+                >= manifest["config"]["archive"]["seconds"] * 10**9
                 and completion == read(inputs / "admission-completion.json")
             )
             if profile == "fresh-extended-12h" and (
@@ -721,6 +729,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             run["identity"] = digest(run)
             write(job / "run.json", run, immutable=True)
             write(job / "preparation-report.json", read(inputs / "archive-preparation-report.json"))
+            if manifest.get("admission_completion") is not None:
+                write(
+                    job / "admission-completion.json",
+                    manifest["admission_completion"],
+                    immutable=True,
+                )
         else:
             run = read(job / "run.json")
             if run["image"] != image:

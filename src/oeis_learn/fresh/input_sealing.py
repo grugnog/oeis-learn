@@ -56,7 +56,7 @@ def seal(output):
         report = read(root / "archive-preparation-report.json")
         if report.get("stop_reason") != "lifetime_budget":
             raise ValueError("partial seal requires lifetime-budget exhaustion")
-        if not (root / "archive-budget").is_dir():
+        if not any((root / "archive-budget/budget-events").glob("*.jsonl")):
             raise ValueError("original preparation ledger required")
         # Reopen the original identity/cap. This never issues another allowance.
         ledger = BudgetLedger(
@@ -66,6 +66,12 @@ def seal(output):
         )
         if ledger.remaining_ns() > 0 or ledger.snapshot()["status"] != "paused":
             raise ValueError("partial seal requires an exhausted, paused original ledger")
+        retained_budget = report["budget"]
+        if (
+            retained_budget["charged_budget_ns"] != ledger.snapshot()["charged_budget_ns"]
+            or retained_budget["run_id"] != ledger.snapshot()["run_id"]
+        ):
+            raise ValueError("preparation report differs from original exhausted budget")
         holdouts = load_holdouts(read(root / "holdouts.json"))
         if holdouts.identity() != plan["holdouts"]:
             raise ValueError("frozen holdouts changed")
@@ -83,7 +89,7 @@ def seal(output):
             len(training),
             len(development),
             file_hash(root / "archive-plan.json"),
-            ledger.snapshot(),
+            retained_budget,
         )
         rows, _ = read_indexed_source(root / "indexed-source/manifest.json")
         built = build_cohort(rows, affine=True, **config["cohort"])
