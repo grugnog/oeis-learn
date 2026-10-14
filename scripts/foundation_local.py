@@ -168,12 +168,14 @@ class Host:
             raise ValueError("CPU worker must run as the registered rootless project account")
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", image):
             raise ValueError("immutable CPU image required")
-        if not argv or argv[0] not in {"data", "prepare", "check"}:
+        if not argv or argv[0] not in {"data", "prepare", "check", "seal-inputs"}:
             raise ValueError("invalid CPU operation")
         if argv[0] == "data" and argv[1:2] != ["fetch"]:
             raise ValueError("only bulk fetch is a CPU data operation")
         if argv[0] == "check" and "--inputs-only" not in argv:
             raise ValueError("CPU check cannot launch nested GPU requests")
+        if argv[0] == "seal-inputs" and "--accept-shortfall" not in argv:
+            raise ValueError("partial sealing requires explicit acceptance")
         if not 1 <= timeout <= 14400:
             raise ValueError("CPU deadline must be 1..14400 seconds")
         policy, account = self.policy, self.account
@@ -261,6 +263,9 @@ def main(argv=None):
     prepare = commands.add_parser("prepare")
     prepare.add_argument("--config", default="configs/foundation/fresh_pilot.yaml")
     prepare.add_argument("--output", default="tmp-fresh-inputs-host")
+    seal = commands.add_parser("seal-inputs")
+    seal.add_argument("--inputs", required=True)
+    seal.add_argument("--accept-shortfall", action="store_true", required=True)
     check = commands.add_parser("check")
     check.add_argument("--inputs", required=True)
     plan = commands.add_parser("extended-settings")
@@ -303,6 +308,8 @@ def main(argv=None):
             host.cpu(
                 "prepare", "--config", relative(args.config), "--output", relative(args.output)
             )
+        elif args.command == "seal-inputs":
+            host.cpu("seal-inputs", "--inputs", relative(args.inputs), "--accept-shortfall")
         elif args.command in {"check", "train", "smoke", "benchmark"}:
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=600)

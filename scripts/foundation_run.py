@@ -120,6 +120,9 @@ def main(argv=None):
     prepare = commands.add_parser("prepare")
     prepare.add_argument("--config", default="configs/foundation/fresh_pilot.yaml")
     prepare.add_argument("--output", default="tmp-fresh-inputs")
+    seal = commands.add_parser("seal-inputs")
+    seal.add_argument("--inputs", required=True)
+    seal.add_argument("--accept-shortfall", action="store_true", required=True)
     check = commands.add_parser("check")
     check.add_argument("--inputs", required=True)
     check.add_argument(
@@ -150,7 +153,21 @@ def main(argv=None):
             command.add_argument("--checkpoint", action="store_true")
     args = parser.parse_args(argv)
     try:
-        if args.command in {"data", "prepare"}:
+        if args.command == "seal-inputs":
+            from oeis_learn.fresh.input_sealing import seal
+
+            result = seal(ROOT / relative(args.inputs))
+            print(
+                json.dumps(
+                    {
+                        "identity": result["identity"],
+                        "completion": result.get("admission_completion"),
+                        "qualified": False,
+                    },
+                    indent=2,
+                )
+            )
+        elif args.command in {"data", "prepare"}:
             config = configuration(ROOT / args.config)
             cache = ROOT / relative(ROOT / config["data"]["cache"])
             if args.command == "data":

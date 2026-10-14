@@ -473,6 +473,7 @@ def publish(job, destination):
         "input-manifest.json",
         "issuance.json",
         "early-stop.json",
+        "admission-completion.json",
     ):
         path = job / name
         if path.exists():
@@ -662,11 +663,29 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if len(examples["training"]) < 128 or not examples["development"]:
                 raise ValueError("admitted training/development input shortfall")
             config = manifest["config"]["run"]
+            count = len({digest(row["values"]) for row in examples["training"]})
+            completion = manifest.get("admission_completion", {})
+            accepted_partial = (
+                completion.get("mode") == "accepted_shortfall"
+                and completion.get("requested_training_prompts") == 2048
+                and completion.get("actual_training_prompts") == count
+                and completion.get("minimum_training_prompts") == 1946
+                and 1946 <= count < 2048
+                and completion.get("qualified") is False
+                and completion.get("exported_development_structures")
+                == len(examples["development"])
+                and manifest["config"]["archive"]["training_prompts"] == 2048
+                and completion.get("budget", {}).get("status") == "paused"
+                and completion.get("budget", {}).get("charged_budget_ns", 0)
+                >= manifest["config"]["archive"]["seconds"] * 10**9
+                and completion == read(inputs / "admission-completion.json")
+            )
             if profile == "fresh-extended-12h" and (
-                config.get("profile") != profile
-                or len({digest(row["values"]) for row in examples["training"]}) < 2048
+                config.get("profile") != profile or (count < 2048 and not accepted_partial)
             ):
-                raise ValueError("extended training requires its config and 2048 admitted prompts")
+                raise ValueError(
+                    "extended training requires 2048 prompts or an explicit >=95% partial seal"
+                )
             if profile == "fresh-pilot-1h" and config["training_seconds"] > 1800:
                 raise ValueError("long training configuration requires the extended profile")
             settings = {
@@ -710,6 +729,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             run["identity"] = digest(run)
             write(job / "run.json", run, immutable=True)
             write(job / "preparation-report.json", read(inputs / "archive-preparation-report.json"))
+            if manifest.get("admission_completion") is not None:
+                write(
+                    job / "admission-completion.json",
+                    manifest["admission_completion"],
+                    immutable=True,
+                )
         else:
             run = read(job / "run.json")
             if run["image"] != image:
