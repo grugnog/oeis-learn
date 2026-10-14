@@ -22,6 +22,15 @@ def normalized_image(value):
 
 
 class Engine:
+    @classmethod
+    def from_config(cls, config):
+        name = config.get("engine", "docker")
+        return cls(
+            name,
+            executable=config.get("engine_executable", name),
+            details=config.get("engine_info", {}),
+        )
+
     def __init__(self, name="auto", *, executable=None, details=None):
         if name not in {"auto", "docker", "podman"}:
             raise ValueError("engine must be auto, docker or podman")
@@ -99,6 +108,8 @@ class Engine:
     def user_args(self):
         facts = self.facts()
         args = ["--user", f"{os.getuid()}:{os.getgid()}"]
+        if self.name == "docker" and facts["rootless"]:
+            args = ["--user", "0:0"]  # Namespace root maps to the unprivileged engine owner.
         if self.name == "podman" and facts["rootless"]:
             args += ["--userns=keep-id"]
             if facts["runtime"] == "crun":
@@ -125,6 +136,7 @@ class Engine:
         environment=None,
         labels=None,
         tmp_bytes=64 << 20,
+        auto_remove=True,
     ):
         image = normalized_image(image)
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}", name):
@@ -139,7 +151,6 @@ class Engine:
             "--name",
             name,
             "--pull=never",
-            "--rm",
             "--network=" + ("bridge" if network else "none"),
             "--read-only",
             "--cap-drop=ALL",
@@ -158,6 +169,8 @@ class Engine:
             workdir,
             *self.user_args(),
         ]
+        if auto_remove:
+            args += ["--rm"]
         for source, destination, writable in mounts:
             source = Path(source).resolve(strict=True)
             if not source.is_dir() or any(c in str(source) + destination for c in (",", "\n")):
@@ -169,15 +182,7 @@ class Engine:
                 f"type=bind,src={source},dst={destination}" + ("" if writable else ",readonly"),
             ]
         if gpu:
-            node = Path(render_node) if render_node else self.render_node()
-            if not re.fullmatch(r"/dev/dri/renderD[0-9]+", str(node)):
-                raise ValueError("specific ROCm render device required")
-            for path in (Path("/dev/kfd"), node):
-                if not path.is_char_device():
-                    raise RuntimeError(f"ROCm device unavailable on this host: {path}")
-                args += ["--device", str(path)]
-                if not (self.name == "podman" and self.facts()["rootless"]):
-                    args += ["--group-add", str(path.stat().st_gid)]
+            args += self.device_args(render_node)
         elif render_node:
             raise ValueError("GPU device is forbidden for a CPU container")
         for key, value in (environment or {}).items():
@@ -187,6 +192,19 @@ class Engine:
         for key, value in (labels or {}).items():
             args += ["--label", f"{key}={value}"]
         return [*args, "--entrypoint", argv[0], image, *argv[1:]]
+
+    def device_args(self, render_node=None):
+        args = []
+        node = Path(render_node) if render_node else self.render_node()
+        if not re.fullmatch(r"/dev/dri/renderD[0-9]+", str(node)):
+            raise ValueError("specific ROCm render device required")
+        for path in (Path("/dev/kfd"), node):
+            if not path.is_char_device():
+                raise RuntimeError(f"ROCm device unavailable on this host: {path}")
+            args += ["--device", str(path)]
+            if not (self.name == "podman" and self.facts()["rootless"]):
+                args += ["--group-add", str(path.stat().st_gid)]
+        return args
 
     @staticmethod
     def render_node():
@@ -216,3 +234,9 @@ class Engine:
         )
         for name in result.stdout.decode().splitlines():
             self.remove(name)
+
+
+def resolve_engine(engine=None):
+    if engine is None or isinstance(engine, str):
+        return Engine(engine or os.environ.get("OEIS_CONTAINER_ENGINE", "auto"))
+    return engine

@@ -147,8 +147,9 @@ def benchmark(inputs, output):
             trials.append(trial)
             write(output / "progress.json", {"trials": trials})
             print(f"BENCH batch={size} buckets={bucketed}: {trial['status']}", flush=True)
-    winner = choose_trial(trials)
     properties = torch.cuda.get_device_properties(torch.cuda.current_device())
+    memory_limit = int(properties.total_memory * 0.7)
+    winner = choose_trial(trials, memory_limit_bytes=memory_limit)
     return {
         "version": "fresh-benchmark/v1",
         "trials": trials,
@@ -161,5 +162,6 @@ def benchmark(inputs, output):
         "device_memory_bytes": properties.total_memory,
         "runtime": runtime("cuda"),
         "qualified": False,
-        "selection": "within5percent of fastest, smaller batch; <=48GiB peak",
+        "selection": "within5percent of fastest, smaller batch; <=70percent device memory peak",
+        "memory_limit_bytes": memory_limit,
     }

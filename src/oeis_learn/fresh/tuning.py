@@ -17,13 +17,13 @@ def permutation(rows, generator, batch_size, buckets=False):
     return [index for i in sequence for index in batches[i]]
 
 
-def choose_trial(trials):
+def choose_trial(trials, *, memory_limit_bytes=None):
     eligible = [
         t
         for t in trials
         if t["status"] == "PASS"
         and t["steps"] >= 3
-        and t["peak_allocated_bytes"] <= 48 << 30
+        and (memory_limit_bytes is None or t["peak_allocated_bytes"] <= memory_limit_bytes)
         and math.isfinite(t["tokens_per_second"])
         and t["tokens_per_second"] > 0
     ]

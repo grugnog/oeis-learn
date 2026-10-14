@@ -58,7 +58,7 @@ def test_measured_selection_prefers_small_near_optimal_safe_batch():
         trial(4, float("nan")),
         trial(4, 10000, steps=2),
     ]
-    assert choose_trial(trials)["batch_size"] == 8
+    assert choose_trial(trials, memory_limit_bytes=48 << 30)["batch_size"] == 8
     with pytest.raises(ValueError, match="no benchmark"):
         choose_trial([trial(4, 5000, status="OOM")])
 
@@ -122,7 +122,7 @@ def test_settings_from_completed_benchmark_need_no_sudo_or_host_policy(tmp_path)
     )
     with (
         patch.object(local, "ROOT", tmp_path),
-        patch.object(local, "load_policy", side_effect=AssertionError("sudo")),
+        patch.object(local, "Host", side_effect=AssertionError("no engine required")),
     ):
         assert (
             local.main(
@@ -145,7 +145,6 @@ def test_settings_from_completed_benchmark_need_no_sudo_or_host_policy(tmp_path)
 
 def expanded_environment(tmp_path):
     workspace, policy = run_environment(tmp_path)
-    policy["foundationTimeout"] = 44100
     root = workspace / "inputs"
     examples = read(root / "examples.json")
     examples["training"] = [
@@ -237,14 +236,6 @@ def test_benchmark_has_only_public_training_view_and_can_reuse_completed_result(
             == 0
         )
     assert read(workspace / "runs/bench/status.json")["status"] == "complete"
-
-
-def test_extended_requires_deployed_watchdog_before_issuance(tmp_path):
-    workspace, policy = expanded_environment(tmp_path)
-    policy["foundationTimeout"] = 4200
-    with pytest.raises(ValueError, match="deployed"):
-        host.execute(policy, "image", ["run", "inputs", "runs/long", "fresh-extended-12h"])
-    assert not (workspace / "runs/long/run.json").exists()
 
 
 def test_benchmark_step_performs_real_supervised_update_and_tracks_padding():

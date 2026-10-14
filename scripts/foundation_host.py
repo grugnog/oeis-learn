@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Rootless host coordinator, extracted from the pinned image by lab-gpu.
-
-Standard library only. The host broker owns the GPU lease and outer deadline.
-Roles receive private mounts; no container runtime socket enters a role.
-"""
+"""Portable host coordinator with private role mounts and durable deadlines."""
 
 import fcntl
 import json
@@ -19,6 +15,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from oeis_learn.container_runtime import Engine
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/oeis_learn/fresh"))
 from common import canonical, confined, digest, file_hash, inventory, read, write
 
@@ -144,51 +143,28 @@ def snapshot_file(root, name, destination, ref):
         os.close(fd)
 
 
-def podman_command(policy, image, name, role, inputs, output, command):
-    worker = role == "worker"
+def container_command(policy, image, name, role, inputs, output, command):
     if role not in {"learner", "generation", "evaluator", "worker", "probe"}:
         raise ValueError("unknown role")
-    args = [
-        policy["podman"],
-        "--runtime=crun",
-        "run",
-        "--rm",
-        "--pull=never",
-        "--name",
-        name,
-        "--label",
-        "lab.foundation=" + policy["project"],
-        "--network=none",
-        "--read-only",
-        "--read-only-tmpfs=false",
-        "--image-volume=ignore",
-        "--cap-drop=ALL",
-        "--security-opt=no-new-privileges",
-        "--userns=keep-id",
-        "--user",
-        f"{os.getuid()}:{os.getgid()}",
-        "--group-add=keep-groups",
-        "--memory=" + ("1g" if worker else "88g"),
-        "--memory-swap=" + ("1g" if worker else "88g"),
-        "--cpus=" + ("1" if worker else "4"),
-        "--pids-limit=" + ("64" if worker else "512"),
-        "--ipc=private",
-        "--shm-size=1g",
-        "--tmpfs",
-        "/tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777",
-        "--workdir=/work",
-        "--mount",
-        f"type=bind,src={inputs},target=/work/input,ro",
-        "--mount",
-        f"type=bind,src={output},target=/work/output,rw",
-        "--env",
-        "PYTHONPATH=/opt/oeis-build/src",
-        "--env",
-        "OMP_NUM_THREADS=" + ("1" if worker else "4"),
-    ]
-    if role in {"learner", "generation", "probe"}:
-        args += ["--device=/dev/kfd", "--device=" + policy["renderNode"]]
-    return args + ["--entrypoint", command[0], image, *command[1:]]
+    worker = role == "worker"
+    gpu = role in {"learner", "generation", "probe"}
+    return Engine.from_config(policy).command(
+        image=image,
+        name=name,
+        mounts=[(inputs, "/work/input", False), (output, "/work/output", True)],
+        argv=command,
+        gpu=gpu,
+        render_node=policy.get("render_node") if gpu else None,
+        memory_bytes=(1 << 30) if worker else policy.get("memory_bytes", 16 << 30),
+        cpus=1 if worker else policy.get("cpus", 4),
+        pids=64 if worker else 512,
+        environment={
+            "PYTHONPATH": "/opt/oeis-build/src",
+            "OMP_NUM_THREADS": str(1 if worker else policy.get("cpus", 4)),
+            "HOME": "/tmp",
+        },
+        labels={"oeis.run": policy.get("run_token", digest(str(inputs))[7:39])},
+    )
 
 
 class Coordinator:
@@ -197,17 +173,18 @@ class Coordinator:
         self.root.mkdir(parents=True, exist_ok=True)
         self.live = {}
         self.workers = []
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=policy.get("workers", 4))
+        self.engine = Engine.from_config(policy)
 
     def spawn(self, role, inputs, output, operation, *, worker=False):
         output.mkdir(parents=True, exist_ok=True)
-        name = "lab-foundation-" + self.policy["project"] + "-" + uuid.uuid4().hex
+        name = "oeis-role-" + uuid.uuid4().hex
         command = (
             ["python", "-m", "oeis_learn.tracking.role_worker", "serve"]
             if worker
             else ["python", "-m", "oeis_learn.fresh.worker", operation]
         )
-        args = podman_command(self.policy, self.image, name, role, inputs, output, command)
+        args = container_command(self.policy, self.image, name, role, inputs, output, command)
         write(
             output / "launch.json",
             {
@@ -233,25 +210,20 @@ class Coordinator:
         if process is None:
             return
         try:
-            subprocess.run(
-                [self.policy["podman"], "rm", "--force", "--time=0", "--ignore", name],
-                check=True,
-                timeout=30,
-                capture_output=True,
-            )
+            self.engine.remove(name)
         finally:
             if process.poll() is None:
                 process.kill()
             process.wait(timeout=5)
         # A failed removal stays tracked for another cleanup attempt and the
-        # broker's independent fallback; killing the client alone is insufficient.
+        # wrapper watchdog; killing the client alone is insufficient.
         self.live.pop(name, None)
 
     def start_workers(self):
         if self.workers:
             return
         deadline = time.monotonic() + min(30, self.ledger.remaining())
-        for n in range(4):
+        for n in range(self.policy.get("workers", 4)):
             root = self.root / "workers" / str(n)
             inputs, output = root / "input", root / "output"
             inputs.mkdir(parents=True)
@@ -326,7 +298,7 @@ class Coordinator:
             self.start_workers()
         name, process = self.spawn(role, inputs, output, operation)
         deadline, heartbeat = time.monotonic() + allowance, time.monotonic()
-        pending, issued, free = {}, set(), set(range(4))
+        pending, issued, free = {}, set(), set(range(self.policy.get("workers", 4)))
         try:
             while process.poll() is None or pending:
                 if time.monotonic() >= deadline:
@@ -351,8 +323,10 @@ class Coordinator:
                             ),
                         },
                     )
-                    if shutil.disk_usage(self.root).free < 100 << 30:
-                        raise OSError("host free disk below 100 GiB")
+                    if shutil.disk_usage(self.root).free < self.policy.get(
+                        "free_disk_floor_bytes", 5 << 30
+                    ):
+                        raise OSError("workspace disk reserve exhausted")
                     used = 0
                     for base, _, files in os.walk(self.root.parent):
                         for filename in files:
@@ -494,15 +468,6 @@ def publish(job, destination):
                 output.flush()
                 os.fsync(output.fileno())
             temporary.replace(target)
-    # GPU-owned directories can inherit other::--- through the shared host ACL.
-    # Publish read/traverse bits only within this enumerated public output tree.
-    for base, dirs, _ in os.walk(destination):
-        for directory in [Path(base), *(Path(base) / name for name in dirs)]:
-            if directory.is_symlink():
-                raise ValueError("symlink publication directory")
-            info = directory.stat()
-            if info.st_uid == os.geteuid():
-                directory.chmod(info.st_mode | 0o075)
 
 
 def evaluation(job, coordinator, ledger, settings, checkpoint, split, label):
@@ -565,14 +530,24 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
     action = argv[0]
     workspace = Path(policy["workspace"])
     if action == "check":
-        root = Path(policy["home"]) / "foundation-checks" / uuid.uuid4().hex
+        root = Path(policy["state_root"]) / "checks" / uuid.uuid4().hex
         ledger = Ledger(root, digest([image, str(root)]), 300)
         ledger.record("probe")
         coordinator = coordinator_factory(root / "roles", policy, image, ledger)
         try:
             results = []
             for role, gpu in (("probe", True), ("worker", False)):
-                inputs = copy_view(root / (role + "-input"), {"settings.json": {"gpu": gpu}})
+                inputs = copy_view(
+                    root / (role + "-input"),
+                    {
+                        "settings.json": {
+                            "gpu": gpu,
+                            "memory_bytes": (
+                                policy.get("memory_bytes", 16 << 30) if gpu else 1 << 30
+                            ),
+                        }
+                    },
+                )
                 results.append(
                     coordinator.run("probe", role, inputs, root / (role + "-output"), 120)
                 )
@@ -597,7 +572,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
     destination = confined(workspace, output_name)
     if not (output_name.startswith(("runs/", "tmp-"))):
         raise ValueError("run outputs must be inside runs/ or a top-level tmp-* directory")
-    job = Path(policy["home"]) / "foundation" / digest(output_name)[7:]
+    job = Path(policy["state_root"]) / digest(output_name)[7:]
     if action == "status":
         print(json.dumps(read(job / "status.json")))
         return 0
@@ -615,8 +590,6 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             profile = argv[3]
             if profile not in PROFILES:
                 raise ValueError("unknown fresh profile")
-            if profile == "fresh-extended-12h" and policy.get("foundationTimeout", 0) < 44100:
-                raise ValueError("extended profile requires deployed foundationTimeout >=44100")
             if (job / "run.json").exists():
                 old = read(job / "run.json")
                 requested = read(confined(workspace, argv[1]) / "prepared.json")
@@ -712,12 +685,14 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "learning_rate": 0.0003,
                     "checkpoint_every_seconds": 60,
                     "checkpoint_reserve_seconds": 20,
-                    "free_disk_floor_bytes": 100 << 30,
+                    "free_disk_floor_bytes": policy.get("free_disk_floor_bytes", 5 << 30),
+                    "cpu_threads": policy.get("cpus", 4),
                     "examples_sha256": digest(examples),
                 },
             }
             run = {
                 "version": "fresh-run/v1",
+                "runtime": policy.get("runtime", {}),
                 "image": image,
                 "inputs_identity": manifest["identity"],
                 "settings": settings,
@@ -737,6 +712,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 )
         else:
             run = read(job / "run.json")
+            if run.get("runtime", {}) != policy.get("runtime", {}):
+                raise ValueError(
+                    "engine, resources or coordinator changed; resume with the original runtime settings"
+                )
             if run["image"] != image:
                 raise ValueError("image changed; continuation needs the original runtime")
             settings = run["settings"]

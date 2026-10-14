@@ -29,7 +29,12 @@ class Process:
 
 
 def coordinator(root):
-    return host.Coordinator(root, {"podman": "podman", "project": "fixture"}, "image", None)
+    return host.Coordinator(
+        root,
+        {"engine": "podman", "engine_executable": "podman", "project": "fixture"},
+        "image",
+        None,
+    )
 
 
 def test_persistent_worker_removal_skips_stop_grace_and_reaps_client(tmp_path):
@@ -69,7 +74,10 @@ def test_removal_failure_remains_tracked_and_can_be_retried(tmp_path, failure):
         "interrupt": KeyboardInterrupt(),
     }[failure]
     try:
-        with patch.object(host.subprocess, "run", side_effect=error), pytest.raises(type(error)):
+        with (
+            patch.object(host.subprocess, "run", side_effect=error),
+            pytest.raises(RuntimeError if failure == "nonzero" else type(error)),
+        ):
             controller.reclaim("worker")
         assert controller.live == {"worker": process}
         assert process.returncode == -9 and process.kills == 1
@@ -174,7 +182,7 @@ def test_probe_reports_pass_only_after_cleanup(tmp_path, capsys, cleanup_error):
         ),
     ):
         host.execute(
-            {"workspace": str(tmp_path), "home": str(tmp_path / "private")},
+            {"workspace": str(tmp_path), "state_root": str(tmp_path / "private")},
             "image",
             ["check"],
             coordinator_factory=Probe,

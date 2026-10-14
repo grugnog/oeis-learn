@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 spec = importlib.util.spec_from_file_location(
-    "fresh_cli", Path(__file__).parents[2] / "scripts/foundation_run.py"
+    "fresh_cli", Path(__file__).parents[2] / "scripts/foundation_tasks.py"
 )
 cli = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cli)
@@ -37,17 +37,10 @@ def test_unknown_or_unbounded_configuration_rejects(tmp_path, change):
         cli.configuration(path)
 
 
-def test_effective_model_is_explicit_and_copied_client_is_used(tmp_path):
+def test_effective_model_is_explicit():
     value = cli.configuration(cli.ROOT / "configs/foundation/fresh_pilot.yaml")
     assert value["run"]["model"]["encoder"] == "integer_bytes/v1"
     assert value["run"]["model"]["attention_backend"] == "eager"
-    (tmp_path / "system").mkdir()
-    (tmp_path / "system/lab-gpu.py").write_text("# updated client")
-    with patch.object(cli, "ROOT", tmp_path), patch.object(cli.subprocess, "run") as run:
-        cli.remote("run", "inputs", "runs/new", "smoke")
-        argv = run.call_args.args[0]
-        assert argv[:3] == [cli.sys.executable, str(tmp_path / "system/lab-gpu.py"), "client"]
-        assert "foundation" in argv and "exec" not in argv
 
 
 def test_resume_does_not_accept_new_settings_or_budget():
@@ -132,11 +125,6 @@ def test_check_can_validate_cpu_inputs_without_nested_gpu_transport(
     with (
         patch.object(cli, "ROOT", tmp_path),
         patch.object(inputs, "check_inputs", return_value={"identity": "input-identity"}) as check,
-        patch.object(cli, "remote") as remote,
     ):
         assert cli.main(argv) == 0
         check.assert_called_once_with(tmp_path / "tmp-inputs")
-        if inputs_only:
-            remote.assert_not_called()
-        else:
-            remote.assert_called_once_with("check")

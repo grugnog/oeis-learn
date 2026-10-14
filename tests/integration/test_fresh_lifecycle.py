@@ -143,10 +143,11 @@ def run_environment(tmp_path):
     fixture_inputs(workspace / "inputs")
     policy = {
         "workspace": str(workspace),
-        "home": str(tmp_path / "private"),
-        "podman": "podman",
+        "state_root": str(tmp_path / "private"),
+        "engine": "podman",
+        "engine_executable": "podman",
         "project": "test",
-        "renderNode": "/dev/dri/renderD128",
+        "render_node": "/dev/dri/renderD128",
     }
     return workspace, policy
 

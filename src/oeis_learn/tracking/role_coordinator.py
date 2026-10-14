@@ -1,21 +1,22 @@
 """Host-owned role views and kill deadlines. No Docker socket enters any role.
 
-One 88-GiB learner/generator/evaluator plus <=8 one-GiB candidate workers.
+One bounded learner/generator/evaluator plus <=8 one-GiB candidate workers.
 Worker requests are exact source/indices/limits messages, never host commands.
 """
 
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
-from pathlib import Path
 import shutil
 import subprocess
+import threading
 import time
 import uuid
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
+from dataclasses import asdict
+from pathlib import Path
 from queue import Queue
 
-from oeis_learn.experiments.artifacts import ArtifactPath, canonical_bytes, atomic_write, load_json
+from oeis_learn.container_runtime import resolve_engine
+from oeis_learn.experiments.artifacts import ArtifactPath, atomic_write, canonical_bytes, load_json
 from oeis_learn.sandbox.pipeline import ExecutionEvidence, Limits, digest_bytes
 from oeis_learn.tracking.foundation_container import container_command
 from oeis_learn.tracking.foundation_metrics import EventLog
@@ -37,28 +38,22 @@ def copy_view(root, files):
     return root
 
 
-def reclaim(name, process):
-    deadline = time.monotonic() + 2
+def reclaim(name, process, *, engine=None):
     try:
-        removed = subprocess.run(
-            ["docker", "rm", "--force", name],
-            timeout=max(0, deadline - time.monotonic()),
-            capture_output=True,
-        )
-        if removed.returncode:
-            raise RuntimeError("Docker cgroup reclamation failed")
+        resolve_engine(engine).remove(name)
     finally:
         if process.poll() is None:
             process.kill()
-        process.wait(timeout=max(0, deadline - time.monotonic()))
+        process.wait(timeout=5)
 
 
 class DockerRunner:
     """Host candidate service; each request is durably issued before its container starts."""
 
-    def __init__(self, root, image, *, workers=4):
+    def __init__(self, root, image, *, workers=4, engine=None):
         if type(workers) is not int or not 1 <= workers <= 8:
             raise ValueError("worker cap8")
+        self.engine = engine
         self.root, self.image = Path(root), image
         self.root.mkdir(parents=True, exist_ok=True)
         self.log = EventLog(self.root / "events")
@@ -79,6 +74,7 @@ class DockerRunner:
         name = "oeis-worker-" + uuid.uuid4().hex
         process = subprocess.Popen(
             container_command(
+                engine=self.engine,
                 role="worker",
                 image=self.image,
                 inputs=view,
@@ -117,7 +113,7 @@ class DockerRunner:
                 return
         except RuntimeError:
             pass
-        reclaim(slot["name"], slot["process"])
+        reclaim(slot["name"], slot["process"], engine=self.engine)
         slot["reclaimed"] = True
 
     def start(self):
@@ -206,14 +202,14 @@ class DockerRunner:
                         raise RuntimeError("worker service exited")
                     time.sleep(0.001)
                 else:
-                    reclaim(slot["name"], slot["process"])
+                    reclaim(slot["name"], slot["process"], engine=self.engine)
                     slot["reclaimed"] = True
                     self.maintenance.submit(self._replace)
                 request_path.unlink(missing_ok=True)
                 result_path.unlink(missing_ok=True)
         except BaseException:
             if slot is not None and not slot.get("reclaimed"):
-                reclaim(slot["name"], slot["process"])
+                reclaim(slot["name"], slot["process"], engine=self.engine)
                 slot["reclaimed"] = True
                 self.maintenance.submit(self._replace)
             raise
@@ -250,11 +246,12 @@ class DockerRunner:
         self.maintenance.shutdown(wait=True, cancel_futures=True)
         failures = []
         live = [slot for slot in self.services if not slot.get("reclaimed")]
-        # Reap concurrently so the two-second reclamation allowance is not
+        # Reap concurrently so the bounded reclamation allowance is not
         # multiplied by the number of worker cgroups.
         with ThreadPoolExecutor(max_workers=self.worker_count) as reaper:
             futures = [
-                (slot, reaper.submit(reclaim, slot["name"], slot["process"])) for slot in live
+                (slot, reaper.submit(reclaim, slot["name"], slot["process"], engine=self.engine))
+                for slot in live
             ]
             for slot, future in futures:
                 try:
@@ -306,10 +303,19 @@ class QueueRunner:
 
 
 class RoleCoordinator:
-    def __init__(self, root, image, *, workers=4, render_node=None):
+    def __init__(self, root, image, *, workers=4, render_node=None, engine=None, resources=None):
+        self.engine = engine
+        self.resources = dict(
+            memory_bytes=16 << 30,
+            cpus=4,
+            free_floor_bytes=5 << 30,
+            host_floor_bytes=1 << 30,
+            quota_bytes=200 << 30,
+        )
+        self.resources.update(resources or {})
         self.root, self.image, self.render_node = Path(root), image, render_node
         self.root.mkdir(parents=True, exist_ok=True)
-        self.runner = DockerRunner(self.root / "workers", image, workers=workers)
+        self.runner = DockerRunner(self.root / "workers", image, workers=workers, engine=engine)
         self.log = EventLog(self.root / "roles")
         from oeis_learn.tracking.foundation_controller import run_lock
 
@@ -340,6 +346,9 @@ class RoleCoordinator:
         output.mkdir(parents=True, exist_ok=True)
         command = ["python", "-m", "oeis_learn.tracking.role_worker", operation]
         argv = container_command(
+            engine=self.engine,
+            memory_bytes=self.resources["memory_bytes"],
+            cpus=self.resources["cpus"],
             role=role,
             image=self.image,
             inputs=inputs,
@@ -367,7 +376,11 @@ class RoleCoordinator:
             raise TimeoutError("role setup exhausted external deadline")
         from oeis_learn.tracking.foundation_controller import ResourceGuard
 
-        guard = ResourceGuard(self.root.parent, free_floor=20 << 30)
+        guard = ResourceGuard(
+            self.root.parent,
+            free_floor=self.resources["free_floor_bytes"],
+            quota_bytes=self.resources["quota_bytes"],
+        )
         stdout = (output / "role.stdout.log").open("wb")
         stderr = (output / "role.stderr.log").open("wb")
         try:
@@ -389,24 +402,28 @@ class RoleCoordinator:
                         name + "-resources-" + str(int(now - start)),
                         dict(
                             host=resources,
-                            host_floor=16 << 30,
-                            quota=200 << 30,
-                            free_floor=20 << 30,
+                            host_floor=self.resources["host_floor_bytes"],
+                            quota=self.resources["quota_bytes"],
+                            free_floor=self.resources["free_floor_bytes"],
                         ),
                     )
                     try:
                         rows = dict(
-                            l.split(":", 1) for l in Path("/proc/meminfo").read_text().splitlines()
+                            line.split(":", 1)
+                            for line in Path("/proc/meminfo").read_text().splitlines()
                         )
                         low_samples = (
                             low_samples + 1
-                            if int(rows["MemAvailable"].split()[0]) * 1024 < 16 << 30
+                            if int(rows["MemAvailable"].split()[0]) * 1024
+                            < self.resources["host_floor_bytes"]
                             else 0
                         )
                     except (OSError, ValueError, KeyError):
                         raise RuntimeError("host reserve monitor unavailable")
                     if low_samples >= 2:
-                        raise MemoryError("host available memory below16GiB for two samples")
+                        raise MemoryError(
+                            "host available memory below configured reserve for two samples"
+                        )
                 for path in sorted(queue.glob("*.request.json")):
                     if path.name in issued:
                         continue
@@ -442,10 +459,12 @@ class RoleCoordinator:
                         del futures[key]
                 time.sleep(0.01)
             if process.returncode:
-                raise RuntimeError(f"role container failed with exit {process.returncode}; see {output / 'role.stderr.log'}")
+                raise RuntimeError(
+                    f"role container failed with exit {process.returncode}; see {output / 'role.stderr.log'}"
+                )
             return load_json((output / "result.json").read_bytes())
         finally:
-            reclaim(name, process)
+            reclaim(name, process, engine=self.engine)
             for future, _ in futures.values():
                 try:
                     future.result()
@@ -462,3 +481,7 @@ class RoleCoordinator:
             self.runner.close()
         finally:
             self.locks.close()
+
+
+# Historical public name remains import-compatible; both engines use this runner.
+ContainerRunner = DockerRunner

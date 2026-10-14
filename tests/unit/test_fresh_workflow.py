@@ -192,13 +192,23 @@ def test_durable_budget_pause_crash_recovery_and_no_refund(tmp_path):
         crashed.record("paused")
 
 
-def test_private_commands_worker_has_no_devices_or_workspace(tmp_path):
-    policy = {"podman": "podman", "project": "fixture", "renderNode": "/dev/dri/renderD128"}
+def test_private_commands_worker_has_no_devices_or_workspace(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        host.Engine, "device_args", lambda self, node: ["--device", "/dev/kfd", "--device", node]
+    )
+    policy = {
+        "engine": "podman",
+        "engine_executable": "podman",
+        "project": "fixture",
+        "render_node": "/dev/dri/renderD128",
+    }
     coordinator = host.Coordinator(tmp_path / "controller", policy, "sha256:" + "a" * 64, None)
     assert coordinator.root.is_dir()
     coordinator.close()
     for role in ("learner", "generation", "evaluator", "worker"):
-        argv = host.podman_command(
+        (tmp_path / "in").mkdir(exist_ok=True)
+        (tmp_path / "out").mkdir(exist_ok=True)
+        argv = host.container_command(
             policy,
             "sha256:" + "a" * 64,
             "role",
@@ -210,9 +220,9 @@ def test_private_commands_worker_has_no_devices_or_workspace(tmp_path):
         assert not any("target=/workspace" in a for a in argv)
         assert not any("docker.sock" in a for a in argv)
         assert "--network=none" in argv and "--read-only" in argv
-        assert any(a.endswith("target=/work/input,ro") for a in argv)
+        assert any(a.endswith("dst=/work/input,readonly") for a in argv)
         assert any(a.startswith("--device") for a in argv) == (role in {"learner", "generation"})
-        assert "--memory=1g" in argv if role == "worker" else "--memory=88g" in argv
+        assert "--memory=" + str((1 if role == "worker" else 16) << 30) in argv
 
 
 def test_snapshot_hash_and_symlink_rejection(tmp_path):
@@ -268,14 +278,14 @@ def test_bundle_log_and_metrics_sampling_is_explicit(tmp_path):
         assert len(archive.read("roles/train-1/stdout.log")) == 1 << 20
 
 
-def test_publication_restores_directory_traversal_and_rejects_links(tmp_path):
+def test_publication_preserves_user_permissions_and_rejects_links(tmp_path):
     job, output = tmp_path / "private", tmp_path / "public"
     write(job / "status.json", {"status": "interrupted"})
     write(job / "roles/train-1/stdout.log", b"readable log")
     (output / "roles/train-1").mkdir(parents=True)
     (output / "roles/train-1").chmod(0o770)
     host.publish(job, output)
-    assert (output / "roles/train-1").stat().st_mode & 0o005 == 0o005
+    assert (output / "roles/train-1").stat().st_mode & 0o777 == 0o770
     assert (output / "roles/train-1/stdout.log").stat().st_mode & 0o004
     linked = tmp_path / "linked"
     linked.symlink_to(output, target_is_directory=True)

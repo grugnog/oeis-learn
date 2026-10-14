@@ -215,7 +215,6 @@ def test_cli_requires_explicit_acceptance_and_host_routes_offline_cpu(tmp_path):
     with (
         patch.object(local, "ROOT", tmp_path),
         patch.object(local, "Host") as factory,
-        patch.object(local, "load_policy", return_value={}),
     ):
         assert local.main(["seal-inputs", "--inputs", "inputs", "--accept-shortfall"]) == 0
         factory.return_value.cpu.assert_called_once_with(
