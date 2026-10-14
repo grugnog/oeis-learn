@@ -5,6 +5,7 @@ import uuid
 from collections import Counter
 from pathlib import Path
 
+from .admission_sampling import SamplerShards
 from .bulk import import_snapshot
 from .common import digest, file_hash, inventory, lock, read, verify, write
 
@@ -55,7 +56,7 @@ def check_inputs(root):
 def prepare(config, cache, output, *, backend="rust"):
     import yaml
 
-    from oeis_learn.data.generic_programs import GenericSampler, load_sampler_config
+    from oeis_learn.data.generic_programs import load_sampler_config
     from oeis_learn.data.program_admission import validate_sample
     from oeis_learn.data.structural_splits import StructuralHoldouts, split_for_structure
     from oeis_learn.discovery.program_archive import ProgramArchive
@@ -97,8 +98,8 @@ def prepare(config, cache, output, *, backend="rust"):
         holdouts = StructuralHoldouts(seed=config["cohort"]["seed"], reserved_prefixes=prefixes)
         write(root / "holdouts.json", holdout_profile(holdouts), immutable=True)
         sampler_config = load_sampler_config(Path(config["sampler_config"]))
-        sampler = GenericSampler(sampler_config)
         spec = config["archive"]
+        series = SamplerShards(sampler_config, spec.get("sampling_shards", 1))
         plan = {
             "version": "fresh-admission-plan/v1",
             "config": config,
@@ -156,7 +157,7 @@ def prepare(config, cache, output, *, backend="rust"):
                 cache_bytes=128 << 20,
             ) as runner:
                 pending = {}
-                for counter in range(sampler_config["max_attempts"]):
+                for counter in range(series.limit):
                     if (
                         len(training) >= spec["training_prompts"]
                         and len(development) >= spec["development_structures"]
@@ -171,20 +172,22 @@ def prepare(config, cache, output, *, backend="rust"):
                             counter,
                             min(
                                 counter + sampler_config["chunk_size"],
-                                sampler_config["max_attempts"],
+                                series.limit,
                             ),
                         ):
                             if (root / "decisions" / f"{candidate:08d}.json").exists():
                                 continue
-                            draw = sampler.sample(candidate)
-                            if validate_sample(draw, sampler) is None:
+                            draw_sampler, local = series.select(candidate)
+                            draw = draw_sampler.sample(local)
+                            if validate_sample(draw, draw_sampler) is None:
                                 pending[candidate] = runner.pool.submit(
                                     draw["canonical_source"],
                                     list(range(100)),
                                     request_id=contract_digest([digest(plan), candidate]),
                                     deadline_ns=time.monotonic_ns() + ledger.remaining_ns(),
                                 )
-                    sample = sampler.sample(counter)
+                    sampler, local = series.select(counter)
+                    sample = sampler.sample(local)
                     path = root / "decisions" / f"{counter:08d}.json"
                     if path.exists():
                         old = read(path)
@@ -226,7 +229,7 @@ def prepare(config, cache, output, *, backend="rust"):
                                 outputs[:20],
                                 outputs,
                                 origin="generic_sample",
-                                provenance={"config": sampler_config, "sample": sample},
+                                provenance={"config": sampler.config, "sample": sample},
                                 runner=runner,
                                 request_id=request_id,
                             )
@@ -240,7 +243,7 @@ def prepare(config, cache, output, *, backend="rust"):
                     if counter % 25 == 0:
                         ledger.heartbeat()
                         print(
-                            f"ADMIT counter={counter} train={len(training)}/{spec['training_prompts']} structural_dev={len(development)}/{spec['development_structures']} remaining={ledger.remaining_ns()/1e9:.0f}s",
+                            f"ADMIT counter={counter}/{series.limit} shard={counter // sampler_config['max_attempts']} train={len(training)}/{spec['training_prompts']} structural_dev={len(development)}/{spec['development_structures']} remaining={ledger.remaining_ns()/1e9:.0f}s",
                             flush=True,
                         )
         finally:
@@ -254,6 +257,8 @@ def prepare(config, cache, output, *, backend="rust"):
                     "training_body_tokens": sorted(len(r["tokens"]) for r in training.values()),
                     "source_census": built["census"],
                     "reasons": dict(reasons),
+                    "sampling_shards": series.shards,
+                    "candidate_limit": series.limit,
                     "budget": ledger.snapshot(),
                 },
             )

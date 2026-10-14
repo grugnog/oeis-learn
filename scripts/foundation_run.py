@@ -38,7 +38,11 @@ def configuration(path):
         "run": {"seed", "training_seconds", "evaluation"},
     }
     for section, keys in schemas.items():
-        optional = {"profile", "batch_size", "length_buckets"} if section == "run" else set()
+        optional = (
+            {"profile", "batch_size", "length_buckets"}
+            if section == "run"
+            else {"sampling_shards"} if section == "archive" else set()
+        )
         if not keys <= set(value[section]) or set(value[section]) - keys - optional:
             raise ValueError(f"unknown/missing {section} configuration")
     if set(value["run"]["evaluation"]) != {"groups", "attempts", "tokens", "per_group_seconds"}:
@@ -62,6 +66,7 @@ def configuration(path):
         not 128 <= value["archive"]["training_prompts"] <= 10000
         or not 1 <= value["archive"]["development_structures"] <= 1000
         or not 1 <= value["archive"]["seconds"] <= 7200
+        or not 1 <= value["archive"].get("sampling_shards", 1) <= 64
     ):
         raise ValueError("bounded archive targets required")
     if (

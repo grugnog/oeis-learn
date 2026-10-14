@@ -48,7 +48,9 @@ def extended_settings(benchmark, output):
         raise ValueError("invalid measured batch recommendation")
     cfg = json.loads((root / "input-manifest.json").read_bytes())["config"]
     cfg["run"].pop("model", None)
-    cfg["archive"].update(training_prompts=2048, development_structures=128, seconds=7200)
+    cfg["archive"].update(
+        training_prompts=2048, development_structures=128, seconds=7200, sampling_shards=64
+    )
     cfg["run"].update(
         profile="fresh-extended-12h",
         training_seconds=36000,
