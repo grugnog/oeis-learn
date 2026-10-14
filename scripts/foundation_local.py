@@ -101,9 +101,16 @@ class Host:
             raise ValueError("the project container account must be rootless")
         self.image = None
 
+    def authenticate(self):
+        # Image builds and input verification can outlast the terminal's sudo ticket.
+        # Renew immediately before a transition, while stdin still belongs to the user.
+        if sys.stdin.isatty():
+            subprocess.run(["sudo", "-v"], check=True)
+
     def broker(self, operation, *argv, capture=False):
         # Root imports only the installed Nix broker, never this checkout.
         request = {"version": 1, "op": operation, "cwd": ".", "argv": list(argv)}
+        self.authenticate()
         return subprocess.run(
             [
                 "sudo",
@@ -159,7 +166,8 @@ class Host:
             str(timeout),
             json.dumps(argv),
         )
-        # One sudo transition per command. The running project-account worker
+        self.authenticate()
+        # The running project-account worker
         # owns its Podman cleanup even after the administrator's ticket expires.
         return subprocess.run(command, check=True, timeout=timeout + 45, stdin=subprocess.DEVNULL)
 
