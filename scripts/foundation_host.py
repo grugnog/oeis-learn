@@ -662,11 +662,22 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if len(examples["training"]) < 128 or not examples["development"]:
                 raise ValueError("admitted training/development input shortfall")
             config = manifest["config"]["run"]
+            count = len({digest(row["values"]) for row in examples["training"]})
+            completion = manifest.get("admission_completion", {})
+            accepted_partial = (
+                completion.get("mode") == "accepted_shortfall"
+                and completion.get("requested_training_prompts") == 2048
+                and completion.get("actual_training_prompts") == count
+                and completion.get("minimum_training_prompts") == 1946
+                and 1946 <= count < 2048
+                and completion == read(inputs / "admission-completion.json")
+            )
             if profile == "fresh-extended-12h" and (
-                config.get("profile") != profile
-                or len({digest(row["values"]) for row in examples["training"]}) < 2048
+                config.get("profile") != profile or (count < 2048 and not accepted_partial)
             ):
-                raise ValueError("extended training requires its config and 2048 admitted prompts")
+                raise ValueError(
+                    "extended training requires 2048 prompts or an explicit >=95% partial seal"
+                )
             if profile == "fresh-pilot-1h" and config["training_seconds"] > 1800:
                 raise ValueError("long training configuration requires the extended profile")
             settings = {

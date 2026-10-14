@@ -261,6 +261,9 @@ def main(argv=None):
     prepare = commands.add_parser("prepare")
     prepare.add_argument("--config", default="configs/foundation/fresh_pilot.yaml")
     prepare.add_argument("--output", default="tmp-fresh-inputs-host")
+    seal = commands.add_parser("seal-inputs")
+    seal.add_argument("--inputs", required=True)
+    seal.add_argument("--accept-shortfall", action="store_true", required=True)
     check = commands.add_parser("check")
     check.add_argument("--inputs", required=True)
     plan = commands.add_parser("extended-settings")
@@ -303,6 +306,8 @@ def main(argv=None):
             host.cpu(
                 "prepare", "--config", relative(args.config), "--output", relative(args.output)
             )
+        elif args.command == "seal-inputs":
+            host.cpu("seal-inputs", "--inputs", relative(args.inputs), "--accept-shortfall")
         elif args.command in {"check", "train", "smoke", "benchmark"}:
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=600)

@@ -7,7 +7,8 @@ from pathlib import Path
 
 from .admission_sampling import SamplerShards
 from .bulk import import_snapshot
-from .common import digest, file_hash, inventory, lock, read, verify, write
+from .common import digest, file_hash, lock, read, verify, write
+from .input_export import collect, export
 
 
 def check_inputs(root):
@@ -19,6 +20,24 @@ def check_inputs(root):
         raise ValueError("prepared input identity mismatch")
     verify(root, manifest["files"])
     examples = read(root / "examples.json")
+    completion = manifest.get("admission_completion")
+    if completion is not None:
+        from .input_sealing import completion_record
+
+        report = read(root / "archive-preparation-report.json")
+        expected = completion_record(
+            manifest["config"],
+            len({digest(r["values"]) for r in examples["training"]}),
+            report["development_structures"],
+            file_hash(root / "archive-plan.json"),
+            completion["budget"],
+        )
+        if (
+            completion != expected
+            or read(root / "admission-completion.json") != completion
+            or len(examples["development"]) != completion["exported_development_structures"]
+        ):
+            raise ValueError("partial admission completion differs from sealed inputs")
     if (
         len({digest(r["values"]) for r in examples["training"]}) < 128
         or not examples["development"]
@@ -58,12 +77,10 @@ def prepare(config, cache, output, *, backend="rust"):
 
     from oeis_learn.data.generic_programs import load_sampler_config
     from oeis_learn.data.program_admission import validate_sample
-    from oeis_learn.data.structural_splits import StructuralHoldouts, split_for_structure
+    from oeis_learn.data.structural_splits import StructuralHoldouts
     from oeis_learn.discovery.program_archive import ProgramArchive
     from oeis_learn.evaluation.foundation_cohort import build_cohort
     from oeis_learn.evaluation.release_source import (
-        audit_release,
-        prepare_release,
         read_indexed_source,
     )
     from oeis_learn.experiments.artifacts import compute_canonical_digest as contract_digest
@@ -122,29 +139,7 @@ def prepare(config, cache, output, *, backend="rust"):
         training, development = {}, {}
 
         def observe(keys):
-            for key in keys:
-                packet = archive.get(key)
-                entry = packet["entry"]
-                item = {
-                    "program_id": key,
-                    "values": entry["conditioning_values"],
-                    "tokens": packet["tokens"],
-                    "structure": entry["ir_sha256"],
-                }
-                if entry["training_eligible"]:
-                    identity = digest(item["values"])
-                    old = training.get(identity)
-                    if old is None or (len(item["tokens"]), key) < (
-                        len(old["tokens"]),
-                        old["program_id"],
-                    ):
-                        training[identity] = item
-                elif (
-                    split_for_structure(entry["ir_sha256"], holdouts.seed) == "development"
-                    and entry["context_tokens"] <= 1024
-                    and contract_digest(item["values"]) not in holdouts.reserved_prefixes
-                ):
-                    development[entry["ir_sha256"]] = item
+            collect(archive, keys, training, development)
 
         observe(archive.freeze()["entries"])
         ledger.transition("bootstrap")
@@ -279,42 +274,4 @@ def prepare(config, cache, output, *, backend="rust"):
                 f"structural_dev={len(development)}/{spec['development_structures']}, "
                 f"candidate_limit={series.limit}; journal and remaining lifetime budget retained"
             )
-        release = root / "release"
-        if not release.exists():
-            prepare_release(root / "indexed-source/manifest.json", root / "cohort.yaml", release)
-        audit = audit_release(release / "cohort", archive=archive, snapshot=archive.freeze())
-        write(root / "release-source-audit.json", audit, immutable=True)
-        # The learner receives only twenty visible values and full body labels.
-        write(
-            root / "examples.json",
-            {
-                "training": sorted(training.values(), key=lambda x: x["program_id"]),
-                "development": sorted(development.values(), key=lambda x: x["program_id"]),
-            },
-            immutable=True,
-        )
-        truths = {split: [] for split in ("development", "final")}
-        for group in built["groups"]:
-            if group["partition"] in truths:
-                record = built["records"][group["representative"]]
-                truths[group["partition"]].append(
-                    {
-                        "group_id": group["group_id"],
-                        "values": record["values"],
-                        "members": group["members"],
-                    }
-                )
-        write(root / "truth.json", truths, immutable=True)
-        files = inventory(root, exclude=("execution", "decisions", "archive-budget", "release"))
-        manifest = {
-            "version": "fresh-inputs/v1",
-            "config": config,
-            "files": files,
-            "import_report": imported,
-            "archive_snapshot": archive.freeze(),
-            "qualified": False,
-            "purpose": "fresh training diagnostic; historical and release gates remain independent",
-        }
-        manifest["identity"] = digest(manifest)
-        write(root / "prepared.json", manifest, immutable=True)
-        return manifest
+        return export(root, config, imported, built, archive, training, development)
