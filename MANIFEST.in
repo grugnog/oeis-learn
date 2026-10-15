@@ -1,5 +1,4 @@
-include Dockerfile MANIFEST.in uv.lock gpu-project.json
-include scripts/gpu_progress.md
+include Dockerfile MANIFEST.in uv.lock
 include .specify/memory/constitution.md
 include specs/007-experiment-foundation/validation/adoption.md
 include specs/007-experiment-foundation/validation/review-inputs.json
@@ -18,3 +17,5 @@ recursive-include specs/007-experiment-foundation *.md *.json *.py *.yaml *.yml
 include docs/foundation.md USAGE.md
 include .github/workflows/foundation.yml
 include specs/007-experiment-foundation/validation/phase-13-review.md
+
+include AGENTS.md docs/fresh-training.md

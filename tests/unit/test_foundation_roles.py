@@ -1,4 +1,4 @@
-"""Transport/isolation checks; actual Docker acceptance is explicitly gated."""
+"""Transport/isolation checks; actual container acceptance is explicitly gated."""
 
 import os
 import shutil
@@ -16,6 +16,7 @@ from oeis_learn.tracking.role_coordinator import (
     RoleCoordinator,
 )
 from oeis_learn.tracking.foundation_container import container_command
+from oeis_learn.container_runtime import Engine
 from oeis_learn.sandbox.pipeline import Limits
 
 
@@ -99,7 +100,7 @@ def test_deadline_reclaims_then_replaces_without_regenerating_request(tmp_path, 
     runner.slots.put(dead)
     replaced = threading.Event()
     calls = []
-    monkeypatch.setattr(module, "reclaim", lambda name, process: calls.append(name))
+    monkeypatch.setattr(module, "reclaim", lambda name, process, **kwargs: calls.append(name))
 
     def replace():
         assert dead["reclaimed"] and calls == ["timed-out"]
@@ -138,8 +139,11 @@ def test_role_command_is_confined_and_cpu_generation_is_explicit(tmp_path):
         name="fixture",
         command=["python", "-m", "oeis_learn.tracking.role_worker", "generate"],
         gpu=False,
+        engine=Engine("docker", executable="docker", details={}),
     )
-    assert "--network=none" in argv and "--memory=88g" in argv and "--read-only" in argv
+    assert (
+        "--network=none" in argv and "--memory=" + str(16 << 30) in argv and "--read-only" in argv
+    )
     assert not any("docker.sock" in arg or "--device" in arg for arg in argv)
     with pytest.raises(ValueError, match="GPU capability"):
         container_command(
@@ -153,11 +157,14 @@ def test_role_command_is_confined_and_cpu_generation_is_explicit(tmp_path):
         )
 
 
-def test_actual_docker_role_views_and_reclamation(tmp_path):
+def test_actual_container_role_views_and_reclamation(tmp_path):
     image = os.environ.get("OEIS_ROLE_TEST_IMAGE")
     if not image:
-        pytest.skip("actual Docker image required; CPU fixtures do not substitute")
-    assert shutil.which("docker"), "explicit Docker acceptance cannot skip a missing daemon"
+        pytest.skip("actual engine image required; CPU fixtures do not substitute")
+    from oeis_learn.container_runtime import resolve_engine
+
+    engine = resolve_engine()
+    assert shutil.which(engine.executable), "explicit engine acceptance requires its CLI"
     # Execute a real isolated worker with an enumerated read-only view. This test
     # checks cgroup mounts/reclamation, not the workstation's memory reserve.
     source = "i256.const 7"
@@ -177,6 +184,7 @@ def test_actual_docker_role_views_and_reclamation(tmp_path):
     )
     name = "oeis-role-acceptance-" + tmp_path.name
     argv = container_command(
+        engine=engine,
         role="worker",
         image=image,
         inputs=inputs,
@@ -186,7 +194,18 @@ def test_actual_docker_role_views_and_reclamation(tmp_path):
     )
     process = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        stdout, stderr = process.communicate(timeout=30)
+        # Rootless Podman may prepare a user-mapped image layer on first use.
+        # Setup remains bounded independently from candidate execution.
+        try:
+            stdout, stderr = process.communicate(timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            (output / "client.stdout.log").write_bytes(exc.stdout or b"")
+            (output / "client.stderr.log").write_bytes(exc.stderr or b"")
+            diagnostic = subprocess.run(
+                [engine.executable, "inspect", name], capture_output=True, timeout=10
+            )
+            (output / "container-inspect.json").write_bytes(diagnostic.stdout)
+            raise
         assert process.returncode == 0, (stdout, stderr)
         record = load_json((output / "result.json").read_bytes())
         assert record["outcome"] is None and record["outputs"] == ["7"] * 100
@@ -194,18 +213,21 @@ def test_actual_docker_role_views_and_reclamation(tmp_path):
             record["reference_outputs"] == record["outputs"]
             and record["identities"]["backend"] == "rust"
         )
-        info = load_json(subprocess.check_output(["docker", "inspect", name]))[0]
+        info = load_json(subprocess.check_output([engine.executable, "inspect", name]))[0]
         assert info["HostConfig"]["NetworkMode"] == "none"
         assert info["HostConfig"]["ReadonlyRootfs"] and info["HostConfig"]["Memory"] == 1 << 30
-        assert {m["Destination"] for m in info["Mounts"]} == {"/work/input", "/work/output"}
+        assert {m["Destination"] for m in info["Mounts"] if m["Type"] == "bind"} == {
+            "/work/input",
+            "/work/output",
+        }
         assert next(m for m in info["Mounts"] if m["Destination"] == "/work/input")["RW"] is False
     finally:
         from oeis_learn.tracking.role_coordinator import reclaim
 
-        reclaim(name, process)
-    assert subprocess.run(["docker", "inspect", name], capture_output=True).returncode != 0
+        reclaim(name, process, engine=engine)
+    assert subprocess.run([engine.executable, "inspect", name], capture_output=True).returncode != 0
     # A persistent worker retains its runtime cache and is reclaimed as a cgroup.
-    runner = DockerRunner(tmp_path / "live", image, workers=1)
+    runner = DockerRunner(tmp_path / "live", image, workers=1, engine=engine)
     try:
         runner.start()
         for index in range(2):
@@ -216,29 +238,35 @@ def test_actual_docker_role_views_and_reclamation(tmp_path):
         runner.close()
 
 
-def test_reclamation_shares_one_two_second_deadline(monkeypatch):
-    from types import SimpleNamespace
+def test_reclamation_is_bounded_and_reaps_the_client(monkeypatch):
+    from unittest.mock import Mock
     from oeis_learn.tracking import role_coordinator as module
 
-    tick = [10.0]
-    calls = []
+    engine = Mock()
+    process = Mock()
+    process.poll.return_value = None
+    module.reclaim("fixture", process, engine=engine)
+    engine.remove.assert_called_once_with("fixture")
+    process.kill.assert_called_once()
+    process.wait.assert_called_once_with(timeout=5)
 
-    def remove(argv, *, timeout, capture_output):
-        calls.append(("remove", timeout))
-        tick[0] += 1.5
-        return SimpleNamespace(returncode=0)
 
-    class Process:
-        def poll(self):
-            return None
+def test_cold_worker_setup_cannot_extend_callers_deadline(tmp_path, monkeypatch):
+    import time
+    from unittest.mock import Mock
+    from oeis_learn.tracking import role_coordinator as module
 
-        def kill(self):
-            calls.append(("kill", None))
+    runner = DockerRunner(tmp_path, "sha256:" + "a" * 64, workers=1)
+    slot = {"name": "cold", "process": Mock(), "output": tmp_path / "output"}
+    slot["process"].poll.return_value = None
+    reclaimed = []
 
-        def wait(self, *, timeout):
-            calls.append(("wait", timeout))
+    def spawn():
+        runner.services.append(slot)
+        return slot
 
-    monkeypatch.setattr(module.time, "monotonic", lambda: tick[0])
-    monkeypatch.setattr(module.subprocess, "run", remove)
-    module.reclaim("fixture", Process())
-    assert calls == [("remove", 2.0), ("kill", None), ("wait", 0.5)]
+    monkeypatch.setattr(runner, "_spawn", spawn)
+    monkeypatch.setattr(module, "reclaim", lambda name, process, **kw: reclaimed.append(name))
+    with pytest.raises(RuntimeError, match="bounded worker setup failed"):
+        runner.start(deadline=time.monotonic() - 1)
+    assert reclaimed == ["cold"] and not runner.started

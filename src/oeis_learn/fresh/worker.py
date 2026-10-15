@@ -26,7 +26,7 @@ def models(settings):
         raise ValueError("explicit CPU fixture or HIP device required")
     if settings["device"] == "cuda" and (not torch.cuda.is_available() or not torch.version.hip):
         raise RuntimeError("actual HIP accelerator required; no CPU fallback")
-    torch.set_num_threads(4)
+    torch.set_num_threads(settings.get("cpu_threads", 4))
     torch.use_deterministic_algorithms(True)
     torch.set_float32_matmul_precision("highest")
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -36,8 +36,7 @@ def models(settings):
     torch.manual_seed(settings["seed"])
     if settings["device"] == "cuda":
         index = torch.cuda.current_device()
-        total = torch.cuda.get_device_properties(index).total_memory
-        torch.cuda.set_per_process_memory_fraction(min(0.8, (64 << 30) / total), index)
+        torch.cuda.set_per_process_memory_fraction(0.8, index)
     return construct_qualified_models(settings["model"], device=settings["device"])
 
 
@@ -424,7 +423,7 @@ def probe(inputs, output):
 
     settings = read(Path(inputs) / "settings.json")
     if (
-        Path("/workspace/gpu-project.json").exists()
+        Path("/workspace/scripts/foundation_run.py").exists()
         or Path("/work/input/truth.json").exists()
         or Path("/var/run/docker.sock").exists()
     ):
@@ -437,9 +436,15 @@ def probe(inputs, output):
         assert (value @ value).sum().item() == 4096
     elif Path("/dev/kfd").exists() or list(Path("/dev/dri").glob("renderD*")):
         raise RuntimeError("GPU devices leaked into CPU role")
-    maximum = Path("/sys/fs/cgroup/memory.max").read_text().strip()
-    swap = Path("/sys/fs/cgroup/memory.swap.max").read_text().strip()
-    expected = (88 if gpu else 1) << 30
+    maximum_path = Path("/sys/fs/cgroup/memory.max")
+    if maximum_path.exists():
+        maximum = maximum_path.read_text().strip()
+        swap = Path("/sys/fs/cgroup/memory.swap.max").read_text().strip()
+    else:
+        maximum = Path("/sys/fs/cgroup/memory/memory.limit_in_bytes").read_text().strip()
+        combined = Path("/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes").read_text().strip()
+        swap = str(int(combined) - int(maximum))
+    expected = settings.get("memory_bytes", (16 if gpu else 1) << 30)
     if maximum != str(expected) or swap != "0":
         raise RuntimeError(f"role memory/swap bounds differ: {maximum}/{swap}")
     try:

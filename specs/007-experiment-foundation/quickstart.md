@@ -99,16 +99,16 @@ remain pending; a successful archive is not a passing release.
 
 ## 4. Workstation and real source acceptance
 
-Use the existing managed Ryzen environment:
+Use a Linux host with an accessible ROCm GPU and Docker or Podman:
 
 ```bash
-lab-gpu image ensure
-lab-gpu exec -- python -m pytest -q tests/integration/test_foundation_gpu.py tests/integration/test_foundation_learning_gpu.py -ra
+python3 scripts/foundation_run.py --engine podman image ensure
+python3 scripts/foundation_run.py --engine podman validate --suite gpu --output tmp-validation/gpu
 ```
 
 Actual HIP, full-model updates and allocator evidence are mandatory; unavailable
 GPU support cannot fall back to CPU. The host-controlled smoke additionally
-requires an explicit resolved ROCm `OEIS_GPU_ROLE_IMAGE` and host Docker access.
+requires an explicit resolved ROCm `OEIS_GPU_ROLE_IMAGE` and host Docker or Podman access.
 Run that acceptance in the existing GPU/container environment; missing host
 capabilities keep it skipped. `foundation coordinated-smoke --help` and
 `qualify-baseline --help` expose the exact run-bound containment and G0–G6 inputs.

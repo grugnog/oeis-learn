@@ -93,7 +93,7 @@ def test_codec_identity_rejects_legacy_or_tampered_weights_even_nonstrict():
             "cuda",
             marks=pytest.mark.skipif(
                 not torch.cuda.is_available() or torch.version.hip is None,
-                reason="requires AMD HIP GPU via lab-gpu; CPU diagnostics are not hardware evidence",
+                reason="requires AMD HIP GPU in a GPU-enabled container; CPU diagnostics are not hardware evidence",
             ),
         ),
     ],

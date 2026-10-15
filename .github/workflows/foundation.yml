@@ -94,3 +94,50 @@ jobs:
             wheel-evidence/image-id.txt
             wheel-evidence/learning/cli-acceptance.json
             wheel-evidence/discovery/cli-acceptance.json
+
+  portable-engines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [docker, podman]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native qualification image with selected engine
+        run: ${{ matrix.engine }} build --target qualification -t oeis-portable-ci .
+      - name: Actual private worker, persistent service and reclamation
+        env:
+          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+        run: |
+          python3 -m venv .role-venv
+          .role-venv/bin/pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+          .role-venv/bin/pip install -e . pytest
+          export OEIS_ROLE_TEST_IMAGE=$($OEIS_CONTAINER_ENGINE image inspect oeis-portable-ci --format '{{.Id}}')
+          export OEIS_FOUNDATION_TEST_IMAGE=$OEIS_ROLE_TEST_IMAGE
+          mkdir -p tmp-engine-evidence
+          OMP_NUM_THREADS=2 .role-venv/bin/python -m pytest -q \
+            tests/unit/test_container_runtime.py tests/unit/test_container_validation.py \
+            tests/unit/test_foundation_roles.py \
+            tests/integration/test_foundation_resources.py::test_actual_container_worker_mount_and_device_isolation \
+            --basetemp=tmp-engine-evidence/pytest --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
+      - name: Public standard-library CLI validation and verified rerun
+        env:
+          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+        run: |
+          export OEIS_ROLE_TEST_IMAGE=$($OEIS_CONTAINER_ENGINE image inspect oeis-portable-ci --format '{{.Id}}')
+          .role-venv/bin/python -m pytest -q tests/integration/test_portable_cli.py \
+            --junitxml=tmp-engine-evidence/public-cli.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portable-${{ matrix.engine }}
+          path: |
+            tmp-engine-evidence/*.xml
+            tmp-engine-evidence/pytest/**/*.log
+            tmp-engine-evidence/pytest/**/container-inspect.json
+            tmp-engine-evidence/public-cli/*.log
+            tmp-engine-evidence/public-cli/validation/validation.json
+            tmp-engine-evidence/public-cli/validation/*/receipt.json
+            tmp-engine-evidence/public-cli/validation/*/*.log
+            tmp-engine-evidence/public-cli/validation/*/*.xml

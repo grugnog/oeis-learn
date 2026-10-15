@@ -5,9 +5,7 @@ mode=${1:?cpu or gpu}
 case "$mode" in cpu|gpu) ;; *) exit 2 ;; esac
 apt-get update
 apt-get install -y --no-install-recommends \
-  ca-certificates curl build-essential cmake ninja-build pkg-config git git-lfs openssh-client
-# The VM uses the SSH lab-gpu client. Container management belongs to the host
-# broker; neither the VM nor its GPU workload needs a Docker daemon/client.
+  ca-certificates curl build-essential cmake ninja-build pkg-config git git-lfs
 rm -rf /var/lib/apt/lists/*
 
 export RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo
@@ -18,7 +16,7 @@ rustup component add rustfmt
 chmod -R a+rX /opt/rustup /opt/cargo
 
 if [[ "$mode" == cpu ]]; then
-  # PyO3 0.20 is incompatible with Pi's Python 3.14. Keep Pi itself untouched.
+  # Use the locked Python version for the native extension ABI.
   if python -c "import sys; assert sys.version_info[:3] == (3, 12, 12)" 2>/dev/null; then
     uv venv --python "$(command -v python)" --no-python-downloads /opt/oeis-venv
   else

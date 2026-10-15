@@ -1,4 +1,4 @@
-"""Small portable filesystem contracts shared by the VM and host controller."""
+"""Small portable filesystem contracts shared by the workers and host controller."""
 
 import fcntl
 import hashlib
