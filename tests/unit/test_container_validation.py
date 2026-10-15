@@ -24,6 +24,8 @@ def launch(host, *, skipped=False, missing=False, failure=False, environment=b"G
 
     def spawn(*args, **kwargs):
         out = pending["mounts"][1][0]
+        assert pending["environment"]["TMPDIR"] == "/work/output/.runtime/tmp"
+        (out / ".runtime/cache/compiler.json").write_text("not evidence")
         if "-c" in pending["argv"]:
             kwargs["stdout"].write(environment)
         if "pytest" in pending["argv"] and not missing:
@@ -49,6 +51,9 @@ def test_verified_receipts_skip_but_output_tampering_reruns(host, tmp_path):
         validate(host, "cpu", output)
         assert spawn.call_count == 3
     assert read(output / "validation.json")["qualified"] is False
+    assert all(
+        ".runtime" not in str(path) for path in read(output / "environment/receipt.json")["files"]
+    )
 
 
 @pytest.mark.parametrize("problem", ["cleanup", "exit", "no-junit"])
@@ -59,7 +64,7 @@ def test_failure_never_records_success(host, tmp_path, problem):
         with pytest.raises(RuntimeError, match="failed; inspect"):
             validate(host, "cpu", tmp_path / "validation")
     receipts = list((tmp_path / "validation").glob("*/receipt.json"))
-    assert receipts and read(receipts[-1])["status"] == "FAIL"
+    assert receipts and any(read(receipt)["status"] == "FAIL" for receipt in receipts)
     assert not (tmp_path / "validation/validation.json").exists()
 
 

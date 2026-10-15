@@ -466,24 +466,28 @@ def publish(job, destination):
     for root in (job / "roles").glob("*"):
         if "-input" in root.name or root.name == "workers":
             continue
-        for path in root.rglob("*"):
-            if (
-                not path.is_file()
-                or path.is_symlink()
-                or "runtime-queue" in path.parts
-                or ".runtime" in path.relative_to(root).parts
-            ):
-                continue
-            target = confined(destination, "roles/" + str(path.relative_to(job / "roles")))
-            target.parent.mkdir(parents=True, exist_ok=True)
-            # Checkpoints are large: stream to a private temporary and atomically replace.
-            temporary = target.parent / (".publish-" + uuid.uuid4().hex)
-            with path.open("rb") as source, temporary.open("xb") as output:
-                os.fchmod(output.fileno(), 0o644)
-                shutil.copyfileobj(source, output)
-                output.flush()
-                os.fsync(output.fileno())
-            temporary.replace(target)
+        for base, directories, filenames in os.walk(root):
+            # Do not traverse compiler caches, queues or symlink directories.
+            directories[:] = [
+                name
+                for name in directories
+                if name not in {".runtime", "runtime-queue"}
+                and not (Path(base) / name).is_symlink()
+            ]
+            for filename in filenames:
+                path = Path(base) / filename
+                if not path.is_file() or path.is_symlink():
+                    continue
+                target = confined(destination, "roles/" + str(path.relative_to(job / "roles")))
+                target.parent.mkdir(parents=True, exist_ok=True)
+                # Checkpoints are large: stream to a private temporary and atomically replace.
+                temporary = target.parent / (".publish-" + uuid.uuid4().hex)
+                with path.open("rb") as source, temporary.open("xb") as output:
+                    os.fchmod(output.fileno(), 0o644)
+                    shutil.copyfileobj(source, output)
+                    output.flush()
+                    os.fsync(output.fileno())
+                temporary.replace(target)
 
 
 def evaluation(job, coordinator, ledger, settings, checkpoint, split, label):
@@ -1020,7 +1024,9 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 terminal = (
                     "complete"
                     if status["status"] == "complete"
-                    else "paused" if status["status"] in {"paused", "finalized"} else "interrupted"
+                    else "paused"
+                    if status["status"] in {"paused", "finalized"}
+                    else "interrupted"
                 )
                 ledger.record(terminal)
                 status["budget"] = ledger.previous

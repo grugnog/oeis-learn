@@ -160,6 +160,7 @@ controller runs are historical: begin a new portable run with the existing input
 | Bulk OEIS snapshot/cache | `data.cache`, normally `tmp-oeis-bulk/` |
 | Admission journal and sealed inputs | `--output` inputs directory |
 | Private controller, roles, locks and ledgers | `run-state/` |
+| Role-private compiler scratch and caches | `run-state/**/roles/**/.runtime/` |
 | Published metrics, manifests and role logs | `--run` directory |
 | Persistent container caches | `container-cache/` |
 | Validation receipts/logs and analysis ZIPs | `tmp-validation/`, `tmp-analysis/` |
@@ -169,6 +170,19 @@ these persistent host directories. Temporary `/tmp` and `/run` mounts are
 intentionally disposable. Engine-managed images/layers remain in your engine's
 normal storage. Build context exclusions prevent state, checkpoints, downloads
 and old local credentials from entering an image.
+
+Role processes use `TMPDIR`, `TMP`, `TEMP`, `HOME` and `XDG_CACHE_HOME` under
+their existing `/work/output/.runtime/` mount. ROCm/LLVM compilation scratch and
+caches therefore use workspace storage rather than the small `/tmp` tmpfs or
+shared host caches. They count toward run storage limits and are excluded from
+published runs, analysis ZIPs and validation receipts. `launch.json` records the
+runtime paths and workspace free bytes/inodes at launch. Leave `.runtime/` alone
+while its role is running; it is disposable after that role has been reclaimed.
+
+After updating the launcher for a storage fix, rebuild with `image ensure` and
+use a new smoke run name, such as `runs/portable-smoke-002`, with the same sealed
+inputs. Resume rejects the changed launcher identity; do not delete the old
+run's ledger or regenerate its inputs.
 
 The host is the only engine client. Learner, generation and CPU scoring containers
 receive separate enumerated inputs and outputs; no workload receives an engine
