@@ -43,18 +43,20 @@ def test_public_cpu_validation_and_verified_rerun():
         stdout, stderr = evidence / (name + ".stdout.log"), evidence / (name + ".stderr.log")
         with stdout.open("wb") as out, stderr.open("wb") as err:
             result = subprocess.run(command, cwd=ROOT, stdout=out, stderr=err, timeout=3900)
-        assert result.returncode == 0, (
-            f"public CLI failed; inspect {stdout}, {stderr}, and {output}"
-        )
+        if result.returncode:
+            # Keep failures diagnosable directly from CI, without downloading
+            # an artifact or publishing large checkpoint files.
+            for path in [stdout, stderr, *sorted(output.glob("*/*.log"))]:
+                with path.open("rb") as stream:
+                    stream.seek(max(0, path.stat().st_size - (32 << 10)))
+                    print(f"\n==> {path} <==\n" + stream.read().decode(errors="replace"))
+            pytest.fail(f"public CLI failed; full logs retained under {evidence}")
         return stdout.read_text()
 
     try:
         first = run("initial")
         assert "RUN environment" in first and "RUN cpu-regressions" in first
-        receipts = {
-            p: (p.read_bytes(), p.stat().st_mtime_ns)
-            for p in output.glob("*/receipt.json")
-        }
+        receipts = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in output.glob("*/receipt.json")}
         assert len(receipts) == 2
         assert all(json.loads(payload)["status"] == "PASS" for payload, _ in receipts.values())
         summary = json.loads((output / "validation.json").read_bytes())
