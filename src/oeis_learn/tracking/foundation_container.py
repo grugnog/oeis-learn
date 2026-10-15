@@ -14,7 +14,7 @@ import subprocess
 import uuid
 from pathlib import Path
 
-from oeis_learn.container_runtime import resolve_engine
+from oeis_learn.container_runtime import private_runtime_environment, resolve_engine
 
 
 def container_command(
@@ -60,9 +60,9 @@ def container_command(
         labels=labels,
         auto_remove=False,
         environment={
+            **private_runtime_environment(target),
             "PYTHONPATH": "/opt/oeis-build/src",
             "OMP_NUM_THREADS": str(1 if role == "worker" else cpus),
-            "HOME": "/tmp",
         },
     )
 

@@ -7,6 +7,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from .container_runtime import private_runtime_environment
 from .fresh.common import digest, file_hash, lock, read, write
 from contextlib import nullcontext
 
@@ -144,7 +145,7 @@ def _stages(host, suite, output):
                 "oeis.run": digest([host.policy["workspace"], str(output), "validation"])[7:39]
             },
             environment={
-                "HOME": "/tmp",
+                **private_runtime_environment(out),
                 "PYTHONPATH": "/opt/oeis-build/src",
                 "OMP_NUM_THREADS": str(host.policy["cpus"]),
                 "OEIS_TEST_OUTPUT": "/work/output/gpu",
@@ -211,6 +212,7 @@ def _stages(host, suite, output):
                 and (p.suffix in {".xml", ".json"} or p.name.endswith(".log"))
                 and p != receipt
                 and "pytest" not in p.relative_to(out).parts
+                and ".runtime" not in p.relative_to(out).parts
             }
             result = {
                 "status": "PASS",

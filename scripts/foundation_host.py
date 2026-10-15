@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from oeis_learn.container_runtime import Engine
+from oeis_learn.container_runtime import Engine, private_runtime_environment
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/oeis_learn/fresh"))
 from common import canonical, confined, digest, file_hash, inventory, read, write
@@ -160,9 +160,9 @@ def container_command(policy, image, name, role, inputs, output, command):
         cpus=1 if worker else policy.get("cpus", 4),
         pids=64 if worker else 512,
         environment={
+            **private_runtime_environment(output),
             "PYTHONPATH": "/opt/oeis-build/src",
             "OMP_NUM_THREADS": str(1 if worker else policy.get("cpus", 4)),
-            "HOME": "/tmp",
         },
         labels={"oeis.run": policy.get("run_token", digest(str(inputs))[7:39])},
     )
@@ -194,6 +194,12 @@ class Coordinator:
                 "inputs": inventory(inputs),
                 "operation": operation,
                 "workspace_mounted": False,
+                "storage": {
+                    "environment": private_runtime_environment(output),
+                    "output_free_bytes": shutil.disk_usage(output).free,
+                    "output_available_inodes": os.statvfs(output).f_favail,
+                    "tmpfs_bytes": 64 << 20,
+                },
             },
         )
         with (
@@ -461,7 +467,12 @@ def publish(job, destination):
         if "-input" in root.name or root.name == "workers":
             continue
         for path in root.rglob("*"):
-            if not path.is_file() or path.is_symlink() or "runtime-queue" in path.parts:
+            if (
+                not path.is_file()
+                or path.is_symlink()
+                or "runtime-queue" in path.parts
+                or ".runtime" in path.relative_to(root).parts
+            ):
                 continue
             target = confined(destination, "roles/" + str(path.relative_to(job / "roles")))
             target.parent.mkdir(parents=True, exist_ok=True)
