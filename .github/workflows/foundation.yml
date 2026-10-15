@@ -9,6 +9,7 @@ on:
       - 'pyproject.toml'
       - 'setup.py'
       - 'Dockerfile'
+      - 'docker/dev/**'
       - '.dockerignore'
       - 'MANIFEST.in'
       - '.specify/memory/constitution.md'
@@ -104,8 +105,25 @@ jobs:
         engine: [docker, podman]
     steps:
       - uses: actions/checkout@v4
-      - name: Build native qualification image with selected engine
-        run: ${{ matrix.engine }} build --target qualification -t oeis-portable-ci .
+      - name: Build native qualification image from a private checkout
+        run: |
+          # COPY retains these modes. A normal public checkout masks failures
+          # seen when the host checkout was created under umask 077.
+          trap 'chmod -R a+rX .' EXIT
+          chmod -R go-rwx .
+          ${{ matrix.engine }} build --target qualification -t oeis-portable-ci .
+      - name: Read locked source and native packages as an unrelated non-root UID
+        run: |
+          ${{ matrix.engine }} run --rm --network=none --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,size=128m,mode=1777 \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --user 12345:12345 --entrypoint python oeis-portable-ci \
+            /opt/oeis-build/scripts/foundation_tasks.py --help
+          ${{ matrix.engine }} run --rm --network=none --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,size=128m,mode=1777 \
+            --cap-drop=ALL --security-opt=no-new-privileges \
+            --user 12345:12345 --entrypoint python oeis-portable-ci -c \
+            'from pathlib import Path; import torch, oeis_wasm_evaluator; from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder; paths = [Path("/opt/oeis-build") / name for name in ("scripts", "src", "configs")] + [Path("/opt/oeis-build-info")]; [p.read_bytes() for root in paths for p in root.rglob("*") if p.is_file()]; print("NONROOT IMAGE ACCESS PASS")'
       - name: Actual private worker, persistent service and reclamation
         env:
           OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
