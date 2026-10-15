@@ -15,6 +15,29 @@ from pathlib import Path
 IMAGE_ID = re.compile(r"(?:sha256:)?[0-9a-f]{64}")
 
 
+def private_runtime_environment(output):
+    """Put compiler scratch/cache in this role's existing writable output mount.
+
+    ROCm/LLVM can exceed the small /tmp tmpfs during the first backward pass.
+    Use disk-backed, role-private directories without exposing shared caches or
+    any additional host paths. These files are disposable, not training evidence.
+    """
+    output = Path(output).resolve(strict=True)
+    root = output / ".runtime"
+    for path in (root, root / "tmp", root / "home", root / "cache"):
+        if path.is_symlink():
+            raise ValueError(f"runtime directory cannot be a symlink: {path}")
+        path.mkdir(mode=0o700, exist_ok=True)
+    base = "/work/output/.runtime"
+    return {
+        "TMPDIR": base + "/tmp",
+        "TMP": base + "/tmp",
+        "TEMP": base + "/tmp",
+        "HOME": base + "/home",
+        "XDG_CACHE_HOME": base + "/cache",
+    }
+
+
 def normalized_image(value):
     value = value.strip()
     if not IMAGE_ID.fullmatch(value):
