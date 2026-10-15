@@ -2,7 +2,7 @@
 
 import importlib.util
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -91,3 +91,23 @@ def test_publication_excludes_compiler_cache_but_keeps_launch_diagnostics(tmp_pa
     ).read_bytes()
     assert (published / "roles/train-attempt/stderr.log").read_text() == "LLVM ERROR"
     assert not list(published.rglob(".runtime"))
+
+
+def test_launch_records_workspace_space_and_compiler_paths(tmp_path):
+    inputs, output = tmp_path / "input", tmp_path / "output"
+    inputs.mkdir()
+    policy = {"engine": "docker", "engine_executable": "docker", "engine_info": {}}
+    coordinator = host.Coordinator(tmp_path / "controller", policy, IMAGE, None)
+    process = Mock()
+    process.poll.return_value = 0
+    try:
+        with patch.object(host.subprocess, "Popen", return_value=process):
+            coordinator.spawn("worker", inputs, output, "fixture")
+        report = host.read(output / "launch.json")["storage"]
+        assert report["output_free_bytes"] > 0
+        assert report["output_available_inodes"] >= 0
+        assert report["tmpfs_bytes"] == 64 << 20
+        assert report["environment"]["TMPDIR"] == "/work/output/.runtime/tmp"
+    finally:
+        with patch.object(coordinator.engine, "remove"):
+            coordinator.close()
