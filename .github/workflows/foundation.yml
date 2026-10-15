@@ -121,8 +121,23 @@ jobs:
             tests/unit/test_foundation_roles.py \
             tests/integration/test_foundation_resources.py::test_actual_container_worker_mount_and_device_isolation \
             --basetemp=tmp-engine-evidence/pytest --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
+      - name: Public standard-library CLI validation and verified rerun
+        env:
+          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+        run: |
+          export OEIS_ROLE_TEST_IMAGE=$($OEIS_CONTAINER_ENGINE image inspect oeis-portable-ci --format '{{.Id}}')
+          .role-venv/bin/python -m pytest -q tests/integration/test_portable_cli.py \
+            --junitxml=tmp-engine-evidence/public-cli.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: portable-${{ matrix.engine }}
-          path: tmp-engine-evidence/
+          path: |
+            tmp-engine-evidence/*.xml
+            tmp-engine-evidence/pytest/**/*.log
+            tmp-engine-evidence/pytest/**/container-inspect.json
+            tmp-engine-evidence/public-cli/*.log
+            tmp-engine-evidence/public-cli/validation/validation.json
+            tmp-engine-evidence/public-cli/validation/*/receipt.json
+            tmp-engine-evidence/public-cli/validation/*/*.log
+            tmp-engine-evidence/public-cli/validation/*/*.xml
