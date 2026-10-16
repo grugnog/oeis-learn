@@ -161,6 +161,11 @@ def _controller(root, resume, stop_after, child_target=_learner):
             from oeis_learn.tracking.training_checkpoint import CheckpointStore
             from oeis_learn.rl.foundation_sft import runtime_record
 
+            import torch
+
+            # Spawn starts with ambient OMP settings, not the learner's frozen
+            # four-thread setting. Apply it before comparing runtime identities.
+            torch.set_num_threads(4)
             runtime = runtime_record(run["device"], run=run)
             if load_json((root / "checkpoints/runtime.json").read_bytes()) != runtime:
                 raise ValueError("incompatible runtime; checkpoint recovery blocked")
