@@ -19,10 +19,9 @@ def configuration(path):
     from oeis_learn.experiments.profiles import qualified_model_profile
 
     value = yaml.safe_load(Path(path).read_text())
-    if (
-        set(value) != {"version", "data", "cohort", "archive", "sampler_config", "run"}
-        or value["version"] != "fresh-workflow/v1"
-    ):
+    if set(value) != {"version", "data", "cohort", "archive", "sampler_config", "run"} or value[
+        "version"
+    ] not in {"fresh-workflow/v1", "fresh-workflow/v2"}:
         raise ValueError("closed fresh-workflow/v1 configuration required")
     if set(value["data"]) != {
         "cache",
@@ -40,9 +39,15 @@ def configuration(path):
     }
     for section, keys in schemas.items():
         optional = (
-            {"profile", "batch_size", "length_buckets"}
+            (
+                {"profile", "batch_size", "length_buckets", "encoder", "learning"}
+                if value["version"] == "fresh-workflow/v2"
+                else {"profile", "batch_size", "length_buckets"}
+            )
             if section == "run"
-            else {"sampling_shards"} if section == "archive" else set()
+            else {"sampling_shards"}
+            if section == "archive"
+            else set()
         )
         if not keys <= set(value[section]) or set(value[section]) - keys - optional:
             raise ValueError(f"unknown/missing {section} configuration")
@@ -50,7 +55,15 @@ def configuration(path):
         raise ValueError("closed evaluation configuration required")
     for section in ("data", "cohort", "archive", "run"):
         for name, number in value[section].items():
-            if name in {"cache", "revision", "evaluation", "profile", "length_buckets"}:
+            if name in {
+                "cache",
+                "revision",
+                "evaluation",
+                "profile",
+                "length_buckets",
+                "encoder",
+                "learning",
+            }:
                 continue
             if type(number) is not int or number < 0:
                 raise ValueError(f"exact nonnegative integer required: {section}.{name}")
@@ -93,7 +106,14 @@ def configuration(path):
         or not 1 <= evaluation["per_group_seconds"] <= 60
     ):
         raise ValueError("bounded first-pilot evaluation required")
-    value["run"]["model"] = qualified_model_profile(attention_backend="eager")
+    if value["version"] == "fresh-workflow/v2":
+        from oeis_learn.experiments.bootstrap_models import bootstrap_profile
+        from oeis_learn.fresh.bootstrap_config import validate_learning
+
+        value["run"]["model"] = bootstrap_profile(value["run"].get("encoder"))
+        value["run"]["learning"] = validate_learning(value["run"].get("learning"))
+    else:
+        value["run"]["model"] = qualified_model_profile(attention_backend="eager")
     value["sampler_config"] = str((ROOT / value["sampler_config"]).resolve())
     return value
 

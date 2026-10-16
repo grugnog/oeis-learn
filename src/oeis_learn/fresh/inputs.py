@@ -62,6 +62,9 @@ def check_inputs(root):
                 or row["structure"] != entry["ir_sha256"]
             ):
                 raise ValueError("learner row differs from admitted archive")
+            expected_stage = packet["provenance"].get("sample", {}).get("statistics", {}).get("stage")
+            if row.get("stage") != expected_stage:
+                raise ValueError("learner curriculum stage differs from admitted provenance")
             if split == "training" and not entry["training_eligible"]:
                 raise ValueError("excluded program in training view")
             if (
@@ -75,7 +78,7 @@ def check_inputs(root):
 def prepare(config, cache, output, *, backend="rust"):
     import yaml
 
-    from oeis_learn.data.generic_programs import load_sampler_config
+    from oeis_learn.data.sampler_factory import load_sampler_config
     from oeis_learn.data.program_admission import validate_sample
     from oeis_learn.data.structural_splits import StructuralHoldouts
     from oeis_learn.discovery.program_archive import ProgramArchive

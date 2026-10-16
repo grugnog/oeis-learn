@@ -1,6 +1,6 @@
 """Bounded independent generic streams for fresh diagnostic admission."""
 
-from oeis_learn.data.generic_programs import GenericSampler
+from oeis_learn.data.sampler_factory import sampler as GenericSampler
 from oeis_learn.experiments.artifacts import compute_canonical_digest
 
 

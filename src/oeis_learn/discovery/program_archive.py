@@ -126,7 +126,7 @@ class ProgramArchive:
 
     def _provenance(self, origin, provenance, source, conditioning, model_sha):
         if origin == "generic_sample":
-            from oeis_learn.data.generic_programs import GenericSampler
+            from oeis_learn.data.sampler_factory import sampler as GenericSampler
             from oeis_learn.data.program_admission import require_sample
 
             if set(provenance) == {"config", "sample"}:
