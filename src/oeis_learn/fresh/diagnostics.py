@@ -153,14 +153,18 @@ def evaluate(
                 variants.append("uncached")
                 record["generation_parity"] = dict(evaluated=False, passed=False)
             for variant in variants:
-                if variant == "shuffled" and len(rows) < 2:
-                    record["shuffle_unavailable"] = True
-                    continue
-                conditioning = (
-                    list(map(int, rows[(i + 1) % len(rows)]["values"]))
-                    if variant == "shuffled"
-                    else visible
-                )
+                conditioning = visible
+                if variant == "shuffled":
+                    alternatives = (
+                        list(map(int, rows[(i + offset) % len(rows)]["values"]))
+                        for offset in range(1, len(rows))
+                    )
+                    conditioning = next(
+                        (values for values in alternatives if values != visible), None
+                    )
+                    if conditioning is None:
+                        record["shuffle_unavailable"] = True
+                        continue
                 budget = row_deadline - time.monotonic_ns()
                 failure_key = "failure" if variant == "correct" else variant + "_failure"
                 if budget <= 0:

@@ -602,3 +602,33 @@ def test_production_sampler_records_eos_without_changing_greedy_tokens():
                 assert step["grammar_probability"] == 0
         observed.append(evidence["tokens"])
     assert observed[0] == observed[1]
+
+
+def test_duplicate_development_prefixes_are_not_counted_as_shuffled_controls(monkeypatch):
+    encoder, decoder, _ = small_models(None, device="cpu")
+    data = examples()
+    data["development"] = [dict(data["training"][0], program_id=f"d{i}") for i in range(3)]
+
+    def propose(self, visible, seed, ledger, greedy):
+        source = f"i256.const {visible[0]}"
+        return source, dict(
+            method="greedy",
+            tokens=encode_body(source),
+            complete=True,
+            failure=None,
+            encoder_sha256=digest("e"),
+            decoder_sha256=digest("d"),
+        )
+
+    monkeypatch.setattr("oeis_learn.evaluation.search.ModelProposer.stochastic", propose)
+    result = evaluate(
+        encoder,
+        decoder,
+        data,
+        dict(learning_defaults(), diagnostic_rows=3, diagnostic_seconds=10),
+        ReferenceFixtureRunner(),
+    )
+    dev = result["splits"]["development"]
+    assert dev["denominator"] == dev["exact"] == 3
+    assert dev["shuffled_denominator"] == 0
+    assert all(row["shuffle_unavailable"] for row in dev["attempts"])
