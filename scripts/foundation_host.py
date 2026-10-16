@@ -21,7 +21,13 @@ from oeis_learn.container_runtime import Engine, private_runtime_environment
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src/oeis_learn/fresh"))
 from common import canonical, confined, digest, file_hash, inventory, read, write
 
-PROFILES = {"smoke", "fresh-pilot-1h", "fresh-benchmark", "fresh-extended-12h"}
+PROFILES = {
+    "smoke",
+    "fresh-pilot-1h",
+    "fresh-benchmark",
+    "fresh-extended-12h",
+    "bootstrap-learnability",
+}
 
 
 def clock():
@@ -459,6 +465,7 @@ def publish(job, destination):
         "issuance.json",
         "early-stop.json",
         "admission-completion.json",
+        "learnability.json",
     ):
         path = job / name
         if path.exists():
@@ -546,8 +553,103 @@ def evaluation(job, coordinator, ledger, settings, checkpoint, split, label):
     )
 
 
+def diagnose_checkpoint(policy, image, argv, coordinator_factory):
+    """Separate bounded job: no mutation of source checkpoints or lifetime ledger."""
+    import zipfile
+
+    workspace = Path(policy["workspace"])
+    original = Path(policy["state_root"]) / digest(argv[1])[7:]
+    run, status = read(original / "run.json"), read(original / "status.json")
+    selected = (
+        read(original / "finalization.json")
+        if (original / "finalization.json").exists()
+        else status
+    ).get("checkpoint")
+    if not selected:
+        raise ValueError("source run has no committed checkpoint")
+    checkpoint, base = checkpoint_files(original, selected)
+    settings = dict(run["settings"]["learner"])
+    examples_path = original / "inputs/learner-examples.json"
+    if not examples_path.exists():
+        examples_path = original / "inputs/examples.json"
+    examples = read(examples_path)
+    if digest(examples) != settings["examples_sha256"]:
+        raise ValueError("source examples identity mismatch")
+    output = confined(workspace, argv[2])
+    if output.exists() or Path(str(output) + ".zip").exists():
+        raise ValueError("diagnostic output exists; choose a new output")
+    root = Path(policy["state_root"]) / "diagnostics" / uuid.uuid4().hex
+    ledger = Ledger(root, digest([run["identity"], image, argv[2]]), 3600)
+    # Closed defaults are passed explicitly without importing image dependencies
+    # into this stdlib-only host controller.
+    learning = dict(
+        learning_rate=0.0001,
+        validation_every_updates=250,
+        max_updates=5000,
+        patience=8,
+        min_improvement=0.001,
+        diagnostic_rows=8,
+        diagnostic_tokens=1023,
+        diagnostic_seconds=3000,
+        curriculum=False,
+        promotion_accuracy=0.8,
+        replay=False,
+        prefix_verified=True,
+    )
+    settings.update(
+        learning=learning,
+        checkpoint=checkpoint.name,
+        source_contract=run["settings"]["learner"]["contract_sha256"],
+        source_runtime=base["runtime_sha256"],
+    )
+    inputs = copy_view(
+        root / "input",
+        {"settings.json": settings, "examples.json": examples},
+        {"checkpoints": checkpoint.parent},
+    )
+    coordinator = coordinator_factory(root / "roles", policy, image, ledger)
+    ledger.record("diagnose")
+    try:
+        coordinator.run("diagnose", "learner", inputs, root / "roles/diagnostic", 3540)
+    finally:
+        try:
+            coordinator.close()
+        finally:
+            ledger.record("paused")
+            output.mkdir(parents=True)
+            for name in (
+                "result.json",
+                "diagnostic.json",
+                "stdout.log",
+                "stderr.log",
+                "launch.json",
+            ):
+                source = root / "roles/diagnostic" / name
+                if source.exists():
+                    write(output / name, source.read_bytes())
+            write(
+                output / "source.json",
+                dict(
+                    run_identity=run["identity"],
+                    checkpoint=selected,
+                    checkpoint_sha256=base["blob_sha256"],
+                    image=image,
+                    budget=ledger.previous,
+                ),
+            )
+            with zipfile.ZipFile(
+                str(output) + ".zip", "w", compression=zipfile.ZIP_DEFLATED
+            ) as bundle:
+                for path in sorted(output.iterdir()):
+                    bundle.write(path, path.name)
+            print(json.dumps({"diagnostic_archive": str(output) + ".zip"}))
+    return 0
+
+
 def execute(policy, image, argv, *, coordinator_factory=Coordinator):
     action = argv[0]
+    if action == "diagnose":
+        return diagnose_checkpoint(policy, image, argv, coordinator_factory)
     workspace = Path(policy["workspace"])
     if action == "check":
         root = Path(policy["state_root"]) / "checks" / uuid.uuid4().hex
@@ -617,6 +719,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     old["image"] != image
                     or old["inputs_identity"] != requested["identity"]
                     or old["settings"]["profile"] != profile
+                    or (len(argv) > 4 and old["settings"]["learner"]["model"]["encoder"] != argv[4])
                 ):
                     raise ValueError("existing run image/inputs/profile differ; choose a new run")
                 if read(job / "status.json")["status"] == "complete":
@@ -655,7 +758,20 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             examples = read(inputs / "examples.json")
             if len(examples["training"]) < 128 or not examples["development"]:
                 raise ValueError("admitted training/development input shortfall")
-            config = manifest["config"]["run"]
+            config = dict(manifest["config"]["run"])
+            if len(argv) > 4:
+                from oeis_learn.fresh.bootstrap_contract import bootstrap_profile
+                from oeis_learn.fresh.bootstrap_config import learning_defaults
+
+                if len(argv) != 5:
+                    raise ValueError("one explicit encoder override required")
+                config["model"] = bootstrap_profile(argv[4])
+                if "learning" not in config:
+                    # Explicit new comparison run on original sealed data. Never
+                    # reinterpret an old checkpoint or silently change v1 defaults.
+                    config["learning"] = dict(learning_defaults(), curriculum=False)
+                if profile == "fresh-pilot-1h":
+                    config["training_seconds"] = min(1800, config["training_seconds"])
             count = len({digest(row["values"]) for row in examples["training"]})
             completion = manifest.get("admission_completion", {})
             accepted_partial = (
@@ -681,6 +797,29 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 )
             if profile == "fresh-pilot-1h" and config["training_seconds"] > 1800:
                 raise ValueError("long training configuration requires the extended profile")
+            learning = dict(config["learning"]) if "learning" in config else None
+            if profile == "bootstrap-learnability":
+                if learning is None:
+                    raise ValueError("learnability requires explicit fresh-workflow/v2 inputs")
+                examples = dict(
+                    examples,
+                    training=sorted(
+                        examples["training"], key=lambda r: (len(r["tokens"]), r["program_id"])
+                    )[:32],
+                )
+                learning.update(
+                    curriculum=False,
+                    max_updates=1000,
+                    validation_every_updates=100,
+                    diagnostic_rows=32,
+                    diagnostic_tokens=128,
+                    replay=False,
+                )
+            elif learning:
+                from oeis_learn.fresh.bootstrap_views import parameter_view
+
+                examples = parameter_view(examples)
+            write(inputs / "learner-examples.json", examples, immutable=True)
             settings = {
                 "profile": profile,
                 "seconds": {
@@ -688,6 +827,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "fresh-pilot-1h": 3600,
                     "fresh-benchmark": 600,
                     "fresh-extended-12h": 43200,
+                    "bootstrap-learnability": 3600,
                 }[profile],
                 "training_seconds": 120 if profile == "smoke" else config["training_seconds"],
                 "protocol": dict(
@@ -702,7 +842,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "length_buckets": (
                         False if profile == "smoke" else config.get("length_buckets", False)
                     ),
-                    "learning_rate": 0.0003,
+                    "learning_rate": learning["learning_rate"] if learning else 0.0003,
                     "checkpoint_every_seconds": 60,
                     "checkpoint_reserve_seconds": 20,
                     "free_disk_floor_bytes": policy.get("free_disk_floor_bytes", 5 << 30),
@@ -710,6 +850,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "examples_sha256": digest(examples),
                 },
             }
+            if learning:
+                settings["learner"]["learning"] = learning
+                if learning["replay"]:
+                    settings["learner"]["holdouts_sha256"] = digest(read(inputs / "holdouts.json"))
+                settings["learner"]["checkpoint_reserve_seconds"] = (
+                    learning["diagnostic_seconds"] + 60
+                )
             run = {
                 "version": "fresh-run/v1",
                 "runtime": policy.get("runtime", {}),
@@ -770,7 +917,15 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         copy_view(
                             inputs,
                             {
-                                "examples.json": read(job / "inputs/examples.json"),
+                                "examples.json": read(
+                                    job
+                                    / "inputs"
+                                    / (
+                                        "learner-examples.json"
+                                        if (job / "inputs/learner-examples.json").exists()
+                                        else "examples.json"
+                                    )
+                                ),
                                 "settings.json": settings["learner"],
                             },
                         )
@@ -803,6 +958,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if action == "evaluate":
                 split, selection = argv[2:]
                 if split == "final":
+                    if settings["profile"] == "bootstrap-learnability":
+                        raise ValueError(
+                            "tiny learnability runs do not consume final cohorts; train a pilot"
+                        )
                     latest = read(job / "finalization.json")["checkpoint"]
                 elif selection == "latest":
                     if latest is None:
@@ -814,13 +973,16 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     if split == "final"
                     else split + "-" + checkpoint_files(job, latest)[1]["blob_sha256"][7:23]
                 )
-                evaluation(job, coordinator, ledger, settings, latest, split, label)
+                scored = evaluation(job, coordinator, ledger, settings, latest, split, label)
                 ledger.record("evaluation-finished")
                 write(
                     job / "status.json",
                     {
                         "status": "cleanup",
                         "pending_status": "complete" if split == "final" else "paused",
+                        "diagnostic_final_cohort_consumed": split == "final"
+                        or read(job / "status.json").get("diagnostic_final_cohort_consumed", False),
+                        "final_score" if split == "final" else "development_score": scored,
                         "checkpoint": latest,
                         "budget": ledger.previous,
                     },
@@ -855,7 +1017,15 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 copy_view(
                     inputs,
                     {
-                        "examples.json": read(job / "inputs/examples.json"),
+                        "examples.json": read(
+                            job
+                            / "inputs"
+                            / (
+                                "learner-examples.json"
+                                if (job / "inputs/learner-examples.json").exists()
+                                else "examples.json"
+                            )
+                        ),
                         "settings.json": dict(
                             settings["learner"],
                             seconds=90,
@@ -865,6 +1035,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         ),
                     },
                 )
+                if settings["learner"].get("learning", {}).get("replay"):
+                    write(
+                        inputs / "holdouts.json", read(job / "inputs/holdouts.json"), immutable=True
+                    )
                 if retained:
                     for name, ref in inventory(retained[-1]).items():
                         snapshot_file(
@@ -880,9 +1054,11 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             initial_checkpoint = str(
                 (roles / "train-000000/checkpoints" / initial_result["checkpoint"]).relative_to(job)
             )
-            evaluation(
-                job, coordinator, ledger, settings, initial_checkpoint, "development", "initial"
-            )
+            learning = settings["learner"].get("learning")
+            if not learning:
+                evaluation(
+                    job, coordinator, ledger, settings, initial_checkpoint, "development", "initial"
+                )
             # Three smoke updates include a real boundary after update one.
             extended = settings["profile"] == "fresh-extended-12h"
             boundaries = (
@@ -890,7 +1066,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 if settings["profile"] == "smoke"
                 else ((None,) * 10 if extended else (None, None))
             )
+            if learning and settings["profile"] != "smoke":
+                every, maximum = learning["validation_every_updates"], learning["max_updates"]
+                boundaries = tuple(range(every, maximum, every)) + (maximum,)
             best_validation, stale = float("inf"), 0
+            best_competence = None
+            last_completed = initial_result["completed_updates"]
             for number, cap in enumerate(boundaries, 1):
                 stage = roles / f"train-{number:06d}"
                 if (stage / "result.json").exists():
@@ -913,7 +1094,17 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     )
                     if settings["profile"] == "smoke":
                         seconds = min(60, ledger.remaining() - 300)
-                    if seconds < 25:
+                    if learning:
+                        seconds += learning["diagnostic_seconds"] + 60
+                        reserve = 60 if settings["profile"] == "bootstrap-learnability" else 1250
+                        seconds = min(seconds, ledger.remaining() - reserve)
+                    if seconds < (learning["diagnostic_seconds"] + 65 if learning else 25):
+                        if learning and number > 1:
+                            write(
+                                job / "early-stop.json",
+                                dict(reason="reserved evaluation budget reached"),
+                            )
+                            break
                         raise TimeoutError(
                             "insufficient remaining budget for training and evaluation"
                         )
@@ -921,17 +1112,35 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     copy_view(
                         source,
                         {
-                            "examples.json": read(job / "inputs/examples.json"),
+                            "examples.json": read(
+                                job
+                                / "inputs"
+                                / (
+                                    "learner-examples.json"
+                                    if (job / "inputs/learner-examples.json").exists()
+                                    else "examples.json"
+                                )
+                            ),
                             "settings.json": dict(
                                 settings["learner"],
                                 seconds=seconds,
-                                update_cap=cap or 1000000,
+                                update_cap=(
+                                    min(cap, last_completed + learning["validation_every_updates"])
+                                    if learning and cap is not None
+                                    else cap or 1000000
+                                ),
                                 charged_budget_ns=ledger.previous["charged_ns"],
                                 ledger_sequence=ledger.previous["sequence"],
                             ),
                         },
                         {"checkpoints": recovery},
                     )
+                    if learning and learning["replay"]:
+                        write(
+                            source / "holdouts.json",
+                            read(job / "inputs/holdouts.json"),
+                            immutable=True,
+                        )
                     # Every attempt has separate immutable output; stage pointers select successful attempts.
                     attempt = roles / (stage.name + "-attempt-" + uuid.uuid4().hex)
                     ledger.record("training")
@@ -942,17 +1151,53 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     )
                     write(stage / "result.json", result)
                     latest = str((stage / "checkpoints" / result["checkpoint"]).relative_to(job))
-                evaluation(
-                    job,
-                    coordinator,
-                    ledger,
-                    settings,
-                    latest,
-                    "development",
-                    f"development-{number}",
-                )
+                last_completed = result["completed_updates"]
+                if not learning:
+                    evaluation(
+                        job,
+                        coordinator,
+                        ledger,
+                        settings,
+                        latest,
+                        "development",
+                        f"development-{number}",
+                    )
                 publish(job, destination)
-                if extended:
+                if learning:
+                    diagnostic = result.get("diagnostic")
+                    if diagnostic is None:
+                        raise RuntimeError(
+                            "training boundary did not complete synthetic diagnostics"
+                        )
+                    split = diagnostic["splits"][
+                        "training"
+                        if settings["profile"] == "bootstrap-learnability"
+                        else "development"
+                    ]
+                    accuracy = split["exact"] / max(1, split["denominator"])
+                    rank = (diagnostic.get("stage") or 0, accuracy, -result["validation_loss"])
+                    if (
+                        best_competence is None
+                        or rank[:2] > best_competence[:2]
+                        or (
+                            rank[:2] == best_competence[:2]
+                            and rank[2] > best_competence[2] + learning["min_improvement"]
+                        )
+                    ):
+                        best_competence, stale = rank, 0
+                    else:
+                        stale += 1
+                    if stale >= learning["patience"]:
+                        write(
+                            job / "early-stop.json",
+                            dict(
+                                reason="synthetic competence and validation plateau",
+                                completed_updates=result["completed_updates"],
+                                stale_checks=stale,
+                            ),
+                        )
+                        break
+                elif extended:
                     loss = result.get("validation_loss")
                     if loss is None or not __import__("math").isfinite(loss):
                         raise ValueError("extended run needs finite structural validation loss")
@@ -974,8 +1219,45 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("three actual smoke updates required")
             finalize(job, settings, "best-development")
             selected = read(job / "finalization.json")["checkpoint"]
-            final = evaluation(job, coordinator, ledger, settings, selected, "final", "final")
-            ledger.record("final-scored")
+            if settings["profile"] == "bootstrap-learnability":
+                selected_result = read((job / selected).parent.parent / "result.json")
+                diagnostic = selected_result["diagnostic"]
+                measure = diagnostic["splits"]["training"]
+                learned = (
+                    measure["denominator"] == 32
+                    and measure["shuffled_denominator"] == 32
+                    and measure["exact"] >= 31
+                    and measure["shuffled_exact"] < measure["exact"] - 3
+                    and diagnostic["cache_parity"]["passed"]
+                )
+                final = dict(
+                    learnability_passed=learned,
+                    diagnostic=diagnostic,
+                    scope="training-set memorization and conditioning; generalization unqualified",
+                )
+                write(job / "learnability.json", final)
+            else:
+                if learning:
+                    development = evaluation(
+                        job,
+                        coordinator,
+                        ledger,
+                        settings,
+                        selected,
+                        "development",
+                        "selected-development",
+                    )
+                    final = {
+                        "status": "not_evaluated",
+                        "reason": "bootstrap comparisons use development; invoke evaluate --split final once after choosing a run",
+                        "development_score": development,
+                    }
+                    ledger.record("development-scored")
+                else:
+                    final = evaluation(
+                        job, coordinator, ledger, settings, selected, "final", "final"
+                    )
+                    ledger.record("final-scored")
             write(
                 job / "status.json",
                 {
@@ -986,7 +1268,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "final_score": final,
                     "budget": ledger.previous,
                     "qualified": False,
-                    "diagnostic_final_cohort_consumed": True,
+                    "diagnostic_final_cohort_consumed": not bool(learning),
                 },
             )
             return 0
@@ -1069,6 +1351,29 @@ def finalize(job, settings, selection):
                         str((stage.parent / "checkpoints" / result["checkpoint"]).relative_to(job)),
                     )
                 )
+    if settings["learner"].get("learning"):
+        candidates = []
+        for stage in sorted(
+            (job / "roles").glob("train-[0-9][0-9][0-9][0-9][0-9][0-9]/result.json")
+        ):
+            result = read(stage)
+            diagnostic = result.get("diagnostic")
+            if not diagnostic:
+                continue
+            split = diagnostic["splits"][
+                "training" if settings["profile"] == "bootstrap-learnability" else "development"
+            ]
+            if not split["denominator"] or result.get("validation_loss") is None:
+                continue
+            candidates.append(
+                (
+                    diagnostic.get("stage") or 0,
+                    split["exact"] / split["denominator"],
+                    -result["validation_loss"],
+                    -result["completed_updates"],
+                    str((stage.parent / "checkpoints" / result["checkpoint"]).relative_to(job)),
+                )
+            )
     if not candidates:
         raise ValueError("no complete development evaluation for checkpoint selection")
     checkpoint = max(candidates)[-1]
@@ -1090,6 +1395,14 @@ def finalize(job, settings, selection):
         "diagnostic": True,
         "final_cohort_consumed_on_evaluation": True,
     }
+    if settings["learner"].get("learning"):
+        final["criterion"] = (
+            "curriculum stage, synthetic execution accuracy, full validation loss, earliest update"
+        )
+        if settings["profile"] == "bootstrap-learnability":
+            final.update(
+                selected_using="training diagnostic", final_cohort_consumed_on_evaluation=False
+            )
     write(job / "finalization.json", final, immutable=True)
     return final
 

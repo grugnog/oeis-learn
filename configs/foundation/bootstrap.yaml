@@ -1,0 +1,42 @@
+version: fresh-workflow/v2
+data:
+  cache: tmp-oeis-bulk
+  revision: null
+  seed: 20260913
+  max_records: 5000
+  max_download_bytes: 21474836480
+  free_disk_floor_bytes: 10737418240
+cohort:
+  seed: 20261016
+  dev_count: 8
+  final_count: 8
+sampler_config: configs/foundation/connected_sampler.yaml
+archive:
+  training_prompts: 512
+  development_structures: 32
+  seconds: 7200
+  sampling_shards: 4
+run:
+  seed: 20261016
+  training_seconds: 1800
+  evaluation:
+    groups: 8
+    attempts: 4
+    tokens: 256
+    per_group_seconds: 30
+  encoder: tri_stream
+  learning:
+    learning_rate: 0.0001
+    validation_every_updates: 250
+    max_updates: 5000
+    patience: 8
+    min_improvement: 0.001
+    diagnostic_rows: 8
+    diagnostic_tokens: 256
+    diagnostic_seconds: 120
+    curriculum: true
+    promotion_accuracy: 0.8
+    replay: false
+    prefix_verified: true
+  batch_size: 8
+  length_buckets: true

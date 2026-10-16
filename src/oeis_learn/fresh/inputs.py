@@ -9,6 +9,7 @@ from .admission_sampling import SamplerShards
 from .bulk import import_snapshot
 from .common import digest, file_hash, lock, read, verify, write
 from .input_export import collect, export
+from .bootstrap_views import MIXTURE, behavior, training_mixture
 
 
 def check_inputs(root):
@@ -62,6 +63,11 @@ def check_inputs(root):
                 or row["structure"] != entry["ir_sha256"]
             ):
                 raise ValueError("learner row differs from admitted archive")
+            expected_stage = (
+                packet.get("provenance", {}).get("sample", {}).get("statistics", {}).get("stage")
+            )
+            if row.get("stage") != expected_stage:
+                raise ValueError("learner curriculum stage differs from admitted provenance")
             if split == "training" and not entry["training_eligible"]:
                 raise ValueError("excluded program in training view")
             if (
@@ -69,13 +75,18 @@ def check_inputs(root):
                 and split_for_structure(entry["ir_sha256"], archive.holdouts.seed) != "development"
             ):
                 raise ValueError("development row is outside its structural complement")
+    if manifest.get("config", {}).get("run", {}).get("learning", {}).get("curriculum"):
+        if any({r.get("stage") for r in rows} != {0, 1, 2, 3} for rows in examples.values()):
+            raise ValueError(
+                "curriculum requires admitted training/development coverage of all four stages"
+            )
     return manifest
 
 
 def prepare(config, cache, output, *, backend="rust"):
     import yaml
 
-    from oeis_learn.data.generic_programs import load_sampler_config
+    from oeis_learn.data.sampler_factory import load_sampler_config
     from oeis_learn.data.program_admission import validate_sample
     from oeis_learn.data.structural_splits import StructuralHoldouts
     from oeis_learn.discovery.program_archive import ProgramArchive
@@ -115,8 +126,14 @@ def prepare(config, cache, output, *, backend="rust"):
         holdouts = StructuralHoldouts(seed=config["cohort"]["seed"], reserved_prefixes=prefixes)
         write(root / "holdouts.json", holdout_profile(holdouts), immutable=True)
         sampler_config = load_sampler_config(Path(config["sampler_config"]))
+        if (
+            config.get("run", {}).get("learning", {}).get("curriculum")
+            and sampler_config["profile"] != "connected_sampler_v1"
+        ):
+            raise ValueError("curriculum requires the versioned connected sampler")
         spec = config["archive"]
         series = SamplerShards(sampler_config, spec.get("sampling_shards", 1))
+        connected = sampler_config["profile"] == "connected_sampler_v1"
         plan = {
             "version": "fresh-admission-plan/v1",
             "config": config,
@@ -130,16 +147,34 @@ def prepare(config, cache, output, *, backend="rust"):
                 "cache_per_worker_bytes": 128 << 20,
             },
         }
+        if connected:
+            plan["training_mixture"] = MIXTURE
         write(root / "archive-plan.json", plan, immutable=True)
         archive = ProgramArchive(root / "archive", holdouts=holdouts)
         ledger = BudgetLedger(
             root / "archive-budget", str(uuid.UUID(digest(plan)[7:39])), spec["seconds"] * 10**9
         )
 
-        training, development = {}, {}
+        training, development, candidates = {}, {}, {}
 
         def observe(keys):
-            collect(archive, keys, training, development)
+            nonlocal training
+            collect(archive, keys, candidates, development)
+            training = (
+                training_mixture(candidates, spec["training_prompts"]) if connected else candidates
+            )
+
+        def target_reached():
+            complete = (
+                len(training) >= spec["training_prompts"]
+                and len(development) >= spec["development_structures"]
+            )
+            if config.get("run", {}).get("learning", {}).get("curriculum"):
+                complete = complete and all(
+                    {row.get("stage") for row in view.values()} >= {0, 1, 2, 3}
+                    for view in (training, development)
+                )
+            return complete
 
         observe(archive.freeze()["entries"])
         ledger.transition("bootstrap")
@@ -154,10 +189,7 @@ def prepare(config, cache, output, *, backend="rust"):
             ) as runner:
                 pending = {}
                 for counter in range(series.limit):
-                    if (
-                        len(training) >= spec["training_prompts"]
-                        and len(development) >= spec["development_structures"]
-                    ):
+                    if target_reached():
                         break
                     if ledger.remaining_ns() <= 0:
                         break
@@ -239,23 +271,34 @@ def prepare(config, cache, output, *, backend="rust"):
                     if counter % 25 == 0:
                         ledger.heartbeat()
                         print(
-                            f"ADMIT counter={counter}/{series.limit} shard={counter // sampler_config['max_attempts']} train={len(training)}/{spec['training_prompts']} structural_dev={len(development)}/{spec['development_structures']} remaining={ledger.remaining_ns()/1e9:.0f}s",
+                            f"ADMIT counter={counter}/{series.limit} shard={counter // sampler_config['max_attempts']} train={len(training)}/{spec['training_prompts']} structural_dev={len(development)}/{spec['development_structures']} remaining={ledger.remaining_ns() / 1e9:.0f}s",
                             flush=True,
                         )
             stop_reason = (
                 "target_reached"
-                if len(training) >= spec["training_prompts"]
-                and len(development) >= spec["development_structures"]
-                else "lifetime_budget" if ledger.remaining_ns() <= 0 else "candidate_limit"
+                if target_reached()
+                else "lifetime_budget"
+                if ledger.remaining_ns() <= 0
+                else "candidate_limit"
             )
         finally:
             ledger.transition("paused")
             write(
                 root / "archive-preparation-report.json",
                 {
+                    "training_mixture": MIXTURE if connected else None,
+                    "training_prefix_behaviors": dict(
+                        Counter(behavior(r) for r in training.values())
+                    ),
                     "training_prompts": len(training),
                     "development_structures": len(development),
                     "training_structures": len({r["structure"] for r in training.values()}),
+                    "curriculum_counts": {
+                        split: dict(
+                            Counter(str(r.get("stage", "unlabelled")) for r in view.values())
+                        )
+                        for split, view in (("training", training), ("development", development))
+                    },
                     "training_body_tokens": sorted(len(r["tokens"]) for r in training.values()),
                     "source_census": built["census"],
                     "reasons": dict(reasons),
@@ -265,10 +308,7 @@ def prepare(config, cache, output, *, backend="rust"):
                     "budget": ledger.snapshot(),
                 },
             )
-        if (
-            len(training) < spec["training_prompts"]
-            or len(development) < spec["development_structures"]
-        ):
+        if not target_reached():
             raise ValueError(
                 f"archive shortfall ({stop_reason}): train={len(training)}/{spec['training_prompts']}, "
                 f"structural_dev={len(development)}/{spec['development_structures']}, "

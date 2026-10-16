@@ -16,6 +16,8 @@ def collect(archive, keys, training, development):
             "tokens": packet["tokens"],
             "structure": entry["ir_sha256"],
         }
+        if packet.get("provenance", {}).get("config", {}).get("profile") == "connected_sampler_v1":
+            item["stage"] = packet["provenance"]["sample"]["statistics"]["stage"]
         if entry["training_eligible"]:
             identity = digest(item["values"])
             old = training.get(identity)
@@ -27,6 +29,20 @@ def collect(archive, keys, training, development):
             and compute_canonical_digest(item["values"]) not in archive.holdouts.reserved_prefixes
         ):
             development[entry["ir_sha256"]] = item
+
+
+def validation_view(development, count):
+    rows = sorted(development.values(), key=lambda r: r["program_id"])
+    if not any("stage" in r for r in rows):
+        return rows[:count]
+    # Round-robin stages so a small early stage cannot disappear in truncation.
+    groups = [[r for r in rows if r["stage"] == stage] for stage in range(4)]
+    return [
+        row
+        for index in range(max(map(len, groups), default=0))
+        for group in groups
+        for row in group[index : index + 1]
+    ][:count]
 
 
 def export(root, config, imported, built, archive, training, development, *, completion=None):
@@ -42,9 +58,9 @@ def export(root, config, imported, built, archive, training, development, *, com
         root / "examples.json",
         {
             "training": sorted(training.values(), key=lambda x: x["program_id"]),
-            "development": sorted(development.values(), key=lambda x: x["program_id"])[
-                : config["archive"]["development_structures"]
-            ],
+            "development": validation_view(
+                development, config["archive"]["development_structures"]
+            ),
         },
         immutable=True,
     )

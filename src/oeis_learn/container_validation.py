@@ -21,10 +21,17 @@ CPU_NODES = sorted(
             "test_fresh*.py",
             "test_container*.py",
             "test_extended_fresh.py",
+            "test_bootstrap_*.py",
+            "test_connected_sampler.py",
         )
         for p in (ROOT / "tests" / area).glob(pattern)
         if p.name
-        not in {"test_foundation_gpu.py", "test_foundation_learning_gpu.py", "test_fresh_gpu.py"}
+        not in {
+            "test_foundation_gpu.py",
+            "test_foundation_learning_gpu.py",
+            "test_fresh_gpu.py",
+            "test_bootstrap_gpu.py",
+        }
     }
 ) + [
     "tests/test_dev_images.py",
@@ -33,6 +40,7 @@ CPU_NODES = sorted(
 GPU_NODES = [
     "tests/integration/test_portable_gpu.py",
     "tests/integration/test_fresh_gpu.py",
+    "tests/integration/test_bootstrap_gpu.py",
     "tests/integration/test_foundation_evaluation.py::test_gpu_checkpoint_loading_and_prefix_only_generation",
     "tests/unit/test_foundation_sampler.py::test_complete_effective_constructors_and_real_forward_backward[cuda]",
 ]
@@ -177,7 +185,7 @@ def _stages(host, suite, output):
                                 break
                             except subprocess.TimeoutExpired:
                                 print(
-                                    f"  running {int(time.monotonic()-started)}s; log: {out / 'stdout.log'}",
+                                    f"  running {int(time.monotonic() - started)}s; log: {out / 'stdout.log'}",
                                     flush=True,
                                 )
                     finally:

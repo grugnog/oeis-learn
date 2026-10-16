@@ -408,7 +408,13 @@ def diagnostic(inputs, output):
     result = train(inputs, output)
     rows = load_json((inputs / "examples.json").read_bytes())["rows"]
     encoder, decoder = load_models(output, settings)
-    collisions = encoder_collision_count(encoder, settings["device"])
+    # The replacement cannot certify that the historical baseline needs replacing.
+    from oeis_learn.experiments.bootstrap_models import bootstrap_profile, construct_bootstrap_models
+    baseline_profile = bootstrap_profile("tri_stream")
+    baseline_encoder, baseline_decoder, _ = construct_bootstrap_models(baseline_profile, device=settings["device"])
+    collisions = encoder_collision_count(baseline_encoder, settings["device"])
+    selected_collisions = encoder_collision_count(encoder, settings["device"])
+    del baseline_encoder, baseline_decoder
     observed = dict(
         encoder_collisions=collisions,
         updates=result["completed_updates"],
@@ -499,12 +505,12 @@ def diagnostic(inputs, output):
         result,
         diagnostic=observed,
         diagnostic_attempts=attempted,
-        encoder_probe=dict(profile=settings["profile"], boundary="selected input features", pairs=3),
+        encoder_probe=dict(profile=baseline_profile, selected_profile=settings["profile"], baseline_collisions=collisions, selected_collisions=selected_collisions, boundary="frozen historical features before transformer", pairs=3),
         missing=["synthetic validation unavailable"] if not validation else [],
     )
 
 
-def validation_loss(encoder, decoder, rows, device):
+def validation_loss(encoder, decoder, rows, device, *, limit=32, batch_size=1):
     import torch
     from oeis_learn.rl.sft_trainer import teacher_forced_logits
     from oeis_learn.rl.token_loss import token_cross_entropy
@@ -513,17 +519,21 @@ def validation_loss(encoder, decoder, rows, device):
 
     losses = []
     with scoring_mode(encoder, decoder), torch.no_grad():
-        for row in rows[:32]:
-            tokens = torch.tensor([[BOS_ID] + row["tokens"]], device=device)
-            logits = teacher_forced_logits(
-                encoder,
-                decoder,
-                [[int(v) for v in row["entry"]["conditioning_values"]]],
-                tokens,
-                device=device,
-                pad_id=PAD_ID,
-            )
-            losses.append(float(token_cross_entropy(logits, tokens[:, 1:]).mean()))
+        selected = rows if limit is None else rows[:limit]
+        if type(batch_size) is not int or not 1 <= batch_size <= 64 or not selected:
+            raise ValueError("nonempty validation and bounded batch size required")
+        for start in range(0, len(selected), batch_size):
+            batch = selected[start:start + batch_size]
+            sequences = [[BOS_ID] + row["tokens"] for row in batch]
+            tokens = torch.full((len(batch), max(map(len, sequences))), PAD_ID, device=device, dtype=torch.long)
+            for i, sequence in enumerate(sequences):
+                tokens[i, :len(sequence)] = torch.tensor(sequence, device=device)
+            logits = teacher_forced_logits(encoder, decoder,
+                [[int(v) for v in row["entry"]["conditioning_values"]] for row in batch],
+                tokens, device=device, pad_id=PAD_ID)
+            token_losses = token_cross_entropy(logits, tokens[:, 1:], ignore_index=PAD_ID)
+            per_program = token_losses.sum(-1) / tokens[:, 1:].ne(PAD_ID).sum(-1)
+            losses.extend(per_program.tolist())
     return sum(losses) / len(losses)
 
 

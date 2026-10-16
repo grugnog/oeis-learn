@@ -185,7 +185,7 @@ def prepare_measurement(
 def load_assets(manifest, root, *, hardware=False, replay_gates=True):
     from oeis_learn.evaluation.repair_gate import require_g7
     from oeis_learn.evaluation.learning_gate import require_g8
-    from oeis_learn.data.generic_programs import GenericSampler
+    from oeis_learn.data.sampler_factory import sampler as GenericSampler
     from oeis_learn.data.program_admission import require_sample
 
     root = Path(root)

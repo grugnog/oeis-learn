@@ -134,7 +134,22 @@ def test_role_mount_plan_never_exposes_workspace_socket_or_gpu_to_workers(tmp_pa
         container_command(**dict(args, render_node="/dev/dri/renderD128"))
 
 
-def test_actual_controller_pause_resume_and_read_only_inspect(training_inputs, tmp_path, capsys):
+@pytest.fixture
+def mismatched_cpu_threads(monkeypatch):
+    import torch
+
+    previous = torch.get_num_threads()
+    monkeypatch.setenv("OMP_NUM_THREADS", "2")
+    torch.set_num_threads(1)
+    try:
+        yield
+    finally:
+        torch.set_num_threads(previous)
+
+
+def test_actual_controller_pause_resume_and_read_only_inspect(
+    training_inputs, tmp_path, capsys, mismatched_cpu_threads
+):
     import json
     from oeis_learn.cli.main import cli
     from oeis_learn.tracking.run_manager import inspect_foundation_run
@@ -162,6 +177,11 @@ def test_actual_controller_pause_resume_and_read_only_inspect(training_inputs, t
         )
         == 0
     )
+    import torch
+
+    assert json.loads((root / "checkpoints/runtime.json").read_text())["cpu_threads"] == 4
+    # The resume controller must also normalize its newly spawned runtime.
+    torch.set_num_threads(3)
     first = json.loads(capsys.readouterr().out)
     assert first["status"] == "paused" and first["completed_update"] == 1
     before = {str(p): p.read_bytes() for p in root.rglob("*.json*") if p.is_file()}

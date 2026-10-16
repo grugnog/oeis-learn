@@ -18,7 +18,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from oeis_learn.container_runtime import Engine  # noqa: E402
 from oeis_learn.fresh.common import digest, file_hash, read  # noqa: E402
 
-CAPS = {"smoke": 1800, "fresh-pilot-1h": 3600, "fresh-benchmark": 600, "fresh-extended-12h": 43200}
+CAPS = {
+    "smoke": 1800,
+    "fresh-pilot-1h": 3600,
+    "fresh-benchmark": 600,
+    "fresh-extended-12h": 43200,
+    "bootstrap-learnability": 3600,
+}
 
 
 def relative(value):
@@ -55,6 +61,13 @@ def extended_settings(benchmark, output):
         raise ValueError("invalid measured batch recommendation")
     cfg = json.loads((root / "input-manifest.json").read_bytes())["config"]
     cfg["run"].pop("model", None)
+    learner = run["settings"].get("learner", {})
+    if learner.get("model", {}).get("version") == "bootstrap-model/v1":
+        cfg["version"] = "fresh-workflow/v2"
+        cfg["run"]["encoder"] = learner["model"]["encoder"]
+        cfg["run"]["learning"] = dict(
+            learner["learning"], max_updates=100000, validation_every_updates=1000
+        )
     cfg["archive"].update(
         training_prompts=2048, development_structures=128, seconds=7200, sampling_shards=64
     )
@@ -214,13 +227,21 @@ class Host:
         run = argv[1] if action == "run" else argv[0] if argv else None
         image = (
             self.ensure()
-            if action in {"run", "check"}
+            if action in {"run", "check", "diagnose"}
             else self.engine.image(read(state_path(run) / "run.json")["image"])
         )
         policy = dict(self.policy)
-        token = digest([str(ROOT), run or "probe"])[7:39]
+        token = digest([str(ROOT), argv[1] if action == "diagnose" else run or "probe"])[7:39]
         policy["run_token"] = token
-        cap = CAPS[argv[2]] if action == "run" else 300 if action == "check" else 43200
+        cap = (
+            CAPS[argv[2]]
+            if action == "run"
+            else 300
+            if action == "check"
+            else 3600
+            if action == "diagnose"
+            else 43200
+        )
         with self.gpu_lock():
             self.engine.cleanup(token)
             command = [
@@ -278,10 +299,15 @@ def parser():
     plan = commands.add_parser("extended-settings")
     plan.add_argument("--benchmark", required=True)
     plan.add_argument("--output", default="tmp-analysis/fresh-extended-settings.json")
-    for op in ("train", "smoke", "benchmark"):
+    for op in ("train", "smoke", "benchmark", "learnability"):
         cmd = commands.add_parser(op)
         cmd.add_argument("--inputs", required=True)
         cmd.add_argument("--run", required=True)
+        cmd.add_argument(
+            "--encoder",
+            choices=["tri_stream", "hybrid", "integer_bytes"],
+            help="explicit matched-encoder comparison on the same admitted input bytes",
+        )
         if op == "train":
             cmd.add_argument(
                 "--profile",
@@ -296,6 +322,9 @@ def parser():
         if op == "pack":
             cmd.add_argument("--output", required=True)
             cmd.add_argument("--checkpoint", action="store_true")
+    diagnostic = commands.add_parser("diagnose")
+    diagnostic.add_argument("--run", required=True)
+    diagnostic.add_argument("--output", required=True)
     validation = commands.add_parser("validate")
     validation.add_argument("--suite", choices=["cpu", "gpu"], default="gpu")
     validation.add_argument("--output", default="tmp-validation")
@@ -329,11 +358,13 @@ def main(argv=None):
             )
         elif args.command == "seal-inputs":
             host.cpu("seal-inputs", "--inputs", relative(args.inputs), "--accept-shortfall")
+        elif args.command == "diagnose":
+            host.pipeline("diagnose", relative(args.run), relative(args.output))
         elif args.command == "validate":
             from oeis_learn.container_validation import validate
 
             validate(host, args.suite, ROOT / relative(args.output))
-        elif args.command in {"check", "train", "smoke", "benchmark"}:
+        elif args.command in {"check", "train", "smoke", "benchmark", "learnability"}:
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=1800)
             if args.command == "check":
@@ -345,9 +376,12 @@ def main(argv=None):
                         "run",
                         inputs,
                         run,
-                        {"smoke": "smoke", "benchmark": "fresh-benchmark"}.get(
-                            args.command, getattr(args, "profile", "fresh-pilot-1h")
-                        ),
+                        {
+                            "smoke": "smoke",
+                            "benchmark": "fresh-benchmark",
+                            "learnability": "bootstrap-learnability",
+                        }.get(args.command, getattr(args, "profile", "fresh-pilot-1h")),
+                        *([args.encoder] if args.encoder else []),
                     )
                 finally:
                     if (ROOT / run / "run.json").is_file():
@@ -356,7 +390,9 @@ def main(argv=None):
             extra = (
                 [args.split, "latest"]
                 if args.command == "evaluate"
-                else ["best-development"] if args.command == "finalize" else []
+                else ["best-development"]
+                if args.command == "finalize"
+                else []
             )
             try:
                 host.pipeline(args.command, relative(args.run), *extra)

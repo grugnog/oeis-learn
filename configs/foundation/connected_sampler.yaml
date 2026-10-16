@@ -1,0 +1,28 @@
+schema_version: foundation/v1
+profile: connected_sampler_v1
+seed: 20261016
+target_count: 64
+max_attempts: 10000
+budget_ns: 300000000000
+workers: 4
+chunk_size: 8
+priors:
+  variants: 16
+  stages: 4
+  constant_range:
+  - -16
+  - 16
+  scalar_choices:
+  - -3
+  - -2
+  - -1
+  - 1
+  - 2
+  - 3
+  loop_cap: 100
+  index_scalar_probability:
+  - 1
+  - 2
+  coupled_state_probability:
+  - 1
+  - 2

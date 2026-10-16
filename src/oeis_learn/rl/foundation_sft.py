@@ -65,7 +65,7 @@ def runtime_record(device, *, run=None):
         deterministic_algorithms=True,
         float32_matmul_precision="highest",
         allow_tf32=False,
-        cpu_threads=4,
+        cpu_threads=torch.get_num_threads(),
         dtype="fp32",
         implementation={str(p.relative_to(root)): compute_file_hash(p) for p in files},
     )
@@ -98,6 +98,9 @@ def prepare_run(
         or not 0 < budget_ns <= 600_000_000_000
     ):
         raise ValueError("invalid seed or smoke budget (maximum ten minutes)")
+    # This strict smoke profile executes with four threads in every process.
+    # Bind the configured runtime, not the preparing caller's ambient setting.
+    torch.set_num_threads(4)
     runtime = runtime_record(device)
     if run_provenance is not None:
         import re
@@ -207,10 +210,10 @@ class FoundationTrainer:
         self.bundle = self.root / "checkpoints"
         self.cfg = load_config(self.bundle / "config.yaml")
         self.device = torch.device(self.run["device"])
+        torch.set_num_threads(4)
         expected_runtime = runtime_record(str(self.device), run=self.run)
         if load_json((self.bundle / "runtime.json").read_bytes()) != expected_runtime:
             raise ValueError("incompatible runtime")
-        torch.set_num_threads(4)
         torch.use_deterministic_algorithms(True)
         torch.set_float32_matmul_precision("highest")
         torch.backends.cuda.matmul.allow_tf32 = False

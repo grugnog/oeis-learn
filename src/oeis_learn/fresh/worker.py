@@ -37,6 +37,10 @@ def models(settings):
     if settings["device"] == "cuda":
         index = torch.cuda.current_device()
         torch.cuda.set_per_process_memory_fraction(0.8, index)
+    if settings["model"].get("version") == "bootstrap-model/v1":
+        from oeis_learn.experiments.bootstrap_models import construct_bootstrap_models
+
+        return construct_bootstrap_models(settings["model"], device=settings["device"])
     return construct_qualified_models(settings["model"], device=settings["device"])
 
 
@@ -68,7 +72,7 @@ def train(inputs, output):
     rows = examples["training"]
     if not rows or any(
         len(r["values"]) != 20 or encode_body(decode_body(r["tokens"])) != r["tokens"]
-        for r in rows + examples["development"]
+        for r in rows + examples["development"] + examples.get("parameter_development", [])
     ):
         raise ValueError("complete visible training examples required")
     encoder, decoder, counts = models(settings)
@@ -96,6 +100,16 @@ def train(inputs, output):
         "rng": rng.get_state(),
         "next_sample_ids": [],
     }
+    learning = settings.get("learning")
+    if learning:
+        from .bootstrap_config import validate_learning
+
+        validate_learning(learning)
+        order["stage"] = 0 if learning["curriculum"] else 3
+        eligible = [i for i, r in enumerate(rows) if r.get("stage", 0) <= order["stage"]]
+        if not eligible:
+            raise ValueError("curriculum needs stage-zero examples")
+        order["permutation"] = [i for i in order["permutation"] if i in eligible]
     previous = None
     recovery = None
     if (inputs / "checkpoints").exists():
@@ -105,9 +119,10 @@ def train(inputs, output):
         order, prefetch = restore_learning_state(state, encoder, decoder, optimizer)
         if prefetch != {"examples_sha256": settings["examples_sha256"], "next": []}:
             raise ValueError("checkpoint data identity mismatch")
-        if sorted(order["permutation"]) != list(range(len(rows))) or not 0 <= order[
-            "cursor"
-        ] <= len(rows):
+        eligible = [
+            i for i, r in enumerate(rows) if not learning or r.get("stage", 0) <= order["stage"]
+        ]
+        if sorted(order["permutation"]) != eligible or not 0 <= order["cursor"] <= len(eligible):
             raise ValueError("checkpoint data cursor mismatch")
         rng.set_state(order["rng"])
         previous = manifest["qualified"]["identity_sha256"]
@@ -116,6 +131,19 @@ def train(inputs, output):
             "completed": order["completed"],
             "checkpoint_sha256": base["blob_sha256"],
         }
+    replay_targets = {}
+    if learning and learning["replay"]:
+        from oeis_learn.discovery.program_archive import ProgramArchive
+        from oeis_learn.experiments.learning_profiles import load_holdouts
+        from .replay import restore
+
+        holdout_config = read(inputs / "holdouts.json")
+        if digest(holdout_config) != settings["holdouts_sha256"]:
+            raise ValueError("replay holdout identity mismatch")
+        replay_archive = ProgramArchive(
+            output / "replay-archive", holdouts=load_holdouts(holdout_config), quota_bytes=32 << 20
+        )
+        replay_targets = restore(order.get("replay", []), rows, replay_archive)
     encoder.train()
     decoder.train()
     start = time.monotonic()
@@ -158,7 +186,9 @@ def train(inputs, output):
                 "elapsed_seconds": last_save - start,
             },
         )
-        print(f"CHECKPOINT update={order['completed']} elapsed={last_save-start:.1f}s", flush=True)
+        print(
+            f"CHECKPOINT update={order['completed']} elapsed={last_save - start:.1f}s", flush=True
+        )
 
     # A durable random-initialized baseline is itself a complete active state.
     if recovery is None:
@@ -169,7 +199,7 @@ def train(inputs, output):
             0, remaining - settings["checkpoint_reserve_seconds"]
         ):
             update_started = time.monotonic_ns()
-            if order["cursor"] == len(rows):
+            if order["cursor"] == len(order["permutation"]):
                 order.update(
                     permutation=permutation(
                         rows, rng, settings["batch_size"], settings.get("length_buckets", False)
@@ -177,10 +207,17 @@ def train(inputs, output):
                     cursor=0,
                     epoch=order["epoch"] + 1,
                 )
+                if learning:
+                    order["permutation"] = [
+                        i for i in order["permutation"] if rows[i].get("stage", 0) <= order["stage"]
+                    ]
             indices = order["permutation"][
                 order["cursor"] : order["cursor"] + settings["batch_size"]
             ]
-            batch = [rows[i] for i in indices]
+            batch = [
+                dict(rows[i], tokens=replay_targets.get(rows[i]["program_id"], rows[i]["tokens"]))
+                for i in indices
+            ]
             tokens = [[BOS_ID] + row["tokens"] for row in batch]
             padded = torch.full(
                 (len(batch), max(map(len, tokens))),
@@ -234,7 +271,68 @@ def train(inputs, output):
                 for r in examples["development"]
             ],
             settings["device"],
+            limit=None if learning else 32,
+            batch_size=min(4, settings["batch_size"]) if learning else 1,
         )
+    diagnostic = None
+    if learning and time.monotonic() - start < remaining - learning["diagnostic_seconds"]:
+        from .diagnostics import evaluate, competence
+        from oeis_learn.tracking.role_coordinator import QueueRunner
+
+        diagnostic = evaluate(
+            encoder,
+            decoder,
+            examples,
+            learning,
+            QueueRunner(output / "runtime-queue"),
+            stage=order["stage"] if learning["curriculum"] else None,
+        )
+        write(output / "diagnostic.json", diagnostic)
+        if not diagnostic["cache_parity"]["passed"]:
+            raise RuntimeError("cached/full decoder logits differ")
+        if learning["replay"]:
+            from .replay import admit
+
+            order["replay"] = admit(
+                diagnostic,
+                rows,
+                replay_archive,
+                QueueRunner(output / "runtime-queue"),
+                order.get("replay", []),
+                seconds=max(0, min(20, remaining - (time.monotonic() - start) - 5)),
+            )
+            write(
+                output / "replay.json",
+                dict(count=len(order["replay"]), keys=[r["key"] for r in order["replay"]]),
+            )
+        observed_train = diagnostic["splits"]["training"]
+        observed_dev = diagnostic["splits"]["development"]
+        print(
+            f"SYNTHETIC stage={diagnostic['stage']} "
+            f"train={observed_train['exact']}/{observed_train['denominator']} "
+            f"dev={observed_dev['exact']}/{observed_dev['denominator']} loss={validation}",
+            flush=True,
+        )
+        train_accuracy = competence(diagnostic, "training")
+        dev_accuracy = competence(diagnostic)
+        if (
+            learning["curriculum"]
+            and order["stage"] < 3
+            and train_accuracy is not None
+            and train_accuracy >= learning["promotion_accuracy"]
+            and dev_accuracy is not None
+            and dev_accuracy >= learning["promotion_accuracy"]
+        ):
+            order["stage"] += 1
+            order["permutation"] = [
+                i
+                for i in permutation(
+                    rows, rng, settings["batch_size"], settings.get("length_buckets", False)
+                )
+                if rows[i].get("stage", 0) <= order["stage"]
+            ]
+            order["cursor"] = 0
+        save()
     write(output / "runtime.json", runtime(settings["device"]))
     return {
         "version": "fresh-training-result/v1",
@@ -243,6 +341,15 @@ def train(inputs, output):
         "checkpoint_sha256": read(store_root / (checkpoint.stem + "-base.json"))["blob_sha256"],
         "recovery": recovery,
         "validation_loss": validation,
+        "validation_denominator": (
+            0
+            if validation is None
+            else len(examples["development"])
+            if learning
+            else min(32, len(examples["development"]))
+        ),
+        "diagnostic": diagnostic,
+        "curriculum_stage": order.get("stage"),
         "parameter_count": counts,
         "runtime_sha256": binding["expected_runtime"],
         "device": settings["device"],
@@ -271,6 +378,13 @@ def generate(inputs, output):
     encoder.eval()
     decoder.eval()
     proposer = ModelProposer(encoder, decoder, context_limit=settings["generation_tokens"] + 1)
+    from .search import select, grounded_variants
+    from .diagnostics import execute_values
+    from oeis_learn.tracking.role_coordinator import QueueRunner
+    from oeis_learn.decoder.program_codec import encode_body
+
+    verified = settings.get("learning", {}).get("prefix_verified", False)
+    runner = QueueRunner(output / "runtime-queue") if verified else None
     records = []
     for n, group in enumerate(visible):
         attempts = []
@@ -283,30 +397,76 @@ def generate(inputs, output):
         for attempt in range(settings["attempts"]):
             try:
                 ledger.charge(attempts=1)
-                source, evidence = proposer.stochastic(
-                    [int(v) for v in group["values"]],
-                    settings["seed"] + n * 32 + attempt,
-                    ledger,
-                    greedy=attempt == 0,
-                )
+                values = [int(v) for v in group["values"]]
+                parents = [r["source"] for r in attempts if r.get("complete") and r.get("source")]
+                repair_slots = min(2, settings["attempts"] // 2) if verified else 0
+                if repair_slots and attempt >= settings["attempts"] - repair_slots and parents:
+                    variants = grounded_variants(parents[0], values)
+                    offset = attempt - (settings["attempts"] - repair_slots)
+                    source = variants[offset] if offset < len(variants) else parents[0]
+                    tokens = encode_body(source)
+                    ledger.charge(tokens=len(tokens), expansions=1)
+                    evidence = dict(
+                        method="literal_repair", tokens=tokens, complete=True, failure=None
+                    )
+                elif (
+                    verified and settings["attempts"] >= 8 and attempt == settings["attempts"] // 2
+                ):
+                    beam = proposer.beam(values, ledger, count=1, width=2)
+                    source, evidence = (
+                        beam[0]
+                        if beam
+                        else (
+                            None,
+                            dict(
+                                method="beam", tokens=[], complete=False, failure="no_complete_path"
+                            ),
+                        )
+                    )
+                    evidence = dict(
+                        evidence,
+                        tokens=encode_body(source) if source else [],
+                        complete=bool(source),
+                        failure=None if source else "no_complete_path",
+                    )
+                else:
+                    source, evidence = proposer.stochastic(
+                        values, settings["seed"] + n * 32 + attempt, ledger, greedy=attempt == 0
+                    )
                 attempts.append(
                     {
                         "source": source,
                         "method": evidence["method"],
                         "complete": evidence["complete"],
                         "failure": evidence["failure"],
+                        "tokens": evidence["tokens"],
                     }
                 )
+                if verified and evidence["complete"]:
+                    ledger.charge()
+                    outputs, outcome = execute_values(
+                        runner,
+                        source,
+                        range(20),
+                        digest([group["group_id"], attempt, source]),
+                        time.monotonic_ns() + max(0, ledger.budget_ns - ledger.elapsed()),
+                    )
+                    attempts[-1].update(
+                        prefix_fit=outputs == group["values"], prefix_outcome=outcome
+                    )
             except SearchExhausted as exc:
                 attempts.append(
-                    {"source": None, "method": "bounded", "complete": False, "failure": str(exc)}
+                    {
+                        "source": None,
+                        "method": "bounded",
+                        "complete": False,
+                        "failure": str(exc),
+                        "tokens": list(getattr(exc, "tokens", [])),
+                    }
                 )
                 break
-        # Selection is fixed before any hidden scoring: first complete candidate.
-        selected = next(
-            (digest(r["source"]) for r in attempts if r["source"] is not None and r["complete"]),
-            None,
-        )
+        # Prefix execution never receives hidden continuation terms.
+        selected = select(attempts, verified=verified)
         records.append(
             {"group_id": group["group_id"], "selected_sha256": selected, "attempts": attempts}
         )
@@ -469,6 +629,7 @@ def main():
 
     operation = sys.argv[1]
     from .benchmark import benchmark
+    from .checkpoint_diagnostic import diagnose
 
     handlers = {
         "train": train,
@@ -476,6 +637,7 @@ def main():
         "score": score,
         "probe": probe,
         "benchmark": benchmark,
+        "diagnose": diagnose,
     }
     result = handlers[operation](Path("/work/input"), Path("/work/output"))
     write(Path("/work/output/result.json"), result)
