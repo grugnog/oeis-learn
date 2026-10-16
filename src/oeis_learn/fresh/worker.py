@@ -37,6 +37,9 @@ def models(settings):
     if settings["device"] == "cuda":
         index = torch.cuda.current_device()
         torch.cuda.set_per_process_memory_fraction(0.8, index)
+    if settings["model"].get("version") == "bootstrap-model/v1":
+        from oeis_learn.experiments.bootstrap_models import construct_bootstrap_models
+        return construct_bootstrap_models(settings["model"], device=settings["device"])
     return construct_qualified_models(settings["model"], device=settings["device"])
 
 

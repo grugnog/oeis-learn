@@ -65,7 +65,7 @@ def runtime_record(device, *, run=None):
         deterministic_algorithms=True,
         float32_matmul_precision="highest",
         allow_tf32=False,
-        cpu_threads=4,
+        cpu_threads=torch.get_num_threads(),
         dtype="fp32",
         implementation={str(p.relative_to(root)): compute_file_hash(p) for p in files},
     )
