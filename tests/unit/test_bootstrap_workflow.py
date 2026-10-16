@@ -246,7 +246,10 @@ def test_production_training_and_decoder_learn_generic_constant_microset(
     assert report["diagnostic"]["cache_parity"]["passed"]
 
 
-def test_host_learnability_freezes_encoder_override_and_does_not_score_final(tmp_path):
+@pytest.mark.parametrize("original_data", [False, True])
+def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
+    tmp_path, original_data
+):
     from tests.integration.test_fresh_lifecycle import run_environment, fixture_coordinator
     from tests.unit.test_fresh_workflow import FakeClock
     from oeis_learn.experiments.bootstrap_models import bootstrap_profile
@@ -254,9 +257,10 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(tmp
     workspace, policy = run_environment(tmp_path)
     path = workspace / "inputs/prepared.json"
     manifest = read(path)
-    manifest["config"]["run"].update(
-        model=bootstrap_profile("tri_stream"), learning=learning_defaults()
-    )
+    if not original_data:
+        manifest["config"]["run"].update(
+            model=bootstrap_profile("tri_stream"), learning=learning_defaults()
+        )
     manifest["identity"] = digest({k: v for k, v in manifest.items() if k != "identity"})
     write(path, manifest)
     clock = FakeClock()
@@ -398,7 +402,7 @@ def test_host_checkpoint_diagnostic_packages_separate_evidence(tmp_path, monkeyp
                 pass
 
             def run(self, operation, role, inputs, output, seconds):
-                assert operation == "diagnose" and role == "learner" and seconds <= 600
+                assert operation == "diagnose" and role == "learner" and seconds <= 3600
                 assert not (inputs / "truth.json").exists()
                 output.mkdir(parents=True)
                 cfg = read(inputs / "settings.json")
@@ -492,3 +496,109 @@ def test_bootstrap_pilot_leaves_final_pending_until_explicit_evaluation(tmp_path
         assert status["diagnostic_final_cohort_consumed"]
         assert status["final_score"]["denominator"] == 1
         assert len(status["final_score"]["solved_groups"]) == 1
+
+
+def test_parameter_view_reserves_familiar_structures_without_training_leakage():
+    from oeis_learn.fresh.bootstrap_views import parameter_view
+
+    data = examples()
+    rows = [
+        dict(
+            data["training"][0],
+            program_id=f"{s}-{p}",
+            structure=f"s{s}",
+            values=[str(100 * s + p)] * 20,
+            stage=s % 4,
+        )
+        for s in range(8)
+        for p in range(8)
+    ]
+    source = dict(training=rows, development=data["development"])
+    view = parameter_view(source)
+    assert len(source["training"]) == 64  # Sealed source is unchanged.
+    assert len(view["parameter_development"]) == 8
+    assert len(view["training"]) == 56
+    assert view["development"] == source["development"]
+    assert (
+        parameter_view(dict(source, training=list(reversed(rows))))["parameter_development"]
+        == view["parameter_development"]
+    )
+    for held in view["parameter_development"]:
+        assert all(r["values"] != held["values"] for r in view["training"])
+        assert sum(r["structure"] == held["structure"] for r in view["training"]) >= 2
+    assert parameter_view(data)["parameter_development"] == []
+
+
+def test_full_development_diagnostic_reports_strata_and_actual_generation_parity(monkeypatch):
+    encoder, decoder, _ = small_models(None, device="cpu")
+    data = examples()
+    data["development"] = [
+        dict(
+            data["training"][0],
+            program_id=f"d{i}",
+            values=[str(i)] * 20,
+            tokens=encode_body(f"i256.const {i}"),
+        )
+        for i in range(40)
+    ]
+    calls = []
+
+    def propose(self, visible, seed, ledger, greedy):
+        calls.append(self.use_cache)
+        source = f"i256.const {visible[0]}"
+        return source, dict(
+            method="greedy",
+            tokens=encode_body(source),
+            complete=True,
+            failure=None,
+            encoder_sha256=digest("e"),
+            decoder_sha256=digest("d"),
+            eos_trace=[dict(raw_probability=0.5, grammar_probability=1, allowed=True)],
+        )
+
+    monkeypatch.setattr("oeis_learn.evaluation.search.ModelProposer.stochastic", propose)
+    result = evaluate(
+        encoder,
+        decoder,
+        data,
+        dict(learning_defaults(), diagnostic_rows=2, diagnostic_seconds=10),
+        ReferenceFixtureRunner(),
+        full_development=True,
+        compare_generation=True,
+    )
+    dev = result["splits"]["development"]
+    assert dev["denominator"] == dev["evaluated"] == dev["exact"] == 40
+    assert dev["coverage_complete"]
+    assert dev["prefix_exact"] == dev["continuation_exact"] == dev["legal"] == 40
+    assert dev["by_length"]["1-64"]["denominator"] == 40
+    assert dev["by_complexity"]["expression"]["exact"] == 40
+    assert dev["output_diversity"] == dict(executed=40, distinct=40)
+    assert False in calls and True in calls
+    comparisons = [r["generation_parity"] for r in dev["attempts"] if "generation_parity" in r]
+    assert len(comparisons) == 3 and all(c["passed"] for c in comparisons)
+    assert all(r["eos_trace"] for r in dev["attempts"])
+
+
+def test_production_sampler_records_eos_without_changing_greedy_tokens():
+    from oeis_learn.evaluation.search import ModelProposer, SearchLedger
+
+    encoder, decoder, _ = small_models(None, device="cpu")
+    observed = []
+    for cache in (True, False):
+        proposer = ModelProposer(
+            encoder, decoder, context_limit=16, use_cache=cache, diagnostics=True
+        )
+        _, evidence = proposer.stochastic(
+            list(range(20)),
+            9,
+            SearchLedger(max_attempts=1, max_tokens=16, max_expansions=16, budget_ns=10**10),
+            greedy=True,
+        )
+        assert evidence["eos_trace"]
+        for step in evidence["eos_trace"]:
+            assert 0 <= step["raw_probability"] <= 1
+            assert 0 <= step["grammar_probability"] <= 1
+            if not step["allowed"]:
+                assert step["grammar_probability"] == 0
+        observed.append(evidence["tokens"])
+    assert observed[0] == observed[1]

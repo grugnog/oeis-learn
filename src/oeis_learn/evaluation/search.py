@@ -147,8 +147,9 @@ def typed_repairs(source, limit=8):
 
 
 class ModelProposer:
-    def __init__(self, encoder, decoder, *, context_limit=1024):
+    def __init__(self, encoder, decoder, *, context_limit=1024, use_cache=True, diagnostics=False):
         self.encoder, self.decoder, self.context_limit = encoder, decoder, context_limit
+        self.use_cache, self.diagnostics = use_cache, diagnostics
 
     def stochastic(self, visible, seed, ledger, *, greedy=False):
         from oeis_learn.decoder.sampler import WatProgramSampler
@@ -160,8 +161,9 @@ class ModelProposer:
             temperature=0 if greedy else 0.8,
             top_p=1,
             codec_profile="wat_body_decimal_v1",
-            use_cache=True,
+            use_cache=self.use_cache,
         )
+        sampler.capture_diagnostics = self.diagnostics
         with scoring_mode(self.encoder, self.decoder), torch.no_grad():
             memory = self.encoder.forward_from_sequences([visible], device=device)
             try:
@@ -170,9 +172,11 @@ class ModelProposer:
                 )[0]
             except SearchExhausted as exc:
                 exc.tokens = list(getattr(sampler, "active_token_rows", [[]])[0])
+                exc.eos_trace = list(getattr(sampler, "eos_traces", [[]])[0])
                 raise
         return trajectory.source, {
             "method": "greedy" if greedy else "stochastic",
+            "eos_trace": list(getattr(sampler, "eos_traces", [[]])[0]),
             "tokens": list(trajectory.tokens),
             "complete": trajectory.complete,
             "failure": trajectory.failure,

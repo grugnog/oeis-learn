@@ -29,7 +29,7 @@ def validate_learning(value):
         ("patience", 1, 100),
         ("diagnostic_rows", 2, 32),
         ("diagnostic_tokens", 8, 1023),
-        ("diagnostic_seconds", 10, 600),
+        ("diagnostic_seconds", 10, 3000),
     ):
         if type(value[name]) is not int or not low <= value[name] <= high:
             raise ValueError(f"{name}: integer in {low}..{high} required")

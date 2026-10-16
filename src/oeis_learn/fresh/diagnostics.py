@@ -22,31 +22,118 @@ def choose_rows(rows, count, stage=None):
     return sorted(selected, key=lambda r: r["program_id"])[:count]
 
 
-def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
+def strata(row):
+    from oeis_learn.decoder.program_codec import decode_body
+
+    length = len(row["tokens"])
+    source = decode_body(row["tokens"])
+    complexity = (
+        "loop"
+        if "loop" in source
+        else "branch"
+        if "if" in source
+        else "assignment"
+        if "local.set" in source
+        else "expression"
+    )
+    return dict(
+        target_tokens=length,
+        length_band=next(
+            label
+            for upper, label in (
+                (64, "1-64"),
+                (256, "65-256"),
+                (512, "257-512"),
+                (1024, "513-1024"),
+            )
+            if length <= upper
+        ),
+        complexity=complexity,
+        stage=row.get("stage"),
+    )
+
+
+def summarize(attempts):
+    outputs = [r["output_sha256"] for r in attempts if r.get("output_sha256")]
+    return dict(
+        denominator=len(attempts),
+        evaluated=sum(r.get("evaluated", False) for r in attempts),
+        exact=sum(r["matched"] for r in attempts),
+        shuffled_exact=sum(r["shuffled_matched"] for r in attempts),
+        shuffled_denominator=sum(r["shuffled_evaluated"] for r in attempts),
+        completed=sum(r["complete"] for r in attempts),
+        legal=sum(r.get("legal", False) for r in attempts),
+        emitted_eos=sum(r.get("emitted_eos", False) for r in attempts),
+        prefix_exact=sum(r.get("prefix_matched", False) for r in attempts),
+        continuation_exact=sum(r.get("continuation_matched", False) for r in attempts),
+        output_diversity=dict(executed=len(outputs), distinct=len(set(outputs))),
+        failures=dict(Counter(r.get("failure") or "exact_match" for r in attempts)),
+    )
+
+
+def evaluate(
+    encoder,
+    decoder,
+    examples,
+    learning,
+    runner,
+    *,
+    stage=None,
+    full_development=False,
+    compare_generation=False,
+):
     import torch
     from oeis_learn.decoder.program_codec import BOS_ID, EOS_ID, decode_body
     from oeis_learn.evaluation.search import ModelProposer, SearchLedger, SearchExhausted
     from oeis_learn.rl.policy import scoring_mode
+    from oeis_learn.sandbox.wat_ast import parse
 
     deadline = time.monotonic_ns() + learning["diagnostic_seconds"] * 10**9
-    proposer = ModelProposer(encoder, decoder, context_limit=learning["diagnostic_tokens"] + 1)
-    report = {"version": "bootstrap-diagnostic/v1", "stage": stage, "splits": {}}
-    for split in ("training", "development"):
-        rows = choose_rows(examples[split], learning["diagnostic_rows"], stage)
-        attempts, failures = [], Counter()
+    proposer = ModelProposer(
+        encoder, decoder, context_limit=learning["diagnostic_tokens"] + 1, diagnostics=True
+    )
+    uncached = ModelProposer(
+        encoder,
+        decoder,
+        context_limit=learning["diagnostic_tokens"] + 1,
+        use_cache=False,
+        diagnostics=True,
+    )
+    report = {"version": "bootstrap-diagnostic/v2", "stage": stage, "splits": {}}
+    selected = {
+        split: choose_rows(
+            rows,
+            len(rows) if full_development and split != "training" else learning["diagnostic_rows"],
+            stage,
+        )
+        for split, rows in examples.items()
+        if split in {"training", "development", "parameter_development"}
+    }
+    remaining_rows = sum(map(len, selected.values()))
+    for split, rows in selected.items():
+        attempts = []
+        representatives = sorted(rows, key=lambda r: (len(r["tokens"]), r["program_id"]))
+        compare_ids = {r["program_id"] for r in representatives[:: max(1, len(rows) // 3)][:3]}
         for i, row in enumerate(rows):
-            record = {
-                "program_id": row["program_id"],
-                "matched": False,
-                "shuffled_matched": False,
-                "shuffled_evaluated": False,
-                "tokens": [],
-                "complete": False,
-            }
-            if time.monotonic_ns() >= deadline:
+            # Divide remaining time fairly: one long decode cannot consume the
+            # entire development view. Unfinished rows remain in the denominator.
+            now = time.monotonic_ns()
+            row_deadline = min(deadline, now + max(0, (deadline - now) // max(1, remaining_rows)))
+            remaining_rows -= 1
+            record = dict(
+                program_id=row["program_id"],
+                matched=False,
+                shuffled_matched=False,
+                shuffled_evaluated=False,
+                evaluated=False,
+                tokens=[],
+                complete=False,
+                eos_trace=[],
+                **strata(row),
+            )
+            attempts.append(record)
+            if now >= deadline:
                 record["failure"] = "diagnostic_deadline"
-                failures[record["failure"]] += 1
-                attempts.append(record)
                 continue
             visible = list(map(int, row["values"]))
             expected, failure = execute_values(
@@ -54,25 +141,30 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
                 decode_body(row["tokens"]),
                 range(100),
                 digest([split, row["program_id"], "oracle"]),
-                deadline,
+                row_deadline,
             )
-            if expected is None and time.monotonic_ns() >= deadline:
-                record["failure"] = "diagnostic_deadline"
-                failures[record["failure"]] += 1
-                attempts.append(record)
-                continue
             if expected is None:
+                if time.monotonic_ns() >= row_deadline:
+                    record["failure"] = "diagnostic_deadline"
+                    continue
                 raise RuntimeError(f"admitted diagnostic oracle failed: {failure}")
-            for shuffled in (False, True):
-                if shuffled and len(rows) < 2:
+            variants = ["correct", "shuffled"]
+            if compare_generation and row["program_id"] in compare_ids:
+                variants.append("uncached")
+                record["generation_parity"] = dict(evaluated=False, passed=False)
+            for variant in variants:
+                if variant == "shuffled" and len(rows) < 2:
                     record["shuffle_unavailable"] = True
                     continue
                 conditioning = (
-                    list(map(int, rows[(i + 1) % len(rows)]["values"])) if shuffled else visible
+                    list(map(int, rows[(i + 1) % len(rows)]["values"]))
+                    if variant == "shuffled"
+                    else visible
                 )
-                budget = deadline - time.monotonic_ns()
+                budget = row_deadline - time.monotonic_ns()
+                failure_key = "failure" if variant == "correct" else variant + "_failure"
                 if budget <= 0:
-                    record["shuffle_failure" if shuffled else "failure"] = "diagnostic_deadline"
+                    record[failure_key] = "diagnostic_deadline"
                     continue
                 ledger = SearchLedger(
                     max_attempts=1,
@@ -82,53 +174,87 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
                 )
                 try:
                     ledger.charge(attempts=1)
-                    source, evidence = proposer.stochastic(conditioning, i, ledger, greedy=True)
+                    source, evidence = (uncached if variant == "uncached" else proposer).stochastic(
+                        conditioning, i, ledger, greedy=True
+                    )
                     values, outcome = (
                         execute_values(
                             runner,
                             source,
                             range(100),
-                            digest([split, row["program_id"], shuffled]),
-                            deadline,
+                            digest([split, row["program_id"], variant]),
+                            row_deadline,
                         )
                         if evidence["complete"]
                         else (None, evidence["failure"])
                     )
-                    matched = values == expected
-                    if shuffled:
-                        record["shuffled_evaluated"] = time.monotonic_ns() < deadline
-                        record["shuffled_matched"] = matched
-                        record["shuffle_failure"] = outcome
+                    matched = values is not None and values == expected
+                    if variant == "shuffled":
+                        record.update(
+                            shuffled_evaluated=time.monotonic_ns() < row_deadline,
+                            shuffled_matched=matched,
+                            shuffled_failure=outcome,
+                        )
+                    elif variant == "uncached":
+                        equal = evidence["tokens"] == record["tokens"]
+                        record["generation_parity"] = dict(
+                            evaluated=True,
+                            passed=equal and evidence["complete"] == record["complete"],
+                            tokens=evidence["tokens"],
+                            complete=evidence["complete"],
+                            matched=matched,
+                            failure=outcome,
+                        )
                     else:
+                        legal = False
+                        if evidence["complete"]:
+                            parse(source)  # Complete grammar output must also parse independently.
+                            legal = True
+                        prefix = values[:20] if values is not None else None
+                        if legal and values is None and time.monotonic_ns() < row_deadline:
+                            prefix, _ = execute_values(
+                                runner,
+                                source,
+                                range(20),
+                                digest([split, row["program_id"], "prefix"]),
+                                row_deadline,
+                            )
                         record.update(
                             source=source,
+                            evaluated=True,
+                            legal=legal,
                             model_provenance={
                                 k: evidence[k]
                                 for k in ("method", "encoder_sha256", "decoder_sha256")
                             },
                             tokens=evidence["tokens"],
+                            eos_trace=evidence.get("eos_trace", []),
                             complete=evidence["complete"],
                             emitted_eos=EOS_ID in evidence["tokens"],
                             matched=matched,
+                            prefix_matched=prefix == expected[:20],
+                            continuation_matched=values is not None
+                            and values[20:] == expected[20:],
+                            output_sha256=digest(values) if values is not None else None,
                             failure=outcome if outcome else None if matched else "wrong_value",
                         )
                 except SearchExhausted as exc:
-                    record["shuffle_failure" if shuffled else "failure"] = str(exc)
-                    if not shuffled:
-                        record["tokens"] = list(getattr(exc, "tokens", []))
-            failures[record.get("failure") or "exact_match"] += 1
-            attempts.append(record)
-        denominator = len(rows)
-        report["splits"][split] = dict(
-            denominator=denominator,
-            attempts=attempts,
-            exact=sum(r["matched"] for r in attempts),
-            shuffled_exact=sum(r["shuffled_matched"] for r in attempts),
-            shuffled_denominator=sum(r["shuffled_evaluated"] for r in attempts),
-            completed=sum(r["complete"] for r in attempts),
-            failures=dict(failures),
+                    record[failure_key] = str(exc)
+                    if variant == "correct":
+                        record.update(
+                            tokens=list(getattr(exc, "tokens", [])),
+                            eos_trace=list(getattr(exc, "eos_trace", [])),
+                        )
+        summary = summarize(attempts)
+        summary.update(
+            attempts=attempts, available=len(examples[split]), by_length={}, by_complexity={}
         )
-    # Compare logits on the same teacher-forced prefix, independently of sampling.
+        for field, target in (("length_band", "by_length"), ("complexity", "by_complexity")):
+            for value in sorted({r[field] for r in attempts}):
+                summary[target][value] = summarize([r for r in attempts if r[field] == value])
+        summary["coverage_complete"] = summary["evaluated"] == summary["denominator"]
+        report["splits"][split] = summary
+    # Teacher-forced logit equivalence is separate from free-running token parity.
     row = min(examples["training"], key=lambda r: len(r["tokens"]))
     device = next(encoder.parameters()).device
     with scoring_mode(encoder, decoder), torch.no_grad():

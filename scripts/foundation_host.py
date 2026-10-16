@@ -579,7 +579,7 @@ def diagnose_checkpoint(policy, image, argv, coordinator_factory):
     if output.exists() or Path(str(output) + ".zip").exists():
         raise ValueError("diagnostic output exists; choose a new output")
     root = Path(policy["state_root"]) / "diagnostics" / uuid.uuid4().hex
-    ledger = Ledger(root, digest([run["identity"], image, argv[2]]), 600)
+    ledger = Ledger(root, digest([run["identity"], image, argv[2]]), 3600)
     # Closed defaults are passed explicitly without importing image dependencies
     # into this stdlib-only host controller.
     learning = dict(
@@ -590,7 +590,7 @@ def diagnose_checkpoint(policy, image, argv, coordinator_factory):
         min_improvement=0.001,
         diagnostic_rows=8,
         diagnostic_tokens=1023,
-        diagnostic_seconds=300,
+        diagnostic_seconds=3000,
         curriculum=False,
         promotion_accuracy=0.8,
         replay=False,
@@ -610,7 +610,7 @@ def diagnose_checkpoint(policy, image, argv, coordinator_factory):
     coordinator = coordinator_factory(root / "roles", policy, image, ledger)
     ledger.record("diagnose")
     try:
-        coordinator.run("diagnose", "learner", inputs, root / "roles/diagnostic", 570)
+        coordinator.run("diagnose", "learner", inputs, root / "roles/diagnostic", 3540)
     finally:
         try:
             coordinator.close()
@@ -760,17 +760,18 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("admitted training/development input shortfall")
             config = dict(manifest["config"]["run"])
             if len(argv) > 4:
-                if (
-                    len(argv) != 5
-                    or argv[4] not in {"tri_stream", "hybrid", "integer_bytes"}
-                    or config["model"]["version"] != "bootstrap-model/v1"
-                ):
-                    raise ValueError("encoder override requires explicit bootstrap inputs")
-                model = dict(config["model"], encoder=argv[4])
-                model["identity_sha256"] = digest(
-                    {k: v for k, v in model.items() if k != "identity_sha256"}
-                )
-                config["model"] = model
+                from oeis_learn.fresh.bootstrap_contract import bootstrap_profile
+                from oeis_learn.fresh.bootstrap_config import learning_defaults
+
+                if len(argv) != 5:
+                    raise ValueError("one explicit encoder override required")
+                config["model"] = bootstrap_profile(argv[4])
+                if "learning" not in config:
+                    # Explicit new comparison run on original sealed data. Never
+                    # reinterpret an old checkpoint or silently change v1 defaults.
+                    config["learning"] = dict(learning_defaults(), curriculum=False)
+                if profile == "fresh-pilot-1h":
+                    config["training_seconds"] = min(1800, config["training_seconds"])
             count = len({digest(row["values"]) for row in examples["training"]})
             completion = manifest.get("admission_completion", {})
             accepted_partial = (
@@ -814,6 +815,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     diagnostic_tokens=128,
                     replay=False,
                 )
+            elif learning:
+                from oeis_learn.fresh.bootstrap_views import parameter_view
+
+                examples = parameter_view(examples)
             write(inputs / "learner-examples.json", examples, immutable=True)
             settings = {
                 "profile": profile,

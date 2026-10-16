@@ -234,7 +234,7 @@ class Host:
             if action == "run"
             else 300
             if action == "check"
-            else 600
+            else 3600
             if action == "diagnose"
             else 43200
         )
@@ -377,6 +377,7 @@ def main(argv=None):
                             "benchmark": "fresh-benchmark",
                             "learnability": "bootstrap-learnability",
                         }.get(args.command, getattr(args, "profile", "fresh-pilot-1h")),
+                        *([args.encoder] if args.encoder else []),
                     )
                 finally:
                     if (ROOT / run / "run.json").is_file():

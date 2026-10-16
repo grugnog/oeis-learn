@@ -72,7 +72,7 @@ def train(inputs, output):
     rows = examples["training"]
     if not rows or any(
         len(r["values"]) != 20 or encode_body(decode_body(r["tokens"])) != r["tokens"]
-        for r in rows + examples["development"]
+        for r in rows + examples["development"] + examples.get("parameter_development", [])
     ):
         raise ValueError("complete visible training examples required")
     encoder, decoder, counts = models(settings)

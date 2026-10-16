@@ -252,6 +252,7 @@ class WatProgramSampler:
         token_rows = [list(prefix) for _ in seeds]
         # Retain the emitted prefix if an external time/token budget interrupts.
         self.active_token_rows = token_rows
+        self.eos_traces = [[] for _ in seeds]
         supports = [[(v,) for v in prefix] for _ in seeds]
         logs = [[None] * len(prefix) for _ in seeds]
         forced = [[True] * len(prefix) for _ in seeds]
@@ -297,6 +298,16 @@ class WatProgramSampler:
                     )
                     probabilities = F.softmax(filtered, -1)
                     log_distribution = F.log_softmax(filtered, -1)
+                if getattr(self, "capture_diagnostics", False):
+                    raw_eos = logits.softmax(-1)[:, eos].cpu().tolist()
+                    supported_eos = probabilities[:, eos].cpu().tolist()
+                    for row in range(batch):
+                        if not finished[row]:
+                            self.eos_traces[row].append(dict(
+                                position=step, raw_probability=raw_eos[row],
+                                grammar_probability=supported_eos[row],
+                                allowed=eos in legal_lists[row],
+                            ))
                 chosen = torch.stack(
                     [
                         probabilities[row].argmax()

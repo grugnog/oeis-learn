@@ -172,3 +172,23 @@ def test_selected_gpu_is_frozen_in_runtime_identity(host):
 def test_explicit_zero_resource_limits_are_rejected(host, options):
     with pytest.raises(ValueError, match="memory/CPU"):
         local.Host(local.parser().parse_args([*options, "image", "ensure"]))
+
+
+@pytest.mark.parametrize(
+    "command,profile",
+    [
+        ("train", "fresh-pilot-1h"),
+        ("smoke", "smoke"),
+        ("learnability", "bootstrap-learnability"),
+        ("benchmark", "fresh-benchmark"),
+    ],
+)
+def test_public_cli_forwards_explicit_encoder(tmp_path, command, profile):
+    with patch.object(local, "ROOT", tmp_path), patch.object(local, "Host") as factory:
+        assert (
+            local.main([command, "--inputs", "inputs", "--run", "runs/new", "--encoder", "hybrid"])
+            == 0
+        )
+        factory.return_value.pipeline.assert_called_once_with(
+            "run", "inputs", "runs/new", profile, "hybrid"
+        )
