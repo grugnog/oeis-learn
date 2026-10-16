@@ -305,6 +305,14 @@ def train(inputs, output):
                 output / "replay.json",
                 dict(count=len(order["replay"]), keys=[r["key"] for r in order["replay"]]),
             )
+        observed_train = diagnostic["splits"]["training"]
+        observed_dev = diagnostic["splits"]["development"]
+        print(
+            f"SYNTHETIC stage={diagnostic['stage']} "
+            f"train={observed_train['exact']}/{observed_train['denominator']} "
+            f"dev={observed_dev['exact']}/{observed_dev['denominator']} loss={validation}",
+            flush=True,
+        )
         train_accuracy = competence(diagnostic, "training")
         dev_accuracy = competence(diagnostic)
         if (
@@ -333,9 +341,13 @@ def train(inputs, output):
         "checkpoint_sha256": read(store_root / (checkpoint.stem + "-base.json"))["blob_sha256"],
         "recovery": recovery,
         "validation_loss": validation,
-        "validation_denominator": len(examples["development"])
-        if learning
-        else min(32, len(examples["development"])),
+        "validation_denominator": (
+            0
+            if validation is None
+            else len(examples["development"])
+            if learning
+            else min(32, len(examples["development"]))
+        ),
         "diagnostic": diagnostic,
         "curriculum_stage": order.get("stage"),
         "parameter_count": counts,
@@ -444,7 +456,13 @@ def generate(inputs, output):
                     )
             except SearchExhausted as exc:
                 attempts.append(
-                    {"source": None, "method": "bounded", "complete": False, "failure": str(exc)}
+                    {
+                        "source": None,
+                        "method": "bounded",
+                        "complete": False,
+                        "failure": str(exc),
+                        "tokens": list(getattr(exc, "tokens", [])),
+                    }
                 )
                 break
         # Prefix execution never receives hidden continuation terms.

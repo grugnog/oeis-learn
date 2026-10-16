@@ -37,3 +37,23 @@ def test_connected_programs_execute_and_stage_export_preserves_coverage():
             assert result.outcome is None
         rows[str(n)] = dict(program_id=str(n), stage=sample["statistics"]["stage"])
     assert {r["stage"] for r in validation_view(rows, 4)} == {0, 1, 2, 3}
+
+
+def test_stream_includes_nonlinear_composition_and_coupled_state():
+    from oeis_learn.sandbox.reference import execute_term
+    from oeis_learn.sandbox.wat_ast import parse
+
+    sampler = ConnectedSampler(default_config())
+    nonlinear, coupled, iteration_scalar = False, False, False
+    for counter in range(0, 2048, 16):
+        draw = sampler.sample(counter)
+        source = draw["canonical_source"]
+        values = [execute_term(parse(source), n) for n in range(5)]
+        if draw["statistics"]["stage"] == 1 and all(v.outcome is None for v in values):
+            second_differences = [
+                values[i + 2].value - 2 * values[i + 1].value + values[i].value for i in range(3)
+            ]
+            nonlinear |= any(second_differences)
+        coupled |= "local.get $v4" in source
+        iteration_scalar |= "local.get $c0 i32.const 1 i32.add i64.extend_i32_u" in source
+    assert nonlinear and coupled and iteration_scalar

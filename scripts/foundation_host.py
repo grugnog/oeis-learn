@@ -953,6 +953,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if action == "evaluate":
                 split, selection = argv[2:]
                 if split == "final":
+                    if settings["profile"] == "bootstrap-learnability":
+                        raise ValueError(
+                            "tiny learnability runs do not consume final cohorts; train a pilot"
+                        )
                     latest = read(job / "finalization.json")["checkpoint"]
                 elif selection == "latest":
                     if latest is None:
@@ -964,13 +968,16 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     if split == "final"
                     else split + "-" + checkpoint_files(job, latest)[1]["blob_sha256"][7:23]
                 )
-                evaluation(job, coordinator, ledger, settings, latest, split, label)
+                scored = evaluation(job, coordinator, ledger, settings, latest, split, label)
                 ledger.record("evaluation-finished")
                 write(
                     job / "status.json",
                     {
                         "status": "cleanup",
                         "pending_status": "complete" if split == "final" else "paused",
+                        "diagnostic_final_cohort_consumed": split == "final"
+                        or read(job / "status.json").get("diagnostic_final_cohort_consumed", False),
+                        "final_score" if split == "final" else "development_score": scored,
                         "checkpoint": latest,
                         "budget": ledger.previous,
                     },
@@ -1084,7 +1091,8 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         seconds = min(60, ledger.remaining() - 300)
                     if learning:
                         seconds += learning["diagnostic_seconds"] + 60
-                        seconds = min(seconds, ledger.remaining() - 600)
+                        reserve = 60 if settings["profile"] == "bootstrap-learnability" else 1250
+                        seconds = min(seconds, ledger.remaining() - reserve)
                     if seconds < (learning["diagnostic_seconds"] + 65 if learning else 25):
                         if learning and number > 1:
                             write(
@@ -1212,6 +1220,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 measure = diagnostic["splits"]["training"]
                 learned = (
                     measure["denominator"] == 32
+                    and measure["shuffled_denominator"] == 32
                     and measure["exact"] >= 31
                     and measure["shuffled_exact"] < measure["exact"] - 3
                     and diagnostic["cache_parity"]["passed"]
@@ -1224,7 +1233,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 write(job / "learnability.json", final)
             else:
                 if learning:
-                    evaluation(
+                    development = evaluation(
                         job,
                         coordinator,
                         ledger,
@@ -1233,8 +1242,17 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         "development",
                         "selected-development",
                     )
-                final = evaluation(job, coordinator, ledger, settings, selected, "final", "final")
-                ledger.record("final-scored")
+                    final = {
+                        "status": "not_evaluated",
+                        "reason": "bootstrap comparisons use development; invoke evaluate --split final once after choosing a run",
+                        "development_score": development,
+                    }
+                    ledger.record("development-scored")
+                else:
+                    final = evaluation(
+                        job, coordinator, ledger, settings, selected, "final", "final"
+                    )
+                    ledger.record("final-scored")
             write(
                 job / "status.json",
                 {
@@ -1245,8 +1263,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "final_score": final,
                     "budget": ledger.previous,
                     "qualified": False,
-                    "diagnostic_final_cohort_consumed": settings["profile"]
-                    != "bootstrap-learnability",
+                    "diagnostic_final_cohort_consumed": not bool(learning),
                 },
             )
             return 0

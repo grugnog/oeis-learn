@@ -39,6 +39,7 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
                 "program_id": row["program_id"],
                 "matched": False,
                 "shuffled_matched": False,
+                "shuffled_evaluated": False,
                 "tokens": [],
                 "complete": False,
             }
@@ -95,6 +96,7 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
                     )
                     matched = values == expected
                     if shuffled:
+                        record["shuffled_evaluated"] = time.monotonic_ns() < deadline
                         record["shuffled_matched"] = matched
                         record["shuffle_failure"] = outcome
                     else:
@@ -112,6 +114,8 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
                         )
                 except SearchExhausted as exc:
                     record["shuffle_failure" if shuffled else "failure"] = str(exc)
+                    if not shuffled:
+                        record["tokens"] = list(getattr(exc, "tokens", []))
             failures[record.get("failure") or "exact_match"] += 1
             attempts.append(record)
         denominator = len(rows)
@@ -120,6 +124,7 @@ def evaluate(encoder, decoder, examples, learning, runner, *, stage=None):
             attempts=attempts,
             exact=sum(r["matched"] for r in attempts),
             shuffled_exact=sum(r["shuffled_matched"] for r in attempts),
+            shuffled_denominator=sum(r["shuffled_evaluated"] for r in attempts),
             completed=sum(r["complete"] for r in attempts),
             failures=dict(failures),
         )

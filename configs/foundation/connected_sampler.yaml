@@ -20,3 +20,9 @@ priors:
   - 2
   - 3
   loop_cap: 100
+  index_scalar_probability:
+  - 1
+  - 2
+  coupled_state_probability:
+  - 1
+  - 2

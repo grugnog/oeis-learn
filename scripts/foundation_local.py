@@ -61,6 +61,9 @@ def extended_settings(benchmark, output):
         raise ValueError("invalid measured batch recommendation")
     cfg = json.loads((root / "input-manifest.json").read_bytes())["config"]
     cfg["run"].pop("model", None)
+    if cfg.get("version") == "fresh-workflow/v2":
+        cfg["run"]["encoder"] = run["settings"]["learner"]["model"]["encoder"]
+        cfg["run"]["learning"].update(max_updates=100000, validation_every_updates=1000)
     cfg["archive"].update(
         training_prompts=2048, development_structures=128, seconds=7200, sampling_shards=64
     )

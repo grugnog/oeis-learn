@@ -42,10 +42,13 @@ def admit(report, rows, archive, runner, existing, *, seconds=20):
         if time.monotonic_ns() >= deadline or len(retained) >= 32:
             break
         row = by_id[candidate["program_id"]]
+        old_tokens = (
+            retained.get(row["program_id"], {}).get("packet", {}).get("tokens", row["tokens"])
+        )
         if (
             not candidate["matched"]
             or not candidate["complete"]
-            or len(encode_body(candidate["source"])) >= len(row["tokens"])
+            or len(encode_body(candidate["source"])) >= len(old_tokens)
         ):
             continue
         source = candidate["source"]
@@ -76,19 +79,24 @@ def admit(report, rows, archive, runner, existing, *, seconds=20):
             **candidate["model_provenance"],
         )
         provenance["identity_sha256"] = compute_canonical_digest(provenance)
-        key = archive.admit(
-            source,
-            list(map(int, row["values"])),
-            list(map(int, expected)),
-            origin="training_prefix_hypothesis",
-            provenance={"search": provenance},
-            runner=BoundedRunner(),
-            request_id=digest([row["program_id"], source, "replay-admit"]),
-            model_sha256=compute_canonical_digest(
-                [provenance["encoder_sha256"], provenance["decoder_sha256"]]
-            ),
-            parent_sha256=row["program_id"],
-        )
+        try:
+            key = archive.admit(
+                source,
+                list(map(int, row["values"])),
+                list(map(int, expected)),
+                origin="training_prefix_hypothesis",
+                provenance={"search": provenance},
+                runner=BoundedRunner(),
+                request_id=digest([row["program_id"], source, "replay-admit"]),
+                model_sha256=compute_canonical_digest(
+                    [provenance["encoder_sha256"], provenance["decoder_sha256"]]
+                ),
+                parent_sha256=row["program_id"],
+            )
+        except ValueError:
+            if time.monotonic_ns() >= deadline:
+                break  # Preserve earlier admitted targets; no partial admission.
+            raise
         packet = archive.get(key)
         retained[row["program_id"]] = dict(program_id=row["program_id"], packet=packet, key=key)
     result = [retained[key] for key in sorted(retained)]

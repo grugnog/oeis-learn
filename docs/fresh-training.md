@@ -1,5 +1,7 @@
 # Portable fresh training on ROCm
 
+For new from-scratch experiments, start with [bootstrap learning and encoder comparisons](bootstrap-training.md). The v1 instructions below remain available for existing prepared inputs.
+
 Run `scripts/foundation_run.py` from a Linux host with Python 3.11+ and an already
 usable Docker or Podman connection. Python on the host needs only its standard
 library. Model dependencies, PyTorch/ROCm and the Rust evaluator are built into

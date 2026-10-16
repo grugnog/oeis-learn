@@ -250,6 +250,8 @@ class WatProgramSampler:
         buffer = torch.full((batch, limit + 1), pad, dtype=torch.long, device=memory.device)
         buffer[:, : len(prefix)] = torch.tensor(prefix, device=memory.device)
         token_rows = [list(prefix) for _ in seeds]
+        # Retain the emitted prefix if an external time/token budget interrupts.
+        self.active_token_rows = token_rows
         supports = [[(v,) for v in prefix] for _ in seeds]
         logs = [[None] * len(prefix) for _ in seeds]
         forced = [[True] * len(prefix) for _ in seeds]

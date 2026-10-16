@@ -16,7 +16,7 @@ def collect(archive, keys, training, development):
             "tokens": packet["tokens"],
             "structure": entry["ir_sha256"],
         }
-        if packet["provenance"].get("config", {}).get("profile") == "connected_sampler_v1":
+        if packet.get("provenance", {}).get("config", {}).get("profile") == "connected_sampler_v1":
             item["stage"] = packet["provenance"]["sample"]["statistics"]["stage"]
         if entry["training_eligible"]:
             identity = digest(item["values"])

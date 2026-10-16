@@ -112,6 +112,11 @@ def configuration(path):
 
         value["run"]["model"] = bootstrap_profile(value["run"].get("encoder"))
         value["run"]["learning"] = validate_learning(value["run"].get("learning"))
+        if (
+            value["run"]["learning"]["curriculum"]
+            and value["archive"]["development_structures"] < 4
+        ):
+            raise ValueError("curriculum requires at least four development structures")
     else:
         value["run"]["model"] = qualified_model_profile(attention_backend="eager")
     value["sampler_config"] = str((ROOT / value["sampler_config"]).resolve())

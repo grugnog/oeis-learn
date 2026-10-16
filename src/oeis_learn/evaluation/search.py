@@ -164,9 +164,13 @@ class ModelProposer:
         )
         with scoring_mode(self.encoder, self.decoder), torch.no_grad():
             memory = self.encoder.forward_from_sequences([visible], device=device)
-            trajectory = sampler.sample_trajectories(
-                memory, [seed], budget_hook=lambda n: ledger.charge(expansions=n, tokens=n)
-            )[0]
+            try:
+                trajectory = sampler.sample_trajectories(
+                    memory, [seed], budget_hook=lambda n: ledger.charge(expansions=n, tokens=n)
+                )[0]
+            except SearchExhausted as exc:
+                exc.tokens = list(getattr(sampler, "active_token_rows", [[]])[0])
+                raise
         return trajectory.source, {
             "method": "greedy" if greedy else "stochastic",
             "tokens": list(trajectory.tokens),

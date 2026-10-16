@@ -19,6 +19,8 @@ PRIORS = {
     "constant_range": [-16, 16],
     "scalar_choices": [-3, -2, -1, 1, 2, 3],
     "loop_cap": 100,
+    "index_scalar_probability": [1, 2],
+    "coupled_state_probability": [1, 2],
 }
 
 
@@ -77,7 +79,16 @@ class ConnectedSampler:
             op = rng.choice(("add", "sub", "mul_scalar"))
             left = expression(depth - 1, leaf)
             if op == "mul_scalar":
-                return f"{left} i64.const {parameters.choice(PRIORS['scalar_choices'])} i256.mul_scalar"
+                scalar = f"i64.const {parameters.choice(PRIORS['scalar_choices'])}"
+                if stage > 0 and rng.randrange(2):
+                    # Generic index-valued scalar multiplication permits nonlinear
+                    # compositions. In a loop it can depend on the iteration too.
+                    scalar = (
+                        "local.get $c0 i32.const 1 i32.add i64.extend_i32_u"
+                        if stage == 3 and rng.randrange(2)
+                        else "local.get $n i64.extend_i32_u"
+                    )
+                return f"{left} {scalar} i256.mul_scalar"
             # Every subtree has a live path to the output. Branching increases
             # composition diversity without unused registers or dead stores.
             right = expression(depth - 1, index) if depth > 1 and rng.randrange(2) else constant()
@@ -94,11 +105,23 @@ class ConnectedSampler:
                 f"( if ( result i64 i64 i64 i64 ) ( then {left} ) ( else {right} ) )"
             )
         else:
-            update = expression(rng.randint(1, 3), state)
+            coupled = bool(rng.randrange(2))
+            other = "local.get $v4 local.get $v5 local.get $v6 local.get $v7"
+            other_stores = "local.set $v7 local.set $v6 local.set $v5 local.set $v4"
+            temporary = "local.get $v8 local.get $v9 local.get $v10 local.get $v11"
+            temporary_stores = "local.set $v11 local.set $v10 local.set $v9 local.set $v8"
+            leaf = f"{state} {other} i256.{rng.choice(('add', 'sub'))}" if coupled else state
+            update = expression(rng.randint(1, 3), leaf)
+            initial = f"{constant()} {stores}"
+            if coupled:
+                initial += f" {constant()} {other_stores}"
+                update += f" {temporary_stores} {state} {other_stores} {temporary} {stores}"
+            else:
+                update += f" {stores}"
             source = (
-                f"{constant()} {stores} i32.const 0 local.set $c0 "
+                f"{initial} i32.const 0 local.set $c0 "
                 "( block ( loop local.get $c0 local.get $n i32.ge_s br_if 1 "
-                f"local.get $c0 i32.const 100 i32.ge_s br_if 1 {update} {stores} "
+                f"local.get $c0 i32.const 100 i32.ge_s br_if 1 {update} "
                 "local.get $c0 i32.const 1 i32.add local.set $c0 br 0 ) ) " + state
             )
         tokens = encode_body(source)

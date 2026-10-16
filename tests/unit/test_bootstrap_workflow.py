@@ -66,6 +66,7 @@ def test_diagnostics_use_shuffled_prompts_and_retain_tokens(monkeypatch):
     training = result["splits"]["training"]
     assert training["denominator"] == training["exact"] == 3
     assert training["shuffled_exact"] == 0
+    assert training["shuffled_denominator"] == 3
     assert all(row["tokens"] and row["emitted_eos"] for row in training["attempts"])
     assert result["cache_parity"]["passed"]
     assert len(observed) == 7
@@ -185,7 +186,10 @@ def test_v2_configuration_is_explicit_and_v1_unchanged(tmp_path):
         configuration(path)
 
 
-def test_production_training_and_decoder_learn_generic_constant_microset(tmp_path, monkeypatch):
+@pytest.mark.parametrize("kind", ["integer_bytes", "tri_stream", "hybrid"])
+def test_production_training_and_decoder_learn_generic_constant_microset(
+    tmp_path, monkeypatch, kind
+):
     # Reduced CPU shape, real optimizer/autoregressive grammar/EOS; no teacher stub.
     data = examples()
     data["development"] = [dict(data["training"][0]), dict(data["training"][1])]
@@ -211,7 +215,28 @@ def test_production_training_and_decoder_learn_generic_constant_microset(tmp_pat
     monkeypatch.setattr(
         "oeis_learn.tracking.role_coordinator.QueueRunner", lambda _: ReferenceFixtureRunner()
     )
-    with patch("oeis_learn.experiments.profiles.construct_qualified_models", small_models):
+
+    def construct(profile, *, device):
+        encoder, decoder, counts = small_models(profile, device=device)
+        if kind != "integer_bytes":
+            from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+            from oeis_learn.encoder.hybrid import HybridEncoder
+            from oeis_learn.experiments.bootstrap_models import PRIMES
+
+            cls = TriStreamEncoder if kind == "tri_stream" else HybridEncoder
+            encoder = cls(
+                d_model=16,
+                n_heads=2,
+                n_encoder_layers=1,
+                d_ff=32,
+                dropout=0.0,
+                primes=PRIMES,
+                base_moduli=PRIMES,
+                max_valuation=32,
+            ).to(device)
+        return encoder, decoder, counts
+
+    with patch("oeis_learn.experiments.profiles.construct_qualified_models", construct):
         report = worker.train(inputs, output)
     measured = report["diagnostic"]["splits"]["training"]
     assert report["completed_updates"] == 300
@@ -250,7 +275,7 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(tmp
                     stage=None,
                     cache_parity={"passed": True},
                     splits={
-                        s: dict(denominator=32, exact=32, shuffled_exact=0)
+                        s: dict(denominator=32, exact=32, shuffled_exact=0, shuffled_denominator=32)
                         for s in ("training", "development")
                     },
                 ),
@@ -313,3 +338,157 @@ def test_checkpoint_diagnostic_verifies_old_binding_without_restoring_optimizer(
         write(inputs / "settings.json", cfg)
         with pytest.raises(ValueError):
             diagnose(inputs, output)
+
+
+def test_interrupted_autoregressive_search_retains_emitted_prefix():
+    from oeis_learn.evaluation.search import ModelProposer, SearchLedger, SearchExhausted
+    from oeis_learn.decoder.program_codec import BOS_ID
+
+    encoder, decoder, _ = small_models(None, device="cpu")
+    ledger = SearchLedger(max_attempts=1, max_tokens=2, max_expansions=2, budget_ns=10**10)
+    with pytest.raises(SearchExhausted) as failure:
+        ModelProposer(encoder, decoder, context_limit=32).stochastic(
+            [7] * 20, 7, ledger, greedy=True
+        )
+    assert failure.value.tokens[0] == BOS_ID
+    assert len(failure.value.tokens) == 3
+
+
+def test_full_validation_batching_preserves_per_program_mean():
+    from oeis_learn.tracking.role_worker import validation_loss
+
+    encoder, decoder, _ = small_models(None, device="cpu")
+    rows = [
+        {"tokens": encode_body(f"i256.const {n}"), "entry": {"conditioning_values": [str(n)] * 20}}
+        for n in (0, -12, 98765)
+    ]
+    singleton = validation_loss(encoder, decoder, rows, "cpu", limit=None)
+    batched = validation_loss(encoder, decoder, rows, "cpu", limit=None, batch_size=3)
+    assert batched == pytest.approx(singleton, abs=1e-5)
+
+
+def test_host_checkpoint_diagnostic_packages_separate_evidence(tmp_path, monkeypatch):
+    from tests.unit.test_fresh_workflow import run_worker
+    from oeis_learn.fresh.checkpoint_diagnostic import diagnose
+    from oeis_learn.fresh.common import inventory
+    from tests.unit.test_fresh_workflow import FakeClock
+
+    monkeypatch.setattr(host, "clock", FakeClock())
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    state_root = workspace / "run-state"
+    source_job = state_root / digest("runs/source")[7:]
+    source_job.mkdir(parents=True)
+    data = examples()
+    cfg = settings(data, 1)
+    with patch("oeis_learn.experiments.profiles.construct_qualified_models", small_models):
+        previous, result, _ = run_worker(tmp_path / "source-worker", 1)
+        shutil.copytree(previous / "checkpoints", source_job / "roles/train/checkpoints")
+        write(source_job / "run.json", dict(identity=digest("old-run"), settings={"learner": cfg}))
+        write(
+            source_job / "status.json",
+            {"checkpoint": "roles/train/checkpoints/" + result["checkpoint"]},
+        )
+        write(source_job / "budget.json", {"charged_ns": 12345})
+        write(source_job / "inputs/examples.json", data)
+        before = inventory(source_job)
+
+        class Coordinator:
+            def __init__(self, *args):
+                pass
+
+            def run(self, operation, role, inputs, output, seconds):
+                assert operation == "diagnose" and role == "learner" and seconds <= 600
+                assert not (inputs / "truth.json").exists()
+                output.mkdir(parents=True)
+                cfg = read(inputs / "settings.json")
+                cfg["learning"].update(
+                    diagnostic_seconds=10, diagnostic_tokens=8, diagnostic_rows=2
+                )
+                write(inputs / "settings.json", cfg)
+                value = diagnose(inputs, output)
+                write(output / "result.json", value)
+                return value
+
+            def close(self):
+                pass
+
+        monkeypatch.setattr(
+            "oeis_learn.tracking.role_coordinator.QueueRunner", lambda _: ReferenceFixtureRunner()
+        )
+        policy = dict(workspace=str(workspace), state_root=str(state_root))
+        host.execute(
+            policy,
+            "new-image",
+            ["diagnose", "runs/source", "tmp-analysis/diagnosis"],
+            coordinator_factory=Coordinator,
+        )
+        assert inventory(source_job) == before
+        assert (workspace / "tmp-analysis/diagnosis.zip").is_file()
+        assert (
+            read(workspace / "tmp-analysis/diagnosis/source.json")["checkpoint_sha256"]
+            == result["checkpoint_sha256"]
+        )
+
+
+def test_bootstrap_pilot_leaves_final_pending_until_explicit_evaluation(tmp_path):
+    from tests.integration.test_fresh_lifecycle import run_environment, fixture_coordinator
+    from tests.unit.test_fresh_workflow import FakeClock
+    from oeis_learn.experiments.bootstrap_models import bootstrap_profile
+
+    workspace, policy = run_environment(tmp_path)
+    path = workspace / "inputs/prepared.json"
+    manifest = read(path)
+    manifest["config"]["run"].update(
+        model=bootstrap_profile("tri_stream"),
+        training_seconds=1800,
+        learning=dict(learning_defaults(), max_updates=4, validation_every_updates=2),
+    )
+    manifest["identity"] = digest({k: v for k, v in manifest.items() if k != "identity"})
+    write(path, manifest)
+    clock = FakeClock()
+    base = fixture_coordinator(clock)
+
+    class Coordinator(base):
+        def run(self, operation, role, inputs, output, seconds):
+            result = super().run(operation, role, inputs, output, seconds)
+            if operation == "train":
+                result.update(
+                    validation_loss=1.0,
+                    diagnostic=dict(
+                        stage=0,
+                        cache_parity={"passed": True},
+                        splits={
+                            s: dict(denominator=8, exact=0, shuffled_exact=0)
+                            for s in ("training", "development")
+                        },
+                    ),
+                )
+                write(output / "result.json", result)
+            return result
+
+    with (
+        patch.object(host, "clock", clock),
+        patch.object(host, "process_identity", lambda pid: {"pid": pid}),
+    ):
+        host.execute(
+            policy,
+            "image",
+            ["run", "inputs", "runs/pilot", "fresh-pilot-1h"],
+            coordinator_factory=Coordinator,
+        )
+        status = read(workspace / "runs/pilot/status.json")
+        assert status["status"] == "complete" and status["completed_updates"] == 4
+        assert status["final_score"]["status"] == "not_evaluated"
+        assert not status["diagnostic_final_cohort_consumed"]
+        assert not (workspace / "runs/pilot/roles/final-score").exists()
+        host.execute(
+            policy,
+            "image",
+            ["evaluate", "runs/pilot", "final", "latest"],
+            coordinator_factory=Coordinator,
+        )
+        status = read(workspace / "runs/pilot/status.json")
+        assert status["diagnostic_final_cohort_consumed"]
+        assert status["final_score"]["denominator"] == 1
+        assert len(status["final_score"]["solved_groups"]) == 1
