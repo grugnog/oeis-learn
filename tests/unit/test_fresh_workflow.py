@@ -19,7 +19,7 @@ from oeis_learn.encoder.integer_bytes import IntegerByteEncoder
 from oeis_learn.experiments.profiles import qualified_model_profile
 from oeis_learn.fresh import worker
 from oeis_learn.fresh.bundle import pack
-from oeis_learn.fresh.common import digest, file_hash, write
+from oeis_learn.fresh.common import digest, file_hash, read, write
 from oeis_learn.tracking.training_checkpoint import QualifiedCheckpointStore
 
 spec = importlib.util.spec_from_file_location(
@@ -86,6 +86,20 @@ def examples():
     }
 
 
+def advance_test_ledger(cfg, checkpoints):
+    """Model the durable host ledger moving past every retained checkpoint.
+
+    This is a test fixture, not production budget issuance. Each worker adds its
+    elapsed time to the starting charge, so a constant charge fails on a second
+    resume. The host instead records actual elapsed time between attempts.
+    """
+    bases = [read(p) for p in Path(checkpoints).glob("qualified-*-base.json")]
+    if not bases:
+        raise ValueError("resume fixture requires checkpoint budget evidence")
+    cfg["charged_budget_ns"] = max(b["charged_budget_ns"] for b in bases) + 10**9
+    cfg["ledger_sequence"] = max(b["ledger_sequence"] for b in bases) + 1
+
+
 def run_worker(tmp, cap, previous=None):
     inputs, output = tmp / "input", tmp / "output"
     inputs.mkdir(parents=True)
@@ -94,7 +108,7 @@ def run_worker(tmp, cap, previous=None):
     cfg = settings(data, cap)
     if previous:
         shutil.copytree(previous / "checkpoints", inputs / "checkpoints")
-        cfg["charged_budget_ns"] = 1_000_000_000_000
+        advance_test_ledger(cfg, inputs / "checkpoints")
     write(inputs / "examples.json", data)
     write(inputs / "settings.json", cfg)
     result = worker.train(inputs, output)
@@ -108,7 +122,8 @@ def run_worker(tmp, cap, previous=None):
 def test_actual_updates_and_complete_resume_match_uninterrupted(tmp_path):
     with patch("oeis_learn.experiments.profiles.construct_qualified_models", small_models):
         _uninterrupted, report, expected = run_worker(tmp_path / "full", 3)
-        paused, _, _initial = run_worker(tmp_path / "first", 1)
+        initial, _, _initial = run_worker(tmp_path / "initial", 0)
+        paused, _, _paused = run_worker(tmp_path / "first", 1, initial)
         _resumed, result, actual = run_worker(tmp_path / "second", 3, paused)
     assert report["completed_updates"] == result["completed_updates"] == 3
     assert result["recovery"]["completed"] == 1
@@ -291,3 +306,34 @@ def test_publication_preserves_user_permissions_and_rejects_links(tmp_path):
     linked.symlink_to(output, target_is_directory=True)
     with pytest.raises(ValueError, match="symlink"):
         host.publish(job, linked)
+
+
+def test_resume_rejects_charge_behind_checkpoint(tmp_path):
+    with patch("oeis_learn.experiments.profiles.construct_qualified_models", small_models):
+        previous, report, _ = run_worker(tmp_path / "first", 1)
+        inputs, output = tmp_path / "resume-input", tmp_path / "resume-output"
+        inputs.mkdir()
+        output.mkdir()
+        shutil.copytree(previous / "checkpoints", inputs / "checkpoints")
+        manifest = read(inputs / "checkpoints" / report["checkpoint"])
+        base = read(inputs / "checkpoints" / manifest["base"])
+        cfg = settings(examples(), 2)
+        cfg["charged_budget_ns"] = base["charged_budget_ns"] - 1
+        assert cfg["charged_budget_ns"] >= 0
+        write(inputs / "settings.json", cfg)
+        write(inputs / "examples.json", examples())
+        with pytest.raises(ValueError, match="checkpoint budget exceeds durable host ledger"):
+            worker.train(inputs, output)
+
+
+def test_resume_fixture_advances_cumulative_charge_and_sequence(tmp_path):
+    write(
+        tmp_path / "qualified-000001-base.json", dict(charged_budget_ns=10**12, ledger_sequence=5)
+    )
+    write(
+        tmp_path / "qualified-000002-base.json",
+        dict(charged_budget_ns=10**12 + 3 * 10**9, ledger_sequence=6),
+    )
+    cfg = {}
+    advance_test_ledger(cfg, tmp_path)
+    assert cfg == dict(charged_budget_ns=10**12 + 4 * 10**9, ledger_sequence=7)

@@ -13,7 +13,13 @@ from oeis_learn.fresh.search import select, grounded_variants
 from oeis_learn.decoder.program_codec import encode_body
 from oeis_learn.sandbox.reference import execute_term
 from oeis_learn.sandbox.wat_ast import parse
-from tests.unit.test_fresh_workflow import examples, settings, small_models, host
+from tests.unit.test_fresh_workflow import (
+    advance_test_ledger,
+    examples,
+    settings,
+    small_models,
+    host,
+)
 
 
 class ReferenceFixtureRunner:
@@ -118,7 +124,7 @@ def test_bootstrap_resume_preserves_stage_and_actual_weights(tmp_path, monkeypat
         )
         if previous:
             shutil.copytree(previous / "checkpoints", inputs / "checkpoints")
-            cfg["charged_budget_ns"] = 10**12
+            advance_test_ledger(cfg, inputs / "checkpoints")
         write(inputs / "settings.json", cfg)
         write(inputs / "examples.json", data)
         report = worker.train(inputs, output)
