@@ -194,30 +194,17 @@ def test_actual_controller_pause_resume_and_read_only_inspect(
     assert final["ledger"]["charged_budget_ns"] >= first["ledger"]["charged_budget_ns"]
 
 
-def _oom_worker(channel, cache_bytes):
-    from oeis_learn.sandbox.worker_pool import _worker
-    from oeis_learn.sandbox.pipeline import Runtime
-
-    original = Runtime.evaluate
-
-    def injected(self, source, *args, **kwargs):
-        if source == "i256.zero":
-            raise MemoryError("bounded injected allocator failure")
-        return original(self, source, *args, **kwargs)
-
-    Runtime.evaluate = injected
-    _worker(channel, cache_bytes)
-
-
 def test_worker_oom_is_reaped_and_replaced(tmp_path):
     from oeis_learn.sandbox.worker_pool import WorkerPool
+    from tests.helpers.worker_faults import oom_worker
 
-    with WorkerPool(tmp_path, _worker_target=_oom_worker) as pool:
+    with WorkerPool(tmp_path, _worker_target=oom_worker) as pool:
         old = pool.all_slots[0].process.pid
         failure = pool.evaluate("i256.zero", [0], request_id="oom")
         assert failure.outcome == "execution_limit"
         assert "address_space" in failure.reason
-        assert pool.evaluate("i256.const 1", [0], request_id="replacement").outputs == ["1"]
+        replacement = pool.evaluate("i256.const 1", [0], request_id="replacement")
+        assert replacement.outputs == ["1"], replacement.to_dict()
         assert pool.all_slots[0].process.pid != old
 
 

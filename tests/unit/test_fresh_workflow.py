@@ -337,3 +337,102 @@ def test_resume_fixture_advances_cumulative_charge_and_sequence(tmp_path):
     cfg = {}
     advance_test_ledger(cfg, tmp_path)
     assert cfg == dict(charged_budget_ns=10**12 + 4 * 10**9, ledger_sequence=7)
+
+
+def test_short_roles_persist_charge_before_real_worker_resumes(tmp_path, monkeypatch):
+    """Real Coordinator.run + CPU learner; no ten-second heartbeat can occur."""
+    from types import SimpleNamespace
+
+    clock = FakeClock()
+    ledger = host.Ledger(tmp_path / "ledger", "short-role-test", 300, now=clock)
+    ledger.record("training")
+    monkeypatch.setattr(host.Engine, "from_config", lambda policy: object())
+    monkeypatch.setattr(
+        worker,
+        "time",
+        SimpleNamespace(
+            monotonic=lambda: clock.n / 10**9,
+            monotonic_ns=lambda: clock.n,
+            time_ns=lambda: clock.n + 10**12,
+        ),
+    )
+    save_learning = QualifiedCheckpointStore.save_learning
+
+    def timed_save(store, *args, **kwargs):
+        clock.n += 10**9  # Two short checkpoint writes; still below one heartbeat.
+        return save_learning(store, *args, **kwargs)
+
+    monkeypatch.setattr(QualifiedCheckpointStore, "save_learning", timed_save)
+
+    class DirectWorker(host.Coordinator):
+        def spawn(self, role, inputs, output, operation, **kwargs):
+            assert role == "learner" and operation == "train"
+            output.mkdir()
+            result = worker.train(inputs, output)
+            write(output / "result.json", result)
+            return "cpu-fixture", SimpleNamespace(returncode=0, poll=lambda: 0)
+
+        def reclaim(self, name):
+            clock.n += 250_000_000  # Cleanup is part of the host lifetime too.
+
+    previous = None
+    observations = []
+    with patch("oeis_learn.experiments.profiles.construct_qualified_models", small_models):
+        coordinator = DirectWorker(tmp_path / "roles", {"workers": 1}, digest("image"), ledger)
+        try:
+            for number, cap in enumerate((0, 1, 3)):
+                inputs, output = tmp_path / f"input-{number}", tmp_path / f"output-{number}"
+                inputs.mkdir()
+                cfg = dict(
+                    settings(examples(), cap),
+                    charged_budget_ns=ledger.previous["charged_ns"],
+                    ledger_sequence=ledger.previous["sequence"],
+                )
+                if previous:
+                    shutil.copytree(previous / "checkpoints", inputs / "checkpoints")
+                write(inputs / "settings.json", cfg)
+                write(inputs / "examples.json", examples())
+                report = coordinator.run("train", "learner", inputs, output, 30)
+                assert report["completed_updates"] == cap
+                manifest = read(output / "checkpoints" / report["checkpoint"])
+                base = read(output / "checkpoints" / manifest["base"])
+                observations.append((dict(ledger.previous), base))
+                assert read(ledger.root / "budget.json") == ledger.previous
+                previous = output
+            assert all(
+                record["charged_ns"] >= base["charged_budget_ns"] for record, base in observations
+            )
+            assert all(record["status"] == "train-finished" for record, _ in observations)
+        finally:
+            coordinator.close()
+
+
+@pytest.mark.parametrize("returncode,cleanup_failure", [(1, False), (0, True)])
+def test_short_failed_role_and_cleanup_still_charge_lifetime(
+    tmp_path, monkeypatch, returncode, cleanup_failure
+):
+    from types import SimpleNamespace
+
+    clock = FakeClock()
+    ledger = host.Ledger(tmp_path / "ledger", "failed-short-role", 100, now=clock)
+    ledger.record("training")
+    monkeypatch.setattr(host.Engine, "from_config", lambda policy: object())
+
+    class FailedRole(host.Coordinator):
+        def spawn(self, *args, **kwargs):
+            clock.n += 2 * 10**9
+            return "fixture", SimpleNamespace(returncode=returncode, poll=lambda: returncode)
+
+        def reclaim(self, name):
+            clock.n += 10**9
+            if cleanup_failure:
+                raise RuntimeError("cleanup failure")
+
+    coordinator = FailedRole(tmp_path / "roles", {"workers": 1}, digest("image"), ledger)
+    try:
+        with pytest.raises((RuntimeError, FileNotFoundError)):
+            coordinator.run("train", "learner", tmp_path / "input", tmp_path / "output", 30)
+        assert ledger.previous["charged_ns"] == 3 * 10**9
+        assert read(ledger.root / "budget.json") == ledger.previous
+    finally:
+        coordinator.close()

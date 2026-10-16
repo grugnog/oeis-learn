@@ -395,7 +395,13 @@ class Coordinator:
                 )
             return read(output / "result.json")
         finally:
-            self.reclaim(name)
+            try:
+                self.reclaim(name)
+            finally:
+                # A short role can finish before the next heartbeat. Persist its
+                # elapsed time (and reclamation) before a successor snapshots the
+                # durable charge into its immutable learner settings.
+                self.ledger.record(operation + "-finished")
 
     def close(self):
         self.executor.shutdown(wait=True, cancel_futures=True)
@@ -1005,6 +1011,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("unknown fresh action")
             # Initialize once and evaluate random weights before any updates.
             if latest is None:
+                ledger.record("training")
                 stage = roles / "train-000000"
                 retained = [
                     p / "checkpoints"
@@ -1108,6 +1115,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         raise TimeoutError(
                             "insufficient remaining budget for training and evaluation"
                         )
+                    ledger.record("training")
                     source = roles / (stage.name + "-input-" + uuid.uuid4().hex)
                     copy_view(
                         source,
@@ -1143,7 +1151,6 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                         )
                     # Every attempt has separate immutable output; stage pointers select successful attempts.
                     attempt = roles / (stage.name + "-attempt-" + uuid.uuid4().hex)
-                    ledger.record("training")
                     result = coordinator.run("train", "learner", source, attempt, seconds + 30)
                     stage.mkdir(parents=True, exist_ok=True)
                     shutil.copytree(
