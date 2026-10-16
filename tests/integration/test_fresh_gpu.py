@@ -12,7 +12,7 @@ from oeis_learn.fresh.common import digest, write
 from oeis_learn.rl.policy import trajectory_mean
 from oeis_learn.rl.token_loss import token_cross_entropy
 from oeis_learn.tracking.training_checkpoint import QualifiedCheckpointStore
-from tests.unit.test_fresh_workflow import examples, settings
+from tests.unit.test_fresh_workflow import advance_test_ledger, examples, settings
 
 pytestmark = [
     pytest.mark.gpu,
@@ -38,7 +38,7 @@ def test_actual_hip_fresh_update_and_complete_state_resume(tmp_path):
         )
         if previous:
             shutil.copytree(previous / "checkpoints", inputs / "checkpoints")
-            cfg["charged_budget_ns"] = 1_000_000_000_000
+            advance_test_ledger(cfg, inputs / "checkpoints")
         write(inputs / "settings.json", cfg)
         write(inputs / "examples.json", data)
         result = worker.train(inputs, output)
