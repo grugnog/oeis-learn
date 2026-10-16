@@ -65,3 +65,23 @@ def test_hybrid_large_exact_inputs_gradient_and_padding():
             encoder.forward_from_sequences(rows)[1, 0],
             atol=1e-5,
         )
+
+
+def test_large_adjacent_congruences_and_difference_features_remain_explicit():
+    from math import prod
+    from oeis_learn.encoder.modulo_stream import compute_fourier_phase_vector
+    from oeis_learn.encoder.difference_stream import compute_sequence_differences_and_padic
+    from oeis_learn.encoder.magnitude_stream import compute_signed_log_scalar
+
+    n = 2**200
+    # Log scalars can collide at this scale; modular features must use integers.
+    assert compute_signed_log_scalar(n) == compute_signed_log_scalar(n + 1)
+    assert compute_fourier_phase_vector(n, PRIMES) != compute_fourier_phase_vector(n + 1, PRIMES)
+    assert compute_fourier_phase_vector(n, PRIMES) == compute_fourier_phase_vector(
+        n + prod(PRIMES), PRIMES
+    )
+    seq = [n + i * i for i in range(20)]
+    d1, d2, valuations = compute_sequence_differences_and_padic(seq, PRIMES, 32)
+    assert d1[1:] == [compute_signed_log_scalar(2 * i - 1) for i in range(1, 20)]
+    assert d2[2:] == [compute_signed_log_scalar(2)] * 18
+    assert all(len(v) == 16 and max(v) <= 32 for v in valuations)

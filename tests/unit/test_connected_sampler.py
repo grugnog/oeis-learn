@@ -57,3 +57,26 @@ def test_stream_includes_nonlinear_composition_and_coupled_state():
         coupled |= "local.get $v4" in source
         iteration_scalar |= "local.get $c0 i32.const 1 i32.add i64.extend_i32_u" in source
     assert nonlinear and coupled and iteration_scalar
+
+
+def test_curriculum_places_carried_state_before_conditional_composition():
+    generator = ConnectedSampler(default_config())
+    assert "loop" in generator.sample(2 * 16)["canonical_source"]
+    assert "( if " in generator.sample(3 * 16)["canonical_source"]
+
+
+def test_connected_training_mixture_caps_behaviors_and_balances_stages():
+    from collections import Counter
+    from oeis_learn.fresh.bootstrap_views import training_mixture, behavior
+
+    rows = {}
+    for stage in range(4):
+        for i in range(100):
+            values = [str(i)] * 20 if i < 50 else [str(i * n + stage) for n in range(20)]
+            key = f"{stage}-{i}"
+            rows[key] = dict(program_id=key, values=values, stage=stage, tokens=[1] * (i + 1))
+    result = training_mixture(rows, 128)
+    assert len(result) == 128
+    assert Counter(r["stage"] for r in result.values()) == {s: 32 for s in range(4)}
+    assert sum(behavior(r) == "prefix_constant" for r in result.values()) == 6
+    assert training_mixture(dict(reversed(list(rows.items()))), 128) == result

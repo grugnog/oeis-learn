@@ -35,3 +35,45 @@ def parameter_view(examples):
         training=[r for r in examples["training"] if digest(r["values"]) not in prefixes],
         parameter_development=held,
     )
+
+
+MIXTURE = dict(
+    version="connected-training-mixture/v1",
+    stages=4,
+    max_prefix_constant_percent=5,
+    max_identity_prefixes=1,
+)
+
+
+def behavior(row):
+    values = list(map(int, row["values"]))
+    if len(set(values)) == 1:
+        return "prefix_constant"
+    if values == list(range(len(values))):
+        return "identity_prefix"
+    return "other"
+
+
+def training_mixture(training, count):
+    """Choose shortest admitted representatives under explicit stage/behavior caps.
+
+    Classification uses twenty visible terms; it is not a semantic proof over
+    the complete domain. Archive evidence is retained, never simplified away.
+    """
+    result, stages, constants, identities = {}, defaultdict(int), 0, 0
+    for key, row in sorted(
+        training.items(), key=lambda pair: (len(pair[1]["tokens"]), pair[1]["program_id"])
+    ):
+        stage = row["stage"]
+        kind = behavior(row)
+        if stages[stage] >= (count + 3 - stage) // 4:
+            continue
+        if kind == "prefix_constant" and constants >= count * 5 // 100:
+            continue
+        if kind == "identity_prefix" and identities >= 1:
+            continue
+        result[key] = row
+        stages[stage] += 1
+        constants += kind == "prefix_constant"
+        identities += kind == "identity_prefix"
+    return result

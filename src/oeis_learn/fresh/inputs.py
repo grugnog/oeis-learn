@@ -9,6 +9,7 @@ from .admission_sampling import SamplerShards
 from .bulk import import_snapshot
 from .common import digest, file_hash, lock, read, verify, write
 from .input_export import collect, export
+from .bootstrap_views import MIXTURE, behavior, training_mixture
 
 
 def check_inputs(root):
@@ -132,6 +133,7 @@ def prepare(config, cache, output, *, backend="rust"):
             raise ValueError("curriculum requires the versioned connected sampler")
         spec = config["archive"]
         series = SamplerShards(sampler_config, spec.get("sampling_shards", 1))
+        connected = sampler_config["profile"] == "connected_sampler_v1"
         plan = {
             "version": "fresh-admission-plan/v1",
             "config": config,
@@ -145,16 +147,22 @@ def prepare(config, cache, output, *, backend="rust"):
                 "cache_per_worker_bytes": 128 << 20,
             },
         }
+        if connected:
+            plan["training_mixture"] = MIXTURE
         write(root / "archive-plan.json", plan, immutable=True)
         archive = ProgramArchive(root / "archive", holdouts=holdouts)
         ledger = BudgetLedger(
             root / "archive-budget", str(uuid.UUID(digest(plan)[7:39])), spec["seconds"] * 10**9
         )
 
-        training, development = {}, {}
+        training, development, candidates = {}, {}, {}
 
         def observe(keys):
-            collect(archive, keys, training, development)
+            nonlocal training
+            collect(archive, keys, candidates, development)
+            training = (
+                training_mixture(candidates, spec["training_prompts"]) if connected else candidates
+            )
 
         def target_reached():
             complete = (
@@ -278,6 +286,10 @@ def prepare(config, cache, output, *, backend="rust"):
             write(
                 root / "archive-preparation-report.json",
                 {
+                    "training_mixture": MIXTURE if connected else None,
+                    "training_prefix_behaviors": dict(
+                        Counter(behavior(r) for r in training.values())
+                    ),
                     "training_prompts": len(training),
                     "development_structures": len(development),
                     "training_structures": len({r["structure"] for r in training.values()}),

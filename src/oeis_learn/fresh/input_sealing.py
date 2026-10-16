@@ -79,6 +79,12 @@ def seal(output):
         archive = ProgramArchive(root / "archive", holdouts=holdouts)
         training, development = {}, {}
         collect(archive, archive.freeze()["entries"], training, development)
+        if "training_mixture" in plan:
+            from .bootstrap_views import MIXTURE, training_mixture
+
+            if plan["training_mixture"] != MIXTURE:
+                raise ValueError("unknown frozen training mixture")
+            training = training_mixture(training, config["archive"]["training_prompts"])
         if (len(training), len(development)) != (
             report["training_prompts"],
             report["development_structures"],

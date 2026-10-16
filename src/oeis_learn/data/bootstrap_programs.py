@@ -85,7 +85,7 @@ class ConnectedSampler:
                     # compositions. In a loop it can depend on the iteration too.
                     scalar = (
                         "local.get $c0 i32.const 1 i32.add i64.extend_i32_u"
-                        if stage == 3 and rng.randrange(2)
+                        if stage == 2 and rng.randrange(2)
                         else "local.get $n i64.extend_i32_u"
                     )
                 return f"{left} {scalar} i256.mul_scalar"
@@ -96,7 +96,7 @@ class ConnectedSampler:
 
         if stage < 2:
             source = expression(rng.randint(1, 2) if stage == 0 else rng.randint(3, 5), index)
-        elif stage == 2:
+        elif stage == 3:
             left, right = expression(rng.randint(1, 3), index), expression(rng.randint(1, 3), index)
             modulus = parameters.randint(2, 7)
             threshold = parameters.randrange(modulus)

@@ -12,7 +12,10 @@ none has been established as the best encoder.
 This restores numeric input features, not the old vocabulary, family labels,
 handwritten sequence teachers, reward shaping or historical checkpoints. The
 current body codec, strict execution, provenance and held-out scoring remain.
-Existing v1 prepared inputs still select their original 384-wide byte model.
+Existing v1 prepared inputs still select their original 384-wide byte model
+unless a new run explicitly supplies `--encoder`. That override creates a matched
+bootstrap model and explicit non-curriculum learning settings without rewriting
+the sealed data or interpreting old weights as the new architecture.
 Do not edit sealed inputs or resume a run after changing its code/image.
 
 ## Start with the smallest useful test
@@ -58,7 +61,7 @@ cached-logit tests for all three encoder arms. CPU tests alone do not qualify HI
 
 ## Inspect an already completed checkpoint
 
-This separate, ten-minute diagnostic reads the selected checkpoint and its exact
+This separate, one-hour-capped diagnostic reads the selected checkpoint and its exact
 original learner examples from retained `run-state`. It verifies the original
 contract/profile/runtime and loads weights only under the new diagnostic code.
 It records both identities, leaves the original optimizer/run/budget untouched,
@@ -70,12 +73,35 @@ python3 scripts/foundation_run.py --engine podman diagnose \
 ```
 
 Share `tmp-analysis/original-model-diagnostic-001.zip`. It contains sampled
-training and synthetic-development execution, shuffled conditioning, partial
-and complete token traces, EOS/completion failures, cache parity, full synthetic
+training and **all** synthetic-development execution (with explicit timeout and
+coverage counts), results by length and complexity, shuffled conditioning, partial
+and complete token traces, raw/grammar EOS probabilities, output diversity,
+prefix/continuation fit, actual cached/uncached representative generation, full synthetic
 validation loss and logs. This is explicit diagnosis under changed code, not a
 claim that the original runtime was reproduced bit for bit. Choose a new output
 path for another diagnostic. This command requires a retained qualified learning
 checkpoint; it does not import pre-007 checkpoints.
+
+## Attribute encoder and data changes separately
+
+First screen the matched architectures against the existing sealed data. Use
+new run names; no input editing or historical weight initialization is involved:
+
+```bash
+for encoder in tri_stream hybrid integer_bytes; do
+  python3 scripts/foundation_run.py --engine podman train \
+    --profile fresh-pilot-1h --inputs tmp-fresh-inputs-extended-002 \
+    --encoder "$encoder" --run "runs/original-data-$encoder-001"
+done
+```
+
+These pilots use the same explicit learning defaults and disable curriculum for
+unlabelled old data. They cap training segments at 1,800 seconds within each
+one-hour lifetime. Compare parameter counts, throughput and synthesis diagnostics,
+then hold the encoder fixed for the original-versus-connected data comparison.
+See [the recommendation audit](bootstrap-recommendation-audit.md) for the complete
+coverage table and decision gates. The tiny connected-input tests below are the
+scale-up gate, not a claim that the original long-target dataset is easy to memorize.
 
 ## Pilot and longer runs
 
@@ -121,11 +147,19 @@ occupy the GPU for 12 hours. Full synthetic loss covers every exported developme
 example; execution diagnostics have explicit smaller fixed denominators.
 
 The connected sampler draws short expression trees, deeper compositions,
-conditionals and bounded one- or two-register state updates. Index-valued
+bounded one- or two-register state updates, then conditionals. Index-valued
 scalar operands permit nonlinear polynomials and iteration-dependent updates;
 coupled registers permit second-order recurrences without named family templates. It draws 16 parameter variants per
 structural seed; the existing constant-insensitive structural split, independent
 execution, overflow rejection and conditioning deduplication still apply.
+The exported training set has approximately equal stage quotas, at most 5%
+constant prefixes and at most one identity prefix; the preparation report records
+these visible-prefix counts. All admitted archive evidence remains intact.
+New non-tiny bootstrap runs reserve up to 128 examples (at most one eighth of the
+original training view) to test new parameters of familiar structures. Each held
+structure retains at least two training behaviors. Reports separate this parameter
+split from structural development; zero eligible structures means unavailable,
+not successful generalization.
 Curriculum starts at stage zero, mixes already unlocked stages, and promotes only
 when both training and structural-development sampled execution reach 80%.
 An absent development stratum does not count as success. The stage, permutation,
