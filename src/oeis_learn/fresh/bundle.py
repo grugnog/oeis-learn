@@ -25,6 +25,9 @@ REPORT_NAMES = {
     "stderr.log",
     "metrics.jsonl",
     "early-stop.json",
+    "diagnostic.json",
+    "learnability.json",
+    "replay.json",
     "admission-completion.json",
 }
 

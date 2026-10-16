@@ -10,9 +10,12 @@ from oeis_learn.encoder.hybrid import HybridEncoder
 
 def test_explicit_matched_encoder_profiles():
     counts = []
+    decoder_weights = []
     for name in ("tri_stream", "hybrid", "integer_bytes"):
         profile = bootstrap_profile(name)
+        torch.manual_seed(123)
         encoder, decoder, count = construct_bootstrap_models(profile)
+        decoder_weights.append(decoder.lm_head.weight.detach().clone())
         counts.append(count["decoder"])
         assert profile["primes"] == list(PRIMES)
         assert profile["base_moduli"] == list(PRIMES)
@@ -23,6 +26,7 @@ def test_explicit_matched_encoder_profiles():
         with pytest.raises(ValueError, match="changed"):
             construct_bootstrap_models(changed)
     assert len(set(counts)) == 1
+    assert all(torch.equal(decoder_weights[0], weight) for weight in decoder_weights[1:])
     assert (
         len(
             {

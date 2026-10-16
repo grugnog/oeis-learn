@@ -27,6 +27,7 @@ def bootstrap_profile(encoder):
         use_film=True,
         enable_summary_tokens=False,
         byte_width=4,
+        decoder_initialization="independent-seed/v1",
     )
     profile["identity_sha256"] = digest(profile)
     return profile
@@ -54,19 +55,24 @@ def construct_bootstrap_models(profile, *, device="cpu"):
             use_film=True,
             enable_summary_tokens=False,
         )
-    decoder = WatTransformerDecoder(
-        vocab_size=FOUNDATION_VOCAB_SIZE,
-        d_model=256,
-        n_heads=4,
-        n_decoder_layers=4,
-        d_ff=1024,
-        dropout=0.1,
-        max_seq_len=1024,
-        pad_idx=PAD_ID,
-        codec_sha256=codec_digest(),
-        position_style="sinusoidal",
-        attention_backend="eager",
-    )
+    import torch
+
+    # Encoder parameter counts must not shift decoder initial weights between arms.
+    with torch.random.fork_rng(devices=[]):
+        torch.random.default_generator.manual_seed(torch.initial_seed() ^ 0xDEC0DE)
+        decoder = WatTransformerDecoder(
+            vocab_size=FOUNDATION_VOCAB_SIZE,
+            d_model=256,
+            n_heads=4,
+            n_decoder_layers=4,
+            d_ff=1024,
+            dropout=0.1,
+            max_seq_len=1024,
+            pad_idx=PAD_ID,
+            codec_sha256=codec_digest(),
+            position_style="sinusoidal",
+            attention_backend="eager",
+        )
     counts = {
         "encoder": sum(p.numel() for p in encoder.parameters()),
         "decoder": sum(p.numel() for p in decoder.parameters()),
