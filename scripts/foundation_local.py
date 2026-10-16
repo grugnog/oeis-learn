@@ -61,9 +61,13 @@ def extended_settings(benchmark, output):
         raise ValueError("invalid measured batch recommendation")
     cfg = json.loads((root / "input-manifest.json").read_bytes())["config"]
     cfg["run"].pop("model", None)
-    if cfg.get("version") == "fresh-workflow/v2":
-        cfg["run"]["encoder"] = run["settings"]["learner"]["model"]["encoder"]
-        cfg["run"]["learning"].update(max_updates=100000, validation_every_updates=1000)
+    learner = run["settings"].get("learner", {})
+    if learner.get("model", {}).get("version") == "bootstrap-model/v1":
+        cfg["version"] = "fresh-workflow/v2"
+        cfg["run"]["encoder"] = learner["model"]["encoder"]
+        cfg["run"]["learning"] = dict(
+            learner["learning"], max_updates=100000, validation_every_updates=1000
+        )
     cfg["archive"].update(
         training_prompts=2048, development_structures=128, seconds=7200, sampling_shards=64
     )
@@ -302,7 +306,7 @@ def parser():
         cmd.add_argument(
             "--encoder",
             choices=["tri_stream", "hybrid", "integer_bytes"],
-            help="explicit v2 comparison on the same admitted input bytes",
+            help="explicit matched-encoder comparison on the same admitted input bytes",
         )
         if op == "train":
             cmd.add_argument(

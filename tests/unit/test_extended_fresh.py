@@ -272,3 +272,42 @@ def test_benchmark_rejects_cpu_without_falling_back(tmp_path):
     write(tmp_path / "examples.json", data)
     with pytest.raises(ValueError, match="HIP benchmark"):
         benchmark(tmp_path, tmp_path / "output")
+
+
+@pytest.mark.parametrize("original_version", ["fresh-workflow/v1", "fresh-workflow/v2"])
+def test_extended_settings_preserve_actual_benchmarked_encoder_and_learning(
+    tmp_path, original_version
+):
+    from oeis_learn.fresh.bootstrap_contract import bootstrap_profile
+    from oeis_learn.fresh.bootstrap_config import learning_defaults
+
+    root = tmp_path / "runs/benchmark"
+    cfg = config()
+    cfg["version"] = original_version
+    if original_version.endswith("/v2"):
+        cfg["run"].update(encoder="tri_stream", learning=learning_defaults())
+    learning = dict(learning_defaults(), curriculum=False, learning_rate=0.0002)
+    write(
+        root / "run.json",
+        dict(
+            settings=dict(
+                profile="fresh-benchmark",
+                learner=dict(model=bootstrap_profile("hybrid"), learning=learning),
+            )
+        ),
+    )
+    write(root / "status.json", dict(status="complete"))
+    write(root / "input-manifest.json", dict(config=cfg))
+    write(
+        root / "roles/benchmark/result.json",
+        dict(recommended=dict(batch_size=16, length_buckets=True)),
+    )
+    with patch.object(local, "ROOT", tmp_path):
+        local.extended_settings("runs/benchmark", "tmp-plan.json")
+    output = cli.configuration(tmp_path / "tmp-plan.json")
+    assert output["version"] == "fresh-workflow/v2"
+    assert output["run"]["model"] == bootstrap_profile("hybrid")
+    assert output["run"]["learning"] == dict(
+        learning, max_updates=100000, validation_every_updates=1000
+    )
+    assert output["sampler_config"] == str((cli.ROOT / cfg["sampler_config"]).resolve())
