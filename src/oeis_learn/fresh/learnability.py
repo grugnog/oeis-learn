@@ -33,6 +33,30 @@ def controls(value=None):
     return result
 
 
+def gate(report, *, detailed=False):
+    training = report["splits"]["training"]
+    checks = dict(
+        training_denominator=training["denominator"] == 32,
+        training_accuracy=training["exact"] >= 31,
+        conditioning_coverage=training["shuffled_denominator"] == 32,
+        conditioning_effect=training["exact"] - training["shuffled_exact"] >= 4,
+        teacher_forced_cache=report["cache_parity"]["passed"],
+    )
+    if detailed:
+        parity = training.get("generation_parity", {})
+        checks.update(
+            evaluation_coverage=training["coverage_complete"],
+            free_generation_cache=parity.get("passed", False)
+            and parity.get("requested") == 32
+            and parity.get("evaluated") == 32,
+        )
+    return dict(
+        passed=all(checks.values()),
+        checks=checks,
+        failures=[key for key, passed in checks.items() if not passed],
+    )
+
+
 def select_view(rows, view):
     """Select only existing admitted training rows; never invent supervision."""
     ordered = sorted(rows, key=lambda r: (len(r["tokens"]), r["program_id"]))

@@ -193,11 +193,15 @@ def test_v2_configuration_is_explicit_and_v1_unchanged(tmp_path):
 
 
 @pytest.mark.parametrize("kind", ["integer_bytes", "tri_stream", "hybrid"])
+@pytest.mark.parametrize("literal_challenge", [False, True])
 def test_production_training_and_decoder_learn_generic_constant_microset(
-    tmp_path, monkeypatch, kind
+    tmp_path, monkeypatch, kind, literal_challenge
 ):
     # Reduced CPU shape, real optimizer/autoregressive grammar/EOS; no teacher stub.
     data = examples()
+    if literal_challenge:
+        for row, value in zip(data["training"], (11, -11, 111, -111, 101, 110, 12, -12)):
+            row.update(program_id=digest(["literal-fixture", value]), values=[str(value)] * 20, tokens=encode_body(f"i256.const {value}"))
     data["development"] = [dict(data["training"][0]), dict(data["training"][1])]
     cfg = dict(
         settings(data, 300),
@@ -253,12 +257,17 @@ def test_production_training_and_decoder_learn_generic_constant_microset(
 
 
 @pytest.mark.parametrize("original_data", [False, True])
+@pytest.mark.parametrize("gate_passes", [False, True])
 def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
-    tmp_path, original_data
+    tmp_path, original_data, gate_passes
 ):
     from tests.integration.test_fresh_lifecycle import run_environment, fixture_coordinator
     from tests.unit.test_fresh_workflow import FakeClock
     from oeis_learn.experiments.bootstrap_models import bootstrap_profile
+    from oeis_learn.fresh.learnability import controls
+    import json
+
+    options = controls(dict(controls(), max_updates=1200, budget_seconds=7200, diagnostic_seconds=10))
 
     workspace, policy = run_environment(tmp_path)
     path = workspace / "inputs/prepared.json"
@@ -278,6 +287,8 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
             cfg = read(inputs / "settings.json")
             assert cfg["model"] == bootstrap_profile("hybrid")
             assert len(read(inputs / "examples.json")["training"]) == 32
+            assert cfg["learning"]["max_updates"] == 1200
+            assert cfg["diagnostic_detail"]
             result = super().run(operation, role, inputs, output, seconds)
             result.update(
                 validation_loss=1.0,
@@ -285,7 +296,7 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
                     stage=None,
                     cache_parity={"passed": True},
                     splits={
-                            s: dict(denominator=32, exact=32, shuffled_exact=0, shuffled_denominator=32, coverage_complete=True, generation_parity={"passed": True})
+                            s: dict(denominator=32, exact=31 if gate_passes else 30, shuffled_exact=0, shuffled_denominator=32, coverage_complete=True, generation_parity={"passed": True, "requested": 32, "evaluated": 32})
                         for s in ("training", "development")
                     },
                 ),
@@ -297,17 +308,31 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
         patch.object(host, "clock", clock),
         patch.object(host, "process_identity", lambda pid: {"pid": pid}),
     ):
-        host.execute(
+        code = host.execute(
             policy,
             "sha256:" + "a" * 64,
-            ["run", "inputs", "runs/tiny", "bootstrap-learnability", "hybrid"],
+            ["run", "inputs", "runs/tiny", "bootstrap-learnability", "hybrid", json.dumps(options)],
             coordinator_factory=Coordinator,
         )
     status = read(workspace / "runs/tiny/status.json")
     assert status["status"] == "complete"
-    assert status["final_score"]["learnability_passed"]
+    assert status["final_score"]["learnability_passed"] == gate_passes
+    assert code == (0 if gate_passes else 2)
+    assert read(workspace / "runs/tiny/run.json")["settings"]["seconds"] == 7200
+    assert read(workspace / "runs/tiny/run.json")["settings"]["learnability_controls"] == options
+    assert len(read(workspace / "runs/tiny/learnability-examples.json")["training"]) == 32
+    from oeis_learn.fresh.bundle import pack
+    import zipfile
+
+    archive = tmp_path / "diagnostic.zip"
+    pack(workspace / "runs/tiny", archive)
+    with zipfile.ZipFile(archive) as bundle:
+        assert "learnability-examples.json" in bundle.namelist()
+        assert not any("truth.json" in name for name in bundle.namelist())
     assert not status["diagnostic_final_cohort_consumed"]
     assert not list((workspace / "runs/tiny/roles").glob("*-score"))
+    with pytest.raises(ValueError, match="differ"):
+        host.execute(policy, "sha256:" + "a" * 64, ["run", "inputs", "runs/tiny", "bootstrap-learnability", "hybrid", json.dumps(dict(options, budget_seconds=10800))], coordinator_factory=Coordinator)
 
 
 def test_checkpoint_diagnostic_verifies_old_binding_without_restoring_optimizer(

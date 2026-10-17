@@ -179,3 +179,33 @@ def test_search_ledger_distinguishes_time_and_token_caps():
     with pytest.raises(SearchExhausted) as failed:
         ledger.charge()
     assert failed.value.reason == "deadline"
+
+
+def test_gate_requires_31_correct_and_complete_free_generation_controls():
+    from oeis_learn.fresh.learnability import gate
+
+    training = dict(
+        denominator=32,
+        exact=31,
+        shuffled_exact=1,
+        shuffled_denominator=32,
+        coverage_complete=True,
+        generation_parity=dict(passed=True, requested=32, evaluated=32),
+    )
+    report = dict(cache_parity={"passed": True}, splits={"training": training})
+    assert gate(report, detailed=True)["passed"]
+    training["exact"] = 30
+    assert gate(report, detailed=True)["failures"] == ["training_accuracy"]
+    training["exact"] = 31
+    training["generation_parity"]["evaluated"] = 3
+    assert gate(report, detailed=True)["failures"] == ["free_generation_cache"]
+
+
+def test_literal_drift_pinpoints_repeated_digit_and_integer_end():
+    from oeis_learn.fresh.token_diagnostic import target_comparison
+
+    expected = encode_body("i256.const 11")
+    got = [BOS_ID] + encode_body("i256.const 1")
+    difference = target_comparison(expected, got)
+    assert difference["expected"] == "1" and difference["generated"] == "</int>"
+    assert target_comparison(expected, [BOS_ID] + expected)["exact"]

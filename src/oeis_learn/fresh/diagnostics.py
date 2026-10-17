@@ -304,6 +304,12 @@ def evaluate(
                         record["evaluated"] = not timeout
                     elif variant == "shuffled":
                         record["shuffled_evaluated"] = not timeout
+                    elif variant == "uncached":
+                        record["generation_parity"].update(
+                            tokens=list(getattr(exc, "tokens", [])),
+                            token_trace=list(getattr(exc, "token_trace", [])),
+                            failure=exc.reason or str(exc),
+                        )
                     if variant == "correct":
                         record.update(
                             tokens=list(getattr(exc, "tokens", [])),
@@ -311,8 +317,11 @@ def evaluate(
                             token_trace=list(getattr(exc, "token_trace", [])),
                         )
             if detail and split == "training":
+                from .token_diagnostic import target_comparison
+
                 record["visible_values"] = row["values"]
                 record["target_token_ids"] = row["tokens"]
+                record["target_comparison"] = target_comparison(row["tokens"], record["tokens"])
                 if time.monotonic_ns() < row_deadline:
                     from .token_diagnostic import teacher_trace
 

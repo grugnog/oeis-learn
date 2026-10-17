@@ -472,6 +472,7 @@ def publish(job, destination):
         "early-stop.json",
         "admission-completion.json",
         "learnability.json",
+        "learnability-examples.json",
     ):
         path = job / name
         if path.exists():
@@ -1248,24 +1249,20 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 selected_result = read((job / selected).parent.parent / "result.json")
                 diagnostic = selected_result["diagnostic"]
                 measure = diagnostic["splits"]["training"]
-                learned = (
-                    measure["denominator"] == 32
-                    and measure["shuffled_denominator"] == 32
-                    and measure["exact"] >= 31
-                    and measure["shuffled_exact"] < measure["exact"] - 3
-                    and diagnostic["cache_parity"]["passed"]
-                )
-                if settings.get("learnability_controls"):
-                    learned = learned and measure["coverage_complete"] and measure["generation_parity"]["passed"]
+                from oeis_learn.fresh.learnability import gate
+
+                assessment = gate(diagnostic, detailed=bool(settings.get("learnability_controls")))
+                learned = assessment["passed"]
                 final = dict(
                     learnability_passed=learned,
+                    gate=assessment,
                     diagnostic=diagnostic,
                     scope="training-set memorization and conditioning; generalization unqualified",
                 )
                 if settings.get("learnability_controls"):
                     final["controls"] = settings["learnability_controls"]
                 write(job / "learnability.json", final)
-                print(f"LEARNABILITY {'PASS' if learned else 'FAIL'}: {measure['exact']}/{measure['denominator']} exact; at least 31/32 and complete conditioning/cache checks required", flush=True)
+                print(f"LEARNABILITY {'PASS' if learned else 'FAIL'}: {measure['exact']}/{measure['denominator']} exact; failed checks={assessment['failures']}", flush=True)
             else:
                 if learning:
                     development = evaluation(

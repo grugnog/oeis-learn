@@ -359,6 +359,11 @@ def main(argv=None):
         if args.command in {"status", "cancel"}:
             Host.control(args.command, relative(args.run))
             return 0
+        learnability_options = None
+        if args.command == "learnability":
+            from oeis_learn.fresh.learnability import controls
+
+            learnability_options = controls({key: getattr(args, key) for key in controls()})
         host = Host(args)
         if args.command == "image":
             print(host.ensure())
@@ -387,10 +392,7 @@ def main(argv=None):
                 run = relative(args.run)
                 extra = [args.encoder] if args.encoder else []
                 if args.command == "learnability":
-                    from oeis_learn.fresh.learnability import controls
-
-                    options = controls({key: getattr(args, key) for key in controls()})
-                    extra = [args.encoder or "", json.dumps(options)]
+                    extra = [args.encoder or "", json.dumps(learnability_options)]
                 try:
                     host.pipeline(
                         "run",

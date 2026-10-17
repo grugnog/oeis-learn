@@ -46,3 +46,23 @@ def teacher_trace(encoder, decoder, row):
             passed=bool(torch.allclose(logits, cached, atol=2e-5, rtol=2e-4)),
         ),
     )
+
+
+def target_comparison(targets, generated):
+    """Locate digit/delimiter drift without assuming the output completed."""
+    from oeis_learn.decoder.program_codec import BOS_ID, ID_TO_TOKEN
+
+    generated = generated[1:] if generated[:1] == [BOS_ID] else generated
+    for index in range(max(len(targets), len(generated))):
+        expected = targets[index] if index < len(targets) else None
+        actual = generated[index] if index < len(generated) else None
+        if expected != actual:
+            return dict(
+                exact=False,
+                position=index + 1,
+                expected=ID_TO_TOKEN.get(expected),
+                generated=ID_TO_TOKEN.get(actual),
+                expected_id=expected,
+                generated_id=actual,
+            )
+    return dict(exact=True, position=None)
