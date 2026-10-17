@@ -5,6 +5,10 @@ on:
       - 'src/oeis_learn/**'
       - 'crates/oeis_wasm_evaluator/**'
       - 'Dockerfile'
+      - '.dockerignore'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'uv.lock'
       - 'docker/dev/**'
       - 'tests/**'
       - 'configs/foundation/qualified.yaml'
@@ -24,6 +28,9 @@ on:
       - 'docs/foundation.md'
       - 'README.md'
       - '.github/workflows/phase7-review.yml'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -35,6 +42,13 @@ jobs:
       PYTHONPATH: 'src:.'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            uv.lock
       - name: Create CPU test environment
         run: |
           python3 -m venv .review-venv
@@ -57,13 +71,7 @@ jobs:
           .review-venv/bin/python specs/007-experiment-foundation/validate_artifacts.py
       - name: Foundation and phase 7 CPU regression suite
         run: |
-          .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/unit/test_bootstrap_*.py tests/unit/test_connected_sampler.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
-      - name: Execute phase 13 available CPU input diagnostics
-        run: .review-venv/bin/python scripts/verify_phase13.py --output phase13-evidence
-      - name: Execute actual CPU quickstart and replay immutable archive
-        run: |
-          .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
-          .review-venv/bin/python -m oeis_learn.evaluation.handoff --archive phase11-evidence/quickstart/handoff
+          .review-venv/bin/python -m pytest -q --durations=20 -ra tests/unit/test_foundation_*.py tests/unit/test_bootstrap_*.py tests/unit/test_connected_sampler.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,6 +79,46 @@ jobs:
           path: |
             phase7-junit.xml
             phase7-environment.txt
+
+  cpu-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [input-diagnostics, quickstart]
+    env:
+      OMP_NUM_THREADS: '2'
+      PYTHONPATH: 'src:.'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            uv.lock
+      - name: Create CPU test environment
+        run: |
+          python3 -m venv .review-venv
+          .review-venv/bin/pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+          .review-venv/bin/pip install -e . pytest ruff
+          .review-venv/bin/pip freeze > phase7-${{ matrix.check }}-environment.txt
+      - name: Execute phase 13 available CPU input diagnostics
+        if: matrix.check == 'input-diagnostics'
+        run: .review-venv/bin/python scripts/verify_phase13.py --output phase13-evidence
+      - name: Execute actual CPU quickstart and replay immutable archive
+        if: matrix.check == 'quickstart'
+        run: |
+          .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
+          .review-venv/bin/python -m oeis_learn.evaluation.handoff --archive phase11-evidence/quickstart/handoff
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase7-cpu-${{ matrix.check }}
+          path: |
+            phase7-${{ matrix.check }}-environment.txt
             phase13-evidence/**
             phase11-evidence/quickstart/*.stdout
             phase11-evidence/quickstart/*.stderr
@@ -82,8 +130,16 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
       - name: Build root Dockerfile qualification target
-        run: docker build --target qualification -t oeis-phase7 .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: qualification
+          tags: oeis-phase7
+          load: true
+          cache-from: type=gha,scope=oeis-qualification
+          cache-to: type=gha,scope=oeis-qualification,mode=max,ignore-error=true
       - name: Mandatory Rust tests and G7 qualification
         run: |
           mkdir -p phase7-evidence

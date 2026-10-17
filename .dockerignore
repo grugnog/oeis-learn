@@ -66,6 +66,7 @@ phase7-evidence/
 phase13-evidence/
 phase7-*.xml
 phase7-environment.txt
+phase7-*-environment.txt
 *.whl
 
 # Persistent local application artifacts
