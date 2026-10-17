@@ -51,11 +51,22 @@ phase9-evidence
 # Disposable review work
 tmp*/
 .review-venv
+.role-venv
 .venv-*
 phase11-evidence
 phase10-*.log
 phase10-*.xml
 phase10-evidence
+
+# CI outputs and local tooling caches must not invalidate COPY layers.
+.ruff_cache
+uv-cache/
+wheel-evidence/
+phase7-evidence/
+phase13-evidence/
+phase7-*.xml
+phase7-environment.txt
+*.whl
 
 # Persistent local application artifacts
 run-state/
