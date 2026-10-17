@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import json
 from typing import Optional
 
 import torch
@@ -89,8 +90,28 @@ class WatTransformerDecoder(nn.Module):
         codec_sha256: Optional[str] = None,
         position_style: str = "sinusoidal",
         attention_backend: str = "sdpa",
+        token_scale: float = 1.0,
+        position_scale: float = 1.0,
+        input_version: Optional[str] = None,
     ):
         super().__init__()
+        from oeis_learn.fresh.bootstrap_contract import decoder_controls
+
+        selected = decoder_controls(
+            token_scale=token_scale, position_scale=position_scale, dropout=dropout
+        )
+        self.token_scale = selected["token_scale"]
+        self.position_scale = selected["position_scale"]
+        self.input_version = input_version
+        if input_version not in (None, "decoder-inputs/v1"):
+            raise ValueError("unknown decoder input version")
+        if input_version is None and (self.token_scale != 1 or self.position_scale != 1):
+            raise ValueError("non-default decoder scales require decoder-inputs/v1")
+        if input_version is not None:
+            if position_style != "sinusoidal":
+                raise ValueError("decoder-inputs/v1 requires sinusoidal positions")
+            identity = json.dumps(dict(version=input_version, **selected), sort_keys=True).encode()
+            self.register_buffer("_input_identity", torch.tensor(list(identity), dtype=torch.uint8))
         self.codec_sha256 = codec_sha256
         if codec_sha256 is not None:
             from oeis_learn.decoder.program_codec import (
@@ -169,6 +190,13 @@ class WatTransformerDecoder(nn.Module):
     def _load_from_state_dict(
         self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
     ):
+        input_key = prefix + "_input_identity"
+        if self.input_version is not None:
+            supplied = state_dict.get(input_key)
+            if supplied is None or not torch.equal(supplied.cpu(), self._input_identity.cpu()):
+                error_msgs.append("missing or incompatible decoder input identity")
+        elif input_key in state_dict:
+            error_msgs.append("versioned decoder inputs cannot load into a legacy decoder")
         key = prefix + "_codec_identity"
         if self.codec_sha256 is not None:
             supplied = state_dict.get(key)
@@ -207,7 +235,7 @@ class WatTransformerDecoder(nn.Module):
         if tgt_key_padding_mask is None and (tgt_tokens == self.pad_idx).any():
             tgt_key_padding_mask = tgt_tokens == self.pad_idx
 
-        embed = self.token_embedding(tgt_tokens) * math.sqrt(self.d_model)
+        embed = self.embed_tokens(tgt_tokens)
         positions = torch.arange(tgt_len, device=tgt_tokens.device)[None, :].expand(
             tgt_tokens.size(0), -1
         )
@@ -241,13 +269,17 @@ class WatTransformerDecoder(nn.Module):
             return cap * torch.tanh(logits / cap)
         return logits
 
+    def embed_tokens(self, tokens):
+        """Shared full/cached token scaling; 1.0 retains the historical sqrt(d) factor."""
+        return self.token_embedding(tokens) * (math.sqrt(self.d_model) * self.token_scale)
+
     def position_embeddings(self, hidden, positions, tokens):
         if self.position_style == "rope":
             return self.pos_encoder.dropout(hidden)
         maximum = tokens.size(1)
         if maximum > self.pos_encoder.pe.size(1):
             self.pos_encoder._extend_pe(maximum, hidden.device)
-        hidden = hidden + self.pos_encoder.pe[0][positions].to(hidden.dtype)
+        hidden = hidden + self.pos_encoder.pe[0][positions].to(hidden.dtype) * self.position_scale
         if self.ancestor_embedding is not None:
             from oeis_learn.decoder.prefix_positions import ancestor_ids
             from oeis_learn.decoder.program_codec import ID_TO_TOKEN as BODY_WORDS

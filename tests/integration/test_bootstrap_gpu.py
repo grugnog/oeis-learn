@@ -6,6 +6,7 @@ from oeis_learn.experiments.bootstrap_models import bootstrap_profile, construct
 from oeis_learn.decoder.program_codec import BOS_ID, PAD_ID, encode_body
 from oeis_learn.rl.sft_trainer import supervised_step
 from oeis_learn.evaluation.search import ModelProposer, SearchLedger
+from oeis_learn.fresh.bootstrap_contract import decoder_controls
 
 pytestmark = [
     pytest.mark.gpu,
@@ -17,10 +18,12 @@ pytestmark = [
 
 
 @pytest.mark.parametrize("kind", ["tri_stream", "hybrid", "integer_bytes"])
-def test_full_bootstrap_hip_update_checkpoint_and_decoder_cache(kind, tmp_path):
+@pytest.mark.parametrize("inputs", [None, decoder_controls(position_scale=16, dropout=0)])
+def test_full_bootstrap_hip_update_checkpoint_and_decoder_cache(kind, tmp_path, inputs):
     torch.manual_seed(71)
     torch.use_deterministic_algorithms(True)
-    encoder, decoder, _ = construct_bootstrap_models(bootstrap_profile(kind), device="cuda")
+    profile = bootstrap_profile(kind, decoder_inputs=inputs)
+    encoder, decoder, _ = construct_bootstrap_models(profile, device="cuda")
     optimizer = torch.optim.AdamW(
         [*encoder.parameters(), *decoder.parameters()], lr=0.0001, foreach=False
     )
@@ -35,6 +38,7 @@ def test_full_bootstrap_hip_update_checkpoint_and_decoder_cache(kind, tmp_path):
     checkpoint = tmp_path / "weights.pt"
     torch.save({"encoder": encoder.state_dict(), "decoder": decoder.state_dict()}, checkpoint)
     state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    encoder, decoder, _ = construct_bootstrap_models(profile, device="cuda")
     encoder.load_state_dict(state["encoder"])
     decoder.load_state_dict(state["decoder"])
     encoder.eval()
@@ -55,11 +59,12 @@ def test_full_bootstrap_hip_update_checkpoint_and_decoder_cache(kind, tmp_path):
 
 
 @pytest.mark.parametrize("kind", ["tri_stream", "hybrid", "integer_bytes"])
-def test_full_hip_repeated_literal_logits_and_free_generation_parity(kind):
+@pytest.mark.parametrize("inputs", [None, decoder_controls(position_scale=16, dropout=0)])
+def test_full_hip_repeated_literal_logits_and_free_generation_parity(kind, inputs):
     from oeis_learn.fresh.token_diagnostic import teacher_trace
 
     torch.manual_seed(71)
-    encoder, decoder, _ = construct_bootstrap_models(bootstrap_profile(kind), device="cuda")
+    encoder, decoder, _ = construct_bootstrap_models(bootstrap_profile(kind, decoder_inputs=inputs), device="cuda")
     for literal in (11, -11, 111, 101, 2**200 + 11):
         row = dict(values=[str(literal + n) for n in range(20)], tokens=encode_body(f"i256.const {literal}"))
         assert teacher_trace(encoder, decoder, row)["cache_parity"]["passed"]

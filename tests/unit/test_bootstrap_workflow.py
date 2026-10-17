@@ -258,8 +258,9 @@ def test_production_training_and_decoder_learn_generic_constant_microset(
 
 @pytest.mark.parametrize("original_data", [False, True])
 @pytest.mark.parametrize("gate_passes", [False, True])
+@pytest.mark.parametrize("experiment", [False, True])
 def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
-    tmp_path, original_data, gate_passes
+    tmp_path, original_data, gate_passes, experiment
 ):
     from tests.integration.test_fresh_lifecycle import run_environment, fixture_coordinator
     from tests.unit.test_fresh_workflow import FakeClock
@@ -268,6 +269,11 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
     import json
 
     options = controls(dict(controls(), max_updates=1200, budget_seconds=7200, diagnostic_seconds=10))
+    selected = None
+    if experiment:
+        from oeis_learn.fresh.learnability import experiment_controls
+        selected = dict(token_scale=0.5, position_scale=16.0, dropout=0.0)
+        options = controls(dict(options, experiment=experiment_controls(**selected, seed=123)))
 
     workspace, policy = run_environment(tmp_path)
     path = workspace / "inputs/prepared.json"
@@ -285,7 +291,9 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
         def run(self, operation, role, inputs, output, seconds):
             assert operation == "train"  # No OEIS evaluation in the tiny gate.
             cfg = read(inputs / "settings.json")
-            assert cfg["model"] == bootstrap_profile("hybrid")
+            assert cfg["model"] == bootstrap_profile("hybrid", decoder_inputs=selected)
+            if experiment:
+                assert cfg["seed"] == 123
             assert len(read(inputs / "examples.json")["training"]) == 32
             assert cfg["learning"]["max_updates"] == 1200
             assert cfg["diagnostic_detail"]
@@ -333,6 +341,11 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
     assert not list((workspace / "runs/tiny/roles").glob("*-score"))
     with pytest.raises(ValueError, match="differ"):
         host.execute(policy, "sha256:" + "a" * 64, ["run", "inputs", "runs/tiny", "bootstrap-learnability", "hybrid", json.dumps(dict(options, budget_seconds=10800))], coordinator_factory=Coordinator)
+    if experiment:
+        for key, value in (("seed", 124), ("position_scale", 8.0), ("dropout", 0.1), ("token_scale", 1.0)):
+            changed = dict(options, experiment=dict(options["experiment"], **{key: value}))
+            with pytest.raises(ValueError, match="differ"):
+                host.execute(policy, "sha256:" + "a" * 64, ["run", "inputs", "runs/tiny", "bootstrap-learnability", "hybrid", json.dumps(changed)], coordinator_factory=Coordinator)
 
 
 def test_checkpoint_diagnostic_verifies_old_binding_without_restoring_optimizer(

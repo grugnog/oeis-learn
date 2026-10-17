@@ -789,6 +789,17 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     config["learning"] = dict(learning_defaults(), curriculum=False)
                 if profile == "fresh-pilot-1h":
                     config["training_seconds"] = min(1800, config["training_seconds"])
+            if diagnostic_controls and "experiment" in diagnostic_controls:
+                from oeis_learn.fresh.bootstrap_contract import bootstrap_profile
+
+                if len(argv) <= 4 or not argv[4]:
+                    raise ValueError("decoder experiments require an explicit encoder")
+                experiment = diagnostic_controls["experiment"]
+                config["model"] = bootstrap_profile(argv[4], decoder_inputs={
+                    k: experiment[k] for k in ("token_scale", "position_scale", "dropout")
+                })
+                if experiment["seed"] is not None:
+                    config["seed"] = experiment["seed"]
             count = len({digest(row["values"]) for row in examples["training"]})
             completion = manifest.get("admission_completion", {})
             accepted_partial = (

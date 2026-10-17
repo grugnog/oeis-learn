@@ -328,6 +328,10 @@ def parser():
                     default=default,
                     **({"choices": ["shortest", "diverse"]} if key == "view" else {}),
                 )
+            cmd.add_argument("--decoder-token-scale", type=float, help="opt-in v2 multiplier of the existing sqrt(d_model) token scale")
+            cmd.add_argument("--decoder-position-scale", type=float, help="opt-in v2 sinusoidal positional gain")
+            cmd.add_argument("--dropout", type=float, help="opt-in v2 encoder and decoder dropout")
+            cmd.add_argument("--seed", type=int, help="matched model/sampler seed; admitted data is unchanged")
     for op in ("resume", "status", "cancel", "evaluate", "finalize", "pack"):
         cmd = commands.add_parser(op)
         cmd.add_argument("--run", required=True)
@@ -361,9 +365,19 @@ def main(argv=None):
             return 0
         learnability_options = None
         if args.command == "learnability":
-            from oeis_learn.fresh.learnability import controls
+            from oeis_learn.fresh.learnability import controls, experiment_controls
 
-            learnability_options = controls({key: getattr(args, key) for key in controls()})
+            options = {key: getattr(args, key) for key in controls()}
+            if any(v is not None for v in (args.decoder_token_scale, args.decoder_position_scale, args.dropout, args.seed)):
+                options["experiment"] = experiment_controls(
+                    token_scale=args.decoder_token_scale if args.decoder_token_scale is not None else 1.0,
+                    position_scale=args.decoder_position_scale if args.decoder_position_scale is not None else 1.0,
+                    dropout=args.dropout if args.dropout is not None else 0.1,
+                    seed=args.seed,
+                )
+                if args.encoder is None:
+                    raise ValueError("decoder experiments require an explicit --encoder")
+            learnability_options = controls(options)
         host = Host(args)
         if args.command == "image":
             print(host.ensure())
