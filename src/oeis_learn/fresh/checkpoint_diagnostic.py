@@ -31,7 +31,7 @@ def diagnose(inputs, output):
     decoder.load_state_dict(state["decoder"])
     result = evaluate(
         encoder, decoder, examples, learning, QueueRunner(output / "runtime-queue"),
-        full_development=True, compare_generation=True,
+        full_development=True, compare_generation=True, detail=True,
     )
     result["checkpoint_sha256"] = base["blob_sha256"]
     result["source_runtime_sha256"] = settings["source_runtime"]

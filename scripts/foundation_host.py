@@ -594,7 +594,7 @@ def diagnose_checkpoint(policy, image, argv, coordinator_factory):
         max_updates=5000,
         patience=8,
         min_improvement=0.001,
-        diagnostic_rows=8,
+        diagnostic_rows=32,
         diagnostic_tokens=1023,
         diagnostic_seconds=3000,
         curriculum=False,
@@ -718,6 +718,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             profile = argv[3]
             if profile not in PROFILES:
                 raise ValueError("unknown fresh profile")
+            diagnostic_controls = None
+            if profile == "bootstrap-learnability":
+                from oeis_learn.fresh.learnability import controls
+
+                diagnostic_controls = controls(json.loads(argv[5]) if len(argv) == 6 else None)
+            if len(argv) > (6 if diagnostic_controls else 5):
+                raise ValueError("unexpected run arguments")
             if (job / "run.json").exists():
                 old = read(job / "run.json")
                 requested = read(confined(workspace, argv[1]) / "prepared.json")
@@ -725,12 +732,13 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     old["image"] != image
                     or old["inputs_identity"] != requested["identity"]
                     or old["settings"]["profile"] != profile
-                    or (len(argv) > 4 and old["settings"]["learner"]["model"]["encoder"] != argv[4])
+                    or (len(argv) > 4 and argv[4] and old["settings"]["learner"]["model"]["encoder"] != argv[4])
+                    or old["settings"].get("learnability_controls") != diagnostic_controls
                 ):
                     raise ValueError("existing run image/inputs/profile differ; choose a new run")
                 if read(job / "status.json")["status"] == "complete":
                     publish(job, destination)
-                    return 0
+                    return 0 if profile != "bootstrap-learnability" or read(job / "learnability.json")["learnability_passed"] else 2
                 raise ValueError("existing run requires resume; budget cannot be reissued")
             source_name = argv[1]
             source = confined(workspace, source_name)
@@ -748,6 +756,8 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("new run destination must be empty")
             issuance_path = job / "issuance.json"
             issuance = {"image": image, "inputs_identity": manifest["identity"], "profile": profile}
+            if diagnostic_controls:
+                issuance["learnability_controls"] = diagnostic_controls
             if issuance_path.exists():
                 frozen = read(issuance_path)
                 if {k: v for k, v in frozen.items() if k != "clock"} != issuance:
@@ -765,11 +775,11 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
             if len(examples["training"]) < 128 or not examples["development"]:
                 raise ValueError("admitted training/development input shortfall")
             config = dict(manifest["config"]["run"])
-            if len(argv) > 4:
+            if len(argv) > 4 and argv[4]:
                 from oeis_learn.fresh.bootstrap_contract import bootstrap_profile
                 from oeis_learn.fresh.bootstrap_config import learning_defaults
 
-                if len(argv) != 5:
+                if len(argv) != 5 and not (diagnostic_controls and len(argv) == 6):
                     raise ValueError("one explicit encoder override required")
                 config["model"] = bootstrap_profile(argv[4])
                 if "learning" not in config:
@@ -805,20 +815,21 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 raise ValueError("long training configuration requires the extended profile")
             learning = dict(config["learning"]) if "learning" in config else None
             if profile == "bootstrap-learnability":
+                from oeis_learn.fresh.learnability import select_view
+
                 if learning is None:
                     raise ValueError("learnability requires explicit fresh-workflow/v2 inputs")
                 examples = dict(
                     examples,
-                    training=sorted(
-                        examples["training"], key=lambda r: (len(r["tokens"]), r["program_id"])
-                    )[:32],
+                    training=select_view(examples["training"], diagnostic_controls["view"]),
                 )
                 learning.update(
                     curriculum=False,
-                    max_updates=1000,
-                    validation_every_updates=100,
+                    max_updates=diagnostic_controls["max_updates"],
+                    validation_every_updates=diagnostic_controls["validation_every_updates"],
                     diagnostic_rows=32,
                     diagnostic_tokens=128,
+                    diagnostic_seconds=diagnostic_controls["diagnostic_seconds"],
                     replay=False,
                 )
             elif learning:
@@ -863,6 +874,11 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 settings["learner"]["checkpoint_reserve_seconds"] = (
                     learning["diagnostic_seconds"] + 60
                 )
+            if diagnostic_controls:
+                settings["learnability_controls"] = diagnostic_controls
+                settings["seconds"] = diagnostic_controls["budget_seconds"]
+                settings["learner"]["diagnostic_detail"] = True
+                write(job / "learnability-examples.json", {"training": examples["training"]}, immutable=True)
             run = {
                 "version": "fresh-run/v1",
                 "runtime": policy.get("runtime", {}),
@@ -1102,6 +1118,8 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     if settings["profile"] == "smoke":
                         seconds = min(60, ledger.remaining() - 300)
                     if learning:
+                        if settings.get("learnability_controls"):
+                            seconds = max(5, settings["training_seconds"] / len(boundaries))
                         seconds += learning["diagnostic_seconds"] + 60
                         reserve = 60 if settings["profile"] == "bootstrap-learnability" else 1250
                         seconds = min(seconds, ledger.remaining() - reserve)
@@ -1237,12 +1255,17 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     and measure["shuffled_exact"] < measure["exact"] - 3
                     and diagnostic["cache_parity"]["passed"]
                 )
+                if settings.get("learnability_controls"):
+                    learned = learned and measure["coverage_complete"] and measure["generation_parity"]["passed"]
                 final = dict(
                     learnability_passed=learned,
                     diagnostic=diagnostic,
                     scope="training-set memorization and conditioning; generalization unqualified",
                 )
+                if settings.get("learnability_controls"):
+                    final["controls"] = settings["learnability_controls"]
                 write(job / "learnability.json", final)
+                print(f"LEARNABILITY {'PASS' if learned else 'FAIL'}: {measure['exact']}/{measure['denominator']} exact; at least 31/32 and complete conditioning/cache checks required", flush=True)
             else:
                 if learning:
                     development = evaluation(
@@ -1278,7 +1301,7 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "diagnostic_final_cohort_consumed": not bool(learning),
                 },
             )
-            return 0
+            return 2 if settings["profile"] == "bootstrap-learnability" and not final["learnability_passed"] else 0
         except BaseException as exc:
             # Remain active: time until an interrupted run is explicitly recovered is charged.
             ledger.record("interrupted")

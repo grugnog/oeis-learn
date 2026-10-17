@@ -285,7 +285,7 @@ def test_host_learnability_freezes_encoder_override_and_does_not_score_final(
                     stage=None,
                     cache_parity={"passed": True},
                     splits={
-                        s: dict(denominator=32, exact=32, shuffled_exact=0, shuffled_denominator=32)
+                            s: dict(denominator=32, exact=32, shuffled_exact=0, shuffled_denominator=32, coverage_complete=True, generation_parity={"passed": True})
                         for s in ("training", "development")
                     },
                 ),

@@ -27,6 +27,7 @@ REPORT_NAMES = {
     "early-stop.json",
     "diagnostic.json",
     "learnability.json",
+    "learnability-examples.json",
     "replay.json",
     "admission-completion.json",
 }

@@ -190,5 +190,17 @@ def test_public_cli_forwards_explicit_encoder(tmp_path, command, profile):
             == 0
         )
         factory.return_value.pipeline.assert_called_once_with(
-            "run", "inputs", "runs/new", profile, "hybrid"
+            "run", "inputs", "runs/new", profile, "hybrid",
+            *([json.dumps(__import__("oeis_learn.fresh.learnability", fromlist=["controls"]).controls())] if command == "learnability" else []),
         )
+
+
+def test_learnability_watchdog_uses_explicit_frozen_budget(host):
+    from oeis_learn.fresh.learnability import controls
+
+    process = Mock(pid=1234)
+    process.wait.return_value = process.poll.return_value = 0
+    options = controls(dict(controls(), budget_seconds=7200, max_updates=6000))
+    with patch.object(local.subprocess, "Popen", return_value=process):
+        host.pipeline("run", "inputs", "runs/diagnostic", "bootstrap-learnability", "hybrid", json.dumps(options))
+    process.wait.assert_called_once_with(timeout=7245)
