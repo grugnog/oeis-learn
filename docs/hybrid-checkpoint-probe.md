@@ -118,4 +118,9 @@ arms, not the source run's saved RNG continuation. Changing dropout changes both
 encoder and decoder dropout; these results do not isolate decoder dropout alone.
 The positional-buffer intervention stays within the saved positional extent and
 must not be used as a general deployment patch. Buffer extension, model identity,
-and supported scaling controls still need the implementation described above.
+and supported scaling controls were requirements for the implementation below.
+
+The supported controls and matched from-scratch ROCm commands are now documented
+in [decoder input comparison](decoder-input-comparison.md). The research scripts
+above preserve the original intervention for reproduction; use the portable
+learnability command for new experiments.

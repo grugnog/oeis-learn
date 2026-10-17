@@ -12,7 +12,12 @@ import torch.nn.functional as F
 
 
 def model_signature(model):
-    return tuple((id(p), p._version, str(p.device), str(p.dtype)) for p in model.parameters())
+    return (
+        model.input_version,
+        model.token_scale,
+        model.position_scale,
+        tuple((id(p), p._version, str(p.device), str(p.dtype)) for p in model.parameters()),
+    )
 
 
 def tensor_signature(value):
@@ -204,7 +209,7 @@ def decode_step(model, tokens, cache, *, active=None, memory=None):
     cache.tokens[rows[enabled_tensor], safe_positions[:, 0][enabled_tensor]] = tokens[:, 0][
         enabled_tensor
     ]
-    hidden = model.token_embedding(tokens) * math.sqrt(model.d_model)
+    hidden = model.embed_tokens(tokens)
     hidden = model.position_embeddings(hidden, safe_positions, cache.tokens)
     used = max([length + int(a) for length, a in zip(cache.lengths, enabled)], default=1)
     used = max(1, used)

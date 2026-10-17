@@ -208,3 +208,26 @@ def test_learnability_watchdog_uses_explicit_frozen_budget(host):
 def test_invalid_learnability_limits_fail_before_engine_or_input_check():
     with patch.object(local, "Host", side_effect=AssertionError("engine used")):
         assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--max-updates", "0"]) == 1
+
+
+def test_public_cli_freezes_decoder_experiment_before_engine(tmp_path):
+    from oeis_learn.fresh.learnability import experiment_controls
+
+    with patch.object(local, "ROOT", tmp_path), patch.object(local, "Host") as factory:
+        assert local.main([
+            "learnability", "--inputs", "inputs", "--run", "runs/new", "--encoder", "hybrid",
+            "--decoder-token-scale", "0.5", "--decoder-position-scale", "16",
+            "--dropout", "0", "--seed", "123",
+        ]) == 0
+        expected = controls(dict(controls(), experiment=experiment_controls(
+            token_scale=0.5, position_scale=16, dropout=0, seed=123,
+        )))
+        factory.return_value.pipeline.assert_called_once_with(
+            "run", "inputs", "runs/new", "bootstrap-learnability", "hybrid", json.dumps(expected),
+        )
+    for args in (["--dropout", "nan"], ["--seed", "-1"], ["--decoder-token-scale", "0"],
+                 ["--decoder-position-scale", "inf"], ["--dropout", "0", "--seed", "4294967296"]):
+        with patch.object(local, "Host", side_effect=AssertionError("engine used")):
+            assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--encoder", "hybrid", *args]) == 1
+    with patch.object(local, "Host", side_effect=AssertionError("engine used")):
+        assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--dropout", "0"]) == 1

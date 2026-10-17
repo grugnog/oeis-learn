@@ -27,6 +27,19 @@ def test_controls_are_closed_bounded_and_do_not_change_learning_defaults():
             controls(dict(controls(), **changes))
 
 
+def test_versioned_experiment_controls_are_closed_and_old_defaults_stay_five_keys():
+    from oeis_learn.fresh.learnability import experiment_controls
+
+    old = controls()
+    assert len(old) == 5 and "experiment" not in old
+    selected = experiment_controls(position_scale=16, dropout=0, seed=71)
+    assert controls(dict(old, experiment=selected))["experiment"] == selected
+    for changed in (dict(selected, seed=True), dict(selected, extra=1),
+                    dict(selected, version="decoder-experiment/v9"), {"position_scale": 16}):
+        with pytest.raises(ValueError):
+            controls(dict(old, experiment=changed))
+
+
 def test_shortest_control_retains_original_deterministic_selection():
     rows = [
         dict(examples()["training"][0], program_id=digest(n), tokens=[n] * (40 - n))

@@ -4,6 +4,18 @@ from collections import defaultdict
 import re
 
 from .common import digest
+from .bootstrap_contract import decoder_controls
+
+
+def experiment_controls(*, token_scale=1.0, position_scale=1.0, dropout=0.1, seed=None):
+    """Opt-in controls; old five-key learnability records remain unchanged."""
+    if seed is not None and (type(seed) is not int or not 0 <= seed < 2**32):
+        raise ValueError("seed: integer in 0..2**32-1 required")
+    return dict(
+        version="decoder-experiment/v1",
+        **decoder_controls(token_scale=token_scale, position_scale=position_scale, dropout=dropout),
+        seed=seed,
+    )
 
 
 def controls(value=None):
@@ -15,9 +27,24 @@ def controls(value=None):
         view="shortest",
     )
     if value is not None:
-        if not isinstance(value, dict) or set(value) != set(result):
+        if not isinstance(value, dict) or set(value) not in (
+            set(result),
+            set(result) | {"experiment"},
+        ):
             raise ValueError("closed learnability controls required")
         result.update(value)
+        if "experiment" in result:
+            experiment = result["experiment"]
+            if (
+                not isinstance(experiment, dict)
+                or set(experiment)
+                != {"version", "token_scale", "position_scale", "dropout", "seed"}
+                or experiment["version"] != "decoder-experiment/v1"
+            ):
+                raise ValueError("closed decoder experiment controls required")
+            result["experiment"] = experiment_controls(
+                **{k: v for k, v in experiment.items() if k != "version"}
+            )
     for key, low, high in (
         ("max_updates", 1, 100000),
         ("budget_seconds", 600, 43200),

@@ -47,7 +47,7 @@ python3 scripts/foundation_run.py --engine podman learnability \
 ```
 
 Each tiny run selects the same 32 shortest admitted training examples from the
-same sealed inputs, allows at most 1,000 updates, checks every 100 updates and
+same sealed inputs, allows at most 3,000 updates, checks every 100 updates and
 has a one-hour lifetime cap. It uses the production model, optimizer, grammar,
 EOS and cached decoding. It does not evaluate or consume the OEIS final cohort.
 `learnability.json` passes only with at least 31/32 exact 100-term executions,
@@ -55,6 +55,9 @@ a decrease of at least four successes when conditioning is shuffled, and cached
 logit parity. Completion of the command is not a passing learnability result.
 A failed gate is evidence to inspect, not a reason to launch a longer run.
 The tiny test measures memorization and conditioning, not generalization.
+
+For the matched decoder-position/dropout experiment, use the versioned controls
+and seeded ROCm commands in [decoder input comparison](decoder-input-comparison.md).
 
 The portable GPU suite includes full-sized update, checkpoint restoration and
 cached-logit tests for all three encoder arms. CPU tests alone do not qualify HIP.
