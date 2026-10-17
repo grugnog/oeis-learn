@@ -1,12 +1,13 @@
 """Portable analysis bundles, with explicit omissions and verified file inventory."""
 
+import hashlib
 import os
 import tempfile
 import zipfile
 from collections import Counter, deque
 from pathlib import Path
 
-from .common import canonical, confined, digest, file_hash, read, write
+from .common import canonical, confined, file_hash, read, write
 
 REPORT_NAMES = {
     "issuance.json",
@@ -48,20 +49,39 @@ def pack(root, output, *, checkpoint=False, max_bytes=25 << 20):
         candidates += [p for p in stage.iterdir() if p.name in REPORT_NAMES and p.is_file()]
         if (stage / "checkpoints").exists():
             candidates += sorted((stage / "checkpoints").glob("*.json"))
-    selected = None
-    if checkpoint:
-        final = (
-            read(root / "finalization.json") if (root / "finalization.json").exists() else status
+    # Root reports and the chosen boundary must survive cap pressure from the
+    # many historical copies of full token-level diagnostics.
+    required = set(candidates) & {root / name for name in REPORT_NAMES}
+    final = read(root / "finalization.json") if (root / "finalization.json").exists() else status
+    selected = confined(root, final["checkpoint"]) if final.get("checkpoint") else None
+    if selected is not None:
+        boundary = selected.parent.parent
+        required.update(
+            p
+            for p in candidates
+            if p == selected
+            or (p.parent == boundary and p.name in {"result.json", "diagnostic.json"})
         )
-        selected = confined(root, final["checkpoint"])
+        # The base manifest describes the selected weights even in reports-only
+        # packages. Only --checkpoint admits the weight blob itself.
+        if selected in candidates:
+            base_path = confined(selected.parent, read(selected)["base"])
+            if base_path not in candidates:
+                raise ValueError("selected base must be a report checkpoint manifest")
+            required.add(base_path)
+    if checkpoint:
+        if selected not in candidates:
+            raise ValueError("selected report checkpoint required for weight bundle")
         manifest = read(selected)
         base = read(selected.parent / manifest["base"])
         blob = confined(selected.parent, base["blob_path"])
         if file_hash(blob) != base["blob_sha256"]:
             raise ValueError("selected checkpoint blob mismatch")
         candidates += [selected, selected.parent / manifest["base"], blob]
+        required.update([selected, selected.parent / manifest["base"], blob])
         max_bytes = 40 << 30
     payloads, included, omitted = {}, {}, []
+    artifacts = {}
     updates, tokens, training_seconds = 0, 0, 0.0
     training_wall_seconds = 0.0
     first_loss, last_loss = None, None
@@ -69,6 +89,7 @@ def pack(root, output, *, checkpoint=False, max_bytes=25 << 20):
     failure_classes = Counter()
     for path in sorted(set(candidates)):
         name = str(path.relative_to(root))
+        path = confined(root, name)
         if path.is_symlink() or path.stat().st_nlink != 1:
             raise ValueError(f"unsafe report artifact: {path}")
         if path.name == "result.json":
@@ -120,20 +141,13 @@ def pack(root, output, *, checkpoint=False, max_bytes=25 << 20):
                 }
             )
             size = len(payloads[name])
-        if sum(r["bytes"] for r in included.values()) + size > max_bytes - (1 << 20):
-            omitted.append(
-                {
-                    "path": name,
-                    "reason": "bundle byte cap",
-                    "original_sha256": file_hash(path),
-                    "original_bytes": path.stat().st_size,
-                }
-            )
-            payloads.pop(name, None)
-            continue
-        included[name] = {
+        artifacts[name] = {
             "bytes": size,
-            "sha256": digest(payloads[name].decode()) if name in payloads else file_hash(path),
+            "sha256": (
+                "sha256:" + hashlib.sha256(payloads[name]).hexdigest()
+                if name in payloads
+                else file_hash(path)
+            ),
         }
     summary = {
         "version": "fresh-analysis/v1",
@@ -168,20 +182,57 @@ def pack(root, output, *, checkpoint=False, max_bytes=25 << 20):
         f"Measured phase throughput: {summary['tokens_per_training_phase_second']} tokens/s\n\n"
         "Diagnostic evidence; spec-007 release and historical compatibility remain pending.\n"
     ).encode()
-    import hashlib
+    for name in ("analysis.json", "summary.md"):
+        included[name] = {
+            "bytes": len(payloads[name]),
+            "sha256": "sha256:" + hashlib.sha256(payloads[name]).hexdigest(),
+        }
+    required_names = {str(p.relative_to(root)) for p in required}
+    used = sum(ref["bytes"] for ref in included.values())
+    optional = []
 
-    for name, payload in payloads.items():
-        if name in included or name in {"analysis.json", "summary.md"}:
-            included[name] = {
-                "bytes": len(payload),
-                "sha256": "sha256:" + hashlib.sha256(payload).hexdigest(),
+    def omit(name):
+        path = confined(root, name)
+        omitted.append(
+            {
+                "path": name,
+                "reason": "bundle byte cap",
+                "original_sha256": file_hash(path),
+                "original_bytes": path.stat().st_size,
             }
+        )
+
+    def cap_error():
+        raise ValueError(
+            f"bundle byte cap ({max_bytes} bytes) cannot retain required evidence; "
+            "increase max_bytes when calling pack()"
+        )
+
+    for name in sorted(artifacts, key=lambda n: (n not in required_names, n)):
+        ref = artifacts[name]
+        if used + ref["bytes"] > max_bytes:
+            if name in required_names:
+                cap_error()
+            omit(name)
+            continue
+        included[name] = ref
+        used += ref["bytes"]
+        if name not in required_names:
+            optional.append(name)
     receipt = {
         "version": "fresh-analysis-bundle/v1",
         "files": included,
         "omissions": omitted,
         "source_run_identity": run["identity"],
     }
+    # Account for generated metadata too, including the inventory and omission
+    # records. A fixed 1 MiB reserve is insufficient for a detailed status.json.
+    while used + len(canonical(receipt)) + 1 > max_bytes:
+        if not optional:
+            cap_error()
+        name = optional.pop()
+        used -= included.pop(name)["bytes"]
+        omit(name)
     output.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".bundle-", dir=output.parent)
     os.close(fd)

@@ -55,7 +55,7 @@ jobs:
             bash scripts/foundation/test_wheel.sh
             ruff check --select F,E9 src/oeis_learn/evaluation/cli_acceptance.py src/oeis_learn/evaluation/source_policy.py src/oeis_learn/evaluation/experiment_runner.py src/oeis_learn/evaluation/fuel_escalation.py src/oeis_learn/evaluation/overflow_diagnostics.py src/oeis_learn/evaluation/legacy_wrappers.py src/oeis_learn/experiments/decisions.py src/oeis_learn/experiments/source_snapshot.py tests/contract/test_foundation_qualified_cli.py
             python -m pytest -q tests/integration/test_egca_training_step.py tests/unit/test_foundation_source_policy.py tests/unit/test_foundation_decisions.py tests/unit/test_foundation_legacy_wrappers.py tests/unit/test_foundation_measurement.py tests/unit/test_foundation_phase10_integration.py tests/unit/test_foundation_handoff.py tests/integration/test_foundation_overflow_diagnostics.py tests/contract/test_foundation_qualified_cli.py --junitxml=/evidence/phase10.xml
-            python -m pytest -q tests/unit/test_bootstrap_models.py tests/unit/test_bootstrap_workflow.py tests/unit/test_connected_sampler.py tests/integration/test_bootstrap_admission.py --junitxml=/evidence/bootstrap.xml
+            python -m pytest -q tests/unit/test_bootstrap_models.py tests/unit/test_bootstrap_bundle.py tests/unit/test_bootstrap_workflow.py tests/unit/test_connected_sampler.py tests/integration/test_bootstrap_admission.py --junitxml=/evidence/bootstrap.xml
           '
       - name: Actual Docker role and persistent worker acceptance from host
         run: |
