@@ -75,5 +75,47 @@ little evidence about exact bytes or large/complex difference patterns.
    gates should longer training and encoder input comparisons guide full-scale
    choices. Arbitrary-precision execution remains separate from this decoder fix.
 
-The accompanying reproducibility scripts and JSON evidence will be added to this
-draft PR. They do not include checkpoint weight payloads.
+## Reproduce and inspect
+
+The JSON records are in `docs/evidence/hybrid-digit-probe/`. Start with
+`results_summary.json`; `provenance.json` records exact archive/checkpoint hashes
+and the tested source revision. `source_history.json` contains the original GPU
+run, with evaluation coverage retained. Zero evaluated examples do not constitute
+a completed evaluation. The other files contain the individual CPU probes.
+
+The scripts in `scripts/diagnostics/hybrid_digits/` reproduce this specific
+checkpoint investigation. They are research probes, not additions to the host
+wrapper or qualified training commands. They require the project's existing
+Python dependencies inside a prepared environment/container; the portable host
+wrapper still requires only the standard library. No weights are committed.
+
+From the repository root, inside that environment, place the supplied archive
+under `upload/` and run:
+
+```sh
+export PYTHONPATH="$PWD/src"
+export OMP_NUM_THREADS=2
+export OEIS_PROBE_ARCHIVE="$PWD/upload/bootstrap-step1-hybrid-control-001-weights.zip"
+export OEIS_PROBE_OUTPUT="$PWD/tmp-hybrid-probe"
+
+python scripts/diagnostics/hybrid_digits/inspect_weights.py
+python scripts/diagnostics/hybrid_digits/feature_probe.py
+python scripts/diagnostics/hybrid_digits/position_conflict.py
+python scripts/diagnostics/hybrid_digits/finetune_probe.py
+python scripts/diagnostics/hybrid_digits/validate_generation.py
+python scripts/diagnostics/hybrid_digits/extract_history.py
+```
+
+Use a fresh output directory. The loader writes a verified selected-weight copy
+there, and continuation writes four disposable experimental checkpoints. Allow
+approximately 250 MB of output and several minutes on CPU. The reference
+environment was Python 3.12.14 with PyTorch 2.9.1+cpu. Small differences near tied
+logits may arise across kernels/thread settings. The probes verify the supplied
+archive's inventory and saved learning-state hashes before model loading.
+
+The CPU experiments intentionally use a new seeded sample order shared across
+arms, not the source run's saved RNG continuation. Changing dropout changes both
+encoder and decoder dropout; these results do not isolate decoder dropout alone.
+The positional-buffer intervention stays within the saved positional extent and
+must not be used as a general deployment patch. Buffer extension, model identity,
+and supported scaling controls still need the implementation described above.

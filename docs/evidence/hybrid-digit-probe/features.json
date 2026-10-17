@@ -1,0 +1,314 @@
+[
+  {
+    "ablated": "baseline",
+    "teacher_argmax_exact": 30,
+    "token_loss": 0.030804460868239403,
+    "failures": [
+      {
+        "offset": "-11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          19
+        ]
+      }
+    ]
+  },
+  {
+    "ablated": "magnitude",
+    "teacher_argmax_exact": 23,
+    "token_loss": 0.05403891205787659,
+    "failures": [
+      {
+        "offset": "0",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-7",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-6",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "5",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "3",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "15",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-14",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          20
+        ]
+      }
+    ]
+  },
+  {
+    "ablated": "modular",
+    "teacher_argmax_exact": 3,
+    "token_loss": 0.24617993831634521,
+    "failures": [
+      {
+        "offset": "-4",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "9",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-9",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "0",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "7",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-7",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "8",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-5",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-2",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "6",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-6",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "5",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-8",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "3",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "4",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-3",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "2",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "13",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "16",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-11",
+        "positions": [
+          19,
+          20
+        ]
+      },
+      {
+        "offset": "-10",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-12",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "15",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "12",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "10",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-14",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-15",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-16",
+        "positions": [
+          19
+        ]
+      }
+    ]
+  },
+  {
+    "ablated": "difference_padic",
+    "teacher_argmax_exact": 28,
+    "token_loss": 0.04118294641375542,
+    "failures": [
+      {
+        "offset": "0",
+        "positions": [
+          18
+        ]
+      },
+      {
+        "offset": "-11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "-15",
+        "positions": [
+          19
+        ]
+      }
+    ]
+  },
+  {
+    "ablated": "bytes",
+    "teacher_argmax_exact": 30,
+    "token_loss": 0.031233470886945724,
+    "failures": [
+      {
+        "offset": "-11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          19
+        ]
+      }
+    ]
+  }
+]

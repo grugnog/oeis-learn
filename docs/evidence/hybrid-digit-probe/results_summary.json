@@ -1,0 +1,211 @@
+{
+  "scope": "CPU disposable checkpoint interventions; not GPU qualification or held-out transfer",
+  "execution_test": "production greedy generation; reference comparison at indices 0..99",
+  "original_selected_update": 900,
+  "original_greedy_execution_correct": 30,
+  "denominator": 32,
+  "continuations": [
+    {
+      "dropout": 0.1,
+      "decoder_position_gain": 1,
+      "additional_updates": 200,
+      "teacher_forced_correct": 30,
+      "greedy_execution_correct": 30,
+      "teacher_trace": [
+        [
+          0,
+          30
+        ],
+        [
+          25,
+          28
+        ],
+        [
+          50,
+          29
+        ],
+        [
+          75,
+          29
+        ],
+        [
+          100,
+          30
+        ],
+        [
+          125,
+          30
+        ],
+        [
+          150,
+          29
+        ],
+        [
+          175,
+          28
+        ],
+        [
+          200,
+          30
+        ]
+      ]
+    },
+    {
+      "dropout": 0,
+      "decoder_position_gain": 1,
+      "additional_updates": 200,
+      "teacher_forced_correct": 30,
+      "greedy_execution_correct": 30,
+      "teacher_trace": [
+        [
+          0,
+          30
+        ],
+        [
+          25,
+          30
+        ],
+        [
+          50,
+          30
+        ],
+        [
+          75,
+          30
+        ],
+        [
+          100,
+          30
+        ],
+        [
+          125,
+          31
+        ],
+        [
+          150,
+          30
+        ],
+        [
+          175,
+          31
+        ],
+        [
+          200,
+          30
+        ]
+      ]
+    },
+    {
+      "dropout": 0.1,
+      "decoder_position_gain": 16,
+      "additional_updates": 200,
+      "teacher_forced_correct": 31,
+      "greedy_execution_correct": 31,
+      "teacher_trace": [
+        [
+          0,
+          26
+        ],
+        [
+          25,
+          27
+        ],
+        [
+          50,
+          28
+        ],
+        [
+          75,
+          29
+        ],
+        [
+          100,
+          28
+        ],
+        [
+          125,
+          31
+        ],
+        [
+          150,
+          27
+        ],
+        [
+          175,
+          27
+        ],
+        [
+          200,
+          31
+        ]
+      ]
+    },
+    {
+      "dropout": 0,
+      "decoder_position_gain": 16,
+      "additional_updates": 200,
+      "teacher_forced_correct": 32,
+      "greedy_execution_correct": 32,
+      "teacher_trace": [
+        [
+          0,
+          26
+        ],
+        [
+          25,
+          29
+        ],
+        [
+          50,
+          30
+        ],
+        [
+          75,
+          30
+        ],
+        [
+          100,
+          32
+        ],
+        [
+          125,
+          32
+        ],
+        [
+          150,
+          32
+        ],
+        [
+          175,
+          32
+        ],
+        [
+          200,
+          32
+        ]
+      ]
+    }
+  ],
+  "feature_zeroing_teacher_forced_counts": [
+    {
+      "stream": "baseline",
+      "correct": 30
+    },
+    {
+      "stream": "magnitude",
+      "correct": 23
+    },
+    {
+      "stream": "modular",
+      "correct": 3
+    },
+    {
+      "stream": "difference_padic",
+      "correct": 28
+    },
+    {
+      "stream": "bytes",
+      "correct": 30
+    }
+  ]
+}

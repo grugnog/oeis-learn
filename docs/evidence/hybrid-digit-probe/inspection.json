@@ -1,0 +1,838 @@
+{
+  "torch": "2.9.1+cpu",
+  "device": "cpu",
+  "selected_update": 900,
+  "fingerprints_verified": true,
+  "baseline": {
+    "teacher_argmax_exact": 30,
+    "token_loss": 0.030804460868239403,
+    "failures": [
+      {
+        "offset": "-11",
+        "positions": [
+          19
+        ]
+      },
+      {
+        "offset": "11",
+        "positions": [
+          19
+        ]
+      }
+    ]
+  },
+  "digits": [
+    {
+      "offset": "-1",
+      "positions": [
+        {
+          "position": 18,
+          "target": "1",
+          "p_one": 0.9854267835617065,
+          "p_end": 0.00033220555633306503,
+          "argmax": "1"
+        },
+        {
+          "position": 19,
+          "target": "</int>",
+          "p_one": 0.017365170642733574,
+          "p_end": 0.9397806525230408,
+          "argmax": "</int>"
+        },
+        {
+          "position": 20,
+          "target": "i256.sub",
+          "p_one": 0.0002925292355939746,
+          "p_end": 1.8579674360807985e-05,
+          "argmax": "i256.sub"
+        },
+        {
+          "position": 21,
+          "target": "<eos>",
+          "p_one": 0.0006678468198515475,
+          "p_end": 0.0004980399971827865,
+          "argmax": "<eos>"
+        }
+      ]
+    },
+    {
+      "offset": "1",
+      "positions": [
+        {
+          "position": 18,
+          "target": "1",
+          "p_one": 0.991548478603363,
+          "p_end": 0.00010312192171113566,
+          "argmax": "1"
+        },
+        {
+          "position": 19,
+          "target": "</int>",
+          "p_one": 0.013114817440509796,
+          "p_end": 0.9440120458602905,
+          "argmax": "</int>"
+        },
+        {
+          "position": 20,
+          "target": "i256.add",
+          "p_one": 6.286336429184303e-05,
+          "p_end": 4.439746408024803e-05,
+          "argmax": "i256.add"
+        },
+        {
+          "position": 21,
+          "target": "<eos>",
+          "p_one": 0.000409666943596676,
+          "p_end": 0.0004481789073906839,
+          "argmax": "<eos>"
+        }
+      ]
+    },
+    {
+      "offset": "-11",
+      "positions": [
+        {
+          "position": 18,
+          "target": "1",
+          "p_one": 0.9943927526473999,
+          "p_end": 0.00020508117449935526,
+          "argmax": "1"
+        },
+        {
+          "position": 19,
+          "target": "1",
+          "p_one": 0.3027213215827942,
+          "p_end": 0.634069561958313,
+          "argmax": "</int>"
+        },
+        {
+          "position": 20,
+          "target": "</int>",
+          "p_one": 0.30382949113845825,
+          "p_end": 0.6336204409599304,
+          "argmax": "</int>"
+        },
+        {
+          "position": 21,
+          "target": "i256.sub",
+          "p_one": 0.0004950535367242992,
+          "p_end": 2.7458774638944305e-05,
+          "argmax": "i256.sub"
+        }
+      ]
+    },
+    {
+      "offset": "11",
+      "positions": [
+        {
+          "position": 18,
+          "target": "1",
+          "p_one": 0.9936845898628235,
+          "p_end": 8.780004282016307e-05,
+          "argmax": "1"
+        },
+        {
+          "position": 19,
+          "target": "1",
+          "p_one": 0.2933562397956848,
+          "p_end": 0.609938383102417,
+          "argmax": "</int>"
+        },
+        {
+          "position": 20,
+          "target": "</int>",
+          "p_one": 0.2934371531009674,
+          "p_end": 0.6109098196029663,
+          "argmax": "</int>"
+        },
+        {
+          "position": 21,
+          "target": "i256.add",
+          "p_one": 0.0001489336573285982,
+          "p_end": 0.00027212753775529563,
+          "argmax": "i256.add"
+        }
+      ]
+    }
+  ],
+  "scales": {
+    "embedding_weight_std": 0.9940552115440369,
+    "scaled_one_embedding_norm": 257.99896240234375,
+    "pos18_norm": 11.313708305358887,
+    "adjacent_position_distance": 2.671200752258301,
+    "byte_gate_mean": 0.11914536356925964
+  },
+  "position_gain_probe": [
+    {
+      "teacher_argmax_exact": 30,
+      "token_loss": 0.03635765239596367,
+      "failures": [
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 0,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.30880406498908997,
+          "p_end_at_second": 0.6272410154342651
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.300606369972229,
+          "p_end_at_second": 0.6019479632377625
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 30,
+      "token_loss": 0.030855072662234306,
+      "failures": [
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 0.5,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.3056352734565735,
+          "p_end_at_second": 0.6308040022850037
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.2968471944332123,
+          "p_end_at_second": 0.6061090230941772
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 30,
+      "token_loss": 0.030804460868239403,
+      "failures": [
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 1,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.3027213215827942,
+          "p_end_at_second": 0.634069561958313
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.2933562397956848,
+          "p_end_at_second": 0.609938383102417
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 30,
+      "token_loss": 0.030964262783527374,
+      "failures": [
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 2,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.2977381646633148,
+          "p_end_at_second": 0.6396215558052063
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.28720781207084656,
+          "p_end_at_second": 0.6165704727172852
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 30,
+      "token_loss": 0.031487837433815,
+      "failures": [
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 4,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.2909319996833801,
+          "p_end_at_second": 0.6470333337783813
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.2779398262500763,
+          "p_end_at_second": 0.6260669827461243
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 28,
+      "token_loss": 0.03313044086098671,
+      "failures": [
+        {
+          "offset": "-6",
+          "positions": [
+            18
+          ]
+        },
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "-15",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 8,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.2885771095752716,
+          "p_end_at_second": 0.6482219696044922
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.2701643407344818,
+          "p_end_at_second": 0.6310594081878662
+        }
+      ]
+    },
+    {
+      "teacher_argmax_exact": 26,
+      "token_loss": 0.039943061769008636,
+      "failures": [
+        {
+          "offset": "6",
+          "positions": [
+            18
+          ]
+        },
+        {
+          "offset": "-6",
+          "positions": [
+            18
+          ]
+        },
+        {
+          "offset": "5",
+          "positions": [
+            18
+          ]
+        },
+        {
+          "offset": "-11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "11",
+          "positions": [
+            19
+          ]
+        },
+        {
+          "offset": "-15",
+          "positions": [
+            19
+          ]
+        }
+      ],
+      "gain": 16,
+      "repeated": [
+        {
+          "offset": "-11",
+          "p_one_at_second": 0.3310052454471588,
+          "p_end_at_second": 0.5889856815338135
+        },
+        {
+          "offset": "11",
+          "p_one_at_second": 0.3029237389564514,
+          "p_end_at_second": 0.5708138942718506
+        }
+      ]
+    }
+  ],
+  "cpu_teacher_traces": [
+    {
+      "offset": "-11",
+      "tokens": [
+        {
+          "position": 1,
+          "target": 69,
+          "spelling": "local.get",
+          "raw_probability": 0.9975537657737732,
+          "grammar_probability": 0.9997944235801697,
+          "raw_argmax": 69,
+          "grammar_argmax": 69
+        },
+        {
+          "position": 2,
+          "target": 28,
+          "spelling": "$n",
+          "raw_probability": 0.9970000386238098,
+          "grammar_probability": 0.9994163513183594,
+          "raw_argmax": 28,
+          "grammar_argmax": 28
+        },
+        {
+          "position": 3,
+          "target": 116,
+          "spelling": "i64.extend_i32_u",
+          "raw_probability": 0.9961966276168823,
+          "grammar_probability": 0.9994267225265503,
+          "raw_argmax": 116,
+          "grammar_argmax": 116
+        },
+        {
+          "position": 4,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9973590970039368,
+          "grammar_probability": 0.9997209906578064,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 5,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9986868500709534,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 6,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9974199533462524,
+          "grammar_probability": 0.9986788630485535,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 7,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9981901049613953,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 8,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9989456534385681,
+          "grammar_probability": 0.9996342658996582,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 9,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9986538887023926,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 10,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9960246086120605,
+          "grammar_probability": 0.99752277135849,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 11,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9982452392578125,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 12,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9983422756195068,
+          "grammar_probability": 0.9990548491477966,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 13,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9986590147018433,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 14,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9953423738479614,
+          "grammar_probability": 0.9969918727874756,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 15,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9982670545578003,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 16,
+          "target": 132,
+          "spelling": "i256.const",
+          "raw_probability": 0.9977186918258667,
+          "grammar_probability": 0.9994956254959106,
+          "raw_argmax": 132,
+          "grammar_argmax": 132
+        },
+        {
+          "position": 17,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9975805282592773,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 18,
+          "target": 19,
+          "spelling": "1",
+          "raw_probability": 0.9943927526473999,
+          "grammar_probability": 0.996992826461792,
+          "raw_argmax": 19,
+          "grammar_argmax": 19
+        },
+        {
+          "position": 19,
+          "target": 19,
+          "spelling": "1",
+          "raw_probability": 0.3027213215827942,
+          "grammar_probability": 0.30478161573410034,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 20,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.6336205005645752,
+          "grammar_probability": 0.637907862663269,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 21,
+          "target": 130,
+          "spelling": "i256.sub",
+          "raw_probability": 0.9936762452125549,
+          "grammar_probability": 0.9956924319267273,
+          "raw_argmax": 130,
+          "grammar_argmax": 130
+        },
+        {
+          "position": 22,
+          "target": 2,
+          "spelling": "<eos>",
+          "raw_probability": 0.994342565536499,
+          "grammar_probability": 0.9989731311798096,
+          "raw_argmax": 2,
+          "grammar_argmax": 2
+        }
+      ],
+      "grammar_argmax_exact": false,
+      "cache_parity": {
+        "max_absolute_error": 6.67572021484375e-06,
+        "passed": true
+      }
+    },
+    {
+      "offset": "11",
+      "tokens": [
+        {
+          "position": 1,
+          "target": 69,
+          "spelling": "local.get",
+          "raw_probability": 0.9979251623153687,
+          "grammar_probability": 0.999813973903656,
+          "raw_argmax": 69,
+          "grammar_argmax": 69
+        },
+        {
+          "position": 2,
+          "target": 28,
+          "spelling": "$n",
+          "raw_probability": 0.9979664087295532,
+          "grammar_probability": 0.9995397329330444,
+          "raw_argmax": 28,
+          "grammar_argmax": 28
+        },
+        {
+          "position": 3,
+          "target": 116,
+          "spelling": "i64.extend_i32_u",
+          "raw_probability": 0.9974666833877563,
+          "grammar_probability": 0.9995519518852234,
+          "raw_argmax": 116,
+          "grammar_argmax": 116
+        },
+        {
+          "position": 4,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9976769089698792,
+          "grammar_probability": 0.9997443556785583,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 5,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9988425374031067,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 6,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9985170960426331,
+          "grammar_probability": 0.9993677735328674,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 7,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9984742999076843,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 8,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9990606904029846,
+          "grammar_probability": 0.9996503591537476,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 9,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9988217949867249,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 10,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9981071949005127,
+          "grammar_probability": 0.9989994168281555,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 11,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9985083937644958,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 12,
+          "target": 73,
+          "spelling": "i64.const",
+          "raw_probability": 0.9985347986221313,
+          "grammar_probability": 0.9991243481636047,
+          "raw_argmax": 73,
+          "grammar_argmax": 73
+        },
+        {
+          "position": 13,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9988259673118591,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 14,
+          "target": 18,
+          "spelling": "0",
+          "raw_probability": 0.9978070855140686,
+          "grammar_probability": 0.9987834095954895,
+          "raw_argmax": 18,
+          "grammar_argmax": 18
+        },
+        {
+          "position": 15,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.9985190033912659,
+          "grammar_probability": 1.0,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 16,
+          "target": 132,
+          "spelling": "i256.const",
+          "raw_probability": 0.9979751706123352,
+          "grammar_probability": 0.9994317889213562,
+          "raw_argmax": 132,
+          "grammar_argmax": 132
+        },
+        {
+          "position": 17,
+          "target": 15,
+          "spelling": "<int>",
+          "raw_probability": 0.9978201389312744,
+          "grammar_probability": 1.0,
+          "raw_argmax": 15,
+          "grammar_argmax": 15
+        },
+        {
+          "position": 18,
+          "target": 19,
+          "spelling": "1",
+          "raw_probability": 0.9936845898628235,
+          "grammar_probability": 0.9957088232040405,
+          "raw_argmax": 19,
+          "grammar_argmax": 19
+        },
+        {
+          "position": 19,
+          "target": 19,
+          "spelling": "1",
+          "raw_probability": 0.29335615038871765,
+          "grammar_probability": 0.29556405544281006,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 20,
+          "target": 17,
+          "spelling": "</int>",
+          "raw_probability": 0.6109098792076111,
+          "grammar_probability": 0.6154700517654419,
+          "raw_argmax": 17,
+          "grammar_argmax": 17
+        },
+        {
+          "position": 21,
+          "target": 129,
+          "spelling": "i256.add",
+          "raw_probability": 0.9934167861938477,
+          "grammar_probability": 0.9954560995101929,
+          "raw_argmax": 129,
+          "grammar_argmax": 129
+        },
+        {
+          "position": 22,
+          "target": 2,
+          "spelling": "<eos>",
+          "raw_probability": 0.9960018992424011,
+          "grammar_probability": 0.9991418123245239,
+          "raw_argmax": 2,
+          "grammar_argmax": 2
+        }
+      ],
+      "grammar_argmax_exact": false,
+      "cache_parity": {
+        "max_absolute_error": 3.814697265625e-06,
+        "passed": true
+      }
+    }
+  ]
+}
