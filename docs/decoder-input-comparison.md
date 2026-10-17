@@ -102,6 +102,42 @@ independent, matched sampler order. Dropout changes training randomness as part
 of the intended intervention. Both explicit arms use v2 profile/checkpoint
 identities; the control's numerical defaults match v1.
 
+## A quota scan interrupts an active worker
+
+A traceback from `Coordinator.run` at a file `stat()` beneath `runtime-queue/tmp...`
+can occur when the worker atomically publishes or removes a temporary file between
+the host's directory listing and size check. The host now skips files that disappear
+during that sample. Retained runtime files still count toward the run quota, and
+other filesystem errors still stop the role. This correction needs no GPU image
+change.
+
+Keep the interrupted run for analysis. Existing runs pin the coordinator hash and
+image, so the corrected coordinator cannot resume an old run in place. Repeat only
+the interrupted arm under a fresh name, with the same sealed inputs, seed, model
+controls and original image. For the control arm with seed 20261018, after updating
+the host checkout to the fix:
+
+```sh
+oeis_image=$(python3 -c 'import json; from pathlib import Path; print(json.loads(Path("runs/decoder-v2-control-20261018-001/run.json").read_text())["image"])')
+python3 scripts/foundation_run.py --engine podman --image "$oeis_image" learnability \
+  --inputs tmp-bootstrap-inputs --encoder hybrid --view shortest \
+  --decoder-token-scale 1 --decoder-position-scale 1 --dropout 0.1 \
+  --seed 20261018 --max-updates 3000 --validation-every-updates 100 \
+  --budget-seconds 7200 --diagnostic-seconds 180 \
+  --run runs/decoder-v2-control-20261018-002
+```
+
+Use an unused suffix if `002` has already been issued. This is a new capped
+experiment; the interrupted run's budget and records remain separate. The host
+coordinator correction is recorded in the new run's runtime identity; the learner
+image and training settings are reused. Inspect and package the replacement `002`
+archive explicitly alongside the original comparison archives, since the commands
+below select `001` runs. Keep interrupted checkpoint history labelled as partial
+evidence rather than treating its selected score as a completed gate.
+
+The comparison loop stops on execution errors. Check whether the remaining arm
+started before rerunning it; completed arms need no repeat.
+
 ## Inspect stability and send reports
 
 Each run automatically writes a reports-only archive under `tmp-analysis/`.

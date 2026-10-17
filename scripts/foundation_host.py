@@ -346,7 +346,14 @@ class Coordinator:
                     used = 0
                     for base, _, files in os.walk(self.root.parent):
                         for filename in files:
-                            used += (Path(base) / filename).stat().st_size
+                            try:
+                                size = (Path(base) / filename).stat().st_size
+                            except FileNotFoundError:
+                                # Active workers atomically rename/unlink temporary
+                                # files after os.walk lists them. They no longer
+                                # contribute to this path-based quota sample.
+                                continue
+                            used += size
                             if used > 200 << 30:
                                 raise OSError("run disk quota200GiB exhausted")
                     memory = dict(
