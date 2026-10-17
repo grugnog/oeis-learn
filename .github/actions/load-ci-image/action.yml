@@ -1,0 +1,41 @@
+name: Load shared CI image
+description: Pull a digest or load the fork archive, then verify checkout provenance
+inputs:
+  engine:
+    required: true
+    description: docker or podman
+  reference:
+    required: true
+    description: Immutable registry reference or archive tag
+  transport:
+    required: true
+    description: registry or archive
+  artifact:
+    required: true
+    description: Fork archive artifact name
+  alias:
+    required: true
+    description: Local image name used by the test commands
+  token:
+    required: false
+    description: Read-only package token for a private GHCR image
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      if: inputs.transport == 'archive'
+      with:
+        name: ${{ inputs.artifact }}
+        path: ${{ runner.temp }}/oeis-ci-image
+    - name: Load and verify the tested image
+      shell: bash
+      env:
+        CI_ENGINE: ${{ inputs.engine }}
+        CI_REFERENCE: ${{ inputs.reference }}
+        CI_TRANSPORT: ${{ inputs.transport }}
+        CI_ALIAS: ${{ inputs.alias }}
+        GHCR_TOKEN: ${{ inputs.token }}
+      run: |
+        python3 scripts/ci/images.py load --engine "$CI_ENGINE" \
+          --transport "$CI_TRANSPORT" --reference "$CI_REFERENCE" --alias "$CI_ALIAS" \
+          --revision "$GITHUB_SHA" --archive "$RUNNER_TEMP/oeis-ci-image/ci-image.tar"
