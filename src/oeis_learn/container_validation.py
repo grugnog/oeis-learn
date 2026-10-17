@@ -85,6 +85,8 @@ def _stages(host, suite, output):
                 "-q",
                 *(GPU_NODES if gpu else CPU_NODES),
                 *([] if gpu else ["-m", "not gpu and not docker"]),
+                "-o",
+                "cache_dir=/work/output/.runtime/cache/pytest",
                 "--basetemp=/work/output/pytest",
                 "--junitxml=/work/output/results.xml",
             ],

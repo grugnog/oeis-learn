@@ -341,6 +341,9 @@ class FoundationConfig:
                 codec_sha256=codec_digest(),
                 position_style="sinusoidal",
                 attention_backend="sdpa",
+                token_scale=1.0,
+                position_scale=1.0,
+                input_version=None,
             ),
         }
 

@@ -29,6 +29,11 @@ def launch(host, *, skipped=False, missing=False, failure=False, environment=b"G
         if "-c" in pending["argv"]:
             kwargs["stdout"].write(environment)
         if "pytest" in pending["argv"] and not missing:
+            argv = pending["argv"]
+            assert argv[argv.index("-o") + 1] == "cache_dir=/work/output/.runtime/cache/pytest"
+            cache = out / ".runtime/cache/pytest"
+            cache.mkdir(parents=True, exist_ok=True)
+            (cache / "nodeids.json").write_text("[]")
             (out / "results.xml").write_text(
                 '<testsuite><testcase name="actual">'
                 + ("<skipped/>" if skipped else "")
@@ -51,9 +56,10 @@ def test_verified_receipts_skip_but_output_tampering_reruns(host, tmp_path):
         validate(host, "cpu", output)
         assert spawn.call_count == 3
     assert read(output / "validation.json")["qualified"] is False
-    assert all(
-        ".runtime" not in str(path) for path in read(output / "environment/receipt.json")["files"]
-    )
+    for stage in ("environment", "cpu-regressions"):
+        assert all(
+            ".runtime" not in str(path) for path in read(output / stage / "receipt.json")["files"]
+        )
 
 
 @pytest.mark.parametrize("problem", ["cleanup", "exit", "no-junit"])
