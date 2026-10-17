@@ -30,7 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # PR merge commit plus both parents, including the base used for the recipe diff.
+          fetch-depth: 2
           persist-credentials: false
       - name: Plan registry, cache and permission-free fallback
         id: plan
@@ -52,7 +53,7 @@ jobs:
           context: .
           target: ${{ inputs.target }}
           platforms: linux/amd64
-          tags: ${{ steps.plan.outputs.tag }}
+          tags: ${{ steps.plan.outputs.tags }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}

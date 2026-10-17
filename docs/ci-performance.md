@@ -30,12 +30,32 @@ retaining all commands and artifacts. This improves feedback from that branch
 of CI; portable-validation jobs can still dominate total PR latency. Training/replay integration previously run only by the wheel job
 also runs as an independent CPU acceptance matrix entry.
 
-Persistent download/build caches can reduce repeated dependency setup and build
-work. Caches are accelerators only: install/build/test commands still execute,
-there is no cached passing-test result, and Podman still builds with Podman.
-GitHub cache visibility restricts reuse between PR refs; without a default-branch
-cache-warming run, expect the main benefit on subsequent commits to the same PR.
-No additional default-branch builds are introduced in this small change.
+The container jobs now depend on one shared qualification-image build per
+workflow run. Same-repository PRs push that image to GHCR; Docker, Podman and
+native qualification pull the resulting **digest**, not a moving tag. The loader
+also checks that the image's source-revision label matches the tested checkout.
+The jobs still execute their tests; there is no cached passing-test result.
+
+Fork and Dependabot PRs do not publish or need registry write credentials. Their
+producer exports the freshly built image as a short-lived workflow artifact,
+which both engines load. A missing artifact, failed pull, or revision mismatch
+fails the job rather than silently using an older image. Consumer jobs have only
+package-read permission and remove registry login credentials after pulling.
+
+A separate `podman-build` job retains native Podman build coverage when the
+Dockerfile, ignore file, shared installation scripts, Python build/dependency
+manifests, or native Rust crate change. Ordinary Python/test-only PRs no longer
+compile the same image again with Podman. This PR changes `.dockerignore`, so it
+still runs that separate build check; the regular Podman test job pulls the
+shared image.
+
+Merged changes publish a qualification image and refresh its registry build
+cache through `.github/workflows/container-images.yml`. PR builds import that
+cache as well as their PR-scoped GitHub Actions cache, but cannot overwrite the
+shared default-branch cache. This gives new PRs a warm dependency-layer cache;
+Python/native source changes still rebuild the affected layers. The first run
+or a cache miss still performs the full build. Pip download caches remain keyed
+by Python version and dependency manifests. Superseded PR runs are cancelled.
 
 The entire repository is copied before native compilation, so Python/test edits
 can still invalidate the native build layer. Separating native compilation from
@@ -58,9 +78,34 @@ make G10 pass; the manual audit must run when that evidence is needed. The other
 regression tests formerly repeated in that job remain covered by the CPU,
 training-integration, native-qualification, and portable-engine jobs.
 
-Docker builds share a GitHub Actions qualification-image cache; pip download
-caches are keyed by Python version and the dependency manifests. Podman retains
-its own native build. Superseded runs on the same PR are cancelled. Per-test
-duration output will make the next successful run more useful for choosing
-further test splits. No speedup estimate here is a measured result of the new
-configuration; the previous 13–14 minute portable-engine paths may still dominate.
+Per-test duration output will make the next successful run more useful for
+choosing further test splits. No end-to-end speedup is claimed before measuring
+the new layout: image transfer and the existing 8–9 minute public CLI validation
+can still dominate, even after duplicate builds are removed.
+
+## Published images
+
+The registry is `ghcr.io/grugnog/oeis-learn`. Each published build receives a
+unique `ci-<target>-<run-id>-<attempt>` tag; its exact digest is recorded in the
+producer job summary. Default-branch publishing also updates `qualification-main`
+or `gpu-main`. Qualification publishing runs automatically after relevant merges.
+The much larger ROCm GPU image is manual: **Actions → Publish container images
+and shared build cache → Run workflow → target: gpu** on `main`. It is an image
+build, not evidence of actual GPU execution or successful training.
+
+For a local ROCm run after that publication, pull with your chosen engine and
+use the reported digest with the existing portable CLI, for example:
+
+```sh
+podman pull ghcr.io/grugnog/oeis-learn:gpu-main
+podman image inspect ghcr.io/grugnog/oeis-learn:gpu-main --format '{{index .RepoDigests 0}}'
+# Use the printed ghcr.io/...@sha256:... reference as --image in your usual command.
+python3 scripts/foundation_run.py --engine podman --image ghcr.io/grugnog/oeis-learn@sha256:REPLACE_WITH_REPORTED_DIGEST --help
+```
+
+Docker supports the same pull/inspect commands. GHCR packages initially use
+GitHub's private visibility default; local private pulls require an existing
+registry login. CI uses the repository's built-in `GITHUB_TOKEN`, with package
+write permission only on the producer. If an existing package denies publishing,
+check that it is linked to this repository and permits its Actions workflows.
+No personal access token or host account integration is added to the application.

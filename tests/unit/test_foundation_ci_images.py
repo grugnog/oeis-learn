@@ -19,13 +19,21 @@ REFERENCE = "ghcr.io/owner/repo@sha256:" + "b" * 64
 @pytest.fixture
 def build():
     env = dict(
-        CI_IMAGE_TARGET="qualification", GITHUB_REPOSITORY="Owner/Repo", GITHUB_RUN_ID="42",
-        GITHUB_RUN_ATTEMPT="2", GITHUB_EVENT_NAME="pull_request", GITHUB_ACTOR="maintainer",
+        CI_IMAGE_TARGET="qualification",
+        GITHUB_REPOSITORY="Owner/Repo",
+        GITHUB_RUN_ID="42",
+        GITHUB_RUN_ATTEMPT="2",
+        GITHUB_EVENT_NAME="pull_request",
+        GITHUB_ACTOR="maintainer",
         GITHUB_REF="refs/pull/1/merge",
     )
-    event = dict(repository=dict(default_branch="main"), pull_request=dict(
-        head=dict(repo=dict(full_name="Owner/Repo")), base=dict(sha="c" * 40),
-    ))
+    event = dict(
+        repository=dict(default_branch="main"),
+        pull_request=dict(
+            head=dict(repo=dict(full_name="Owner/Repo")),
+            base=dict(sha="c" * 40),
+        ),
+    )
     return env, event
 
 
@@ -36,6 +44,7 @@ def test_pr_images_are_unique_and_cannot_update_shared_cache(build):
     assert value["tag"] == "ghcr.io/owner/repo:ci-qualification-42-2"
     assert "type=registry" in value["cache_from"]
     assert "type=registry" not in value["cache_to"]
+    assert "qualification-main" not in value["tags"]
     retry = images.plan(dict(env, GITHUB_RUN_ATTEMPT="3"), event)
     assert retry["tag"] != value["tag"]
 
@@ -55,18 +64,24 @@ def test_read_only_prs_share_archive_without_publishing(build, fork, actor):
 def test_only_default_branch_refreshes_registry_cache(build, event_name):
     env, event = build
     env = dict(env, GITHUB_EVENT_NAME=event_name, GITHUB_REF="refs/heads/main")
-    assert "type=registry" in images.plan(env, event)["cache_to"]
+    main = images.plan(env, event)
+    assert "type=registry" in main["cache_to"]
+    assert main["tags"].splitlines() == [main["tag"], "ghcr.io/owner/repo:qualification-main"]
     env["GITHUB_REF"] = "refs/heads/feature"
     assert "type=registry" not in images.plan(env, event)["cache_to"]
     env["CI_IMAGE_TARGET"] = "gpu"
     assert ":buildcache-gpu-main" in images.plan(env, event)["cache_from"]
 
 
-@pytest.mark.parametrize("key,value", [
-    ("GITHUB_EVENT_NAME", "pull_request_target"), ("CI_IMAGE_TARGET", "unknown"),
-    ("GITHUB_REPOSITORY", "owner/repo\nmalicious-output=true"),
-    ("GITHUB_RUN_ID", "42\nmalicious-output=true"),
-])
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("GITHUB_EVENT_NAME", "pull_request_target"),
+        ("CI_IMAGE_TARGET", "unknown"),
+        ("GITHUB_REPOSITORY", "owner/repo\nmalicious-output=true"),
+        ("GITHUB_RUN_ID", "42\nmalicious-output=true"),
+    ],
+)
 def test_invalid_build_identity_is_rejected(build, key, value):
     env, event = build
     with pytest.raises(ValueError):
@@ -115,8 +130,15 @@ def test_failed_pull_still_logs_out(engine_calls, monkeypatch):
 def test_fork_archive_load_never_logs_in(engine_calls, engine, tmp_path):
     archive = tmp_path / "image.tar"
     archive.touch()
-    images.load_image(engine, "archive", "ghcr.io/owner/repo:ci-42", "ci-local", REVISION,
-                      archive=archive, token="unused-token")
+    images.load_image(
+        engine,
+        "archive",
+        "ghcr.io/owner/repo:ci-42",
+        "ci-local",
+        REVISION,
+        archive=archive,
+        token="unused-token",
+    )
     assert [args[1] for args, _ in engine_calls] == ["load", "image", "tag"]
     assert engine_calls[0][0] == [engine, "load", "--input", str(archive)]
 
@@ -136,8 +158,14 @@ def test_registry_reuse_requires_immutable_reference(engine_calls, reference):
 
 def test_missing_archive_fails_before_engine_launch(engine_calls, tmp_path):
     with pytest.raises(ValueError, match="archive is missing"):
-        images.load_image("podman", "archive", "ghcr.io/owner/repo:ci-42", "ci-local",
-                          REVISION, archive=tmp_path / "missing.tar")
+        images.load_image(
+            "podman",
+            "archive",
+            "ghcr.io/owner/repo:ci-42",
+            "ci-local",
+            REVISION,
+            archive=tmp_path / "missing.tar",
+        )
     assert not engine_calls
 
 
@@ -154,8 +182,36 @@ def test_recipe_diff_includes_build_inputs_and_fails_closed(monkeypatch):
     code = 1
     assert images.recipe_changed("base", "head") is True
     assert calls[0][:6] == ["git", "diff", "--quiet", "base", "head", "--"]
-    assert {"Dockerfile", ".dockerignore", "uv.lock", "docker/dev",
-            "crates/oeis_wasm_evaluator"} <= set(calls[0])
+    assert {
+        "Dockerfile",
+        ".dockerignore",
+        "uv.lock",
+        "docker/dev",
+        "crates/oeis_wasm_evaluator",
+    } <= set(calls[0])
     code = 128
     with pytest.raises(RuntimeError, match="build changes"):
         images.recipe_changed("missing-base", "head")
+
+
+def test_real_git_diff_distinguishes_code_from_recipe(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], text=True).strip()
+
+    git("init", "--quiet")
+    git("config", "user.name", "CI test")
+    git("config", "user.email", "ci-test@example.invalid")
+    (tmp_path / "Dockerfile").write_text("FROM scratch\n")
+    git("add", ".")
+    git("commit", "--quiet", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "source.py").write_text("pass\n")
+    git("add", ".")
+    git("commit", "--quiet", "-m", "code")
+    assert images.recipe_changed(base, "HEAD") is False
+    (tmp_path / "Dockerfile").write_text("FROM scratch\nLABEL test=true\n")
+    git("add", ".")
+    git("commit", "--quiet", "-m", "recipe")
+    assert images.recipe_changed(base, "HEAD") is True

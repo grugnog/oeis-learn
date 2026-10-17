@@ -5,25 +5,30 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  packages: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/ci-image.yml
   installed-wheel-native:
+    needs: image
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v4
-      - name: Build pinned CPU image and actual Rust extension
-        uses: docker/build-push-action@v7
+      - uses: ./.github/actions/load-ci-image
         with:
-          context: .
-          target: qualification
-          tags: oeis-foundation-wheel
-          load: true
-          cache-from: type=gha,scope=oeis-qualification
-          cache-to: type=gha,scope=oeis-qualification,mode=max,ignore-error=true
+          engine: docker
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-foundation-wheel
+          token: ${{ github.token }}
       - name: Wheel acceptance outside checkout, actual native parity, G7 through G9
         run: |
           mkdir -p wheel-evidence

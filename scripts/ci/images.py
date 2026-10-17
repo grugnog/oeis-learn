@@ -9,8 +9,14 @@ import subprocess
 
 TARGETS = ("qualification", "gpu")
 BUILD_INPUTS = (
-    "Dockerfile", ".dockerignore", "docker/dev", "pyproject.toml", "uv.lock",
-    "setup.py", "MANIFEST.in", "crates/oeis_wasm_evaluator",
+    "Dockerfile",
+    ".dockerignore",
+    "docker/dev",
+    "pyproject.toml",
+    "uv.lock",
+    "setup.py",
+    "MANIFEST.in",
+    "crates/oeis_wasm_evaluator",
 )
 
 
@@ -39,13 +45,16 @@ def plan(env, event):
     default_ref = "refs/heads/" + event["repository"]["default_branch"]
     # PRs can publish only their uniquely named images and PR-scoped GHA cache;
     # only a default-branch push/manual run refreshes the shared registry cache.
-    if publish and event_name != "pull_request" and env["GITHUB_REF"] == default_ref:
+    is_default = publish and event_name != "pull_request" and env["GITHUB_REF"] == default_ref
+    tag = image + ":ci-" + target + "-" + run
+    if is_default:
         cache_to += "\ntype=registry,ref=" + cache + ",mode=max"
     return dict(
         publish=str(publish).lower(),
         transport="registry" if publish else "archive",
         image=image,
-        tag=image + ":ci-" + target + "-" + run,
+        tag=tag,
+        tags=tag + ("\n" + image + ":" + target + "-main" if is_default else ""),
         artifact="ci-image-" + target,
         cache_from="type=registry,ref=" + cache + "\ntype=gha,scope=oeis-" + target,
         cache_to=cache_to,
@@ -74,8 +83,17 @@ def load_image(engine, transport, reference, alias, revision, archive=None, toke
         try:
             if token:
                 subprocess.run(
-                    [engine, "login", "ghcr.io", "--username", os.environ["GITHUB_ACTOR"],
-                     "--password-stdin"], input=token + "\n", text=True, check=True,
+                    [
+                        engine,
+                        "login",
+                        "ghcr.io",
+                        "--username",
+                        os.environ["GITHUB_ACTOR"],
+                        "--password-stdin",
+                    ],
+                    input=token + "\n",
+                    text=True,
+                    check=True,
                 )
                 logged_in = True
             subprocess.run([engine, "pull", reference], check=True)
@@ -87,12 +105,23 @@ def load_image(engine, transport, reference, alias, revision, archive=None, toke
             raise ValueError("image archive is missing")
         subprocess.run([engine, "load", "--input", str(archive)], check=True)
     result = subprocess.run(
-        [engine, "image", "inspect", reference, "--format",
-         '{{ index .Config.Labels "org.opencontainers.image.revision" }}'],
-        text=True, capture_output=True, check=True,
+        [
+            engine,
+            "image",
+            "inspect",
+            reference,
+            "--format",
+            '{{ index .Config.Labels "org.opencontainers.image.revision" }}',
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
     )
     if result.stdout.strip() != revision:
-        raise ValueError("image source revision does not match the tested checkout")
+        raise ValueError(
+            f"image source revision does not match the tested checkout: "
+            f"expected {revision}, got {result.stdout.strip()!r}"
+        )
     subprocess.run([engine, "tag", reference, alias], check=True)
 
 
@@ -109,8 +138,15 @@ def main():
     load.add_argument("--archive")
     args = parser.parse_args()
     if args.command == "load":
-        load_image(args.engine, args.transport, args.reference, args.alias, args.revision,
-                   args.archive, os.environ.get("GHCR_TOKEN"))
+        load_image(
+            args.engine,
+            args.transport,
+            args.reference,
+            args.alias,
+            args.revision,
+            args.archive,
+            os.environ.get("GHCR_TOKEN"),
+        )
         return
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     value = plan(os.environ, event)

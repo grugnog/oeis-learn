@@ -1,4 +1,4 @@
-name: Portable container acceptance
+name: Container and native acceptance
 on:
   pull_request:
     paths:
@@ -27,14 +27,33 @@ on:
       - 'specs/007-experiment-foundation/validation/task-dependencies.json'
       - 'docs/foundation.md'
       - 'README.md'
-      - '.github/workflows/foundation.yml'
+      - '.github/workflows/**'
+      - '.github/actions/load-ci-image/**'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
+  packages: read
 jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/ci-image.yml
+
+  podman-build:
+    needs: image
+    if: needs.image.outputs.podman_build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Podman can build changed container inputs
+        run: podman build --target qualification -t oeis-podman-build-ci .
+
   portable-engines:
+    needs: image
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -43,21 +62,14 @@ jobs:
         engine: [docker, podman]
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v4
-        if: matrix.engine == 'docker'
-      - name: Build cached Docker qualification image
-        if: matrix.engine == 'docker'
-        uses: docker/build-push-action@v7
+      - uses: ./.github/actions/load-ci-image
         with:
-          context: .
-          target: qualification
-          tags: oeis-portable-ci
-          load: true
-          cache-from: type=gha,scope=oeis-qualification
-          cache-to: type=gha,scope=oeis-qualification,mode=max,ignore-error=true
-      - name: Build native qualification image with Podman
-        if: matrix.engine == 'podman'
-        run: podman build --target qualification -t oeis-portable-ci .
+          engine: ${{ matrix.engine }}
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-portable-ci
+          token: ${{ github.token }}
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -100,3 +112,82 @@ jobs:
             tmp-engine-evidence/public-cli/validation/*/receipt.json
             tmp-engine-evidence/public-cli/validation/*/*.log
             tmp-engine-evidence/public-cli/validation/*/*.xml
+
+  native-qualification:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/load-ci-image
+        with:
+          engine: docker
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-phase7
+          token: ${{ github.token }}
+      - name: Installed image resources and native execution outside checkout
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm --workdir /tmp -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            cp /opt/oeis-build/tests/contract/test_foundation_qualified_cli.py /tmp/test_installed_cli.py
+            unset PYTHONPATH
+            export OEIS_INSTALLED_WHEEL=1 OEIS_REQUIRE_NATIVE=1
+            python -I -m pytest -q --durations=20 \
+              /tmp/test_installed_cli.py::test_packaged_resources_and_actual_execution \
+              /tmp/test_installed_cli.py::test_installed_native_has_no_fallback \
+              --junitxml=/evidence/installed-image.xml
+            oeis-learn foundation --help > /evidence/installed-help.txt
+          '
+      - name: Mandatory Rust tests and G7 qualification
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            mkdir -p /evidence/build-info/src
+            cp /opt/oeis-build-info/* /evidence/build-info/
+            cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/
+            cp crates/oeis_wasm_evaluator/build.rs /evidence/build-info/
+            rustfmt --edition 2021 /evidence/build-info/src/*.rs /evidence/build-info/build.rs
+            cd /opt/oeis-build
+            python -m oeis_learn.evaluation.repair_gate --output /evidence
+            python -m oeis_learn.evaluation.learning_gate --output /evidence/learning
+            PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build python scripts/verify_phase8.py --evidence /evidence
+            oeis-learn foundation qualify-discovery --native --output /evidence/discovery --json > /evidence/discovery-qualification-cli.json
+            PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build python scripts/verify_phase9.py --evidence /evidence
+            oeis-learn foundation activate-qualified --config /evidence/qualified-contract.json --gate-report /evidence/g7.json --profiles /evidence/profiles --json > /evidence/activation-cli.json
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase7-native-qualification
+          path: |
+            phase7-evidence/*.xml
+            phase7-evidence/installed-help.txt
+            phase7-evidence/g7.json
+            phase7-evidence/activation.json
+            phase7-evidence/activation-cli.json
+            phase7-evidence/qualified-contract.json
+            phase7-evidence/profiles/
+            phase7-evidence/rust-tests.txt
+            phase7-evidence/native/parity.json
+            phase7-evidence/build-info/
+            phase7-evidence/discovery/*.xml
+            phase7-evidence/discovery/g9.json
+            phase7-evidence/discovery-qualification-cli.json
+            phase7-evidence/discovery/cli-acceptance.json
+            phase7-evidence/discovery/cli-discovery/discovery.json
+            phase7-evidence/discovery/cli-certificate/certificate-check.json
+            phase7-evidence/learning/*.xml
+            phase7-evidence/learning/g8.json
+            phase7-evidence/learning/cli-acceptance.json
+            phase7-evidence/learning/learning-contract.json
+            phase7-evidence/learning/training/learning-inputs.json
+            phase7-evidence/learning/training/ledger.json
+            phase7-evidence/learning/search/search.json
