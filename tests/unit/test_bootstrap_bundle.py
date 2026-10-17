@@ -2,9 +2,10 @@
 
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 import sys
-import tempfile
 import zipfile
 from pathlib import Path
 
@@ -108,30 +109,68 @@ def test_weight_bundle_is_opt_in_and_verifies_selected_blob(tmp_path):
         pack(root, output, checkpoint=True)
 
 
-def test_pack_cli_needs_neither_engine_nor_gpu():
+def test_pack_cli_needs_neither_engine_nor_gpu(tmp_path):
     repo = Path(__file__).resolve().parents[2]
-    with tempfile.TemporaryDirectory(prefix="tmp-bundle-cli-", dir=repo) as temp:
-        folder = Path(temp)
-        run_fixture(folder / "run")
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(repo / "scripts/foundation_run.py"),
-                "--engine",
-                "docker",
-                "pack",
-                "--run",
-                str((folder / "run").relative_to(repo)),
-                "--output",
-                str((folder / "analysis.zip").relative_to(repo)),
-            ],
-            check=False,
-            cwd=folder,
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, result.stderr
-        assert (folder / "analysis.zip").is_file()
+    # The validation image checkout is read-only. Exercise the actual entrypoint
+    # in an isolated writable workspace, without relaxing its path confinement.
+    workspace = tmp_path / "workspace"
+    for name in (
+        "scripts/foundation_run.py",
+        "scripts/foundation_local.py",
+        "src/oeis_learn/__init__.py",
+        "src/oeis_learn/container_runtime.py",
+        "src/oeis_learn/fresh/__init__.py",
+        "src/oeis_learn/fresh/common.py",
+        "src/oeis_learn/fresh/bundle.py",
+        "src/oeis_learn/fresh/learnability.py",
+        "src/oeis_learn/fresh/bootstrap_contract.py",
+    ):
+        destination = workspace / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(repo / name, destination)
+    run_fixture(workspace / "run")
+    before = inventory(workspace / "run")
+    cwd = tmp_path / "unrelated-cwd"
+    cwd.mkdir()
+    environment = dict(os.environ, PATH="", PYTHONDONTWRITEBYTECODE="1")
+    environment.pop("PYTHONPATH", None)
+    command = [
+        sys.executable,
+        "-S",  # No third-party site packages, including torch or engine clients.
+        str(workspace / "scripts/foundation_run.py"),
+        "--engine",
+        "docker",
+        "pack",
+        "--run",
+        "run",
+        "--output",
+        "analysis.zip",
+    ]
+    result = subprocess.run(
+        command,
+        check=False,
+        cwd=cwd,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (workspace / "analysis.zip").is_file()
+    assert not (cwd / "analysis.zip").exists()
+    rejected = subprocess.run(
+        command[:-1] + ["../escaped.zip"],
+        check=False,
+        cwd=cwd,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert rejected.returncode == 1
+    assert "artifact paths must remain inside the workspace" in rejected.stderr
+    assert not (tmp_path / "escaped.zip").exists()
+    assert inventory(workspace / "run") == before
 
 
 def test_selected_manifest_cannot_export_private_view(tmp_path):

@@ -42,6 +42,28 @@ python3 scripts/foundation_run.py --engine podman validate \
 
 The GPU suite includes real updates, reconstruction from checkpoints, and
 cached/full repeated-literal decoding for the candidate as well as v1 controls.
+
+If validation reports a failure in
+`test_complete_effective_constructors_and_real_forward_backward`, inspect the
+failure section of `stdout.log` rather than only the final summary:
+
+```sh
+sed -n '/FAILURES/,$p' \
+  tmp-validation/decoder-inputs-v2/gpu-regressions/stdout.log
+```
+
+An assertion listing missing `token_scale`, `position_scale`, and `input_version`
+was a constructor-declaration regression: it ran before any GPU forward/backward.
+The frozen foundation constructor now explicitly declares the original values
+`1.0`, `1.0`, and `None`. This preserves v1 behavior and the full-signature test.
+Pytest's cache also lives in the writable private runtime cache; it is excluded
+from validation evidence receipts.
+
+After pulling the fix, rerun the two commands above using the same output path.
+The runner checks code/image identities and reruns affected stages. No validation
+directory, training run, or prepared input needs to be deleted. GPU environment
+checks always execute again.
+
 Run the following comparison after those hardware checks pass:
 
 ```sh

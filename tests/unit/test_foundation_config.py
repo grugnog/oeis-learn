@@ -154,6 +154,9 @@ def test_config_copies_and_persisted_effective_values(tmp_path):
     path = cfg.persist_effective(tmp_path).as_path()
     record = json.loads(path.read_text())
     assert record["model"]["dropout"] == 0.1
+    decoder = record["constructors"]["decoder"]
+    assert decoder["token_scale"] == decoder["position_scale"] == 1.0
+    assert decoder["input_version"] is None  # Frozen v1, not an opt-in v2 experiment.
     assert record["training"]["learning_rate"] == pytest.approx(0.0003)
     assert record["training"]["weight_decay"] == 0.01
     assert compute_file_hash(path) == compute_canonical_digest(record)
