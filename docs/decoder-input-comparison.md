@@ -90,9 +90,13 @@ python3 - <<'PY'
 import json
 from pathlib import Path
 
-print('run,seed,gain,dropout,updates,exact,total,evaluated,coverage_complete')
+lines = ['run,seed,gain,dropout,updates,exact,total,evaluated,coverage_complete']
+identities, examples = set(), set()
 for run in sorted(Path('runs').glob('decoder-v2-*-001')):
-    cfg = json.loads((run / 'run.json').read_text())['settings']['learner']
+    record = json.loads((run / 'run.json').read_text())
+    cfg = record['settings']['learner']
+    identities.add(record['inputs_identity'])
+    examples.add(cfg['examples_sha256'])
     model = cfg['model']
     for stage in sorted((run / 'roles').glob('train-*')):
         path = stage / 'result.json'
@@ -102,12 +106,16 @@ for run in sorted(Path('runs').glob('decoder-v2-*-001')):
         measured = result.get('diagnostic', {}).get('splits', {}).get('training')
         if measured is None:
             continue
-        print(','.join(map(str, [
+        lines.append(','.join(map(str, [
             run.name, cfg['seed'], model['decoder_inputs']['position_scale'],
             model['dropout'], result['completed_updates'], measured['exact'],
             measured['denominator'], measured['evaluated'],
             measured['coverage_complete'],
         ])))
+assert len(identities) == len(examples) == 1, 'Comparison inputs differ or are missing'
+text = '\n'.join(lines) + '\n'
+Path('tmp-analysis/decoder-input-history.csv').write_text(text)
+print(text, end='')
 PY
 ```
 
@@ -128,7 +136,10 @@ from zipfile import ZIP_STORED, ZipFile
 files = sorted(Path('tmp-analysis').glob('decoder-v2-*-001.zip'))
 assert len(files) == 6, f'Expected six comparison archives, found {len(files)}'
 output = Path('tmp-analysis/decoder-input-comparison-001.zip')
+history = Path('tmp-analysis/decoder-input-history.csv')
+assert history.is_file(), 'Run the history extraction above first'
 with ZipFile(output, 'w', compression=ZIP_STORED) as bundle:
+    bundle.write(history, history.name)
     for file in files:
         bundle.write(file, file.name)
 print(output)
