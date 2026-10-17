@@ -52,3 +52,25 @@ def test_full_bootstrap_hip_update_checkpoint_and_decoder_cache(kind, tmp_path):
     )
     assert evidence["tokens"]
     assert decoder.lm_head.weight.device.type == "cuda"
+
+
+@pytest.mark.parametrize("kind", ["tri_stream", "hybrid", "integer_bytes"])
+def test_full_hip_repeated_literal_logits_and_free_generation_parity(kind):
+    from oeis_learn.fresh.token_diagnostic import teacher_trace
+
+    torch.manual_seed(71)
+    encoder, decoder, _ = construct_bootstrap_models(bootstrap_profile(kind), device="cuda")
+    for literal in (11, -11, 111, 101, 2**200 + 11):
+        row = dict(values=[str(literal + n) for n in range(20)], tokens=encode_body(f"i256.const {literal}"))
+        assert teacher_trace(encoder, decoder, row)["cache_parity"]["passed"]
+    results = []
+    for cached in (True, False):
+        _, evidence = ModelProposer(encoder, decoder, context_limit=33, use_cache=cached, diagnostics=True).stochastic(
+            list(range(-11, 9)), 71,
+            SearchLedger(max_attempts=1, max_tokens=32, max_expansions=32, budget_ns=60 * 10**9),
+            greedy=True,
+        )
+        assert evidence["token_trace"]
+        results.append(evidence)
+    assert results[0]["tokens"] == results[1]["tokens"]
+    assert results[0]["complete"] == results[1]["complete"]

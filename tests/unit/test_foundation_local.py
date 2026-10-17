@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from oeis_learn.container_runtime import Engine
+from oeis_learn.fresh.learnability import controls
 
 spec = importlib.util.spec_from_file_location(
     "foundation_local", Path(__file__).parents[2] / "scripts/foundation_local.py"
@@ -190,5 +191,20 @@ def test_public_cli_forwards_explicit_encoder(tmp_path, command, profile):
             == 0
         )
         factory.return_value.pipeline.assert_called_once_with(
-            "run", "inputs", "runs/new", profile, "hybrid"
+            "run", "inputs", "runs/new", profile, "hybrid",
+            *([json.dumps(controls())] if command == "learnability" else []),
         )
+
+
+def test_learnability_watchdog_uses_explicit_frozen_budget(host):
+    process = Mock(pid=1234)
+    process.wait.return_value = process.poll.return_value = 0
+    options = controls(dict(controls(), budget_seconds=7200, max_updates=6000))
+    with patch.object(local.subprocess, "Popen", return_value=process):
+        host.pipeline("run", "inputs", "runs/diagnostic", "bootstrap-learnability", "hybrid", json.dumps(options))
+    process.wait.assert_called_once_with(timeout=7245)
+
+
+def test_invalid_learnability_limits_fail_before_engine_or_input_check():
+    with patch.object(local, "Host", side_effect=AssertionError("engine used")):
+        assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--max-updates", "0"]) == 1

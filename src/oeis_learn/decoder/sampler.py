@@ -253,6 +253,7 @@ class WatProgramSampler:
         # Retain the emitted prefix if an external time/token budget interrupts.
         self.active_token_rows = token_rows
         self.eos_traces = [[] for _ in seeds]
+        self.token_traces = [[] for _ in seeds]
         supports = [[(v,) for v in prefix] for _ in seeds]
         logs = [[None] * len(prefix) for _ in seeds]
         forced = [[True] * len(prefix) for _ in seeds]
@@ -299,7 +300,8 @@ class WatProgramSampler:
                     probabilities = F.softmax(filtered, -1)
                     log_distribution = F.log_softmax(filtered, -1)
                 if getattr(self, "capture_diagnostics", False):
-                    raw_eos = logits.softmax(-1)[:, eos].cpu().tolist()
+                    raw_probabilities = logits.softmax(-1)
+                    raw_eos = raw_probabilities[:, eos].cpu().tolist()
                     supported_eos = probabilities[:, eos].cpu().tolist()
                     for row in range(batch):
                         if not finished[row]:
@@ -320,6 +322,22 @@ class WatProgramSampler:
                     log_distribution.gather(-1, chosen[:, None]).squeeze(-1).cpu().tolist()
                 )
                 ids = chosen.cpu().tolist()
+                if getattr(self, "capture_diagnostics", False):
+                    raw_chosen = raw_probabilities.gather(-1, chosen[:, None]).squeeze(-1).cpu().tolist()
+                    chosen_probabilities = probabilities.gather(-1, chosen[:, None]).squeeze(-1).cpu().tolist()
+                    terminator = codec.TERM_ID if codec else eos
+                    raw_end = raw_probabilities[:, terminator].cpu().tolist()
+                    supported_end = probabilities[:, terminator].cpu().tolist()
+                    for row, token in enumerate(ids):
+                        if not finished[row]:
+                            self.token_traces[row].append(dict(
+                                position=step, token=token, spelling=words[token],
+                                raw_probability=raw_chosen[row],
+                                grammar_probability=chosen_probabilities[row],
+                                integer_end_allowed=terminator in legal_lists[row],
+                                raw_integer_end_probability=raw_end[row],
+                                integer_end_probability=supported_end[row],
+                            ))
                 buffer[:, step] = chosen
                 for row, token in enumerate(ids):
                     if finished[row]:

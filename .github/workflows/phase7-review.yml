@@ -57,7 +57,7 @@ jobs:
           .review-venv/bin/python specs/007-experiment-foundation/validate_artifacts.py
       - name: Foundation and phase 7 CPU regression suite
         run: |
-          .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
+          .review-venv/bin/python -m pytest -q -ra tests/unit/test_foundation_*.py tests/unit/test_bootstrap_*.py tests/unit/test_connected_sampler.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
       - name: Execute phase 13 available CPU input diagnostics
         run: .review-venv/bin/python scripts/verify_phase13.py --output phase13-evidence
       - name: Execute actual CPU quickstart and replay immutable archive

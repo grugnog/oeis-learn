@@ -242,6 +242,10 @@ class Host:
             if action == "diagnose"
             else 43200
         )
+        if action == "run" and argv[2] == "bootstrap-learnability" and len(argv) == 5:
+            from oeis_learn.fresh.learnability import controls
+
+            cap = controls(json.loads(argv[4]))["budget_seconds"]
         with self.gpu_lock():
             self.engine.cleanup(token)
             command = [
@@ -314,6 +318,16 @@ def parser():
                 choices=["fresh-pilot-1h", "fresh-extended-12h"],
                 default="fresh-pilot-1h",
             )
+        if op == "learnability":
+            from oeis_learn.fresh.learnability import controls
+
+            for key, default in controls().items():
+                cmd.add_argument(
+                    "--" + key.replace("_", "-"),
+                    type=int if type(default) is int else str,
+                    default=default,
+                    **({"choices": ["shortest", "diverse"]} if key == "view" else {}),
+                )
     for op in ("resume", "status", "cancel", "evaluate", "finalize", "pack"):
         cmd = commands.add_parser(op)
         cmd.add_argument("--run", required=True)
@@ -345,6 +359,11 @@ def main(argv=None):
         if args.command in {"status", "cancel"}:
             Host.control(args.command, relative(args.run))
             return 0
+        learnability_options = None
+        if args.command == "learnability":
+            from oeis_learn.fresh.learnability import controls
+
+            learnability_options = controls({key: getattr(args, key) for key in controls()})
         host = Host(args)
         if args.command == "image":
             print(host.ensure())
@@ -371,6 +390,9 @@ def main(argv=None):
                 host.pipeline("check")
             else:
                 run = relative(args.run)
+                extra = [args.encoder] if args.encoder else []
+                if args.command == "learnability":
+                    extra = [args.encoder or "", json.dumps(learnability_options)]
                 try:
                     host.pipeline(
                         "run",
@@ -381,7 +403,7 @@ def main(argv=None):
                             "benchmark": "fresh-benchmark",
                             "learnability": "bootstrap-learnability",
                         }.get(args.command, getattr(args, "profile", "fresh-pilot-1h")),
-                        *([args.encoder] if args.encoder else []),
+                        *extra,
                     )
                 finally:
                     if (ROOT / run / "run.json").is_file():

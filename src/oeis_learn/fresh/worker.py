@@ -286,6 +286,8 @@ def train(inputs, output):
             learning,
             QueueRunner(output / "runtime-queue"),
             stage=order["stage"] if learning["curriculum"] else None,
+            compare_generation=settings.get("diagnostic_detail", False),
+            detail=settings.get("diagnostic_detail", False),
         )
         write(output / "diagnostic.json", diagnostic)
         if not diagnostic["cache_parity"]["passed"]:

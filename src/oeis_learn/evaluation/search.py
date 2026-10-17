@@ -18,7 +18,9 @@ from oeis_learn.rl.policy import masked_distribution, scoring_mode
 
 
 class SearchExhausted(RuntimeError):
-    pass
+    def __init__(self, message, *, reason=None):
+        super().__init__(message)
+        self.reason = reason
 
 
 @dataclass
@@ -54,13 +56,14 @@ class SearchLedger:
     def charge(self, *, attempts=0, expansions=0, tokens=0):
         if any(type(v) is not int or v < 0 for v in (attempts, expansions, tokens)):
             raise ValueError("nonnegative charges required")
-        if (
-            self.elapsed() >= self.budget_ns
-            or self.attempts + attempts > self.max_attempts
-            or self.expansions + expansions > self.max_expansions
-            or self.tokens + tokens > self.max_tokens
-        ):
-            raise SearchExhausted("shared search budget exhausted")
+        reason = next((name for name, exhausted in (
+            ("deadline", self.elapsed() >= self.budget_ns),
+            ("attempt_limit", self.attempts + attempts > self.max_attempts),
+            ("expansion_limit", self.expansions + expansions > self.max_expansions),
+            ("token_limit", self.tokens + tokens > self.max_tokens),
+        ) if exhausted), None)
+        if reason:
+            raise SearchExhausted("shared search budget exhausted", reason=reason)
         self.attempts += attempts
         self.expansions += expansions
         self.tokens += tokens
@@ -173,10 +176,12 @@ class ModelProposer:
             except SearchExhausted as exc:
                 exc.tokens = list(getattr(sampler, "active_token_rows", [[]])[0])
                 exc.eos_trace = list(getattr(sampler, "eos_traces", [[]])[0])
+                exc.token_trace = list(getattr(sampler, "token_traces", [[]])[0])
                 raise
         return trajectory.source, {
             "method": "greedy" if greedy else "stochastic",
             "eos_trace": list(getattr(sampler, "eos_traces", [[]])[0]),
+            "token_trace": list(getattr(sampler, "token_traces", [[]])[0]),
             "tokens": list(trajectory.tokens),
             "complete": trajectory.complete,
             "failure": trajectory.failure,
