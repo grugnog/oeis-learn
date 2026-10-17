@@ -1,0 +1,14 @@
+[
+  {
+    "offset": "-11",
+    "hidden_cosine": 0.9999517798423767,
+    "hidden_relative_distance": 0.009831451810896397,
+    "output_weight_gradient_cosine": -0.9777914243097392
+  },
+  {
+    "offset": "11",
+    "hidden_cosine": 0.9999457001686096,
+    "hidden_relative_distance": 0.010430263355374336,
+    "output_weight_gradient_cosine": -0.9483966209746164
+  }
+]

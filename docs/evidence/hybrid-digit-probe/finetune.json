@@ -1,0 +1,1389 @@
+[
+  {
+    "dropout": 0.1,
+    "position_gain": 1,
+    "learning_rate": 0.0001,
+    "trace": [
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.030804460868239403,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 0,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3027213215827942,
+            "end_after_second": 0.6336204409599304,
+            "first_margin": -0.7393460273742676,
+            "second_margin": -0.7349834442138672
+          },
+          {
+            "offset": "11",
+            "second_one": 0.2933562397956848,
+            "end_after_second": 0.6109098196029663,
+            "first_margin": -0.7319703102111816,
+            "second_margin": -0.7332859039306641
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 28,
+        "token_loss": 0.03140828385949135,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-14",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 25,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.26790329813957214,
+            "end_after_second": 0.6884332299232483,
+            "first_margin": -0.9463791847229004,
+            "second_margin": -0.9371676445007324
+          },
+          {
+            "offset": "11",
+            "second_one": 0.12209601700305939,
+            "end_after_second": 0.8197878003120422,
+            "first_margin": -1.905444622039795,
+            "second_margin": -1.8968310356140137
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 29,
+        "token_loss": 0.027079563587903976,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 50,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4238542914390564,
+            "end_after_second": 0.5173282623291016,
+            "first_margin": -0.200653076171875,
+            "second_margin": -0.19671201705932617
+          },
+          {
+            "offset": "11",
+            "second_one": 0.34279489517211914,
+            "end_after_second": 0.5585739016532898,
+            "first_margin": -0.48730945587158203,
+            "second_margin": -0.48752641677856445
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 29,
+        "token_loss": 0.029972121119499207,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "-10",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 75,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.48883751034736633,
+            "end_after_second": 0.4668210446834564,
+            "first_margin": 0.0458378791809082,
+            "second_margin": 0.04692840576171875
+          },
+          {
+            "offset": "11",
+            "second_one": 0.44538170099258423,
+            "end_after_second": 0.47823917865753174,
+            "first_margin": -0.06947994232177734,
+            "second_margin": -0.07165050506591797
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.024806693196296692,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 100,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5291454792022705,
+            "end_after_second": 0.42940372228622437,
+            "first_margin": 0.20983266830444336,
+            "second_margin": 0.2089405059814453
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5391795039176941,
+            "end_after_second": 0.4135291576385498,
+            "first_margin": 0.2696871757507324,
+            "second_margin": 0.2625422477722168
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.024141693487763405,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 125,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3183048665523529,
+            "end_after_second": 0.6363292336463928,
+            "first_margin": -0.6924433708190918,
+            "second_margin": -0.6908736228942871
+          },
+          {
+            "offset": "11",
+            "second_one": 0.421222448348999,
+            "end_after_second": 0.5323963761329651,
+            "first_margin": -0.2303476333618164,
+            "second_margin": -0.23804140090942383
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 29,
+        "token_loss": 0.02555900439620018,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "10",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 150,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.606874406337738,
+            "end_after_second": 0.36024823784828186,
+            "first_margin": 0.525876522064209,
+            "second_margin": 0.5195517539978027
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5193270444869995,
+            "end_after_second": 0.43143826723098755,
+            "first_margin": 0.19028091430664062,
+            "second_margin": 0.18254709243774414
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 28,
+        "token_loss": 0.021745434030890465,
+        "failures": [
+          {
+            "offset": "-5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "3",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 175,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5943986773490906,
+            "end_after_second": 0.3766919672489166,
+            "first_margin": 0.4609408378601074,
+            "second_margin": 0.45328807830810547
+          },
+          {
+            "offset": "11",
+            "second_one": 0.6076620221138,
+            "end_after_second": 0.3552447259426117,
+            "first_margin": 0.5440616607666016,
+            "second_margin": 0.5330753326416016
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.01867322064936161,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 200,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.6299658417701721,
+            "end_after_second": 0.34726908802986145,
+            "first_margin": 0.6022686958312988,
+            "second_margin": 0.5920557975769043
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5413510203361511,
+            "end_after_second": 0.4271913468837738,
+            "first_margin": 0.24349546432495117,
+            "second_margin": 0.23218631744384766
+          }
+        ]
+      }
+    ],
+    "mode": "CPU intervention from selected weights and optimizer; new fixed sample order, no source run mutation",
+    "seconds": 219.5542366210002
+  },
+  {
+    "dropout": 0,
+    "position_gain": 1,
+    "learning_rate": 0.0001,
+    "trace": [
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.030804460868239403,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 0,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3027213215827942,
+            "end_after_second": 0.6336204409599304,
+            "first_margin": -0.7393460273742676,
+            "second_margin": -0.7349834442138672
+          },
+          {
+            "offset": "11",
+            "second_one": 0.2933562397956848,
+            "end_after_second": 0.6109098196029663,
+            "first_margin": -0.7319703102111816,
+            "second_margin": -0.7332859039306641
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.026528187096118927,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 25,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.40315818786621094,
+            "end_after_second": 0.5467454195022583,
+            "first_margin": -0.3058133125305176,
+            "second_margin": -0.3015298843383789
+          },
+          {
+            "offset": "11",
+            "second_one": 0.37947750091552734,
+            "end_after_second": 0.5377272367477417,
+            "first_margin": -0.34542179107666016,
+            "second_margin": -0.34947633743286133
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.02372606098651886,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 50,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.44484296441078186,
+            "end_after_second": 0.5143505930900574,
+            "first_margin": -0.14536714553833008,
+            "second_margin": -0.1439838409423828
+          },
+          {
+            "offset": "11",
+            "second_one": 0.42167091369628906,
+            "end_after_second": 0.5099277496337891,
+            "first_margin": -0.18592023849487305,
+            "second_margin": -0.1924266815185547
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.02116268128156662,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 75,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.47005581855773926,
+            "end_after_second": 0.49411317706108093,
+            "first_margin": -0.04819679260253906,
+            "second_margin": -0.0509638786315918
+          },
+          {
+            "offset": "11",
+            "second_one": 0.45837101340293884,
+            "end_after_second": 0.4803502857685089,
+            "first_margin": -0.04078197479248047,
+            "second_margin": -0.05094194412231445
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.01889592409133911,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 100,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4704694151878357,
+            "end_after_second": 0.4992738664150238,
+            "first_margin": -0.05559730529785156,
+            "second_margin": -0.0628209114074707
+          },
+          {
+            "offset": "11",
+            "second_one": 0.4684988558292389,
+            "end_after_second": 0.4791082739830017,
+            "first_margin": -0.013937950134277344,
+            "second_margin": -0.028815746307373047
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 31,
+        "token_loss": 0.01697991043329239,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 125,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4760691523551941,
+            "end_after_second": 0.49931904673576355,
+            "first_margin": -0.04135704040527344,
+            "second_margin": -0.05374717712402344
+          },
+          {
+            "offset": "11",
+            "second_one": 0.4775884449481964,
+            "end_after_second": 0.48028653860092163,
+            "first_margin": 0.005560398101806641,
+            "second_margin": -0.014812946319580078
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.015083080157637596,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 150,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.46304962038993835,
+            "end_after_second": 0.5180819034576416,
+            "first_margin": -0.10326242446899414,
+            "second_margin": -0.12187767028808594
+          },
+          {
+            "offset": "11",
+            "second_one": 0.4698661267757416,
+            "end_after_second": 0.49917322397232056,
+            "first_margin": -0.0464472770690918,
+            "second_margin": -0.07347297668457031
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 31,
+        "token_loss": 0.013360661454498768,
+        "failures": [
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 175,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4918873906135559,
+            "end_after_second": 0.49411940574645996,
+            "first_margin": 0.009758472442626953,
+            "second_margin": -0.018358230590820312
+          },
+          {
+            "offset": "11",
+            "second_one": 0.497710257768631,
+            "end_after_second": 0.47951412200927734,
+            "first_margin": 0.05713462829589844,
+            "second_margin": 0.019947528839111328
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.011824650689959526,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 200,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.48705312609672546,
+            "end_after_second": 0.5042951703071594,
+            "first_margin": -0.01554107666015625,
+            "second_margin": -0.054181575775146484
+          },
+          {
+            "offset": "11",
+            "second_one": 0.4847951829433441,
+            "end_after_second": 0.5011042952537537,
+            "first_margin": -0.008129119873046875,
+            "second_margin": -0.05703544616699219
+          }
+        ]
+      }
+    ],
+    "mode": "CPU intervention from selected weights and optimizer; new fixed sample order, no source run mutation",
+    "seconds": 239.32541504500023
+  },
+  {
+    "dropout": 0.1,
+    "position_gain": 16,
+    "learning_rate": 0.0001,
+    "trace": [
+      {
+        "teacher_argmax_exact": 26,
+        "token_loss": 0.039943061769008636,
+        "failures": [
+          {
+            "offset": "6",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-6",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 0,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3310052454471588,
+            "end_after_second": 0.5467947125434875,
+            "first_margin": -0.5762677192687988,
+            "second_margin": -0.4027528762817383
+          },
+          {
+            "offset": "11",
+            "second_one": 0.3029237389564514,
+            "end_after_second": 0.5263410806655884,
+            "first_margin": -0.6335821151733398,
+            "second_margin": -0.45616769790649414
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 27,
+        "token_loss": 0.035292915999889374,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-14",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 25,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3214608430862427,
+            "end_after_second": 0.5894096493721008,
+            "first_margin": -0.6600756645202637,
+            "second_margin": -0.5229268074035645
+          },
+          {
+            "offset": "11",
+            "second_one": 0.20588986575603485,
+            "end_after_second": 0.6817058324813843,
+            "first_margin": -1.2424311637878418,
+            "second_margin": -1.0949606895446777
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 28,
+        "token_loss": 0.03208130970597267,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "12",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 50,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.387578547000885,
+            "end_after_second": 0.5384221076965332,
+            "first_margin": -0.3541383743286133,
+            "second_margin": -0.2998199462890625
+          },
+          {
+            "offset": "11",
+            "second_one": 0.3803555369377136,
+            "end_after_second": 0.4527580440044403,
+            "first_margin": -0.18140554428100586,
+            "second_margin": -0.1649012565612793
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 29,
+        "token_loss": 0.028983596712350845,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 75,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5088092088699341,
+            "end_after_second": 0.44944897294044495,
+            "first_margin": 0.13901996612548828,
+            "second_margin": 0.1090703010559082
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5565255880355835,
+            "end_after_second": 0.3743687570095062,
+            "first_margin": 0.41426992416381836,
+            "second_margin": 0.38102149963378906
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 28,
+        "token_loss": 0.031171327456831932,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "-10",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 100,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5093293190002441,
+            "end_after_second": 0.47403717041015625,
+            "first_margin": 0.10388708114624023,
+            "second_margin": 0.04076814651489258
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5500708818435669,
+            "end_after_second": 0.42832058668136597,
+            "first_margin": 0.30222415924072266,
+            "second_margin": 0.20804262161254883
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 31,
+        "token_loss": 0.024682622402906418,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 125,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5427354574203491,
+            "end_after_second": 0.4744340479373932,
+            "first_margin": 0.2524280548095703,
+            "second_margin": 0.03418111801147461
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5215295553207397,
+            "end_after_second": 0.4809873104095459,
+            "first_margin": 0.18914413452148438,
+            "second_margin": -0.016550064086914062
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 27,
+        "token_loss": 0.02940979227423668,
+        "failures": [
+          {
+            "offset": "-5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-3",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-11",
+            "positions": [
+              20
+            ]
+          },
+          {
+            "offset": "-15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 150,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.587958574295044,
+            "end_after_second": 0.47750163078308105,
+            "first_margin": 0.4261746406555176,
+            "second_margin": 0.03847551345825195
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5325149297714233,
+            "end_after_second": 0.5052546858787537,
+            "first_margin": 0.23049688339233398,
+            "second_margin": -0.1090841293334961
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 27,
+        "token_loss": 0.027028271928429604,
+        "failures": [
+          {
+            "offset": "-7",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "3",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 175,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3559783697128296,
+            "end_after_second": 0.6966791749000549,
+            "first_margin": -0.5402827262878418,
+            "second_margin": -0.9292364120483398
+          },
+          {
+            "offset": "11",
+            "second_one": 0.6150331497192383,
+            "end_after_second": 0.5090319514274597,
+            "first_margin": 0.6027340888977051,
+            "second_margin": -0.11717510223388672
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 31,
+        "token_loss": 0.020208904519677162,
+        "failures": [
+          {
+            "offset": "11",
+            "positions": [
+              20
+            ]
+          }
+        ],
+        "step": 200,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.6600740551948547,
+            "end_after_second": 0.49258285760879517,
+            "first_margin": 0.7777323722839355,
+            "second_margin": -0.030476093292236328
+          },
+          {
+            "offset": "11",
+            "second_one": 0.704695999622345,
+            "end_after_second": 0.3399413824081421,
+            "first_margin": 1.1097841262817383,
+            "second_margin": 0.5780029296875
+          }
+        ]
+      }
+    ],
+    "mode": "CPU intervention from selected weights and optimizer; new fixed sample order, no source run mutation",
+    "seconds": 207.18979752199994
+  },
+  {
+    "dropout": 0,
+    "position_gain": 16,
+    "learning_rate": 0.0001,
+    "trace": [
+      {
+        "teacher_argmax_exact": 26,
+        "token_loss": 0.039943061769008636,
+        "failures": [
+          {
+            "offset": "6",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-6",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "5",
+            "positions": [
+              18
+            ]
+          },
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "-15",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 0,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.3310052454471588,
+            "end_after_second": 0.5467947125434875,
+            "first_margin": -0.5762677192687988,
+            "second_margin": -0.4027528762817383
+          },
+          {
+            "offset": "11",
+            "second_one": 0.3029237389564514,
+            "end_after_second": 0.5263410806655884,
+            "first_margin": -0.6335821151733398,
+            "second_margin": -0.45616769790649414
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 29,
+        "token_loss": 0.033224333077669144,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "15",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 25,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4086572825908661,
+            "end_after_second": 0.4925892651081085,
+            "first_margin": -0.24496030807495117,
+            "second_margin": -0.12713050842285156
+          },
+          {
+            "offset": "11",
+            "second_one": 0.36852291226387024,
+            "end_after_second": 0.47425588965415955,
+            "first_margin": -0.3302474021911621,
+            "second_margin": -0.1815481185913086
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.02914508432149887,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 50,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.4438464045524597,
+            "end_after_second": 0.49471598863601685,
+            "first_margin": -0.12471199035644531,
+            "second_margin": -0.09490537643432617
+          },
+          {
+            "offset": "11",
+            "second_one": 0.4195787310600281,
+            "end_after_second": 0.47719091176986694,
+            "first_margin": -0.1650853157043457,
+            "second_margin": -0.10049724578857422
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 30,
+        "token_loss": 0.025741931051015854,
+        "failures": [
+          {
+            "offset": "-11",
+            "positions": [
+              19
+            ]
+          },
+          {
+            "offset": "11",
+            "positions": [
+              19
+            ]
+          }
+        ],
+        "step": 75,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.46952682733535767,
+            "end_after_second": 0.505715012550354,
+            "first_margin": -0.030187129974365234,
+            "second_margin": -0.12201499938964844
+          },
+          {
+            "offset": "11",
+            "second_one": 0.45851558446884155,
+            "end_after_second": 0.4805915951728821,
+            "first_margin": -0.01616668701171875,
+            "second_margin": -0.0831136703491211
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 32,
+        "token_loss": 0.022629549726843834,
+        "failures": [],
+        "step": 100,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5076369643211365,
+            "end_after_second": 0.526995062828064,
+            "first_margin": 0.11684894561767578,
+            "second_margin": -0.19220495223999023
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5059365630149841,
+            "end_after_second": 0.4924109876155853,
+            "first_margin": 0.17297077178955078,
+            "second_margin": -0.10642719268798828
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 32,
+        "token_loss": 0.019716773182153702,
+        "failures": [],
+        "step": 125,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.5518349409103394,
+            "end_after_second": 0.5652867555618286,
+            "first_margin": 0.2939333915710449,
+            "second_margin": -0.3371257781982422
+          },
+          {
+            "offset": "11",
+            "second_one": 0.5586081743240356,
+            "end_after_second": 0.533727765083313,
+            "first_margin": 0.38974571228027344,
+            "second_margin": -0.25356149673461914
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 32,
+        "token_loss": 0.016704319044947624,
+        "failures": [],
+        "step": 150,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.6350257396697998,
+            "end_after_second": 0.6427162289619446,
+            "first_margin": 0.6604933738708496,
+            "second_margin": -0.6594376564025879
+          },
+          {
+            "offset": "11",
+            "second_one": 0.6259198784828186,
+            "end_after_second": 0.6291007399559021,
+            "first_margin": 0.7158088684082031,
+            "second_margin": -0.6488556861877441
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 32,
+        "token_loss": 0.013762271031737328,
+        "failures": [],
+        "step": 175,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.7080573439598083,
+            "end_after_second": 0.7775546312332153,
+            "first_margin": 1.0101027488708496,
+            "second_margin": -1.325582504272461
+          },
+          {
+            "offset": "11",
+            "second_one": 0.71267169713974,
+            "end_after_second": 0.7764539122581482,
+            "first_margin": 1.153055191040039,
+            "second_margin": -1.3596515655517578
+          }
+        ]
+      },
+      {
+        "teacher_argmax_exact": 32,
+        "token_loss": 0.011458360590040684,
+        "failures": [],
+        "step": 200,
+        "repeated": [
+          {
+            "offset": "-11",
+            "second_one": 0.9065009951591492,
+            "end_after_second": 0.7386758923530579,
+            "first_margin": 2.6237144470214844,
+            "second_margin": -1.0981063842773438
+          },
+          {
+            "offset": "11",
+            "second_one": 0.8604897260665894,
+            "end_after_second": 0.8396311402320862,
+            "first_margin": 2.24232816696167,
+            "second_margin": -1.7564234733581543
+          }
+        ]
+      }
+    ],
+    "mode": "CPU intervention from selected weights and optimizer; new fixed sample order, no source run mutation",
+    "seconds": 243.54664364499968
+  }
+]

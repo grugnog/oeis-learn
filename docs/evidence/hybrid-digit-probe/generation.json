@@ -1,0 +1,1157 @@
+[
+  {
+    "checkpoint": "original-selected-update-900",
+    "scope": "CPU production greedy sampler plus Python reference execution; not a GPU qualification",
+    "attempts": [
+      {
+        "offset": "-4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "0",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-14",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      }
+    ],
+    "correct": 30
+  },
+  {
+    "checkpoint": "probe-drop0-gain1.pt",
+    "scope": "CPU production greedy sampler plus Python reference execution; not a GPU qualification",
+    "attempts": [
+      {
+        "offset": "-4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "0",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-14",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      }
+    ],
+    "correct": 30
+  },
+  {
+    "checkpoint": "probe-drop0-gain16.pt",
+    "scope": "CPU production greedy sampler plus Python reference execution; not a GPU qualification",
+    "attempts": [
+      {
+        "offset": "-4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "0",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-14",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      }
+    ],
+    "correct": 32
+  },
+  {
+    "checkpoint": "probe-drop0.1-gain1.pt",
+    "scope": "CPU production greedy sampler plus Python reference execution; not a GPU qualification",
+    "attempts": [
+      {
+        "offset": "-4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "0",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-11",
+        "source": "",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-14",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1111111111111111111111111111111111111111111 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      }
+    ],
+    "correct": 30
+  },
+  {
+    "checkpoint": "probe-drop0.1-gain16.pt",
+    "scope": "CPU production greedy sampler plus Python reference execution; not a GPU qualification",
+    "attempts": [
+      {
+        "offset": "-4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-9",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 9 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "0",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 0 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-7",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 7 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-6",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 6 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "5",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 5 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-8",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 8 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "4",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 4 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "1",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 1 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-3",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 3 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "2",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 2 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-11",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-13",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 13 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "12",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 12 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "10",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 10 i256.add",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-14",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 14 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "11",
+        "source": "",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 11 i256.add",
+        "exact_source": false,
+        "execution_match": false
+      },
+      {
+        "offset": "-15",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 15 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      },
+      {
+        "offset": "-16",
+        "source": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "target": "local.get $n i64.extend_i32_u i64.const 0 i64.const 0 i64.const 0 i256.const 16 i256.sub",
+        "exact_source": true,
+        "execution_match": true
+      }
+    ],
+    "correct": 31
+  }
+]

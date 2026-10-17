@@ -1,0 +1,570 @@
+[
+  {
+    "completed_updates": 0,
+    "validation_loss": 5.168913662433624,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000000-attempt-8e6a37942acf4649aee60bc2ed01bc00/result.json"
+  },
+  {
+    "completed_updates": 100,
+    "validation_loss": 2.4871784187853336,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000001-attempt-2d7b4f152438479b82c979abaca65909/result.json",
+    "splits": {
+      "development": {
+        "exact": 0,
+        "denominator": 32,
+        "evaluated": 0,
+        "coverage_complete": false,
+        "completed": 0,
+        "legal": 0,
+        "prefix_exact": 0,
+        "continuation_exact": 0,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 0
+      },
+      "training": {
+        "exact": 0,
+        "denominator": 32,
+        "evaluated": 0,
+        "coverage_complete": false,
+        "completed": 0,
+        "legal": 0,
+        "prefix_exact": 0,
+        "continuation_exact": 0,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 0
+      }
+    }
+  },
+  {
+    "completed_updates": 200,
+    "validation_loss": 2.9375984836369753,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000002-attempt-3354268d7e8e4eb5b05e6987433dba8d/result.json",
+    "splits": {
+      "development": {
+        "exact": 0,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 30,
+        "legal": 30,
+        "prefix_exact": 0,
+        "continuation_exact": 0,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 300,
+    "validation_loss": 3.2619595360010862,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000003-attempt-19854e5beebc4f8b8cc68bfa3a1571cd/result.json",
+    "splits": {
+      "development": {
+        "exact": 0,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 30,
+        "legal": 30,
+        "prefix_exact": 0,
+        "continuation_exact": 0,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 1,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 26,
+        "legal": 26,
+        "prefix_exact": 1,
+        "continuation_exact": 1,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 400,
+    "validation_loss": 3.4420430157333612,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000004-attempt-7e77f5ddb4d84a92a6a7b8d7606a93f9/result.json",
+    "splits": {
+      "development": {
+        "exact": 1,
+        "denominator": 32,
+        "evaluated": 29,
+        "coverage_complete": false,
+        "completed": 30,
+        "legal": 30,
+        "prefix_exact": 1,
+        "continuation_exact": 1,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 9,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 9,
+        "continuation_exact": 9,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 500,
+    "validation_loss": 3.502923695370555,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000005-attempt-42919d438e7d4aac9777e085b01c9dc8/result.json",
+    "splits": {
+      "development": {
+        "exact": 1,
+        "denominator": 32,
+        "evaluated": 29,
+        "coverage_complete": false,
+        "completed": 30,
+        "legal": 30,
+        "prefix_exact": 1,
+        "continuation_exact": 1,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 14,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 14,
+        "continuation_exact": 14,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 31
+      }
+    }
+  },
+  {
+    "completed_updates": 600,
+    "validation_loss": 3.6481493432074785,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000006-attempt-bb985b317059484da8c1ed42cdc53385/result.json",
+    "splits": {
+      "development": {
+        "exact": 1,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 1,
+        "continuation_exact": 1,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 22,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 22,
+        "continuation_exact": 22,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 700,
+    "validation_loss": 3.770130939781666,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000007-attempt-d904633020f64cec902f45d2ccbc5217/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 26,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 26,
+        "continuation_exact": 26,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 800,
+    "validation_loss": 3.8536757081747055,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000008-attempt-6ffadf029cd84db1aa8583d768e8f07d/result.json",
+    "splits": {
+      "development": {
+        "exact": 1,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 1,
+        "continuation_exact": 1,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 21,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 21,
+        "continuation_exact": 21,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 900,
+    "validation_loss": 3.9668672792613506,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000009-attempt-5b1aae8d49da461e8fa8b16bbd1039ca/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 30,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 30,
+        "continuation_exact": 30,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1000,
+    "validation_loss": 3.9654128178954124,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000010-attempt-12357e71192147898d6c8e3b43115f7c/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 29,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 29,
+        "continuation_exact": 29,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1100,
+    "validation_loss": 3.990565739572048,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000011-attempt-a77ad17085c2436a9bc062dd68efa5a8/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 29,
+        "coverage_complete": false,
+        "completed": 29,
+        "legal": 29,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 29,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 29,
+        "continuation_exact": 29,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1200,
+    "validation_loss": 4.092477973550558,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000012-attempt-1812ee04da5e4d4cab4708deca0bbcfc/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 29,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 30,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 30,
+        "continuation_exact": 30,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1300,
+    "validation_loss": 4.160631541162729,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000013-attempt-27845c7665fd40d88b12a8316596b483/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 30,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 30,
+        "continuation_exact": 30,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1400,
+    "validation_loss": 4.134159225970507,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000014-attempt-1707c5a33d7b40108739d2f1525ce529/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 31,
+        "coverage_complete": false,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 30,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 30,
+        "continuation_exact": 30,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1500,
+    "validation_loss": 4.153431031852961,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000015-attempt-747772ed9e5a4b5487f59c4ec078145b/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 29,
+        "coverage_complete": false,
+        "completed": 30,
+        "legal": 30,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 31
+      },
+      "training": {
+        "exact": 29,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 29,
+        "continuation_exact": 29,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1600,
+    "validation_loss": 4.273503188043833,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000016-attempt-f04eef08ca4e4d4cb2450cb4439662da/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 30,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 30,
+        "continuation_exact": 30,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      }
+    }
+  },
+  {
+    "completed_updates": 1700,
+    "validation_loss": 4.312629774212837,
+    "validation_denominator": 32,
+    "device": "cuda",
+    "source": "roles/train-000017-attempt-1c51bc2522074729849f111e705feb55/result.json",
+    "splits": {
+      "development": {
+        "exact": 2,
+        "denominator": 32,
+        "evaluated": 30,
+        "coverage_complete": false,
+        "completed": 31,
+        "legal": 31,
+        "prefix_exact": 2,
+        "continuation_exact": 2,
+        "shuffled_exact": 0,
+        "shuffled_denominator": 32
+      },
+      "training": {
+        "exact": 28,
+        "denominator": 32,
+        "evaluated": 32,
+        "coverage_complete": true,
+        "completed": 32,
+        "legal": 32,
+        "prefix_exact": 28,
+        "continuation_exact": 28,
+        "shuffled_exact": 1,
+        "shuffled_denominator": 32
+      }
+    }
+  }
+]
