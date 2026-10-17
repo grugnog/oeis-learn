@@ -24,7 +24,7 @@ tar -xzf "$task_root"/wheels/*.tar.gz -C "$task_root/source"
 task_source=$(find "$task_root/source" -mindepth 1 -maxdepth 1 -type d)
 (
   cd "$task_source"
-  PYTHONPATH=src "$task_root/env/bin/python" -m pytest -q tests/unit/test_foundation_task_inventory.py tests/unit/test_foundation_handoff.py tests/unit/test_foundation_phase10_integration.py::test_review_dispositions_bind_current_package_implementation --junitxml="$task_root/source-distribution.xml"
+  PYTHONPATH=src "$task_root/env/bin/python" -m pytest -q --durations=20 tests/unit/test_foundation_task_inventory.py tests/unit/test_foundation_handoff.py tests/unit/test_foundation_phase10_integration.py::test_review_dispositions_bind_current_package_implementation --junitxml="$task_root/source-distribution.xml"
 )
 uv build --wheel --out-dir "$task_root/rebuilt" "$task_source"
 "$task_root/env/bin/python" - "$task_root" <<'PY'
@@ -43,6 +43,6 @@ cp "$repo/tests/contract/test_foundation_qualified_cli.py" "$task_root/acceptanc
 cd "$task_root/acceptance"
 unset PYTHONPATH
 export OEIS_INSTALLED_WHEEL=1
-"$task_root/env/bin/python" -I -m pytest -q test_installed_cli.py --junitxml="$task_root/installed-wheel.xml"
+"$task_root/env/bin/python" -I -m pytest -q --durations=20 test_installed_cli.py --junitxml="$task_root/installed-wheel.xml"
 "$task_root/env/bin/oeis-learn" foundation --help > "$task_root/installed-help.txt"
 printf 'Installed wheel evidence: %s\n' "$task_root"

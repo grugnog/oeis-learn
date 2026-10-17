@@ -27,8 +27,8 @@ The CPU checks originally serialized three independent workloads. Input
 diagnostics and quickstart/replay use distinct output directories and do not
 consume the regression suite's outputs; they can run as separate jobs while
 retaining all commands and artifacts. This improves feedback from that branch
-of CI; the longer wheel and portable-validation jobs can still dominate total
-PR latency.
+of CI; portable-validation jobs can still dominate total PR latency. Training/replay integration previously run only by the wheel job
+also runs as an independent CPU acceptance matrix entry.
 
 Persistent download/build caches can reduce repeated dependency setup and build
 work. Caches are accelerators only: install/build/test commands still execute,
@@ -42,8 +42,25 @@ can still invalidate the native build layer. Separating native compilation from
 Python packaging may help later, but requires checking the source-distribution,
 ABI, and native build-identity contracts. It is not part of this quick pass.
 
-Per-test duration output will make the next successful run more useful for
-choosing further test splits. The 10m22s installed-wheel step includes ordered
-gate/evidence production and rebuilt-wheel checks; it should not be split
-without preserving those dependencies. No speedup estimate here is a measured
-result of the new configuration.
+Routine CI now keeps the Docker/Podman end-to-end validation and native G7–G9
+qualification, with a small installed-image smoke check in the native job. That
+check runs outside the checkout with Python isolated mode, checks packaged
+resources and source identity, executes the Rust backend with no fallback, and
+checks CLI help. The normal image build still builds and installs the Rust wheel.
+
+The full distribution audit is available through **Actions → Manual packaging
+and release audit → Run workflow** (`.github/workflows/foundation-release.yml`).
+It retains the clean-environment installation, source-distribution rebuild,
+resource equivalence, installed CLI acceptance, and G10 archive/replay evidence.
+This repository is used through containers, so those release checks no longer
+run on every PR. Removing that job from routine CI does not qualify a release or
+make G10 pass; the manual audit must run when that evidence is needed. The other
+regression tests formerly repeated in that job remain covered by the CPU,
+training-integration, native-qualification, and portable-engine jobs.
+
+Docker builds share a GitHub Actions qualification-image cache; pip download
+caches are keyed by Python version and the dependency manifests. Podman retains
+its own native build. Superseded runs on the same PR are cancelled. Per-test
+duration output will make the next successful run more useful for choosing
+further test splits. No speedup estimate here is a measured result of the new
+configuration; the previous 13–14 minute portable-engine paths may still dominate.

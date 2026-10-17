@@ -86,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [input-diagnostics, quickstart]
+        check: [input-diagnostics, quickstart, training-integration]
     env:
       OMP_NUM_THREADS: '2'
       PYTHONPATH: 'src:.'
@@ -113,12 +113,19 @@ jobs:
         run: |
           .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
           .review-venv/bin/python -m oeis_learn.evaluation.handoff --archive phase11-evidence/quickstart/handoff
+      - name: Training and verified replay integration
+        if: matrix.check == 'training-integration'
+        run: |
+          .review-venv/bin/python -m pytest -q --durations=20 \
+            tests/integration/test_egca_training_step.py tests/integration/test_bootstrap_admission.py \
+            --junitxml=phase7-training-integration.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: phase7-cpu-${{ matrix.check }}
           path: |
             phase7-${{ matrix.check }}-environment.txt
+            phase7-training-integration.xml
             phase13-evidence/**
             phase11-evidence/quickstart/*.stdout
             phase11-evidence/quickstart/*.stderr
@@ -140,6 +147,22 @@ jobs:
           load: true
           cache-from: type=gha,scope=oeis-qualification
           cache-to: type=gha,scope=oeis-qualification,mode=max,ignore-error=true
+      - name: Installed image resources and native execution outside checkout
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm --workdir /tmp -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            cp /opt/oeis-build/tests/contract/test_foundation_qualified_cli.py /tmp/test_installed_cli.py
+            unset PYTHONPATH
+            export OEIS_INSTALLED_WHEEL=1 OEIS_REQUIRE_NATIVE=1
+            python -I -m pytest -q --durations=20 \
+              /tmp/test_installed_cli.py::test_packaged_resources_and_actual_execution \
+              /tmp/test_installed_cli.py::test_installed_native_has_no_fallback \
+              --junitxml=/evidence/installed-image.xml
+            oeis-learn foundation --help > /evidence/installed-help.txt
+          '
       - name: Mandatory Rust tests and G7 qualification
         run: |
           mkdir -p phase7-evidence
@@ -166,6 +189,7 @@ jobs:
           name: phase7-native-qualification
           path: |
             phase7-evidence/*.xml
+            phase7-evidence/installed-help.txt
             phase7-evidence/g7.json
             phase7-evidence/activation.json
             phase7-evidence/activation-cli.json
