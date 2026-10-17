@@ -162,11 +162,11 @@ def test_dropout_bound_to_checkpoint_and_live_scale_change_invalidates_cache():
     assert not cache.valid
 
 
-def test_symmetric_v2_default_checkpoint_and_runtime_dispatch():
+def test_v2_runtime_dispatch_requires_explicit_input_version():
     from oeis_learn.fresh.worker import models
     profile = bootstrap_profile("hybrid", decoder_inputs=decoder_controls(position_scale=16, dropout=0))
     encoder, decoder, counts = models(dict(model=profile, seed=71, device="cpu", cpu_threads=1))
     assert encoder.byte_gate is not None
     assert decoder.position_scale == 16 and counts["total"] > 0
-    with pytest.raises(ValueError, match="version"):
+    with pytest.raises(ValueError, match="require decoder-inputs/v1"):
         small(position_scale=16)
