@@ -6,6 +6,12 @@ Status: planned. All fitting/classification/substitution mathematics belongs to 
 
 The new native worker uses 4-byte unsigned little-endian length-prefixed UTF-8 JSON, protocol `synthesis-worker/v1`, maximum 4 MiB/frame and at most 32 candidates per batch. Validate length before allocation. Batch by both bytes and count; the existing 1 MiB Python worker protocol remains unchanged. Stdout is protocol only; stderr is bounded diagnostics. Worker lifetime, RSS, deadline and kill/reap supervision stay outside native solving. The PyO3 interface is an optional thin transport facade, not another solver implementation. The binding/worker crate depends on the core and supplies retained-profile execution through a native trait; the core does not depend back on the binding. Bigint execution is implemented by the core. This avoids a crate cycle and introduces no Python trial callbacks.
 
+### Phase 2 test access
+
+Before the first Python/native differential gate, provide `crates/oeis_wasm_evaluator/examples/synthesis_core_test_driver.rs`, a qualification-only executable calling the same core APIs and native retained-profile adapter. It handles one bounded request using the Phase 1 schema, initially for execution, then fitting and scoped replay as those algorithms become available. A test fixture builds it with committed locks inside the qualification container and invokes it under an external subprocess deadline/RSS limit; it has no worker pool, cache or hidden-data mounts and never grants public admission. Python passes its provisional output to the independently implemented reference/admission path.
+
+This narrow test bridge must exist before T025/T036, so Phase 2 does not depend on the production worker/client introduced in Phase 3. It is not installed as a production command or a competing solver. Production transport later calls those same qualified core APIs.
+
 Request fields: `request_id`, `operation` (`fit`, `execute`, `replay_unsat`), `worker_generation`, `contract_sha256`, `language_profile`, `resource_profile`, `solver_profile`, `candidates`, `visible_indices`, `visible_values`, `remaining_budget`, `seed`. Reject unknown fields/version, duplicate IDs, malformed exact integers, contract mismatch or over-limit input. No hidden values, evaluation metadata/family labels or privileged files enter fitting requests. The batch budget is aggregate; child requests cannot refund it.
 
 Each candidate carries original source/hash, final codec profile, explicit parameter IDs or a requested deterministic abstraction policy, and an occurrence mapping when pre-parameterized. Default concrete abstraction selects at most eight mathematical literals by canonical source order after dependence analysis; it does not infer shared identity from equal values. Protect any literal flowing into control guards, trip counts, storage indices or unsupported scalar machinery. Parameter-tainted control is conservatively unsupported even when sampled values happen to choose the same branch.
@@ -49,3 +55,22 @@ An UNSAT replay record is scoped solver evidence, not a formal proof of the whol
 Per candidate: request/candidate ID, original/transformed/final source hashes, abstraction occurrence map, parameter assignment exact strings, numeric/solver/runtime/reference identities, visible-prompt hash and actual indices, outcome/reason/phase, completed bounds, ambiguity status, complete scope, elapsed phase times, fuel/steps/memory when available, coverage, constraints hash and bounded replay artifact, final validation and reference results. Missing metrics are null plus a reason, never zero invented measurements.
 
 Partial batch responses identify completed, failed and unstarted candidates. Cache keys include exact visible prompt/index bytes, source/parameterization, language/resource/solver/reference identities and policy. A cached timeout/unknown is not permanent UNSAT; a cached verified result cannot cross profiles or skip requested independent-evidence validation. Restarted workers have a new generation and no surviving arena/Z3 state.
+
+## Service capacity and backpressure
+
+Freeze these initial defaults under `fitting.service_limits` in the effective recipe. Limits cover the aggregate of all new synthesis helpers/caches in one owning role; increasing worker count cannot multiply the allowance. Independent native worker RSS and parent role memory/disk caps still apply.
+
+| Setting | Default / accounting |
+| --- | --- |
+| `max_inflight_batches` | 1 |
+| `max_pending_batches` | 8, excluding the active batch |
+| `max_pending_bytes` | 32 MiB of encoded pending request frames, including headers |
+| `result_cache_max_entries` / `result_cache_max_bytes` | 4,096 / 64 MiB of canonical serialized key-plus-result bytes |
+| `compiled_cache_max_entries` / `compiled_cache_max_bytes` | 32 / 64 MiB of key-plus-serialized compiled artifact bytes; resident compiler/module memory is additionally bounded by worker RSS |
+| `disk_cache_max_entries` / `disk_cache_max_bytes` | 256 / 512 MiB including keys/artifacts and reserved temporary writes, workspace-local; zero disables this cache |
+
+Queue admission must satisfy both pending count and bytes before copying/enqueuing the request. Use FIFO order. A full queue applies backpressure within the caller's existing aggregate deadline; cancellation/expiry releases its reservation. If capacity is still unavailable at that deadline, return `resource_exhausted` with phase `queue` and reason `backpressure_timeout`, leaving the request unstarted and charged for elapsed waiting. Queue wait, cache lookup/validation and retries count against the original parent allowance. No new budget is issued upon dispatch.
+
+Caches use deterministic least-recently-used eviction with a monotone access counter and canonical key as tie-break. Reserve bytes/entries before publication, remove reservations after failed/partial writes, and enforce both limits after every operation. An oversized entry is returned normally within transport limits but bypasses caching with a recorded reason; it cannot evict all entries and then exceed the cap. Cache size/hit/miss/eviction/bypass and queue wait/depth counters are bounded aggregate metrics. Changing capacity/eviction/concurrency changes the effective contract identity. Tests must cover count-first and byte-first exhaustion, cancellation, shared limits across helpers, deterministic eviction, oversized entries, disk-full/partial writes and healthy requests after exhaustion.
+
+Phase 2 owns the pure queue reservation/cache eviction and budget policies. Phase 3 wires storage/supervision to those policies; Phase 5 executes integrated pressure/recovery qualification.

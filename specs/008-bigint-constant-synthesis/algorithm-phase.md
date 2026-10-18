@@ -17,11 +17,15 @@ Implement canonical exact integers, logical bigint/control typing, explicit para
 
 Implement an independently parsed Python reference for the new source language, with exact operations and explicit bounded execution. Expected arithmetic values must not come from the production lowering or runtime. Define correspondence and separate fuel-versus-reference-limit classifications. Preserve old checked-width behavior and explicit unsupported legacy translation outcomes.
 
+Create the qualification-only `crates/oeis_wasm_evaluator/examples/synthesis_core_test_driver.rs` and its bounded Python subprocess fixture before the first differential gate. Start with execution; extend the same driver to fitting/scoped replay within package B. Tests call the qualified core directly through this bridge without waiting for Phase 3's worker/client, and independently parse/verify final source in Python. The driver has no production entry point, trial callbacks or public admission authority.
+
 ### B. Dependence, abstraction and exact fitting
 
 Implement semantic dependence/control-taint analysis, deterministic eligible literal abstraction, shared parameter IDs and final substitution. Build exact affine interpretation, elimination/back-substitution, original-equation checks and inconsistency evidence. Handle rank-deficient integer feasibility with QF_LIA; support bounded parameter-independent control unrolling and nonlinear arithmetic through QF_NIA. Encode checked old-profile intermediates where supported. Reject all unsupported semantics without probe-based guessing.
 
 Implement aggregate bounds/deadlines, bounded assignment enumeration, ranking/uniqueness states and scoped UNSAT replay. Native results remain provisional until independent checking; a failed resource/verification attempt is not global UNSAT. Exact large model numeral conversion must never pass through i64/f64. Keep native solver contexts worker-local and externally killable.
+
+Implement pure FIFO queue reservation/backpressure and deterministic LRU cache policies with the solver contract's aggregate per-role count/byte caps. Test pending/active accounting, elapsed waiting, cancellations, oversized cache entries and failed-publication reservation release here; storage and worker-pool wiring remain Phase 3 work.
 
 ### C. Large-number model inputs and generation correctness
 
@@ -41,6 +45,7 @@ This package supplies pure, tested policy functions for Phase 3 to call. If an e
 | --- | --- |
 | Exact integers | Zero/negative zero/canonicalization; signed adjacent values at256/512/1024/4096bits; 0!…99!; two-large-operand multiplication; boundary products/zero; large cancellation; exact source offsets |
 | Containment | Forged/stale handle rejection; private memory/privileged export inaccessible; source/nodes/loop/arena/linear-memory/fuel/aggregate/deadline failures classified; healthy request after each failure |
+| Service capacity | Count/byte-first queue exhaustion, no budget restart after waiting, cancellation/reservation release, aggregate helper limits, deterministic eviction, oversized cache bypass and failed-write recovery |
 | Independent reference | Independently derived expected values and parser; production/reference parity on valid cases; deliberately injected wrong production result rejected; different accounting limits never treated as agreement |
 | Affine/SMT | Large negative/zero/shared coefficients; unique, inconsistent, nonintegral and rank-deficient systems; free-variable integer-feasibility counterexample; nonlinear false fit16vs4; intermediate overflow; parameter-tainted control; UNKNOWN/timeouts never UNSAT |
 | Admission/evidence | Provisional SAT cannot enter replay; all visible indices required; malformed/mismatched evidence rejected; scope-limited UNSAT labelled; reference timeout prevents admission; no hidden fields accessible |

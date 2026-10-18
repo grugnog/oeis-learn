@@ -32,7 +32,7 @@ Top-level sections: `data`, `execution`, `inputs`, `model`, `learning`, `fitting
 - `inputs`: `hybrid-chunks/v1` or named retained control, exact bit/chunk limits, mathematical features and four group masks.
 - `model`: full architecture, decoder gain/dropout, initialization and precision/attention choices; seed override permitted only before run creation.
 - `learning`: literal/parameterized target view, learning rate, update/time caps, complete validation cadence, selection/patience and curriculum/replay policy.
-- `fitting`: one native solver profile, coefficient/parameter/bounds/deadlines, ambiguity and ranking policy; `disabled` is an explicit raw arm, never fallback Python.
+- `fitting`: one native solver profile, coefficient/parameter/bounds/deadlines, ambiguity and ranking policy, plus explicit `service_limits` for in-flight/pending count/bytes, result/compiled/disk cache count/bytes and FIFO/backpressure/LRU behavior from the solver contract; `disabled` is an explicit raw arm, never fallback Python. Limits are aggregate per owning role and included in the resolved contract hash.
 - `search`: candidates/tokens/portfolio ordering and aggregate visible-only budget.
 - `evaluation`: fixed denominators, held-out scope/horizon, prompt controls, template baseline, `primary_transfer_metric: continuation_accuracy_100`, the exact-fitting equal-budget gate portfolio and separately capped hidden scoring. Default `final_access: sealed`; final-study plan and aggregate/per-arm budgets are required only for explicit final evaluation. Ordinary training finalization cannot unlock it.
 - `track`: `generic_only` or `assisted`, optional shared-foundation checkpoint and reviewed assisted-manifest digest.
