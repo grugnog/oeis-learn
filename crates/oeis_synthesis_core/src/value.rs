@@ -1,9 +1,10 @@
 //! Canonical exact values and content-addressed finite resource profiles.
+use dashu_base::BitTest;
 use dashu_int::IBig;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub fn bits(n: &IBig) -> usize { n.clone().into_parts().1.bit_len() }
+pub fn bits(n: &IBig) -> usize { n.bit_len() }
 pub fn integer(text: &str, limit: usize) -> Result<IBig, String> {
     if limit == 0 || limit > 131072 || text.len() > limit * 30103 / 100000 + 2 {
         return Err("literal_limit".into());
@@ -65,4 +66,21 @@ impl Resources {
         v.as_object_mut().unwrap().insert("version".into(),"bigint-resources/v1".into());
         digest(serde_json::to_string(&v).unwrap().as_bytes())
     }
+}
+
+/// Exact limb transport for the named retained checked profile, not bigint execution.
+pub fn checked256_limbs(text:&str)->Result<[i64;4],String> {
+    let n=integer(text,256)?;
+    let half=IBig::ONE<<255usize;
+    if n < -&half || n>=half {return Err("invalid_source".into());}
+    let unsigned=if n<IBig::ZERO {n+(IBig::ONE<<256usize)} else {n};
+    let mut raw=unsigned.into_parts().1.to_le_bytes().into_vec();raw.resize(32,0);
+    Ok(std::array::from_fn(|i|i64::from_le_bytes(raw[i*8..i*8+8].try_into().unwrap())))
+}
+pub fn signed256_decimal(limbs:&[i64])->Result<String,String> {
+    if limbs.len()!=4 {return Err("runtime_failure".into());}
+    let mut n=IBig::ZERO;
+    for (i,x) in limbs.iter().enumerate() {n+=IBig::from(*x as u64)<<(64*i);}
+    if limbs[3]<0 {n-=IBig::ONE<<256usize;}
+    Ok(n.to_string())
 }

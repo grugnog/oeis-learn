@@ -30,3 +30,14 @@ use oeis_synthesis_core::{language::parse,lowering::{lower,validate_candidate},v
         "(module (import \"oeis.big.v1\" \"memory\" (memory 1)))",
     ] {assert!(validate_candidate(&wat::parse_str(source).unwrap()).is_err());}
 }
+
+#[test] fn unknown_traps_stay_runtime_failure_and_profiles_change_identity() {
+    use oeis_synthesis_core::runtime::BigintRuntime;
+    assert!(BigintRuntime::new(b"not wasm").is_err());
+    let wasm=wat::parse_str("(module (func (export \"host_init\") (param i32 i32 i32 i32 i32 i32 i32) (result i32) unreachable))").unwrap();
+    let mut runtime=BigintRuntime::new(&wasm).unwrap();
+    let result=runtime.evaluate("(program (return $index))",&["0".into()],&Resources::default());
+    assert_eq!(result.reason.as_deref(),Some("runtime_failure"));assert!(result.values.is_empty());
+    let a=Resources::default();let mut b=a.clone();b.aggregate_fuel=1;
+    assert_ne!(a.identity(),b.identity());
+}

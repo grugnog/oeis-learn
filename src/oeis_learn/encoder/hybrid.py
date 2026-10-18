@@ -44,3 +44,37 @@ class HybridEncoder(TriStreamEncoder):
             self.pos_encoder(fused), src_key_padding_mask=batch.padding
         )
         return self.final_norm(hidden).masked_fill(batch.padding[..., None], 0)
+
+
+class ChunkHybridEncoder(TriStreamEncoder):
+    """Explicit width-extensible profile; historical HybridEncoder stays intact."""
+    def __init__(self, *, dropout=0.0, **kwargs):
+        from .large_integer_features import PRIMES
+        from .integer_chunks import ChunkEncoder
+        fixed=dict(d_model=256,n_heads=4,n_encoder_layers=4,d_ff=1024,
+                   primes=PRIMES,base_moduli=PRIMES,max_valuation=32,
+                   use_film=True,enable_summary_tokens=False,input_profile="hybrid-chunks/v1")
+        for key,value in kwargs.items():
+            if key in fixed and value!=fixed[key]:
+                raise ValueError(f"hybrid-chunks/v1 requires frozen {key}")
+        fixed.update(kwargs)
+        super().__init__(dropout=dropout,**fixed)
+        self.chunk_encoder=ChunkEncoder(dropout=dropout)
+        self.byte_gate=nn.Parameter(torch.full((256,),-2.0))
+
+    def forward_from_sequences(self,sequences,pad_mask=None,device=None):
+        from .integer_chunks import encode_chunks
+        actual=next(self.parameters()).device
+        if device is not None and torch.device(device)!=actual:
+            raise ValueError("explicit device differs from model device")
+        batch=encode_chunks(sequences,device=actual)
+        if pad_mask is not None and not torch.equal(pad_mask,batch.padding):
+            raise ValueError("padding must match exact visible lengths")
+        s1=self.s1_magnitude(sequences,device=actual)
+        s2=self.s2_modulo(sequences,device=actual)
+        s3=self.s3_diff_padic(sequences,device=actual)
+        fused=self.fusion(s1,s2,s3)+self.byte_gate.sigmoid()*self.chunk_encoder(batch)
+        hidden=self.transformer_encoder(self.pos_encoder(fused),src_key_padding_mask=batch.padding)
+        result=self.final_norm(hidden).masked_fill(batch.padding[...,None],0)
+        if not torch.isfinite(result).all():raise FloatingPointError("nonfinite bigint input encoding")
+        return result

@@ -9,7 +9,7 @@ struct Limits { inner:StoreLimits, memory_denied:bool }
 impl ResourceLimiter for Limits {
     fn memory_growing(&mut self,current:usize,desired:usize,maximum:Option<usize>)->wasmtime::Result<bool> {
         let result=self.inner.memory_growing(current,desired,maximum);
-        if !matches!(result,Ok(true)) {self.memory_denied=true;}
+        if !matches!(&result,Ok(true)) {self.memory_denied=true;}
         result
     }
     fn table_growing(&mut self,current:u32,desired:u32,maximum:Option<u32>)->wasmtime::Result<bool> {
@@ -56,24 +56,25 @@ fn check(i:&Instance,s:&mut Store<Limits>)->Result<(),String> {
 }
 fn load(i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bool)->Result<i32,String> {
     call1(i,s,"host_begin_load",i32::from(literal))?;
-    let mut bytes=n.clone().into_parts().1.to_le_bytes();if bytes.is_empty(){bytes.push(0);}
+    let mut bytes=n.clone().into_parts().1.to_le_bytes().into_vec();if bytes.is_empty(){bytes.push(0);}
     for b in bytes {call1(i,s,"host_load_byte",b as i32)?;}
     let sign=if n<&IBig::ZERO {-1} else if n==&IBig::ZERO {0} else {1};
     let h=call1(i,s,"host_finish_load",sign)?;check(i,s)?;Ok(h)
 }
 
-pub struct BigintRuntime {engine:Engine,runtime:Module,pub runtime_identity:String}
+pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String}
 impl BigintRuntime {
     pub fn new(bytes:&[u8])->Result<Self,String> {
         if bytes.len()>16*1024*1024 {return Err("runtime_failure".into());}
+        let compilation=Instant::now();
         let mut cfg=Config::new();cfg.consume_fuel(true).epoch_interruption(true).wasm_threads(false).parallel_compilation(false);
         cfg.static_memory_maximum_size(0).static_memory_guard_size(0).dynamic_memory_guard_size(0).dynamic_memory_reserved_for_growth(0);
         let engine=Engine::new(&cfg).map_err(trap)?;
         let runtime=Module::new(&engine,bytes).map_err(trap)?;
         if runtime.imports().next().is_some() {return Err("runtime_failure".into());}
-        Ok(Self{engine,runtime,runtime_identity:crate::value::digest(bytes)})
+        Ok(Self{engine,runtime,compilation_seconds:compilation.elapsed().as_secs_f64(),runtime_identity:crate::value::digest(bytes)})
     }
-    pub fn evaluate(&self,source:&str,indices:&[String],r:&Resources)->Evaluation {
+    pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
         let result=self.run(source,indices,r,&mut out);
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
@@ -89,7 +90,7 @@ impl BigintRuntime {
         // Typed lookup below validates ABI signatures against the real guest.
         let literals=lowered.literals.iter().map(|s|integer(s,r.literal_bits)).collect::<Result<Vec<_>,_>>()?;
         for index in indices {
-            let remaining=r.evaluation_seconds-start.elapsed().as_secs_f64();
+            let remaining=r.evaluation_seconds-self.compilation_seconds-start.elapsed().as_secs_f64();
             if remaining<=0.0 {return Err("deadline".into());}
             let fuel=r.term_fuel.min(r.aggregate_fuel.saturating_sub(out.fuel));
             if fuel==0 {return Err("aggregate_fuel".into());}
@@ -126,7 +127,7 @@ impl BigintRuntime {
                 for at in 0..len {raw.push(call1(&runtime,&mut store,"host_output_byte",at)? as u8);}
                 check(&runtime,&mut store)?;
                 let mut n=IBig::from(UBig::from_le_bytes(&raw));if sign<0{n=-n;}
-                if start.elapsed().as_secs_f64()>=r.evaluation_seconds {return Err("deadline".into());}
+                if start.elapsed().as_secs_f64()+self.compilation_seconds>=r.evaluation_seconds {return Err("deadline".into());}
                 Ok(n.to_string())
             })();
             let consumed=fuel-store.get_fuel().unwrap_or(0);out.fuel+=consumed;
@@ -138,5 +139,16 @@ impl BigintRuntime {
             }
         }
         Ok(())
+    }
+}
+
+/// Explicit profile wrapper for the same native execution trait as retained
+/// signed-256. A caller must choose resources; changing them changes identity.
+pub struct BigintBackend { pub runtime:BigintRuntime, pub resources:Resources }
+impl crate::ExecutionBackend for BigintBackend {
+    fn profile(&self)->&str {"bigint-body/v1"}
+    fn execute(&mut self,source:&str,indices:&[String])->Result<Vec<String>,String> {
+        let result=self.runtime.evaluate(source,indices,&self.resources);
+        if result.outcome=="ok" {Ok(result.values)} else {Err(result.reason.unwrap_or("runtime_failure".into()))}
     }
 }

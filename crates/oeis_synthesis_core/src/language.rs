@@ -23,7 +23,7 @@ pub enum Statement { Set(String,Expr), If(Expr,Vec<Statement>,Vec<Statement>), L
 #[derive(Clone,Debug)]
 pub struct Program {
     pub locals:BTreeMap<String,Type>, pub body:Vec<Statement>, pub result:Expr,
-    pub parameters:Vec<u8>, pub source:String,
+    pub parameters:Vec<u8>, pub original_parameter_ids:Vec<u8>, pub source:String, pub original_source:String,
 }
 #[derive(Clone,Debug)]
 enum S { Atom(String), List(Vec<S>) }
@@ -65,7 +65,8 @@ impl Checker<'_> {
             if s.len()!=2 || !s.starts_with('p') || !(b'0'..=b'7').contains(&s.as_bytes()[1]) { return Err("invalid_source".into()); }
             let p=s.as_bytes()[1]-b'0';
             if !self.params.contains(&p) { self.params.push(p); }
-            return Ok(Expr::Param(p));
+            let canonical=self.params.iter().position(|id|*id==p).unwrap() as u8;
+            return Ok(Expr::Param(canonical));
         }
         if op=="get" && args.len()==1 {
             let name=args[0].atom()?;
@@ -143,7 +144,39 @@ pub fn parse(source:&str,r:&Resources,allow_parameters:bool)->Result<Program,Str
     let body=c.statements(&xs[at..xs.len()-1],&BTreeSet::new())?;
     let result=c.expression(&last[1])?;
     if result.kind(&c.locals)!=Type::Big { return Err("invalid_source".into()); }
-    Ok(Program{locals:c.locals,body,result,parameters:c.params,source:source.into()})
+    let mut program=Program{locals:c.locals,body,result,parameters:(0..c.params.len() as u8).collect(),original_parameter_ids:c.params,source:String::new(),original_source:source.into()};
+    program.source=canonical_source(&program);
+    Ok(program)
+}
+
+pub fn expression_source(e:&Expr)->String {
+    match e {
+        Expr::Index=>"$index".into(),Expr::Int(n)=>format!("(int {n})"),
+        Expr::Control(n)=>format!("(control {n})"),Expr::Param(p)=>format!("(param.get p{p})"),
+        Expr::Get(n)=>format!("(get {n})"),Expr::Bool(b)=>(if *b {"(true)"} else {"(false)"}).into(),
+        Expr::Call(op,args,_)=>format!("({op} {})",args.iter().map(expression_source).collect::<Vec<_>>().join(" ")),
+    }
+}
+pub fn statement_source(s:&Statement)->String {
+    let body=|xs:&[Statement]|xs.iter().map(statement_source).collect::<Vec<_>>().join(" ");
+    match s {
+        Statement::Set(n,e)=>format!("(set {n} {})",expression_source(e)),
+        Statement::If(e,a,b)=>format!("(if {} (then {}) (else {}))",expression_source(e),body(a),body(b)),
+        Statement::Loop(n,e,xs)=>format!("(loop {n} {} {})",expression_source(e),body(xs)),
+    }
+}
+impl Program {
+    pub fn ast_identity(&self)->String { crate::value::digest(canonical_source(self).as_bytes()) }
+}
+pub fn canonical_source(p:&Program)->String {
+    let mut items=Vec::new();
+    for (name,typ) in &p.locals {
+        let typ=match typ {Type::Big=>"bigint",Type::Control=>"control",Type::Bool=>"bool"};
+        items.push(format!("(local {name} {typ})"));
+    }
+    items.extend(p.body.iter().map(statement_source));
+    items.push(format!("(return {})",expression_source(&p.result)));
+    format!("(program {})",items.join(" "))
 }
 
 #[cfg(test)]
@@ -154,6 +187,8 @@ mod tests {
         for source in ["(program (return (control 1)))","(program (return (get $b0)))","(program (return (int -0)))","(program (return $index)) junk","(program (return (param.get p0)))"] { assert!(parse(source,&r,false).is_err(),"{source}"); }
         assert!(parse("(program (return (add $index (int -7))))",&r,false).is_ok());
         let p=parse("(program (return (mul (param.get p7) (param.get p7))))",&r,true).unwrap();
-        assert_eq!(p.parameters,vec![7]);
+        assert_eq!(p.parameters,vec![0]);
+        assert_eq!(p.original_parameter_ids,vec![7]);
+        assert!(p.source.contains("p0") && !p.source.contains("p7"));
     }
 }

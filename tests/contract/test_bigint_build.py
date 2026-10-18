@@ -1,4 +1,5 @@
 """Dependency/artifact smoke checks; not bigint arithmetic qualification."""
+
 import hashlib
 import json
 import os
@@ -32,9 +33,17 @@ def test_dependency_closures_and_pins():
 def test_source_inventory_includes_nested_modules_and_locks(tmp_path):
     from oeis_learn.sandbox.native_runtime import source_bytes
     import shutil
+
     for path in ("crates", "docker/dev", "src/oeis_learn/synthesis"):
-        shutil.copytree(ROOT / path, tmp_path / path, ignore=shutil.ignore_patterns("target", "__pycache__"))
+        shutil.copytree(
+            ROOT / path, tmp_path / path, ignore=shutil.ignore_patterns("target", "__pycache__")
+        )
     shutil.copyfile(ROOT / "Dockerfile", tmp_path / "Dockerfile")
+    (tmp_path / "src/oeis_learn/sandbox").mkdir(parents=True)
+    shutil.copyfile(
+        ROOT / "src/oeis_learn/sandbox/preamble.wat",
+        tmp_path / "src/oeis_learn/sandbox/preamble.wat",
+    )
     binding = tmp_path / "crates/oeis_wasm_evaluator"
     old = source_bytes(binding)
     nested = tmp_path / "crates/oeis_synthesis_core/src/nested/new.rs"
@@ -50,6 +59,7 @@ def test_source_inventory_includes_nested_modules_and_locks(tmp_path):
 
 def test_fixture_hashes_and_independent_expected_values():
     import math
+
     manifest = json.loads((ROOT / "tests/fixtures/bigint/manifest.json").read_text())
     for entry in manifest["fixtures"]:
         path = ROOT / "tests/fixtures/bigint" / entry["path"]
@@ -74,12 +84,17 @@ def test_packaged_artifacts_and_binding_exact_numeral():
             pytest.fail("required packaged bigint smoke artifacts are missing")
         pytest.skip("requires built qualification/gpu image")
     from scripts.inspect_bigint_build import inspect
+
     report = inspect(ROOT, info)
     saved = json.loads((info / "bigint-build.json").read_text())
     assert report == saved
     assert report["production_enabled"] is False
     assert report["imports"] == []
-    for path in (info / "bigint-dependency-smoke.wasm", info / "core.Cargo.lock", info / "guest.Cargo.lock"):
+    for path in (
+        info / "bigint-dependency-smoke.wasm",
+        info / "core.Cargo.lock",
+        info / "guest.Cargo.lock",
+    ):
         assert path.is_file() and os.access(path, os.R_OK)
 
 
@@ -87,6 +102,7 @@ def test_packaged_artifacts_and_binding_exact_numeral():
 def test_retained_signed_256_fixture_execution(backend):
     from oeis_learn.sandbox.pipeline import Runtime
     from oeis_learn.sandbox.runner import decode_i256_limbs
+
     if backend == "rust":
         try:
             __import__("oeis_wasm_evaluator")

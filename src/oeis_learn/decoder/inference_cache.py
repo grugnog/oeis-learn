@@ -14,6 +14,7 @@ import torch.nn.functional as F
 def model_signature(model):
     return (
         model.input_version,
+        getattr(model, "codec_sha256", None),
         model.token_scale,
         model.position_scale,
         tuple((id(p), p._version, str(p.device), str(p.dtype)) for p in model.parameters()),

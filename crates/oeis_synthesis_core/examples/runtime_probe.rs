@@ -11,6 +11,6 @@ fn main() {
     let req:Request=serde_json::from_slice(&raw).expect("invalid request");
     let path=std::env::var("OEIS_BIGINT_WASM").unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes=std::fs::read(path).expect("qualified runtime artifact required");
-    let runtime=BigintRuntime::new(&bytes).expect("runtime module");
+    let mut runtime=BigintRuntime::new(&bytes).expect("runtime module");
     println!("{}",serde_json::to_string(&runtime.evaluate(&req.source,&req.indices,&req.limits)).unwrap());
 }

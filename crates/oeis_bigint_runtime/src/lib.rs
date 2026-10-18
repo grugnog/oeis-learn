@@ -1,5 +1,6 @@
 //! Private, immutable append-only bigint arena. All candidate arithmetic is WASM.
 //! Host transfer/status exports must NEVER be registered in the candidate linker.
+use dashu_base::BitTest;
 use dashu_int::{IBig, UBig};
 use std::cell::RefCell;
 
@@ -21,7 +22,7 @@ impl Arena {
     fn fail(&mut self,status:i32)->i32 { if self.status==0 { self.status=status; } 0 }
     fn insert(&mut self,n:IBig)->i32 {
         if self.status!=0 { return 0; }
-        let bits=n.clone().into_parts().1.bit_len();
+        let bits=n.bit_len();
         if bits>self.bits { return self.fail(INTEGER_LIMIT); }
         // Stable logical allocation accounting includes a 32-byte slot charge.
         // Linear-memory limiter additionally bounds Vec capacity/allocator slack.
@@ -128,7 +129,7 @@ pub extern "C" fn host_serialize(h:i32)->i32 {with(|a| {
     let Some(n)=a.get(h) else {return 0;};
     let magnitude=n.clone().into_parts().1;
     if magnitude.bit_len().div_ceil(8).max(1)>a.output_cap {return a.fail(OUTPUT_LIMIT);}
-    a.output=magnitude.to_le_bytes(); if a.output.is_empty() {a.output.push(0);}
+    a.output=magnitude.to_le_bytes().into_vec(); if a.output.is_empty() {a.output.push(0);}
     a.output_sign=if n<IBig::ZERO {-1} else if n==IBig::ZERO {0} else {1};
     a.output.len() as i32
 })}

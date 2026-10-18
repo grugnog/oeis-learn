@@ -40,6 +40,7 @@ fn main() {
         "docker/dev/build-synthesis.sh",
         "docker/dev/install.sh",
         "src/oeis_learn/synthesis/records.schema.json",
+        "src/oeis_learn/sandbox/preamble.wat",
     ] {
         println!("cargo:rerun-if-changed={}", root.join(name).display());
         sources.insert(name.to_owned(), fs::read(root.join(name)).unwrap());

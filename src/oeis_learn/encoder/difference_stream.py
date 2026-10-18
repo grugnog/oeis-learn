@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import List, Optional, Sequence, Tuple, Union
 import torch
 import torch.nn as nn
@@ -61,8 +60,12 @@ class DifferenceStream(nn.Module):
         primes: Optional[Sequence[int]] = None,
         max_valuation: int = MAX_VALUATION,
         dropout: float = 0.1,
+        input_profile=None,
     ):
         super().__init__()
+        if input_profile not in (None, "hybrid-chunks/v1"):
+            raise ValueError("unknown mathematical input profile")
+        self.input_profile = input_profile
         self.d_model = d_model
         self.d_padic = d_padic
         self.primes = list(primes) if primes is not None else list(PRIMES)
@@ -116,9 +119,16 @@ class DifferenceStream(nn.Module):
         for b_idx, seq in enumerate(sequences):
             if not seq:
                 continue
-            d1s, d2s, pvals = compute_sequence_differences_and_padic(
-                seq, primes=self.primes, max_valuation=self.max_valuation
-            )
+            if self.input_profile == "hybrid-chunks/v1":
+                from .large_integer_features import features, PRIMES
+                if tuple(self.primes) != PRIMES or self.max_valuation != 32:
+                    raise ValueError("bigint mathematical stream constants mismatch")
+                data = features(seq)
+                d1s, d2s, pvals = data["difference_logs"], data["second_difference_logs"], data["valuations"]
+            else:
+                d1s, d2s, pvals = compute_sequence_differences_and_padic(
+                    seq, primes=self.primes, max_valuation=self.max_valuation
+                )
             for t_idx in range(len(seq)):
                 diff_tensor[b_idx, t_idx, 0] = d1s[t_idx]
                 diff_tensor[b_idx, t_idx, 1] = d2s[t_idx]

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Sequence, Union, cast
+from typing import Optional, Sequence, Union, cast
 import torch
 import torch.nn as nn
 
@@ -39,8 +39,11 @@ def compute_signed_log_scalar(val: Union[int, float, str]) -> float:
 class MagnitudeStream(nn.Module):
     """Encodes integer terms using signed log-magnitude continuous scalar projection."""
 
-    def __init__(self, d_model: int = 256, d_ff: int = 1024, dropout: float = 0.1):
+    def __init__(self, d_model: int = 256, d_ff: int = 1024, dropout: float = 0.1, input_profile=None):
         super().__init__()
+        if input_profile not in (None, "hybrid-chunks/v1"):
+            raise ValueError("unknown mathematical input profile")
+        self.input_profile = input_profile
         self.d_model = d_model
         self.mlp = nn.Sequential(
             nn.Linear(1, d_ff, dtype=torch.float32),
@@ -65,6 +68,10 @@ class MagnitudeStream(nn.Module):
         scalars = torch.zeros((batch_size, max_len, 1), dtype=torch.float32, device=device)
         for b_idx, seq in enumerate(sequences):
             for t_idx, term in enumerate(seq):
-                scalars[b_idx, t_idx, 0] = compute_signed_log_scalar(term)
+                if self.input_profile == "hybrid-chunks/v1":
+                    from .large_integer_features import signed_log, exact
+                    scalars[b_idx, t_idx, 0] = signed_log(exact(term))
+                else:
+                    scalars[b_idx, t_idx, 0] = compute_signed_log_scalar(term)
 
         return cast(torch.Tensor, self.mlp(scalars))

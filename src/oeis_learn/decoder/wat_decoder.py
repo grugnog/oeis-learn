@@ -114,20 +114,11 @@ class WatTransformerDecoder(nn.Module):
             self.register_buffer("_input_identity", torch.tensor(list(identity), dtype=torch.uint8))
         self.codec_sha256 = codec_sha256
         if codec_sha256 is not None:
-            from oeis_learn.decoder.program_codec import (
-                FOUNDATION_VOCAB_SIZE,
-                codec_digest,
-            )
-            from oeis_learn.decoder.program_codec import (
-                PAD_ID as BODY_PAD,
-            )
-
-            if (
-                codec_sha256 != codec_digest()
-                or vocab_size != FOUNDATION_VOCAB_SIZE
-                or pad_idx != BODY_PAD
-            ):
-                raise ValueError("incompatible foundation codec configuration")
+            from oeis_learn.decoder import program_codec, bigint_codec
+            matches = [c for c in (program_codec, bigint_codec) if c.codec_digest() == codec_sha256]
+            if len(matches) != 1 or vocab_size != matches[0].FOUNDATION_VOCAB_SIZE or pad_idx != matches[0].PAD_ID:
+                raise ValueError("incompatible explicit codec configuration")
+            self.program_codec = matches[0]
             self.register_buffer(
                 "_codec_identity", torch.tensor(list(codec_sha256.encode()), dtype=torch.uint8)
             )
@@ -282,10 +273,9 @@ class WatTransformerDecoder(nn.Module):
         hidden = hidden + self.pos_encoder.pe[0][positions].to(hidden.dtype) * self.position_scale
         if self.ancestor_embedding is not None:
             from oeis_learn.decoder.prefix_positions import ancestor_ids
-            from oeis_learn.decoder.program_codec import ID_TO_TOKEN as BODY_WORDS
             from oeis_learn.decoder.wat_grammar import ID_TO_TOKEN as LEGACY_WORDS
 
-            words = BODY_WORDS if self.codec_sha256 is not None else LEGACY_WORDS
+            words = self.program_codec.ID_TO_TOKEN if self.codec_sha256 is not None else LEGACY_WORDS
             ancestors = ancestor_ids(tokens, words)
             selected = ancestors.gather(1, positions[..., None].expand(-1, -1, ancestors.size(-1)))
             hidden = hidden + self.ancestor_embedding(selected).sum(-2)

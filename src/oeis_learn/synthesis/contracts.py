@@ -3,6 +3,7 @@
 Record envelopes carry untrusted content references. Shape validation is never
 semantic validation, verification, profile qualification or permission to run.
 """
+
 import hashlib
 import json
 from importlib.resources import files
@@ -83,6 +84,7 @@ def handle_request(value):
         "assignments": [],
     }
 
+
 # Semantic records are separate from the retained disabled Phase 1 envelopes.
 from dataclasses import asdict, dataclass
 import math
@@ -90,9 +92,12 @@ import re
 
 
 def identity(value):
-    return "sha256:" + hashlib.sha256(json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode()).hexdigest()
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        ).hexdigest()
+    )
 
 
 def canonical_integer(text, *, bits=4096):
@@ -107,7 +112,7 @@ def canonical_integer(text, *, bits=4096):
     digits = text.removeprefix("-")
     result = 0
     for pos in range(0, len(digits), 9):
-        part = digits[pos:pos + 9]
+        part = digits[pos : pos + 9]
         result = result * 10 ** len(part) + int(part)
     if result.bit_length() > bits:
         raise ContractError("integer bit limit")
@@ -128,8 +133,10 @@ def decimal_integer(value):
 def signed_magnitude(value):
     if type(value) is not int or abs(value).bit_length() > 131072:
         raise ContractError("invalid exact integer")
-    return (0 if value == 0 else (1 if value > 0 else -1),
-            abs(value).to_bytes(max(1, (abs(value).bit_length() + 7) // 8), "little"))
+    return (
+        0 if value == 0 else (1 if value > 0 else -1),
+        abs(value).to_bytes(max(1, (abs(value).bit_length() + 7) // 8), "little"),
+    )
 
 
 def from_signed_magnitude(sign, raw, *, bits=4096):
@@ -172,24 +179,41 @@ class ResourceProfile:
     def __post_init__(self):
         for key, value in asdict(self).items():
             if key.endswith("seconds"):
-                if type(value) not in (float, int) or not math.isfinite(value) or not 0 < value <= 3600:
+                if (
+                    type(value) not in (float, int)
+                    or not math.isfinite(value)
+                    or not 0 < value <= 3600
+                ):
                     raise ContractError(f"invalid {key}")
+                object.__setattr__(self, key, float(value))
             elif type(value) is not int or not 0 < value <= 2**53 - 1:
                 raise ContractError(f"invalid {key}")
-        if max(self.input_bits, self.literal_bits) > self.intermediate_bits or self.intermediate_bits > 131072:
+        if (
+            max(self.input_bits, self.literal_bits) > self.intermediate_bits
+            or self.intermediate_bits > 131072
+        ):
             raise ContractError("invalid numeric nesting")
         if self.arena_bytes > self.memory_bytes or self.memory_bytes > 1024**3:
             raise ContractError("invalid memory nesting")
-        for name, cap in {"source_bytes":65536,"ast_nodes":4096,"nesting":32,
-                          "bigint_locals":16,"control_locals":8,"bool_locals":8,
-                          "control_max":2**31-1,"aggregate_loop_iterations":2**31-1,"loop_iterations":1024,
-                          "arena_entries":2**31-1,"output_bytes":16384}.items():
-            if getattr(self,name) > cap:
+        for name, cap in {
+            "source_bytes": 65536,
+            "ast_nodes": 4096,
+            "nesting": 32,
+            "bigint_locals": 16,
+            "control_locals": 8,
+            "bool_locals": 8,
+            "control_max": 2**31 - 1,
+            "aggregate_loop_iterations": 2**31 - 1,
+            "loop_iterations": 1024,
+            "arena_entries": 2**31 - 1,
+            "output_bytes": 16384,
+        }.items():
+            if getattr(self, name) > cap:
                 raise ContractError(f"unsupported {name}")
 
     @property
     def identity(self):
-        return identity({"version":"bigint-resources/v1", **asdict(self)})
+        return identity({"version": "bigint-resources/v1", **asdict(self)})
 
 
 @dataclass(frozen=True)
@@ -203,15 +227,45 @@ class ExecutionProfile:
     language: str = "bigint-body/v1"
     codec: str = "bigint-codec/v1"
     runtime: str = "bigint-wasm/v1"
-    operations: tuple = ("int", "param.get", "get", "add", "sub", "mul", "eq", "lt", "le",
-                         "to_control", "to_bigint", "control", "increment", "control.lt",
-                         "true", "false", "select", "set", "if", "loop", "return")
+    operations: tuple = (
+        "int",
+        "param.get",
+        "get",
+        "add",
+        "sub",
+        "mul",
+        "eq",
+        "lt",
+        "le",
+        "to_control",
+        "to_bigint",
+        "control",
+        "increment",
+        "control.lt",
+        "true",
+        "false",
+        "select",
+        "set",
+        "if",
+        "loop",
+        "return",
+    )
 
     def __post_init__(self):
-        for name in ("runtime_sha256","native_sha256","source_sha256","toolchain_sha256","locks_sha256"):
-            if re.fullmatch(r"sha256:[0-9a-f]{64}", getattr(self,name)) is None:
+        for name in (
+            "runtime_sha256",
+            "native_sha256",
+            "source_sha256",
+            "toolchain_sha256",
+            "locks_sha256",
+        ):
+            if re.fullmatch(r"sha256:[0-9a-f]{64}", getattr(self, name)) is None:
                 raise ContractError(f"invalid {name}")
-        if (self.language,self.codec,self.runtime) != ("bigint-body/v1","bigint-codec/v1","bigint-wasm/v1"):
+        if (self.language, self.codec, self.runtime) != (
+            "bigint-body/v1",
+            "bigint-codec/v1",
+            "bigint-wasm/v1",
+        ):
             raise ContractError("unsupported profile; retained records are immutable")
         if self.operations != type(self).__dataclass_fields__["operations"].default:
             raise ContractError("unknown operations")
