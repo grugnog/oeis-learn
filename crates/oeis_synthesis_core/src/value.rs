@@ -54,7 +54,7 @@ impl Resources {
             || self.arena_bytes>self.memory_bytes || self.memory_bytes>1024*1024*1024
             || self.source_bytes>65536 || self.ast_nodes>4096 || self.nesting>32
             || self.bigint_locals>16 || self.control_locals>8 || self.bool_locals>8
-            || self.control_max>i32::MAX as u32 || self.loop_iterations>1024
+            || self.aggregate_loop_iterations>i32::MAX as u32 || self.control_max>i32::MAX as u32 || self.loop_iterations>1024
             || self.arena_entries>i32::MAX as usize || self.output_bytes>16384 {
             return Err("unsupported_profile".into());
         }

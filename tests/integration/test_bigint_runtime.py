@@ -63,3 +63,22 @@ def test_exact_borderline_product_not_rejected_by_loose_estimate():
 ])
 def test_arbitrary_wat_privileged_and_forged_handles_never_lower(source):
     assert native(source,[0])["reason"] == "invalid_source"
+
+
+def test_memory_limiter_is_classified_not_guessed_from_trap():
+    result = native("(program (return $index))", [0], memory_bytes=65536, arena_bytes=65536)
+    assert result["reason"] == "memory_limit", result
+
+
+def test_reference_agrees_on_deterministic_differential_corpus():
+    from oeis_learn.synthesis.reference import evaluate
+    import random
+    rng = random.Random(20261018)
+    for _ in range(12):
+        a,b = rng.randrange(-10**40,10**40),rng.randrange(-10**40,10**40)
+        source = f"(program (return (sub (mul (add $index (int {a})) (int {b})) $index)))"
+        indices = ["-19","0","37"]
+        expected = evaluate(source,indices)
+        actual = native(source,indices)
+        assert expected.outcome == actual["outcome"] == "ok"
+        assert actual["values"] == list(expected.values)

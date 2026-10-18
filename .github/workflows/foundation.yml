@@ -221,6 +221,7 @@ jobs:
             -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
               set -euo pipefail
               python -m pytest -q -p no:cacheprovider tests/contract/test_bigint_build.py tests/contract/test_bigint_contracts.py \
+                tests/contract/test_bigint_language.py tests/unit/test_bigint_reference.py tests/integration/test_bigint_runtime.py \
                 --basetemp=/tmp/bigint-tests --junitxml=/evidence/contracts.xml
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '

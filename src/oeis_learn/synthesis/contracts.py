@@ -182,7 +182,8 @@ class ResourceProfile:
             raise ContractError("invalid memory nesting")
         for name, cap in {"source_bytes":65536,"ast_nodes":4096,"nesting":32,
                           "bigint_locals":16,"control_locals":8,"bool_locals":8,
-                          "control_max":2**31-1,"loop_iterations":1024}.items():
+                          "control_max":2**31-1,"aggregate_loop_iterations":2**31-1,"loop_iterations":1024,
+                          "arena_entries":2**31-1,"output_bytes":16384}.items():
             if getattr(self,name) > cap:
                 raise ContractError(f"unsupported {name}")
 
