@@ -1,5 +1,7 @@
 //! Native synthesis interface skeleton. No fitting algorithms or Python callbacks.
 pub mod protocol;
+pub mod value;
+pub mod language;
 
 /// Binding supplies retained-profile execution; bigint backend belongs to core.
 /// Exact values cross this boundary as strings, never machine integers.
