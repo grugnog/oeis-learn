@@ -1,0 +1,42 @@
+name: Resolve spec 008 dependency locks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  locks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve inside pinned toolchain container
+        run: |
+          docker build --target dependency-locks -t oeis-locks .
+          docker run --name oeis-formatted oeis-locks bash -c '
+            rustup component add rustfmt --toolchain 1.90.0
+            for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do
+              cargo fmt --manifest-path /locks/crates/$crate/Cargo.toml
+            done
+            python - <<"PYCODE"
+          import base64
+          from pathlib import Path
+          for path in sorted(Path("/locks/crates").rglob("*.rs")):
+              print("SOURCE_START:" + str(path.relative_to("/locks")))
+              print(base64.b64encode(path.read_bytes()).decode())
+              print("SOURCE_END:" + str(path.relative_to("/locks")))
+          PYCODE
+          '
+          docker rm oeis-formatted
+          mkdir -p tmp-locks
+          for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do
+            docker run --rm oeis-locks cat /locks/crates/$crate/Cargo.lock > tmp-locks/$crate.lock
+            echo "LOCK_START:$crate"
+            base64 -w 0 tmp-locks/$crate.lock
+            echo
+            echo "LOCK_END:$crate"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bigint-dependency-locks
+          path: tmp-locks/*.lock
+          if-no-files-found: error

@@ -21,6 +21,8 @@ def collect_snapshot(root):
         "src/oeis_learn",
         "tests",
         "crates/oeis_wasm_evaluator",
+        "crates/oeis_synthesis_core",
+        "crates/oeis_bigint_runtime",
         "configs/foundation",
         "docker/dev",
         "scripts",

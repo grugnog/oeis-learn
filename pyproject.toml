@@ -78,3 +78,5 @@ markers = ["gpu: requires an actual HIP accelerator", "docker: requires the pinn
 [tool.setuptools.package-data]
 "oeis_learn.sandbox" = ["*.wat", "conformance/*.json"]
 "oeis_learn.experiments" = ["*.schema.json"]
+
+"oeis_learn.synthesis" = ["*.schema.json"]

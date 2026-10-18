@@ -9,8 +9,9 @@ name = "oeis_wasm_evaluator"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-pyo3 = { version = "0.20" }
-wasmtime = "20.0"
+oeis_synthesis_core = { path = "../oeis_synthesis_core" }
+pyo3 = { version = "=0.20.3" }
+wasmtime = "=20.0.2"
 wat = "1.0"
 
 [features]

@@ -1,0 +1,201 @@
+{
+  "version": "phase-1-completion/v1",
+  "tested_commit": "dbaea14795332225c234f33c7658f8416e1b5e2f",
+  "image": "ghcr.io/grugnog/oeis-learn@sha256:b7b7ee26856e4114b5820aa1589265e3c4f751e99c8c044aa4e938713a3f8865",
+  "workflow_run": 39157377529,
+  "passed_jobs": {
+    "image / build": 117763280366,
+    "native-qualification": 117773323934,
+    "bigint-preparation (contracts)": 117773323972,
+    "portable-engines (docker)": 117773323976,
+    "portable-engines (podman)": 117773323985,
+    "bigint-preparation (native)": 117773324011
+  },
+  "contract_tests": {
+    "passed": 28,
+    "skipped": 0,
+    "uid": 12345,
+    "gid": 12345,
+    "read_only": true,
+    "network": "none"
+  },
+  "pending_non_blocking": {
+    "job": "podman-build",
+    "job_id": 117773323921,
+    "decision": "User accepted phase 1 completion with this separate rebuild still running on 2026-10-18."
+  },
+  "qualification_scope": "CPU qualification image, standalone WASM/native dependency and retained-profile tests. GPU image wiring shares artifacts; no separate ROCm image build, actual HIP update or Phase 2 arithmetic qualification is claimed.",
+  "artifacts": [
+    {
+      "name": "bigint-preparation-contracts",
+      "id": 12148702408,
+      "sha256": "sha256:7b42b55f3a7d48d91fddc978d35d02ffd3f3279cd4d449a0158cb9060902061c"
+    },
+    {
+      "name": "bigint-preparation-native",
+      "id": 12149270202,
+      "sha256": "sha256:f339185a2d41b9a6f4bf5d8391af950059a3efdf3f09b96cc3d9cc3e91ccb47e"
+    },
+    {
+      "name": "phase7-native-qualification",
+      "id": 12148941247,
+      "sha256": "sha256:e2fc64e956ec425d0c87ea4056900464221849f7c4176f8c00fcd546f39701cf"
+    }
+  ],
+  "original_dependency_report_sha256": "sha256:1758e073c858b29c878bbc943f8f7d47fe0827169818d75d4ce625c6b71b9fc9",
+  "dependency_report": {
+    "binding_exact_integer": "340282366920938463463374607431768211457",
+    "cxx_runtime": {
+      "libc++.so.1": "sha256:d398665ff812781994e6d72f5eec06b09a881273f122ad316e5527fdc176fa1e",
+      "libc++abi.so.1": "sha256:fb461f8134ac38b02cf951c0cf05aec8bea3f7130bdb6abaab4b143f6e76a77d",
+      "libunwind.so.1": "sha256:d95c00a75efe994b413d3027728b3c82cc3d3838beade29a69372b11d6f4e4c4"
+    },
+    "exports": [
+      {
+        "kind": "MemoryType",
+        "name": "memory"
+      },
+      {
+        "kind": "FuncType",
+        "name": "dependency_smoke"
+      },
+      {
+        "kind": "FuncType",
+        "name": "production_enabled"
+      },
+      {
+        "kind": "GlobalType",
+        "name": "__data_end"
+      },
+      {
+        "kind": "GlobalType",
+        "name": "__heap_base"
+      }
+    ],
+    "guest_flags": {
+      "codegen_units": 1,
+      "lto": true,
+      "opt_level": "s",
+      "panic": "abort",
+      "profile": "release",
+      "target": "wasm32-unknown-unknown"
+    },
+    "imports": [],
+    "locks": {
+      "oeis_bigint_runtime": {
+        "sha256": "sha256:e5b1f351650d5d4ce0834ecd090561f0009550f53824a801acff6e73b0fbf24c",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          }
+        ]
+      },
+      "oeis_synthesis_core": {
+        "sha256": "sha256:9b6649afd59fef2205dd5e5b0dd2bf1b70c68d379060a54afc42545ab49c91e0",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      },
+      "oeis_wasm_evaluator": {
+        "sha256": "sha256:b9b089f2ba238592728a7dee6496baee28eedae624178ff5b4d30aed47d42038",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+            "name": "pyo3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.20.3"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      }
+    },
+    "native": {
+      "backend": "rust",
+      "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+      "consume_fuel": true,
+      "execution_threads": 1,
+      "source_sha256": "sha256:922fc1cffa97ddefcc908c3e379a0c38d27934ab798584f0b7ce4d497197fd72",
+      "wasmtime": "20.0.2"
+    },
+    "native_flags": {
+      "cxx": "clang++-19",
+      "cxxflags": "-stdlib=libc++",
+      "cxxstdlib": "c++",
+      "locked": true,
+      "profile": "release",
+      "wheel_compatibility": "linux",
+      "z3": "vendored"
+    },
+    "production_enabled": false,
+    "qualification": "dependency smoke only; Phase 2 arithmetic gate pending",
+    "runtime_bytes": 119317,
+    "runtime_sha256": "sha256:60acefa0697cd20fd87075ae55e87cd164024f7b3c3a10732e0244c3f174bd5f",
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)",
+    "target_features": [
+      "+bulk-memory",
+      "+bulk-memory-opt",
+      "+call-indirect-overlong",
+      "+multivalue",
+      "+mutable-globals",
+      "+nontrapping-fptoint",
+      "+reference-types",
+      "+sign-ext"
+    ],
+    "version": "bigint-build-smoke/v1"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "baseline": "b96b92ff680a1509d3cede89e9abf0ddb65d2665",
+  "fixtures": [
+    {
+      "bytes": 31120,
+      "path": "arithmetic.json",
+      "provenance": "Python math.factorial, exact integer exponentiation/add/sub/mul; no project imports",
+      "sha256": "sha256:936fc6bbfdc732c4164695cda6825c9504742a4ca8cd86a52f6680885e3f2d16"
+    },
+    {
+      "bytes": 1080,
+      "path": "signed-256.json",
+      "provenance": "Independent two's-complement bounds/limb arithmetic; old profile identity retained",
+      "sha256": "sha256:993d7bc071213689d5c8bacb4ab00653efa184bb7d410ce392a7a6d05dff584e"
+    },
+    {
+      "bytes": 1304,
+      "path": "false-fits.json",
+      "provenance": "Hand-derived equations and existing historical regression locations",
+      "sha256": "sha256:8a0eeb6b12564123fa86bac2d27be011c0661f695582d17648cd6eae3085ec5d"
+    },
+    {
+      "bytes": 833,
+      "path": "request.json",
+      "provenance": "Phase 1 disabled request shape",
+      "sha256": "sha256:9ed276f142e9310e2c6d229ea19816babc9c5ec00799a99f8dd4239cc7118b13"
+    },
+    {
+      "bytes": 9480,
+      "path": "record-stubs.json",
+      "provenance": "Phase 1 disabled record shape catalogue",
+      "sha256": "sha256:804ddcf4732ff79d1fde8f130100ca06d1a18d3ab0c70750fba0aa40704bb8f8"
+    }
+  ],
+  "generator": "scripts/freeze_bigint_fixtures.py",
+  "qualification": "expectations only; production algorithms not implemented",
+  "version": "bigint-fixture-manifest/v1"
+}

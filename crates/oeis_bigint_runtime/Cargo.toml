@@ -1,0 +1,18 @@
+[package]
+name = "oeis_bigint_runtime"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Deliberately independent of the native solver/binding dependency closure.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dashu-int = { version = "=0.6.2", default-features = false }
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+opt-level = "s"

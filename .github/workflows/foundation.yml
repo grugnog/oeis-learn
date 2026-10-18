@@ -7,7 +7,8 @@ on:
       - 'scripts/**'
       - 'configs/foundation/**'
       - 'docker/dev/**'
-      - 'crates/oeis_wasm_evaluator/**'
+      - 'crates/**'
+      - 'specs/008-bigint-constant-synthesis/**'
       - 'uv.lock'
       - 'pyproject.toml'
       - 'setup.py'
@@ -191,3 +192,53 @@ jobs:
             phase7-evidence/learning/training/learning-inputs.json
             phase7-evidence/learning/training/ledger.json
             phase7-evidence/learning/search/search.json
+
+  bigint-preparation:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [contracts, native]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/load-ci-image
+        with:
+          engine: docker
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-bigint-ci
+          token: ${{ github.token }}
+      - name: Contract shapes and actual arbitrary-UID packaged artifacts
+        if: matrix.partition == 'contracts'
+        run: |
+          mkdir -p tmp-bigint-evidence
+          chmod 777 tmp-bigint-evidence
+          docker run --rm --user 12345:12345 --network none --read-only --tmpfs /tmp \
+            -e HOME=/tmp -e OEIS_REQUIRE_BIGINT_BUILD=1 -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build \
+            -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
+              set -euo pipefail
+              python -m pytest -q -p no:cacheprovider tests/contract/test_bigint_build.py tests/contract/test_bigint_contracts.py \
+                --basetemp=/tmp/bigint-tests --junitxml=/evidence/contracts.xml
+              cp /opt/oeis-build-info/bigint-build.json /evidence/
+            '
+      - name: Native dependency and retained-profile tests in shared image
+        if: matrix.partition == 'native'
+        run: |
+          mkdir -p tmp-bigint-evidence
+          chmod 777 tmp-bigint-evidence
+          docker run --rm --network none -e CARGO_TARGET_DIR=/opt/oeis-native-target \
+            -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
+              set -euo pipefail
+              trap "chmod -R a+rX /evidence" EXIT
+              cargo test --release --locked --offline --manifest-path crates/oeis_synthesis_core/Cargo.toml > /evidence/core-tests.txt 2>&1
+              cargo test --release --locked --offline --no-default-features --manifest-path crates/oeis_wasm_evaluator/Cargo.toml > /evidence/retained-tests.txt 2>&1
+              cp /opt/oeis-build-info/bigint-build.json /evidence/
+            '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bigint-preparation-${{ matrix.partition }}
+          path: tmp-bigint-evidence/

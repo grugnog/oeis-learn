@@ -1,0 +1,536 @@
+{
+  "version": "retirement-inventory/v1",
+  "baseline": "b96b92ff680a1509d3cede89e9abf0ddb65d2665",
+  "limitations": "Direct imports, dynamic literal module paths and named settings; Phase 4 also audits installed reachability and transitive callers",
+  "consumers": [
+    {
+      "path": "configs/train_run008.yaml",
+      "interfaces": [
+        "legacy-solver-config"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "configs/train_run009.yaml",
+      "interfaces": [
+        "legacy-solver-config"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "configs/train_run010.yaml",
+      "interfaces": [
+        "legacy-solver-config"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "configs/train_run011.yaml",
+      "interfaces": [
+        "legacy-solver-config"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "configs/train_tier1.yaml",
+      "interfaces": [
+        "legacy-solver-config"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "pyproject.toml",
+      "interfaces": [
+        "sympy",
+        "z3-solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "scripts/run_008_learning_run.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "scripts/run_009_recurrence_sprint.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "scripts/run_010_overnight_curriculum.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "retire",
+      "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/cli/main.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/data/models.py",
+      "interfaces": [
+        "data.models.ASTSkeleton",
+        "data.models.ConstantSolverResult"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/constant_solver.py",
+      "interfaces": [
+        "data.models.ASTSkeleton",
+        "data.models.ConstantSolverResult",
+        "grounding"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/dixon_solver.py",
+      "interfaces": [
+        "mersenne61_filter",
+        "qfnia_solver"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/grounding.py",
+      "interfaces": [
+        "dixon_solver",
+        "grounding_evidence",
+        "grounding_reference",
+        "qfnia_solver",
+        "recurrence",
+        "z3"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/grounding_evidence.py",
+      "interfaces": [
+        "grounding",
+        "grounding_reference",
+        "recurrence",
+        "z3"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/grounding_reference.py",
+      "interfaces": [
+        "grounding"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/qfnia_solver.py",
+      "interfaces": [
+        "z3"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "qualified Phase 2 native API and independent reference/evidence",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/discovery/formula_syntax.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/discovery/loop_certificate.py",
+      "interfaces": [
+        "z3"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Required certificate checker: migrate Z3 dependency before removing Python z3-solver",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/discovery/numerical_validator.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/discovery/polynomial_certificate.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/discovery/pslq_solver.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/discovery/recurrence_certificate.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/evaluation/engineering.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "src/oeis_learn/evaluation/experiments.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/evaluation/repair_gate.py",
+      "interfaces": [
+        "grounding"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/evaluation/synthesis.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/experiments/config.py",
+      "interfaces": [
+        "grounding"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/experiments/qualified_models.py",
+      "interfaces": [
+        "grounding_evidence"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/fresh/search.py",
+      "interfaces": [
+        "fresh.search.grounded_variants"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/fresh/worker.py",
+      "interfaces": [
+        "fresh.search.grounded_variants"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/rl/elite_buffer.py",
+      "interfaces": [
+        "grounding_reference"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "src/oeis_learn/rl/trainer.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/contract/test_constant_solver_contract.py",
+      "interfaces": [
+        "constant_solver",
+        "data.models.ASTSkeleton",
+        "data.models.ConstantSolverResult"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/contract/test_foundation_qualified.py",
+      "interfaces": [
+        "grounding"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/integration/test_foundation_repair_gate.py",
+      "interfaces": [
+        "constant_solver",
+        "grounding"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/integration/test_real_data_e2e.py",
+      "interfaces": [
+        "sympy"
+      ],
+      "disposition": "retain",
+      "replacement": "independent certificate/discovery consumer",
+      "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "retained"
+    },
+    {
+      "path": "tests/integration/test_recurrence_grounding.py",
+      "interfaces": [
+        "grounding",
+        "recurrence"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/integration/test_symbolic_grounding_pipeline.py",
+      "interfaces": [
+        "constant_solver",
+        "grounding_evidence"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_bootstrap_workflow.py",
+      "interfaces": [
+        "fresh.search.grounded_variants"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_constant_solver.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_dixon_diophantine_solver.py",
+      "interfaces": [
+        "dixon_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_foundation_grounding.py",
+      "interfaces": [
+        "constant_solver",
+        "dixon_solver",
+        "grounding",
+        "mersenne61_filter",
+        "recurrence"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_mersenne61_filter.py",
+      "interfaces": [
+        "mersenne61_filter"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "tests/unit/test_smt_constant_solver.py",
+      "interfaces": [
+        "constant_solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    },
+    {
+      "path": "uv.lock",
+      "interfaces": [
+        "sympy",
+        "z3-solver"
+      ],
+      "disposition": "migrate",
+      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
+      "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
+      "status": "pending Phase 4"
+    }
+  ]
+}
