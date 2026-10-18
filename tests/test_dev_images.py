@@ -18,11 +18,14 @@ def test_public_default_gpu_and_cpu_targets():
 
 def test_native_and_python_policy():
     setup = (ROOT / "docker/dev/install.sh").read_text()
+    wheel = (ROOT / "docker/dev/build-native-wheel.sh").read_text()
     native = (ROOT / "docker/dev/build-native.sh").read_text()
     assert "uv python install 3.12.12" in setup
     assert "--prune torch" in setup and "--require-hashes --no-deps" in setup
     assert "cmp /tmp/oeis-torch-before /tmp/oeis-torch-after" in setup
-    assert "maturin build --release --locked" in native
+    assert "maturin build --release --locked" in wheel
+    assert "--no-deps /opt/oeis-wheels/*.whl" in native
+    assert "python scripts/inspect_bigint_build.py" in native
 
 
 def test_runtime_state_is_excluded_from_images():

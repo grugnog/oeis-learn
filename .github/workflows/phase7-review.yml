@@ -71,7 +71,7 @@ jobs:
           .review-venv/bin/python specs/007-experiment-foundation/validate_artifacts.py
       - name: Foundation and phase 7 CPU regression suite
         run: |
-          .review-venv/bin/python -m pytest -q --durations=20 -ra tests/unit/test_foundation_*.py tests/unit/test_bootstrap_*.py tests/unit/test_connected_sampler.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
+          .review-venv/bin/python -m pytest -q --durations=20 -ra tests/test_dev_images.py tests/unit/test_foundation_*.py tests/unit/test_bootstrap_*.py tests/unit/test_connected_sampler.py tests/contract/test_foundation_*.py tests/integration/test_foundation_*.py --junitxml=phase7-junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

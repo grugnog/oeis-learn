@@ -54,3 +54,21 @@ reconstructed from CI's exact rustfmt diff; the new early CI check must confirm 
 The new Docker builds and cache-hit timings remain unexecuted locally. This
 repair does not close T025 or grant native/HIP qualification. CI is left running
 after the push, per the user's instruction.
+
+## Portable CLI policy-test follow-up
+
+[Run 39170119731](https://github.com/grugnog/oeis-learn/actions/runs/39170119731)
+at `a318d44` passed early native formatting, dependency-cache export, the shared
+image build, the Podman image build, bigint contract/native checks and native
+qualification. Both portable-engine jobs failed the same stale recipe assertion:
+`tests/test_dev_images.py` still looked for `maturin build --release --locked` in
+the packaging script instead of the new wheel-build script. Each engine's inner
+CPU suite otherwise passed 1,097 tests, with nine skips and 33 deselections.
+
+The existing policy test now checks locked compilation in the wheel script and
+prebuilt-wheel installation/identity inspection in the packaging script. The
+regular CPU review workflow also selects this test file, which previously ran
+only through the portable CLI suite. The failure was reproduced locally before
+the repair; **28 recipe/cache-boundary tests now pass**, and the updated workflow
+YAML parses and includes the recipe tests. Docker/Podman CLI reruns are left to CI;
+no task gate is closed by this test-only repair.
