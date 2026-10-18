@@ -1,0 +1,31 @@
+{
+  "protocol": "synthesis-worker/v1",
+  "request_id": "phase-1-smoke",
+  "operation": "fit",
+  "worker_generation": 0,
+  "contract_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "language_profile": "bigint-body/v1",
+  "resource_profile": "bigint-resources/v1",
+  "solver_profile": "native-fitting/v1",
+  "candidates": [
+    {
+      "candidate_id": "candidate-0",
+      "original_source": "bigint.const 1",
+      "original_source_sha256": "sha256:d3adf537835ede56d7e8921007d3fa572a3018522b886ccc5b97d017a52cd5da",
+      "codec_profile": "bigint-codec/v1",
+      "parameter_ids": [],
+      "abstraction_policy": "none"
+    }
+  ],
+  "visible_indices": [
+    "0"
+  ],
+  "visible_values": [
+    "1"
+  ],
+  "remaining_budget": {
+    "wall_time_ms": 2000,
+    "attempts": 1
+  },
+  "seed": 20261018
+}

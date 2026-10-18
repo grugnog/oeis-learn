@@ -188,8 +188,15 @@ fn source_identity_bytes() -> Vec<u8> {
 }
 
 /// A Python module implemented in Rust.
+/// Dependency transport diagnostic: preserves exact numerals beyond machine width.
+#[pyfunction]
+fn synthesis_dependency_smoke() -> String {
+    oeis_synthesis_core::dependency_smoke()
+}
+
 #[pymodule]
 fn oeis_wasm_evaluator(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(synthesis_dependency_smoke, m)?)?;
     m.add_class::<ExecutionResult>()?;
     m.add_class::<NativeModule>()?;
     m.add_class::<LogicalModule>()?;

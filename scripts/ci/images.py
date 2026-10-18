@@ -16,7 +16,7 @@ BUILD_INPUTS = (
     "uv.lock",
     "setup.py",
     "MANIFEST.in",
-    "crates/oeis_wasm_evaluator",
+    "crates",
 )
 
 

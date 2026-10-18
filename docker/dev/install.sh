@@ -10,9 +10,9 @@ rm -rf /var/lib/apt/lists/*
 
 export RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo
 export PATH="/opt/cargo/bin:$PATH"
-curl --fail --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh
-bash /tmp/rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain 1.90.0
-rustup component add rustfmt
+# Supplied by the shared pinned synthesis toolchain/build stage.
+test "$(rustc --version | cut -d ' ' -f 2)" = 1.90.0
+rustup component add rustfmt --toolchain 1.90.0
 chmod -R a+rX /opt/rustup /opt/cargo
 
 if [[ "$mode" == cpu ]]; then

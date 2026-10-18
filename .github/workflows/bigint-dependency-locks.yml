@@ -15,6 +15,21 @@ jobs:
       - name: Resolve inside pinned toolchain container
         run: |
           docker build --target dependency-locks -t oeis-locks .
+          docker run --name oeis-formatted oeis-locks bash -c '
+            rustup component add rustfmt --toolchain 1.90.0
+            for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do
+              cargo fmt --manifest-path /locks/crates/$crate/Cargo.toml
+            done
+            python - <<"PYCODE"
+          import base64
+          from pathlib import Path
+          for path in sorted(Path("/locks/crates").rglob("*.rs")):
+              print("SOURCE_START:" + str(path.relative_to("/locks")))
+              print(base64.b64encode(path.read_bytes()).decode())
+              print("SOURCE_END:" + str(path.relative_to("/locks")))
+          PYCODE
+          '
+          docker rm oeis-formatted
           mkdir -p tmp-locks
           for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do
             docker run --rm oeis-locks cat /locks/crates/$crate/Cargo.lock > tmp-locks/$crate.lock

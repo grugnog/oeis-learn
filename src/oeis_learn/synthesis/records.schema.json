@@ -1,0 +1,1070 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Request": {
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "enum": [
+            "synthesis-worker/v1"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.-]+(?![\\s\\S])"
+        },
+        "operation": {
+          "enum": [
+            "fit",
+            "execute",
+            "replay_unsat"
+          ]
+        },
+        "worker_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "language_profile": {
+          "enum": [
+            "bigint-body/v1"
+          ]
+        },
+        "resource_profile": {
+          "enum": [
+            "bigint-resources/v1"
+          ]
+        },
+        "solver_profile": {
+          "enum": [
+            "native-fitting/v1"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9_.-]+(?![\\s\\S])"
+              },
+              "original_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
+              },
+              "original_source_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "maxLength": 71
+              },
+              "codec_profile": {
+                "enum": [
+                  "bigint-codec/v1"
+                ]
+              },
+              "parameter_ids": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "p0",
+                    "p1",
+                    "p2",
+                    "p3",
+                    "p4",
+                    "p5",
+                    "p6",
+                    "p7"
+                  ]
+                },
+                "maxItems": 8,
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "abstraction_policy": {
+                "enum": [
+                  "none",
+                  "eligible-literals/v1"
+                ]
+              }
+            },
+            "required": [
+              "candidate_id",
+              "original_source",
+              "original_source_sha256",
+              "codec_profile",
+              "parameter_ids",
+              "abstraction_policy"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 32,
+          "minItems": 1
+        },
+        "visible_indices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)(?![\\s\\S])",
+            "maxLength": 1235
+          },
+          "maxItems": 20,
+          "minItems": 1
+        },
+        "visible_values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)(?![\\s\\S])",
+            "maxLength": 1235
+          },
+          "maxItems": 20,
+          "minItems": 1
+        },
+        "remaining_budget": {
+          "type": "object",
+          "properties": {
+            "wall_time_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60000
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32
+            }
+          },
+          "required": [
+            "wall_time_ms",
+            "attempts"
+          ],
+          "additionalProperties": false
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "protocol",
+        "request_id",
+        "operation",
+        "worker_generation",
+        "contract_sha256",
+        "language_profile",
+        "resource_profile",
+        "solver_profile",
+        "candidates",
+        "visible_indices",
+        "visible_values",
+        "remaining_budget",
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "ExecutionProfile": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "ExecutionProfile"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "language_profile": {
+          "enum": [
+            "bigint-body/v1"
+          ]
+        },
+        "codec_profile": {
+          "enum": [
+            "bigint-codec/v1"
+          ]
+        },
+        "runtime_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "toolchain_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "locks_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "resource_profile": {
+          "enum": [
+            "bigint-resources/v1"
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "language_profile",
+        "codec_profile",
+        "runtime_sha256",
+        "source_sha256",
+        "toolchain_sha256",
+        "locks_sha256",
+        "resource_profile"
+      ],
+      "additionalProperties": false
+    },
+    "ResourceProfile": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "ResourceProfile"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "limits_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "limits_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "LogicalProgram": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "LogicalProgram"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "ast_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "codec_profile": {
+          "enum": [
+            "bigint-codec/v1"
+          ]
+        },
+        "original_source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "abstraction_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "source_sha256",
+        "ast_sha256",
+        "codec_profile",
+        "original_source_sha256",
+        "abstraction_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "VisiblePrompt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "VisiblePrompt"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "indices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)(?![\\s\\S])",
+            "maxLength": 1235
+          },
+          "maxItems": 20,
+          "minItems": 1
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)(?![\\s\\S])",
+            "maxLength": 1235
+          },
+          "maxItems": 20,
+          "minItems": 1
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "indices",
+        "values",
+        "snapshot_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "FitRequest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "FitRequest"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "request_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "FitResult": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "FitResult"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "request_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "evidence_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "request_sha256",
+        "evidence_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "VerificationRecord": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "VerificationRecord"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "final_source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "production_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "reference_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "visible_prompt_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "final_source_sha256",
+        "production_sha256",
+        "reference_sha256",
+        "visible_prompt_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ExampleFamily": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "ExampleFamily"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "generator_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "structure_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "assignment_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "outputs_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "origin_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "generator_sha256",
+        "structure_sha256",
+        "assignment_sha256",
+        "outputs_sha256",
+        "origin_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "SplitManifest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "SplitManifest"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "membership_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "overlap_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "membership_sha256",
+        "snapshot_sha256",
+        "overlap_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "AssistedManifest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "AssistedManifest"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "provenance_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "demonstrations_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "verification_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "recipients_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "overlap_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "provenance_sha256",
+        "demonstrations_sha256",
+        "verification_sha256",
+        "recipients_sha256",
+        "overlap_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ExperimentContract": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "ExperimentContract"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "data_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "split_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "inputs_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "decoder_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "solver_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "ancestry_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "budgets_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "data_sha256",
+        "split_sha256",
+        "model_sha256",
+        "inputs_sha256",
+        "decoder_sha256",
+        "solver_sha256",
+        "ancestry_sha256",
+        "budgets_sha256",
+        "policy_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "FinalEvaluationPlan": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "FinalEvaluationPlan"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "cohort_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "decisions_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "arms_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "checkpoints_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "budgets_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "ledger_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "cohort_sha256",
+        "decisions_sha256",
+        "arms_sha256",
+        "checkpoints_sha256",
+        "budgets_sha256",
+        "ledger_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "Checkpoint": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "Checkpoint"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "weights_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "optimizer_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "rng_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "data_order_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "selection_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "curriculum_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "replay_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "budgets_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "ancestry_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "weights_sha256",
+        "optimizer_sha256",
+        "rng_sha256",
+        "data_order_sha256",
+        "selection_sha256",
+        "curriculum_sha256",
+        "replay_sha256",
+        "budgets_sha256",
+        "contract_sha256",
+        "ancestry_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "CandidateArchiveRecord": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "CandidateArchiveRecord"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "raw_source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "final_source_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "assignment_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "track_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "verification_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "costs_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "discovery_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "raw_source_sha256",
+        "final_source_sha256",
+        "assignment_sha256",
+        "track_sha256",
+        "verification_sha256",
+        "costs_sha256",
+        "discovery_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "Report": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "Report"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "summary_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "checkpoint_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "comparisons_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "coverage_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "summary_sha256",
+        "checkpoint_sha256",
+        "comparisons_sha256",
+        "coverage_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "BundleManifest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "BundleManifest"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "core_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "artifacts_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "omissions_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "core_sha256",
+        "artifacts_sha256",
+        "omissions_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "RetirementDisposition": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "enum": [
+            "synthesis-record-stub/v1"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "RetirementDisposition"
+          ]
+        },
+        "enabled": {
+          "const": false
+        },
+        "inventory_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "consumers_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "replacement_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        },
+        "regression_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "enabled",
+        "inventory_sha256",
+        "consumers_sha256",
+        "replacement_sha256",
+        "regression_sha256"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
