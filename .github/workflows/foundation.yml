@@ -219,6 +219,7 @@ jobs:
           docker run --rm --user 12345:12345 --network none --read-only --tmpfs /tmp \
             -e HOME=/tmp -e OEIS_REQUIRE_BIGINT_BUILD=1 -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build \
             -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
+              set -euo pipefail
               python -m pytest -q -p no:cacheprovider tests/contract/test_bigint_build.py tests/contract/test_bigint_contracts.py \
                 --basetemp=/tmp/bigint-tests --junitxml=/evidence/contracts.xml
               cp /opt/oeis-build-info/bigint-build.json /evidence/

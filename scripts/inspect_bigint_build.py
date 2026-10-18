@@ -104,7 +104,9 @@ def inspect(root=Path("/opt/oeis-build"), info=Path("/opt/oeis-build-info")):
         "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip(),
         "guest_flags": {"target": "wasm32-unknown-unknown", "profile": "release",
                         "panic": "abort", "lto": True, "codegen_units": 1, "opt_level": "s"},
-        "native_flags": {"profile": "release", "z3": "vendored", "locked": True},
+        "native_flags": {"profile": "release", "z3": "vendored", "locked": True,
+                         "cxx": "clang++-19", "cxxflags": "-stdlib=libc++", "cxxstdlib": "c++"},
+        "cxx_runtime": {p.name: sha256(p.read_bytes()) for p in Path("/opt/oeis-cxx/lib").glob("*.so.1")},
         "binding_exact_integer": SMOKE_INTEGER,
     }
 

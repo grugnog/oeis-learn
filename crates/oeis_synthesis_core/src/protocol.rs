@@ -6,7 +6,8 @@ use std::collections::BTreeSet;
 
 pub const VERSION: &str = "synthesis-worker/v1";
 pub const MAX_FRAME_BYTES: usize = 4 * 1024 * 1024;
-pub const RECORD_SCHEMAS: &str = include_str!("../../../src/oeis_learn/synthesis/records.schema.json");
+pub const RECORD_SCHEMAS: &str =
+    include_str!("../../../src/oeis_learn/synthesis/records.schema.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -65,14 +66,17 @@ fn canonical_integer(s: &str) -> bool {
 
 fn hash(s: &str) -> bool {
     s.strip_prefix("sha256:").is_some_and(|v| {
-        v.len() == 64 && v.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        v.len() == 64
+            && v.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
     })
 }
 
 fn identifier(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 128
-        && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
 }
 
 pub fn parse_request(bytes: &[u8]) -> Result<Request, String> {
@@ -107,10 +111,19 @@ impl Request {
         {
             return Err("invalid count/budget".into());
         }
-        if !self.visible_indices.iter().chain(&self.visible_values).all(|s| canonical_integer(s)) {
+        if !self
+            .visible_indices
+            .iter()
+            .chain(&self.visible_values)
+            .all(|s| canonical_integer(s))
+        {
             return Err("noncanonical exact integer".into());
         }
-        let indices: Vec<IBig> = self.visible_indices.iter().map(|s| s.parse().unwrap()).collect();
+        let indices: Vec<IBig> = self
+            .visible_indices
+            .iter()
+            .map(|s| s.parse().unwrap())
+            .collect();
         if !indices.windows(2).all(|pair| pair[0] < pair[1]) {
             return Err("visible indices must strictly increase".into());
         }
@@ -125,8 +138,14 @@ impl Request {
                 || !["none", "eligible-literals/v1"].contains(&c.abstraction_policy.as_str())
                 || c.parameter_ids.len() > 8
                 || params.len() != c.parameter_ids.len()
-                || !c.parameter_ids.iter().all(|p| matches!(p.as_str(), "p0" | "p1" | "p2" | "p3" | "p4" | "p5" | "p6" | "p7"))
-                || format!("sha256:{:x}", Sha256::digest(c.original_source.as_bytes())) != c.original_source_sha256
+                || !c.parameter_ids.iter().all(|p| {
+                    matches!(
+                        p.as_str(),
+                        "p0" | "p1" | "p2" | "p3" | "p4" | "p5" | "p6" | "p7"
+                    )
+                })
+                || format!("sha256:{:x}", Sha256::digest(c.original_source.as_bytes()))
+                    != c.original_source_sha256
             {
                 return Err("invalid candidate".into());
             }
@@ -162,7 +181,10 @@ pub fn handle_request(request: &Request) -> Result<UnsupportedResponse<'_>, Stri
 /// Record envelopes are inert references, never semantic admission evidence.
 pub fn validate_record(kind: &str, value: &serde_json::Value) -> Result<(), String> {
     let schemas: serde_json::Value = serde_json::from_str(RECORD_SCHEMAS).unwrap();
-    let schema = schemas["$defs"].get(kind).filter(|_| kind != "Request").ok_or("unknown record kind")?;
+    let schema = schemas["$defs"]
+        .get(kind)
+        .filter(|_| kind != "Request")
+        .ok_or("unknown record kind")?;
     let object = value.as_object().ok_or("record must be an object")?;
     let fields = schema["properties"].as_object().unwrap();
     if object.len() != fields.len() || !fields.keys().all(|k| object.contains_key(k)) {
@@ -175,7 +197,11 @@ pub fn validate_record(kind: &str, value: &serde_json::Value) -> Result<(), Stri
         } else if let Some(constant) = field.get("const") {
             v == constant
         } else if field["type"] == "array" {
-            v.as_array().is_some_and(|a| !a.is_empty() && a.len() <= 20 && a.iter().all(|v| v.as_str().is_some_and(canonical_integer)))
+            v.as_array().is_some_and(|a| {
+                !a.is_empty()
+                    && a.len() <= 20
+                    && a.iter().all(|v| v.as_str().is_some_and(canonical_integer))
+            })
         } else {
             v.as_str().is_some_and(hash)
         };
@@ -220,7 +246,10 @@ mod tests {
 
     #[test]
     fn records_are_strict_and_disabled() {
-        let records: serde_json::Value = serde_json::from_str(include_str!("../../../tests/fixtures/bigint/record-stubs.json")).unwrap();
+        let records: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/bigint/record-stubs.json"
+        ))
+        .unwrap();
         for (kind, value) in records.as_object().unwrap() {
             validate_record(kind, value).unwrap();
             let mut invalid = value.clone();

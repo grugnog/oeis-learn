@@ -19,7 +19,12 @@ pub fn dependency_smoke() -> String {
     let solver = Solver::new();
     solver.assert(x.eq(&numeral));
     assert_eq!(solver.check(), SatResult::Sat);
-    let answer = solver.get_model().unwrap().eval(&x, true).unwrap().to_string();
+    let answer = solver
+        .get_model()
+        .unwrap()
+        .eval(&x, true)
+        .unwrap()
+        .to_string();
     assert_eq!(answer, exact);
     answer
 }

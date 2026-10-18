@@ -1,8 +1,5 @@
 name: Resolve spec 008 dependency locks
 on:
-  push:
-    branches: [implement/008-phase1]
-    paths: ['crates/**', 'Dockerfile', '.github/workflows/bigint-dependency-locks.yml']
   workflow_dispatch:
 permissions:
   contents: read

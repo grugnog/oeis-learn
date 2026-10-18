@@ -187,7 +187,7 @@ def test_recipe_diff_includes_build_inputs_and_fails_closed(monkeypatch):
         ".dockerignore",
         "uv.lock",
         "docker/dev",
-        "crates/oeis_wasm_evaluator",
+        "crates",
     } <= set(calls[0])
     code = 128
     with pytest.raises(RuntimeError, match="build changes"):

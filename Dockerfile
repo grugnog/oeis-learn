@@ -5,8 +5,12 @@ ARG GPU_BASE_IMAGE=docker.io/rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_r
 # targets below require committed locks; they never generate or update them.
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS synthesis-toolchain
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:${PATH}
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl build-essential cmake ninja-build pkg-config git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl build-essential cmake ninja-build pkg-config git clang-19 libc++-19-dev libc++abi-19-dev && rm -rf /var/lib/apt/lists/*
 RUN curl --fail --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh && bash /tmp/rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain 1.90.0
+ENV CC=clang-19 CXX=clang++-19 CXXFLAGS=-stdlib=libc++ CXXSTDLIB=c++ \
+    LIBRARY_PATH=/opt/oeis-cxx/lib LD_LIBRARY_PATH=/opt/oeis-cxx/lib
+# Keep the native smoke and both installed images on the same C++ runtime bytes.
+RUN mkdir -p /opt/oeis-cxx/lib && cp -L /usr/lib/llvm-19/lib/libc++.so.1 /usr/lib/llvm-19/lib/libc++abi.so.1 /usr/lib/llvm-19/lib/libunwind.so.1 /opt/oeis-cxx/lib/ && ln -s libc++.so.1 /opt/oeis-cxx/lib/libc++.so
 FROM synthesis-toolchain AS dependency-locks
 COPY crates /locks/crates
 RUN for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do cargo metadata --format-version 1 --manifest-path /locks/crates/$crate/Cargo.toml > /dev/null; done
@@ -25,6 +29,9 @@ RUN mkdir -p /opt/oeis-build-info && bash /opt/oeis-setup/build-synthesis.sh
 # the development/GPU targets; no compiler or Docker dependency on the host.
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS qualification
 USER root
+COPY --from=synthesis-build /opt/oeis-cxx /opt/oeis-cxx
+ENV CC=clang-19 CXX=clang++-19 CXXFLAGS=-stdlib=libc++ CXXSTDLIB=c++ \
+    LIBRARY_PATH=/opt/oeis-cxx/lib LD_LIBRARY_PATH=/opt/oeis-cxx/lib:${LD_LIBRARY_PATH}
 COPY --from=synthesis-build /opt/rustup /opt/rustup
 COPY --from=synthesis-build /opt/cargo /opt/cargo
 COPY --from=synthesis-build /opt/oeis-native-target /opt/oeis-native-target
@@ -46,6 +53,9 @@ CMD ["python", "-m", "oeis_learn.evaluation.repair_gate", "--output", "/evidence
 
 FROM ${GPU_BASE_IMAGE} AS gpu
 USER root
+COPY --from=synthesis-build /opt/oeis-cxx /opt/oeis-cxx
+ENV CC=clang-19 CXX=clang++-19 CXXFLAGS=-stdlib=libc++ CXXSTDLIB=c++ \
+    LIBRARY_PATH=/opt/oeis-cxx/lib LD_LIBRARY_PATH=/opt/oeis-cxx/lib:${LD_LIBRARY_PATH}
 COPY --from=synthesis-build /opt/rustup /opt/rustup
 COPY --from=synthesis-build /opt/cargo /opt/cargo
 COPY --from=synthesis-build /opt/oeis-native-target /opt/oeis-native-target
