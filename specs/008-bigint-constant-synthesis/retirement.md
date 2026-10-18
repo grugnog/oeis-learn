@@ -1,10 +1,10 @@
 # Retirement disposition — spec 008 (T001)
 
-Inventory baseline: `b96b92ff680a1509d3cede89e9abf0ddb65d2665`. This is a migration plan; Phase 1 does not delete working solvers. The path-by-path direct consumer inventory is [retirement-inventory.json](retirement-inventory.json). Phase 4 must close each row and rerun a whole-repository import/caller audit, including dynamic imports and installed distributions.
+Inventory baseline: `b96b92ff680a1509d3cede89e9abf0ddb65d2665`. This is a migration plan; Phase 1 does not delete working solvers. Regenerate the inventory with `python3 scripts/inventory_synthesis_retirement.py`. The path-by-path direct consumer inventory is [retirement-inventory.json](retirement-inventory.json). Phase 4 must close each row and rerun a whole-repository import/caller audit, including dynamic imports and installed distributions.
 
 | Old surface | Consumers | Disposition / replacement | Rationale / regression |
 | --- | --- | --- | --- |
-| `decoder/constant_solver.py` public parsing/solving/splicing API | CLI main; evaluation experiments/synthesis; RL trainer; run008/009/010; tests in inventory | Migrate supported callers to `synthesis` transport/admission; delete implementation at T085 | One native fitter; retain nonlinear square (16 vs 4), affine, inconsistent and recurrence fixtures |
+| `decoder/constant_solver.py` public parsing/solving/splicing API | CLI `solve-constants` (handle_solve_constants); evaluation experiments/synthesis; RL trainer; run008/009/010; tests in inventory | Migrate supported callers to `synthesis` transport/admission; delete implementation at T085 | One native fitter; retain nonlinear square (16 vs 4), affine, inconsistent and recurrence fixtures |
 | `decoder/grounding.py` parser, affine/SMT/ground/splice | constant_solver, experiments/config, repair_gate, grounding_reference/evidence and tests | Delete after native fitting and independent parser are qualified | Keep intermediate overflow, control rejection, visible-only and final-source checks |
 | `decoder/dixon_solver.py`, `qfnia_solver.py`, `mersenne61_filter.py` | grounding, dixon, algebra/filter tests | Retire; native exact affine/QF_LIA/QF_NIA service | Preserve singular modular pivot, rank-deficient integer feasibility and nonintegral solution cases |
 | `decoder/recurrence.py` fitting/recognition/reference | grounding/evidence and recurrence tests | Retire fitting/recognition; independently derive required reference fixtures | No hidden recurrence fallback; Fibonacci/order2 fixtures remain |

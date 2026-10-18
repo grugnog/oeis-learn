@@ -15,10 +15,15 @@ FROM synthesis-toolchain AS dependency-locks
 COPY crates /locks/crates
 RUN for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do cargo metadata --format-version 1 --manifest-path /locks/crates/$crate/Cargo.toml > /dev/null; done
 
-# Native Z3 and the separate guest are built once, before Python/ROCm layers.
-# Both final targets inherit identical dependency smoke artifacts and caches.
-FROM synthesis-toolchain AS synthesis-build
-ENV CARGO_BUILD_JOBS=2 CMAKE_BUILD_PARALLEL_LEVEL=2
+# Cache native third-party compilation by manifests/locks, independent of source
+# edits. Both image targets reuse this layer, including the vendored Z3 build.
+FROM synthesis-toolchain AS synthesis-dependencies
+ENV CARGO_BUILD_JOBS=2 CMAKE_BUILD_PARALLEL_LEVEL=2 CARGO_TARGET_DIR=/opt/oeis-native-target
+COPY crates/oeis_synthesis_core/Cargo.toml crates/oeis_synthesis_core/Cargo.lock /opt/oeis-build/crates/oeis_synthesis_core/
+RUN mkdir -p /opt/oeis-build/crates/oeis_synthesis_core/src && echo '// Dependency cache seed only; replaced below.' > /opt/oeis-build/crates/oeis_synthesis_core/src/lib.rs && cargo build --release --locked --lib --manifest-path /opt/oeis-build/crates/oeis_synthesis_core/Cargo.toml && cargo clean --release --manifest-path /opt/oeis-build/crates/oeis_synthesis_core/Cargo.toml -p oeis_synthesis_core
+
+# Real sources replace the inert cache seed and are always compiled/tested.
+FROM synthesis-dependencies AS synthesis-build
 COPY crates /opt/oeis-build/crates
 COPY src/oeis_learn/synthesis /opt/oeis-build/src/oeis_learn/synthesis
 COPY tests/fixtures/bigint /opt/oeis-build/tests/fixtures/bigint

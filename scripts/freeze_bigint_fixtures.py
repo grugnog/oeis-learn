@@ -43,7 +43,7 @@ def freeze():
     write("signed-256.json", {"version": "signed-256-control-fixtures/v1", "profile": "i256x4_v1", "cases": [
         {"id": "max-signed", "source": f"i256.const {2**255-1}", "expected": str(2**255-1)},
         {"id": "min-signed", "source": f"i256.const {-2**255}", "expected": str(-2**255)},
-        {"id": "checked-overflow", "source": f"i256.const {2**255-1} i256.const 1 i256.add", "failure": "arithmetic_overflow"},
+        {"id": "checked-overflow", "source": f"i256.const {2**255-1} i256.const 1 i256.add", "failure": "numeric_limit"},
         {"id": "negative-limbs", "limbs": [-1, -1, -1, -1], "expected": "-1"},
         {"id": "wide-limb", "limbs": [0, 1, 0, 0], "expected": str(2**64)},
     ]})

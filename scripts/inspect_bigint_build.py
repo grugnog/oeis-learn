@@ -73,6 +73,7 @@ def inspect(root=Path("/opt/oeis-build"), info=Path("/opt/oeis-build-info")):
     if list(module.imports):
         raise ValueError("standalone guest must have zero imports (including WASI/Python/Z3)")
     store = wasmtime.Store(engine)
+    store.set_limits(memory_size=64 * 1024 * 1024, instances=1, memories=1)
     store.set_fuel(10_000_000)
     instance = wasmtime.Instance(store, module, [])
     if instance.exports(store)["production_enabled"](store) != 0:
@@ -105,7 +106,7 @@ def inspect(root=Path("/opt/oeis-build"), info=Path("/opt/oeis-build-info")):
         "guest_flags": {"target": "wasm32-unknown-unknown", "profile": "release",
                         "panic": "abort", "lto": True, "codegen_units": 1, "opt_level": "s"},
         "native_flags": {"profile": "release", "z3": "vendored", "locked": True,
-                         "cxx": "clang++-19", "cxxflags": "-stdlib=libc++", "cxxstdlib": "c++"},
+                         "wheel_compatibility": "linux", "cxx": "clang++-19", "cxxflags": "-stdlib=libc++", "cxxstdlib": "c++"},
         "cxx_runtime": {p.name: sha256(p.read_bytes()) for p in Path("/opt/oeis-cxx/lib").glob("*.so.1")},
         "binding_exact_integer": SMOKE_INTEGER,
     }

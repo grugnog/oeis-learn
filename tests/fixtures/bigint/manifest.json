@@ -8,10 +8,10 @@
       "sha256": "sha256:936fc6bbfdc732c4164695cda6825c9504742a4ca8cd86a52f6680885e3f2d16"
     },
     {
-      "bytes": 1086,
+      "bytes": 1080,
       "path": "signed-256.json",
       "provenance": "Independent two's-complement bounds/limb arithmetic; old profile identity retained",
-      "sha256": "sha256:cb22721004669573c3c8375c0b223ee3d292f0c4c4fab58ed47c58fce0787363"
+      "sha256": "sha256:993d7bc071213689d5c8bacb4ab00653efa184bb7d410ce392a7a6d05dff584e"
     },
     {
       "bytes": 1304,
