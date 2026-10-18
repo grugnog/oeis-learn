@@ -1,19 +1,23 @@
 # Phase 1 gate / Phase 2 handoff (T010)
 
-Status: **not yet open**. Phase 1 source preparation is implemented; pending native/container execution evidence must pass before T010 or Phase 2 can be declared complete/started. No compiler, fitting, encoder, data or learning-policy algorithm has been implemented by this phase.
+Status: **PASS — T010 complete; Phase 2 entry open**. At the user's request on 2026-10-18, close Phase 1 on the passing CPU/native and portable-engine checks for commit `dbaea14795332225c234f33c7658f8416e1b5e2f`. The separate `podman-build` job was still running at acceptance and was explicitly designated non-blocking. No Phase 2 implementation or training is started by this record.
+
+Evidence: [container/native run 39157377529](https://github.com/grugnog/oeis-learn/actions/runs/39157377529), [passing foundation regression run 39157377456](https://github.com/grugnog/oeis-learn/actions/runs/39157377456), and [immutable image/artifact/dependency identities](phase-1-evidence.json). The shared qualification image built successfully. Native qualification, contract and native bigint partitions, and both Docker/Podman portable-engine suites passed; the unprivileged contract partition passed all 28 tests without skips.
+
+Scope: both final targets are wired to the same pinned artifacts; execution evidence here comes from the CPU qualification image. A separate ROCm image build and actual HIP updates are not claimed. These remain distinct later qualification work. The user accepts this Phase 1 handoff scope; production bigint profiles stay disabled and all Phase 2 algorithm gates still apply.
 
 | Task/gate | Evidence / state |
 | --- | --- |
 | T001 retirement inventory | `retirement.md`, machine-readable path inventory and reproducible inventory script; old implementations remain for Phase 4 migration |
 | T002 boundaries | Separately locked guest/core; binding → core; core-owned execution trait, no back-edge |
-| T003 dependency qualification | `dependencies.md`; exact locks committed; initial GCC12 failure recorded; corrected compiler build pending |
-| T004 packaging/identity | Both final targets consume shared dependency layer; recursive source-closure fingerprint, runtime/lock report and arbitrary-UID test implemented; image execution pending |
-| T005 shape stubs | Strict Python/Rust request/record shapes; unknown fields/profile rejected; no operation admits; Python tests pass, native test execution pending |
+| T003 dependency qualification | `dependencies.md` and `phase-1-evidence.json`; locked Rust 1.90.0 standalone guest/native builds and corrected C++ ABI linkage passed |
+| T004 packaging/identity | Both final targets consume the shared dependency layer; source/runtime/lock identities verified; CPU image inspection passed as UID/GID 12345 with read-only storage/no network; separate ROCm image execution not claimed |
+| T005 shape stubs | Strict Python/Rust request/record shapes; unknown fields/profile rejected; no operation admits; Python and native shape/rejection tests passed |
 | T006 fixtures | `tests/fixtures/bigint/manifest.json`: independent arithmetic/index/signed-256/false-fit expectations and hashes |
-| T007 actual dependency smoke | Guest/native/PyO3 tests and artifact inspection implemented; final corrected native/WASM binding run pending |
+| T007 actual dependency smoke | Standalone WASM instantiation, zero imports, disabled production status and exact >i64 PyO3 binding result passed; report records exports/features/hashes |
 | T008 CI | Shared-image contract/native partitions; lock/source build triggers; GPU tests remain explicit; existing tests retained |
-| T009 compatibility | `compatibility-baseline.md`; available CPU model/codec/arithmetic tests, with native/image/GPU evidence separately identified |
-| T010 handoff | Blocked until pinned smoke builds/import inspection/readability pass; no automatic Phase 2 start |
+| T009 compatibility | `compatibility-baseline.md`; retained CPU model/codec/arithmetic regressions plus passing native qualification; actual GPU evidence remains separate |
+| T010 handoff | Complete on the passing evidence and user-accepted scope above; Phase 2 handoff ready, no automatic Phase 2 start |
 
 ## Reproducible commands
 

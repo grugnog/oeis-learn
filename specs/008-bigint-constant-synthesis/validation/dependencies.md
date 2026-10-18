@@ -1,6 +1,6 @@
 # Phase 1 dependency qualification (T003)
 
-Status: locks resolved in a pinned Rust 1.90.0 container; native/guest smoke qualification is tracked in [phase-1.md](phase-1.md). Resolution is not successful compilation or arithmetic qualification.
+Status: **dependency smoke qualification passed** in the pinned Rust 1.90.0 CPU container at `dbaea14795332225c234f33c7658f8416e1b5e2f`. See [Phase 1 acceptance](phase-1.md) and [exact artifact/lock/build evidence](phase-1-evidence.json). This qualifies dependency build/transport feasibility, not Phase 2 production arithmetic or actual HIP operation.
 
 | Closure | Exact dependency | Source lock |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ Upstream sources: [z3-sys 0.13.1 manifest](https://github.com/prove-rs/z3.rs/blo
 
 [Build 39154101170](https://github.com/grugnog/oeis-learn/actions/runs/39154101170) completed vendored Z3 compilation, then failed linking the Rust `dependency_smoke` executable with unresolved `__cxa_*`, allocation and exception RTTI symbols. The private `libc++.so` symlink bypassed the ABI linkage normally supplied by Debian's libc++ linker script. Rust's `-nodefaultlibs` link did not add it implicitly.
 
-Replace that symlink with an explicit linker script listing the already packaged libc++, libc++abi and libunwind shared objects. Both final images inherit this same link/runtime closure. A small C++20 formatting/exception/allocation function is compiled to a static archive and linked/called from Rust in the toolchain stage, before the expensive solver compilation. The native dependency smoke remains the full integration gate. No dependency version or arithmetic semantics changed; corrected container execution is pending the next CI build.
+Replace that symlink with an explicit linker script listing the already packaged libc++, libc++abi and libunwind shared objects. Both final images inherit this same link/runtime closure. A small C++20 formatting/exception/allocation function is compiled to a static archive and linked/called from Rust in the toolchain stage, before the expensive solver compilation. The native dependency smoke remains the full integration gate. No dependency version or arithmetic semantics changed; corrected container execution passed in [run 39157377529](https://github.com/grugnog/oeis-learn/actions/runs/39157377529).
 
 ## Build and inspection procedure
 
@@ -33,3 +33,9 @@ Replace that symlink with an explicit linker script listing the already packaged
 `docker/dev/build-native.sh` builds the retained binding wheel with `--locked`, then `scripts/inspect_bigint_build.py` instantiates the actual WASM with metered fuel, requires zero imports, inspects exports/declared target features, checks disabled production status, and round-trips the fixed exact native numeral through PyO3. It writes `/opt/oeis-build-info/bigint-build.json` with artifact bytes/hashes, locks and native identity. These are dependency smoke tests, not runtime/solver arithmetic qualification.
 
 The shared-image contract partition repeats inspection under UID/GID 12345 with a read-only image and no network. Native tests run in a separate partition. Actual HIP tests remain separate and are not satisfied by building a ROCm image.
+
+## Recorded successful inspection
+
+The packaged guest is 119,317 bytes, SHA-256 `60acefa0697cd20fd87075ae55e87cd164024f7b3c3a10732e0244c3f174bd5f`, with zero imports. Exports are `memory`, `dependency_smoke`, `production_enabled`, `__data_end` and `__heap_base`. Declared compiler features are bulk-memory, bulk-memory-opt, call-indirect-overlong, multivalue, mutable-globals, nontrapping-fptoint, reference-types and sign-ext. Phase 2 must retain explicit validation/caps for the approved candidate boundary; this diagnostic does not enable arbitrary candidate access to runtime exports.
+
+The native/PyO3 smoke returned the exact string `340282366920938463463374607431768211457`. The inspected report records Rust 1.90.0, Wasmtime 20.0.2, exact source/native binary and C++ runtime hashes, guest/native build flags and every lock/checksum tuple. The contract partition repeated inspection as UID/GID 12345 with no network and a read-only image, passing 28 tests. The native partition and retained native qualification also passed. The separate Podman build was recorded as pending and non-blocking at the user's Phase 1 acceptance; no additional ROCm image build or actual GPU qualification is inferred.
