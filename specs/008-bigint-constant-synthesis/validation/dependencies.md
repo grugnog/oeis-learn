@@ -20,6 +20,12 @@ Keep the researched Rust/Z3 pins and existing Python/base/Wasmtime versions. Use
 
 Upstream sources: [z3-sys 0.13.1 manifest](https://github.com/prove-rs/z3.rs/blob/z3-sys-v0.13.1/z3-sys/Cargo.toml), [build/linking policy](https://github.com/prove-rs/z3.rs/blob/z3-sys-v0.13.1/z3-sys/build.rs). Its vendored dependency is z3-src 501, and `CXXSTDLIB` explicitly selects the C++ library. No source patch, system Z3 or runtime download is used.
 
+## C++ ABI link correction
+
+[Build 39154101170](https://github.com/grugnog/oeis-learn/actions/runs/39154101170) completed vendored Z3 compilation, then failed linking the Rust `dependency_smoke` executable with unresolved `__cxa_*`, allocation and exception RTTI symbols. The private `libc++.so` symlink bypassed the ABI linkage normally supplied by Debian's libc++ linker script. Rust's `-nodefaultlibs` link did not add it implicitly.
+
+Replace that symlink with an explicit linker script listing the already packaged libc++, libc++abi and libunwind shared objects. Both final images inherit this same link/runtime closure. A small C++20 formatting/exception/allocation function is compiled to a static archive and linked/called from Rust in the toolchain stage, before the expensive solver compilation. The native dependency smoke remains the full integration gate. No dependency version or arithmetic semantics changed; corrected container execution is pending the next CI build.
+
 ## Build and inspection procedure
 
 `docker/dev/build-synthesis.sh` builds the guest for `wasm32-unknown-unknown` (release, panic abort, LTO, one codegen unit, size optimization), executes a fixed >i64 native model numeral smoke and runs the native shape/rejection tests. The dependency-only layer is keyed by manifests/locks, so source edits do not rebuild Z3. Both final targets use the same resulting artifacts/cache.

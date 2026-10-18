@@ -10,7 +10,25 @@ RUN curl --fail --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-i
 ENV CC=clang-19 CXX=clang++-19 CXXFLAGS=-stdlib=libc++ CXXSTDLIB=c++ \
     LIBRARY_PATH=/opt/oeis-cxx/lib LD_LIBRARY_PATH=/opt/oeis-cxx/lib
 # Keep the native smoke and both installed images on the same C++ runtime bytes.
-RUN mkdir -p /opt/oeis-cxx/lib && cp -L /usr/lib/llvm-19/lib/libc++.so.1 /usr/lib/llvm-19/lib/libc++abi.so.1 /usr/lib/llvm-19/lib/libunwind.so.1 /opt/oeis-cxx/lib/ && ln -s libc++.so.1 /opt/oeis-cxx/lib/libc++.so
+# libc++.so is a linker script: Rust's -nodefaultlibs link also needs the ABI
+# and unwind libraries explicitly, not just a symlink to libc++.so.1.
+RUN mkdir -p /opt/oeis-cxx/lib && cp -L /usr/lib/llvm-19/lib/libc++.so.1 /usr/lib/llvm-19/lib/libc++abi.so.1 /usr/lib/llvm-19/lib/libunwind.so.1 /opt/oeis-cxx/lib/ && printf '%s\n' 'INPUT ( /opt/oeis-cxx/lib/libc++.so.1 /opt/oeis-cxx/lib/libc++abi.so.1 /opt/oeis-cxx/lib/libunwind.so.1 )' > /opt/oeis-cxx/lib/libc++.so
+# Exercise formatting, allocation and exception ABI symbols through Rust's
+# linker before spending time compiling the vendored solver.
+RUN printf '%s\n' \
+      '#include <format>' \
+      '#include <stdexcept>' \
+      '#include <string>' \
+      'extern "C" int oeis_cxx_smoke() {' \
+      '  try { throw std::runtime_error(std::format("{}", 42)); }' \
+      '  catch (const std::exception& e) { return std::string(e.what()) == "42" ? 42 : -1; }' \
+      '}' > /tmp/oeis_cxx_smoke.cpp \
+    && "$CXX" -std=c++20 -stdlib=libc++ -c /tmp/oeis_cxx_smoke.cpp -o /tmp/oeis_cxx_smoke.o \
+    && ar rcs /tmp/liboeis_cxx_smoke.a /tmp/oeis_cxx_smoke.o \
+    && printf '%s\n' 'extern "C" { fn oeis_cxx_smoke() -> i32; }' 'fn main() { assert_eq!(unsafe { oeis_cxx_smoke() }, 42); }' > /tmp/oeis_cxx_smoke.rs \
+    && rustc --edition=2021 /tmp/oeis_cxx_smoke.rs -L native=/tmp -l static=oeis_cxx_smoke -L native=/opt/oeis-cxx/lib -l dylib=c++ -o /tmp/oeis-cxx-link-smoke \
+    && /tmp/oeis-cxx-link-smoke \
+    && rm /tmp/oeis_cxx_smoke.cpp /tmp/oeis_cxx_smoke.o /tmp/liboeis_cxx_smoke.a /tmp/oeis_cxx_smoke.rs /tmp/oeis-cxx-link-smoke
 FROM synthesis-toolchain AS dependency-locks
 COPY crates /locks/crates
 RUN for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do cargo metadata --format-version 1 --manifest-path /locks/crates/$crate/Cargo.toml > /dev/null; done
