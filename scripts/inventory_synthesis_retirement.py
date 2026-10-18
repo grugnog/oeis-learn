@@ -35,13 +35,16 @@ def inventory():
                             hits.update(part for part in alias.name.split('.') if part in MODULES)
             # Also catch literal dynamic import paths and test/path inventories.
             hits.update(m for m in MODULES if re.search(r'decoder[./]' + m + r'\b', text))
+        if path.suffix == '.py' and name.startswith(('src/', 'tests/')):
+            hits.update('data.models.' + model for model in ('ASTSkeleton', 'ConstantSolverResult')
+                        if re.search(r'\b' + model + r'\b', text))
         if 'grounded_variants' in text and name.startswith(('src/', 'tests/')):
             hits.add('fresh.search.grounded_variants')
         if path.suffix == '.py' and re.search(r'^\s*(?:import|from) (?:z3|sympy)\b', text, re.M):
             hits.update(lib for lib in ('z3', 'sympy') if re.search(r'^\s*(?:import|from) '+lib+r'\b',text,re.M))
         if name in ('pyproject.toml','uv.lock'):
             hits.update(dep for dep in ('z3-solver','sympy') if dep in text)
-        if path.suffix == '.yaml' and ('enable_z3' in text or path.name in ('train_run008.yaml','train_run009.yaml','train_run010.yaml')):
+        if path.suffix == '.yaml' and (re.search(r'^solver:', text, re.M) or 'enable_z3' in text or path.name in ('train_run008.yaml','train_run009.yaml','train_run010.yaml')):
             hits.add('legacy-solver-config')
         if not hits:
             continue

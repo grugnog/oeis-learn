@@ -19,11 +19,19 @@
       "junit_sha256": "sha256:53e0b44f19262115727f6bc65f1ea2bed328ad61365538060781179140778f90"
     },
     "contracts": {
-      "tests": 47,
+      "tests": 49,
       "failures": 0,
-      "skipped": 1,
-      "junit_sha256": "sha256:786d388e4acce175af75da6319b4c16141114e385730273bb69cc6455d6b6fc8"
+      "skipped": 2,
+      "junit_sha256": "sha256:64f3f55882fb49aa1a4f535f0248bf0e7f46db3efd8104d3b4c32122f0e86d71"
     }
   },
-  "fixture_manifest_sha256": "sha256:d515cdbc60eda169e5875a7d15ece09869d3df9cfa481a55e2435e097858b59a"
+  "fixture_manifest_sha256": "sha256:d515cdbc60eda169e5875a7d15ece09869d3df9cfa481a55e2435e097858b59a",
+  "python_packages": {
+    "torch": "2.9.1+cpu",
+    "numpy": "2.5.4",
+    "wasmtime": "20.0.0",
+    "z3-solver": "5.3.1.0",
+    "pytest": "9.1.1",
+    "jsonschema": "4.26.0"
+  }
 }

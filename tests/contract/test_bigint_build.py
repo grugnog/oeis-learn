@@ -81,3 +81,25 @@ def test_packaged_artifacts_and_binding_exact_numeral():
     assert report["imports"] == []
     for path in (info / "bigint-dependency-smoke.wasm", info / "core.Cargo.lock", info / "guest.Cargo.lock"):
         assert path.is_file() and os.access(path, os.R_OK)
+
+
+@pytest.mark.parametrize("backend", ["python_wasmtime", "rust"])
+def test_retained_signed_256_fixture_execution(backend):
+    from oeis_learn.sandbox.pipeline import Runtime
+    from oeis_learn.sandbox.runner import decode_i256_limbs
+    if backend == "rust":
+        try:
+            __import__("oeis_wasm_evaluator")
+        except ImportError:
+            if os.environ.get("OEIS_REQUIRE_BIGINT_BUILD") == "1":
+                pytest.fail("required retained native backend is missing")
+            pytest.skip("requires the built native extension")
+    runtime = Runtime(backend=backend)
+    cases = json.loads((ROOT / "tests/fixtures/bigint/signed-256.json").read_text())["cases"]
+    for case in cases:
+        if "limbs" in case:
+            assert str(decode_i256_limbs(case["limbs"])) == case["expected"]
+        else:
+            result = runtime.evaluate(case["source"], [0])
+            assert result.outcome == case.get("failure"), (case["id"], result)
+            assert result.outputs == ([case["expected"]] if "expected" in case else [])
