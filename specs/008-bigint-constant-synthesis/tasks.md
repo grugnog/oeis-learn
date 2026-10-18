@@ -53,7 +53,7 @@
 - [ ] T021 [US1] Write large-input feature/chunk and device/cache tests in `tests/unit/test_bigint_encoder.py` and `tests/integration/test_bigint_gpu.py`; cover signed neighbors at 256/512/1024/4096 bits, 4097-bit differences, chunk boundaries, padding invariance, width-independent parameter shapes, old-width feature tolerances and real HIP forward/backward updates.
 - [ ] T022 [US1] Implement finite large-integer feature math in `src/oeis_learn/encoder/large_integer_features.py` and adapt `magnitude_stream.py`, `difference_stream.py` and `modulo_stream.py` by explicit profile; use bit lengths/leading bits for logs, exact residues/differences, frozen odd primes, valuation cap32 and defined zero handling without changing historical defaults.
 - [ ] T023 [US1] Implement `hybrid-chunks/v1` in `src/oeis_learn/encoder/integer_chunks.py` and `hybrid.py`; follow the shared eight-byte/d64/four-head/ff256 chunk encoder contract, distinct pooled value/difference signs and lengths, masked mean pooling, growing device-correct sinusoidal buffers and d256 learned byte-gate fusion.
-- [ ] T024 [US1] Qualify parameter-aware teacher forcing, masks, termination and cached/uncached decoding in `src/oeis_learn/decoder/sampler.py`, `wat_decoder.py` and `inference_cache.py`; add regression cases in `tests/integration/test_bigint_decoding.py` for new and retained profiles, prompt controls, device movement and EOS/token alignment without weakening determinism.
+- [ ] T024 [US1] Qualify parameter-aware teacher forcing, masks, termination and cached/uncached decoding in `src/oeis_learn/decoder/sampler.py`, `wat_decoder.py` and `inference_cache.py`; add regression cases in `tests/integration/test_bigint_decoding.py` for new and retained profiles, fixed prompt fixtures, device movement and EOS/token alignment without weakening determinism; production conditioning-control parity is completed at T052 after those policies exist.
 - [ ] T025 [US1] Execute the US1 CPU/native differential suites and record the runtime/encoder checkpoint in `specs/008-bigint-constant-synthesis/validation/algorithm-runtime.md`; explicitly list any pending actual-HIP checks, ensuring all semantic discrepancies are resolved before dependent integration is declared qualified.
 
 ### US2 — Semantic parameters and exact native fitting (P1)
@@ -96,7 +96,7 @@
 - [ ] T049 [US4] Implement verified training-only replay admission/capacity/deduplication/replacement policies in `src/oeis_learn/fresh/replay.py`; retain exact sources/assignments/profile/track, cap later replay at25% of a batch, disable it in representation comparisons and expose complete resumable policy state.
 - [ ] T050 [US4] Implement paired-seed/family-bootstrap metrics and gates in `src/oeis_learn/fresh/comparison.py`; use fixed denominators, 2000 seeded family resamples, separate seed spread, 31/32 diverse gate and exact 8/128-versus-each-control, mean6.25pp,95% coverage and ≤4/128 parameter-regression transfer rules from `contracts/experiments.md`.
 - [ ] T051 [US4] Implement complete-screen cost accounting in `src/oeis_learn/fresh/cost_policy.py`; project all scheduled panels plus full end-of-screen controls using measured p95 phase costs and block recipes exceeding80% of total budget rather than dropping prompts or changing cadence silently.
-- [ ] T052 [US4] Execute data, ablation and learning/search policy suites and record algorithm evidence in `specs/008-bigint-constant-synthesis/validation/algorithm-learning.md`; identify all model/data/decoder policies by hash and distinguish the joint gain/dropout recipe from an isolated causal finding.
+- [ ] T052 [US4] Execute data, ablation and learning/search policy suites, including correct/shuffled/absent cached-versus-full generation parity in `tests/integration/test_bigint_decoding.py`, and record algorithm evidence in `specs/008-bigint-constant-synthesis/validation/algorithm-learning.md`; identify all model/data/decoder policies by hash and distinguish the joint gain/dropout recipe from an isolated causal finding.
 
 ### US5 — Assisted provenance and mathematical alternatives (P2)
 
@@ -258,4 +258,16 @@ All nine success criteria are covered. Numerical/resource limits and required fi
 5. Run the bounded staged research sequence only when prerequisites pass. Negative/inconclusive studies are complete research outcomes, but block longer-run promotion where the frozen gate requires improvement. Assistance and retraining studies need their own frozen manifests; no uncontrolled Cartesian sweep.
 6. Every implementation commit identifies the affected task IDs and evidence. Later algorithm changes reopen Phase 2, create new affected contract identities and rerun relevant gates. Slow CI can be left running after push; failures remain visible and require repair before feature completion.
 
-**Task-generation validation**: All106 tasks are unchecked, sequentially numbered and path-bearing; story labels and the11 conditional parallel tasks are audited. This statement validates this task document only, not the planned implementation.
+## Task inventory
+
+| Scope | Count |
+| --- | ---: |
+| US1: exact execution and large inputs | 20 |
+| US2: exact parameter fitting | 15 |
+| US3: portable operation and retirement | 24 |
+| US4: learning and transfer | 25 |
+| US5: assistance and discovery | 9 |
+| Shared preparation and phase gates | 13 |
+| **Total** | **106** |
+
+Phase counts are 10 / 48 / 22 / 8 / 10 / 8. Eleven test-writing tasks have conditional parallel opportunities. **Task-generation validation**: All 106 tasks are unchecked, sequentially numbered and path-bearing; story labels, six phase boundaries, relative document links and requirement/success-criterion coverage are audited. This validates the task document only, not the planned implementation. Run `/speckit.analyze` for the cross-artifact consistency review before implementation.
