@@ -46,6 +46,28 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+      - name: Check native formatting before compiling dependencies
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: native-format-check
+          platforms: linux/amd64
+          outputs: type=cacheonly
+          provenance: false
+          cache-from: ${{ steps.plan.outputs.cache_from }}
+          cache-to: type=gha,scope=oeis-native-format,mode=max,ignore-error=true
+      - name: Build and save pinned native dependency cache
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: native-dependencies
+          platforms: linux/amd64
+          outputs: type=cacheonly
+          provenance: false
+          cache-from: ${{ steps.plan.outputs.cache_from }}
+          # Commit this cache even if the later source build or tests fail.
+          # A distinct scope prevents final-image exports from replacing it.
+          cache-to: ${{ steps.plan.outputs.native_cache_to }}
       - name: Build pinned guest/native layers and current checkout once
         id: build
         uses: docker/build-push-action@v7

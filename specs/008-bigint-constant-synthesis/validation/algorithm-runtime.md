@@ -4,6 +4,10 @@ Status: **implementation milestone pushed; T025 native qualification pending**.
 This is not the complete Phase 2 exit and does not open fitting or Phase 3.
 Production flags and the framed public service remain disabled.
 
+See [the native build repair and cache boundaries](build-cache.md) for the later
+formatting failure, early formatting gate, independent dependency-cache export
+and source-scoped native-wheel stages.
+
 The local suite passed **202 tests** with **29 explicit skips**: 25 native
 compiler/runtime tests, two installed native/artifact checks, and two actual-HIP
 checks. Another 16 disposition/traceability tests passed. Python F/E9 lint,

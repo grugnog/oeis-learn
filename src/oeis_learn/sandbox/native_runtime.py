@@ -15,7 +15,8 @@ def source_bytes(root):
             ):
                 names.add(path.relative_to(repository).as_posix())
     names.update((
-        "Dockerfile", "docker/dev/build-native.sh", "docker/dev/build-synthesis.sh",
+        "Dockerfile", "rustfmt.toml", "docker/dev/build-native.sh",
+        "docker/dev/build-native-wheel.sh", "docker/dev/build-synthesis.sh",
         "docker/dev/install.sh", "src/oeis_learn/synthesis/records.schema.json",
         "src/oeis_learn/sandbox/preamble.wat",
     ))

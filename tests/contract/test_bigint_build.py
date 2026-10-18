@@ -39,6 +39,7 @@ def test_source_inventory_includes_nested_modules_and_locks(tmp_path):
             ROOT / path, tmp_path / path, ignore=shutil.ignore_patterns("target", "__pycache__")
         )
     shutil.copyfile(ROOT / "Dockerfile", tmp_path / "Dockerfile")
+    shutil.copyfile(ROOT / "rustfmt.toml", tmp_path / "rustfmt.toml")
     (tmp_path / "src/oeis_learn/sandbox").mkdir(parents=True)
     shutil.copyfile(
         ROOT / "src/oeis_learn/sandbox/preamble.wat",
@@ -46,6 +47,10 @@ def test_source_inventory_includes_nested_modules_and_locks(tmp_path):
     )
     binding = tmp_path / "crates/oeis_wasm_evaluator"
     old = source_bytes(binding)
+    wheel_script = tmp_path / "docker/dev/build-native-wheel.sh"
+    wheel_script.write_text(wheel_script.read_text() + "\n# changed wheel recipe\n")
+    assert source_bytes(binding) != old
+    wheel_script.write_bytes((ROOT / "docker/dev/build-native-wheel.sh").read_bytes())
     nested = tmp_path / "crates/oeis_synthesis_core/src/nested/new.rs"
     nested.parent.mkdir()
     nested.write_text("// new source must invalidate the native identity\n")

@@ -36,7 +36,9 @@ fn main() {
     }
     for name in [
         "Dockerfile",
+        "rustfmt.toml",
         "docker/dev/build-native.sh",
+        "docker/dev/build-native-wheel.sh",
         "docker/dev/build-synthesis.sh",
         "docker/dev/install.sh",
         "src/oeis_learn/synthesis/records.schema.json",

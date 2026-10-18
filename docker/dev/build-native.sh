@@ -2,20 +2,9 @@
 set -euo pipefail
 cd /opt/oeis-build
 uv pip install --python "$VIRTUAL_ENV/bin/python" --no-deps --no-build-isolation .
-export CARGO_TARGET_DIR=/opt/oeis-native-target
-cd crates/oeis_wasm_evaluator
-# The committed lock is part of the native source/build identity.
-test -f Cargo.lock
-cargo fmt -- --check
-# The native wheel is qualified inside these pinned Linux images, including
-# their explicitly packaged libc++ runtime; do not claim manylinux portability.
-maturin build --release --locked --compatibility linux --interpreter "$VIRTUAL_ENV/bin/python" --out /tmp/oeis-wheels
-uv pip install --python "$VIRTUAL_ENV/bin/python" --no-deps /tmp/oeis-wheels/*.whl
-mkdir -p /opt/oeis-build-info
-cp Cargo.lock /opt/oeis-build-info/Cargo.lock
-cp ../oeis_bigint_runtime/Cargo.lock /opt/oeis-build-info/guest.Cargo.lock
-cp ../oeis_synthesis_core/Cargo.lock /opt/oeis-build-info/core.Cargo.lock
-cd /opt/oeis-build
+# Compiled before the full checkout COPY; native_identity below rejects a stale
+# wheel against the exact current Rust/build inputs rather than rebuilding here.
+uv pip install --python "$VIRTUAL_ENV/bin/python" --no-deps /opt/oeis-wheels/*.whl
 python scripts/inspect_bigint_build.py --output /opt/oeis-build-info/bigint-build.json
 uv pip freeze --python "$VIRTUAL_ENV/bin/python" > /opt/oeis-build-info/python.txt
 rustc --version > /opt/oeis-build-info/rust.txt
