@@ -45,6 +45,8 @@ crates/**/target/
 target/
 Cargo.lock
 !crates/oeis_wasm_evaluator/Cargo.lock
+!crates/oeis_bigint_runtime/Cargo.lock
+!crates/oeis_synthesis_core/Cargo.lock
 **/*.rs.bk
 *.rlib
 *.prof*

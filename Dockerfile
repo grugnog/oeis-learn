@@ -1,6 +1,15 @@
 # Public, pinned images only. Default build is the ROCm GPU target.
 ARG GPU_BASE_IMAGE=docker.io/rocm/pytorch:rocm7.2.1_ubuntu24.04_py3.12_pytorch_release_2.9.1@sha256:96a2fb24dec9896e2f8238178f0c49d0dcc4c7dcc597be09e4564316bd86d191
 
+# Explicit maintenance target for resolving proposed dependency locks. Production
+# targets below require committed locks; they never generate or update them.
+FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS dependency-locks
+ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:${PATH}
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl build-essential cmake ninja-build pkg-config git && rm -rf /var/lib/apt/lists/*
+RUN curl --fail --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh && bash /tmp/rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain 1.90.0
+COPY crates /locks/crates
+RUN for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do cargo metadata --format-version 1 --manifest-path /locks/crates/$crate/Cargo.toml > /dev/null; done
+
 # Portable CPU qualification target. Uses the same installer/native build as
 # the development/GPU targets; no compiler or Docker dependency on the host.
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS qualification
