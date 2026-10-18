@@ -61,7 +61,7 @@ The smoke recipe resolves to the same explicit view/update/time values shown abo
 
 ## 5. Three matched literal/parameterized screens
 
-Run only after the preceding gates pass, the resolved experiment contract is reviewed and complete-screen cost preflight fits the frozen budget. Periodic synthesis uses a declared stratified panel; final reports cover the complete fixed development sets. Each run is capped at7,200seconds; six sequential runs can consume up to12hours **combined**, including diagnostics. This is a matched screen, not one automatic full-scale training run.
+Run only after the preceding gates pass, the resolved experiment contract is reviewed and complete-screen cost preflight fits the frozen budget. Periodic synthesis uses a declared stratified panel; end-of-screen reports cover the complete fixed development sets. Recipes set `evaluation.primary_transfer_metric: continuation_accuracy_100` and `evaluation.final_access: sealed`. Ordinary training finalization does not evaluate or expose the final OEIS cohort. Each run is capped at7,200seconds; six sequential runs can consume up to12hours **combined**, including diagnostics. This is a matched screen, not one automatic full-scale training run.
 
 ```bash
 set -euo pipefail
@@ -84,7 +84,7 @@ python3 scripts/foundation_run.py --engine podman compare \
   --output tmp-analysis/bigint-representation-001
 ```
 
-Expected: immutable contracts, all paired counts/coverage and phase costs, selected checkpoint identities, recorded seed/family variation and explicit promote/stop recommendation using [contracts/experiments.md](contracts/experiments.md). A non-improving screen is a completed experiment, not a reason to discard the seed or retune its scoring denominator.
+Expected: immutable contracts, all paired counts/coverage and phase costs, selected checkpoint identities, recorded seed/family variation and explicit promote/stop recommendation using [contracts/experiments.md](contracts/experiments.md). Transfer success requires both production and independent agreement at all100 indices for the candidate sealed using visible terms, under the exact-fitting equal-budget portfolio. Visible20-term fit and raw/rescue results are separate metrics. A non-improving screen is a completed experiment, not a reason to discard the seed or retune its scoring denominator.
 
 ## 6. Diagnose, resume and share
 
@@ -101,3 +101,19 @@ For an interrupted eligible run only, use `resume --run runs/bigint-parameter-20
 Share the six bounded run ZIPs plus comparison/ablation summaries. Core artifacts must include run/status/selected checkpoint identity, split/provenance hashes, raw/fitted/conditioning/template outcomes, size/complexity tables, phase timings and omission manifest. Include selected exact/incomplete examples and fitting/reference evidence. Weights are optional separate exports; private final terms are not required for ordinary report analysis.
 
 Assisted and input-retraining studies follow only after selecting a recipe and freezing reviewed demonstration/input-study manifests. `bigint_assisted_screen.yaml` intentionally fails until its foundation checkpoint and reviewed assisted manifest are supplied. Do not invent a demonstration set, enable replay or start a12+hour training arm merely to make the quickstart complete. Longer-run configuration is a subsequent explicit decision based on transfer, coverage and measured hardware throughput.
+
+## 7. Explicit final evaluation after all study decisions
+
+After the intended representation/curriculum/replay/assistance/input studies, freeze their decision manifest and create `tmp-analysis/final-evaluation-plan.json` conforming to `final-evaluation/v1`. It must identify the still-sealed cohort hash, every registered arm/seed and already-selected checkpoint hash, effective recipes/portfolios, fixed denominators/controls and explicit aggregate/per-arm budgets. Missing decisions/budgets or a changed checkpoint make validation fail. This is the Phase 6 final-study task, not part of the six training commands above.
+
+For each arm registered in that immutable plan, use its matching run/config/output. For example, if the following parameter arm is registered:
+
+```bash
+python3 scripts/foundation_run.py --engine podman evaluate \
+  --run runs/bigint-parameter-20261016-001 --split final --fitting paired \
+  --config configs/foundation/bigint_parameter_screen.yaml \
+  --final-plan tmp-analysis/final-evaluation-plan.json \
+  --output tmp-analysis/bigint-final-parameter-20261016-001
+```
+
+Every arm consumes the same final-study ledger subject to its registered sublimit. Exposure is durably recorded before the first final-prompt evaluation; interruption cannot restore freshness or reissue budget. Only the identical plan may finish its remaining arms, and unstarted/failed arms stay in the fixed report. Any later tuning uses a new cohort for a fresh final claim. Share the final plan/decision hashes and result bundles along with the earlier development reports. These remain post-implementation commands.

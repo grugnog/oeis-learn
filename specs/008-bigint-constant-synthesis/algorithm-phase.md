@@ -29,7 +29,9 @@ Implement the variable-length shared chunk encoder exactly as the input contract
 
 ### D. Generic data, split semantics and learning/search policies
 
-Implement typed connected generic generation and parameter-family canonicalization, behavior/prefix/shift grouping, separate parameter/structure splits and concrete/parameterized paired admission. Preserve traps when shortening targets; do not introduce an unqualified optimizer. Implement frozen prompt derangements/unconditioned representation, template baseline construction, candidate ranking/alternative retention, full-denominator score selection, curriculum advancement/retained practice and replay admission/replacement rules. Implement family-bootstrap comparison statistics without treating three seeds as a large population.
+Implement typed connected generic generation and parameter-family canonicalization, behavior/prefix/shift grouping, separate parameter/structure splits and concrete/parameterized paired admission. Preserve traps when shortening targets; do not introduce an unqualified optimizer. Implement frozen prompt derangements/unconditioned representation, template baseline construction, candidate ranking/alternative retention, full-denominator score selection, curriculum advancement/retained practice and replay admission/replacement rules. Implement family-bootstrap comparison statistics without treating three seeds as a large population. Keep `visible_fit_accuracy_20` for checkpoint/curriculum decisions separate from `continuation_accuracy_100` for the fitted equal-budget transfer gate; a program that fits20 terms but fails a continuation must score zero on transfer.
+
+Implement final-plan validation and sealed/authorized/exposed cohort transitions as pure policies here. Require completed decision manifests, a fixed arm/seed/checkpoint roster and aggregate/per-arm budgets; ordinary run finalization cannot grant final access, and interruption cannot restore freshness. Later integration may enforce these decisions in command routing and mounts but cannot invent the authorization or retry policy.
 
 This package supplies pure, tested policy functions for Phase 3 to call. If an existing implementation already satisfies a contract, qualify/reuse it rather than rewrite it; record the source identity and tests. Any new semantic policy needed by later integration returns here.
 
@@ -45,7 +47,8 @@ This package supplies pure, tested policy functions for Phase 3 to call. If an e
 | Codec/decoder | Source/token round trips, parameter renaming, literal boundaries, EOS, cached/uncached and correct/shuffled/absent path parity; old vocab checkpoint mismatch explicit |
 | Encoder | Width-independent parameter shapes; byte/chunk boundary neighbors; 4097-bit differences; masking/padding invariance; finite forward/backward; actual-device parity where available; ablations target documented fusion boundaries |
 | Data/policies | Deterministic family/variant sampling; no detectable overlap across forbidden splits; non-affine tiny gate composition; semantic simplification counterexample; hidden-free selection; replay/assistance lineage and budget-preserving policy state |
-| Comparisons | Fixed denominators under timeouts, eight-of128 gate arithmetic, paired seed/family statistics, archive alternative retention and omitted-evidence accounting |
+| Comparisons | Fixed denominators under timeouts, prefix-only false-success rejection, explicit100-index fitted-portfolio gate and eight-of128 arithmetic, paired seed/family statistics, archive alternative retention and omitted-evidence accounting |
+| Final access | Sealed study blocks ordinary command/mount access; incomplete or changed final plans rejected; exposure debited before evaluation; interrupted identical-plan resume preserves spent allowance/freshness and all registered arms |
 
 Commit and record passing CPU/native suites, required fixture hashes, unresolved actual-GPU checks and effective profiles. A GPU-only failure does not justify silently changing determinism or numeric semantics; report commands/results and reopen the relevant Phase 2 package if algorithm changes are required.
 
