@@ -11,6 +11,40 @@ workflow YAML parsing and build-script shell syntax passed. The local environmen
 was Python 3.12.14 and Torch 2.9.1+cpu; Python Wasmtime 20.0.0 is used only for
 retained local tests. The production native engine stays pinned to 20.0.2.
 See [local evidence and source hashes](algorithm-runtime-local.json).
+That evidence records the original US1 implementation at `29f7fa8`; the CI
+follow-up below records subsequent changes separately.
+
+## CI regression fixes after the US1 push
+
+Completed review run [39165212003](https://github.com/grugnog/oeis-learn/actions/runs/39165212003)
+reported two failed jobs: `cpu-regressions` omitted `input_profile` from the
+explicit encoder constructor record, and `cpu-acceptance (training-integration)`
+could not deep-copy a decoder containing a Python codec module. All three failing
+test cases were reproduced locally before the fixes.
+
+Foundation constructor records now explicitly select the historical
+`input_profile=None`. Decoders store a codec module name and resolve the module
+through a property, so frozen training references can copy the model. A regression
+test covers both explicit codecs, matching outputs and independent copied weights.
+The rolling 007 source identity is rebound for traceability only.
+
+Local verification: **88 passed, one HIP-only skip**, including the complete
+training-integration job, foundation sampler/configuration/cache/handoff tests,
+and bigint decoding tests. Python F/E9 lint and `git diff --check` passed.
+The environment remains Python 3.12.14 / Torch 2.9.1+cpu; the declared Python
+`z3-solver` dependency was installed (5.3.1.0) for the retained training tests.
+No native or HIP qualification is claimed. The still-running container build was
+not monitored, and T025 remains open.
+
+```sh
+OMP_NUM_THREADS=2 PYTHONPATH=src .venv-phase2/bin/python -m pytest -q \
+  tests/unit/test_foundation_sampler.py tests/unit/test_foundation_config.py \
+  tests/integration/test_egca_training_step.py tests/integration/test_bootstrap_admission.py \
+  tests/integration/test_bigint_decoding.py tests/unit/test_foundation_cache.py \
+  tests/unit/test_foundation_handoff.py --junitxml=tmp-validation/phase2-ci-fixes.xml
+```
+
+## Original US1 implementation evidence
 
 The independent tests were written first: the reference/value suites initially
 failed collection because the semantic modules did not exist. Encoder tests

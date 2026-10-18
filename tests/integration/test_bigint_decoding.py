@@ -101,3 +101,33 @@ def test_codec_change_invalidates_cache():
         decoder.codec_sha256 = "sha256:" + "0" * 64
         with pytest.raises(ValueError, match="stale"):
             decoder.decode_step(torch.tensor([codec.TOKEN_TO_ID["("]]), cache)
+
+
+@pytest.mark.parametrize("codec_name", ["program_codec", "bigint_codec"])
+def test_explicit_codec_decoder_can_be_copied_for_frozen_reference(codec_name):
+    from copy import deepcopy
+    from importlib import import_module
+
+    selected = import_module("oeis_learn.decoder." + codec_name)
+    decoder = WatTransformerDecoder(
+        vocab_size=selected.FOUNDATION_VOCAB_SIZE,
+        codec_sha256=selected.codec_digest(),
+        pad_idx=selected.PAD_ID,
+        d_model=16,
+        n_heads=2,
+        n_decoder_layers=1,
+        d_ff=32,
+        dropout=0,
+        position_style="prefix_ancestor",
+    ).eval()
+    reference = deepcopy(decoder)
+    assert reference.program_codec is selected
+    assert reference.codec_sha256 == decoder.codec_sha256
+    assert reference.lm_head.weight.data_ptr() != decoder.lm_head.weight.data_ptr()
+    tokens = torch.tensor([[selected.BOS_ID]])
+    memory = torch.randn(1, 3, 16)
+    with torch.no_grad():
+        expected = decoder(tokens, memory)
+        torch.testing.assert_close(reference(tokens, memory), expected)
+        decoder.lm_head.bias.add_(1)
+        torch.testing.assert_close(reference(tokens, memory), expected)

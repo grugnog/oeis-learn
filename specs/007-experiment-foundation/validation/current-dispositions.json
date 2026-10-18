@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec 008 Phase 2 US1 runtime/input implementation; current-source traceability only, no historical or native/HIP qualification carried forward",
+  "code_revision": "Spec 008 Phase 2 CI fixes for explicit encoder profile and copyable codec decoder; current-source traceability only, no historical or native/HIP qualification carried forward",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:38a724597911aac56c2690edf7570bc0bf731d792d62db2277fc134821da881d",
+  "implementation_sha256": "sha256:eac05f125250b8ab6884e776cfa6d2d0fa0873d0ac4c53ea0699f9da09f0ee62",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

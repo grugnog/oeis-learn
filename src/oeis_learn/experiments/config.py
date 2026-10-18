@@ -329,6 +329,7 @@ class FoundationConfig:
                 base_moduli=m["modulus"],
                 use_film=m["film"],
                 enable_summary_tokens=m["summary_tokens"],
+                input_profile=None,
             ),
             "decoder": dict(
                 common,

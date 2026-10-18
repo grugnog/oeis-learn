@@ -118,7 +118,8 @@ class WatTransformerDecoder(nn.Module):
             matches = [c for c in (program_codec, bigint_codec) if c.codec_digest() == codec_sha256]
             if len(matches) != 1 or vocab_size != matches[0].FOUNDATION_VOCAB_SIZE or pad_idx != matches[0].PAD_ID:
                 raise ValueError("incompatible explicit codec configuration")
-            self.program_codec = matches[0]
+            # Module objects cannot be deep-copied when freezing an RL reference.
+            self._program_codec_module = matches[0].__name__
             self.register_buffer(
                 "_codec_identity", torch.tensor(list(codec_sha256.encode()), dtype=torch.uint8)
             )
@@ -156,6 +157,12 @@ class WatTransformerDecoder(nn.Module):
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=n_decoder_layers)
         self.final_norm = nn.LayerNorm(d_model, dtype=torch.float32)
         self.lm_head = nn.Linear(d_model, vocab_size, dtype=torch.float32)
+
+    @property
+    def program_codec(self):
+        from importlib import import_module
+
+        return import_module(self._program_codec_module)
 
     def generate_causal_mask(
         self, seq_len: int, device: Optional[torch.device] = None
