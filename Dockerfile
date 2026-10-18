@@ -14,6 +14,7 @@ RUN for crate in oeis_bigint_runtime oeis_synthesis_core oeis_wasm_evaluator; do
 # Native Z3 and the separate guest are built once, before Python/ROCm layers.
 # Both final targets inherit identical dependency smoke artifacts and caches.
 FROM synthesis-toolchain AS synthesis-build
+ENV CARGO_BUILD_JOBS=2 CMAKE_BUILD_PARALLEL_LEVEL=2
 COPY crates /opt/oeis-build/crates
 COPY src/oeis_learn/synthesis /opt/oeis-build/src/oeis_learn/synthesis
 COPY tests/fixtures/bigint /opt/oeis-build/tests/fixtures/bigint

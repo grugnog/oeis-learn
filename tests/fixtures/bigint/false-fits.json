@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "expected_admission": false,
+      "id": "square-16-versus-4",
+      "production_output": "16",
+      "provisional_assignment": {
+        "p0": "4"
+      },
+      "regression": "tests/unit/test_foundation_grounding.py::test_nonlinear_parameter_local_square",
+      "structure": "p0*p0",
+      "valid_assignments": [
+        {
+          "p0": "-2"
+        },
+        {
+          "p0": "2"
+        }
+      ],
+      "visible_value": "4"
+    },
+    {
+      "assignment": {
+        "p0": "0",
+        "p1": "1"
+      },
+      "equation": "2*p0+p1=1",
+      "expected": "integer-feasible",
+      "id": "integer-free-variable",
+      "note": "Do not reject after choosing the free variable p1=0."
+    },
+    {
+      "equation": "2*p0=1",
+      "expected": "unsat_in_scope",
+      "id": "nonintegral-unique"
+    },
+    {
+      "assignment": {
+        "p0": "7"
+      },
+      "equation": "2305843009213693951*p0=16140901064495857657",
+      "id": "modular-singular-pivot"
+    },
+    {
+      "assignment": {
+        "p0": "2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397377",
+        "p1": "-1267650600228229401496703205389"
+      },
+      "equation": "p0*n+p1",
+      "id": "large-coefficient"
+    }
+  ],
+  "version": "false-fit-fixtures/v1"
+}

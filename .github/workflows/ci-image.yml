@@ -21,7 +21,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     outputs:
       reference: ${{ steps.result.outputs.reference }}
       transport: ${{ steps.plan.outputs.transport }}
@@ -46,7 +46,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - name: Build current checkout once
+      - name: Build pinned guest/native layers and current checkout once
         id: build
         uses: docker/build-push-action@v7
         with:

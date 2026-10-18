@@ -9,6 +9,7 @@ on:
       - 'configs/**'
       - 'docker/dev/**'
       - 'crates/**'
+      - 'specs/008-bigint-constant-synthesis/contracts/**'
       - 'pyproject.toml'
       - 'uv.lock'
       - 'setup.py'
