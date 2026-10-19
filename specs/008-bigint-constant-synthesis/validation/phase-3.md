@@ -13,3 +13,18 @@ routing, provenance, prioritized exports and public validation suites. Phase 4
 retirement and research execution remain outside this request. New CI is left
 running without monitoring; unavailable native/HIP execution is recorded with
 reproduction commands rather than asserted from source inspection.
+
+## Transport/configuration milestone (T059–T063)
+
+Tests were added before implementation and initially failed collection on the
+missing modules. Framed native dispatch, one shared FIFO supervisor, bounded
+partial reads/writes, generation/contract checks, external timeout/RSS/stderr and
+kill/reap, result/disk reservation policies and closed recipe resolution are now
+implemented. Native build packaging includes the worker binary. The unchanged
+Phase 2 driver calls the same dispatch as the worker; neither grants admission.
+
+Local targeted result: 10 passed, one explicit packaged-native skip. The
+qualification image must execute that native case. Native compilation is pending;
+this workspace has no Docker/Podman or Rust toolchain. The configuration record
+is resolved inside the image; the host remains standard-library-only. Later
+milestones complete orchestration/training/export wiring before T080 qualifies.

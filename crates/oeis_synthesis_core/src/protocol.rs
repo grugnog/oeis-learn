@@ -9,7 +9,7 @@ pub const MAX_FRAME_BYTES: usize = 4 * 1024 * 1024;
 pub const RECORD_SCHEMAS: &str =
     include_str!("../../../src/oeis_learn/synthesis/records.schema.json");
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Candidate {
     pub candidate_id: String,
@@ -18,16 +18,18 @@ pub struct Candidate {
     pub codec_profile: String,
     pub parameter_ids: Vec<String>,
     pub abstraction_policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<crate::evidence::Evidence>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Budget {
     pub wall_time_ms: u32,
     pub attempts: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Operation {
     Fit,
@@ -35,7 +37,7 @@ pub enum Operation {
     ReplayUnsat,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
     pub protocol: String,
