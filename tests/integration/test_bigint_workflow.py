@@ -251,10 +251,10 @@ def test_selection_scoring_is_independent_of_private_truth(tmp_path, monkeypatch
     from oeis_learn.fresh.bigint_diagnostics import generate, score
     from oeis_learn.synthesis.client import SynthesisClient
     from oeis_learn.decoder.sampler import WatProgramSampler
-    from oeis_learn.decoder.bigint_codec import encode_body, BOS_ID
+    from oeis_learn.decoder.bigint_codec import encode_body, decode_body, BOS_ID
     from types import SimpleNamespace
 
-    source = "(program (return (add $index (int 0))))"
+    source = decode_body(encode_body("(program (return (add $index (int 0))))"))
     monkeypatch.setattr(
         WatProgramSampler,
         "sample_trajectories",

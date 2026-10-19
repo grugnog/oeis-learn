@@ -120,3 +120,34 @@ fixture identity are supplied. No recipe silently reduces requested coverage.
 
 Requirements checklist:16/16 checked. `.specify/extensions.yml` is absent, so
 there are no after-implementation extension hooks to dispatch.
+
+## PR #56 CI repair
+
+Completed run [39252676619](https://github.com/grugnog/oeis-learn/actions/runs/39252676619)
+at head `018d323b369f9123ada2eea80075635b1dba5f91` built successfully, passed
+all 154 Phase2 CPU/native tests without skips, and passed the separate Rust,
+Docker and Podman jobs. Two checks failed:
+
+- The native selection/scoring fixture supplied hand-formatted source alongside
+  canonical codec tokens. Exact EOS/source binding correctly rejected it. The
+  production fixed-template path had the same integration mismatch. Both now
+  obtain source from the codec's decoded tokens; the frozen template bank,
+  mathematical ASTs, policies and source-binding rejection rule are unchanged.
+- G7 rejected successful Cargo evidence because it assumed exactly three target
+  summaries and that the second target was phase7. The new worker binary adds a
+  zero-test target between library and phase7. Evidence is now checked by named
+  owning targets, with the same minimum owning test counts; additional targets
+  must also pass, with no ignored/filtered/failed or unowned summaries. Replaying
+  the downloaded actual CI log recognizes all 13 passing Rust tests.
+
+Regression tests cover all eight template AST/token/source identities, old and
+new Cargo target layouts, additional passing targets, and missing, duplicate,
+failed, ignored, filtered, unowned or underfilled owning evidence. They are
+included in the CI native contract step and public bigint CPU suite. The rolling
+spec007 disposition is rebound to the changed implementation without promoting
+historical evidence. The previous local result JSON remains evidence for its
+original source identity. T080 still awaits the corrected full native run;
+new CI is deliberately left unmonitored.
+
+Local CI-repair recheck:61 tests passed, one packaged-native skip; Ruff F/E9 and
+`git diff --check` passed. No local Docker/Podman/Rust execution is claimed.

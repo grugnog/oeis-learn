@@ -223,7 +223,7 @@ jobs:
               # UID 12345 owns the reports, but not the runner-owned mount root.
               trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
               python scripts/qualify_bigint_phase2.py --inside --output /evidence
-              python -m pytest -q -m "not gpu" -p no:cacheprovider --basetemp=/tmp/phase3-pytest --junitxml=/evidence/phase3.xml tests/contract/test_bigint_workflow.py tests/integration/test_synthesis_worker.py tests/integration/test_bigint_workflow.py
+              python -m pytest -q -m "not gpu" -p no:cacheprovider --basetemp=/tmp/phase3-pytest --junitxml=/evidence/phase3.xml tests/contract/test_bigint_workflow.py tests/integration/test_synthesis_worker.py tests/integration/test_bigint_workflow.py tests/unit/test_bigint_ci_regressions.py
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '
       - name: Native dependency and retained-profile tests in shared image

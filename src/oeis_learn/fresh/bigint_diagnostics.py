@@ -85,6 +85,14 @@ def _seal(items, prompt, *, cost):
     )
 
 
+def _template_candidate(position):
+    """Serialize the frozen template through the same codec as generated sources."""
+    from oeis_learn.decoder.bigint_codec import encode_body, decode_body
+
+    tokens = encode_body(template_bank()["sources"][position])
+    return decode_body(tokens), tokens
+
+
 def portfolio(
     decoder,
     memory,
@@ -124,11 +132,8 @@ def portfolio(
         tokens = []
         generated = 0.0
         if template:
-            source = template_bank()["sources"][position]
+            source, tokens = _template_candidate(position)
             complete = True
-            from oeis_learn.decoder.bigint_codec import encode_body
-
-            tokens = encode_body(source)
         else:
             sampler = WatProgramSampler(
                 decoder,
