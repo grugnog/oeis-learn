@@ -3,7 +3,7 @@
 Code tasks T059–T079 are implemented. **T080 remains pending** the actual
 CPU/native integration run in the new image with zero failures/errors/skips.
 The PR CI includes that run; it is deliberately left running without monitoring.
-Actual current-image HIP execution is also pending. No research screen,
+Full current-image HIP validation is also pending. No research screen,
 retirement audit, merge, final-cohort evaluation or promotion was executed.
 
 Entry: merged main `6d284b6597582e8900260c1397b796d274aad22b` (PR #55), whose
@@ -151,3 +151,36 @@ new CI is deliberately left unmonitored.
 
 Local CI-repair recheck:61 tests passed, one packaged-native skip; Ruff F/E9 and
 `git diff --check` passed. No local Docker/Podman/Rust execution is claimed.
+
+## HIP device binding repair (T068/T079)
+
+The user-supplied `008-phase3-hip-001` log reports two passing actual-HIP tests
+(large-input encoder update and decoder cache/position growth). The integrated
+checkpoint/update fixture failed before its first update because the workflow
+passes `cuda` while model parameters report `cuda:0`. The chunk encoder now
+resolves an unindexed CUDA/HIP request through `torch.cuda.current_device()`
+before comparing it with the concrete parameter device, matching the retained
+`IntegerBytesEncoder` convention. Explicit wrong indices and CPU/GPU mismatches
+remain errors. No architecture, numerical policy, checkpoint state or CPU
+fallback changes are involved.
+
+Nine CPU-host device-binding cases reproduce the original failure and check
+current indices 0/1, explicit indices, omitted device and mismatch rejection
+without allocating GPU tensors. The affected CPU encoder, ablation, decoding and
+workflow set passes **36 tests, with two packaged-native skips and one GPU
+deselection**, including exact checkpoint/resume versus uninterrupted weights.
+Ruff F/E9 and `git diff --check` pass. This is not actual-HIP validation of the
+repair. T080 and T092 remain pending; historical evidence keeps its original
+source identity, and only the rolling disposition is rebound.
+
+After pulling the repair on `implement/008-phase3`, rebuild from that checkout
+and rerun with a fresh output directory (omit `--image` to avoid reusing the old
+image):
+
+```bash
+git pull --ff-only
+python3 scripts/foundation_run.py --engine podman validate \
+  --suite bigint-gpu --output tmp-validation/008-phase3-hip-002
+```
+
+CI triggered by this repair is deliberately left unmonitored.

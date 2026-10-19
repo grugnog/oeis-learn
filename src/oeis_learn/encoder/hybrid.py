@@ -131,8 +131,14 @@ class ChunkHybridEncoder(TriStreamEncoder):
         from .integer_chunks import encode_chunks
 
         actual = next(self.parameters()).device
-        if device is not None and torch.device(device) != actual:
-            raise ValueError("explicit device differs from model device")
+        if device is not None:
+            requested = torch.device(device)
+            # As in IntegerBytesEncoder, unindexed CUDA/HIP names the current
+            # accelerator; parameters carry its concrete index.
+            if requested.type == "cuda" and requested.index is None:
+                requested = torch.device("cuda", torch.cuda.current_device())
+            if requested != actual:
+                raise ValueError("explicit device differs from model device")
         batch = encode_chunks(sequences, device=actual)
         if pad_mask is not None and not torch.equal(pad_mask, batch.padding):
             raise ValueError("padding must match exact visible lengths")
