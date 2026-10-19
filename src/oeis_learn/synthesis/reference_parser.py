@@ -21,7 +21,7 @@ class ReferenceProgram:
     result: tuple | str
 
 
-def parse(source, limits=ResourceProfile()):
+def parse(source, limits=ResourceProfile(), *, allow_parameters=False):
     if type(source) is not str or len(source.encode("utf-8")) > limits.source_bytes:
         raise SourceError("source limit")
     # Explicit lexer verifies every byte; comments/strings/Unicode atoms absent.
@@ -102,6 +102,13 @@ def parse(source, limits=ResourceProfile()):
         if not isinstance(value, tuple) or not isinstance(value[0], str):
             raise SourceError("expected typed expression")
         op, args = value[0], value[1:]
+        if (
+            op == "param.get"
+            and allow_parameters
+            and len(args) == 1
+            and args[0] in {f"p{i}" for i in range(8)}
+        ):
+            return "bigint"
         if op == "int" and len(args) == 1:
             number(args[0], limits.literal_bits)
             return "bigint"
@@ -169,3 +176,47 @@ def parse(source, limits=ResourceProfile()):
     for item in body[:-1]:
         statement(item)
     return ReferenceProgram(tuple(declarations), tuple(body[:-1]), body[-1][1])
+
+
+def parse_retained(source, limits=ResourceProfile()):
+    """Independent narrow checked-256 stack reader, never bigint reinterpretation."""
+    from .contracts import canonical_integer
+
+    if type(source) is not str or len(source.encode()) > limits.source_bytes:
+        raise SourceError("source limit")
+    words = source.split()
+    if len(words) > 1024:
+        raise SourceError("retained source token limit")
+    stack = []
+    at = 0
+    while at < len(words):
+        op = words[at]
+        at += 1
+        if op in {"i256.const", "i256.zero"}:
+            if op == "i256.zero":
+                n = "0"
+            else:
+                if at == len(words):
+                    raise SourceError("missing retained literal")
+                n = words[at]
+                at += 1
+            value = canonical_integer(n, bits=256)
+            if not -(1 << 255) <= value < (1 << 255):
+                raise SourceError("retained literal range")
+            stack.append(("int", n))
+        elif op in {"i256.add", "i256.sub"}:
+            if len(stack) < 2:
+                raise SourceError("retained stack underflow")
+            b = stack.pop()
+            a = stack.pop()
+            stack.append((op[5:], a, b))
+        else:
+            raise SourceError("unsupported retained operation")
+    if len(stack) != 1:
+        raise SourceError("retained stack result")
+
+    # Revalidate source/nesting limits through this independent reader.
+    def emit(n):
+        return n if isinstance(n, str) else "(" + " ".join(emit(x) for x in n) + ")"
+
+    return parse("(program (return " + emit(stack[0]) + "))", limits)

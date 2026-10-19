@@ -1,0 +1,403 @@
+{
+  "date": "2026-10-19",
+  "environment": {
+    "hip": null,
+    "native_wasmtime_expected": "20.0.2",
+    "python": "3.12.14",
+    "torch": "2.9.1+cpu"
+  },
+  "fixtures": {
+    "tests/fixtures/bigint/arithmetic.json": "sha256:936fc6bbfdc732c4164695cda6825c9504742a4ca8cd86a52f6680885e3f2d16",
+    "tests/fixtures/bigint/false-fits.json": "sha256:8a0eeb6b12564123fa86bac2d27be011c0661f695582d17648cd6eae3085ec5d",
+    "tests/fixtures/bigint/manifest.json": "sha256:d515cdbc60eda169e5875a7d15ece09869d3df9cfa481a55e2435e097858b59a",
+    "tests/fixtures/bigint/record-stubs.json": "sha256:804ddcf4732ff79d1fde8f130100ca06d1a18d3ab0c70750fba0aa40704bb8f8",
+    "tests/fixtures/bigint/request.json": "sha256:9ed276f142e9310e2c6d229ea19816babc9c5ec00799a99f8dd4239cc7118b13",
+    "tests/fixtures/bigint/signed-256.json": "sha256:993d7bc071213689d5c8bacb4ab00653efa184bb7d410ce392a7a6d05dff584e"
+  },
+  "implementation_sha256": "sha256:b85bf3874797817a09f61c78b6e5143786f3b578fe68f3b8b589a73d6dcbf9ec",
+  "limitations": [
+    "No native Rust build or container engine in local workspace; 32 native/artifact skips are not acceptance.",
+    "Nine existing foundation pool-builder integration failures depend on unavailable /proc/sys/kernel/random/boot_id; production clock policy unchanged.",
+    "No actual HIP, learning efficacy, sustained GPU utilization, final-cohort access or production activation claimed.",
+    "No new PR CI polling or waiting."
+  ],
+  "policies": {
+    "codec_sha256": "sha256:615ae83785d3aec8063ef016fc04ad28213ba68cd75403fe01115f55e0c8289d",
+    "decoder_recipe": {
+      "attention": "eager",
+      "d_model": 256,
+      "decoder_layers": 4,
+      "dropout": 0,
+      "encoder_layers": 4,
+      "heads": 4,
+      "interpretation": "joint recipe, not isolated gain or dropout causal evidence",
+      "position_scale": 16,
+      "token_scale": 1
+    },
+    "full_input_mask_sha256": "sha256:c896fe6e5831916890d69fbd503a6dffb7ab207c2255eaf37b82bb432298cc35",
+    "generator_priors_sha256": "sha256:ad61e599f51b8d9222f9281b81456bb240861d1c8909600d53c81d19a4c71a21",
+    "generators": {
+      "20261016": "sha256:90d20837600f7fa533d688a7b42cda4266b7239f4daf1ac38515a19139c564e2",
+      "20261017": "sha256:b575aca67cdf556e7b4afe2ce1aa92f5072852523255fdb6dc7eeb124de84272",
+      "20261018": "sha256:586e47f4292f6e9df85bfc89d1b66e1f3df686665ca4d77119abdf4fb2721c4f"
+    },
+    "template_bank_sha256": "sha256:4e24c57198d3d11a0d8f184f0a997fbbf62db7bbc35fb6b53489a9bfa8adb7f3"
+  },
+  "production_enabled": false,
+  "qualification": "CPU Python only; changed native compile/execution and actual HIP pending",
+  "source_files": {
+    ".github/workflows/foundation.yml": "sha256:3e336a271fcaa8ddde2e5ce0659c048b76242498d1d9327e072a4b603873831e",
+    "crates/oeis_bigint_runtime/Cargo.lock": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+    "crates/oeis_bigint_runtime/Cargo.toml": "sha256:98bd72a9846c2ec53b1b8c5cd3ee2e92d26ed2708fd31e37cbde2128684184ab",
+    "crates/oeis_bigint_runtime/src/lib.rs": "sha256:3382d38b8248b08b29e01554c3687f4216a7bb75947cff84ee610c343f9fcf7a",
+    "crates/oeis_synthesis_core/Cargo.lock": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+    "crates/oeis_synthesis_core/Cargo.toml": "sha256:45629b837d32831ed9f690c9d97f8d1764374ca5d484e8af728259a1a1c87bac",
+    "crates/oeis_synthesis_core/examples/dependency_smoke.rs": "sha256:2f19217c3faacd84441988b5e4ea7fc21c731d1be9aecfa68f42d4632e9c6c7b",
+    "crates/oeis_synthesis_core/examples/runtime_probe.rs": "sha256:4306d827bb72b1246b3080f9bb057b7b73fcf79c67839c30372c9c2cbb207332",
+    "crates/oeis_synthesis_core/src/affine.rs": "sha256:271ef953a93f4610efb1ee0b68f48815bc5dc4ba36d22add33f17c365c7adb4c",
+    "crates/oeis_synthesis_core/src/cache.rs": "sha256:21ff3ff3ab59b479742e006f7cf9dae1e65c742514da0d646d14f406571eff16",
+    "crates/oeis_synthesis_core/src/dependence.rs": "sha256:9c5060bc7643161c9cbe78263f721955ff5916e9b2c2775828773d2eb3b08fec",
+    "crates/oeis_synthesis_core/src/diagnostic.rs": "sha256:627153ebea50fa83072972588028bca83e5ef33e8ed50360da0188fe3d13da0f",
+    "crates/oeis_synthesis_core/src/evidence.rs": "sha256:314cc8961fe34187d5df0cc3ccc0499f96a7416b658b0b7e96356f2156a3532c",
+    "crates/oeis_synthesis_core/src/fit.rs": "sha256:abf48dee4d554daf85f8a7e8a39882cedc30ff1f208afe8e1778addc39149c18",
+    "crates/oeis_synthesis_core/src/language.rs": "sha256:22ccec60dcd063aa04bb5e148fb6050fcefe6d6598f90fecdb28496553a05eb1",
+    "crates/oeis_synthesis_core/src/lib.rs": "sha256:33f4351969693c02b4f4745d3f441c8212391e20aa259754ecd989aa1200e3e7",
+    "crates/oeis_synthesis_core/src/lowering.rs": "sha256:594da80e14e7258bc1e4be510cb9d083d63326028ed29d7ef3e8ee89e69bca1e",
+    "crates/oeis_synthesis_core/src/parameters.rs": "sha256:44002fd1f818016463bce2f486674d4c1048d65dc589640355669400d9e22eae",
+    "crates/oeis_synthesis_core/src/protocol.rs": "sha256:b5156881f63b48ab18ca512e641aaf534c877d4d15b77779ceb4e6c08d4c39a0",
+    "crates/oeis_synthesis_core/src/retained.rs": "sha256:b7f3f12527881cf3fe1ebf8ae7c23c2682b68a09eda3de317c4b9542c0aad1f4",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:a887b4d9513c5cd289558bbc96fb18cafadd5afc47e6ac37c11e335f8f4f0162",
+    "crates/oeis_synthesis_core/src/smt.rs": "sha256:7f220ce1324a4aaacbb4e7d304dcc56f3bfe7d93d194399f48a960565f80f931",
+    "crates/oeis_synthesis_core/src/substitute.rs": "sha256:a9c16857696fad09f0e347c6fd9776d4ac7ced150e8b7a9d3061a2512af96fac",
+    "crates/oeis_synthesis_core/src/symbolic.rs": "sha256:6dff31d805f15db07b15dbafec1ee1de6d14f5b08d9409510af4b2f8f162e82a",
+    "crates/oeis_synthesis_core/src/value.rs": "sha256:6e8f3e34cb68ed997ac2d783d5b1a4cb34d7e0083bec92f14035bbf0cc2b33b6",
+    "crates/oeis_synthesis_core/tests/fitting.rs": "sha256:0c58265e574008dd9d872fe30b2ddb6cdffcfcd3b592ce4e78f8e4350c8b236a",
+    "crates/oeis_synthesis_core/tests/runtime_contract.rs": "sha256:c17a680d19c371e020a94ff6ea3522c8031503d2a1e42e4d341fa4ebe7f17e82",
+    "crates/oeis_wasm_evaluator/examples/synthesis_core_test_driver.rs": "sha256:18bf1d017c3588e5f4b7b624a7f079aeda6b5a80ee3dcb09565e688ab51a3fc4",
+    "crates/oeis_wasm_evaluator/src/synthesis_adapter.rs": "sha256:1c38a497559f938c52ebb24ab74720ad4a1265de3c11776ebcc7b277eb14f7a2",
+    "docker/dev/build-native-wheel.sh": "sha256:d586742fca7d0d4ae930fa60ed2820af8de743c9adc98623b84e54ece29e9916",
+    "scripts/qualify_bigint_phase2.py": "sha256:4e20ffc251692e3605af722bca7fa5b446206a7ac63309401fd6c44bfb0ea792",
+    "src/oeis_learn/data/bigint_programs.py": "sha256:da17ae941a6d5290fcac7c5fdf430796e887d49fbabb980cde0f199e6c63741f",
+    "src/oeis_learn/data/bootstrap_programs.py": "sha256:9e5041e40ae21b6f285fa0e4c51a67a5f9f62c7223feb9acf58f1eaf7c6b544e",
+    "src/oeis_learn/decoder/__init__.py": "sha256:b5ad95a696e5b35ceef5141b5d139d53681be32bd20cf7568f242fe41e52b389",
+    "src/oeis_learn/decoder/bigint_codec.py": "sha256:31103357f863bc5865d4b3a6c8717a7d7bc5bd6d61585e4987f5dfe55528a67e",
+    "src/oeis_learn/decoder/bigint_grammar.py": "sha256:bc285d7342b769fd75f7247782b6105407414ee551b0d932a3d47c2396c99db4",
+    "src/oeis_learn/decoder/constant_solver.py": "sha256:8b7ae8f1509f98758aada2a295176210da2b62288795d671dfb440f00d20685c",
+    "src/oeis_learn/decoder/dixon_solver.py": "sha256:2d148ba6993848894e62e7ccefb487108cbbecbf1093e46275c9c2d7333132c6",
+    "src/oeis_learn/decoder/environment_tracker.py": "sha256:1e7928cf5c063d7731c2d0633d40850a9e970d0c8b6510e7914e10b4196bf8b6",
+    "src/oeis_learn/decoder/grammar_masker.py": "sha256:100b439d8bde6921c3a455597db681178f7807ece2fe50b9703e88afef628535",
+    "src/oeis_learn/decoder/grounding.py": "sha256:3665461ef275910af236b4c69ddd2dc1f0c20e94030673f2d767de46f3051d3a",
+    "src/oeis_learn/decoder/grounding_evidence.py": "sha256:30cf137383ab364e13b56b65ee6d44c247bc6daf092e79d20e4cff0f6f7fbca4",
+    "src/oeis_learn/decoder/grounding_reference.py": "sha256:dab68d5f5f3861e700d479ec8a3046a8dfb5e89476879734416c35121109c758",
+    "src/oeis_learn/decoder/inference_cache.py": "sha256:7d20d41936df77472a838bd05d6a1f660d6f4246b2272e4abbee8a4bc4435e29",
+    "src/oeis_learn/decoder/mersenne61_filter.py": "sha256:ce1058a9c2b07d67da4a58974a603d6d38247129fcd888c429b46fe8de6cbc75",
+    "src/oeis_learn/decoder/prefix_positions.py": "sha256:adeb76c8e25a649d7c5714e5c0e339128305049995345b5bdaf6bb09f3884e6a",
+    "src/oeis_learn/decoder/program_codec.py": "sha256:8a1f8cd98688b190b185bf4714b973f764dc841fb218653280999934bd7702cb",
+    "src/oeis_learn/decoder/qfnia_solver.py": "sha256:a9b80d8fd11243adf773dc31e19d09c60e08c995744674f79fe88e02530679df",
+    "src/oeis_learn/decoder/recurrence.py": "sha256:906fee404937af002f08a379acf7f24e8020b50183718eb998277910cccecc59",
+    "src/oeis_learn/decoder/sampler.py": "sha256:2f0b2ef1ee59ec5f5216f68b1fab439ea083a79d1fcfd89629c63ddb5172fcaa",
+    "src/oeis_learn/decoder/transformer_decoder.py": "sha256:dcbf4c7d4abcd0ee4a89b0b882441914b0436764b282074dfcf243c119e6e4f4",
+    "src/oeis_learn/decoder/vocabulary_surgery.py": "sha256:f04ab67244d25108a0461ff4a7ae489e0a79bb8e324effeea389a4583983a9cd",
+    "src/oeis_learn/decoder/wat_decoder.py": "sha256:79306b174078cf8d8c0e247fa31e5fe2fbcd748ae3bd41123b0670fee2c8c4fa",
+    "src/oeis_learn/decoder/wat_grammar.py": "sha256:7ca6a1db87d468ed2fc5d76b18ff2a0b4cf144f515e96c585a23316cfbd83dea",
+    "src/oeis_learn/encoder/__init__.py": "sha256:ab3050062dbaa0cb37c8f3c2c4e56d52ea2cc6d233ce27c5ba63e9d5d6000465",
+    "src/oeis_learn/encoder/ablation.py": "sha256:b75f27d8d355285ccadd0b7997a73646e5a95f2e8d6303126e22bf95b4f9a23b",
+    "src/oeis_learn/encoder/difference_stream.py": "sha256:28b80f17c5ec37cb0ffe2d23c539dced5e1dc87cb8328b3a2929343a8966797e",
+    "src/oeis_learn/encoder/film_fusion.py": "sha256:993235fe6a662e412c2d512282ac06d01bb410eaf3b3128324f80cbd4f6d8256",
+    "src/oeis_learn/encoder/heads.py": "sha256:f4042491639efc31b5f408dc4febe9d73419e15196200970cdfe02aa64301c79",
+    "src/oeis_learn/encoder/hybrid.py": "sha256:185d25196524fd32c7a2f1c7d2ac1a79cd88e25f04d5344c2a7ad96ad2c3a00e",
+    "src/oeis_learn/encoder/integer_bytes.py": "sha256:9e5aef6527c472a3ff6c2b01ac73e6c0d9e13197cf561d552ba18ce030c85691",
+    "src/oeis_learn/encoder/integer_chunks.py": "sha256:d2c5b84a681b79c61449ea40b5bc9740d0573dd96b382a21827d93743c9603f7",
+    "src/oeis_learn/encoder/large_integer_features.py": "sha256:3389b000b94c0880c8927905fd9a09777cfb0c8b74709e9b987e77a423358058",
+    "src/oeis_learn/encoder/magnitude_stream.py": "sha256:6fa9639df1074faa179563d69de788370019778af85ad64cadf989889fde0b70",
+    "src/oeis_learn/encoder/modulo_stream.py": "sha256:9aaa96b4e4a1bfa02a1850c8f6f455d24e5fc67872b3f1350bc7114bd6d9ba92",
+    "src/oeis_learn/encoder/tri_stream_encoder.py": "sha256:1f1097955ff24a177fbc98bd0963773cff85c1cad94d551161b6e0a285ce44a1",
+    "src/oeis_learn/experiments/bootstrap_models.py": "sha256:3f892aabc16ea579c63bc7f6f9e417c6e9912404e99e86d9a665106a218fd2d0",
+    "src/oeis_learn/fresh/bigint_splits.py": "sha256:d634b54338e2318f6511c2f728470b40ee1296436f2dea55549385628aa8cb28",
+    "src/oeis_learn/fresh/bootstrap_views.py": "sha256:76673a3460b4fc618a1735c532572453b55cdcf08af7b65ebb46e50a74703827",
+    "src/oeis_learn/fresh/candidate_archive.py": "sha256:bab7e0620bb031f799fea24c227c6232dd5f42276f343b92d4321d4dcb4be2e3",
+    "src/oeis_learn/fresh/comparison.py": "sha256:468b0a3b700e12db0743bca3c38468823e59d0a5bd8ce7099f21d43d59135777",
+    "src/oeis_learn/fresh/conditioning_controls.py": "sha256:af3912250b33b135617d967b39998218c63edf3708abc796cfa4e3753370d9b1",
+    "src/oeis_learn/fresh/cost_policy.py": "sha256:35cf323afd871ef63afaf7b5d117c9a318ff3c4b16a1132204affd0d2a9c37b9",
+    "src/oeis_learn/fresh/learning_policy.py": "sha256:fa5d69b2c1cfab9ea75be45641220fd54fe70096758c051d16162b2a5289a4a8",
+    "src/oeis_learn/fresh/provenance.py": "sha256:b8d9a2065eab13c51de8a08da9d6b3fb018ff34335cc5c1d13c71c5001f69238",
+    "src/oeis_learn/fresh/replay.py": "sha256:0858eaac06b95685a6ed01b2ea3aa9926fe52bdf8843cad81b5f0252782fee8c",
+    "src/oeis_learn/fresh/synthesis_policy.py": "sha256:bf23b7aec4d2a1aa9d161621ec7d8263e2f7bf6d39366bf3d28bf3fc25c8bf0b",
+    "src/oeis_learn/fresh/template_baseline.py": "sha256:fa3c5beaddca3dad83709a69a79d678503b6bba6ef2a844056641194d3197cd0",
+    "src/oeis_learn/synthesis/__init__.py": "sha256:60697414f81d89c0b5e6bfd02b0f3249cee3f5e0f37dc238126ed13ca45e8592",
+    "src/oeis_learn/synthesis/admission.py": "sha256:b47149b4864f13afe58adb36f44f556ea4aefae52e16bd2dba8a48cbc9944fb7",
+    "src/oeis_learn/synthesis/contracts.py": "sha256:e7a9a7afb98816b766f06e40de3e5ca8b8d10be8674964b32863756e5803ac71",
+    "src/oeis_learn/synthesis/discovery_status.py": "sha256:c258adecd4868e40bce7435deff2f57d2ff3cded4084e78046e084b6f26c0973",
+    "src/oeis_learn/synthesis/evidence.py": "sha256:d8a9b084cbdb8b463a4fd0fd200569f5e7c38ab5d502ee4fa02b5e8564ae3ca3",
+    "src/oeis_learn/synthesis/reference.py": "sha256:06b7c5fb892b80414c2ada1dceae6ea72f4fa85fe94ff6b02087ece8e64b54f4",
+    "src/oeis_learn/synthesis/reference_parser.py": "sha256:cb1f735e2a51da80a609e7e09e7203b9886015f053b306dad822ba24e8d18ff2",
+    "src/oeis_learn/synthesis/service_policy.py": "sha256:1fc92df447dbfbe3a4796560b6b35d5ffe1d7e02929e8b67b8fea1e999e91001",
+    "src/oeis_learn/synthesis/state.py": "sha256:a70357bd1c8210365698dd782588a04eda2dd1fdea6256c313a791b84907ac68",
+    "tests/conftest.py": "sha256:efdd252a9c95f633219580ae7fd91bcd0903912b7c077ff648ffac4c18b3ffaf",
+    "tests/contract/test_bigint_build.py": "sha256:3acddede776e5224dfe097154b2bf1a92bf571e8d85821c62c20658f89118b8d",
+    "tests/contract/test_bigint_contracts.py": "sha256:a2312fc50a9c02091c00d53a808511af4a5e37933d95617a022a3a3187a96b1f",
+    "tests/contract/test_bigint_language.py": "sha256:5b4f2e682150d6ba096ab03a1e26c5218c2be72c4de43334c0da33bbfd4aaf02",
+    "tests/contract/test_native_fitting.py": "sha256:a60c973fe55a9e3694892476d14fb17e1b05d0578d43575a20dd6abc706e5102",
+    "tests/integration/test_bigint_decoding.py": "sha256:cfa21138b05872c60ab9887f1ae4622230205e2f65beb523ab96b745ff921677",
+    "tests/integration/test_bigint_gpu.py": "sha256:9e953bf049059670ba39ed48580ee46d3b27b437acfdc5ac5c8fe7070cfe3b40",
+    "tests/integration/test_bigint_runtime.py": "sha256:47a1f879ceabce8cc4f0f341d1a699dcfd0918a29564b246c5fb697808307377",
+    "tests/integration/test_foundation_bootstrap.py": "sha256:7775a222e8d148922dba09308682c5c5c9cabe4d8dd99bd43fc422d826c752ff",
+    "tests/unit/test_bigint_bootstrap_data.py": "sha256:22af497a82a77eced78e02c27424b31e69d316158fdba38a890e4fbb52a94613",
+    "tests/unit/test_bigint_encoder.py": "sha256:64c7a20871998e62919a2607479ea18254a3382e5ef0f06e75a589d4b8b40c72",
+    "tests/unit/test_bigint_learning_policy.py": "sha256:0e718828e44b60d9290235bb52a8489f92c22378f7f8fb4730bb1ef372808eb8",
+    "tests/unit/test_bigint_reference.py": "sha256:e86969ddef76b2390fe049f38ecbbda0f21cc539048ab742ba0b5c16a07d5b76",
+    "tests/unit/test_bigint_search_policy.py": "sha256:fd6e77b63164207e1fd3ed33a7d6013bd1c000b5dd2277430b1417a4e01aa35b",
+    "tests/unit/test_bootstrap_diagnostics.py": "sha256:d6a57b34ad379274677e820e5ddc08cf14c6ce55648ab6b645931188b9d22e3c",
+    "tests/unit/test_bootstrap_models.py": "sha256:757c386251cbde61e0e801fff9b31577090dc0b1a45158b3ea3eab438e983fcf",
+    "tests/unit/test_bootstrap_workflow.py": "sha256:1a8563f401d7a18357b03ca3fec919cb78d3e14b8a8811a8e4b643eca7bfa115",
+    "tests/unit/test_foundation_ci_images.py": "sha256:a8cfb01066543e92524ea9100cd9aef0a14e704f811679d78bf6e451404a0c18",
+    "tests/unit/test_foundation_handoff.py": "sha256:23889618419e4b8f3d68a945158ee50842c2131d5e585363d350d9d8f9b10c9e",
+    "tests/unit/test_foundation_task_inventory.py": "sha256:046cc8b08c64711a829538169f535afc6fad726431649d284bda6c254648fd32",
+    "tests/unit/test_hybrid_ablation.py": "sha256:d086d9c9438c102bc7caaaf469f33a8197464770dfced386ad59b2c64f75f5db",
+    "tests/unit/test_synthesis_archive.py": "sha256:2866cab9e9e69f7fe48b69f68eb99d114b3825e9c07a2e743ccbd4c26c594e57",
+    "tests/unit/test_synthesis_provenance.py": "sha256:214f4411068b6462f19e7bcd9724465d31ae06b1e83572cb44c439c279a0732c",
+    "tests/unit/test_synthesis_service_limits.py": "sha256:870c5b75a0a46ce2fef5c00b43923aab23db61e011dc65f9a5624856d624b4b3",
+    "tests/unit/test_synthesis_state.py": "sha256:0e1d5a16cc29d5d9b126a7da3539a2dc86abeeba8dee71bdaf197729a7182465"
+  },
+  "source_snapshot_sha256": "sha256:3828d8315c9aeeef336030613a61bc67510b4b1a817dc362e4e06f4e85f58469",
+  "tests": {
+    "affected_retained": {
+      "errors": 0,
+      "failures": 9,
+      "junit_sha256": "sha256:36489bb0c739036ba0f7b1a242822e7ee029267122d5021fce22abd1cdb47404",
+      "nonpassing": [
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_pool_and_trainer_view_are_complete_strict_and_separate"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_builder_crash_resume_keeps_counter_rng_order_and_dedup[after_attempt]"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_builder_crash_resume_keeps_counter_rng_order_and_dedup[after_chunk]"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_builder_crash_resume_keeps_counter_rng_order_and_dedup[before_publish]"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_builder_crash_resume_keeps_counter_rng_order_and_dedup[after_publish]"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_bounded_shortfall_never_publishes_pool_or_adds_teachers"
+        },
+        {
+          "message": "AssertionError: assert 2 == 4\n +  where 2 = <function cli at 0x7f324c7d11c0>(['foundation', 'build-pool', '--config', '/workspace/scratch/4337bb0c5388/oeis-learn/pytest-of-root/pytest-1/test_pool.../workspace/scratch/4337bb0c5388/oeis-learn/pytest-of-root/pytest-1/test_pool_cli_exact_inputs_exi0/inputs/cohort', ...])",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_pool_cli_exact_inputs_exit_codes_and_report"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_expired_crash_budget_cannot_restart_sampling[after_chunk]"
+        },
+        {
+          "message": "FileNotFoundError: [Errno 2] No such file or directory: '/proc/sys/kernel/random/boot_id'",
+          "status": "failure",
+          "test": "tests.integration.test_foundation_bootstrap::test_expired_crash_budget_cannot_restart_sampling[after_attempt]"
+        }
+      ],
+      "passed": 55,
+      "seconds": 59.502,
+      "skipped": 0,
+      "tests": 64
+    },
+    "phase2_cpu": {
+      "errors": 0,
+      "failures": 0,
+      "junit_sha256": "sha256:075bbfd3bb6b22c7eea5559514f033872b7e191a69307a85cd4667e9395058c7",
+      "nonpassing": [
+        {
+          "message": "requires built qualification/gpu image",
+          "status": "skipped",
+          "test": "tests.contract.test_bigint_build::test_packaged_artifacts_and_binding_exact_numeral"
+        },
+        {
+          "message": "requires the built native extension",
+          "status": "skipped",
+          "test": "tests.contract.test_bigint_build::test_retained_signed_256_fixture_execution[rust]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.contract.test_native_fitting::test_native_fit_independent_admission[(program (return (add (mul (param.get p0) $index) (param.get p1))))-indices0-values0]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.contract.test_native_fitting::test_native_fit_independent_admission[(program (return (add (mul (int 2) (param.get p0)) (mul (int 3) (param.get p1)))))-indices1-values1]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.contract.test_native_fitting::test_native_fit_independent_admission[(program (return (mul (param.get p0) (param.get p0))))-indices2-values2]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.contract.test_native_fitting::test_native_unsat_replay_rederives_problem"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.contract.test_native_fitting::test_native_control_taint_overflow_and_checked_legacy"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_factorial_100_and_fresh_term_state"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_full_product_and_signed_offset_indices[256]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_full_product_and_signed_offset_indices[512]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_full_product_and_signed_offset_indices[1024]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_full_product_and_signed_offset_indices[4096]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_failure_and_healthy_recovery[limits0-term_fuel]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_failure_and_healthy_recovery[limits1-aggregate_fuel]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_failure_and_healthy_recovery[limits2-arena_limit]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_failure_and_healthy_recovery[limits3-output_limit]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_exact_borderline_product_not_rejected_by_loose_estimate"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(module (memory 1) (func (export \"compute\") (param i32) (result i32) i32.const 1))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(program (return (host_status)))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(program (return (int -0)))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(program (return (param.get p0)))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(program (return (get $b0)))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_arbitrary_wat_privileged_and_forged_handles_never_lower[(program (return (control 1)))]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_memory_limiter_is_classified_not_guessed_from_trap"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_reference_agrees_on_deterministic_differential_corpus"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (return (to_bigint (to_control (int -1)))))-limits0-control_range]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (local $c0 control) (loop $c0 (control 1025) (if (true) (then) (else))) (return $index))-limits1-loop_limit]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (return $index))-limits2-deadline]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (return $index))-limits3-unsupported_profile]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (return (int 1044388881413152506691752710716624382579964249047383780384233483283953907971557456848826811934997558340890106714439262837987573438185793607263236087851365277945956976543709998340361590134383718314428070011855946226376318839397712745672334684344586617496807908705803704071284048740118609114467977783598029006686938976881787785946905630190260940599579453432823469303026696443059025015972399867714215541693835559885291486318237914434496734087811872639496475100189041349008417061675093668333850551032972088269550769983616369411933015213796825837188091833656751221318492846368125550225998300412344784862595674492194617023806505913245610825731835380087608622102834270197698202313169017678006675195485079921636419370285375124784014907159135459982790513399611551794271106831134090584272884279791554849782954323534517065223269061394905987693002122963395687782878948440616007412945674919823050571642377154816321380631045902916136926708342856440730447899971901781465763473223850267253059899795996090799469201774624817718449867455659250178329070473119433165550807568221846571746373296884912819520317457002440926616910874148385078411929804522981857338977648103126085903001302413467189726673216491511131602920781738033436090243804708340403154190336)))-limits4-literal_limit]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_classified_limits_and_no_partial_numeric_results[(program (return (mul (int 128) (int 128))))-limits5-integer_limit]"
+        },
+        {
+          "message": "requires pinned native qualification image",
+          "status": "skipped",
+          "test": "tests.integration.test_bigint_runtime::test_every_frozen_arithmetic_fixture"
+        }
+      ],
+      "passed": 147,
+      "seconds": 11.852,
+      "skipped": 32,
+      "tests": 179
+    },
+    "traceability": {
+      "errors": 0,
+      "failures": 0,
+      "junit_sha256": "sha256:749549b51d64c59d0cafa84ae8a6c83a1d5b4dccd5437ba8dc2cd5c3e090ebe4",
+      "nonpassing": [],
+      "passed": 36,
+      "seconds": 3.279,
+      "skipped": 0,
+      "tests": 36
+    }
+  },
+  "version": "phase2-completion-local/v1"
+}

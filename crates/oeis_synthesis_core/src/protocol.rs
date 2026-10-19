@@ -90,8 +90,20 @@ pub fn parse_request(bytes: &[u8]) -> Result<Request, String> {
 
 impl Request {
     pub fn validate(&self) -> Result<(), String> {
+        self.validate_mode(false)
+    }
+
+    /// Same Phase 1 shape; qualification also exercises retained execution and
+    /// the full 100-index execute horizon. Public stubs remain unchanged.
+    pub fn validate_qualification(&self) -> Result<(), String> {
+        self.validate_mode(true)
+    }
+
+    fn validate_mode(&self, qualification: bool) -> Result<(), String> {
+        let retained = qualification && self.language_profile == "wat_i256_checked_v1";
+        let execution = qualification && matches!(self.operation, Operation::Execute);
         if self.protocol != VERSION
-            || self.language_profile != "bigint-body/v1"
+            || (!retained && self.language_profile != "bigint-body/v1")
             || self.resource_profile != "bigint-resources/v1"
             || self.solver_profile != "native-fitting/v1"
             || !identifier(&self.request_id)
@@ -102,7 +114,7 @@ impl Request {
         if self.candidates.is_empty()
             || self.candidates.len() > 32
             || self.visible_indices.is_empty()
-            || self.visible_indices.len() > 20
+            || self.visible_indices.len() > if execution { 100 } else { 20 }
             || self.visible_indices.len() != self.visible_values.len()
             || self.remaining_budget.attempts == 0
             || self.remaining_budget.attempts > 32
@@ -134,7 +146,7 @@ impl Request {
                 || !ids.insert(&c.candidate_id)
                 || c.original_source.is_empty()
                 || c.original_source.len() > 65536
-                || c.codec_profile != "bigint-codec/v1"
+                || c.codec_profile != if retained { "wat_i256_checked_v1" } else { "bigint-codec/v1" }
                 || !["none", "eligible-literals/v1"].contains(&c.abstraction_policy.as_str())
                 || c.parameter_ids.len() > 8
                 || params.len() != c.parameter_ids.len()
@@ -242,6 +254,21 @@ mod tests {
             assert!(parse_request(&serde_json::to_vec(&value).unwrap()).is_err());
         }
         assert!(parse_request(&vec![b' '; MAX_FRAME_BYTES + 1]).is_err());
+    }
+
+    #[test]
+    fn qualification_reuses_shape_without_enabling_public_profiles() {
+        let mut request = parse_request(REQUEST).unwrap();
+        request.operation = Operation::Execute;
+        request.visible_indices = (0..100).map(|n| n.to_string()).collect();
+        request.visible_values = vec!["0".into(); 100];
+        assert!(request.validate_qualification().is_ok());
+        assert!(request.validate().is_err());
+        request.language_profile = "wat_i256_checked_v1".into();
+        request.candidates[0].codec_profile = "wat_i256_checked_v1".into();
+        assert!(request.validate_qualification().is_ok());
+        request.operation = Operation::Fit;
+        assert!(request.validate_qualification().is_err());
     }
 
     #[test]

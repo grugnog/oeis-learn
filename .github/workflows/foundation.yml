@@ -220,10 +220,9 @@ jobs:
             -e HOME=/tmp -e OEIS_REQUIRE_BIGINT_BUILD=1 -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build \
             -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
               set -euo pipefail
-              python -m pytest -q -p no:cacheprovider tests/contract/test_bigint_build.py tests/contract/test_bigint_contracts.py \
-                tests/contract/test_bigint_language.py tests/unit/test_bigint_reference.py tests/integration/test_bigint_runtime.py \
-                tests/unit/test_bigint_encoder.py tests/integration/test_bigint_decoding.py \
-                --basetemp=/tmp/bigint-tests --junitxml=/evidence/contracts.xml
+              # UID 12345 owns the reports, but not the runner-owned mount root.
+              trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
+              python scripts/qualify_bigint_phase2.py --inside --output /evidence
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '
       - name: Native dependency and retained-profile tests in shared image

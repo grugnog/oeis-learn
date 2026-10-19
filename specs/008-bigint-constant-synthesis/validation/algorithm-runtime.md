@@ -1,7 +1,18 @@
 # Phase 2 US1 checkpoint (T011–T025)
 
-Status: **implementation milestone pushed; T025 native qualification pending**.
-This is not the complete Phase 2 exit and does not open fitting or Phase 3.
+**Current acceptance (2026-10-19): T025 complete.** The current PR's packaged
+154-test CPU/native suite passed with zero failures/errors/skips; locked native
+tests and both actual-HIP tests passed. See [the full exit review](phase-2.md)
+and [GPU evidence](gpu.md). The earlier milestones and pending-gate statements
+below describe their historical source revisions and are superseded by this
+acceptance.
+
+
+Status: **historical US1 checkpoint; current review is [phase-2.md](phase-2.md)**.
+The following original checkpoint and CI repairs are retained as historical evidence.
+The merged PR #54 native checks passed; PR #55 now implements the common bounded
+core driver and routes every runtime differential case through it. T025 remains
+open only for execution of that changed bridge; Phase 3 is still closed.
 Production flags and the framed public service remain disabled.
 
 See [the native build repair and cache boundaries](build-cache.md) for the later
@@ -114,9 +125,7 @@ Actual HIP checks are `tests/integration/test_bigint_gpu.py`, to run in the GPU
 image with the user's usual explicit device mounts. No GPU run or result is
 claimed here. The future `validate --suite bigint-gpu` CLI is still a Phase 3 task.
 
-T026–T058 are intentionally untouched until T025's required native evidence is
-available. The spec explicitly orders these after the runtime checkpoint; test
-presence or CPU-only reference agreement cannot close that gate. Per the user,
-CI is left running without monitoring. On continuation, inspect the completed
-checks, repair any failures, record exact artifact identities, then close T025
-and proceed to native fitting.
+At the time of this original checkpoint, T026–T058 were untouched pending T025.
+This historical statement is superseded by the PR #55 completion review; The spec explicitly orders these after the runtime checkpoint; test
+presence or CPU-only reference agreement cannot close that gate. The continuation implements all unblocked algorithms at the user's request;
+current native CI is left unmonitored and its execution gates remain open.

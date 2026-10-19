@@ -1,4 +1,4 @@
-//! Native synthesis interface skeleton. No fitting algorithms or Python callbacks.
+//! Native synthesis algorithms with disabled production routing; no Python callbacks.
 pub mod protocol;
 pub mod value;
 pub mod language;
@@ -32,3 +32,15 @@ pub fn dependency_smoke() -> String {
     assert_eq!(answer, exact);
     answer
 }
+
+pub mod dependence;
+pub mod parameters;
+pub mod symbolic;
+pub mod affine;
+pub mod smt;
+pub mod fit;
+pub mod substitute;
+pub mod evidence;
+pub mod cache;
+pub mod diagnostic;
+pub mod retained;

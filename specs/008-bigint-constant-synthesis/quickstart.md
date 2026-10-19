@@ -1,6 +1,41 @@
 # Quickstart: Validation and Bounded Research
 
-**These are post-implementation acceptance commands.** New `bigint-*` suites, recipes, flags and `compare` are specified in [contracts/workflow.md](contracts/workflow.md) and do not exist on the current planning branch. Do not run them expecting the specification-only PR to implement the feature. No full model/worker/test implementation is included here.
+The Phase 2 helper below is available now. Numbered sections 1–7 describe future
+post-integration acceptance; the `bigint-*` public CLI suites, recipes and
+production routes remain Phase 3/4 work. Do not treat those later commands as
+implemented by this PR.
+
+## Phase 2 qualification available now
+
+Run from the new PR checkout on the HIP/ROCm machine. The standard-library host
+helper uses the existing Docker/Podman image, explicit GPU-device selection,
+resource limits and workspace GPU lock. The image builds through the root
+Dockerfile with the existing cached dependency layers and committed locks.
+It launches no training or final-cohort evaluation.
+
+```bash
+# Build/reuse the current checkout image and run CPU/native algorithm fixtures.
+python3 scripts/qualify_bigint_phase2.py --engine podman \
+  --output tmp-validation/008-phase2-cpu-001
+
+# Run actual HIP forward/backward, parameter update, device/cache and generation parity.
+python3 scripts/qualify_bigint_phase2.py --engine podman --gpu \
+  --output tmp-validation/008-phase2-hip-001
+```
+
+Use `--engine docker` if that is your configured engine. With multiple GPUs, add
+`--render-node /dev/dri/renderD128` using the intended device's render node. An
+already-built immutable image can be selected with `--image IMAGE`; use one
+containing this PR's source, not the previously merged image. Output directories
+must be new; choose a new suffix for a retry.
+
+Each directory contains `host.json` (image/runtime identity), `summary.json`,
+`tests.xml`, `stdout.log` and `stderr.log`. A successful HIP run also writes
+`gpu/encoder-update.json` with the actual device, HIP version and changed weight
+hashes. The helper requires zero failed or skipped tests; CPU fallback is a
+failure for `--gpu`. Share those reports/logs after the commands finish. Native
+Rust unit tests also run in the PR's separate native CI job; this helper is not
+a replacement for that gate. The user has run this helper successfully on HIP; see [the recorded result](validation/gpu.md).
 
 ## Prerequisites
 
