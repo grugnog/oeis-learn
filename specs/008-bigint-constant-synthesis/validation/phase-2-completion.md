@@ -25,3 +25,17 @@ This continuation implements the remaining CPU algorithms without waiting for
 new CI. Native execution of changed code remains an explicit pending validation
 until the new checks finish; HIP is a separate user-run gate. Production remains
 disabled, no training is launched, and Phase 3 stays closed until T058 qualifies.
+
+## Completed continuation implementation
+
+PR #55 adds the common driver, native fitting/replay, independent admission,
+capacity/state/final-plan policies, four ablations, connected generic families,
+matched splits, frozen prompt controls, search/curriculum/replay/comparison/cost
+policies, reviewed assistance ancestry and capped alternative/evidence records.
+The initial missing work described above is now implemented. T017/T028–T035 and
+T037–T057 are checked; the new native execution gates T025/T036 and combined exit
+T058 stay unchecked. See [the full current exit review](phase-2.md).
+
+No new CI run has been monitored. No actual HIP results, learned improvement,
+final-cohort access, production routing, training or activation are claimed.
+The portable qualification helper and exact commands are in the quickstart.

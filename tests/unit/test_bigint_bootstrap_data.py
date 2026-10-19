@@ -94,3 +94,15 @@ def test_complete_matched_splits_and_tiny_composition(monkeypatch):
     used = [{result["groups"][r["id"]] for r in rs} for rs in (train, params, structure)]
     assert not used[0] & used[1] and not used[0] & used[2] and not used[1] & used[2]
     assert len(diverse_tiny(rows)) == 32
+
+
+def test_overlap_accepts_full_resource_width_without_python_digit_conversion():
+    from oeis_learn.synthesis.contracts import decimal_integer
+
+    # Hidden continuation values may exceed the 4096-bit visible input bound.
+    row = dict(
+        id="wide",
+        indices=list(map(str, range(100))),
+        values=[decimal_integer((1 << 16000) + n) for n in range(100)],
+    )
+    assert overlap_groups([row])["wide"].startswith("sha256:")

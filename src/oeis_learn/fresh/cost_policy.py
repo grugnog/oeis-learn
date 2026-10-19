@@ -32,6 +32,8 @@ def screen_cost(
         or type(cadence) is not int
         or updates <= 0
         or cadence <= 0
+        or type(budget) not in (int, float)
+        or not math.isfinite(budget)
         or budget <= 0
     ):
         raise ValueError("invalid registered schedule")

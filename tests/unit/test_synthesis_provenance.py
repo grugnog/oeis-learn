@@ -19,7 +19,7 @@ def manifest():
 
 
 def test_assistance_is_monotone_and_overlap_never_fresh_again():
-    root = root_lineage(seed=17, cost=10)
+    root = root_lineage(seed=17, cost=10, checkpoint_sha256=H, recipe_sha256=H)
     assisted = descendant(root, track="assisted", cost=2, manifest=manifest())
     assert assisted["track"] == "assisted" and assisted["foundation_cost"] == 10
     with pytest.raises(ValueError):
@@ -37,7 +37,7 @@ def test_assistance_is_monotone_and_overlap_never_fresh_again():
 
 
 def test_named_demonstrations_and_historical_weights_require_review():
-    root = root_lineage(seed=17, cost=10)
+    root = root_lineage(seed=17, cost=10, checkpoint_sha256=H, recipe_sha256=H)
     for origin in ("named_demonstration", "historical_checkpoint", "legacy_replay"):
         with pytest.raises(ValueError):
             descendant(root, track="generic_only", cost=1, origin=origin)
@@ -61,7 +61,7 @@ def test_complete_ancestry_required_and_assistance_cannot_be_relabelled():
     from oeis_learn.fresh.provenance import validate_ancestry
     from oeis_learn.synthesis.contracts import identity
 
-    root = root_lineage(seed=17, cost=10)
+    root = root_lineage(seed=17, cost=10, checkpoint_sha256=H, recipe_sha256=H)
     child = descendant(root, track="assisted", cost=2, manifest=manifest())
     with pytest.raises(ValueError, match="incomplete"):
         validate_ancestry(child, {})

@@ -1,4 +1,4 @@
-//! Native synthesis interface skeleton. No fitting algorithms or Python callbacks.
+//! Native synthesis algorithms with disabled production routing; no Python callbacks.
 pub mod protocol;
 pub mod value;
 pub mod language;

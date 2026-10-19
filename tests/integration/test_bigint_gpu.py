@@ -98,3 +98,18 @@ def test_actual_hip_parameter_decoder_cache_and_position_growth():
             for token in ids[:, 1:].unbind(1):
                 outputs.append(gpu.decode_step(token, cache))
             torch.testing.assert_close(torch.cat(outputs, 1), full, atol=2e-5, rtol=2e-4)
+
+            from oeis_learn.decoder.sampler import WatProgramSampler
+
+            generated = []
+            for use_cache in (False, True):
+                sampler = WatProgramSampler(
+                    gpu,
+                    max_length=24,
+                    temperature=0,
+                    codec_profile="bigint-codec/v1",
+                    use_cache=use_cache,
+                )
+                generated.append(sampler.sample_trajectories(prompt, [17, 19]))
+            assert [r.tokens for r in generated[0]] == [r.tokens for r in generated[1]]
+            assert [r.complete for r in generated[0]] == [r.complete for r in generated[1]]

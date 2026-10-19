@@ -257,6 +257,21 @@ mod tests {
     }
 
     #[test]
+    fn qualification_reuses_shape_without_enabling_public_profiles() {
+        let mut request = parse_request(REQUEST).unwrap();
+        request.operation = Operation::Execute;
+        request.visible_indices = (0..100).map(|n| n.to_string()).collect();
+        request.visible_values = vec!["0".into(); 100];
+        assert!(request.validate_qualification().is_ok());
+        assert!(request.validate().is_err());
+        request.language_profile = "wat_i256_checked_v1".into();
+        request.candidates[0].codec_profile = "wat_i256_checked_v1".into();
+        assert!(request.validate_qualification().is_ok());
+        request.operation = Operation::Fit;
+        assert!(request.validate_qualification().is_err());
+    }
+
+    #[test]
     fn records_are_strict_and_disabled() {
         let records: serde_json::Value = serde_json::from_str(include_str!(
             "../../../tests/fixtures/bigint/record-stubs.json"

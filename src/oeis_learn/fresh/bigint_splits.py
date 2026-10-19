@@ -33,14 +33,15 @@ def overlap_groups(rows):
         if len(values) != 100 or len(indices) != 100:
             raise ValueError("complete 100-index truth required")
         ns = list(map(canonical_integer, indices))
-        vs = [canonical_integer(v, bits=16384) for v in values]
+        for value in values:
+            canonical_integer(value, bits=16384)
         if any(a >= b for a, b in zip(ns, ns[1:])):
             raise ValueError("indices must increase")
         # Every observed 20-term window: catches offsets anywhere in the horizon.
         # Relative index deltas prevent fabricating overlap across unequal gaps.
         keys = []
         for i in range(81):
-            keys.append(identity([vs[i : i + 20], [n - ns[i] for n in ns[i : i + 20]]]))
+            keys.append(identity([values[i : i + 20], [n - ns[i] for n in ns[i : i + 20]]]))
         for key in keys:
             if key in seen:
                 a, b = root(row["id"]), root(seen[key])

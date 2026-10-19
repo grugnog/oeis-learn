@@ -83,12 +83,14 @@ def validate_lineage(record):
     return record
 
 
-def root_lineage(*, seed, cost):
+def root_lineage(*, seed, cost, checkpoint_sha256, recipe_sha256):
     _cost(cost)
     if type(seed) is not int or not 0 <= seed < 2**32:
         raise ValueError("random initialization seed required")
-    root = identity(["random-generic/v1", seed])
-    foundation = identity([root, cost])
+    require_hash(checkpoint_sha256)
+    require_hash(recipe_sha256)
+    root = identity(["random-generic/v1", seed, recipe_sha256])
+    foundation = checkpoint_sha256
     return _seal(
         dict(
             track="generic_only",

@@ -131,6 +131,22 @@ class Stopping:
             self.stale += 1
         return self.stale >= 8
 
+    def snapshot(self):
+        return dict(best=self.best, stale=self.stale)
+
+    @classmethod
+    def restore(cls, state):
+        if (
+            set(state) != {"best", "stale"}
+            or any(type(v) is not int for v in state.values())
+            or state["best"] < -1
+            or state["stale"] < 0
+        ):
+            raise ValueError("invalid stopping state")
+        result = cls()
+        result.best, result.stale = state["best"], state["stale"]
+        return result
+
 
 def choose_checkpoint(evaluations, *, panel_sha256):
     """Reject easier/changed panels before comparing full-denominator competence."""

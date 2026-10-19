@@ -128,3 +128,19 @@ def test_replay_training_only_verified_resumable_deterministic_replacement():
             replay.admit(dict(row, **change))
     with pytest.raises(ValueError):
         SynthesisReplay(representation_comparison=True).admit(row)
+
+
+def test_stopping_resume_and_checkpoint_panel_identity():
+    from oeis_learn.fresh.learning_policy import Stopping, choose_checkpoint
+
+    stopping = Stopping()
+    assert not stopping.observe(1)
+    for _ in range(7):
+        assert not stopping.observe(1)
+    assert Stopping.restore(stopping.snapshot()).observe(1)
+    ids = ("a", "b")
+    report = score_panel(ids, {"a": dict(complete=True, verified=True)})
+    candidate = dict(checkpoint="one", visible=report, loss=1.0, loss_complete=True, update=100)
+    assert choose_checkpoint([candidate], panel_sha256=report["panel_sha256"]) == "one"
+    with pytest.raises(ValueError, match="panel"):
+        choose_checkpoint([candidate], panel_sha256="changed")
