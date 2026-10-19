@@ -3,7 +3,8 @@
 Code tasks T059–T079 are implemented. **T080 remains pending** the actual
 CPU/native integration run in the new image with zero failures/errors/skips.
 The PR CI includes that run; it is deliberately left running without monitoring.
-Full current-image HIP validation is also pending. No research screen,
+The user-supplied integrated HIP rerun passes all three selected tests; see the
+[reviewed evidence](phase-3-hip/review.json) and result below. No research screen,
 retirement audit, merge, final-cohort evaluation or promotion was executed.
 
 Entry: merged main `6d284b6597582e8900260c1397b796d274aad22b` (PR #55), whose
@@ -111,8 +112,9 @@ sealed. No final plan was authorized by this implementation run.
 ## Remaining gates
 
 T080 closes only after new-image CPU/native execution passes without skips.
-T092 requires the actual current-image HIP reports above in the later
-qualification phase. T081–T088 remain Phase 4; `bigint-retirement` reports BLOCKED.
+T092 has passing integrated HIP evidence below, but remains a later qualification
+gate after Phase 4 retirement and source/image binding review. T081–T088 remain
+Phase 4; `bigint-retirement` reports BLOCKED.
 The Phase 5 measurement-only preflight harness, numerical/performance and
 containment gates are still prerequisites for real screens. Frozen recipes use
 `learning.cost_preflight: null` until matching measured p95 costs and non-scoring
@@ -184,3 +186,32 @@ python3 scripts/foundation_run.py --engine podman validate \
 ```
 
 CI triggered by this repair is deliberately left unmonitored.
+
+## Integrated HIP rerun — 2026-10-19
+
+**PASS: 3 tests, zero failures, errors or skips.** The submitted JUnit report
+includes the large-input encoder update, parameter decoder cache/position growth,
+and previously failing `test_integrated_device_checkpoint_update[cuda]`.
+The integrated fixture checks all seven checkpoint components, a real encoder
+weight update, resumed update/debit state, and exact decoder-weight equality
+with two uninterrupted updates. The encoder report confirms finite execution at
+256/512/1024/4096-bit inputs and 4097-bit differences with changed projection
+weights. The environment reports AMD Radeon Graphics (`gfx1151`),
+PyTorch `2.9.1+rocm7.2.1.gitff65f5bc` and HIP `7.2.53211-e1a6bc5663`.
+
+All seven submitted files are preserved byte-for-byte under
+[phase-3-hip/](phase-3-hip/review.json). Both stage receipts exactly match the
+outer validation record; all four submitted files referenced by the receipts
+match their SHA-256 hashes. The two stderr files were not submitted; their
+receipts report the empty-file hash. Image identity:
+`sha256:41b763236ca5f5131ef8b8f07118f79fc4a22d6efbf5f55ec058fdcdfbcbd570`.
+No source manifest or Git revision was attached, so this review does not claim
+an independently verified source match to PR head `1fec53f`.
+
+The five PyTorch warnings are advisory and did not fail or skip tests.
+`qualified: false` is deliberately emitted by the validation wrapper even on
+PASS: bounded fixtures do not grant full research/release qualification.
+This evidence confirms the integrated HIP rerun passes; it does not replace
+T080's CPU/native gate or T088's installed retirement audit. T092 remains
+unchecked for its later phase and source/image binding review. No new CI run
+is monitored as part of this evidence update.

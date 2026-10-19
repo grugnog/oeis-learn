@@ -1,0 +1,21 @@
+...                                                                      [100%]
+=============================== warnings summary ===============================
+tests/integration/test_bigint_gpu.py::test_actual_hip_large_input_update
+tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]
+  /opt/venv/lib/python3.12/site-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+    warnings.warn(
+
+tests/integration/test_bigint_gpu.py::test_actual_hip_large_input_update
+  /opt/venv/lib/python3.12/site-packages/torch/nn/functional.py:6487: UserWarning: Mem Efficient attention on Current AMD GPU is still experimental. Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1. (Triggered internally at /pytorch/aten/src/ATen/native/transformers/hip/sdp_utils.cpp:360.)
+    attn_output = scaled_dot_product_attention(
+
+tests/integration/test_bigint_gpu.py::test_actual_hip_parameter_decoder_cache_and_position_growth
+  /opt/venv/lib/python3.12/site-packages/torch/nn/functional.py:6487: UserWarning: Flash Efficient attention on Current AMD GPU is still experimental. Enable it with TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1. (Triggered internally at /pytorch/aten/src/ATen/native/transformers/hip/sdp_utils.cpp:309.)
+    attn_output = scaled_dot_product_attention(
+
+tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]
+  /opt/venv/lib/python3.12/site-packages/torch/nn/functional.py:6044: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 5 warnings in 7.66s
