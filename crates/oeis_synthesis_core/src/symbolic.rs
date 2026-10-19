@@ -9,7 +9,7 @@ struct Big { id: usize, affine: Option<Vec<IBig>>, dependent: bool }
 #[derive(Clone, Debug)]
 enum Value { Big(Big), Control(u32), Bool(bool) }
 #[derive(Debug)]
-pub struct Problem { pub nodes: Vec<Node>, pub outputs: Vec<usize>, pub expected: Vec<IBig>, pub affine_rows: Option<Vec<Vec<IBig>>>, pub parameters: usize }
+pub struct Problem { pub nodes: Vec<Node>, pub outputs: Vec<usize>, pub expected: Vec<IBig>, pub affine_rows: Option<Vec<Vec<IBig>>>, pub parameters: usize, pub checked_signed256: bool }
 struct Builder<'a> { problem: Problem, r: &'a Resources, deadline: Instant, env: BTreeMap<String,Value>, index: IBig, loops: u32 }
 impl Builder<'_> {
     fn tick(&self) -> Result<(),String> { if Instant::now()>=self.deadline {Err("deadline".into())} else {Ok(())} }
@@ -77,7 +77,7 @@ impl Problem {
         let exact=indices.iter().map(|n|integer(n,r.input_bits)).collect::<Result<Vec<_>,_>>()?;
         if !exact.windows(2).all(|w|w[0]<w[1]){return Err("invalid_prompt".into());}
         let expected=values.iter().map(|n|integer(n,r.input_bits)).collect::<Result<Vec<_>,_>>()?;
-        let mut b=Builder{problem:Self{nodes:vec![],outputs:vec![],expected,affine_rows:Some(vec![]),parameters:p.parameters.len()},r,deadline,env:BTreeMap::new(),index:IBig::ZERO,loops:0};
+        let mut b=Builder{problem:Self{nodes:vec![],outputs:vec![],expected,affine_rows:Some(vec![]),parameters:p.parameters.len(),checked_signed256:false},r,deadline,env:BTreeMap::new(),index:IBig::ZERO,loops:0};
         for (i,index) in exact.into_iter().enumerate() {
             b.env.clear();b.index=index;b.loops=0;
             for (n,t) in &p.locals {let v=match t{Type::Big=>Value::Big(b.constant(IBig::ZERO)?),Type::Control=>Value::Control(0),Type::Bool=>Value::Bool(false)};b.env.insert(n.clone(),v);}

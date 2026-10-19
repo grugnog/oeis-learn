@@ -20,8 +20,9 @@ pub fn search(p:&Problem,r:&Resources,bound:usize,deadline:Instant,seed:u32,cap:
         let vars:Vec<Int>=(0..p.parameters).map(|i|Int::new_const(format!("p{i}"))).collect();
         let max=(IBig::ONE<<bound)-IBig::ONE;
         for x in &vars {solver.assert(x.le(numeral(&max)));solver.assert(x.ge(numeral(&(-&max))));}
-        let max=(IBig::ONE<<r.intermediate_bits)-IBig::ONE;
-        let hi=numeral(&max);let lo=numeral(&(-&max));let mut exprs:Vec<Int>=Vec::new();
+        let max=(IBig::ONE<<if p.checked_signed256 {255usize}else{r.intermediate_bits})-IBig::ONE;
+        let min=if p.checked_signed256 {-(&max+IBig::ONE)}else{-&max};
+        let hi=numeral(&max);let lo=numeral(&min);let mut exprs:Vec<Int>=Vec::new();
         for node in &p.nodes {
             if Instant::now()>=deadline{return Err("deadline".into());}
             let value=match node {

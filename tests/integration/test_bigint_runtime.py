@@ -2,30 +2,25 @@
 
 import json
 import math
-import os
 from pathlib import Path
-import subprocess
 
 import pytest
 
-PROBE = Path(os.environ.get("OEIS_BIGINT_PROBE", "/opt/oeis-build-info/runtime-probe"))
+
+@pytest.fixture(autouse=True)
+def use_qualified_core_driver(synthesis_driver, monkeypatch):
+    # All differential cases exercise the same bridge as fitting/replay.
+    monkeypatch.setattr(
+        __import__(__name__, fromlist=["native"]),
+        "native",
+        lambda source, indices, **limits: synthesis_driver(
+            "execute", source, [str(n) for n in indices], limits=limits
+        ),
+    )
 
 
 def native(source, indices, **limits):
-    if not PROBE.is_file():
-        if os.environ.get("OEIS_REQUIRE_BIGINT_BUILD") == "1":
-            pytest.fail("required native runtime probe missing")
-        pytest.skip("native runtime probe requires qualification image")
-    request = {"source": source, "indices": [str(n) for n in indices], "limits": limits}
-    run = subprocess.run(
-        [str(PROBE)],
-        input=json.dumps(request),
-        text=True,
-        capture_output=True,
-        timeout=40,
-        check=True,
-    )
-    return json.loads(run.stdout)
+    raise AssertionError("qualification fixture not installed")
 
 
 def test_factorial_100_and_fresh_term_state():

@@ -72,3 +72,32 @@ def construct_bootstrap_models(profile, *, device="cpu"):
     }
     counts["total"] = sum(counts.values())
     return encoder.to(device), decoder.to(device), counts
+
+
+def construct_bigint_models(*, mask=None, ablation_mode="post_training", device="cpu"):
+    """Frozen Phase 2 algorithm recipe; production config routing is Phase 3."""
+    import torch
+    from oeis_learn.encoder.hybrid import ChunkHybridEncoder
+    from oeis_learn.decoder import bigint_codec as codec
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+
+    encoder = ChunkHybridEncoder(group_mask=mask, ablation_mode=ablation_mode)
+    with torch.random.fork_rng(devices=[]):
+        torch.random.default_generator.manual_seed(torch.initial_seed() ^ 0xDEC0DE)
+        decoder = WatTransformerDecoder(
+            vocab_size=codec.FOUNDATION_VOCAB_SIZE,
+            codec_sha256=codec.codec_digest(),
+            d_model=256,
+            n_heads=4,
+            n_decoder_layers=4,
+            d_ff=1024,
+            dropout=0,
+            max_seq_len=1024,
+            pad_idx=codec.PAD_ID,
+            position_style="sinusoidal",
+            attention_backend="eager",
+            input_version="decoder-inputs/v1",
+            token_scale=1,
+            position_scale=16,
+        )
+    return encoder.to(device), decoder.to(device), encoder.ablation_report()

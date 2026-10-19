@@ -145,3 +145,12 @@ class ConnectedSampler:
             ),
             sampling_failure=None,
         )
+
+
+def sampler_for_profile(profile, *, seed=20261016):
+    """Explicit new sampler selection; historical constructors retain their semantics."""
+    if profile == "bigint-connected/v1":
+        from .bigint_programs import BigintSampler
+
+        return BigintSampler(seed)
+    raise ValueError("unknown explicit bigint sampler profile")

@@ -164,3 +164,47 @@ def compare_final(
     if reference != expected or production != expected:
         return "verification_failure", result
     return "independent_agreement", result
+
+
+def evaluate_retained(source, indices, limits=ResourceProfile(), *, deadline=None):
+    """Independent checked add/sub semantics with every intermediate in [-2^255,2^255)."""
+    from .reference_parser import parse_retained
+
+    started = time.monotonic()
+    steps = 0
+    deadline = min(
+        started + limits.evaluation_seconds, float("inf") if deadline is None else deadline
+    )
+    try:
+        p = parse_retained(source, limits)
+        if not 1 <= len(indices) <= 100:
+            raise _Stop("invalid_source")
+        values = []
+        for index in indices:
+            n = canonical_integer(index, bits=32)
+            if not -(1 << 31) <= n < (1 << 31):
+                raise _Stop("control_range")
+            term_steps = 0
+            term_deadline = min(deadline, time.monotonic() + limits.term_seconds)
+
+            def expr(node):
+                nonlocal steps, term_steps
+                steps += 1
+                term_steps += 1
+                if steps > limits.aggregate_reference_steps or term_steps > limits.reference_steps:
+                    raise _Stop("reference_limit")
+                if time.monotonic() >= term_deadline:
+                    raise _Stop("deadline")
+                if node[0] == "int":
+                    value = canonical_integer(node[1], bits=256)
+                else:
+                    a, b = expr(node[1]), expr(node[2])
+                    value = a + b if node[0] == "add" else a - b
+                if not -(1 << 255) <= value < (1 << 255):
+                    raise _Stop("numeric_limit")
+                return value
+
+            values.append(decimal_integer(expr(p.result)))
+        return ReferenceResult("ok", None, tuple(values), steps, len(values))
+    except (ValueError, _Stop) as exc:
+        return ReferenceResult("failure", str(exc), (), steps, 0)

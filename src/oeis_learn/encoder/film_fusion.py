@@ -27,7 +27,9 @@ class HierarchicalFilmFusion(nn.Module):
         self.layer_norm = nn.LayerNorm(d_model, dtype=torch.float32)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, s1: torch.Tensor, s2: torch.Tensor, s3: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, s1: torch.Tensor, s2: torch.Tensor, s3: torch.Tensor, *, group_mask=None
+    ) -> torch.Tensor:
         """Fuses stream representations.
 
         Args:
@@ -43,14 +45,21 @@ class HierarchicalFilmFusion(nn.Module):
         s2 = s2.to(dtype=torch.float32)
         s3 = s3.to(dtype=torch.float32)
 
+        if group_mask is not None and not group_mask.magnitude:
+            s1 = torch.zeros_like(s1)
+        # Mask AFTER the learned affine maps: a zero input alone retains biases.
         # Stage 1: S2 modulates S1
         params1 = self.film1(s2)
+        if group_mask is not None and not group_mask.modular:
+            params1 = torch.zeros_like(params1)
         gamma1, beta1 = torch.chunk(params1, 2, dim=-1)
         # Use 1 + gamma1 for residual-like multiplicative scaling
         h12 = (1.0 + gamma1) * s1 + beta1
 
         # Stage 2: S3 modulates H12
         params2 = self.film2(s3)
+        if group_mask is not None and not group_mask.difference:
+            params2 = torch.zeros_like(params2)
         gamma2, beta2 = torch.chunk(params2, 2, dim=-1)
         z = (1.0 + gamma2) * h12 + beta2
 

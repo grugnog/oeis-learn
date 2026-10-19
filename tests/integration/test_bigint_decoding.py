@@ -30,10 +30,14 @@ def test_parameter_teacher_forcing_eos_masks_cached_full_logits(prompt):
     inputs = torch.tensor([[codec.BOS_ID] + body[:-1]])
     targets = torch.tensor([body])
     memory = torch.randn(2, 3, 16)
-    if prompt == "shuffled":
-        memory = memory.flip(0)
-    elif prompt == "absent":
-        memory = torch.ones(2, 1, 16)  # valid marker fixture, never an empty prompt
+    from oeis_learn.fresh.conditioning_controls import condition_memory
+
+    memory, _ = condition_memory(
+        memory,
+        torch.zeros(2, 3, dtype=torch.bool),
+        prompt,
+        order=(1, 0) if prompt == "shuffled" else None,
+    )
     memory = memory[:1]
     with torch.no_grad():
         expected = decoder(inputs, memory)
@@ -76,11 +80,20 @@ def test_old_vocabulary_checkpoint_never_resized():
         new.load_state_dict(old_model.state_dict())
 
 
-def test_sampler_uses_new_typed_grammar_and_never_repairs_incomplete_source():
+@pytest.mark.parametrize("prompt", ["correct", "shuffled", "absent"])
+def test_sampler_uses_new_typed_grammar_and_never_repairs_incomplete_source(prompt):
     from oeis_learn.decoder.sampler import WatProgramSampler
 
     decoder = model()
-    memory = torch.randn(1, 3, 16)
+    from oeis_learn.fresh.conditioning_controls import condition_memory
+
+    memory, _ = condition_memory(
+        torch.randn(2, 3, 16),
+        torch.zeros(2, 3, dtype=torch.bool),
+        prompt,
+        order=(1, 0) if prompt == "shuffled" else None,
+    )
+    memory = memory[:1]
     results = []
     for cache in (False, True):
         sampler = WatProgramSampler(

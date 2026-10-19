@@ -77,3 +77,16 @@ def training_mixture(training, count):
         constants += kind == "prefix_constant"
         identities += kind == "identity_prefix"
     return result
+
+
+def bigint_matched_views(rows):
+    from .bigint_splits import choose_splits, paired_tokens
+
+    manifest = choose_splits(rows)
+    views = {}
+    for view in ("concrete", "parameterized"):
+        views[view] = {
+            split: [dict(row, tokens=paired_tokens(row)[view]) for row in examples]
+            for split, examples in manifest["splits"].items()
+        }
+    return manifest, views
