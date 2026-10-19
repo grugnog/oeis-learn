@@ -21,7 +21,7 @@ class ReferenceProgram:
     result: tuple | str
 
 
-def parse(source, limits=ResourceProfile()):
+def parse(source, limits=ResourceProfile(), *, allow_parameters=False):
     if type(source) is not str or len(source.encode("utf-8")) > limits.source_bytes:
         raise SourceError("source limit")
     # Explicit lexer verifies every byte; comments/strings/Unicode atoms absent.
@@ -102,6 +102,8 @@ def parse(source, limits=ResourceProfile()):
         if not isinstance(value, tuple) or not isinstance(value[0], str):
             raise SourceError("expected typed expression")
         op, args = value[0], value[1:]
+        if op == "param.get" and allow_parameters and len(args) == 1 and args[0] in {f"p{i}" for i in range(8)}:
+            return "bigint"
         if op == "int" and len(args) == 1:
             number(args[0], limits.literal_bits)
             return "bigint"

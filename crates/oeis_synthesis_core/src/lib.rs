@@ -32,3 +32,14 @@ pub fn dependency_smoke() -> String {
     assert_eq!(answer, exact);
     answer
 }
+
+pub mod dependence;
+pub mod parameters;
+pub mod symbolic;
+pub mod affine;
+pub mod smt;
+pub mod fit;
+pub mod substitute;
+pub mod evidence;
+pub mod cache;
+pub mod diagnostic;

@@ -11,6 +11,10 @@ mkdir -p /opt/oeis-wheels
 maturin build --release --locked --compatibility linux \
   --interpreter "$PYO3_PYTHON" --out /opt/oeis-wheels
 mkdir -p /opt/oeis-build-info
+# The bridge links the same core and retained adapter without Python extension mode.
+cargo build --release --locked --no-default-features --example synthesis_core_test_driver
+cp /opt/oeis-native-target/release/examples/synthesis_core_test_driver \
+  /opt/oeis-build-info/synthesis-core-test-driver
 cp Cargo.lock /opt/oeis-build-info/Cargo.lock
 cp ../oeis_bigint_runtime/Cargo.lock /opt/oeis-build-info/guest.Cargo.lock
 cp ../oeis_synthesis_core/Cargo.lock /opt/oeis-build-info/core.Cargo.lock
