@@ -641,6 +641,9 @@ def main():
         "benchmark": benchmark,
         "diagnose": diagnose,
     }
+    if operation.startswith("bigint-"):
+        from . import bigint_worker
+        handlers.update({"bigint-" + key: getattr(bigint_worker, key) for key in ("train", "generate", "score", "probe")})
     result = handlers[operation](Path("/work/input"), Path("/work/output"))
     write(Path("/work/output/result.json"), result)
 

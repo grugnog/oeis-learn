@@ -292,6 +292,48 @@ def resolve(value, *, seed=None, artifacts=None):
         p = result[section][key]
         if p is not None and (Path(p).is_absolute() or ".." in Path(p).parts):
             raise ValueError("workspace-relative path required")
+    if result["search"]["beam"] is not None:
+        raise ValueError("beam is not registered for the qualified eight-attempt portfolio")
+    if result["inputs"]["profile"] == "tri-stream/v1" and result["inputs"]["mask"] != dict(
+        magnitude=True, modular=True, difference=True, exact_bytes=False
+    ):
+        raise ValueError("tri-stream control requires mathematical streams without byte branch")
+    if (
+        result["reporting"]["max_examples"] > 8
+        or result["reporting"]["detail_chunk_bytes"] > 1 << 20
+        or result["archive"]["max_bytes"] > 512 << 20
+    ):
+        raise ValueError("bounded example/detail/archive caps required")
+    if (
+        result["learning"]["validation_every"] not in (100, 500)
+        or result["learning"]["batch_size"] != 8
+        or result["learning"]["learning_rate"] != 1e-4
+    ):
+        raise ValueError("registered LR1e-4, batch8 and100/500-update cadence required")
+    cost = result["learning"]["cost_preflight"]
+    if cost is not None:
+        from oeis_learn.synthesis.state import require_hash
+        from .cost_policy import screen_cost
+
+        if (
+            not isinstance(cost, dict)
+            or set(cost) != {"image", "profile_sha256", "scoring_data", "costs", "fixture_sha256"}
+            or cost["scoring_data"] is not False
+        ):
+            raise ValueError("closed non-scoring measured cost preflight required")
+        for key in ("image", "profile_sha256", "fixture_sha256"):
+            require_hash(cost[key])
+        if set(cost["costs"]) != {
+            "training_p95",
+            "teacher_forcing_p95",
+            "generation_p95",
+            "fit_p95",
+            "reference_p95",
+            "hidden_scoring_p95",
+            "checkpoint_p95",
+        }:
+            raise ValueError("complete measured p95 phases required")
+        screen_cost(**cost["costs"])
     result["identity"] = identity(result)
     if existing is not None and existing != result["identity"]:
         raise ValueError("resolved recipe identity mismatch")

@@ -19,6 +19,10 @@ def configuration(path):
     from oeis_learn.experiments.profiles import qualified_model_profile
 
     value = yaml.safe_load(Path(path).read_text())
+    if isinstance(value, dict) and value.get("version") == "bigint-bootstrap/v1":
+        from oeis_learn.fresh.bigint_config import resolve, packaged_artifacts
+
+        return resolve(value, artifacts=packaged_artifacts())
     if set(value) != {"version", "data", "cohort", "archive", "sampler_config", "run"} or value[
         "version"
     ] not in {"fresh-workflow/v1", "fresh-workflow/v2"}:
@@ -148,9 +152,35 @@ def main(argv=None):
     check.add_argument(
         "--inputs-only", action="store_true", help="validate inputs without launching GPU probes"
     )
+    resolved = commands.add_parser("bigint-resolve")
+    resolved.add_argument("--config", required=True)
+    resolved.add_argument("--output", required=True)
+    resolved.add_argument("--seed", type=int)
+    compare = commands.add_parser("bigint-compare")
+    compare.add_argument("--runs", nargs="+", required=True)
+    compare.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "seal-inputs":
+        if args.command == "bigint-resolve":
+            from oeis_learn.fresh.bigint_config import load, packaged_artifacts
+            from oeis_learn.fresh.common import write
+
+            write(
+                ROOT / relative(args.output),
+                load(ROOT / args.config, seed=args.seed, artifacts=packaged_artifacts()),
+            )
+        elif args.command == "bigint-compare":
+            from oeis_learn.fresh.comparison import compare_runs
+
+            print(
+                json.dumps(
+                    compare_runs(
+                        [ROOT / relative(p) for p in args.runs], ROOT / relative(args.output)
+                    ),
+                    indent=2,
+                )
+            )
+        elif args.command == "seal-inputs":
             from oeis_learn.fresh.input_sealing import seal
 
             result = seal(ROOT / relative(args.inputs))
@@ -170,7 +200,21 @@ def main(argv=None):
             if args.command == "data":
                 from oeis_learn.fresh.bulk import fetch
 
-                result = fetch({k: v for k, v in config["data"].items() if k != "cache"}, cache)
+                result = fetch(
+                    {
+                        k: v
+                        for k, v in config["data"].items()
+                        if k
+                        in {
+                            "revision",
+                            "seed",
+                            "max_records",
+                            "max_download_bytes",
+                            "free_disk_floor_bytes",
+                        }
+                    },
+                    cache,
+                )
                 print(
                     json.dumps(
                         {

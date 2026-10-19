@@ -296,6 +296,15 @@ class RoleCaches:
                     raw = p.read_bytes()
                     row = json.loads(raw)
                     key = row["key"]
+                    require_hash(key)
+                    if (
+                        p.is_symlink()
+                        or p.name != key.removeprefix("sha256:") + ".json"
+                        or set(row) != {"key", "value"}
+                        or len(raw) > 4 << 20
+                    ):
+                        p.unlink()
+                        continue
                     if self.disk.reserve(key, len(raw)):
                         self.disk.publish(key, p.name)
                     else:
@@ -324,7 +333,10 @@ class RoleCaches:
         name = self.disk.get(key)
         if name is not None and self.root is not None:
             try:
-                row = json.loads((self.root / name).read_bytes())
+                path = self.root / name
+                if path.is_symlink() or path.stat().st_size > 4 << 20:
+                    raise ValueError("invalid disk cache entry")
+                row = json.loads(path.read_bytes())
                 if row["key"] == key:
                     return row["value"]
             except (FileNotFoundError, ValueError, KeyError):
@@ -354,7 +366,7 @@ class RoleCaches:
             self.disk.abort(key)
 
     def metrics(self):
-        return {
+        result = {
             name: dict(
                 entries=len(cache.entries),
                 bytes=cache.used_bytes,
@@ -369,3 +381,7 @@ class RoleCaches:
                 ("disk", self.disk),
             ]
         }
+        result["compiled"]["reason"] = (
+            "native runtime owns ephemeral compiled modules; no serialized artifacts published"
+        )
+        return result

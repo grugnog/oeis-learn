@@ -88,3 +88,105 @@ def family_bootstrap(families, *, seed):
         families=len(keys),
         interpretation="descriptive family-cluster interval; report three-seed spread separately",
     )
+
+
+def compare_runs(roots, output):
+    """Assemble immutable per-seed observations; use the qualified gate unchanged."""
+    from pathlib import Path
+    from copy import deepcopy
+    from .common import read, write, digest
+
+    arms = {}
+    compatibility = None
+    costs = []
+    observations = {}
+    for root in roots:
+        root = Path(root)
+        run = read(root / "run.json")
+        status = read(root / "status.json")
+        report = read(root / "comparison.json")
+        if run.get("version") != "bigint-run/v1" or status["status"] != "completed":
+            raise ValueError("comparison requires completed bigint run/child reports")
+        recipe = deepcopy(run["recipe"])
+        seed = recipe["model"].pop("seed")
+        view = recipe["learning"].pop("target_view")
+        recipe.pop("identity")
+        # Initialization seed and representation targets vary in a matched pair.
+        key = digest(dict(recipe=recipe, data=report["data"], split=run["split_sha256"]))
+        if compatibility is None:
+            compatibility = key
+        if key != compatibility:
+            raise ValueError(
+                "mismatched data, numerical/input, resource, portfolio or provenance arms"
+            )
+        if (view, seed) in arms:
+            raise ValueError("duplicate representation/seed arm")
+        arms[view, seed] = report
+        costs.append(
+            dict(
+                view=view,
+                seed=seed,
+                lineage=read(root / "lineage.json") if (root / "lineage.json").exists() else None,
+                budget=read(root / "budget.json") if (root / "budget.json").exists() else None,
+            )
+        )
+        observations[view, seed] = report.get("observations", {})
+    missing = [
+        dict(view=view, seed=seed)
+        for view in ("literal", "parameterized")
+        for seed in SEEDS
+        if (view, seed) not in arms
+    ]
+    result = dict(
+        version="bigint-comparison/v1",
+        compatibility=compatibility,
+        missing_seeds=missing,
+        costs=costs,
+        automatic_run_authorized=False,
+        qualification="pending" if missing else "evaluated",
+        decision=None,
+        intervals={},
+    )
+    if not missing:
+
+        def rows(view, split, mode):
+            result = []
+            for seed in SEEDS:
+                report = arms[view, seed]["splits"]["0:" + split]
+                result.append(
+                    dict(
+                        report["splits"][mode],
+                        seed=seed,
+                        metric=report["metric"],
+                        portfolio=report["portfolio"],
+                    )
+                )
+            return result
+
+        result["decision"] = promotion(
+            rows("parameterized", "structural_development", "equal_budget"),
+            {
+                mode: rows("parameterized", "structural_development", mode)
+                for mode in ("shuffled", "absent", "template")
+            },
+            rows("parameterized", "parameter_development", "equal_budget"),
+            rows("literal", "parameter_development", "equal_budget"),
+        )
+        for split in ("parameter_development", "structural_development"):
+            families = {}
+            for seed in SEEDS:
+                left = observations["literal", seed].get("0:" + split, {})
+                right = observations["parameterized", seed].get("0:" + split, {})
+                if set(left) != set(right) or len(left) != 128:
+                    raise ValueError("paired full128 prompt observations required for intervals")
+                for prompt in left:
+                    if left[prompt]["family"] != right[prompt]["family"]:
+                        raise ValueError("paired family mismatch")
+                    families.setdefault(left[prompt]["family"], []).append(
+                        int(right[prompt]["outcomes"]["equal_budget"]["success"])
+                        - int(left[prompt]["outcomes"]["equal_budget"]["success"])
+                    )
+            result["intervals"][split] = family_bootstrap(families, seed=SEEDS[0])
+    result["identity"] = digest(result)
+    write(Path(output) / "comparison.json", result, immutable=True)
+    return result

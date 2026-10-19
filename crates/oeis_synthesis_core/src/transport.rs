@@ -30,7 +30,8 @@ pub fn serve(backend:&mut dyn ExecutionBackend)->Result<(),String>{
             let elapsed=start.elapsed().as_millis() as u64;
             if elapsed>=budget {break;}
             let mut one=request.clone();one.candidates=vec![candidate.clone()];one.remaining_budget.wall_time_ms=(budget-elapsed).min(60000) as u32;
-            let mut limits=resources.clone();limits.evaluation_seconds=limits.evaluation_seconds.min((budget-elapsed) as f64/1000.);limits.term_seconds=limits.term_seconds.min(limits.evaluation_seconds);
+            // Keep the numerical profile immutable; the supervisor owns the aggregate deadline.
+            let limits=resources.clone();
             let raw=serde_json::to_vec(&json!({"request":one,"limits":limits,"evidence":candidate.evidence,"reference_sha256":reference})).map_err(|e|e.to_string())?;
             let mut result=match diagnostic::dispatch(&raw,backend){Ok(v)=>v,Err(reason)=>json!({"outcome":"invalid_source","reason":reason,"assignments":[],"admitted":false})};
             result["candidate_id"]=json!(candidate.candidate_id);completed+=1;

@@ -150,7 +150,7 @@ def snapshot_file(root, name, destination, ref):
 
 
 def container_command(policy, image, name, role, inputs, output, command):
-    if role not in {"learner", "generation", "evaluator", "worker", "probe"}:
+    if role not in {"learner", "generation", "evaluator", "scorer", "worker", "probe"}:
         raise ValueError("unknown role")
     worker = role == "worker"
     gpu = role in {"learner", "generation", "probe"}
