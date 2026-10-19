@@ -220,6 +220,8 @@ jobs:
             -e HOME=/tmp -e OEIS_REQUIRE_BIGINT_BUILD=1 -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build \
             -v "$PWD/tmp-bigint-evidence:/evidence" oeis-bigint-ci bash -c '
               set -euo pipefail
+              # UID 12345 owns the reports, but not the runner-owned mount root.
+              trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
               python scripts/qualify_bigint_phase2.py --inside --output /evidence
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '

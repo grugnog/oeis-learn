@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -34,6 +35,7 @@ CPU_TESTS = [
     "tests/unit/test_bigint_learning_policy.py",
     "tests/unit/test_synthesis_provenance.py",
     "tests/unit/test_synthesis_archive.py",
+    "tests/unit/test_bigint_qualification.py",
 ]
 
 
@@ -56,20 +58,23 @@ def inside(output, gpu):
         if gpu and not (torch.version.hip and torch.cuda.is_available()):
             raise RuntimeError("actual HIP required; CPU fallback prohibited")
         tests = ["tests/integration/test_bigint_gpu.py"] if gpu else CPU_TESTS
-        run = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                "-q",
-                "-p",
-                "no:cacheprovider",
-                *tests,
-                "--basetemp=" + str(output / "pytest"),
-                "--junitxml=" + str(output / "tests.xml"),
-            ],
-            check=False,
-        )
+        # Pytest creates private (0700) scratch directories. Keep those out of
+        # evidence mounted by a different UID; publish only the reports below.
+        with tempfile.TemporaryDirectory(prefix="oeis-bigint-phase2-") as scratch:
+            run = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "-q",
+                    "-p",
+                    "no:cacheprovider",
+                    *tests,
+                    "--basetemp=" + str(Path(scratch) / "pytest"),
+                    "--junitxml=" + str(output / "tests.xml"),
+                ],
+                check=False,
+            )
         tree = ET.parse(output / "tests.xml")
         totals = {
             k: sum(int(s.attrib.get(k, 0)) for s in tree.iter("testsuite"))

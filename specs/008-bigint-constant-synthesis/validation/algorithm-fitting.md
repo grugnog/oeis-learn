@@ -58,3 +58,30 @@ container toolchain nor Docker/Podman. Existing Rust fitting fixtures exercise
 the affected operator paths when CI rebuilds. T025/T036/T058 remain open, and the
 replacement CI run is deliberately not monitored or awaited. Earlier local
 source hashes remain historical snapshots, not qualification of this repair.
+
+## Cross-UID artifact upload repair
+
+The completed [container run39185860360](https://github.com/grugnog/oeis-learn/actions/runs/39185860360)
+on `9532d7eaf4d2719289e95bafc3b35f0ae2f0a39e` built successfully. The contracts
+partition ran152 tests with zero failures/errors/skips and reported PASS; only
+artifact upload failed with EACCES while scanning `/evidence/pytest`. Pytest had
+created that directory mode0700 as container UID12345, while upload ran under the
+host runner UID. The root evidence mount's mode777 did not grant access through
+the private child directory. The native partition, both portable-engine jobs,
+Podman build, native qualification and foundation-review checks passed.
+The image was
+`ghcr.io/grugnog/oeis-learn@sha256:2c905ac43f6a63e40388ccdaa89b653661e216604ccfca4b63306e6b4f56541d`.
+
+The helper now creates pytest scratch in a temporary directory outside the public
+reports and removes it after both successful and unsuccessful test runs. XML,
+summary and deliberate GPU evidence still go to the requested output directory.
+The arbitrary-UID CI command also makes generated report descendants readable
+on EXIT, including failure exits; it skips the runner-owned mount root so UID12345
+does not attempt a forbidden chmod on a directory it does not own.
+
+Two regression cases simulate success and failure with private0700 test scratch,
+verify its removal, and require the public output to contain only summary/XML.
+Together with the cache/image regressions,26 tests passed locally. Python F/E9,
+workflow YAML, bigint step shell syntax and whitespace checks passed. This is an
+artifact publication fix; native/HIP semantics and task gate markers are unchanged.
+The new CI run is left unmonitored, per the user's instructions.
