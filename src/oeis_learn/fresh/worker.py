@@ -380,111 +380,141 @@ def generate(inputs, output):
     encoder.eval()
     decoder.eval()
     proposer = ModelProposer(encoder, decoder, context_limit=settings["generation_tokens"] + 1)
-    from .search import select, grounded_variants
+    from .search import select, native_variants
     from .diagnostics import execute_values
     from oeis_learn.tracking.role_coordinator import QueueRunner
     from oeis_learn.decoder.program_codec import encode_body
 
     verified = settings.get("learning", {}).get("prefix_verified", False)
     runner = QueueRunner(output / "runtime-queue") if verified else None
-    records = []
-    for n, group in enumerate(visible):
-        attempts = []
-        ledger = SearchLedger(
-            max_attempts=settings["attempts"],
-            max_tokens=settings["attempts"] * settings["generation_tokens"],
-            max_expansions=settings["attempts"] * settings["generation_tokens"],
-            budget_ns=settings["per_group_seconds"] * 10**9,
+    from contextlib import ExitStack
+    from oeis_learn.synthesis.client import SynthesisClient
+
+    with ExitStack() as services:
+        synthesis = (
+            services.enter_context(
+                SynthesisClient(settings["contract_sha256"], cache_root=output / "native-cache")
+            )
+            if verified
+            else None
         )
-        for attempt in range(settings["attempts"]):
-            try:
-                ledger.charge(attempts=1)
-                values = [int(v) for v in group["values"]]
-                parents = [r["source"] for r in attempts if r.get("complete") and r.get("source")]
-                repair_slots = min(2, settings["attempts"] // 2) if verified else 0
-                if repair_slots and attempt >= settings["attempts"] - repair_slots and parents:
-                    variants = grounded_variants(parents[0], values)
-                    offset = attempt - (settings["attempts"] - repair_slots)
-                    source = variants[offset] if offset < len(variants) else parents[0]
-                    tokens = encode_body(source)
-                    ledger.charge(tokens=len(tokens), expansions=1)
-                    evidence = dict(
-                        method="literal_repair", tokens=tokens, complete=True, failure=None
-                    )
-                elif (
-                    verified and settings["attempts"] >= 8 and attempt == settings["attempts"] // 2
-                ):
-                    beam = proposer.beam(values, ledger, count=1, width=2)
-                    source, evidence = (
-                        beam[0]
-                        if beam
-                        else (
-                            None,
-                            dict(
-                                method="beam", tokens=[], complete=False, failure="no_complete_path"
-                            ),
+        records = []
+        for n, group in enumerate(visible):
+            attempts = []
+            ledger = SearchLedger(
+                max_attempts=settings["attempts"],
+                max_tokens=settings["attempts"] * settings["generation_tokens"],
+                max_expansions=settings["attempts"] * settings["generation_tokens"],
+                budget_ns=settings["per_group_seconds"] * 10**9,
+            )
+            for attempt in range(settings["attempts"]):
+                try:
+                    ledger.charge(attempts=1)
+                    values = [int(v) for v in group["values"]]
+                    parents = [
+                        r["source"] for r in attempts if r.get("complete") and r.get("source")
+                    ]
+                    repair_slots = min(2, settings["attempts"] // 2) if verified else 0
+                    if repair_slots and attempt >= settings["attempts"] - repair_slots and parents:
+                        native = native_variants(
+                            parents[0],
+                            values,
+                            synthesis,
+                            deadline=time.monotonic()
+                            + max(0, ledger.budget_ns - ledger.elapsed()) / 1e9,
                         )
+                        variants = [r["source"] for r in native["admitted"]]
+                        offset = attempt - (settings["attempts"] - repair_slots)
+                        source = variants[offset] if offset < len(variants) else parents[0]
+                        tokens = encode_body(source)
+                        ledger.charge(tokens=len(tokens), expansions=1)
+                        evidence = dict(
+                            method="native_fit",
+                            tokens=tokens,
+                            complete=True,
+                            failure=None,
+                            native=native,
+                        )
+                    elif (
+                        verified
+                        and settings["attempts"] >= 8
+                        and attempt == settings["attempts"] // 2
+                    ):
+                        beam = proposer.beam(values, ledger, count=1, width=2)
+                        source, evidence = (
+                            beam[0]
+                            if beam
+                            else (
+                                None,
+                                dict(
+                                    method="beam",
+                                    tokens=[],
+                                    complete=False,
+                                    failure="no_complete_path",
+                                ),
+                            )
+                        )
+                        evidence = dict(
+                            evidence,
+                            tokens=encode_body(source) if source else [],
+                            complete=bool(source),
+                            failure=None if source else "no_complete_path",
+                        )
+                    else:
+                        source, evidence = proposer.stochastic(
+                            values, settings["seed"] + n * 32 + attempt, ledger, greedy=attempt == 0
+                        )
+                    attempts.append(
+                        {
+                            "source": source,
+                            "method": evidence["method"],
+                            "complete": evidence["complete"],
+                            "failure": evidence["failure"],
+                            "tokens": evidence["tokens"],
+                            **({"native": evidence["native"]} if "native" in evidence else {}),
+                        }
                     )
-                    evidence = dict(
-                        evidence,
-                        tokens=encode_body(source) if source else [],
-                        complete=bool(source),
-                        failure=None if source else "no_complete_path",
+                    if verified and evidence["complete"]:
+                        ledger.charge()
+                        outputs, outcome = execute_values(
+                            runner,
+                            source,
+                            range(20),
+                            digest([group["group_id"], attempt, source]),
+                            time.monotonic_ns() + max(0, ledger.budget_ns - ledger.elapsed()),
+                        )
+                        attempts[-1].update(
+                            prefix_fit=outputs == group["values"], prefix_outcome=outcome
+                        )
+                except SearchExhausted as exc:
+                    attempts.append(
+                        {
+                            "source": None,
+                            "method": "bounded",
+                            "complete": False,
+                            "failure": str(exc),
+                            "tokens": list(getattr(exc, "tokens", [])),
+                        }
                     )
-                else:
-                    source, evidence = proposer.stochastic(
-                        values, settings["seed"] + n * 32 + attempt, ledger, greedy=attempt == 0
-                    )
-                attempts.append(
-                    {
-                        "source": source,
-                        "method": evidence["method"],
-                        "complete": evidence["complete"],
-                        "failure": evidence["failure"],
-                        "tokens": evidence["tokens"],
-                    }
-                )
-                if verified and evidence["complete"]:
-                    ledger.charge()
-                    outputs, outcome = execute_values(
-                        runner,
-                        source,
-                        range(20),
-                        digest([group["group_id"], attempt, source]),
-                        time.monotonic_ns() + max(0, ledger.budget_ns - ledger.elapsed()),
-                    )
-                    attempts[-1].update(
-                        prefix_fit=outputs == group["values"], prefix_outcome=outcome
-                    )
-            except SearchExhausted as exc:
-                attempts.append(
-                    {
-                        "source": None,
-                        "method": "bounded",
-                        "complete": False,
-                        "failure": str(exc),
-                        "tokens": list(getattr(exc, "tokens", [])),
-                    }
-                )
-                break
-        # Prefix execution never receives hidden continuation terms.
-        selected = select(attempts, verified=verified)
-        records.append(
-            {"group_id": group["group_id"], "selected_sha256": selected, "attempts": attempts}
-        )
-        write(
-            output / "progress.json",
-            {"completed_groups": len(records), "denominator": len(visible)},
-        )
-    seal = {
-        "version": "fresh-candidate-seal/v1",
-        "checkpoint_sha256": base["blob_sha256"],
-        "protocol_sha256": settings["protocol_sha256"],
-        "visible_sha256": digest(visible),
-        "records": records,
-    }
-    seal["identity"] = digest(seal)
-    return seal
+                    break
+            # Prefix execution never receives hidden continuation terms.
+            selected = select(attempts, verified=verified)
+            records.append(
+                {"group_id": group["group_id"], "selected_sha256": selected, "attempts": attempts}
+            )
+            write(
+                output / "progress.json",
+                {"completed_groups": len(records), "denominator": len(visible)},
+            )
+        seal = {
+            "version": "fresh-candidate-seal/v1",
+            "checkpoint_sha256": base["blob_sha256"],
+            "protocol_sha256": settings["protocol_sha256"],
+            "visible_sha256": digest(visible),
+            "records": records,
+        }
+        seal["identity"] = digest(seal)
+        return seal
 
 
 def score(inputs, output):
@@ -643,7 +673,13 @@ def main():
     }
     if operation.startswith("bigint-"):
         from . import bigint_worker
-        handlers.update({"bigint-" + key: getattr(bigint_worker, key) for key in ("train", "generate", "score", "probe")})
+
+        handlers.update(
+            {
+                "bigint-" + key: getattr(bigint_worker, key)
+                for key in ("train", "generate", "score", "probe")
+            }
+        )
     result = handlers[operation](Path("/work/input"), Path("/work/output"))
     write(Path("/work/output/result.json"), result)
 

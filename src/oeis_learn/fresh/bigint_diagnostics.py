@@ -302,7 +302,7 @@ def generate(
                 record["selections"][mode] = result["equal_budget"]
             record.setdefault("details", {})[mode] = result
             record["family"] = row.get("family", row["id"])
-            record["strata"] = strata(row)
+            record["strata"] = row.get("strata", strata(row))
     return dict(
         records=records,
         controls=dict(

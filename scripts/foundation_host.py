@@ -616,6 +616,12 @@ def diagnose_checkpoint(policy, image, argv, coordinator_factory):
         source_contract=run["settings"]["learner"]["contract_sha256"],
         source_runtime=base["runtime_sha256"],
     )
+    if len(argv) > 3:
+        options = json.loads(argv[3])
+        if set(options) != {"fitting"} or options["fitting"] not in {"raw", "exact", "paired"}:
+            raise ValueError("raw/exact/paired retained analysis required")
+        settings["native_fitting"] = options["fitting"]
+        settings["analysis_sha256"] = digest([run["identity"], base["blob_sha256"], image, options])
     inputs = copy_view(
         root / "input",
         {"settings.json": settings, "examples.json": examples},
@@ -740,13 +746,22 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     old["image"] != image
                     or old["inputs_identity"] != requested["identity"]
                     or old["settings"]["profile"] != profile
-                    or (len(argv) > 4 and argv[4] and old["settings"]["learner"]["model"]["encoder"] != argv[4])
+                    or (
+                        len(argv) > 4
+                        and argv[4]
+                        and old["settings"]["learner"]["model"]["encoder"] != argv[4]
+                    )
                     or old["settings"].get("learnability_controls") != diagnostic_controls
                 ):
                     raise ValueError("existing run image/inputs/profile differ; choose a new run")
                 if read(job / "status.json")["status"] == "complete":
                     publish(job, destination)
-                    return 0 if profile != "bootstrap-learnability" or read(job / "learnability.json")["learnability_passed"] else 2
+                    return (
+                        0
+                        if profile != "bootstrap-learnability"
+                        or read(job / "learnability.json")["learnability_passed"]
+                        else 2
+                    )
                 raise ValueError("existing run requires resume; budget cannot be reissued")
             source_name = argv[1]
             source = confined(workspace, source_name)
@@ -802,9 +817,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 if len(argv) <= 4 or not argv[4]:
                     raise ValueError("decoder experiments require an explicit encoder")
                 experiment = diagnostic_controls["experiment"]
-                config["model"] = bootstrap_profile(argv[4], decoder_inputs={
-                    k: experiment[k] for k in ("token_scale", "position_scale", "dropout")
-                })
+                config["model"] = bootstrap_profile(
+                    argv[4],
+                    decoder_inputs={
+                        k: experiment[k] for k in ("token_scale", "position_scale", "dropout")
+                    },
+                )
                 if experiment["seed"] is not None:
                     config["seed"] = experiment["seed"]
             count = len({digest(row["values"]) for row in examples["training"]})
@@ -897,7 +915,11 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 settings["learnability_controls"] = diagnostic_controls
                 settings["seconds"] = diagnostic_controls["budget_seconds"]
                 settings["learner"]["diagnostic_detail"] = True
-                write(job / "learnability-examples.json", {"training": examples["training"]}, immutable=True)
+                write(
+                    job / "learnability-examples.json",
+                    {"training": examples["training"]},
+                    immutable=True,
+                )
             run = {
                 "version": "fresh-run/v1",
                 "runtime": policy.get("runtime", {}),
@@ -1280,7 +1302,10 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                 if settings.get("learnability_controls"):
                     final["controls"] = settings["learnability_controls"]
                 write(job / "learnability.json", final)
-                print(f"LEARNABILITY {'PASS' if learned else 'FAIL'}: {measure['exact']}/{measure['denominator']} exact; failed checks={assessment['failures']}", flush=True)
+                print(
+                    f"LEARNABILITY {'PASS' if learned else 'FAIL'}: {measure['exact']}/{measure['denominator']} exact; failed checks={assessment['failures']}",
+                    flush=True,
+                )
             else:
                 if learning:
                     development = evaluation(
@@ -1316,7 +1341,12 @@ def execute(policy, image, argv, *, coordinator_factory=Coordinator):
                     "diagnostic_final_cohort_consumed": not bool(learning),
                 },
             )
-            return 2 if settings["profile"] == "bootstrap-learnability" and not final["learnability_passed"] else 0
+            return (
+                2
+                if settings["profile"] == "bootstrap-learnability"
+                and not final["learnability_passed"]
+                else 0
+            )
         except BaseException as exc:
             # Remain active: time until an interrupted run is explicitly recovered is charged.
             ledger.record("interrupted")

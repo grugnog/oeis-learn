@@ -243,6 +243,7 @@ def train(inputs, output):
             else selection["best_checkpoint"]
         )
         write(output / "selected.json", chosen)
+        selection["best_checkpoint"] = chosen
         store.prune(chosen)
         write(
             output / "checkpoint-identity.json",
@@ -449,9 +450,12 @@ def generate(inputs, output):
     inputs, output = Path(inputs), Path(output)
     settings = read(inputs / "settings.json")
     rows = read(inputs / "prompts.json")
+    if any(
+        set(row) - {"id", "indices", "values", "horizon_indices", "family", "strata"}
+        for row in rows
+    ):
+        raise ValueError("only visible prompts and public report strata enter generation")
     encoder, decoder, counts = _load_models(inputs, settings)
-    if any(set(row) & {"hidden_values", "truth", "final_values"} for row in rows):
-        raise ValueError("hidden fields in generation input")
     with client(settings, output) as synthesis:
         result = synthesize(
             encoder,
@@ -488,6 +492,61 @@ def generate(inputs, output):
             flush()
         group[key] = body
     flush()
+    archive_bytes = 0
+    archive_omissions = []
+    aggregate = dict(
+        denominator=len(rows),
+        attempts=0,
+        terminated=0,
+        legal=0,
+        ambiguous=0,
+        visible_fit20=0,
+        elapsed_seconds=0.0,
+        cache_comparisons=0,
+        cache_equal=0,
+        greedy_terminated=0,
+    )
+    for row in rows:
+        record = result["records"][row["id"]]
+        body = {mode: value["archive"] for mode, value in record["details"].items()}
+        payload = canonical(body)
+        name = f"archive/{identity(row['id'])[7:]}.json"
+        if archive_bytes + len(payload) <= settings["recipe"]["archive"]["max_bytes"]:
+            write(output / name, payload)
+            archive_bytes += len(payload)
+        else:
+            archive_omissions.append(
+                dict(
+                    path=name, sha256=identity(body), bytes=len(payload), reason="archive byte cap"
+                )
+            )
+        greedy = record["details"]["correct"]["details"]
+        aggregate["greedy_terminated"] += bool(greedy and greedy[0]["complete"])
+        for mode, value in record["details"].items():
+            aggregate["elapsed_seconds"] += value["elapsed_seconds"]
+            aggregate["attempts"] += len(value["details"])
+            aggregate["terminated"] += sum(attempt["complete"] for attempt in value["details"])
+            aggregate["legal"] += sum(
+                attempt["complete"] and attempt["outcome"] != "invalid_source"
+                for attempt in value["details"]
+            )
+            aggregate["ambiguous"] += sum(
+                attempt.get("native", {}).get("uniqueness") == "multiple"
+                for attempt in value["details"]
+            )
+            if value["cache_parity"] is not None:
+                aggregate["cache_comparisons"] += 1
+                aggregate["cache_equal"] += value["cache_parity"]
+        aggregate["visible_fit20"] += bool(record["selections"].get("equal_budget"))
+    write(
+        output / "archive-manifest.json",
+        dict(
+            bytes=archive_bytes,
+            max_bytes=settings["recipe"]["archive"]["max_bytes"],
+            omitted=archive_omissions,
+            scope="finite visible matches; no proof or novelty promotion",
+        ),
+    )
     for row in rows[: settings["recipe"]["reporting"]["max_examples"]]:
         body = result["records"][row["id"]]
         name = f"details/{identity(row['id'])[7:]}.json"
@@ -499,6 +558,8 @@ def generate(inputs, output):
         version="bigint-generation/v1",
         files=chunks,
         controls=result["controls"],
+        generation_metrics=aggregate,
+        archive=dict(bytes=archive_bytes, omitted=len(archive_omissions)),
         counts=counts,
         denominator=len(rows),
         omitted=details,

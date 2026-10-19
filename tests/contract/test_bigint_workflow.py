@@ -29,3 +29,103 @@ def test_assisted_requires_review_and_no_final_access_in_training_recipe():
         resolve(dict(version="bigint-bootstrap/v1", track=dict(kind="assisted")))
     with pytest.raises(ValueError, match="sealed"):
         resolve(dict(version="bigint-bootstrap/v1", evaluation=dict(final_access="authorized")))
+
+
+def test_public_commands_and_explicit_recipe_conflicts():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+    from foundation_local import parser
+    from foundation_bigint import validate_options
+
+    cfg = resolve(dict(version="bigint-bootstrap/v1"))
+    args = parser().parse_args(
+        [
+            "train",
+            "--profile",
+            "bigint-bootstrap",
+            "--config",
+            "recipe.yaml",
+            "--inputs",
+            "inputs",
+            "--run",
+            "run",
+            "--seed",
+            "20261016",
+        ]
+    )
+    args.explicit_options = {"--seed"}
+    validate_options(args, cfg)
+    args.seed += 1
+    with pytest.raises(ValueError, match="seed"):
+        validate_options(args, cfg)
+    args = parser().parse_args(
+        [
+            "learnability",
+            "--config",
+            "recipe.yaml",
+            "--inputs",
+            "inputs",
+            "--run",
+            "run",
+            "--decoder-position-scale",
+            "1",
+        ]
+    )
+    args.explicit_options = {"--decoder-position-scale"}
+    with pytest.raises(ValueError, match="conflicting"):
+        validate_options(args, cfg)
+    for suite in ("bigint-cpu", "bigint-gpu", "bigint-retirement"):
+        assert parser().parse_args(["validate", "--suite", suite]).suite == suite
+    final = parser().parse_args(
+        [
+            "evaluate",
+            "--run",
+            "run",
+            "--split",
+            "final",
+            "--final-plan",
+            "plan.json",
+            "--output",
+            "child",
+            "--fitting",
+            "paired",
+        ]
+    )
+    assert final.final_plan == "plan.json"
+    assert parser().parse_args(["compare", "--runs", "a", "b", "--output", "comparison"]).runs == [
+        "a",
+        "b",
+    ]
+
+
+def test_committed_recipes_are_explicit_and_assisted_placeholder_fails():
+    import yaml
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2] / "configs/foundation"
+    for name in ("smoke", "literal_screen", "parameter_screen", "encoder_study"):
+        value = yaml.safe_load((root / ("bigint_" + name + ".yaml")).read_text())
+        cfg = resolve(value, seed=20261017)
+        assert cfg["model"]["seed"] == 20261017 and cfg["evaluation"]["paired_seeds"] == [
+            20261016,
+            20261017,
+            20261018,
+        ]
+        assert cfg["model"]["position_scale"] == 16 and cfg["learning"]["cost_preflight"] is None
+        assert set(value["fitting"]["service_limits"]) == set(
+            defaults()["fitting"]["service_limits"]
+        )
+    with pytest.raises(ValueError, match="assisted"):
+        resolve(yaml.safe_load((root / "bigint_assisted_screen.yaml").read_text()))
+
+
+def test_recipe_rejects_unregistered_beam_and_unbounded_reporting():
+    for value in (
+        dict(search=dict(beam=4)),
+        dict(reporting=dict(max_examples=9)),
+        dict(learning=dict(cost_preflight={"fake": True})),
+    ):
+        with pytest.raises(ValueError):
+            resolve(dict(version="bigint-bootstrap/v1", **value))

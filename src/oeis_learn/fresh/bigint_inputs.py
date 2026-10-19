@@ -172,6 +172,60 @@ def check(root):
                 len(row["values"]) != 20 or len(row["horizon_indices"]) != 100 for row in rows
             ):
                 raise ValueError("changed matched learner view")
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.synthesis.state import require_hash
+    from oeis_learn.synthesis.admission import source_identity
+
+    admissions = read(root / "admissions.json")
+    truth = read(root / "private/synthetic-truth.json")
+    all_ids = set()
+    for split, literal in examples["views"]["concrete"].items():
+        parameterized = examples["views"]["parameterized"][split]
+        if [r["id"] for r in literal] != [r["id"] for r in parameterized]:
+            raise ValueError("matched target identity/order mismatch")
+        for left, right in zip(literal, parameterized):
+            if left["id"] in all_ids:
+                raise ValueError("duplicate split target")
+            all_ids.add(left["id"])
+            oracle = truth[left["id"]]
+            if (
+                any(
+                    left[key] != right[key]
+                    for key in ("indices", "values", "horizon_indices", "family", "stage", "origin")
+                )
+                or oracle["indices"] != left["horizon_indices"]
+                or oracle["values"][:20] != left["values"]
+                or oracle["indices"][:20] != left["indices"]
+                or len(oracle["values"]) != 100
+            ):
+                raise ValueError("changed matched prompt/full100 horizon")
+            if any(row["tokens"] != encode_body(row["source"]) for row in (left, right)):
+                raise ValueError("target source/codec mismatch")
+            if left["origin"] == "generic_random":
+                record = admissions.get(left["id"], {})
+                if (
+                    record.get("admitted") is not True
+                    or record.get("source_sha256") != source_identity(left["source"])
+                    or record.get("horizon_sha256") != identity(oracle)
+                ):
+                    raise ValueError("missing bound native/reference admission")
+                for key in ("runtime_sha256", "reference_sha256", "resource_sha256"):
+                    require_hash(record[key])
+    for split, cohort in manifest["cohorts"].items():
+        private = read(root / f"private/oeis-{split}.json")
+        prompts = read(root / f"private/oeis-{split}-prompts.json")
+        if (
+            identity(private) != cohort["identity"]
+            or len(private) != cohort["count"]
+            or {r["id"] for r in prompts} != set(private)
+        ):
+            raise ValueError("changed frozen OEIS cohort")
+        for row in prompts:
+            if (
+                row["indices"] != private[row["id"]]["indices"][:20]
+                or row["values"] != private[row["id"]]["values"][:20]
+            ):
+                raise ValueError("changed frozen cohort visible view")
     if len(examples["tiny_ids"]) != 32:
         raise ValueError("diverse32 missing")
     return manifest
@@ -189,8 +243,6 @@ def prepare(config, cache, output, *, client_factory=SynthesisClient):
             if saved["config"] != config:
                 raise ValueError("prepared recipe changed; use a new output")
             return saved
-        imported = import_snapshot(cache, root / "sampling/indexed-source")
-        indexed, _ = read_indexed_source(root / "sampling/indexed-source/manifest.json")
         start = (
             read(root / "preparation-budget.json")
             if (root / "preparation-budget.json").exists()
@@ -206,6 +258,8 @@ def prepare(config, cache, output, *, client_factory=SynthesisClient):
         accepted = {}
         limits = ResourceProfile(**config["execution"]["resources"])
         try:
+            imported = import_snapshot(cache, root / "sampling/indexed-source")
+            indexed, _ = read_indexed_source(root / "sampling/indexed-source/manifest.json")
             with client_factory(
                 config["identity"], limits=limits, cache_root=root / "native-cache"
             ) as client:

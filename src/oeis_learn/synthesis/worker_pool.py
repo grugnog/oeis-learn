@@ -220,7 +220,26 @@ class WorkerPool:
                                         )
                                     ):
                                         raise ValueError("stale or mismatched response")
+                                    if (
+                                        set(response)
+                                        != {
+                                            "protocol",
+                                            "request_id",
+                                            "worker_generation",
+                                            "contract_sha256",
+                                            "results",
+                                            "unstarted",
+                                            "complete",
+                                        }
+                                        or type(response["complete"]) is not bool
+                                        or not isinstance(response["results"], list)
+                                    ):
+                                        raise ValueError("malformed response shape")
                                     for row in response.get("results", []):
+                                        if not isinstance(row, dict) or not isinstance(
+                                            row.get("candidate_id"), str
+                                        ):
+                                            raise ValueError("malformed result ID")
                                         cid = row["candidate_id"]
                                         if cid not in ids or cid in results:
                                             raise ValueError("duplicate/unknown result ID")

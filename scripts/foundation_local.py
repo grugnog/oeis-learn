@@ -381,6 +381,7 @@ def parser():
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    args.explicit_options={v.split("=",1)[0] for v in argv if v.startswith("--")}
     try:
         if args.command == "pack":
             pack_run(args.run, args.output, checkpoint=args.checkpoint)
@@ -465,7 +466,14 @@ def main(argv=None):
         elif args.command == "seal-inputs":
             host.cpu("seal-inputs", "--inputs", relative(args.inputs), "--accept-shortfall")
         elif args.command == "diagnose":
-            host.pipeline("diagnose", relative(args.run), relative(args.output))
+            if args.ablate_inputs:
+                raise ValueError("four-input ablations require a hybrid-chunks/v1 checkpoint")
+            extra = (
+                [json.dumps(dict(fitting=args.fitting))]
+                if any(v.split("=", 1)[0] == "--fitting" for v in argv)
+                else []
+            )
+            host.pipeline("diagnose", relative(args.run), relative(args.output), *extra)
         elif args.command == "validate":
             from oeis_learn.container_validation import validate
 

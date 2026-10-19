@@ -10,6 +10,7 @@ from .common import canonical, read, file_hash, confined
 CORE = ("run.json", "status.json", "summary.json", "checkpoint-identity.json", "comparison.json")
 OPTIONAL_CORE = (
     "input-manifest.json",
+    "final-plan.json",
     "lineage.json",
     "final-study.json",
     "analysis.json",

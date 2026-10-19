@@ -32,12 +32,43 @@ def _copy(destination, values, files=None):
 
 
 def resolve_recipe(host, args, job):
+    from foundation_local import relative
+
     output = job / "resolved.json"
-    argv = ["bigint-resolve", "--config", str(args.config), "--output", str(output)]
+    argv = ["bigint-resolve", "--config", relative(args.config), "--output", relative(output)]
     if getattr(args, "seed", None) is not None:
         argv += ["--seed", str(args.seed)]
     host.cpu(*argv, timeout=300)
     return read(output)
+
+
+def validate_options(args, recipe):
+    if getattr(args, "encoder", None) is not None:
+        raise ValueError(
+            "--encoder is a retained-profile option; use inputs.profile/mask in the bigint recipe"
+        )
+    if getattr(args, "seed", None) is not None and args.seed != recipe["model"]["seed"]:
+        raise ValueError("conflicting seed; existing run initialization is immutable")
+    mapping = {
+        "max_updates": ("learning", "max_updates"),
+        "budget_seconds": ("budgets", "training_seconds"),
+        "validation_every_updates": ("learning", "validation_every"),
+        "decoder_token_scale": ("model", "token_scale"),
+        "decoder_position_scale": ("model", "position_scale"),
+        "dropout": ("model", "dropout"),
+    }
+    explicit = getattr(args, "explicit_options", set())
+    for option, (section, key) in mapping.items():
+        flag = "--" + option.replace("_", "-")
+        value = getattr(args, option, None)
+        if flag in explicit and value != recipe[section][key]:
+            raise ValueError("conflicting explicit config/" + option)
+    if "--view" in explicit and args.view != "diverse":
+        raise ValueError("bigint learnability requires diverse32")
+    if "--diagnostic-seconds" in explicit:
+        raise ValueError(
+            "retained diagnostic_seconds is unsupported; use the registered recipe/cost preflight"
+        )
 
 
 def _foundation(recipe, workspace):
@@ -75,6 +106,21 @@ def _foundation(recipe, workspace):
 
 
 def execute(host, args, *, coordinator_factory=None):
+    import signal
+
+    previous = signal.getsignal(signal.SIGTERM)
+
+    def cancelled(_signum, _frame):
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGTERM, cancelled)
+    try:
+        return _execute(host, args, coordinator_factory=coordinator_factory)
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+
+
+def _execute(host, args, *, coordinator_factory=None):
     from foundation_local import ROOT, relative, state_path
     from foundation_host import Coordinator
     from oeis_learn.fresh.bigint_inputs import check
@@ -114,6 +160,7 @@ def execute(host, args, *, coordinator_factory=None):
                 if not args.config:
                     raise ValueError("bigint training requires --config")
                 recipe = resolve_recipe(host, args, job)
+                validate_options(args, recipe)
                 if operation == "learnability":
                     for name in ("max_updates", "budget_seconds", "view"):
                         value = getattr(args, name, None)
@@ -130,6 +177,17 @@ def execute(host, args, *, coordinator_factory=None):
                 manifest = check(inputs)
                 if manifest["config"]["data"] != recipe["data"]:
                     raise ValueError("prepared data recipe mismatch")
+                if (
+                    recipe["track"]["kind"] == "generic_only" and manifest.get("assisted_count", 0)
+                ) or (
+                    recipe["track"]["kind"] == "assisted"
+                    and (
+                        not manifest.get("assisted_count", 0)
+                        or manifest["config"]["track"]["assisted_manifest"]
+                        != recipe["track"]["assisted_manifest"]
+                    )
+                ):
+                    raise ValueError("prepared assistance track/manifest mismatch")
                 foundation, foundation_record, parent = _foundation(recipe, ROOT)
                 cost = recipe["learning"]["cost_preflight"]
                 if cost is None:
@@ -200,6 +258,7 @@ def execute(host, args, *, coordinator_factory=None):
                     and saved["image"] != image
                 ):
                     raise ValueError("run/image mismatch")
+                validate_options(args, recipe)
                 foundation, foundation_record, parent = _foundation(recipe, ROOT)
                 if args.config:
                     requested = resolve_recipe(host, args, job)
@@ -417,6 +476,8 @@ def execute(host, args, *, coordinator_factory=None):
                 (ROOT / relative(args.output))
                 if getattr(args, "output", None)
                 else destination / "analysis"
+                if operation in {"evaluate", "diagnose"}
+                else destination
             )
             if operation in {"evaluate", "diagnose"}:
                 child_analysis(
@@ -464,6 +525,11 @@ def execute(host, args, *, coordinator_factory=None):
             try:
                 final = getattr(args, "split", None) == "final"
                 if final:
+                    if (
+                        getattr(args, "fitting", "paired") == "raw"
+                        and not recipe["fitting"]["disabled"]
+                    ):
+                        raise ValueError("raw final arm requires a separately frozen raw recipe")
                     if operation != "evaluate":
                         raise ValueError("only explicit evaluate may expose final cohort")
                     if not args.final_plan:
@@ -493,6 +559,7 @@ def execute(host, args, *, coordinator_factory=None):
                         ),
                     )
                     write(analysis / "final-study.json", exposure)
+                    write(analysis / "final-plan.json", plan, immutable=True)
                     from oeis_learn.synthesis.state import BudgetLedger
 
                     final_debit = list(exposure["ledger"]["records"].values())[-1]["debit"]
@@ -541,7 +608,7 @@ def execute(host, args, *, coordinator_factory=None):
                                     compare_cache=operation == "diagnose",
                                     final_access="exposed" if final else "sealed",
                                 ),
-                                "prompts.json": rows,
+                                "prompts.json": [generation_prompt(row) for row in rows],
                             },
                             seconds,
                             checkpoint_files(),
@@ -566,6 +633,15 @@ def execute(host, args, *, coordinator_factory=None):
                             files,
                             training=operation in {"train", "learnability", "resume"},
                         )
+                        scored["generation_metrics"] = result["generation_metrics"]
+                        scored["archive"] = dict(
+                            result["archive"],
+                            role_output=str(out),
+                            manifest_sha256=__import__(
+                                "oeis_learn.fresh.common", fromlist=["file_hash"]
+                            ).file_hash(out / "archive-manifest.json"),
+                        )
+                        scored["parameter_counts"] = result["counts"]
                         summaries[f"{mask_number}:{split}"] = scored
                         byid = {r["id"]: r for r in rows}
                         observations[f"{mask_number}:{split}"] = {
@@ -596,6 +672,18 @@ def execute(host, args, *, coordinator_factory=None):
                 post_training_ablation=operation == "diagnose",
                 retraining_claim=False,
             )
+            if operation == "learnability":
+                from oeis_learn.fresh.comparison import memorization_gate
+
+                tiny = summaries["0:tiny"]
+                rescue = tiny["splits"]["rescue"]
+                summary["memorization_gate"] = memorization_gate(
+                    rescue["success"],
+                    rescue["complete"],
+                    termination_reliable=tiny["generation_metrics"]["greedy_terminated"] == 32,
+                )
+            if (destination / "lineage.json").exists():
+                summary["ancestry"] = read(destination / "lineage.json")
             target = analysis if operation in {"evaluate", "diagnose"} else destination
             write(
                 target / "comparison.json",
@@ -622,6 +710,29 @@ def execute(host, args, *, coordinator_factory=None):
                 )
             )
         except BaseException:
+            if (
+                analysis is not None
+                and operation in {"evaluate", "diagnose"}
+                and (analysis / "run.json").exists()
+            ):
+                write(
+                    analysis / "status.json",
+                    dict(
+                        status="interrupted",
+                        final_access="exposed"
+                        if (analysis / "final-study.json").exists()
+                        else "sealed",
+                    ),
+                )
+                write(
+                    analysis / "summary.json",
+                    dict(reason="interrupted; inspect role logs", roles=str(job / "roles")),
+                )
+                if not (analysis / "comparison.json").exists():
+                    write(
+                        analysis / "comparison.json",
+                        dict(status="unavailable", reason="interrupted"),
+                    )
             if run is not None and operation in {"train", "learnability", "resume"}:
                 run.finalize(
                     "interrupted",
@@ -632,6 +743,16 @@ def execute(host, args, *, coordinator_factory=None):
             if coordinator is not None:
                 coordinator.close()
             host.engine.cleanup(token)
+            if (
+                analysis is not None
+                and operation in {"evaluate", "diagnose"}
+                and (analysis / "summary.json").exists()
+            ):
+                pack(
+                    analysis,
+                    ROOT / "tmp-analysis" / (analysis.name + ".zip"),
+                    max_bytes=recipe["reporting"]["bundle_bytes"],
+                )
             if run is not None and operation in {"train", "learnability", "resume"}:
                 for name in ("checkpoint-identity.json", "comparison.json"):
                     if not (destination / name).exists():
@@ -644,3 +765,16 @@ def execute(host, args, *, coordinator_factory=None):
                     ROOT / "tmp-analysis" / (destination.name + ".zip"),
                     max_bytes=recipe["reporting"]["bundle_bytes"],
                 )
+
+
+def generation_prompt(row):
+    from oeis_learn.fresh.bigint_diagnostics import strata
+
+    return dict(
+        id=row["id"],
+        indices=row["indices"],
+        values=row["values"],
+        horizon_indices=row["horizon_indices"],
+        family=row.get("family", row["id"]),
+        strata=strata(row),
+    )
