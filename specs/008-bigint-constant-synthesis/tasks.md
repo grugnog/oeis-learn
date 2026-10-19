@@ -160,22 +160,15 @@ production activation is performed by this evidence update.
 - [X] T077 [US3] Implement bounded core summaries/priority packing in `src/oeis_learn/fresh/bundle.py`; enforce Report/BundleManifest “Core records reserved first; no final/private payload leaks into training-visible bundle”, minimum16 MiB/core reserve8 MiB/default64 MiB, bounded detail chunks and hash/size/reason omissions, rejecting a cap that cannot contain required records.
 - [X] T078 [US3] Register `bigint-cpu`, `bigint-gpu` and `bigint-retirement` in `src/oeis_learn/container_validation.py`; emit concise per-stage cause/result/stdout/stderr paths and summaries, avoid read-only pytest-cache errors, and distinguish unsupported hardware from passing actual-GPU tests.
 - [X] T079 [US3] Add integrated prepare/check/train-fixture/generate/fit/score/resume/pack tests in `tests/integration/test_bigint_workflow.py`; inject hidden mounts, contract changes, partial results, disappearing temporary files, unauthorized final access, changed-plan retries and export pressure, asserting complete state, durable final exposure/shared ledger and no hidden influence or budget refund.
-- [ ] T080 [US3] Record the bounded CPU integration gate in `specs/008-bigint-constant-synthesis/validation/phase-3.md`; require native-only routing, independent admission, isolation/resume/exports and deterministic fixture reports; route discovered semantic defects back to T058 rather than patching algorithms here.
+- [X] T080 [US3] Record the bounded CPU integration gate in `specs/008-bigint-constant-synthesis/validation/phase-3.md`; require native-only routing, independent admission, isolation/resume/exports and deterministic fixture reports; route discovered semantic defects back to T058 rather than patching algorithms here.
 
-Phase 3 code tasks T059–T079 are implemented. The local fixture/regression evidence
-is in [validation/phase-3.md](validation/phase-3.md). T080 remains pending actual
-zero-skip CPU/native integration execution in the new image. New CI is deliberately
-not monitored. Actual HIP commands are provided there; T092 remains a later gate.
-
-Phase 3 code tasks T059–T079 are implemented. The local fixture/regression evidence
-is in [validation/phase-3.md](validation/phase-3.md). T080 remains pending actual
-zero-skip CPU/native integration execution in the new image. New CI is deliberately
-not monitored. Actual HIP commands are provided there; T092 remains a later gate.
-
-Phase 3 code tasks T059–T079 are implemented. The local fixture/regression evidence
-is in [validation/phase-3.md](validation/phase-3.md). T080 remains pending actual
-zero-skip CPU/native integration execution in the new image. New CI is deliberately
-not monitored. Actual HIP commands are provided there; T092 remains a later gate.
+Phase 3 tasks T059–T080 are complete. The completed CI run39336707352 at
+`cbd2254` passed 43 integration and 163 CPU/native contract tests with zero
+failures/errors/skips, plus Rust and Docker/Podman jobs. All 295 reported source
+hashes match the checkout. See [the exit review](validation/phase-3.md#phase-3-exit-review--2026-10-19)
+and [machine-readable evidence](validation/phase-3-exit.json). The user-supplied
+integrated HIP run also passes all three tests. Phase 4 retirement and later
+qualification are separate; no new CI run is monitored by this completion update.
 
 ## Phase 4: Migration and full retirement
 

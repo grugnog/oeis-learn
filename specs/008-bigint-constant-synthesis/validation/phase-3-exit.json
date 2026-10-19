@@ -1,0 +1,250 @@
+{
+  "version": "phase3-exit-review/v1",
+  "status": "PASS",
+  "task": "T080",
+  "tested_revision": "cbd225400c1c2f7e52852fbb5c9efeeb1e80cf64",
+  "container_run": {
+    "id": 39336707352,
+    "url": "https://github.com/grugnog/oeis-learn/actions/runs/39336707352",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "foundation_review": {
+    "id": 39336707335,
+    "url": "https://github.com/grugnog/oeis-learn/actions/runs/39336707335",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "image": "sha256:dd29f59d63138f146b41fd2b3a432622013a44c7c516f7f2145a004a796d2082",
+  "cpu_native_contracts": {
+    "tests": 163,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "phase3_integration": {
+    "tests": 43,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "source_match": {
+    "reported_files": 295,
+    "matched_files": 295,
+    "mismatches": [],
+    "manifest_sha256": "sha256:59af9b336728465693a065c6e0ffa0971ee5da588954dfcb770eb5417f3b43b4",
+    "source_revision_field": null,
+    "revision_binding": "GitHub artifact metadata binds this run to tested_revision; every reported source hash also matches that checkout."
+  },
+  "native_build_sha256": "sha256:f6ee6e3d7923e49c30ea7125d90faabfbf702f3b32b0bda1bbf9faef064d0e07",
+  "native_runtime_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+  "locks": {
+    "oeis_bigint_runtime": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+    "oeis_synthesis_core": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+    "oeis_wasm_evaluator": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49"
+  },
+  "rust_tests": {
+    "core_passed": 13,
+    "retained_passed": 13,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "portable_engines": {
+    "docker": {
+      "role_and_lifecycle_tests": 29,
+      "public_cli_tests": 3,
+      "status": "PASS",
+      "receipt_hashes_verified": true,
+      "verified_repeat": true
+    },
+    "podman": {
+      "role_and_lifecycle_tests": 29,
+      "public_cli_tests": 3,
+      "status": "PASS",
+      "receipt_hashes_verified": true,
+      "verified_repeat": true
+    }
+  },
+  "artifacts": [
+    {
+      "id": 12226919399,
+      "name": "bigint-preparation-contracts",
+      "archive_sha256": "sha256:2be4e640a69fd34ccd2607169e9682bc651a81c0fc165cf2a261786e7ac69885",
+      "xml_reports": [
+        {
+          "path": "phase3.xml",
+          "sha256": "sha256:1d39a6614e6306eb8a7e825f57bd0a04d7b42452c04f3cf46c84034d831c6146",
+          "counts": {
+            "tests": 43,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        },
+        {
+          "path": "tests.xml",
+          "sha256": "sha256:bcd1e61676c1e9881834849bc640e9fb1655a6db251c7cbe3b65969ddf311f3a",
+          "counts": {
+            "tests": 163,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        }
+      ],
+      "files": {
+        "bigint-build.json": "sha256:f6ee6e3d7923e49c30ea7125d90faabfbf702f3b32b0bda1bbf9faef064d0e07",
+        "phase3.xml": "sha256:1d39a6614e6306eb8a7e825f57bd0a04d7b42452c04f3cf46c84034d831c6146",
+        "summary.json": "sha256:a1689c45b1b1f1cb5a64de62959e59e8a9a0da9c34943552dc1776b06cb64b22",
+        "tests.xml": "sha256:bcd1e61676c1e9881834849bc640e9fb1655a6db251c7cbe3b65969ddf311f3a"
+      }
+    },
+    {
+      "id": 12227705049,
+      "name": "bigint-preparation-native",
+      "archive_sha256": "sha256:33adb213c9bf44e58ea326f5e11596433ad5e128c3c063da7f15cb01568cbb6f",
+      "xml_reports": [],
+      "files": {
+        "bigint-build.json": "sha256:f6ee6e3d7923e49c30ea7125d90faabfbf702f3b32b0bda1bbf9faef064d0e07",
+        "core-tests.txt": "sha256:6e5b4168eeef4928e8abf24df00a07692ef31582745c56b3713fb04740d82f5b",
+        "retained-tests.txt": "sha256:0b571117802629d43ea3195313cc65f8e35864f4ac09564122df2fcfa2e70722"
+      }
+    },
+    {
+      "id": 12227686694,
+      "name": "portable-docker",
+      "archive_sha256": "sha256:e6d025c5497a97ca63e9fadd300c4d2e86d98d01bc251a9af19e2a183674266d",
+      "xml_reports": [
+        {
+          "path": "docker.xml",
+          "sha256": "sha256:ce4b28152a13f10e255127613f0d4e37fd639f0467abba52f2f06ace9bf723e3",
+          "counts": {
+            "tests": 29,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/results.xml",
+          "sha256": "sha256:8fdb108b6a154371551fa7c778ba477eeba8c1389f29104dfe817a4ab01e5aab",
+          "counts": {
+            "tests": 1107,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 9
+          },
+          "skipped_tests": [
+            "test_installed_train_resume_search",
+            "test_installed_discover_and_fresh_certificate",
+            "test_gpu_checkpoint_loading_and_prefix_only_generation",
+            "test_legacy_train",
+            "test_legacy_resume",
+            "test_legacy_warmstart",
+            "test_legacy_evaluate",
+            "test_actual_container_role_views_and_reclamation",
+            "test_complete_effective_constructors_and_real_forward_backward[cuda]"
+          ]
+        },
+        {
+          "path": "public-cli.xml",
+          "sha256": "sha256:2eba1e288cee79a8944e1fede8f674feb84847d5038c8746becc9d666d13496a",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        }
+      ],
+      "files": {
+        "docker.xml": "sha256:ce4b28152a13f10e255127613f0d4e37fd639f0467abba52f2f06ace9bf723e3",
+        "public-cli/initial.stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/initial.stdout.log": "sha256:47deac911698000b62975e9d2ec5c1fd83476f6dc361dc04980890b099cf5e89",
+        "public-cli/repeat.stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/repeat.stdout.log": "sha256:e41e5e4e3f1daff5371a6098cce2eaba8a6d3b1a8fc28f7b5d2d066fab6b1317",
+        "public-cli/validation/cpu-regressions/receipt.json": "sha256:aa3650d5916f47a094f79abf0153c480edeaa8aa6b1109c493cbe5a7742e15ad",
+        "public-cli/validation/cpu-regressions/results.xml": "sha256:8fdb108b6a154371551fa7c778ba477eeba8c1389f29104dfe817a4ab01e5aab",
+        "public-cli/validation/cpu-regressions/stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/validation/cpu-regressions/stdout.log": "sha256:fb8776387960a0c5eaaab728ddaa7318440e5e5031e53b141935cb2eca714bc2",
+        "public-cli/validation/environment/receipt.json": "sha256:5886c03edde41510582e7b4cf8f19cf426d8728659ad9211235f2da9666ed07a",
+        "public-cli/validation/environment/stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/validation/environment/stdout.log": "sha256:43b5fbc5e1c2bee7a18589ab27d4d60469d74652f9a7a272ef03c53c57b607fa",
+        "public-cli/validation/validation.json": "sha256:50b28e8e84dc6d06fc4c9e2db76aee4fda0ba252f573b61c7b719d1f5a319619",
+        "public-cli.xml": "sha256:2eba1e288cee79a8944e1fede8f674feb84847d5038c8746becc9d666d13496a"
+      }
+    },
+    {
+      "id": 12228166122,
+      "name": "portable-podman",
+      "archive_sha256": "sha256:1ebf6ee0ffed35c1be9bf54b3505aaa79c8213890c16936d7f14d6c3016a0d83",
+      "xml_reports": [
+        {
+          "path": "podman.xml",
+          "sha256": "sha256:2de8079034b9b98c3fd9fedf4b3c347253e7fb171f9a455b3a23c9f27d4f4750",
+          "counts": {
+            "tests": 29,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/results.xml",
+          "sha256": "sha256:e6746e00ed39932dfd22082bd5f7d43ba277ca358a75d4d823e91af0eede8fcb",
+          "counts": {
+            "tests": 1107,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 9
+          },
+          "skipped_tests": [
+            "test_installed_train_resume_search",
+            "test_installed_discover_and_fresh_certificate",
+            "test_gpu_checkpoint_loading_and_prefix_only_generation",
+            "test_legacy_train",
+            "test_legacy_resume",
+            "test_legacy_warmstart",
+            "test_legacy_evaluate",
+            "test_actual_container_role_views_and_reclamation",
+            "test_complete_effective_constructors_and_real_forward_backward[cuda]"
+          ]
+        },
+        {
+          "path": "public-cli.xml",
+          "sha256": "sha256:9199d3112677296c8c776863a8341ad1c0a5e65b3e8fdabb044d8b1eb6cbc689",
+          "counts": {
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "skipped_tests": []
+        }
+      ],
+      "files": {
+        "podman.xml": "sha256:2de8079034b9b98c3fd9fedf4b3c347253e7fb171f9a455b3a23c9f27d4f4750",
+        "public-cli/initial.stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/initial.stdout.log": "sha256:47deac911698000b62975e9d2ec5c1fd83476f6dc361dc04980890b099cf5e89",
+        "public-cli/repeat.stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/repeat.stdout.log": "sha256:e41e5e4e3f1daff5371a6098cce2eaba8a6d3b1a8fc28f7b5d2d066fab6b1317",
+        "public-cli/validation/cpu-regressions/receipt.json": "sha256:865f1ed3e34c8787f3efbed7ffa11192f5516e58c5455e64ee56463156e99401",
+        "public-cli/validation/cpu-regressions/results.xml": "sha256:e6746e00ed39932dfd22082bd5f7d43ba277ca358a75d4d823e91af0eede8fcb",
+        "public-cli/validation/cpu-regressions/stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/validation/cpu-regressions/stdout.log": "sha256:4f97073cb6947af0761ff286936ef46678667362b33cb35b0c81f3e5cda3a376",
+        "public-cli/validation/environment/receipt.json": "sha256:dc17324f05722b7ab3d2f88c04d2c37b51d44e71a15ac5ffa4570cce5a3683af",
+        "public-cli/validation/environment/stderr.log": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "public-cli/validation/environment/stdout.log": "sha256:43b5fbc5e1c2bee7a18589ab27d4d60469d74652f9a7a272ef03c53c57b607fa",
+        "public-cli/validation/validation.json": "sha256:223f507a24a3a583fb10561304e4cdc024cb22e4ca75871870c5b3242a564f27",
+        "public-cli.xml": "sha256:9199d3112677296c8c776863a8341ad1c0a5e65b3e8fdabb044d8b1eb6cbc689"
+      }
+    }
+  ],
+  "scope": "T080 closes Phase3 only. Broad retained-profile public CPU runs have 1107 tests each and 9 explicit installed/legacy/GPU/container skips; the required Phase3 and bigint CPU/native contract reports have zero skips. Phase4 retirement and Phase5 qualification are separate. Existing user HIP evidence is retained in phase-3-hip/review.json; no stronger source-binding claim is added."
+}

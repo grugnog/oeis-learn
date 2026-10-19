@@ -1,8 +1,10 @@
 # Phase 3 integration evidence (T059–T080)
 
-Code tasks T059–T079 are implemented. **T080 remains pending** the actual
-CPU/native integration run in the new image with zero failures/errors/skips.
-The PR CI includes that run; it is deliberately left running without monitoring.
+**Phase 3 tasks T059–T080 are complete.** The completed CPU/native CI run passes
+43 Phase 3 integration tests and 163 bigint contract tests without failures,
+errors or skips. See the [exit review](#phase-3-exit-review--2026-10-19) and
+[machine-readable evidence](phase-3-exit.json). Earlier pending notes below
+describe the evidence available at those earlier commits.
 The user-supplied integrated HIP rerun passes all three selected tests; see the
 [reviewed evidence](phase-3-hip/review.json) and result below. No research screen,
 retirement audit, merge, final-cohort evaluation or promotion was executed.
@@ -111,7 +113,7 @@ sealed. No final plan was authorized by this implementation run.
 
 ## Remaining gates
 
-T080 closes only after new-image CPU/native execution passes without skips.
+T080 is closed by the completed new-image CPU/native run reviewed below.
 T092 has passing integrated HIP evidence below, but remains a later qualification
 gate after Phase 4 retirement and source/image binding review. T081–T088 remain
 Phase 4; `bigint-retirement` reports BLOCKED.
@@ -215,3 +217,36 @@ This evidence confirms the integrated HIP rerun passes; it does not replace
 T080's CPU/native gate or T088's installed retirement audit. T092 remains
 unchecked for its later phase and source/image binding review. No new CI run
 is monitored as part of this evidence update.
+
+## Phase 3 exit review — 2026-10-19
+
+**T080 PASS; all 22 Phase 3 tasks are complete.** Completed
+[container/native run39336707352](https://github.com/grugnog/oeis-learn/actions/runs/39336707352)
+and [foundation review39336707335](https://github.com/grugnog/oeis-learn/actions/runs/39336707335)
+both pass at PR head `cbd225400c1c2f7e52852fbb5c9efeeb1e80cf64`.
+The artifact ZIP hashes match GitHub's reported digests. All 295 source hashes
+reported by the CPU/native helper match that checkout; GitHub artifact metadata
+also binds the run to that exact revision. The image reported by both portable
+engine runs is
+`sha256:dd29f59d63138f146b41fd2b3a432622013a44c7c516f7f2145a004a796d2082`.
+The full reviewed counts, report hashes, native/lock identities, artifact IDs and
+scope are retained in [phase-3-exit.json](phase-3-exit.json).
+
+| Required boundary | Reviewed evidence |
+| --- | --- |
+| CPU/native algorithms and bindings | 163 tests; zero failures/errors/skips, including the nine device-binding regressions. |
+| Phase 3 integration | 43 tests; zero failures/errors/skips, including the real packaged native fit/execute worker, full matched preparation, independently admitted selection/private scoring, CPU parameter update and exact resume, hidden-mount rejection, final-exposure/debit persistence and bounded private-free exports. |
+| Locked native and retained Rust | 13 core and 13 retained tests pass; no failures, ignored or filtered cases. |
+| Docker and Podman portability | Each passes 29 role/lifecycle tests and three public CLI tests; all these cases execute without skips. Public validation receipt contents and file hashes verify; repeat runs reuse only verified successful receipts. Podman build and installed native/G7 jobs also pass. |
+| Actual HIP integration | User-supplied run above: three tests pass without skips, including integrated checkpoint/resume; original source-binding limitation is unchanged. |
+
+The broader retained-profile public CPU regression report has 1107 tests and
+nine explicit installed/legacy/GPU/container skips on each engine; this is not
+described as a zero-skip run. The dedicated required bigint and Phase 3 reports
+above execute every selected test. No new algorithm defect remains from the
+reviewed integration failures. No code changes or further hardware run are
+required to close T080.
+
+This completion update changes documentation/evidence only. It does not perform
+Phase 4 retirement, Phase 5 qualification, merge or research runs. CI triggered
+by the documentation commit is left unmonitored as requested.
