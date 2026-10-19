@@ -1,5 +1,13 @@
 # Phase 2 US1 checkpoint (T011–T025)
 
+**Current acceptance (2026-10-19): T025 complete.** The current PR's packaged
+154-test CPU/native suite passed with zero failures/errors/skips; locked native
+tests and both actual-HIP tests passed. See [the full exit review](phase-2.md)
+and [GPU evidence](gpu.md). The earlier milestones and pending-gate statements
+below describe their historical source revisions and are superseded by this
+acceptance.
+
+
 Status: **historical US1 checkpoint; current review is [phase-2.md](phase-2.md)**.
 The following original checkpoint and CI repairs are retained as historical evidence.
 The merged PR #54 native checks passed; PR #55 now implements the common bounded

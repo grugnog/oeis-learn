@@ -1,5 +1,10 @@
 # Phase 2 completion audit
 
+**Current status (2026-10-19): Phase 2 complete, 48/48 tasks checked.** The current
+CPU/native CI and user-supplied HIP evidence are recorded in [phase-2.md](phase-2.md)
+and [gpu.md](gpu.md). Earlier audit milestones below are historical.
+
+
 Continuation from merged PR #54, main `ce93c70dd595a1941b9a0ccec10f2e015216d677`.
 The specification, plan, research, data model, all five contracts, algorithm
 handoff, quickstart, tasks, constitution and implement skill were read. The

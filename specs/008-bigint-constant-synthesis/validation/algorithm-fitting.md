@@ -1,5 +1,13 @@
 # Native fitting implementation and pending gate (T026–T036)
 
+**Current acceptance (2026-10-19): T036 complete.** The current PR's packaged
+154-test CPU/native suite passed with zero failures/errors/skips; locked native
+tests and both actual-HIP tests passed. See [the full exit review](phase-2.md)
+and [GPU evidence](gpu.md). The earlier milestones and pending-gate statements
+below describe their historical source revisions and are superseded by this
+acceptance.
+
+
 All fitting/admission/service-policy implementation is present. Counterexamples
 were written first, initially failing Python collection on missing modules.
 Native Rust fixtures cover exact elimination, integer feasibility, semantic

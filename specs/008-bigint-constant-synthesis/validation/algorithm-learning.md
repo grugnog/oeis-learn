@@ -1,8 +1,10 @@
 # Phase 2 data, model and policy evidence (T037–T057)
 
-Status: CPU algorithm suites pass. This is implementation qualification, not a
-training result or evidence of transfer improvement. Native fitter execution and
-actual HIP are separate pending gates. Production remains disabled.
+Status: **CPU/native and actual-HIP algorithm suites pass**. The current
+154-test contract suite has zero failures/errors/skips; the native job and both
+HIP tests passed. See [the exit review](phase-2.md) and [GPU evidence](gpu.md).
+The following local runs are historical milestones; they do not replace the
+current image/device evidence. Production remains disabled.
 
 ## Reproduction and recorded results
 
@@ -110,10 +112,11 @@ The temporary helper does not expose Phase 3 public CLI suites or launch recipes
   verification, proof evidence and novelty review remain distinct; historical
   unreplayed evidence never executes retired solvers.
 
-## Pending acceptance
+## Acceptance follow-up (2026-10-19)
 
-T025/T036/T058 require the new native driver/core tests and independent admission
-results. The prior merged image's success is recorded separately. Actual HIP
-checks remain pending; return the helper's summary, XML, logs and weight-update
-record after running it on ROCm. Any semantic failure reopens the corresponding
-Phase 2 implementation task. No new PR checks were monitored or awaited.
+T025/T036/T058 are complete following the current packaged core-driver,
+locked native and independent-admission results. Actual HIP placement, finite
+large-input update, parameter-decoder position growth and correct/shuffled/absent
+logit/generated-token cache parity passed in the user's reports. All 283 source
+hashes reported by that run match the qualified checkout. Any future semantic
+failure reopens its Phase 2 task. New evidence-commit CI is not monitored.

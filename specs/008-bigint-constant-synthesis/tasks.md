@@ -54,7 +54,7 @@
 - [X] T022 [US1] Implement finite large-integer feature math in `src/oeis_learn/encoder/large_integer_features.py` and adapt `magnitude_stream.py`, `difference_stream.py` and `modulo_stream.py` by explicit profile; use bit lengths/leading bits for logs, exact residues/differences, frozen odd primes, valuation cap32 and defined zero handling without changing historical defaults.
 - [X] T023 [US1] Implement `hybrid-chunks/v1` in `src/oeis_learn/encoder/integer_chunks.py` and `hybrid.py`; follow the shared eight-byte/d64/four-head/ff256 chunk encoder contract, distinct pooled value/difference signs and lengths, masked mean pooling, growing device-correct sinusoidal buffers and d256 learned byte-gate fusion.
 - [X] T024 [US1] Qualify parameter-aware teacher forcing, masks, termination and cached/uncached decoding in `src/oeis_learn/decoder/sampler.py`, `wat_decoder.py` and `inference_cache.py`; add regression cases in `tests/integration/test_bigint_decoding.py` for new and retained profiles, fixed prompt fixtures, device movement and EOS/token alignment without weakening determinism; production conditioning-control parity is completed at T052 after those policies exist.
-- [ ] T025 [US1] Execute the US1 CPU/native differential suites through the T017 qualification-only core driver (no dependency on T061/T062) and record the runtime/encoder checkpoint in `specs/008-bigint-constant-synthesis/validation/algorithm-runtime.md`; explicitly list any pending actual-HIP checks, ensuring all semantic discrepancies are resolved before dependent integration is declared qualified.
+- [X] T025 [US1] Execute the US1 CPU/native differential suites through the T017 qualification-only core driver (no dependency on T061/T062) and record the runtime/encoder checkpoint in `specs/008-bigint-constant-synthesis/validation/algorithm-runtime.md`; explicitly list any pending actual-HIP checks, ensuring all semantic discrepancies are resolved before dependent integration is declared qualified.
 
 ### US2 — Semantic parameters and exact native fitting (P1)
 
@@ -70,7 +70,7 @@
 - [X] T033 [US2] Implement final-source substitution and production visible checks in `crates/oeis_synthesis_core/src/substitute.rs`; check every actual visible index, enforce substituted-source/AST/literal limits, retain at most eight provisional assignments and never return public verification or UNSAT from a failed assignment; extend the T017 core test driver with fit mode so T034/T036 run before production transport.
 - [X] T034 [US2] Implement independent final admission in `src/oeis_learn/synthesis/admission.py`; enforce VisiblePrompt “Strict ordering and explicit missing-index rules; no hidden continuation field in fitter schema”, FitRequest/Result “Provisional native results cannot be admitted; bounds/coverage/phase required for failures” and VerificationRecord “Every visible term checked for admission; full horizon checked for continuation scoring; disagreement is a defect”.
 - [X] T035 [US2] Implement scoped evidence derivation/replay and identity-aware cache policy in `crates/oeis_synthesis_core/src/evidence.rs` and `src/oeis_learn/synthesis/evidence.py`; re-derive constraints from recorded source/profile/prompt, classify incomplete bounds/ambiguity, invalidate cross-profile/reference cache entries and keep timeout/unknown distinct from permanent UNSAT; extend the core test driver with scoped replay and implement deterministic bounded-cache reservation/eviction policies in `crates/oeis_synthesis_core/src/cache.rs` and `src/oeis_learn/synthesis/service_policy.py`, using the aggregate role caps/oversize bypass rules in `contracts/solver.md`.
-- [ ] T036 [US2] Run affine/SMT/admission counterexamples and differential properties through the T017/T033/T035 core test driver plus independent Python admission (no production worker/client dependency), recording results in `specs/008-bigint-constant-synthesis/validation/algorithm-fitting.md`; require exact final-source verification, no Python trial callbacks and scoped replay with no proof-of-sequence claim.
+- [X] T036 [US2] Run affine/SMT/admission counterexamples and differential properties through the T017/T033/T035 core test driver plus independent Python admission (no production worker/client dependency), recording results in `specs/008-bigint-constant-synthesis/validation/algorithm-fitting.md`; require exact final-source verification, no Python trial callbacks and scoped replay with no proof-of-sequence claim.
 
 ### US3 — Contract, admission and budget state semantics (P1)
 
@@ -107,17 +107,19 @@
 - [X] T055 [US5] Implement monotone assisted ancestry and overlap admission policy in `src/oeis_learn/fresh/provenance.py`; enforce AssistedManifest “Explicitly reviewed before use; no strict recipient; known exposed final data cannot become a fresh held-out test”, shared generic foundation lineage/cost and explicit historical-checkpoint migration approval.
 - [X] T056 [US5] Implement structural/cost alternative retention in `src/oeis_learn/fresh/candidate_archive.py`; cap eight verified alternatives per target, preserve non-dominated structure/cost representatives with deterministic ties and omissions, enforce CandidateArchiveRecord “Retain alternatives within frozen policy; omission decisions logged; finite match never implies novelty/proof”, and separate training representative choice from archive deletion.
 - [X] T057 [US5] Implement independent discovery-status validation in `src/oeis_learn/synthesis/discovery_status.py`; keep finite match, conjecture, bounded verification, proved statement and novelty review separate with evidence references, and preserve historical unreplayed status without executing retired solvers.
-- [ ] T058 Record the complete Phase 2 exit review in `specs/008-bigint-constant-synthesis/validation/phase-2.md` against every row of `algorithm-phase.md`; freeze qualified APIs/profiles and all counterexample results, identify unresolved actual-GPU gates, and block later qualification if any semantic decision remains deferred.
+- [X] T058 Record the complete Phase 2 exit review in `specs/008-bigint-constant-synthesis/validation/phase-2.md` against every row of `algorithm-phase.md`; freeze qualified APIs/profiles and all counterexample results, identify unresolved actual-GPU gates, and block later qualification if any semantic decision remains deferred.
 
 **Checkpoint**: All mathematical/compiler/model/policy algorithms are implemented and CPU/native qualified. Actual HIP evidence may remain explicitly pending until Phase 5; a HIP-discovered algorithm defect reopens this phase. Later phases may persist and route these APIs, not invent new semantics.
 
-**PR #55 completion audit**: 45/48 Phase 2 tasks are implemented and checked.
-T025 and T036 remain execution gates for the new common core driver/native fitter;
-T058 remains the combined CPU/native exit gate. See [the exit review](validation/phase-2.md)
-for evidence, fixed policy identities and the actual-HIP handoff. The reviewed
-merged PR #54 native evidence is historical and does not qualify the new native
-code. All unblocked algorithm work requested for this continuation is present;
-Phase 3 remains closed until those native results are reviewed.
+**PR #55 completion audit (2026-10-19)**: all 48 Phase 2 tasks are checked.
+The completed run39239102389 passed the 154-test CPU/native contract suite with
+zero failures/errors/skips, locked native tests and all container/engine jobs;
+run39239102311 passed foundation review. The user-supplied HIP run passed both
+actual-device tests, and all 283 reported source hashes match the tested PR
+checkout. See [the complete exit review](validation/phase-2.md) and
+[HIP evidence](validation/gpu.md). T025/T036/T058 are closed. Phase 3 may use these
+qualified algorithms when separately requested; no later-phase work or
+production activation is performed by this evidence update.
 
 ## Phase 3: Production integration and artifacts
 
@@ -181,6 +183,8 @@ Phase 3 remains closed until those native results are reviewed.
 - [ ] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
 - [ ] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
 - [ ] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
+  Early hardware evidence is recorded in [validation/gpu.md](validation/gpu.md).
+  T092 remains open for the future integrated CLI/image after Phase 3/4.
 - [ ] T093 [US2] Evaluate identified existing matched-run checkpoints through the retained-profile raw/exact paired diagnostic before parameterized training; record hashes, same-candidate rescue, unsupported fraction, continuation and fitting/reference cost in `specs/008-bigint-constant-synthesis/validation/checkpoint-rescue.md`; missing weights require an explicit evidence blocker, not substitution with canonical programs.
 - [ ] T094 [US1] Add and run the measurement-only harness `scripts/benchmark_bigint.py` for shared supported old/new small values and legal64/256/512/1024/4096-bit supplied values; construct up-to16,384-bit intermediate operands/results through supported operations from legal inputs, distinguish expected-overflow timings and identify any separately pinned wider-input benchmark-only profile; separate compile/execute/solve/reference/generation/training time, cold/warm batch behavior and resource coverage, recording results in `specs/008-bigint-constant-synthesis/validation/performance.md`; investigate >5x median small-value slowdown without weakening semantics.
 - [ ] T095 [US4] Prepare/check the frozen paired dataset and run complete-screen cost preflight using non-scoring fixtures via `scripts/foundation_run.py`; record complete512/128/128 counts, diverse32 composition, exclusions and projected p95 cost≤80% of budget in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`; preregister any resource/recipe revision before training.

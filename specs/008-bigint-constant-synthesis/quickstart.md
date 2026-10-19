@@ -35,7 +35,7 @@ Each directory contains `host.json` (image/runtime identity), `summary.json`,
 hashes. The helper requires zero failed or skipped tests; CPU fallback is a
 failure for `--gpu`. Share those reports/logs after the commands finish. Native
 Rust unit tests also run in the PR's separate native CI job; this helper is not
-a replacement for that gate. The helper itself has not been run on HIP here.
+a replacement for that gate. The user has run this helper successfully on HIP; see [the recorded result](validation/gpu.md).
 
 ## Prerequisites
 
