@@ -1,0 +1,100 @@
+{
+  "version": "phase3-hip-evidence-review/v1",
+  "provenance": "User-supplied validation attachments, reviewed 2026-10-19; original bytes preserved.",
+  "suite": "bigint-gpu",
+  "image": "sha256:41b763236ca5f5131ef8b8f07118f79fc4a22d6efbf5f55ec058fdcdfbcbd570",
+  "status": "PASS",
+  "counts": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tests": [
+    "test_actual_hip_large_input_update",
+    "test_actual_hip_parameter_decoder_cache_and_position_growth",
+    "test_integrated_device_checkpoint_update[cuda]"
+  ],
+  "environment": {
+    "torch": "2.9.1+rocm7.2.1.gitff65f5bc",
+    "hip": "7.2.53211-e1a6bc5663",
+    "native_worker": true,
+    "devices": [
+      "_CudaDeviceProperties(name='AMD Radeon Graphics', major=11, minor=5, gcnArchName='gfx1151', total_memory=114688MB, multi_processor_count=20, uuid=58580000-0000-0000-0000-000000000000, pci_bus_id=102, pci_device_id=0, pci_domain_id=0, L2_cache_size=2MB)"
+    ]
+  },
+  "encoder_update": {
+    "device": "AMD Radeon Graphics",
+    "hip": "7.2.53211-e1a6bc5663",
+    "before_sha256": "04ac22511ca4fdf0933acf47e22815db10e75e30f073d05678bdf058d473693d",
+    "after_sha256": "b34b74335d63ea86ac605f82ecde948414f9ff38e73369983d3d1f0064c550b1",
+    "widths": [
+      256,
+      512,
+      1024,
+      4096
+    ],
+    "difference_bits": 4097,
+    "finite": true,
+    "updated": true
+  },
+  "reviewed_pr_head": "1fec53f1f55bd8f0a2fde480db1efb8d2e31450c",
+  "tested_source_revision": null,
+  "source_binding": "Image digest and opaque stage identities are supplied. No source manifest or Git revision was uploaded, so equality with the reviewed PR head is not independently asserted.",
+  "receipt_equality_verified": true,
+  "verified_receipt_files": [
+    "environment/stdout.log",
+    "bigint-gpu-regressions/gpu/encoder-update.json",
+    "bigint-gpu-regressions/results.xml",
+    "bigint-gpu-regressions/stdout.log"
+  ],
+  "unsubmitted_receipt_files": [
+    {
+      "path": "environment/stderr.log",
+      "reported_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "bigint-gpu-regressions/stderr.log",
+      "reported_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "submitted_files": [
+    {
+      "submitted_name": "validation.json",
+      "preserved_path": "validation.json",
+      "sha256": "sha256:abf4e92d7d56cc346e191375b3d7a6753a82fa56a3d47fe9c45e55727846f78e"
+    },
+    {
+      "submitted_name": "Copy of receipt.json",
+      "preserved_path": "environment/receipt.json",
+      "sha256": "sha256:6b0e0b914ae32eaaea64f77baf43d58bf8f449048b6ddeadf1dc40ddeb7826a3"
+    },
+    {
+      "submitted_name": "Copy of stdout.log",
+      "preserved_path": "environment/stdout.log",
+      "sha256": "sha256:8a8b3f9d9a58a64db86223be5057bb18e15384f2e428b0f9a078d222974d5aea"
+    },
+    {
+      "submitted_name": "receipt.json",
+      "preserved_path": "bigint-gpu-regressions/receipt.json",
+      "sha256": "sha256:88ea1c04a2ed940831b1d308d65a61e339047ce0fe1dfc09e804daad8f6155a4"
+    },
+    {
+      "submitted_name": "stdout.log",
+      "preserved_path": "bigint-gpu-regressions/stdout.log",
+      "sha256": "sha256:6ba8d754d9b1597e5b70e4364ab18d598b31e4050532e93e352014d5c714237c"
+    },
+    {
+      "submitted_name": "results.xml",
+      "preserved_path": "bigint-gpu-regressions/results.xml",
+      "sha256": "sha256:d1448220f778eb78deec87d397949089304ee889f939bef0f690a8f0127db671"
+    },
+    {
+      "submitted_name": "encoder-update.json",
+      "preserved_path": "bigint-gpu-regressions/gpu/encoder-update.json",
+      "sha256": "sha256:061ae5edf946f2fc4a667bc852729daaea9de9293f6fe1d3e9cfa6616001ce1d"
+    }
+  ],
+  "qualified": false,
+  "qualification_scope": "Passing bounded integrated HIP fixtures; not full Phase5 or release qualification. T080 CPU/native gate and T088 retirement prerequisites remain pending."
+}

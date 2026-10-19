@@ -51,7 +51,20 @@ This evidence completes the actual-HIP portion of the Phase 2 algorithm review.
 Together with the completed CPU/native CI run, it closes T025/T036/T058. All
 48 Phase 2 tasks are checked. Public production routing remains disabled.
 
-T092 stays unchecked because it belongs to Phase 5's integrated
-`validate --suite bigint-gpu` path, which depends on Phase 3/4 integration and
-retirement. The hardware checks already have this early evidence; the future
-CLI and effective integrated image must still be qualified at that task.
+## Phase 3 integrated rerun — 2026-10-19
+
+The user subsequently supplied a passing production CLI
+`validate --suite bigint-gpu` run: **3 passed, zero failures/errors/skips**,
+including the full checkpoint/update/resume fixture on HIP. See the
+[Phase 3 review](phase-3.md#integrated-hip-rerun--2026-10-19) and
+[preserved artifacts and hash verification](phase-3-hip/review.json).
+The run reports image
+`sha256:41b763236ca5f5131ef8b8f07118f79fc4a22d6efbf5f55ec058fdcdfbcbd570`,
+AMD Radeon Graphics (`gfx1151`), and the same PyTorch/HIP versions above.
+This submission has no source manifest or Git revision; it is not given the
+independent source-match claim established for the earlier Phase 2 evidence.
+
+T092 stays unchecked because Phase 5 depends on Phase 4 retirement. Its
+integrated hardware fixtures now have passing early evidence; qualification
+must review that evidence against the eventual source/image and completed
+prerequisites. The wrapper's `qualified: false` does not negate the PASS result.

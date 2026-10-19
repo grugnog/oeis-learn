@@ -15,6 +15,9 @@ from .bootstrap_views import MIXTURE, behavior, training_mixture
 def check_inputs(root):
     root = Path(root)
     manifest = read(root / "prepared.json")
+    if manifest["version"] == "bigint-inputs/v1":
+        from .bigint_inputs import check
+        return check(root)
     if manifest["version"] != "fresh-inputs/v1" or manifest["identity"] != digest(
         {k: v for k, v in manifest.items() if k != "identity"}
     ):
@@ -84,6 +87,9 @@ def check_inputs(root):
 
 
 def prepare(config, cache, output, *, backend="rust"):
+    if config.get("version") == "bigint-bootstrap/v1":
+        from .bigint_inputs import prepare as prepare_bigint
+        return prepare_bigint(config, cache, output)
     import yaml
 
     from oeis_learn.data.sampler_factory import load_sampler_config

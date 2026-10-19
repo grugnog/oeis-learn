@@ -29,10 +29,24 @@ def diagnose(inputs, output):
     )
     encoder.load_state_dict(state["encoder"])
     decoder.load_state_dict(state["decoder"])
+    import time
+
+    deadline = time.monotonic() + learning["diagnostic_seconds"]
+    if settings.get("native_fitting"):
+        learning = dict(learning, diagnostic_seconds=learning["diagnostic_seconds"] // 2)
     result = evaluate(
-        encoder, decoder, examples, learning, QueueRunner(output / "runtime-queue"),
-        full_development=True, compare_generation=True, detail=True,
+        encoder,
+        decoder,
+        examples,
+        learning,
+        QueueRunner(output / "runtime-queue"),
+        full_development=True,
+        compare_generation=True,
+        detail=True,
     )
+    if settings.get("native_fitting"):
+        result["native_fitting"] = retained_fits(result, examples, settings, output, deadline)
+        result["analysis_sha256"] = settings["analysis_sha256"]
     result["checkpoint_sha256"] = base["blob_sha256"]
     result["source_runtime_sha256"] = settings["source_runtime"]
     result["diagnostic_runtime"] = runtime(settings["device"])
@@ -54,3 +68,106 @@ def diagnose(inputs, output):
     result["identity"] = digest({k: v for k, v in result.items() if k != "identity"})
     write(output / "diagnostic.json", result)
     return result
+
+
+def retained_fits(report, examples, settings, output, deadline):
+    """Fit each original greedy candidate without changing its numerical profile."""
+    import time
+    from .search import native_variants
+    from .diagnostics import execute_values
+    from oeis_learn.decoder.program_codec import decode_body
+    from oeis_learn.tracking.role_coordinator import QueueRunner
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.reference import evaluate_retained
+    from oeis_learn.synthesis.admission import source_identity
+
+    mode = settings["native_fitting"]
+    records = {}
+    unsupported = 0
+    denominator = 0
+    verified = 0
+    rescued = 0
+    seconds = 0.0
+    runner = QueueRunner(Path(output) / "runtime-queue")
+    with SynthesisClient(
+        settings["source_contract"], cache_root=Path(output) / "native-cache"
+    ) as client:
+        for split, summary in report["splits"].items():
+            byid = {r["program_id"]: r for r in examples[split]}
+            for candidate in summary["attempts"]:
+                denominator += 1
+                key = split + ":" + candidate["program_id"]
+                row = byid[candidate["program_id"]]
+                source = candidate.get("source")
+                start = time.monotonic()
+                record = dict(
+                    raw=bool(candidate["matched"]),
+                    same_candidate_source=source,
+                    exact=False,
+                    full_continuation100=False,
+                    outcome="incomplete",
+                )
+                records[key] = record
+                if mode == "raw" or not source or not candidate["complete"] or start >= deadline:
+                    continue
+                result = native_variants(
+                    source, row["values"], client, deadline=min(deadline, start + 4)
+                )
+                seconds += time.monotonic() - start
+                record["outcome"] = result["outcome"]
+                record["fit"] = result
+                unsupported += result["outcome"] == "unsupported"
+                if not result["admitted"]:
+                    continue
+                from .synthesis_policy import select_visible
+
+                chosen = select_visible(
+                    [
+                        dict(
+                            source=r["source"],
+                            source_sha256=r["source_sha256"],
+                            verified=True,
+                            visible_count=20,
+                            cost=seconds,
+                        )
+                        for r in result["admitted"]
+                    ]
+                )
+                record["selected"] = chosen
+                record["exact"] = True
+                verified += 1
+                oracle, failure = execute_values(
+                    runner,
+                    decode_body(row["tokens"]),
+                    range(100),
+                    digest([key, "retained-oracle"]),
+                    int(deadline * 1e9),
+                )
+                if failure or time.monotonic() >= deadline:
+                    continue
+                indices = list(map(str, range(100)))
+                production = client.execute(
+                    chosen["source"], indices, profile="wat_i256_checked_v1", deadline=deadline
+                )
+                independent = evaluate_retained(
+                    chosen["source"], indices, client.limits, deadline=deadline
+                )
+                if production.get("outcome") == "ok" and independent.outcome == "ok":
+                    if production["values"] != list(independent.values):
+                        raise RuntimeError("retained production/reference disagreement")
+                    record["full_continuation100"] = production["values"] == oracle
+                    record["selected_source_sha256"] = source_identity(chosen["source"])
+                    rescued += record["full_continuation100"] and not record["raw"]
+    return dict(
+        mode=mode,
+        profile="wat_i256_checked_v1",
+        denominator=denominator,
+        unsupported=unsupported,
+        unsupported_fraction=unsupported / denominator if denominator else None,
+        visible_fit20=verified,
+        same_candidate_rescue100=rescued,
+        fit_and_reference_seconds=seconds,
+        records=records,
+        scope="finite100-index match; no proof/novelty claim",
+        parent_mutated=False,
+    )

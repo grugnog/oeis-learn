@@ -75,7 +75,7 @@ def construct_bootstrap_models(profile, *, device="cpu"):
 
 
 def construct_bigint_models(*, mask=None, ablation_mode="post_training", device="cpu"):
-    """Frozen Phase 2 algorithm recipe; production config routing is Phase 3."""
+    """Frozen Phase 2 algorithm recipe; bigint_worker binds resolved profiles."""
     import torch
     from oeis_learn.encoder.hybrid import ChunkHybridEncoder
     from oeis_learn.decoder import bigint_codec as codec

@@ -8,8 +8,6 @@ import hashlib
 import json
 from importlib.resources import files
 
-from jsonschema import Draft202012Validator, validators
-
 MAX_FRAME_BYTES = 4 * 1024 * 1024
 SCHEMA = json.loads(files(__package__).joinpath("records.schema.json").read_text())
 RECORD_KINDS = tuple(kind for kind in SCHEMA["$defs"] if kind != "Request")
@@ -20,16 +18,18 @@ class ContractError(ValueError):
     """A malformed or unsupported shape cannot enter the disabled service."""
 
 
-# JSON numbers such as 1.0 and booleans are not bounded integer metadata.
-StrictValidator = validators.extend(
-    Draft202012Validator,
-    type_checker=Draft202012Validator.TYPE_CHECKER.redefine(
-        "integer", lambda checker, value: type(value) is int
-    ),
-)
-
-
 def _validate(kind, value):
+    # Shape validation is image-side; host identity/state operations stay stdlib-only.
+    from jsonschema import Draft202012Validator, validators
+
+    # JSON numbers such as 1.0 and booleans are not bounded integer metadata.
+    StrictValidator = validators.extend(
+        Draft202012Validator,
+        type_checker=Draft202012Validator.TYPE_CHECKER.redefine(
+            "integer", lambda checker, value: type(value) is int
+        ),
+    )
+
     if kind not in SCHEMA["$defs"]:
         raise ContractError("unknown record kind")
     try:

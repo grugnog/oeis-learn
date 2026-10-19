@@ -1,4 +1,4 @@
-//! One bounded test request, never a production worker or public admission path.
+//! One-request core routing shared by qualification and framed transport; no public admission.
 use crate::{evidence::{self,Evidence},fit,runtime::BigintRuntime,value::{digest,Resources},ExecutionBackend};
 use serde::Deserialize;
 use serde_json::json;
@@ -13,6 +13,12 @@ struct Envelope {
 }
 pub fn run(retained:&mut dyn ExecutionBackend)->Result<(),String>{
     let mut raw=Vec::new();io::stdin().take(4*1024*1024+1).read_to_end(&mut raw).map_err(|e|e.to_string())?;
+    let output=dispatch(&raw,retained)?;
+    println!("{}",serde_json::to_string(&output).map_err(|e|e.to_string())?);
+    Ok(())
+}
+/// Shared core routing; callers own framing, aggregate deadlines and admission.
+pub fn dispatch(raw:&[u8],retained:&mut dyn ExecutionBackend)->Result<serde_json::Value,String>{
     if raw.len()>4*1024*1024{return Err("frame_limit".into());}
     let envelope:Envelope=serde_json::from_slice(&raw).map_err(|e|e.to_string())?;
     envelope.request.validate_qualification()?;
@@ -50,5 +56,5 @@ pub fn run(retained:&mut dyn ExecutionBackend)->Result<(),String>{
         "replay_unsat"=>{match evidence::replay(source,indices,values,&envelope.limits,envelope.evidence.as_ref().ok_or("missing_evidence")?,deadline){Ok(outcome)=>json!({"outcome":outcome}),Err(reason)=>json!({"outcome":if reason=="verification_failure"{"verification_failure"}else{"resource_exhausted"},"reason":reason})}},
         _=>return Err("unknown_operation".into()),
     }};
-    let encoded=serde_json::to_string(&output).map_err(|e|e.to_string())?;if encoded.len()>4*1024*1024{return Err("response_limit".into());}println!("{encoded}");Ok(())
+    let encoded=serde_json::to_string(&output).map_err(|e|e.to_string())?;if encoded.len()>4*1024*1024{return Err("response_limit".into());}Ok(output)
 }

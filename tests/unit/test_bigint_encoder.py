@@ -61,6 +61,47 @@ def test_full_hybrid_finite_update_and_frozen_feature_constants():
     assert all(p.grad is None or torch.isfinite(p.grad).all() for p in encoder.parameters())
 
 
+@pytest.mark.parametrize(
+    "actual,requested,current,accepted",
+    [
+        ("cuda:0", "cuda", 0, True),
+        ("cuda:1", "cuda", 1, True),
+        ("cuda:0", "cuda:0", 1, True),
+        ("cuda:0", None, 1, True),
+        ("cuda:0", "cuda", 1, False),
+        ("cuda:0", "cuda:1", 0, False),
+        ("cuda:0", "cpu", 0, False),
+        ("cpu", "cpu", 0, True),
+        ("cpu", "cuda", 0, False),
+    ],
+)
+def test_chunk_hybrid_device_binding(monkeypatch, actual, requested, current, accepted):
+    from types import SimpleNamespace
+    from oeis_learn.encoder.hybrid import ChunkHybridEncoder
+    from oeis_learn.encoder import integer_chunks
+
+    # Exercise the real forward entry guard without allocating an accelerator
+    # tensor. Stop at encoding and verify its device is the model's concrete one.
+    model = SimpleNamespace(parameters=lambda: iter([SimpleNamespace(device=torch.device(actual))]))
+    monkeypatch.setattr(torch.cuda, "current_device", lambda: current)
+
+    class ReachedEncoding(Exception):
+        pass
+
+    def encode(sequences, *, device):
+        assert accepted
+        assert device == torch.device(actual)
+        raise ReachedEncoding
+
+    monkeypatch.setattr(integer_chunks, "encode_chunks", encode)
+    if accepted:
+        with pytest.raises(ReachedEncoding):
+            ChunkHybridEncoder.forward_from_sequences(model, [[1]], device=requested)
+    else:
+        with pytest.raises(ValueError, match="explicit device differs from model device"):
+            ChunkHybridEncoder.forward_from_sequences(model, [[1]], device=requested)
+
+
 def test_old_width_mathematical_feature_tolerance():
     from oeis_learn.encoder.magnitude_stream import compute_signed_log_scalar
     from oeis_learn.encoder.difference_stream import compute_sequence_differences_and_padic

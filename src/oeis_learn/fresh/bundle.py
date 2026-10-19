@@ -34,11 +34,19 @@ REPORT_NAMES = {
 }
 
 
-def pack(root, output, *, checkpoint=False, max_bytes=25 << 20):
+def pack(root, output, *, checkpoint=False, max_bytes=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     if root == output or root in output.parents:
         raise ValueError("bundle destination must be outside the run")
     run = read(root / "run.json")
+    if run.get("version") == "bigint-run/v1":
+        from .bigint_bundle import pack as pack_bigint
+        result = pack_bigint(root, output, max_bytes=(64 << 20) if max_bytes is None else max_bytes)
+        if checkpoint:
+            from .bigint_bundle import export_checkpoint
+            result["checkpoint"] = export_checkpoint(root, output.with_suffix(".checkpoint.zip"))
+        return result
+    max_bytes = (25 << 20) if max_bytes is None else max_bytes
     status = read(root / "status.json")
     # Enumerate report locations only. Private role input views and truth are
     # excluded even if a caller accidentally points this at the host job root.

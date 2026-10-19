@@ -58,7 +58,7 @@ def _stages(host, suite, output):
             for p in sorted((root / parent).rglob("*.py"))
         }
     )
-    gpu = suite == "gpu"
+    gpu = suite in {"gpu", "bigint-gpu"}
     if gpu:
         host.select_gpu()
     stages = [
@@ -106,6 +106,61 @@ def _stages(host, suite, output):
                 ],
             )
         )
+    if suite.startswith("bigint-"):
+        bigint_cpu = [
+            str(p.relative_to(ROOT))
+            for area in ("unit", "contract", "integration")
+            for p in sorted((ROOT / "tests" / area).glob("test_bigint*.py"))
+            if p.name != "test_bigint_gpu.py"
+        ]
+        bigint_cpu += [
+            "tests/contract/test_native_fitting.py",
+            "tests/integration/test_synthesis_worker.py",
+            "tests/unit/test_synthesis_service_limits.py",
+            "tests/unit/test_synthesis_state.py",
+            "tests/unit/test_synthesis_provenance.py",
+            "tests/unit/test_synthesis_archive.py",
+            "tests/unit/test_hybrid_ablation.py",
+        ]
+        nodes = (
+            [
+                "tests/integration/test_bigint_gpu.py",
+                "tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]",
+            ]
+            if gpu
+            else sorted(set(bigint_cpu))
+        )
+        stages = [
+            (
+                "environment",
+                [
+                    "python",
+                    "-c",
+                    "import pathlib,torch; assert pathlib.Path('/opt/oeis-build-info/synthesis-worker').is_file(); "
+                    + (
+                        "assert torch.version.hip and torch.cuda.is_available(), 'actual HIP required; unsupported hardware is not passing evidence'; "
+                        if gpu
+                        else ""
+                    )
+                    + "print({'torch':torch.__version__,'hip':torch.version.hip,'native_worker':True,'devices':[str(torch.cuda.get_device_properties(i)) for i in range(torch.cuda.device_count())]})",
+                ],
+            ),
+            (
+                suite + "-regressions",
+                [
+                    "python",
+                    "-m",
+                    "pytest",
+                    "-q",
+                    *nodes,
+                    *([] if gpu else ["-m", "not gpu"]),
+                    "-p",
+                    "no:cacheprovider",
+                    "--basetemp=/tmp/bigint-pytest",
+                    "--junitxml=/work/output/results.xml",
+                ],
+            ),
+        ]
     results = {}
     for name, argv in stages:
         out = output / name
@@ -159,6 +214,14 @@ def _stages(host, suite, output):
                 "PYTHONPATH": "/opt/oeis-build/src",
                 "OMP_NUM_THREADS": str(host.policy["cpus"]),
                 "OEIS_TEST_OUTPUT": "/work/output/gpu",
+                **(
+                    {
+                        "OEIS_REQUIRE_BIGINT_BUILD": "1",
+                        "OEIS_REQUIRE_BIGINT_GPU": "1" if gpu else "0",
+                    }
+                    if suite.startswith("bigint-")
+                    else {}
+                ),
             },
         )
         # A new launch must produce new evidence, never consume stale JUnit.
@@ -211,7 +274,7 @@ def _stages(host, suite, output):
                     "tests": len(cases),
                     "skipped": sum(c.find("skipped") is not None for c in cases),
                 }
-                if not cases or (gpu and counts["skipped"]):
+                if not cases or ((gpu or suite.startswith("bigint-")) and counts["skipped"]):
                     raise RuntimeError(
                         "GPU validation requires actual execution of every selected test"
                     )
@@ -237,7 +300,15 @@ def _stages(host, suite, output):
         except BaseException as exc:
             write(
                 receipt,
-                {"status": "FAIL", "identity": identity, "error": str(exc), "qualified": False},
+                {
+                    "status": "FAIL",
+                    "identity": identity,
+                    "cause": str(exc),
+                    "result_path": str(receipt),
+                    "stdout": str(out / "stdout.log"),
+                    "stderr": str(out / "stderr.log"),
+                    "qualified": False,
+                },
             )
             raise RuntimeError(
                 f"{name} failed; inspect {out / 'stderr.log'} and {out / 'stdout.log'}"
@@ -252,10 +323,38 @@ def validate(host, suite, output):
     with lock(output / "validation.lock"):
         (output / "validation.json").unlink(missing_ok=True)
         # Do not overlap regression kernels with training in this workspace.
-        with host.gpu_lock() if suite == "gpu" else nullcontext():
+        if suite == "bigint-retirement":
+            write(
+                output / "validation.json",
+                dict(
+                    status="BLOCKED",
+                    suite=suite,
+                    cause="installed solver retirement audit belongs to Phase4 (T081–T088); no passing evidence claimed",
+                    qualified=False,
+                ),
+            )
+            raise RuntimeError(
+                "bigint-retirement is blocked until the Phase4 installed-distribution audit"
+            )
+        with host.gpu_lock() if suite in {"gpu", "bigint-gpu"} else nullcontext():
             host.engine.cleanup(token)
             try:
                 image, results = _stages(host, suite, output)
+            except BaseException as exc:
+                write(
+                    output / "validation.json",
+                    dict(
+                        status="FAIL",
+                        suite=suite,
+                        cause=str(exc),
+                        stages={
+                            str(p.relative_to(output)): read(p)
+                            for p in output.glob("*/receipt.json")
+                        },
+                        qualified=False,
+                    ),
+                )
+                raise
             finally:
                 host.engine.cleanup(token)
         if suite == "gpu":

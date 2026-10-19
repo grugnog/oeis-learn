@@ -71,7 +71,7 @@ def test_failure_never_records_success(host, tmp_path, problem):
             validate(host, "cpu", tmp_path / "validation")
     receipts = list((tmp_path / "validation").glob("*/receipt.json"))
     assert receipts and any(read(receipt)["status"] == "FAIL" for receipt in receipts)
-    assert not (tmp_path / "validation/validation.json").exists()
+    assert read(tmp_path / "validation/validation.json")["status"] == "FAIL"
 
 
 def test_gpu_skips_fail_and_do_not_run_containment(host, tmp_path):
@@ -99,5 +99,5 @@ def test_failed_rerun_removes_old_summary_and_corrupt_receipt_is_not_a_pass(host
     (output / "cpu-regressions/receipt.json").write_text("truncated")
     with launch(host, missing=True), pytest.raises(RuntimeError):
         validate(host, "cpu", output)
-    assert not (output / "validation.json").exists()
+    assert read(output / "validation.json")["status"] == "FAIL"
     assert read(output / "cpu-regressions/receipt.json")["status"] == "FAIL"

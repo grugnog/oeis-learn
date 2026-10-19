@@ -312,10 +312,14 @@ def parser():
             choices=["tri_stream", "hybrid", "integer_bytes"],
             help="explicit matched-encoder comparison on the same admitted input bytes",
         )
+        if op in {"train", "learnability"}:
+            cmd.add_argument("--config", help="image-resolved bigint-bootstrap/v1 recipe")
+            if op == "train":
+                cmd.add_argument("--seed", type=int)
         if op == "train":
             cmd.add_argument(
                 "--profile",
-                choices=["fresh-pilot-1h", "fresh-extended-12h"],
+                choices=["fresh-pilot-1h", "fresh-extended-12h", "bigint-bootstrap"],
                 default="fresh-pilot-1h",
             )
         if op == "learnability":
@@ -328,14 +332,28 @@ def parser():
                     default=default,
                     **({"choices": ["shortest", "diverse"]} if key == "view" else {}),
                 )
-            cmd.add_argument("--decoder-token-scale", type=float, help="opt-in v2 multiplier of the existing sqrt(d_model) token scale")
-            cmd.add_argument("--decoder-position-scale", type=float, help="opt-in v2 sinusoidal positional gain")
+            cmd.add_argument(
+                "--decoder-token-scale",
+                type=float,
+                help="opt-in v2 multiplier of the existing sqrt(d_model) token scale",
+            )
+            cmd.add_argument(
+                "--decoder-position-scale", type=float, help="opt-in v2 sinusoidal positional gain"
+            )
             cmd.add_argument("--dropout", type=float, help="opt-in v2 encoder and decoder dropout")
-            cmd.add_argument("--seed", type=int, help="matched model/sampler seed; admitted data is unchanged")
+            cmd.add_argument(
+                "--seed", type=int, help="matched model/sampler seed; admitted data is unchanged"
+            )
     for op in ("resume", "status", "cancel", "evaluate", "finalize", "pack"):
         cmd = commands.add_parser(op)
         cmd.add_argument("--run", required=True)
+        if op in {"resume", "evaluate"}:
+            cmd.add_argument("--config")
+            cmd.add_argument("--seed", type=int)
         if op == "evaluate":
+            cmd.add_argument("--fitting", choices=["raw", "exact", "paired"], default="paired")
+            cmd.add_argument("--output")
+            cmd.add_argument("--final-plan")
             cmd.add_argument("--split", choices=["development", "final"], default="development")
         if op == "pack":
             cmd.add_argument("--output", required=True)
@@ -343,14 +361,27 @@ def parser():
     diagnostic = commands.add_parser("diagnose")
     diagnostic.add_argument("--run", required=True)
     diagnostic.add_argument("--output", required=True)
+    diagnostic.add_argument("--config")
+    diagnostic.add_argument("--seed", type=int)
+    diagnostic.add_argument("--fitting", choices=["raw", "exact", "paired"], default="paired")
+    diagnostic.add_argument("--ablate-inputs", choices=["all"])
+    compare = commands.add_parser("compare")
+    compare.add_argument("--runs", nargs="+", required=True)
+    compare.add_argument("--output", required=True)
     validation = commands.add_parser("validate")
-    validation.add_argument("--suite", choices=["cpu", "gpu"], default="gpu")
+    validation.add_argument(
+        "--suite",
+        choices=["cpu", "gpu", "bigint-cpu", "bigint-gpu", "bigint-retirement"],
+        default="gpu",
+    )
     validation.add_argument("--output", default="tmp-validation")
     return p
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
         if args.command == "pack":
             pack_run(args.run, args.output, checkpoint=args.checkpoint)
@@ -360,18 +391,87 @@ def main(argv=None):
             return 0
         if args.free_disk_gib < 1 or not args.host_free_memory_gib > 0:
             raise ValueError("disk and host memory reserves must be positive")
+        bigint = (
+            args.command == "compare"
+            or getattr(args, "profile", None) == "bigint-bootstrap"
+            or args.command == "learnability"
+            and args.config is not None
+        )
+        if getattr(args, "run", None) and (ROOT / relative(args.run) / "run.json").exists():
+            bigint |= read(ROOT / relative(args.run) / "run.json").get("version") == "bigint-run/v1"
+        if bigint and args.command == "status":
+            print(json.dumps(read(ROOT / relative(args.run) / "status.json"), indent=2))
+            return 0
+        if bigint and args.command in {
+            "train",
+            "learnability",
+            "resume",
+            "evaluate",
+            "diagnose",
+            "compare",
+        }:
+            if args.command == "learnability":
+                for key in ("max_updates", "budget_seconds", "view"):
+                    if "--" + key.replace("_", "-") not in [v.split("=", 1)[0] for v in argv]:
+                        setattr(args, key, None)
+            from foundation_bigint import execute
+
+            execute(Host(args), args)
+            return 0
+        if bigint and args.command == "finalize":
+            raise ValueError(
+                "bigint runs finalize automatically with final cohort sealed; use evaluate --split final --final-plan PATH for a registered study"
+            )
         if args.command in {"status", "cancel"}:
             Host.control(args.command, relative(args.run))
             return 0
+        if args.command == "train" and args.config and args.profile != "bigint-bootstrap":
+            raise ValueError("--config for new training requires --profile bigint-bootstrap")
+        if args.command == "resume" and (args.config or args.seed is not None):
+            raise ValueError(
+                "retained resume cannot adopt new settings; use diagnose --fitting paired --output PATH"
+            )
+        if args.command == "evaluate" and args.final_plan:
+            raise ValueError("final-evaluation/v1 authorization requires a bigint run")
+        if args.command == "evaluate" and (
+            args.output or args.config or "--fitting" in args.explicit_options
+        ):
+            if args.split != "development" or args.config or not args.output:
+                raise ValueError(
+                    "retained raw/exact/paired analysis requires development --output PATH and the original checkpoint configuration"
+                )
+            Host(args).pipeline(
+                "diagnose",
+                relative(args.run),
+                relative(args.output),
+                json.dumps(dict(fitting=args.fitting)),
+            )
+            return 0
+        if args.command == "diagnose" and args.config:
+            raise ValueError(
+                "retained diagnostics preserve their original numerical configuration; use a bigint run for new profiles"
+            )
         learnability_options = None
         if args.command == "learnability":
             from oeis_learn.fresh.learnability import controls, experiment_controls
 
             options = {key: getattr(args, key) for key in controls()}
-            if any(v is not None for v in (args.decoder_token_scale, args.decoder_position_scale, args.dropout, args.seed)):
+            if any(
+                v is not None
+                for v in (
+                    args.decoder_token_scale,
+                    args.decoder_position_scale,
+                    args.dropout,
+                    args.seed,
+                )
+            ):
                 options["experiment"] = experiment_controls(
-                    token_scale=args.decoder_token_scale if args.decoder_token_scale is not None else 1.0,
-                    position_scale=args.decoder_position_scale if args.decoder_position_scale is not None else 1.0,
+                    token_scale=args.decoder_token_scale
+                    if args.decoder_token_scale is not None
+                    else 1.0,
+                    position_scale=args.decoder_position_scale
+                    if args.decoder_position_scale is not None
+                    else 1.0,
                     dropout=args.dropout if args.dropout is not None else 0.1,
                     seed=args.seed,
                 )
@@ -392,7 +492,14 @@ def main(argv=None):
         elif args.command == "seal-inputs":
             host.cpu("seal-inputs", "--inputs", relative(args.inputs), "--accept-shortfall")
         elif args.command == "diagnose":
-            host.pipeline("diagnose", relative(args.run), relative(args.output))
+            if args.ablate_inputs:
+                raise ValueError("four-input ablations require a hybrid-chunks/v1 checkpoint")
+            extra = (
+                [json.dumps(dict(fitting=args.fitting))]
+                if any(v.split("=", 1)[0] == "--fitting" for v in argv)
+                else []
+            )
+            host.pipeline("diagnose", relative(args.run), relative(args.output), *extra)
         elif args.command == "validate":
             from oeis_learn.container_validation import validate
 
@@ -401,7 +508,9 @@ def main(argv=None):
             inputs = relative(args.inputs)
             host.cpu("check", "--inputs", inputs, "--inputs-only", timeout=1800)
             if args.command == "check":
-                host.pipeline("check")
+                prepared = read(ROOT / inputs / "prepared.json")
+                if prepared.get("version") != "bigint-inputs/v1":
+                    host.pipeline("check")
             else:
                 run = relative(args.run)
                 extra = [args.encoder] if args.encoder else []

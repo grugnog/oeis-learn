@@ -15,6 +15,8 @@ mkdir -p /opt/oeis-build-info
 cargo build --release --locked --no-default-features --example synthesis_core_test_driver
 cp /opt/oeis-native-target/release/examples/synthesis_core_test_driver \
   /opt/oeis-build-info/synthesis-core-test-driver
+cargo build --release --locked --no-default-features --bin synthesis_worker
+cp /opt/oeis-native-target/release/synthesis_worker /opt/oeis-build-info/synthesis-worker
 cp Cargo.lock /opt/oeis-build-info/Cargo.lock
 cp ../oeis_bigint_runtime/Cargo.lock /opt/oeis-build-info/guest.Cargo.lock
 cp ../oeis_synthesis_core/Cargo.lock /opt/oeis-build-info/core.Cargo.lock

@@ -66,3 +66,23 @@ def bootstrap_profile(encoder, *, decoder_inputs=None):
         )
     profile["identity_sha256"] = digest(profile)
     return profile
+
+
+def bigint_profile(recipe):
+    """Standard-library profile binding shared by orchestration and model roles."""
+    from copy import deepcopy
+
+    if recipe.get("version") != "bigint-bootstrap/v1" or tuple(
+        recipe["execution"][k] for k in ("language", "codec", "runtime")
+    ) != ("bigint-body/v1", "bigint-codec/v1", "bigint-wasm/v1"):
+        raise ValueError("explicit bigint language/codec/runtime profile required")
+    if recipe["inputs"]["profile"] not in {"hybrid-chunks/v1", "tri-stream/v1"}:
+        raise ValueError("unsupported bigint input profile")
+    profile = dict(
+        version="bigint-model/v1",
+        architecture=deepcopy(recipe["model"]),
+        features=deepcopy(recipe["inputs"]),
+        execution=deepcopy(recipe["execution"]),
+    )
+    profile["identity_sha256"] = digest(profile)
+    return profile

@@ -54,6 +54,7 @@ REQUIRED_CHECKS = (*SUITES, "rust_tests", "native_parity")
 
 def implementation_identity():
     from oeis_learn.experiments.source_snapshot import qualification_identity
+
     return qualification_identity("G7")
 
 
@@ -87,13 +88,41 @@ def _artifact(root, entry):
 
 
 def _rust_results(path):
-    results = re.findall(
-        r"test result: ok\. (\d+) passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;",
-        path.read_text(),
+    """Require owning targets by name, allowing additional passing Cargo targets."""
+    text = path.read_text()
+    headers = list(
+        re.finditer(
+            r"^[ \t]*(?:Running (?P<target>.+?) \([^\n]+\)|Doc-tests (?P<doc>\S+))[ \t]*$",
+            text,
+            re.MULTILINE,
+        )
     )
-    if len(results) != 3 or sum(map(int, results)) < 11 or int(results[1]) < 2:
+    success = re.compile(
+        r"^test result: ok\. (\d+) passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;[^\n]*$",
+        re.MULTILINE,
+    )
+    counts = {}
+    for index, header in enumerate(headers):
+        target = header["target"] or "Doc-tests " + header["doc"]
+        body = text[
+            header.end() : headers[index + 1].start() if index + 1 < len(headers) else len(text)
+        ]
+        results = success.findall(body)
+        if target in counts or len(results) != 1:
+            raise ValueError(
+                "Rust target failed, skipped, duplicated or missing execution evidence"
+            )
+        counts[target] = int(results[0])
+    # Reject summaries outside a target, and failed/ignored/filtered summaries.
+    if len(re.findall(r"^test result:", text, re.MULTILINE)) != len(headers) or len(
+        success.findall(text)
+    ) != len(headers):
+        raise ValueError("Rust target summary evidence incomplete or unsuccessful")
+    required = {"unittests src/lib.rs", "tests/phase7.rs", "Doc-tests oeis_wasm_evaluator"}
+    owning = sum(counts.get(target, 0) for target in required)
+    if not required <= counts.keys() or owning < 11 or counts["tests/phase7.rs"] < 2:
         raise ValueError("Rust unit/phase7/doc-test execution evidence incomplete")
-    return sum(map(int, results))
+    return sum(counts.values())
 
 
 def require_g7(report, *, evidence_root=None):

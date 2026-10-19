@@ -1,0 +1,15 @@
+{
+  "device": "AMD Radeon Graphics",
+  "hip": "7.2.53211-e1a6bc5663",
+  "before_sha256": "04ac22511ca4fdf0933acf47e22815db10e75e30f073d05678bdf058d473693d",
+  "after_sha256": "b34b74335d63ea86ac605f82ecde948414f9ff38e73369983d3d1f0064c550b1",
+  "widths": [
+    256,
+    512,
+    1024,
+    4096
+  ],
+  "difference_bits": 4097,
+  "finite": true,
+  "updated": true
+}

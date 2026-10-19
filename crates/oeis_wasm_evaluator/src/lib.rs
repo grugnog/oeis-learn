@@ -497,3 +497,8 @@ mod logical_tests {
         assert_eq!(runtime.call("next", None, 1000).unwrap().0.unwrap()[0], 6);
     }
 }
+
+/// Framed native service. Core algorithms have no dependency on this binding.
+pub fn serve_synthesis() -> Result<(), String> {
+    oeis_synthesis_core::transport::serve(&mut synthesis_adapter::CheckedSigned256::default())
+}
