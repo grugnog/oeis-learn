@@ -38,3 +38,23 @@ execute successfully. Docker/Podman and Rust are unavailable locally, and new PR
 CI is deliberately not monitored. The qualification utility rejects all skips
 inside the image. A passing run establishes only the recorded finite/resource
 scope; it is never proof of an integer sequence or mathematical novelty.
+
+## CI compilation repair after the completion audit
+
+The completed [container run 39184890109](https://github.com/grugnog/oeis-learn/actions/runs/39184890109)
+on `0687b37b1492205977246e3091a63e0bd654497b` failed while compiling the core
+library. Rust reported E0282 at `symbolic.rs`: the collection type in the affine
+operator match was ambiguous when indexed inside the subsequent limit-check
+closure. The local binding is now explicitly `Option<Vec<IBig>>`, matching the
+existing `Big.affine` field and `Builder::node` argument. Arithmetic, guards,
+resource limits and solver policy are unchanged.
+
+Native formatting and the pinned dependency-cache build passed in that run;
+the downstream acceptance jobs were skipped because the image build failed.
+The companion foundation-review run39184890078 passed. This repair has been
+checked against the compiler diagnostic and with `git diff --check`; compilation
+cannot be repeated locally because the workspace has neither the pinned Rust
+container toolchain nor Docker/Podman. Existing Rust fitting fixtures exercise
+the affected operator paths when CI rebuilds. T025/T036/T058 remain open, and the
+replacement CI run is deliberately not monitored or awaited. Earlier local
+source hashes remain historical snapshots, not qualification of this repair.

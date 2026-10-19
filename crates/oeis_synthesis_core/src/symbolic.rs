@@ -33,7 +33,7 @@ impl Builder<'_> {
                 let xs=args.iter().map(|a|self.expression(a)).collect::<Result<Vec<_>,_>>()?;
                 match (op.as_str(),xs.as_slice()) {
                     ("add"|"sub"|"mul",[Value::Big(a),Value::Big(b)])=>{
-                        let affine=match (&a.affine,&b.affine) {
+                        let affine: Option<Vec<IBig>>=match (&a.affine,&b.affine) {
                             (Some(x),Some(y))=>match op.as_str() {
                                 "add"=>Some(x.iter().zip(y).map(|(a,b)|a+b).collect()),
                                 "sub"=>Some(x.iter().zip(y).map(|(a,b)|a-b).collect()),
