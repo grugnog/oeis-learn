@@ -1,4 +1,4 @@
-//! One bounded test request, never a production worker or public admission path.
+//! One-request core routing shared by qualification and framed transport; no public admission.
 use crate::{evidence::{self,Evidence},fit,runtime::BigintRuntime,value::{digest,Resources},ExecutionBackend};
 use serde::Deserialize;
 use serde_json::json;

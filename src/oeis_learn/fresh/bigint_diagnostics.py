@@ -16,6 +16,15 @@ def _raw(client, source, prompt, deadline):
     production = client.execute(source, prompt.indices, deadline=deadline)
     if production.get("outcome") != "ok":
         return None
+    reference = reference_evaluate(
+        source, prompt.indices, client.limits, deadline=min(deadline, time.monotonic() + 2)
+    )
+    if reference.outcome != "ok":
+        return None
+    if list(reference.values) != production["values"]:
+        raise RuntimeError("raw production/reference disagreement; reopen Phase2 qualification")
+    if list(reference.values) != list(prompt.values):
+        return None
     record = dict(
         outcome="assignment_found",
         source=source,
@@ -439,9 +448,5 @@ def strata(row):
             )
             if length <= upper
         ),
-        complexity="loop"
-        if "(repeat " in source
-        else "branch"
-        if "(if " in source
-        else "expression",
+        complexity="loop" if "(loop " in source else "branch" if "(if " in source else "expression",
     )

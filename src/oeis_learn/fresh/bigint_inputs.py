@@ -108,6 +108,11 @@ def publish(
     }
     write(root / "private/synthetic-truth.json", truths, immutable=True)
     cohort_refs = {}
+    all_groups = overlap_groups(
+        [r for rows in splits.values() for r in rows]
+        + [r for rows in cohorts.values() for r in rows]
+        + (assistance or [])
+    )
     for split, rows in cohorts.items():
         truth = {r["id"]: dict(indices=r["indices"], values=r["values"]) for r in rows}
         write(root / f"private/oeis-{split}.json", truth, immutable=True)
@@ -124,7 +129,11 @@ def publish(
             ],
             immutable=True,
         )
-        cohort_refs[split] = dict(identity=identity(truth), count=len(rows))
+        cohort_refs[split] = dict(
+            identity=identity(truth),
+            count=len(rows),
+            groups=sorted({all_groups[r["id"]] for r in rows}),
+        )
     write(
         root / "split-manifest.json",
         {k: v for k, v in selected.items() if k != "splits"},
@@ -212,6 +221,8 @@ def check(root):
                 for key in ("runtime_sha256", "reference_sha256", "resource_sha256"):
                     require_hash(record[key])
     for split, cohort in manifest["cohorts"].items():
+        if cohort["count"] != manifest["config"]["data"]["oeis_" + split]:
+            raise ValueError("frozen full OEIS cohort count required")
         private = read(root / f"private/oeis-{split}.json")
         prompts = read(root / f"private/oeis-{split}-prompts.json")
         if (

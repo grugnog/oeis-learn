@@ -30,6 +30,9 @@ def models(recipe, device):
     torch.set_float32_matmul_precision("highest")
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
+    from .bootstrap_contract import bigint_profile
+
+    profile = bigint_profile(recipe)
     from oeis_learn.experiments.bootstrap_models import construct_bigint_models
     from oeis_learn.encoder.ablation import InputMask
 
@@ -63,6 +66,7 @@ def models(recipe, device):
         device=str(next(encoder.parameters()).device),
         input_sha256=identity(recipe["inputs"]),
         decoder_sha256=decoder.codec_sha256,
+        profile=profile,
     )
     return encoder, decoder, counts
 
@@ -324,7 +328,7 @@ def train(inputs, output):
                     order["completed"] % recipe["learning"]["validation_every"] == 0
                     or order["completed"] == recipe["learning"]["max_updates"]
                 ):
-                    from .bigint_diagnostics import generate
+                    from .diagnostics import evaluate_bigint as generate
 
                     loss = validation_loss(
                         encoder,
@@ -367,7 +371,10 @@ def train(inputs, output):
                             selection["evaluations"], panel_sha256=visible["panel_sha256"]
                         )
                     )
-                    if recipe["learning"]["curriculum"]:
+                    if (
+                        recipe["learning"]["curriculum"]
+                        and order["completed"] % recipe["learning"]["validation_every"] == 0
+                    ):
                         stage = "ABCD"[curriculum.stage]
                         current = [r for r in panel if r.get("stage") == stage]
                         current_ids = tuple(r["id"] for r in current)
@@ -441,11 +448,18 @@ def _load_models(inputs, settings):
         if not hasattr(encoder, "group_mask"):
             raise ValueError("four-group attribution requires hybrid-chunks")
         encoder.group_mask = InputMask(**settings["ablation"])
+        counts = dict(
+            counts,
+            **encoder.ablation_report(),
+            analysis_mask=settings["ablation"],
+            post_training=True,
+            retraining_claim=False,
+        )
     return encoder, decoder, counts
 
 
 def generate(inputs, output):
-    from .bigint_diagnostics import generate as synthesize
+    from .diagnostics import evaluate_bigint as synthesize
 
     inputs, output = Path(inputs), Path(output)
     settings = read(inputs / "settings.json")
@@ -508,10 +522,26 @@ def generate(inputs, output):
     )
     for row in rows:
         record = result["records"][row["id"]]
-        body = {mode: value["archive"] for mode, value in record["details"].items()}
+        from .candidate_archive import retain_alternatives
+
+        merged = {}
+        for value in record["details"].values():
+            for alternative in value["archive"]["retained"]:
+                if (
+                    alternative["id"] not in merged
+                    or alternative["cost"] < merged[alternative["id"]]["cost"]
+                ):
+                    merged[alternative["id"]] = alternative
+        body = retain_alternatives(list(merged.values()))
+        body["portfolio_omissions"] = {
+            mode: value["archive"]["omitted"] for mode, value in record["details"].items()
+        }
         payload = canonical(body)
         name = f"archive/{identity(row['id'])[7:]}.json"
-        if archive_bytes + len(payload) <= settings["recipe"]["archive"]["max_bytes"]:
+        if archive_bytes + len(payload) <= min(
+            settings.get("archive_remaining", settings["recipe"]["archive"]["max_bytes"]),
+            settings["recipe"]["archive"]["max_bytes"],
+        ):
             write(output / name, payload)
             archive_bytes += len(payload)
         else:
@@ -531,7 +561,7 @@ def generate(inputs, output):
                 for attempt in value["details"]
             )
             aggregate["ambiguous"] += sum(
-                attempt.get("native", {}).get("uniqueness") == "multiple"
+                (attempt.get("native") or {}).get("uniqueness") == "multiple"
                 for attempt in value["details"]
             )
             if value["cache_parity"] is not None:
@@ -552,8 +582,14 @@ def generate(inputs, output):
         name = f"details/{identity(row['id'])[7:]}.json"
         write(output / name, body)
         if (output / name).stat().st_size > settings["recipe"]["reporting"]["detail_chunk_bytes"]:
+            reference = dict(
+                path=name,
+                bytes=(output / name).stat().st_size,
+                sha256=file_hash(output / name),
+                reason="detail chunk cap",
+            )
             (output / name).unlink()
-            details.append(dict(id=row["id"], reason="detail chunk cap", sha256=identity(body)))
+            details.append(reference)
     return dict(
         version="bigint-generation/v1",
         files=chunks,

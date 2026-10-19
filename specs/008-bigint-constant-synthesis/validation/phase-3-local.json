@@ -1,0 +1,48 @@
+{
+  "version": "phase3-local-integration/v1",
+  "date": "2026-10-19",
+  "implementation_sha256": "sha256:5a391641a0342584c6a1e462e145dbdbce1cd1602d9d8fce415fc11133a5e9e7",
+  "native_source_closure_sha256": "sha256:c647ca778bd322d2f5a065a3f16a848af9dcbea8501b4189c383f127295c6215",
+  "source_base": "6d284b6597582e8900260c1397b796d274aad22b",
+  "python": "3.12.14",
+  "torch": "2.9.1+cpu",
+  "native_execution": "pending qualification image; no host Docker/Podman/Rust toolchain",
+  "hip_execution": "pending actual HIP; CPU is not GPU evidence",
+  "results": {
+    "affected_regressions": {
+      "tests": 145,
+      "passed": 142,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [
+        "tests.integration.test_bigint_workflow.test_selection_scoring_is_independent_of_private_truth",
+        "tests.integration.test_bigint_workflow.test_native_prepared_archive_has_full_matched_private_views",
+        "tests.integration.test_synthesis_worker.test_real_packaged_native_fit_and_execute"
+      ]
+    },
+    "final_affected_routes": {
+      "tests": 72,
+      "passed": 69,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [
+        "tests.integration.test_bigint_workflow.test_selection_scoring_is_independent_of_private_truth",
+        "tests.integration.test_bigint_workflow.test_native_prepared_archive_has_full_matched_private_views",
+        "tests.integration.test_synthesis_worker.test_real_packaged_native_fit_and_execute"
+      ]
+    },
+    "final_stdlib_and_contracts": {
+      "tests": 56,
+      "passed": 53,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [
+        "tests.integration.test_synthesis_worker.test_real_packaged_native_fit_and_execute",
+        "tests.integration.test_bigint_workflow.test_selection_scoring_is_independent_of_private_truth",
+        "tests.integration.test_bigint_workflow.test_native_prepared_archive_has_full_matched_private_views"
+      ]
+    }
+  },
+  "automatic_run_authorized": false,
+  "T080": "pending zero-skip native integration CI"
+}

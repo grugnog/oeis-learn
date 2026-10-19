@@ -111,6 +111,7 @@ def compare_runs(roots, output):
         seed = recipe["model"].pop("seed")
         view = recipe["learning"].pop("target_view")
         recipe.pop("identity")
+        recipe["learning"].pop("cost_preflight")
         # Initialization seed and representation targets vary in a matched pair.
         key = digest(dict(recipe=recipe, data=report["data"], split=run["split_sha256"]))
         if compatibility is None:
@@ -187,6 +188,28 @@ def compare_runs(roots, output):
                         - int(left[prompt]["outcomes"]["equal_budget"]["success"])
                     )
             result["intervals"][split] = family_bootstrap(families, seed=SEEDS[0])
+    foundations = {}
+    incremental = 0.0
+    for row in costs:
+        lineage = row["lineage"]
+        if lineage is None:
+            continue
+        from .provenance import validate_lineage
+
+        validate_lineage(lineage)
+        if (
+            lineage["foundation"] in foundations
+            and foundations[lineage["foundation"]] != lineage["foundation_cost"]
+        ):
+            raise ValueError("conflicting shared foundation compute")
+        foundations[lineage["foundation"]] = lineage["foundation_cost"]
+        incremental += lineage["incremental_cost"]
+    result["compute"] = dict(
+        foundations=foundations,
+        shared_foundation_seconds=sum(foundations.values()),
+        incremental_branch_seconds=incremental,
+        total_unique_seconds=sum(foundations.values()) + incremental,
+    )
     result["identity"] = digest(result)
     write(Path(output) / "comparison.json", result, immutable=True)
     return result

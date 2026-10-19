@@ -41,7 +41,7 @@ def pack(root, output, *, checkpoint=False, max_bytes=None):
     run = read(root / "run.json")
     if run.get("version") == "bigint-run/v1":
         from .bigint_bundle import pack as pack_bigint
-        result = pack_bigint(root, output, max_bytes=max_bytes or (64 << 20))
+        result = pack_bigint(root, output, max_bytes=(64 << 20) if max_bytes is None else max_bytes)
         if checkpoint:
             from .bigint_bundle import export_checkpoint
             result["checkpoint"] = export_checkpoint(root, output.with_suffix(".checkpoint.zip"))

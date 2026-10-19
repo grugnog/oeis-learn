@@ -126,7 +126,12 @@ def _execute(host, args, *, coordinator_factory=None):
     from oeis_learn.fresh.bigint_inputs import check
     from oeis_learn.fresh.cost_policy import screen_cost
     from oeis_learn.fresh.bigint_bundle import pack
-    from oeis_learn.fresh.provenance import root_lineage, descendant, validate_assistance
+    from oeis_learn.fresh.provenance import (
+        root_lineage,
+        descendant,
+        validate_assistance,
+        fresh_cohort,
+    )
 
     coordinator_factory = coordinator_factory or Coordinator
     operation = args.command
@@ -189,6 +194,18 @@ def _execute(host, args, *, coordinator_factory=None):
                 ):
                     raise ValueError("prepared assistance track/manifest mismatch")
                 foundation, foundation_record, parent = _foundation(recipe, ROOT)
+                if parent:
+                    for cohort in manifest["cohorts"].values():
+                        fresh_cohort(cohort["groups"], parent["lineage"])
+                if recipe["track"]["kind"] == "assisted":
+                    assistance = read(ROOT / relative(recipe["track"]["assisted_manifest"]))[
+                        "manifest"
+                    ]
+                    if (
+                        validate_assistance(assistance)
+                        != read(inputs / "assistance.json")["manifest_sha256"]
+                    ):
+                        raise ValueError("reviewed assistance changed since preparation")
                 cost = recipe["learning"]["cost_preflight"]
                 if cost is None:
                     raise ValueError(
@@ -575,6 +592,7 @@ def _execute(host, args, *, coordinator_factory=None):
                     if operation == "learnability":
                         groups = {"tiny": learner["training"]}
                         truths = {"tiny": {r["id"]: alltruth[r["id"]] for r in groups["tiny"]}}
+                archive_remaining = recipe["archive"]["max_bytes"]
                 for mask_number, mask in enumerate(masks):
                     for split, rows in groups.items():
                         # End-of-screen always includes every128+128 development row.
@@ -604,6 +622,7 @@ def _execute(host, args, *, coordinator_factory=None):
                                 "settings.json": settings(
                                     seconds,
                                     checkpoint=selected,
+                                    archive_remaining=archive_remaining,
                                     ablation=mask,
                                     compare_cache=operation == "diagnose",
                                     final_access="exposed" if final else "sealed",
@@ -614,6 +633,9 @@ def _execute(host, args, *, coordinator_factory=None):
                             checkpoint_files(),
                             training=operation in {"train", "learnability", "resume"},
                         )
+                        if result["archive"]["bytes"] > archive_remaining:
+                            raise ValueError("aggregate archive cap exceeded")
+                        archive_remaining -= result["archive"]["bytes"]
                         files = {name: out / name for name in result["files"]}
                         refs = result["files"]
                         score_seconds = (
@@ -642,6 +664,7 @@ def _execute(host, args, *, coordinator_factory=None):
                             ).file_hash(out / "archive-manifest.json"),
                         )
                         scored["parameter_counts"] = result["counts"]
+                        scored["detail_omissions"] = result.get("omitted", [])
                         summaries[f"{mask_number}:{split}"] = scored
                         byid = {r["id"]: r for r in rows}
                         observations[f"{mask_number}:{split}"] = {
@@ -664,6 +687,27 @@ def _execute(host, args, *, coordinator_factory=None):
                         finish_final(shared, plan, final_arm, "interrupted"),
                     )
                 raise
+            if operation in {"train", "learnability", "resume"}:
+                spent = run.contract.budget - run.ledger.remaining
+                if parent:
+                    lineage = descendant(
+                        parent["lineage"],
+                        track=recipe["track"]["kind"],
+                        cost=spent,
+                        manifest=read(ROOT / relative(recipe["track"]["assisted_manifest"]))[
+                            "manifest"
+                        ]
+                        if recipe["track"]["assisted_manifest"]
+                        else None,
+                    )
+                else:
+                    lineage = root_lineage(
+                        seed=recipe["model"]["seed"],
+                        cost=spent,
+                        checkpoint_sha256=selected["sha256"],
+                        recipe_sha256=recipe["identity"],
+                    )
+                write(destination / "lineage.json", lineage)
             summary = dict(
                 version="bigint-summary/v1",
                 splits=summaries,

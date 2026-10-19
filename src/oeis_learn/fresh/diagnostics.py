@@ -384,3 +384,10 @@ def evaluate(
 def competence(report, split="development"):
     row = report["splits"][split]
     return row["exact"] / row["denominator"] if row["denominator"] else None
+
+
+def evaluate_bigint(*args, **kwargs):
+    """Explicit new-profile visible diagnosis; retained evaluate() stays unchanged."""
+    from .bigint_diagnostics import generate
+
+    return generate(*args, **kwargs)

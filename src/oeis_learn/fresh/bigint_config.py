@@ -265,6 +265,13 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("bundle needs minimum16MiB and core reserve8MiB")
     if result["archive"]["max_alternatives"] != 8 or result["learning"]["replay_capacity"] > 4096:
         raise ValueError("archive/replay cap exceeded")
+    if (
+        result["data"]["max_families"] > 4096
+        or result["data"]["max_records"] > 10000
+        or result["data"]["max_download_bytes"] > 100 << 30
+        or any(result["data"][k] > 1000 for k in ("oeis_development", "oeis_final"))
+    ):
+        raise ValueError("bounded pinned data/cohort sizes required")
     from oeis_learn.encoder.ablation import InputMask
 
     InputMask(**result["inputs"]["mask"])

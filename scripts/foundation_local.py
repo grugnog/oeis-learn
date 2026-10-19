@@ -381,7 +381,7 @@ def parser():
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
-    args.explicit_options={v.split("=",1)[0] for v in argv if v.startswith("--")}
+    args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
         if args.command == "pack":
             pack_run(args.run, args.output, checkpoint=args.checkpoint)
@@ -425,6 +425,32 @@ def main(argv=None):
         if args.command in {"status", "cancel"}:
             Host.control(args.command, relative(args.run))
             return 0
+        if args.command == "train" and args.config and args.profile != "bigint-bootstrap":
+            raise ValueError("--config for new training requires --profile bigint-bootstrap")
+        if args.command == "resume" and (args.config or args.seed is not None):
+            raise ValueError(
+                "retained resume cannot adopt new settings; use diagnose --fitting paired --output PATH"
+            )
+        if args.command == "evaluate" and args.final_plan:
+            raise ValueError("final-evaluation/v1 authorization requires a bigint run")
+        if args.command == "evaluate" and (
+            args.output or args.config or "--fitting" in args.explicit_options
+        ):
+            if args.split != "development" or args.config or not args.output:
+                raise ValueError(
+                    "retained raw/exact/paired analysis requires development --output PATH and the original checkpoint configuration"
+                )
+            Host(args).pipeline(
+                "diagnose",
+                relative(args.run),
+                relative(args.output),
+                json.dumps(dict(fitting=args.fitting)),
+            )
+            return 0
+        if args.command == "diagnose" and args.config:
+            raise ValueError(
+                "retained diagnostics preserve their original numerical configuration; use a bigint run for new profiles"
+            )
         learnability_options = None
         if args.command == "learnability":
             from oeis_learn.fresh.learnability import controls, experiment_controls

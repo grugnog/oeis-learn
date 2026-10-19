@@ -142,7 +142,7 @@ def _stages(host, suite, output):
                         if gpu
                         else ""
                     )
-                    + "print({'torch':torch.__version__,'hip':torch.version.hip,'native_worker':True})",
+                    + "print({'torch':torch.__version__,'hip':torch.version.hip,'native_worker':True,'devices':[str(torch.cuda.get_device_properties(i)) for i in range(torch.cuda.device_count())]})",
                 ],
             ),
             (

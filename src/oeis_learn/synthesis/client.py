@@ -102,6 +102,7 @@ class SynthesisClient:
         from .worker_pool import WorkerPool, RoleCaches
         from .service_policy import ServiceLimits
 
+        self.runtime_identities = {}
         self.contract = contract_sha256
         self.limits = limits
         self.service_limits = service_limits or ServiceLimits()
@@ -122,19 +123,23 @@ class SynthesisClient:
         self.close()
 
     def runtime_identity(self, profile):
+        if profile in self.runtime_identities:
+            return self.runtime_identities[profile]
         binary = Path(self.worker.command[0])
         guest = Path(
             os.environ.get("OEIS_BIGINT_WASM", "/opt/oeis-build-info/bigint-dependency-smoke.wasm")
         )
         with binary.open("rb") as handle:
             binary_hash = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
-        return identity(
+        result = identity(
             dict(
                 binary_sha256=binary_hash,
                 guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
                 profile=profile,
             )
         )
+        self.runtime_identities[profile] = result
+        return result
 
     def request(
         self,
@@ -251,6 +256,19 @@ class SynthesisClient:
                 else dict(
                     outcome="resource_exhausted", assignments=[], reason="incomplete worker result"
                 )
+            )
+        if (
+            not isinstance(native, dict)
+            or not isinstance(native.get("outcome"), str)
+            or not isinstance(native.get("assignments", []), list)
+            or len(native.get("assignments", [])) > 8
+            or any(not isinstance(item, dict) for item in native.get("assignments", []))
+        ):
+            return dict(
+                outcome="verification_failure",
+                native=None,
+                admitted=[],
+                reason="malformed provisional shortlist",
             )
         verified = []
         for item in native.get("assignments", [])[:8]:

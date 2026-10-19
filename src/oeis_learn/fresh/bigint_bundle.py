@@ -61,7 +61,14 @@ def pack(root, output, *, max_bytes=64 << 20):
         if size > 1 << 20 or used + size + 8 * 1024 > max_bytes:
             omitted.append(dict(row, reason="detail cap" if size > 1 << 20 else "bundle cap"))
             continue
-        payloads[name] = path.read_bytes()
+        body = path.read_bytes()
+        if (
+            _contains_private(json.loads(body))
+            and read(root / "status.json").get("final_access", "sealed") == "sealed"
+        ):
+            omitted.append(dict(row, reason="private/final field in sealed report"))
+            continue
+        payloads[name] = body
         included[name] = {k: v for k, v in row.items() if k != "path"}
         used += size
         if len(omitted) > 4096:

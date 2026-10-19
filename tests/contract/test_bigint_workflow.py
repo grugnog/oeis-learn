@@ -129,3 +129,63 @@ def test_recipe_rejects_unregistered_beam_and_unbounded_reporting():
     ):
         with pytest.raises(ValueError):
             resolve(dict(version="bigint-bootstrap/v1", **value))
+
+
+def test_compare_lists_missing_seeds_and_rejects_profile_drift(tmp_path):
+    from oeis_learn.fresh.comparison import compare_runs
+    from oeis_learn.fresh.common import write
+    from oeis_learn.fresh.bigint_state import DurableRun
+
+    cfg = resolve(dict(version="bigint-bootstrap/v1"))
+    h = "sha256:" + "1" * 64
+
+    def arm(name, recipe):
+        run = DurableRun.create(
+            tmp_path / name, recipe, dict(identity=h, split_sha256=h), image=h, device="cpu"
+        )
+        run.finalize("completed", {})
+        write(run.root / "comparison.json", dict(data=h, splits={}))
+        return run.root
+
+    first = arm("first", cfg)
+    report = compare_runs([first], tmp_path / "report")
+    assert (
+        len(report["missing_seeds"]) == 5
+        and report["decision"] is None
+        and report["automatic_run_authorized"] is False
+    )
+    changed = resolve(dict(version="bigint-bootstrap/v1", fitting=dict(disabled=True)))
+    with pytest.raises(ValueError, match="mismatched"):
+        compare_runs([first, arm("changed", changed)], tmp_path / "different")
+
+
+def test_analysis_child_is_immutable_and_does_not_edit_parent(tmp_path):
+    from oeis_learn.fresh.bigint_state import child_analysis
+
+    h = "sha256:" + "1" * 64
+    j = "sha256:" + "2" * 64
+    child_analysis(tmp_path / "child", h, h, h)
+    assert child_analysis(tmp_path / "child", h, h, h)["parent"] == h
+    with pytest.raises(ValueError, match="immutable"):
+        child_analysis(tmp_path / "child", h, j, h)
+
+
+def test_portable_bigint_host_imports_without_site_packages():
+    import os, subprocess, sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    environment = dict(
+        os.environ, PYTHONPATH=os.pathsep.join([str(root / "src"), str(root / "scripts")])
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            "-c",
+            "import foundation_bigint,foundation_local; from oeis_learn.fresh.bigint_inputs import check; from oeis_learn.fresh.provenance import validate_ancestry; foundation_local.parser().parse_args(['validate','--suite','bigint-cpu'])",
+        ],
+        env=environment,
+        check=True,
+        timeout=10,
+    )

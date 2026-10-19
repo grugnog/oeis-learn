@@ -156,3 +156,56 @@ def test_real_packaged_native_fit_and_execute():
         source = "(program (return (add (mul (param.get p0) $index) (param.get p1))))"
         result = client.fit(source, VisiblePrompt(("-7", "19"), ("-19", "59")))
         assert result["outcome"] == "verified_solution" and result["admitted"]
+
+
+@pytest.mark.parametrize(
+    "behavior",
+    [
+        "send(dict(base,results=[{'candidate_id':'a'},{'candidate_id':'a'}],unstarted=['b'],complete=True))",
+        "send(dict(base,results=[{}],unstarted=['a','b'],complete=True))",
+        "send(dict(base,results=[],unstarted=['a','a','b'],complete=True))",
+        "sys.stdout.buffer.write(struct.pack('<I',4194305));sys.stdout.buffer.flush();time.sleep(30)",
+    ],
+)
+def test_malformed_response_invalidates_generation_and_releases_bytes(tmp_path, behavior):
+    with WorkerPool(
+        command=fake_worker(tmp_path, behavior), contract_sha256=request()["contract_sha256"]
+    ) as pool:
+        result = pool.call(request(), deadline=time.monotonic() + 1)
+        assert result["outcome"] == "verification_failure" and not result["complete"]
+        assert (
+            pool.process is None and pool.capacity.pending_bytes == 0 and not pool.capacity.active
+        )
+
+
+def test_partial_input_write_cancellation_and_rss_limit_release(tmp_path):
+    for rss in (1, 1 << 30):
+        command = fake_worker(tmp_path, "time.sleep(30)")
+        with WorkerPool(
+            command=command, contract_sha256=request()["contract_sha256"], rss_bytes=rss
+        ) as pool:
+            # Pipe cannot hold this request. Deadline/kill must release the reservation.
+            r = dict(request(), payload="x" * (3 << 20))
+            result = pool.call(r, deadline=time.monotonic() + 0.15)
+            assert not result["complete"] and result["unstarted"] == ["a", "b"]
+            assert (
+                pool.process is None
+                and pool.capacity.pending_bytes == 0
+                and not pool.capacity.active
+            )
+
+
+def test_disk_cache_rejects_bad_names_and_symlinks_without_following(tmp_path):
+    from oeis_learn.synthesis.worker_pool import RoleCaches
+    from oeis_learn.synthesis.service_policy import ServiceLimits
+    import json
+
+    outside = tmp_path / "outside"
+    outside.write_text("SECRET")
+    root = tmp_path / "cache"
+    root.mkdir()
+    (root / "bad.json").write_text(json.dumps(dict(key="not-a-hash", value={})))
+    (root / ("a" * 64 + ".json")).symlink_to(outside)
+    with RoleCaches(ServiceLimits(), root) as cache:
+        assert not cache.disk.entries and not list(root.glob("*.json"))
+    assert outside.read_text() == "SECRET"

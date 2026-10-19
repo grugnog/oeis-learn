@@ -43,6 +43,7 @@ class WorkerPool:
         self.generation = 0
         self.cancelled = set()
         self.closed = False
+        self.stderr_tail = b""
         self.stats = dict(
             queue_wait_seconds=0.0, batches=0, restarts=0, stderr_bytes=0, rss_peak_bytes=None
         )
@@ -116,7 +117,12 @@ class WorkerPool:
         payload = frame(request)
         started = time.monotonic()
         ids = [r["candidate_id"] for r in request["candidates"]]
-        if not ids or len(ids) > 32 or len(set(ids)) != len(ids):
+        if (
+            not ids
+            or len(ids) > 32
+            or any(not isinstance(cid, str) for cid in ids)
+            or len(set(ids)) != len(ids)
+        ):
             raise ValueError("bounded unique candidates required")
         if request["contract_sha256"] != self.contract:
             raise ValueError("contract mismatch")
@@ -165,6 +171,7 @@ class WorkerPool:
             reader = FrameReader()
             offset = 0
             stderr = 0
+            self.stderr_tail = b""
             with selectors.DefaultSelector() as selector:
                 selector.register(self.process.stdin, selectors.EVENT_WRITE, "input")
                 selector.register(self.process.stdout, selectors.EVENT_READ, "output")
@@ -203,6 +210,7 @@ class WorkerPool:
                                     raise ValueError("worker EOF before completion")
                                 continue
                             if event.data == "error":
+                                self.stderr_tail = (self.stderr_tail + data)[-4096:]
                                 stderr += len(data)
                                 self.stats["stderr_bytes"] += len(data)
                                 if stderr > 65536:
@@ -247,6 +255,7 @@ class WorkerPool:
                                     unstarted = response.get("unstarted")
                                     if (
                                         not isinstance(unstarted, list)
+                                        or any(not isinstance(cid, str) for cid in unstarted)
                                         or set(unstarted) != set(ids) - set(results)
                                         or len(unstarted) != len(set(unstarted))
                                     ):
@@ -284,6 +293,7 @@ class WorkerPool:
             generation=self.generation,
             metrics=dict(
                 self.stats,
+                stderr_tail=self.stderr_tail.decode("utf-8", errors="replace"),
                 rss_unavailable_reason=None
                 if self.stats["rss_peak_bytes"] is not None
                 else "process RSS unavailable on this host",
@@ -293,6 +303,7 @@ class WorkerPool:
 
 class RoleCaches:
     def __init__(self, limits, root=None):
+        self.mutex = threading.RLock()
         self.result = BoundedCache(limits.result_cache_max_entries, limits.result_cache_max_bytes)
         self.compiled = BoundedCache(
             limits.compiled_cache_max_entries, limits.compiled_cache_max_bytes
@@ -309,6 +320,9 @@ class RoleCaches:
             # Cache entries are expendable; reconstruct byte/count accounting from actual files.
             for p in sorted(self.root.glob("*.json")):
                 try:
+                    if p.is_symlink():
+                        p.unlink()
+                        continue
                     if p.stat().st_size > self.disk.max_bytes:
                         p.unlink()
                         continue
@@ -332,6 +346,12 @@ class RoleCaches:
                     p.unlink()
             self._prune()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
     def close(self):
         if self.lock is not None:
             self.lock.close()
@@ -345,6 +365,10 @@ class RoleCaches:
                     path.unlink(missing_ok=True)
 
     def get(self, key):
+        with self.mutex:
+            return self._get(key)
+
+    def _get(self, key):
         require_hash(key)
         value = self.result.get(key)
         if value is not None:
@@ -363,6 +387,10 @@ class RoleCaches:
         return None
 
     def put(self, key, value):
+        with self.mutex:
+            return self._put(key, value)
+
+    def _put(self, key, value):
         require_hash(key)
         raw = encoded(value)
         charge = len(encoded(key)) + len(raw)

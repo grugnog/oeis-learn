@@ -330,3 +330,209 @@ def test_reports_reject_sealed_final_leaks_and_record_pressure(tmp_path):
     write(root / "summary.json", dict(final_values=["SECRET"]))
     with pytest.raises(ValueError, match="private/final"):
         pack(root, tmp_path / "leak.zip")
+
+
+def test_native_prepared_archive_has_full_matched_private_views(tmp_path):
+    import os, time
+    from pathlib import Path
+
+    if not Path("/opt/oeis-build-info/synthesis-worker").exists():
+        if os.environ.get("OEIS_REQUIRE_BIGINT_BUILD") == "1":
+            pytest.fail("native preparation integration required")
+        pytest.skip("native preparation integration required")
+    from oeis_learn.fresh.bigint_inputs import publish, check, _cohorts
+    from oeis_learn.fresh.bigint_splits import choose_splits
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.admission import source_identity, reference_identity
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.synthesis.contracts import identity
+    from oeis_learn.fresh.common import read
+
+    # Independently specified cubic fixtures from the qualified splitter tests.
+    rows = []
+    for family in range(176):
+        for variant in range(16):
+            a = 10000 + family * 101
+            b = family + 1
+            c = variant * 37
+            source = f"(program (return (add (mul (int {a}) (mul $index (mul $index $index))) (add (mul (int {b}) (mul $index $index)) (int {c})))))"
+            rows.append(
+                dict(
+                    id=f"{family:03}:{variant:02}",
+                    family=str(family),
+                    variant=variant,
+                    stage="ABCD"[family % 4],
+                    source=source,
+                    parameter_source=source.replace(f"(int {c})", "(param.get p0)"),
+                    origin="generic_random",
+                    indices=list(map(str, range(100))),
+                    values=[str(a * n**3 + b * n * n + c) for n in range(100)],
+                )
+            )
+    selected = choose_splits(rows)
+    cfg = resolve(dict(version="bigint-bootstrap/v1"))
+    admissions = {}
+    deadline = time.monotonic() + 1200
+    generic = [r for group in selected["splits"].values() for r in group]
+    with SynthesisClient(cfg["identity"]) as client:
+        for row in generic:
+            production = client.execute(row["source"], row["indices"], deadline=deadline)
+            reference = evaluate(row["source"], row["indices"], client.limits, deadline=deadline)
+            assert production["outcome"] == reference.outcome == "ok" and production[
+                "values"
+            ] == row["values"] == list(reference.values)
+            admissions[row["id"]] = dict(
+                admitted=True,
+                source_sha256=source_identity(row["source"]),
+                runtime_sha256=client.runtime_identity("bigint-body/v1"),
+                reference_sha256=reference_identity(),
+                resource_sha256=client.limits.identity,
+                horizon_sha256=identity(dict(indices=row["indices"], values=row["values"])),
+            )
+    indexed = [
+        dict(
+            record_id=f"fixture-{i}",
+            metadata=dict(finite=False, table=False),
+            indices=list(range(-7, 93)),
+            values=[str((1000000 + i * 101) * n**4 + n * n + n) for n in range(-7, 93)],
+        )
+        for i in range(16)
+    ]
+    cohorts, exclusions = _cohorts(indexed, generic, cfg)
+    manifest = publish(
+        tmp_path / "prepared",
+        cfg,
+        selected,
+        cohorts,
+        source=dict(kind="non-scoring integration fixture"),
+        exclusions=exclusions,
+        admissions=admissions,
+    )
+    assert check(tmp_path / "prepared") == manifest
+    visible = read(tmp_path / "prepared/examples.json")
+    assert (
+        len(visible["views"]["parameterized"]["training"]) == 512 and len(visible["tiny_ids"]) == 32
+    )
+    assert all(
+        len(r["values"]) == 20 for group in visible["views"]["concrete"].values() for r in group
+    )
+    assert set(read(tmp_path / "prepared/private/oeis-final.json")).isdisjoint(
+        r["id"] for group in visible["views"]["concrete"].values() for r in group
+    )
+
+
+def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, monkeypatch):
+    import sys
+    from pathlib import Path
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+    import foundation_local as local
+    from foundation_bigint import execute
+    from oeis_learn.fresh import bigint_inputs
+    from oeis_learn.fresh.common import write, read, inventory
+
+    run, inputs, settings, examples = _fixture("cpu", tmp_path)
+    pointer = CheckpointStore(run.root / "checkpoints", run.contract).save(
+        {key: {} for key in CheckpointStore.STATES}, run.ledger
+    )
+    write(run.root / "selected.json", pointer)
+    write(run.root / "checkpoint-identity.json", dict(selected=pointer, update=1))
+    write(
+        inputs / "examples.json",
+        dict(views=dict(concrete=examples, parameterized=examples), tiny_ids=["training"]),
+    )
+    write(
+        inputs / "private/synthetic-truth.json",
+        {
+            r["id"]: dict(indices=r["horizon_indices"], values=list(map(str, range(-6, 94))))
+            for group in examples.values()
+            for r in group
+        },
+    )
+    monkeypatch.setattr(local, "ROOT", tmp_path)
+    job = local.state_path("run")
+    write(job / "source.json", dict(inputs="inputs"))
+    monkeypatch.setattr(bigint_inputs, "check", lambda _: dict(identity=run.contract.data))
+    import foundation_host
+
+    monkeypatch.setattr(foundation_host, "process_identity", lambda pid: dict(pid=pid))
+    before = (run.root / "budget.json").read_bytes()
+    launches = []
+
+    class Coordinator:
+        def __init__(self, *args):
+            pass
+
+        def close(self):
+            pass
+
+        def run(self, operation, role, source, out, seconds):
+            launches.append((operation, role, source))
+            out.mkdir(parents=True, exist_ok=True)
+            if operation == "bigint-generate":
+                rows = read(source / "prompts.json")
+                assert all(
+                    "source" not in r and "oracle_source" not in r and len(r["values"]) == 20
+                    for r in rows
+                )
+                assert not (source / "truth.json").exists()
+                write(
+                    out / "selections/chunk-0000.json",
+                    {r["id"]: dict(selections={}, complete=True) for r in rows},
+                )
+                write(out / "archive-manifest.json", dict(fixture=True))
+                return dict(
+                    files={
+                        "selections/chunk-0000.json": inventory(out)["selections/chunk-0000.json"]
+                    },
+                    generation_metrics=dict(greedy_terminated=0),
+                    archive=dict(bytes=0),
+                    counts=dict(device="fixture"),
+                )
+            assert (
+                operation == "bigint-score"
+                and role == "scorer"
+                and read(source / "settings.json")["device"] == "cpu"
+            )
+            assert (source / "truth.json").exists() and not (source / "checkpoints").exists()
+            truth = read(source / "truth.json")
+            write(
+                out / "outcomes.json",
+                {
+                    key: {
+                        mode: dict(success=False, complete=True)
+                        for mode in (
+                            "raw",
+                            "rescue",
+                            "equal_budget",
+                            "shuffled",
+                            "absent",
+                            "template",
+                        )
+                    }
+                    for key in truth
+                },
+            )
+            return dict(
+                metric="continuation_accuracy_100",
+                portfolio="exact_equal_budget",
+                splits={
+                    mode: dict(denominator=len(truth), complete=len(truth), success=0)
+                    for mode in ("raw", "rescue", "equal_budget", "shuffled", "absent", "template")
+                },
+            )
+
+    host = SimpleNamespace(
+        engine=SimpleNamespace(cleanup=lambda _: None),
+        ensure=lambda: run.record["image"],
+        select_gpu=lambda: None,
+        gpu_lock=nullcontext,
+        policy=dict(render_node="fixture"),
+    )
+    args = local.parser().parse_args(["evaluate", "--run", "run", "--output", "child"])
+    execute(host, args, coordinator_factory=Coordinator)
+    assert len(launches) == 4 and (run.root / "budget.json").read_bytes() == before
+    assert read(tmp_path / "child/status.json")["status"] == "completed"
+    assert read(tmp_path / "child/analysis.json")["parent"] == run.contract.sha256
