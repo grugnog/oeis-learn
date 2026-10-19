@@ -1,0 +1,196 @@
+{
+  "additional_checks": {
+    "disposition_traceability_passed": 16,
+    "ruff": "F,E9 passed",
+    "shell": "bash -n passed",
+    "workflow_yaml": "parsed"
+  },
+  "environment": {
+    "native_wasmtime_expected": "20.0.2",
+    "python": "3.12.14",
+    "python_wasmtime": "20.0.0",
+    "torch": "2.9.1+cpu"
+  },
+  "fixtures_sha256": "sha256:d515cdbc60eda169e5875a7d15ece09869d3df9cfa481a55e2435e097858b59a",
+  "production_enabled": false,
+  "qualification": "CPU Python only; native/container and actual HIP pending",
+  "source_files": [
+    {
+      "path": "crates/oeis_bigint_runtime/Cargo.lock",
+      "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc"
+    },
+    {
+      "path": "crates/oeis_bigint_runtime/Cargo.toml",
+      "sha256": "sha256:98bd72a9846c2ec53b1b8c5cd3ee2e92d26ed2708fd31e37cbde2128684184ab"
+    },
+    {
+      "path": "crates/oeis_bigint_runtime/src/lib.rs",
+      "sha256": "sha256:3382d38b8248b08b29e01554c3687f4216a7bb75947cff84ee610c343f9fcf7a"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/Cargo.lock",
+      "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/Cargo.toml",
+      "sha256": "sha256:45629b837d32831ed9f690c9d97f8d1764374ca5d484e8af728259a1a1c87bac"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/examples/runtime_probe.rs",
+      "sha256": "sha256:4306d827bb72b1246b3080f9bb057b7b73fcf79c67839c30372c9c2cbb207332"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/src/language.rs",
+      "sha256": "sha256:22ccec60dcd063aa04bb5e148fb6050fcefe6d6598f90fecdb28496553a05eb1"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/src/lib.rs",
+      "sha256": "sha256:8a4f516d046ebe486bfd633623ebb8ab3d88658c43850a8957282ba5ea74dac3"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/src/lowering.rs",
+      "sha256": "sha256:594da80e14e7258bc1e4be510cb9d083d63326028ed29d7ef3e8ee89e69bca1e"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/src/runtime.rs",
+      "sha256": "sha256:a887b4d9513c5cd289558bbc96fb18cafadd5afc47e6ac37c11e335f8f4f0162"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/src/value.rs",
+      "sha256": "sha256:6e8f3e34cb68ed997ac2d783d5b1a4cb34d7e0083bec92f14035bbf0cc2b33b6"
+    },
+    {
+      "path": "crates/oeis_synthesis_core/tests/runtime_contract.rs",
+      "sha256": "sha256:c17a680d19c371e020a94ff6ea3522c8031503d2a1e42e4d341fa4ebe7f17e82"
+    },
+    {
+      "path": "crates/oeis_wasm_evaluator/Cargo.lock",
+      "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49"
+    },
+    {
+      "path": "crates/oeis_wasm_evaluator/build.rs",
+      "sha256": "sha256:825dd543492642570695e4bd0a3ce74188fab3fe824e71504edc55ce34557d84"
+    },
+    {
+      "path": "crates/oeis_wasm_evaluator/src/lib.rs",
+      "sha256": "sha256:0c34e1b07862307ebf0d364aaae5e3b2aa422e32e830a29d7d43e2c6ba544736"
+    },
+    {
+      "path": "crates/oeis_wasm_evaluator/src/synthesis_adapter.rs",
+      "sha256": "sha256:899de773752ac468608de186a3a91ab47e438afdb7c7a6c49494f44d4c148e21"
+    },
+    {
+      "path": "src/oeis_learn/decoder/bigint_codec.py",
+      "sha256": "sha256:31103357f863bc5865d4b3a6c8717a7d7bc5bd6d61585e4987f5dfe55528a67e"
+    },
+    {
+      "path": "src/oeis_learn/decoder/bigint_grammar.py",
+      "sha256": "sha256:bc285d7342b769fd75f7247782b6105407414ee551b0d932a3d47c2396c99db4"
+    },
+    {
+      "path": "src/oeis_learn/decoder/inference_cache.py",
+      "sha256": "sha256:7d20d41936df77472a838bd05d6a1f660d6f4246b2272e4abbee8a4bc4435e29"
+    },
+    {
+      "path": "src/oeis_learn/decoder/program_codec.py",
+      "sha256": "sha256:8a1f8cd98688b190b185bf4714b973f764dc841fb218653280999934bd7702cb"
+    },
+    {
+      "path": "src/oeis_learn/decoder/sampler.py",
+      "sha256": "sha256:2f0b2ef1ee59ec5f5216f68b1fab439ea083a79d1fcfd89629c63ddb5172fcaa"
+    },
+    {
+      "path": "src/oeis_learn/decoder/wat_decoder.py",
+      "sha256": "sha256:ba18bca840f4bac6424241e39fe0569aa0afaf8b0706833eb723caf916b04674"
+    },
+    {
+      "path": "src/oeis_learn/decoder/wat_grammar.py",
+      "sha256": "sha256:7ca6a1db87d468ed2fc5d76b18ff2a0b4cf144f515e96c585a23316cfbd83dea"
+    },
+    {
+      "path": "src/oeis_learn/encoder/difference_stream.py",
+      "sha256": "sha256:28b80f17c5ec37cb0ffe2d23c539dced5e1dc87cb8328b3a2929343a8966797e"
+    },
+    {
+      "path": "src/oeis_learn/encoder/hybrid.py",
+      "sha256": "sha256:36eb73884a26f9c5a2a49d9e9fb147ecc8f2a35e3a6846631d983d1469db44bf"
+    },
+    {
+      "path": "src/oeis_learn/encoder/integer_chunks.py",
+      "sha256": "sha256:d2c5b84a681b79c61449ea40b5bc9740d0573dd96b382a21827d93743c9603f7"
+    },
+    {
+      "path": "src/oeis_learn/encoder/large_integer_features.py",
+      "sha256": "sha256:3389b000b94c0880c8927905fd9a09777cfb0c8b74709e9b987e77a423358058"
+    },
+    {
+      "path": "src/oeis_learn/encoder/magnitude_stream.py",
+      "sha256": "sha256:6fa9639df1074faa179563d69de788370019778af85ad64cadf989889fde0b70"
+    },
+    {
+      "path": "src/oeis_learn/encoder/modulo_stream.py",
+      "sha256": "sha256:9aaa96b4e4a1bfa02a1850c8f6f455d24e5fc67872b3f1350bc7114bd6d9ba92"
+    },
+    {
+      "path": "src/oeis_learn/encoder/tri_stream_encoder.py",
+      "sha256": "sha256:1f1097955ff24a177fbc98bd0963773cff85c1cad94d551161b6e0a285ce44a1"
+    },
+    {
+      "path": "src/oeis_learn/sandbox/native_runtime.py",
+      "sha256": "sha256:7a1fe1eb58ab3e200de11eb20e6ea29a5031b35da832a64fb736284c41fc9630"
+    },
+    {
+      "path": "src/oeis_learn/synthesis/contracts.py",
+      "sha256": "sha256:e7a9a7afb98816b766f06e40de3e5ca8b8d10be8674964b32863756e5803ac71"
+    },
+    {
+      "path": "src/oeis_learn/synthesis/reference.py",
+      "sha256": "sha256:b6606a92b9fe2ace68a527ac3734285b706fc4ad931fc9d185a4c7e3f73abeb2"
+    },
+    {
+      "path": "src/oeis_learn/synthesis/reference_parser.py",
+      "sha256": "sha256:5061fec056908221516ab65cd9199d70e4328d3d94d4c7ec3f33e303bbed0e0b"
+    },
+    {
+      "path": "tests/contract/test_bigint_build.py",
+      "sha256": "sha256:aefc981d7c30f38b7930566fb6c660b561f29feff2e713201db8a879215b183b"
+    },
+    {
+      "path": "tests/contract/test_bigint_language.py",
+      "sha256": "sha256:5b4f2e682150d6ba096ab03a1e26c5218c2be72c4de43334c0da33bbfd4aaf02"
+    },
+    {
+      "path": "tests/integration/test_bigint_decoding.py",
+      "sha256": "sha256:e99fe0186cd1e65cb03b8ddaacfae66df4c74ee9fa930885368f97210ffec298"
+    },
+    {
+      "path": "tests/integration/test_bigint_gpu.py",
+      "sha256": "sha256:5d4f5e0dc456bab2e266a7bcff7a5c98bdcfd38726b659aff101c14a3ac2f339"
+    },
+    {
+      "path": "tests/integration/test_bigint_runtime.py",
+      "sha256": "sha256:8fb4316d44a5288feab2c9707a29b7b8071a7e4c22fce6cb25c10cc190b28311"
+    },
+    {
+      "path": "tests/unit/test_bigint_encoder.py",
+      "sha256": "sha256:64c7a20871998e62919a2607479ea18254a3382e5ef0f06e75a589d4b8b40c72"
+    },
+    {
+      "path": "tests/unit/test_bigint_reference.py",
+      "sha256": "sha256:e86969ddef76b2390fe049f38ecbbda0f21cc539048ab742ba0b5c16a07d5b76"
+    }
+  ],
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "junit_sha256": "sha256:b9f1939a9f773048e8e2575976495ed49db3e1fbed54e13b90b709f8762b1afa",
+    "passed": 202,
+    "skip_reasons": {
+      "actual_hip": 2,
+      "native_differential": 25,
+      "packaged_native_artifacts": 2
+    },
+    "skipped": 29
+  },
+  "version": "phase2-us1-local-evidence/v1"
+}

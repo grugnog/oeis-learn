@@ -9,6 +9,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+dashu-base = { version = "=0.6.1", default-features = false }
 dashu-int = { version = "=0.6.2", default-features = false }
 
 [profile.release]

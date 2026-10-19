@@ -13,3 +13,9 @@ cargo test --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.t
 cp /opt/oeis-native-target/wasm32-unknown-unknown/release/oeis_bigint_runtime.wasm \
   /opt/oeis-build-info/bigint-dependency-smoke.wasm
 rustc --version > /opt/oeis-build-info/rust.txt
+# Model-free Phase 2 diagnostic, packaged beside the exact guest it executes.
+cargo test --release --locked --manifest-path crates/oeis_bigint_runtime/Cargo.toml \
+  > /opt/oeis-build-info/guest-tests.txt
+cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.toml \
+  --example runtime_probe
+cp /opt/oeis-native-target/release/examples/runtime_probe /opt/oeis-build-info/runtime-probe

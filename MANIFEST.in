@@ -1,4 +1,4 @@
-include Dockerfile MANIFEST.in uv.lock
+include Dockerfile MANIFEST.in uv.lock rustfmt.toml
 include .specify/memory/constitution.md
 include specs/007-experiment-foundation/validation/adoption.md
 include specs/007-experiment-foundation/validation/review-inputs.json
@@ -16,6 +16,7 @@ recursive-include specs/005-trustworthy-synthesis-readiness/contracts *.json
 recursive-include specs/007-experiment-foundation *.md *.json *.py *.yaml *.yml
 include docs/foundation.md USAGE.md
 include .github/workflows/foundation.yml
+include .github/workflows/ci-image.yml
 include specs/007-experiment-foundation/validation/phase-13-review.md
 
 include AGENTS.md docs/fresh-training.md

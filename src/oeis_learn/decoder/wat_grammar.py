@@ -181,6 +181,9 @@ def get_program_codec(profile: str):
     The foundation body vocabulary must never silently reuse this module's
     full-module IDs or unknown-token fallback.
     """
+    if profile == 'bigint-codec/v1':
+        from oeis_learn.decoder import bigint_codec
+        return bigint_codec
     if profile == 'wat_body_decimal_v1':
         from oeis_learn.decoder import program_codec
         return program_codec

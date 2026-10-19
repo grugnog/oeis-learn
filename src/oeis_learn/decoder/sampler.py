@@ -233,7 +233,7 @@ class WatProgramSampler:
         )
         words = codec.ID_TO_TOKEN if codec else ID_TO_TOKEN
         trackers = [
-            FoundationEnvironmentTracker() if codec else EnvironmentTracker() for _ in seeds
+            (getattr(codec, "EnvironmentTracker", FoundationEnvironmentTracker)() if codec else EnvironmentTracker()) for _ in seeds
         ]
         prefix = [bos] + ([] if prefix_wat is None else encode_wat(prefix_wat))
         # Foundation BOS is outside the body cap; legacy scaffolding is inside it.

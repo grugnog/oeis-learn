@@ -43,8 +43,12 @@ class ModuloSpectrumStream(nn.Module):
         moduli_count: int = MODULI_COUNT,
         base_moduli: Optional[Sequence[int]] = None,
         dropout: float = 0.1,
+        input_profile=None,
     ):
         super().__init__()
+        if input_profile not in (None, "hybrid-chunks/v1"):
+            raise ValueError("unknown mathematical input profile")
+        self.input_profile = input_profile
         self.d_model = d_model
         if base_moduli is not None:
             self.base_moduli = list(base_moduli)
@@ -74,6 +78,11 @@ class ModuloSpectrumStream(nn.Module):
         phases = torch.zeros((batch_size, max_len, self.input_dim), dtype=torch.float32, device=device)
         for b_idx, seq in enumerate(sequences):
             for t_idx, term in enumerate(seq):
+                if self.input_profile == "hybrid-chunks/v1":
+                    from .large_integer_features import exact, PRIMES
+                    exact(term)
+                    if tuple(self.base_moduli) != PRIMES:
+                        raise ValueError("bigint prime profile mismatch")
                 vec = compute_fourier_phase_vector(term, base_moduli=self.base_moduli)
                 phases[b_idx, t_idx] = torch.tensor(vec, dtype=torch.float32, device=device)
 
@@ -91,6 +100,7 @@ class ModuloStreamEncoder(ModuloSpectrumStream):
         d_model: int = 256,
         primes: Optional[Sequence[int]] = None,
         dropout: float = 0.1,
+        input_profile=None,
     ):
         active_primes = list(primes) if primes is not None else PRIME_FIELDS_16
         super().__init__(
@@ -98,6 +108,7 @@ class ModuloStreamEncoder(ModuloSpectrumStream):
             moduli_count=len(active_primes),
             base_moduli=active_primes,
             dropout=dropout,
+            input_profile=input_profile,
         )
 
     def compute_raw_pfe(self, seq: Sequence[Union[int, float]]) -> torch.Tensor:

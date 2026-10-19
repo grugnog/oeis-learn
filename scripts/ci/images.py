@@ -41,6 +41,8 @@ def plan(env, event):
     )
     image = "ghcr.io/" + repository
     cache = image + ":buildcache-" + target + "-main"
+    native_cache = image + ":buildcache-native-main"
+    native_cache_to = "type=gha,scope=oeis-native-dependencies,mode=max"
     cache_to = "type=gha,scope=oeis-" + target + ",mode=max,ignore-error=true"
     default_ref = "refs/heads/" + event["repository"]["default_branch"]
     # PRs can publish only their uniquely named images and PR-scoped GHA cache;
@@ -49,6 +51,7 @@ def plan(env, event):
     tag = image + ":ci-" + target + "-" + run
     if is_default:
         cache_to += "\ntype=registry,ref=" + cache + ",mode=max"
+        native_cache_to += "\ntype=registry,ref=" + native_cache + ",mode=max"
     return dict(
         publish=str(publish).lower(),
         transport="registry" if publish else "archive",
@@ -56,8 +59,17 @@ def plan(env, event):
         tag=tag,
         tags=tag + ("\n" + image + ":" + target + "-main" if is_default else ""),
         artifact="ci-image-" + target,
-        cache_from="type=registry,ref=" + cache + "\ntype=gha,scope=oeis-" + target,
+        cache_from=(
+            "type=registry,ref="
+            + cache
+            + "\ntype=gha,scope=oeis-"
+            + target
+            + "\ntype=registry,ref="
+            + native_cache
+            + "\ntype=gha,scope=oeis-native-dependencies\ntype=gha,scope=oeis-native-format"
+        ),
         cache_to=cache_to,
+        native_cache_to=native_cache_to,
     )
 
 

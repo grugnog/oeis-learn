@@ -39,6 +39,7 @@ checksum = "bd8e500409e6cd603b03e477c26a6caecdc27ac58979a53e881c75eafc079f44"
 name = "oeis_bigint_runtime"
 version = "0.1.0"
 dependencies = [
+ "dashu-base",
  "dashu-int",
 ]
 

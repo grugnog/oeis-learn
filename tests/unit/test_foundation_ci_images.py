@@ -3,6 +3,7 @@
 from copy import deepcopy
 import importlib.util
 from pathlib import Path
+import shlex
 import subprocess
 from types import SimpleNamespace
 
@@ -44,6 +45,10 @@ def test_pr_images_are_unique_and_cannot_update_shared_cache(build):
     assert value["tag"] == "ghcr.io/owner/repo:ci-qualification-42-2"
     assert "type=registry" in value["cache_from"]
     assert "type=registry" not in value["cache_to"]
+    assert "type=registry" not in value["native_cache_to"]
+    assert "scope=oeis-native-dependencies" in value["cache_from"]
+    assert "scope=oeis-native-dependencies" in value["native_cache_to"]
+    assert "scope=oeis-native-dependencies" not in value["cache_to"]
     assert "qualification-main" not in value["tags"]
     retry = images.plan(dict(env, GITHUB_RUN_ATTEMPT="3"), event)
     assert retry["tag"] != value["tag"]
@@ -58,6 +63,7 @@ def test_read_only_prs_share_archive_without_publishing(build, fork, actor):
     value = images.plan(dict(env, GITHUB_ACTOR=actor), event)
     assert value["transport"] == "archive" and value["publish"] == "false"
     assert "type=registry" not in value["cache_to"]
+    assert "type=registry" not in value["native_cache_to"]
 
 
 @pytest.mark.parametrize("event_name", ["push", "workflow_dispatch"])
@@ -66,9 +72,11 @@ def test_only_default_branch_refreshes_registry_cache(build, event_name):
     env = dict(env, GITHUB_EVENT_NAME=event_name, GITHUB_REF="refs/heads/main")
     main = images.plan(env, event)
     assert "type=registry" in main["cache_to"]
+    assert ":buildcache-native-main,mode=max" in main["native_cache_to"]
     assert main["tags"].splitlines() == [main["tag"], "ghcr.io/owner/repo:qualification-main"]
     env["GITHUB_REF"] = "refs/heads/feature"
     assert "type=registry" not in images.plan(env, event)["cache_to"]
+    assert "type=registry" not in images.plan(env, event)["native_cache_to"]
     env["CI_IMAGE_TARGET"] = "gpu"
     assert ":buildcache-gpu-main" in images.plan(env, event)["cache_from"]
 
@@ -215,3 +223,80 @@ def test_real_git_diff_distinguishes_code_from_recipe(tmp_path, monkeypatch):
     git("add", ".")
     git("commit", "--quiet", "-m", "recipe")
     assert images.recipe_changed(base, "HEAD") is True
+
+
+def docker_stage_inputs():
+    """Conservatively follow COPY/FROM inputs in the actual Docker build graph.
+
+    Cross-stage copies include every input of that stage, so this cannot hide a
+    source dependency by assuming a selected artifact has identical bytes.
+    """
+    stages = {}
+    current = None
+    for line in (ROOT / "Dockerfile").read_text().replace("\\\n", " ").splitlines():
+        words = shlex.split(line, comments=True)
+        if not words:
+            continue
+        if words[0] == "FROM":
+            assert words[-2] == "AS"
+            current = words[-1]
+            stages[current] = set(stages.get(words[1], ()))
+        elif words[0] == "COPY":
+            if words[1].startswith("--from="):
+                stages[current].update(stages[words[1].split("=", 1)[1]])
+            else:
+                stages[current].update(words[1:-1])
+    return stages
+
+
+@pytest.mark.parametrize("target", ["qualification", "gpu"])
+def test_dependency_and_native_cache_invalidation_boundaries(target):
+    stages = docker_stage_inputs()
+
+    def invalidated(stage, changed):
+        return any(
+            source == "." or changed == source or changed.startswith(source.rstrip("/") + "/")
+            for source in stages[stage]
+        )
+
+    # Routine Python/docs/fixture edits must reach final packaging but cannot
+    # force another third-party compile, pip install or native-wheel compile.
+    for changed in (
+        "README.md",
+        "tests/unit/test_bigint_reference.py",
+        "tests/fixtures/bigint/arithmetic.json",
+        "src/oeis_learn/synthesis/reference.py",
+        "src/oeis_learn/encoder/hybrid.py",
+    ):
+        assert invalidated(target, changed)
+        for cached in ("native-dependencies", target + "-dependencies", target + "-native"):
+            assert not invalidated(cached, changed), (cached, changed)
+    assert invalidated(target + "-native", "crates/oeis_synthesis_core/src/runtime.rs")
+    assert not invalidated("native-dependencies", "crates/oeis_synthesis_core/src/runtime.rs")
+    for manifest in ("Cargo.toml", "Cargo.lock"):
+        assert invalidated("native-dependencies", "crates/oeis_synthesis_core/" + manifest)
+        assert invalidated("native-dependencies", "crates/oeis_wasm_evaluator/" + manifest)
+    assert invalidated(target + "-dependencies", "uv.lock")
+    assert not invalidated("native-dependencies", "uv.lock")
+    # The checked preamble is an actual Rust include, so it must rebuild wheels.
+    assert invalidated(target + "-native", "src/oeis_learn/sandbox/preamble.wat")
+    assert not invalidated("native-dependencies", "src/oeis_learn/sandbox/preamble.wat")
+
+
+def test_format_and_dependency_cache_finish_before_source_build():
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci-image.yml").read_text())
+    builds = [
+        step
+        for step in workflow["jobs"]["build"]["steps"]
+        if step.get("uses", "").startswith("docker/build-push-action@")
+    ]
+    assert [step["with"]["target"] for step in builds] == [
+        "native-format-check",
+        "native-dependencies",
+        "${{ inputs.target }}",
+    ]
+    assert builds[1]["with"]["outputs"] == "type=cacheonly"
+    assert builds[1]["with"]["cache-to"] == "${{ steps.plan.outputs.native_cache_to }}"
+    assert builds[2]["with"]["cache-to"] == "${{ steps.plan.outputs.cache_to }}"

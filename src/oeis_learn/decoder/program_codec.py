@@ -500,3 +500,9 @@ class LogicalCodec:
         if number is not None:
             raise CodecError("incomplete logical integer")
         return parse_logical(" ".join(words)).canonical_source
+
+
+def get_codec(profile):
+    """Explicit version dispatch; old vocabulary identities are never resized."""
+    from .wat_grammar import get_program_codec
+    return get_program_codec(profile)

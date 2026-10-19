@@ -742,10 +742,14 @@ dependencies = [
 name = "oeis_synthesis_core"
 version = "0.1.0"
 dependencies = [
+ "dashu-base",
  "dashu-int",
  "serde",
  "serde_json",
  "sha2",
+ "wasmparser 0.202.0",
+ "wasmtime",
+ "wat",
  "z3",
 ]
 

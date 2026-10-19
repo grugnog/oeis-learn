@@ -57,6 +57,7 @@ class TriStreamEncoder(nn.Module):
         base_moduli: Optional[Sequence[int]] = None,
         use_film: bool = True,
         enable_summary_tokens: bool = False,
+        input_profile=None,
     ):
         super().__init__()
         self.d_model = d_model
@@ -65,16 +66,17 @@ class TriStreamEncoder(nn.Module):
         self.enable_summary_tokens = enable_summary_tokens
 
         # Streams
-        self.s1_magnitude = MagnitudeStream(d_model=d_model, d_ff=d_ff, dropout=dropout)
+        self.s1_magnitude = MagnitudeStream(d_model=d_model, d_ff=d_ff, dropout=dropout, input_profile=input_profile)
         self.s2_modulo = ModuloStreamEncoder(
             d_model=d_model,
             primes=base_moduli
             if base_moduli is not None
             else (primes if primes is not None else list(range(2, 2 + moduli_count))),
             dropout=dropout,
+            input_profile=input_profile,
         )
         self.s3_diff_padic = DifferenceStreamEncoder(
-            d_model=d_model, primes=primes, max_valuation=max_valuation, dropout=dropout
+            d_model=d_model, primes=primes, max_valuation=max_valuation, dropout=dropout, input_profile=input_profile
         )
 
         # Direct linear concatenation projection (Phase 4) or Hierarchical FiLM Fusion (legacy)

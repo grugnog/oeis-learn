@@ -1,5 +1,6 @@
 pub mod engine;
 pub mod sandbox;
+pub mod synthesis_adapter;
 
 use pyo3::prelude::*;
 
