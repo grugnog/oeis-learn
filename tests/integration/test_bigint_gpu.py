@@ -5,6 +5,37 @@ import torch
 pytestmark = pytest.mark.gpu
 
 
+@pytest.mark.parametrize("prompt", ["correct", "shuffled", "absent"])
+@pytest.mark.parametrize("temperature", [0, 0.8])
+def test_actual_hip_mixed_prompt_batched_generation_parity(prompt, temperature):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get("OEIS_REQUIRE_BIGINT_GPU") == "1":
+            pytest.fail("actual HIP device required")
+        pytest.skip("actual HIP device required")
+    from test_bigint_decoding import check_generation_batch_parity
+    from oeis_learn.decoder import bigint_codec as codec
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+
+    torch.manual_seed(20261018)
+    decoder = (
+        WatTransformerDecoder(
+            vocab_size=codec.FOUNDATION_VOCAB_SIZE,
+            codec_sha256=codec.codec_digest(),
+            d_model=256,
+            n_heads=4,
+            n_decoder_layers=4,
+            d_ff=1024,
+            dropout=0,
+            attention_backend="eager",
+            input_version="decoder-inputs/v1",
+            position_scale=16,
+        )
+        .cuda()
+        .eval()
+    )
+    check_generation_batch_parity(decoder, "cuda", prompt, temperature)
+
+
 def test_actual_hip_large_input_update():
     if not torch.cuda.is_available() or not torch.version.hip:
         if os.environ.get("OEIS_REQUIRE_BIGINT_GPU") == "1":

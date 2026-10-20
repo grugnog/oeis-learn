@@ -393,23 +393,45 @@ def neural_fixtures(shapes=None):
     return fixtures
 
 
+def parameter_digest(*models):
+    """Hash parameters independently of inference cache/position buffer growth."""
+    import hashlib
+    import torch
+
+    digest = hashlib.sha256()
+    for index, model in enumerate(models):
+        for name, value in model.named_parameters():
+            digest.update(str((index, name, tuple(value.shape), str(value.dtype))).encode())
+            digest.update(
+                value.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()
+            )
+    return "sha256:" + digest.hexdigest()
+
+
 def neural_measurements(recipe, output, device, repetitions, shapes=None):
-    """Non-scoring tensor fixtures at production widths; no evaluation data mounted."""
+    """Calibrate fixed states, then time restored training and frozen generation."""
+    from copy import deepcopy
+    import random
+    import shutil
+    import numpy as np
     import torch
     from oeis_learn.fresh.bigint_worker import models, _batch_loss
-    from oeis_learn.decoder.sampler import WatProgramSampler
-    from oeis_learn.rl.policy import scoring_mode
+    from oeis_learn.decoder.bigint_generation import (
+        GenerationRequest,
+        sample_batch,
+        GENERATION_BATCH_SIZE,
+        GENERATION_POLICY,
+    )
+    from oeis_learn.fresh.conditioning_controls import condition_memory
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.synthesis.state import ExperimentContract, BudgetLedger
     from oeis_learn.fresh.bigint_state import CheckpointStore
 
-    encoder, decoder, counts = models(recipe, device)
-    optimizer = torch.optim.AdamW([*encoder.parameters(), *decoder.parameters()], lr=1e-4)
     fixtures = neural_fixtures(shapes)
-    records = []
+    records, generation_records, frozen_states = [], [], []
     contract = ExperimentContract(
         **{
-            k: identity(["non-scoring-phase5/v1", k, recipe["identity"]])
+            k: identity(["non-scoring-fixed-state/v2", k, recipe["identity"]])
             for k in (
                 "data",
                 "split",
@@ -430,6 +452,19 @@ def neural_measurements(recipe, output, device, repetitions, shapes=None):
     store = CheckpointStore(Path(output) / "measurement-checkpoints", contract)
     ledger = BudgetLedger(7200)
 
+    def progress():
+        write(
+            Path(output) / "neural-partial.json",
+            dict(
+                status="PARTIAL",
+                qualified=False,
+                measurement_protocol="fixed-state-batched/v2",
+                frozen_states=frozen_states,
+                samples=records,
+                generation_samples=generation_records,
+            ),
+        )
+
     def sync():
         if device == "cuda":
             torch.cuda.synchronize()
@@ -441,94 +476,260 @@ def neural_measurements(recipe, output, device, repetitions, shapes=None):
         sync()
         return time.monotonic() - start, value
 
-    for row in fixtures:
-        for _ in range(repetitions):
-            encoder.train()
-            decoder.train()
-            training, loss = elapsed(
-                lambda: _batch_loss(encoder, decoder, [row] * 8, device, optimizer=optimizer)
-            )
+    def key(result):
+        return {k: result[k] for k in ("tokens", "complete", "source", "failure")}
+
+    try:
+        # These calibration counts are protocol constants, never timing repetitions.
+        # Probe both previously observed short- and long-output synthetic states.
+        for calibration in (3, 5):
+            encoder, decoder, counts = models(recipe, device)
+            optimizer = torch.optim.AdamW([*encoder.parameters(), *decoder.parameters()], lr=1e-4)
+            for row in fixtures:
+                encoder.train()
+                decoder.train()
+                for _ in range(calibration):
+                    _batch_loss(encoder, decoder, [row] * 8, device, optimizer=optimizer)
             encoder.eval()
             decoder.eval()
-            teacher, _ = elapsed(lambda: _batch_loss(encoder, decoder, [row] * 8, device))
-            with scoring_mode(encoder, decoder), torch.no_grad():
-                # Production cached sampler, including the encoder and all masks.
-                def generate():
-                    memory = encoder.forward_from_sequences(
-                        [[int(v) for v in row["values"]]], device=device
-                    )
-                    sampler = WatProgramSampler(
-                        decoder,
-                        max_length=1024,
-                        temperature=0,
-                        codec_profile="bigint-codec/v1",
-                        use_cache=True,
-                    )
-
-                    def hook(_):
-                        if time.monotonic() >= deadline:
-                            raise TimeoutError("non-scoring generation exceeded60s")
-
-                    return sampler.sample_trajectories(memory, [20261016], budget_hook=hook)[0]
-
-                deadline = time.monotonic() + 60
-                generation, trajectory = elapsed(generate)
-            import random
-            import numpy as np
-
-            states = dict(
-                weights=dict(encoder=encoder.state_dict(), decoder=decoder.state_dict()),
-                optimizer=optimizer.state_dict(),
-                rng=dict(
-                    python=random.getstate(),
-                    numpy=np.random.get_state(),
-                    torch=torch.get_rng_state(),
-                    cuda=torch.cuda.get_rng_state_all() if device == "cuda" else None,
-                ),
-                data_order=dict(cursor=0, permutation=list(range(8))),
-                selection={},
-                curriculum={},
-                replay={},
-            )
-
-            def save_checkpoint():
-                value = store.save(states, ledger)
-                store.prune()
-                return value
-
-            checkpoint, _ = elapsed(save_checkpoint)
-            records.append(
+            frozen = parameter_digest(encoder, decoder)
+            frozen_states.append(
                 dict(
-                    fixture_role=row["fixture_role"],
-                    input_bits=max(abs(int(v)).bit_length() for v in row["values"]),
-                    difference_bits=max(
-                        abs(int(b) - int(a)).bit_length()
-                        for a, b in zip(row["values"], row["values"][1:])
-                    ),
-                    target_tokens=len(row["tokens"]),
-                    generated_tokens=max(0, len(trajectory.tokens) - 1),
-                    training=training,
-                    teacher_forcing=teacher / 8,
-                    generation=generation,
-                    checkpoint=checkpoint,
+                    calibration=calibration,
+                    updates=len(fixtures) * calibration,
+                    parameters_sha256=frozen,
                 )
             )
-    import shutil
+            progress()
+            snapshot = deepcopy(
+                dict(
+                    weights=dict(encoder=encoder.state_dict(), decoder=decoder.state_dict()),
+                    optimizer=optimizer.state_dict(),
+                    rng=dict(
+                        python=random.getstate(),
+                        numpy=np.random.get_state(),
+                        torch=torch.get_rng_state(),
+                        cuda=torch.cuda.get_rng_state_all() if device == "cuda" else None,
+                    ),
+                    data_order=dict(cursor=0, permutation=list(range(8))),
+                    selection={},
+                    curriculum={},
+                    replay={},
+                )
+            )
 
-    shutil.rmtree(store.root)
-    measured_costs = [r for r in records if r["fixture_role"] == "preflight"] or records
+            def restore():
+                encoder.load_state_dict(snapshot["weights"]["encoder"])
+                decoder.load_state_dict(snapshot["weights"]["decoder"])
+                optimizer.load_state_dict(deepcopy(snapshot["optimizer"]))
+                random.setstate(snapshot["rng"]["python"])
+                np.random.set_state(snapshot["rng"]["numpy"])
+                torch.set_rng_state(snapshot["rng"]["torch"])
+                if device == "cuda":
+                    torch.cuda.set_rng_state_all(snapshot["rng"]["cuda"])
+                encoder.eval()
+                decoder.eval()
+
+            for row in fixtures:
+                # Warm up training outside the timer, restoring the optimizer as well.
+                encoder.train()
+                decoder.train()
+                _batch_loss(encoder, decoder, [row] * 8, device, optimizer=optimizer)
+                restore()
+                for _ in range(repetitions):
+                    encoder.train()
+                    decoder.train()
+                    training, _ = elapsed(
+                        lambda: _batch_loss(
+                            encoder, decoder, [row] * 8, device, optimizer=optimizer
+                        )
+                    )
+                    restore()
+                    teacher, _ = elapsed(lambda: _batch_loss(encoder, decoder, [row] * 8, device))
+
+                    def save_checkpoint():
+                        value = store.save(snapshot, ledger)
+                        store.prune()
+                        return value
+
+                    checkpoint, _ = elapsed(save_checkpoint)
+                    records.append(
+                        dict(
+                            fixture_role=row["fixture_role"],
+                            calibration=calibration,
+                            parameters_sha256=frozen,
+                            input_bits=max(abs(int(v)).bit_length() for v in row["values"]),
+                            difference_bits=max(
+                                abs(int(b) - int(a)).bit_length()
+                                for a, b in zip(row["values"], row["values"][1:])
+                            ),
+                            target_tokens=len(row["tokens"]),
+                            training=training,
+                            teacher_forcing=teacher / 8,
+                            checkpoint=checkpoint,
+                        )
+                    )
+                progress()
+            if parameter_digest(encoder, decoder) != frozen:
+                raise RuntimeError("restored training/teacher forcing changed frozen parameters")
+
+            # Cost only shape-matched non-scoring inputs. Without a manifest these
+            # are capacity observations and can never admit a recipe.
+            probes = [r for r in fixtures if r["fixture_role"] == "preflight"] or fixtures
+            for row in probes:
+                # Different visible prompts, with the same audited maximum width.
+                values = [int(v) for v in row["values"]]
+                visible = [values[i:] + values[:i] for i in range(GENERATION_BATCH_SIZE)]
+                with torch.no_grad():
+                    memory = encoder.forward_from_sequences(visible, device=device)
+                padding = torch.zeros(memory.shape[:2], device=memory.device, dtype=torch.bool)
+                for mode in ("correct", "shuffled", "absent"):
+                    controlled, _ = condition_memory(
+                        memory,
+                        padding,
+                        mode,
+                        order=list(range(1, GENERATION_BATCH_SIZE)) + [0]
+                        if mode == "shuffled"
+                        else None,
+                    )
+                    for temperature in (0, 0.8):
+                        print(
+                            "MEASURING frozen generation",
+                            calibration,
+                            mode,
+                            temperature,
+                            flush=True,
+                        )
+                        seeds = [
+                            recipe["model"]["seed"]
+                            + int(identity(["cost", i])[7:14], 16)
+                            + int(temperature > 0)
+                            for i in range(GENERATION_BATCH_SIZE)
+                        ]
+
+                        def generate(batch_indices):
+                            # Include production encoder work in measured end-to-end cost.
+                            with torch.no_grad():
+                                fresh = encoder.forward_from_sequences(visible, device=device)
+                                fresh, _ = condition_memory(
+                                    fresh,
+                                    padding,
+                                    mode,
+                                    order=list(range(1, GENERATION_BATCH_SIZE)) + [0]
+                                    if mode == "shuffled"
+                                    else None,
+                                )
+                            deadline = time.monotonic() + 60
+                            return sample_batch(
+                                decoder,
+                                [
+                                    GenerationRequest(
+                                        fresh[i : i + 1], seeds[i], temperature, deadline
+                                    )
+                                    for i in batch_indices
+                                ],
+                            )
+
+                        # Single-row references also conservatively measure the tail.
+                        references, tail_times = [], []
+                        for i in range(GENERATION_BATCH_SIZE):
+                            seconds, value = elapsed(lambda i=i: generate([i]))
+                            references.append(key(value[0]))
+                            tail_times.append(seconds)
+                        _, warm = elapsed(lambda: generate(range(GENERATION_BATCH_SIZE)))
+                        parity = [key(r) for r in warm] == references
+                        samples = []
+                        for _ in range(repetitions):
+                            seconds, trajectories = elapsed(
+                                lambda: generate(range(GENERATION_BATCH_SIZE))
+                            )
+                            equal = [key(r) for r in trajectories] == references
+                            parity &= equal
+                            samples.append(
+                                dict(
+                                    seconds=seconds,
+                                    generated_tokens=[len(r["tokens"]) for r in trajectories],
+                                    complete=[r["complete"] for r in trajectories],
+                                    failures=[r["failure"] for r in trajectories],
+                                    outputs_sha256=identity([key(r) for r in trajectories]),
+                                    parity=equal,
+                                )
+                            )
+                        unchanged = parameter_digest(encoder, decoder) == frozen
+                        if not unchanged:
+                            raise RuntimeError("generation changed frozen parameters")
+                        generation_records.append(
+                            dict(
+                                fixture_role=row["fixture_role"],
+                                calibration=calibration,
+                                parameters_sha256=frozen,
+                                mode=mode,
+                                temperature=temperature,
+                                seeds=seeds,
+                                batch_size=GENERATION_BATCH_SIZE,
+                                visible_sha256=identity(visible),
+                                memory_sha256=parameter_tensor_digest(controlled),
+                                samples=samples,
+                                tail_seconds=tail_times,
+                                parity=parity,
+                                weights_unchanged=unchanged,
+                                deadline_complete=all(
+                                    r["failure"] != "deadline" for r in trajectories
+                                ),
+                            )
+                        )
+                        progress()
+                        print(
+                            "MEASURED frozen generation", calibration, mode, temperature, flush=True
+                        )
+    finally:
+        shutil.rmtree(store.root, ignore_errors=True)
+    measured = [r for r in records if r["fixture_role"] == "preflight"] or records
+    generation_summary = summarize([t for r in generation_records for t in r["tail_seconds"]])
+    batch_summary = summarize([s["seconds"] for r in generation_records for s in r["samples"]])
+    # Pooled quantiles must not hide a slower control, seed group or model state.
+    generation_summary["p95_seconds"] = max(
+        summarize(r["tail_seconds"])["p95_seconds"] for r in generation_records
+    )
+    batch_summary["p95_seconds"] = max(
+        summarize([s["seconds"] for s in r["samples"]])["p95_seconds"] for r in generation_records
+    )
     return dict(
+        measurement_protocol="fixed-state-batched/v2",
+        generation_policy=GENERATION_POLICY,
+        generation_batch_size=GENERATION_BATCH_SIZE,
+        frozen_states=frozen_states,
         shape_sha256=identity(shapes) if shapes is not None else None,
-        device=str(next(encoder.parameters()).device),
+        device=device,
         hip=torch.version.hip,
         parameters=counts,
-        fixture_sha256=identity(fixtures),
+        fixture_sha256=identity(
+            dict(fixtures=fixtures, calibrations=[3, 5], policy=GENERATION_POLICY)
+        ),
         scoring_data=False,
         samples=records,
+        generation_samples=generation_records,
+        generation_parity=all(r["parity"] and r["deadline_complete"] for r in generation_records),
         summaries={
-            k: summarize([r[k] for r in measured_costs])
-            for k in ("training", "teacher_forcing", "generation", "checkpoint")
+            **{
+                k: summarize([r[k] for r in measured])
+                for k in ("training", "teacher_forcing", "checkpoint")
+            },
+            "generation": generation_summary,
+            "generation_batch": batch_summary,
         },
+    )
+
+
+def parameter_tensor_digest(tensor):
+    import hashlib
+    import torch
+
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()
+        ).hexdigest()
     )
 
 
@@ -541,12 +742,32 @@ def admit_cost_recipe(report, recipe, shapes, output):
     import yaml
 
     counts = {"training": 512, "parameter_development": 128, "structural_development": 128}
+    neural = report.get("neural", {})
+    if neural.get("measurement_protocol") != "fixed-state-batched/v2" or not neural.get(
+        "frozen_states"
+    ):
+        raise ValueError("fixed-state model calibration and parameter identities required")
+    if neural.get("generation_parity") is not True:
+        raise ValueError(
+            "mixed-prompt greedy/stochastic batching parity and deadline checks required"
+        )
+    if (
+        neural.get("generation_batch_size") != 8
+        or report["costs"].get("generation_batch_size") != 8
+        or "generation_batch_p95" not in report["costs"]
+    ):
+        raise ValueError("measured full batch8 latency and conservative singleton tail required")
     forecast = screen_cost(
         **report["costs"],
         updates=recipe["learning"]["max_updates"],
         cadence=recipe["learning"]["validation_every"],
         budget=recipe["budgets"]["training_seconds"],
     )
+    if not forecast["within_budget"]:
+        raise ValueError(
+            f"measured screen cost {forecast['projected_seconds']:.3f}s exceeds "
+            f"80% budget {forecast['budget'] * 0.8:.3f}s"
+        )
     if (
         report.get("status") != "PASS"
         or not report.get("neural", {}).get("hip")
@@ -578,6 +799,9 @@ def admit_cost_recipe(report, recipe, shapes, output):
         fixture_sha256=identity(
             dict(
                 fixtures=report["neural"]["fixture_sha256"],
+                measurement_protocol=report["neural"]["measurement_protocol"],
+                frozen_states=report["neural"]["frozen_states"],
+                generation_policy=report["neural"].get("generation_policy"),
                 shapes=shapes,
                 runtime_cases=[r["case"] for r in report["cases"]],
             )
@@ -666,6 +890,7 @@ def run(
 
             summaries = report["neural"]["summaries"]
             costs = {k + "_p95": summaries[k]["p95_seconds"] for k in summaries}
+            costs["generation_batch_size"] = report["neural"]["generation_batch_size"]
             costs.update(
                 fit_p95=report["fitting"]["native"]["p95_seconds"],
                 reference_p95=report["fitting"]["reference"]["p95_seconds"],

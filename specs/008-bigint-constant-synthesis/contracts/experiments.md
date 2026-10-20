@@ -34,6 +34,16 @@ Raw evaluation uses complete grammar-constrained generation with no fitting. Sam
 
 For every split report total eligible N, attempted, complete evidence count, success count/N, resource/unsupported/invalid counts and exact exclusions before freezing N. All incomplete evaluation cases remain unsuccessful in the fixed-denominator score and also appear as incomplete coverage. Training selection uses synthetic visible-fit scores on the fixed full diagnostic set, then complete teacher-forced loss and smaller update as deterministic ties. Hidden continuation scores are reporting-only and never select a checkpoint or advance curriculum. Do not choose a checkpoint evaluated on an easier completed subset.
 
+The Phase 5 scheduling follow-up groups up to eight visible prompts for each
+compatible decoder call. Each prompt keeps the same greedy/seven stochastic
+attempt order, per-attempt seed, grammar and token cap; fitting remains serial.
+A group shares a slice of the original global deadline, with the60s per-prompt
+ceiling retained. Cost estimates and role reservations charge measured full-group
+latency once plus conservative singleton tails per round. They cannot omit
+prompts, combine tails across rounds, or multiply budgets. New-source mixed-prompt
+greedy/stochastic parity and actual HIP cost qualification are required; see
+[the follow-up evidence and protocol](../validation/phase-5-generation.md).
+
 The primary transfer metric is `continuation_accuracy_100`: the number of prompts whose **one sealed, visible-only selected final program** agrees with every exact value at all 100 declared source indices, divided by the frozen split size. Production execution and the independent reference must both complete and agree. Matching only the 20 visible terms is `visible_fit_accuracy_20` and does not count as transfer success; a continuation mismatch, missing independent evidence or resource failure contributes zero to the primary numerator. The 128-member synthetic development splits must have complete 100-index truth before sealing. OEIS examples without the required horizon are excluded with reasons before their cohort denominator is frozen.
 
 The transfer gate uses `continuation_accuracy_100` from the **exact-fitting equal-budget portfolio**: at most one greedy plus seven stochastic candidates per prompt, selected using visible evidence within the shared 60-second budget. Correct, shuffled and absent conditioning use that same portfolio; the non-neural comparator uses its frozen bank of at most eight templates and the same fitter and budget. The literal/full-input parameter-development control uses this same scoring/portfolio rule. Raw and same-candidate-rescue scores remain separately reported and cannot replace this gate metric. Hidden scoring evaluates the sealed selection; it cannot search the candidate list for whichever program matches the continuation.

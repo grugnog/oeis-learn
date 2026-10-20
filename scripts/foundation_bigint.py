@@ -124,7 +124,7 @@ def _execute(host, args, *, coordinator_factory=None):
     from foundation_local import ROOT, relative, state_path
     from foundation_host import Coordinator
     from oeis_learn.fresh.bigint_inputs import check
-    from oeis_learn.fresh.cost_policy import screen_cost
+    from oeis_learn.fresh.cost_policy import screen_cost, generation_seconds
     from oeis_learn.fresh.bigint_bundle import pack
     from oeis_learn.fresh.provenance import (
         root_lineage,
@@ -391,8 +391,8 @@ def _execute(host, args, *, coordinator_factory=None):
                             (
                                 count * cost["training_p95"]
                                 + 256 * cost["teacher_forcing_p95"]
-                                + 96
-                                * (cost["generation_p95"] + cost["fit_p95"] + cost["reference_p95"])
+                                + generation_seconds(96, cost)
+                                + 96 * (cost["fit_p95"] + cost["reference_p95"])
                                 + cost["checkpoint_p95"]
                             )
                             / 0.8
@@ -606,10 +606,9 @@ def _execute(host, args, *, coordinator_factory=None):
                             cost = recipe["learning"]["cost_preflight"]["costs"]
                             seconds = (
                                 math.ceil(
-                                    len(rows)
-                                    * (
-                                        32 * cost["generation_p95"]
-                                        + 40 * (cost["fit_p95"] + cost["reference_p95"])
+                                    (
+                                        32 * generation_seconds(len(rows), cost)
+                                        + len(rows) * 40 * (cost["fit_p95"] + cost["reference_p95"])
                                     )
                                     / 0.8
                                 )

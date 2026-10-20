@@ -330,7 +330,7 @@ def resolve(value, *, seed=None, artifacts=None):
             raise ValueError("closed non-scoring measured cost preflight required")
         for key in ("image", "profile_sha256", "fixture_sha256"):
             require_hash(cost[key])
-        if set(cost["costs"]) != {
+        phases = {
             "training_p95",
             "teacher_forcing_p95",
             "generation_p95",
@@ -338,7 +338,11 @@ def resolve(value, *, seed=None, artifacts=None):
             "reference_p95",
             "hidden_scoring_p95",
             "checkpoint_p95",
-        }:
+        }
+        if set(cost["costs"]) not in (
+            phases,
+            phases | {"generation_batch_p95", "generation_batch_size"},
+        ):
             raise ValueError("complete measured p95 phases required")
         screen_cost(**cost["costs"])
     result["identity"] = identity(result)

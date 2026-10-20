@@ -144,3 +144,45 @@ def test_stopping_resume_and_checkpoint_panel_identity():
     assert choose_checkpoint([candidate], panel_sha256=report["panel_sha256"]) == "one"
     with pytest.raises(ValueError, match="panel"):
         choose_checkpoint([candidate], panel_sha256="changed")
+
+
+def test_measured_batch_latency_keeps_complete_screen_denominators():
+    from oeis_learn.fresh.cost_policy import generation_seconds
+    costs = dict(
+        training_p95=0,
+        teacher_forcing_p95=0,
+        generation_p95=1,
+        fit_p95=0,
+        reference_p95=0,
+        hidden_scoring_p95=0,
+        checkpoint_p95=0,
+        updates=100,
+        cadence=100,
+    )
+    serial = screen_cost(**costs)
+    batched = screen_cost(**costs, generation_batch_size=8, generation_batch_p95=2)
+    assert serial["phases"]["periodic_synthesis"] == 96
+    assert serial["phases"]["end_screen_generation"] == 256 * 32
+    assert batched["phases"]["periodic_synthesis"] == 12 * 2
+    assert batched["phases"]["end_screen_generation"] == 1024 * 2
+    assert batched["end_screen_prompts"] == serial["end_screen_prompts"] == 256
+    assert batched["omitted_prompts"] == serial["omitted_prompts"] == 0
+    batch_costs = dict(costs, generation_batch_size=8, generation_batch_p95=2)
+    assert generation_seconds(10, batch_costs) == 2 + 2 * 1
+    assert 32 * generation_seconds(1, batch_costs) == 32
+
+
+@pytest.mark.parametrize("batch,size", [(None, 8), (1, 1), (float("nan"), 8), (True, 8), (1, 4)])
+def test_incomplete_or_invalid_batch_costs_cannot_authorize_screen(batch, size):
+    with pytest.raises(ValueError, match="batch8"):
+        screen_cost(
+            training_p95=0,
+            teacher_forcing_p95=0,
+            generation_p95=1,
+            fit_p95=0,
+            reference_p95=0,
+            hidden_scoring_p95=0,
+            checkpoint_p95=0,
+            generation_batch_p95=batch,
+            generation_batch_size=size,
+        )

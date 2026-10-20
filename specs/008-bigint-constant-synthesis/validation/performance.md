@@ -1,8 +1,10 @@
 # Measurement-only performance screen — T094
 
-Status: harness implemented; actual native/throughput measurements pending CI,
-and actual neural measurements pending the current-image HIP run. No speed,
-utilization or resource-coverage superiority is claimed from local unit tests.
+Status: old-source HIP measurements are reviewed in
+[phase-5-generation.md](phase-5-generation.md). Cost admission failed; small-value
+slowdown review remains open. Fixed-state timing and production batching are now
+implemented; new-source native/HIP qualification remains pending. Local tests
+establish no accelerator throughput or utilization result.
 
 `scripts/benchmark_bigint.py` calls production APIs. Native observational timings
 split parse/lower/candidate compilation from fresh-store execution, literal/input
@@ -21,7 +23,7 @@ deadline or memory exclusions remain explicit and cannot count as successful
 arithmetic throughput. Cold and repeated warm samples retain exact phase times;
 warm reuse covers the runtime module, not candidate/value-result caching.
 
-The optional HIP neural screen measures batch8 updates, full teacher forcing,
+The optional HIP neural screen measures restored batch8 updates, full teacher forcing,
 production cached generation and the complete durable checkpoint store. Capacity
 fixtures reach4096-bit inputs,4097-bit differences and1024-token targets. A separate
 non-scoring tensor fixture matches the prepared dataset's maximum input/target
@@ -30,6 +32,13 @@ accuracy or learnability evidence. Native fit and reference p95 costs, Linux
 reaped-child peak RSS, per-request fuel, real parameter/device counts and source/
 image/compiler/lock/binary hashes are retained. Three repetitions are a bounded
 engineering estimate, not a population confidence claim.
+
+Protocol `fixed-state-batched/v2` separates fixed calibration from repeated
+timings, checks frozen parameter hashes and compares singleton/batched seeded
+generation under mixed prompts and all conditioning controls. Both the short-
+and long-output synthetic calibration states are included. Generation p95 is
+the worst per-state/control/temperature p95. See the linked follow-up for exact
+protocol, batching limits, cost accounting and the targeted actual-HIP command.
 
 Shared small-value median execution slowdown above5x appears in
 `slowdown_investigations`. Review its cold compilation, prepare/execute and batch

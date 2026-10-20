@@ -29,6 +29,7 @@ GROUPS = {
         "tests/unit/test_bigint_encoder.py",
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
+        "tests/unit/test_bigint_generation.py",
         "tests/contract/test_bigint_performance.py",
     ],
     "fitting": [
@@ -303,6 +304,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--performance-only",
+        action="store_true",
+        help="target HIP parity and measured cost with existing inputs; never train",
+    )
+    p.add_argument(
         "--checkpoint-run", help="actual retained matched run; never substituted with fixtures"
     )
     p.add_argument("--inputs", help="already prepared complete paired data")
@@ -325,6 +331,12 @@ def main():
         p.error("--learnability requires --gpu; CPU fallback prohibited")
     if args.inputs and args.prepare:
         p.error("choose existing --inputs or --prepare")
+    if args.performance_only and (
+        not args.gpu or not args.inputs or args.learnability or args.prepare or args.checkpoint_run
+    ):
+        p.error(
+            "--performance-only requires --gpu --inputs and excludes preparation/training/checkpoints"
+        )
     from foundation_local import Host, relative
     from oeis_learn.container_validation import validate
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -339,6 +351,7 @@ def main():
         status="FAIL",
         qualified=False,
         gpu_requested=args.gpu,
+        scope="performance-only" if args.performance_only else "full",
         stages={},
         engine=args.engine,
         pending={
@@ -353,13 +366,20 @@ def main():
         },
     )
     report["expected_source_sha256"] = identity(collect_snapshot(ROOT))
+    if args.performance_only:
+        report["pending"].update(
+            {
+                "T089": "arithmetic not rerun in targeted measurement scope",
+                "T090": "fitting qualification not rerun in targeted scope",
+            }
+        )
     code = 1
     try:
         host = Host(args)
         image = host.ensure()
         report.update(image=image, runtime=host.policy["runtime"], engine=host.engine.name)
         write(output / "summary.json", report)
-        for group in GROUPS:
+        for group in () if args.performance_only else GROUPS:
             stage = output / group
             container_stage(
                 host,
@@ -383,10 +403,11 @@ def main():
                 )
             report["stages"][group] = result
             write(output / "summary.json", report)
-        validate(host, "bigint-retirement", output / "retirement")
-        report["stages"]["retirement"] = json.loads(
-            (output / "retirement/validation.json").read_text()
-        )
+        if not args.performance_only:
+            validate(host, "bigint-retirement", output / "retirement")
+            report["stages"]["retirement"] = json.loads(
+                (output / "retirement/validation.json").read_text()
+            )
         public = [
             sys.executable,
             str(ROOT / "scripts/foundation_run.py"),
@@ -520,7 +541,9 @@ def main():
                 seconds=3600,
             )
             report["pending"].pop("T093")
-        negative = report.get("gates", {}).get("learnability") == "FAIL"
+        negative = report.get("gates", {}).get("learnability") == "FAIL" or (
+            args.performance_only and not performance.get("preflight_eligible")
+        )
         report["status"] = "BLOCKED" if negative else "PASS"
         code = 2 if negative else 0
     except BaseException as exc:

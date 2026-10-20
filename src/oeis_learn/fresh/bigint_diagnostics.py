@@ -93,7 +93,7 @@ def _template_candidate(position):
     return decode_body(tokens), tokens
 
 
-def portfolio(
+def _portfolio(
     decoder,
     memory,
     row,
@@ -135,31 +135,19 @@ def portfolio(
             source, tokens = _template_candidate(position)
             complete = True
         else:
-            sampler = WatProgramSampler(
-                decoder,
-                max_length=1024,
-                temperature=0 if position == 0 else 0.8,
-                top_p=1,
-                codec_profile="bigint-codec/v1",
-                use_cache=True,
-            )
+            from oeis_learn.decoder.bigint_generation import GenerationRequest
 
             def budget_hook(_):
                 if time.monotonic() >= deadline:
                     raise TimeoutError("visible portfolio deadline")
 
-            began = time.monotonic()
-            try:
-                result = sampler.sample_trajectories(
-                    memory, [attempt["seed"]], budget_hook=budget_hook
-                )[0]
-                source = result.source
-                complete = result.complete
-                tokens = list(result.tokens[1:])
-            except TimeoutError:
-                tokens = list(getattr(sampler, "active_token_rows", [[0]])[0][1:1025])
-                incomplete = True
-            generated = time.monotonic() - began
+            result = yield GenerationRequest(
+                memory, attempt["seed"], 0 if position == 0 else 0.8, deadline
+            )
+            source, complete, tokens = result["source"], result["complete"], result["tokens"]
+            generated = result["generation_seconds"]
+            if time.monotonic() >= deadline:
+                source, complete = "", False
             if compare_cache and position == 0 and complete:
                 uncached = WatProgramSampler(
                     decoder,
@@ -188,6 +176,7 @@ def portfolio(
             generation_seconds=generated,
             source=source if complete else "",
             outcome="incomplete",
+            generation_batch_size=1 if template else result["generation_batch_size"],
         )
         details.append(detail)
         if not complete:
@@ -261,6 +250,44 @@ def portfolio(
     )
 
 
+def _drive_portfolios(decoder, generators):
+    """Interleave decoding only. Fitting/admission remain serial and prompt-local."""
+    from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE, sample_batch
+
+    results, pending = [None] * len(generators), []
+
+    def advance(index, generator, value=None, *, first=False):
+        try:
+            request = next(generator) if first else generator.send(value)
+            pending.append((index, generator, request))
+        except StopIteration as done:
+            results[index] = done.value
+
+    for index, generator in enumerate(generators):
+        advance(index, generator, first=True)
+    while pending:
+        # Greedy and stochastic distributions never share a sampling call.
+        first = pending[0][2]
+        group = [
+            p
+            for p in pending
+            if p[2].temperature == first.temperature
+            and p[2].memory.shape[1:] == first.memory.shape[1:]
+        ][:GENERATION_BATCH_SIZE]
+        selected = {p[0] for p in group}
+        pending[:] = [p for p in pending if p[0] not in selected]
+        sampled = sample_batch(decoder, [p[2] for p in group])
+        for (index, generator, _), value in zip(group, sampled):
+            advance(index, generator, value)
+    return results
+
+
+def portfolio(decoder, memory, row, recipe, client, **kwargs):
+    return _drive_portfolios(decoder, [_portfolio(decoder, memory, row, recipe, client, **kwargs)])[
+        0
+    ]
+
+
 def generate(
     encoder, decoder, rows, recipe, client, *, deadline, periodic=False, compare_cache=False
 ):
@@ -291,32 +318,43 @@ def generate(
                 memory, padding, mode, order=order if mode == "shuffled" else None
             )[0]
         )
-        for i, row in enumerate(rows):
-            remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - i
-            allowance = max(0, (deadline - time.monotonic()) / max(1, remaining))
-            until = min(deadline, time.monotonic() + allowance)
-            result = portfolio(
-                decoder,
-                None if controlled is None else controlled[i : i + 1],
-                row,
-                recipe,
-                client,
-                deadline=until,
-                attempt_count=1 if periodic else 8,
-                template=mode == "template",
-                compare_cache=compare_cache and mode == "correct" and i < 3,
-            )
-            record = records[row["id"]]
-            record["complete"] &= result["complete"]
-            if mode == "correct":
-                record["selections"].update(
-                    {key: result[key] for key in ("raw", "rescue", "equal_budget")}
+        from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE
+
+        # A group spends one shared slice of the remaining global budget. Every
+        # prompt also retains Portfolio's original sixty-second ceiling.
+        size = 1 if mode == "template" else GENERATION_BATCH_SIZE
+        for offset in range(0, len(rows), size):
+            group = rows[offset : offset + size]
+            remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - offset
+            now = time.monotonic()
+            allowance = max(0, (deadline - now) * len(group) / max(1, remaining))
+            until = min(deadline, now + allowance, now + 60)
+            generators = [
+                _portfolio(
+                    decoder,
+                    None if controlled is None else controlled[i : i + 1],
+                    row,
+                    recipe,
+                    client,
+                    deadline=until,
+                    attempt_count=1 if periodic else 8,
+                    template=mode == "template",
+                    compare_cache=compare_cache and mode == "correct" and i < 3,
                 )
-            else:
-                record["selections"][mode] = result["equal_budget"]
-            record.setdefault("details", {})[mode] = result
-            record["family"] = row.get("family", row["id"])
-            record["strata"] = row.get("strata", strata(row))
+                for i, row in enumerate(group, offset)
+            ]
+            for row, result in zip(group, _drive_portfolios(decoder, generators)):
+                record = records[row["id"]]
+                record["complete"] &= result["complete"]
+                if mode == "correct":
+                    record["selections"].update(
+                        {key: result[key] for key in ("raw", "rescue", "equal_budget")}
+                    )
+                else:
+                    record["selections"][mode] = result["equal_budget"]
+                record.setdefault("details", {})[mode] = result
+                record["family"] = row.get("family", row["id"])
+                record["strata"] = row.get("strata", strata(row))
     return dict(
         records=records,
         controls=dict(

@@ -258,8 +258,9 @@ def test_selection_scoring_is_independent_of_private_truth(tmp_path, monkeypatch
     monkeypatch.setattr(
         WatProgramSampler,
         "sample_trajectories",
-        lambda *a, **k: [
+        lambda self, memory, seeds, **k: [
             SimpleNamespace(source=source, complete=True, tokens=(BOS_ID, *encode_body(source)))
+            for _ in seeds
         ],
     )
     cfg = resolve(dict(version="bigint-bootstrap/v1"))

@@ -53,7 +53,15 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
         status="PASS",
         fitting=dict(complete=True),
         image="sha256:" + "a" * 64,
-        neural=dict(hip="fixture", device="cuda:0", fixture_sha256="sha256:" + "b" * 64),
+        neural=dict(
+            hip="fixture",
+            device="cuda:0",
+            fixture_sha256="sha256:" + "b" * 64,
+            measurement_protocol="fixed-state-batched/v2",
+            generation_parity=True,
+            generation_batch_size=8,
+            frozen_states=[dict(parameters_sha256="sha256:" + "e" * 64)],
+        ),
         costs={
             key + "_p95": 0.001
             for key in (
@@ -68,6 +76,7 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
         },
         cases=[dict(case="fixture")],
     )
+    report["costs"].update(generation_batch_size=8, generation_batch_p95=0.008)
     shapes = dict(
         counts=dict(training=512, parameter_development=128, structural_development=128),
         tiny_count=32,
@@ -81,16 +90,31 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
     from oeis_learn.synthesis.contracts import identity
 
     report["neural"]["shape_sha256"] = identity(shapes)
-    for kind in ("cpu", "partial", "expensive", "failed", "not_admitted"):
+    for kind in (
+        "cpu",
+        "partial",
+        "expensive",
+        "failed",
+        "not_admitted",
+        "parity",
+        "old_protocol",
+        "unmeasured_batch",
+    ):
         bad, data = deepcopy(report), deepcopy(shapes)
         if kind == "cpu":
             bad["neural"]["device"] = "cpu"
         if kind == "partial":
             data["counts"]["training"] = 511
         if kind == "expensive":
-            bad["costs"]["generation_p95"] = 60
+            bad["costs"]["generation_batch_p95"] = 480
         if kind == "failed":
             bad["status"] = "FAIL"
+        if kind == "parity":
+            bad["neural"]["generation_parity"] = False
+        if kind == "old_protocol":
+            bad["neural"]["measurement_protocol"] = "old"
+        if kind == "unmeasured_batch":
+            bad["costs"].pop("generation_batch_p95")
         if kind == "not_admitted":
             data["native_admitted"] = False
         with pytest.raises(ValueError):
@@ -116,7 +140,7 @@ def test_neural_measurement_wiring_uses_full_checkpoint_and_legal_maximum_target
 
     class Encoder(torch.nn.Linear):
         def forward_from_sequences(self, sequences, device=None):
-            return torch.zeros(1, 20, 2)
+            return torch.zeros(len(sequences), 20, 2)
 
     encoder, decoder = Encoder(2, 2), torch.nn.Linear(2, 2)
     monkeypatch.setattr(
@@ -135,7 +159,10 @@ def test_neural_measurement_wiring_uses_full_checkpoint_and_legal_maximum_target
             pass
 
         def sample_trajectories(self, *a, **kw):
-            return [SimpleNamespace(tokens=(0, 1, 2))]
+            return [
+                SimpleNamespace(tokens=(0, 1, 2), complete=True, source="fixture", failure=None)
+                for _ in a[1]
+            ]
 
     monkeypatch.setattr(sampler, "WatProgramSampler", Sampler)
     result = benchmark().neural_measurements(resolve(defaults()), tmp_path, "cpu", 2)
@@ -143,7 +170,11 @@ def test_neural_measurement_wiring_uses_full_checkpoint_and_legal_maximum_target
     assert max(r["target_tokens"] for r in result["samples"]) == 1024
     assert max(r["input_bits"] for r in result["samples"]) == 4096
     assert max(r["difference_bits"] for r in result["samples"]) == 4097
-    assert calls.count((8, True)) == calls.count((8, False)) == 8
+    assert calls.count((8, False)) == 16
+    assert result["measurement_protocol"] == "fixed-state-batched/v2"
+    assert result["generation_parity"]
+    assert [s["updates"] for s in result["frozen_states"]] == [12, 20]
+    assert all(r["weights_unchanged"] for r in result["generation_samples"])
     assert not list(tmp_path.rglob("*.pt"))
 
 
@@ -207,3 +238,60 @@ def test_measurements_reject_wrong_answers_and_report_resource_exclusions(
             len(result["resource_exclusions"]) == 2
             and result["samples"][0]["result"]["outcome"] == "failure"
         )
+
+
+def test_timing_repetition_count_cannot_change_calibration_weights(tmp_path, monkeypatch):
+    """Exercise snapshot restoration with mutating mock training, not timing evidence."""
+    from types import SimpleNamespace
+    import torch
+    import oeis_learn.fresh.bigint_worker as worker
+    import oeis_learn.decoder.sampler as sampler
+    from oeis_learn.fresh.bigint_config import defaults, resolve
+
+    module = benchmark()
+    monkeypatch.setattr(
+        module,
+        "neural_fixtures",
+        lambda shapes: [
+            dict(fixture_role="preflight", values=[str(i) for i in range(20)], tokens=[1, 2])
+        ],
+    )
+
+    class Encoder(torch.nn.Linear):
+        def forward_from_sequences(self, rows, device=None):
+            return torch.zeros(len(rows), 20, 2)
+
+    def models(recipe, device):
+        torch.manual_seed(17)
+        return Encoder(2, 2), torch.nn.Linear(2, 2), {}
+
+    def loss(encoder, decoder, rows, device, optimizer=None):
+        if optimizer is not None:
+            with torch.no_grad():
+                for model in (encoder, decoder):
+                    for parameter in model.parameters():
+                        parameter.add_(0.01)
+        return 1.0
+
+    class Sampler:
+        def __init__(self, *a, **kw):
+            pass
+
+        def sample_trajectories(self, memory, seeds, **kw):
+            return [
+                SimpleNamespace(tokens=(0, 1, 2), source="fixture", complete=True, failure=None)
+                for _ in seeds
+            ]
+
+    monkeypatch.setattr(worker, "models", models)
+    monkeypatch.setattr(worker, "_batch_loss", loss)
+    monkeypatch.setattr(sampler, "WatProgramSampler", Sampler)
+    before = module.neural_measurements(resolve(defaults()), tmp_path / "two", "cpu", 2)
+    after = module.neural_measurements(resolve(defaults()), tmp_path / "five", "cpu", 5)
+    assert before["frozen_states"] == after["frozen_states"]
+    hashes = [s["parameters_sha256"] for s in before["frozen_states"]]
+    assert hashes[0] != hashes[1]
+    assert all(
+        row["weights_unchanged"]
+        for row in before["generation_samples"] + after["generation_samples"]
+    )

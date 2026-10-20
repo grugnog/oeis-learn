@@ -4,6 +4,12 @@ Code and reproducible qualification commands are implemented in
 [PR #58](https://github.com/grugnog/oeis-learn/pull/58). **The Phase 5 execution
 and promotion gate is pending.** No Phase 6 screen or final-cohort study ran.
 
+The supplied workstation runs passed old-source CPU/native/HIP checks and input
+preparation, but failed measured cost admission. Reviewed fixed-state batching
+results, the implementation follow-up and its targeted new-image command are in
+[phase-5-generation.md](phase-5-generation.md). Phase 5 checkboxes remain open;
+the new source/image needs qualification before promotion.
+
 Entry is merged Phase 4 PR #57 at
 `be6070bead5f30147774b6517c0f50eb1cb3f6cc`. T088 is closed by reviewed required
 CI jobs and digest-verified installed/native artifacts at `8556cce`; see

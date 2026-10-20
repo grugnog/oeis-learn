@@ -22,6 +22,46 @@ def model():
     ).eval()
 
 
+def check_generation_batch_parity(decoder, device, prompt, temperature):
+    import time
+    from oeis_learn.decoder.bigint_generation import GenerationRequest, sample_batch
+    from oeis_learn.fresh.conditioning_controls import condition_memory
+
+    torch.manual_seed(20261018)
+    # Different prompt contents and per-candidate RNG streams, including a tail.
+    memory = torch.randn(4, 3, decoder.d_model, device=device)
+    memory, _ = condition_memory(
+        memory,
+        torch.zeros(4, 3, dtype=torch.bool, device=device),
+        prompt,
+        order=(1, 2, 3, 0) if prompt == "shuffled" else None,
+    )
+    requests = [
+        GenerationRequest(
+            memory[i : i + 1], seed, temperature, time.monotonic() + 60, max_length=48
+        )
+        for i, seed in enumerate((17, 19, 23, 29))
+    ]
+    together = sample_batch(decoder, requests)
+    alone = [sample_batch(decoder, [r])[0] for r in requests]
+    for batch, single in zip(together, alone):
+        assert (batch["tokens"], batch["complete"], batch["failure"], batch["source"]) == (
+            single["tokens"],
+            single["complete"],
+            single["failure"],
+            single["source"],
+        )
+    # Reordering the batch must not change a candidate's seeded stream.
+    reverse = sample_batch(decoder, requests[::-1])
+    assert [r["tokens"] for r in reverse[::-1]] == [r["tokens"] for r in together]
+
+
+@pytest.mark.parametrize("prompt", ["correct", "shuffled", "absent"])
+@pytest.mark.parametrize("temperature", [0, 0.8])
+def test_mixed_prompt_batched_greedy_and_stochastic_parity(prompt, temperature):
+    check_generation_batch_parity(model(), "cpu", prompt, temperature)
+
+
 @pytest.mark.parametrize("prompt", ["correct", "shuffled", "absent"])
 def test_parameter_teacher_forcing_eos_masks_cached_full_logits(prompt):
     decoder = model()

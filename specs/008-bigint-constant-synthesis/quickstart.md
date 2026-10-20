@@ -10,6 +10,18 @@ measured cost preflight and the preceding gates. No long run is auto-authorized.
 
 ## Phase 5 qualification runner
 
+For the current fixed-state timing/batching follow-up, first run the targeted
+measurement with existing inputs; see [protocol and reviewed hardware evidence](validation/phase-5-generation.md):
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-phase5-batched-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+It launches no learnability run. Share the resulting ZIP, including a BLOCKED
+cost outcome, before proceeding to the full conditional runner below.
+
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
   --output tmp-validation/008-phase5-hip-001
