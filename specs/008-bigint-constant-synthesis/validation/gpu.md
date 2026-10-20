@@ -68,3 +68,21 @@ T092 stays unchecked because Phase 5 depends on Phase 4 retirement. Its
 integrated hardware fixtures now have passing early evidence; qualification
 must review that evidence against the eventual source/image and completed
 prerequisites. The wrapper's `qualified: false` does not negate the PASS result.
+
+## Phase 5 eventual-image gate — T092
+
+The earlier Phase 2/3 device results above retain their submitted source/image
+identities. They do not close T092 for the Phase 5 image. Run from PR #58's
+checkout:
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu \
+  --output tmp-validation/008-phase5-hip-001
+```
+
+This includes the supported `validate --suite bigint-gpu` call and preserves
+its receipts, JUnit and `gpu/encoder-update.json` inside the result archive.
+The suite must execute every selected case on actual HIP with zero skips;
+CPU fallback, stale-image source hashes or missing changed-weight evidence fail.
+Add `--prepare --learnability` to request the gated complete data/cost/tiny work.
+No Phase 5 device execution has yet been supplied; T092 remains unchecked.

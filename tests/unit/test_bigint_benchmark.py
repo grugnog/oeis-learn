@@ -51,6 +51,7 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
     recipe = defaults()
     report = dict(
         status="PASS",
+        fitting=dict(complete=True),
         image="sha256:" + "a" * 64,
         neural=dict(hip="fixture", device="cuda:0", fixture_sha256="sha256:" + "b" * 64),
         costs={
@@ -77,6 +78,9 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
         prepared_sha256="sha256:" + "c" * 64,
         split_sha256="sha256:" + "d" * 64,
     )
+    from oeis_learn.synthesis.contracts import identity
+
+    report["neural"]["shape_sha256"] = identity(shapes)
     for kind in ("cpu", "partial", "expensive", "failed", "not_admitted"):
         bad, data = deepcopy(report), deepcopy(shapes)
         if kind == "cpu":
@@ -98,3 +102,108 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
     value = resolve(yaml.safe_load((tmp_path / result["path"]).read_text()))
     assert value["learning"]["cost_preflight"]["scoring_data"] is False
     assert value["learning"]["cost_preflight"]["image"] == report["image"]
+
+
+def test_neural_measurement_wiring_uses_full_checkpoint_and_legal_maximum_targets(
+    tmp_path, monkeypatch
+):
+    """Small mocked tensors test plumbing, never qualify model throughput or HIP."""
+    from types import SimpleNamespace
+    import torch
+    import oeis_learn.fresh.bigint_worker as worker
+    import oeis_learn.decoder.sampler as sampler
+    from oeis_learn.fresh.bigint_config import defaults, resolve
+
+    class Encoder(torch.nn.Linear):
+        def forward_from_sequences(self, sequences, device=None):
+            return torch.zeros(1, 20, 2)
+
+    encoder, decoder = Encoder(2, 2), torch.nn.Linear(2, 2)
+    monkeypatch.setattr(
+        worker, "models", lambda recipe, device: (encoder, decoder, {"fixture_parameters": 12})
+    )
+    calls = []
+
+    def loss(enc, dec, rows, device, optimizer=None):
+        calls.append((len(rows), optimizer is not None))
+        return 1.0
+
+    monkeypatch.setattr(worker, "_batch_loss", loss)
+
+    class Sampler:
+        def __init__(self, *a, **kw):
+            pass
+
+        def sample_trajectories(self, *a, **kw):
+            return [SimpleNamespace(tokens=(0, 1, 2))]
+
+    monkeypatch.setattr(sampler, "WatProgramSampler", Sampler)
+    result = benchmark().neural_measurements(resolve(defaults()), tmp_path, "cpu", 2)
+    assert result["device"] == "cpu" and result["scoring_data"] is False
+    assert max(r["target_tokens"] for r in result["samples"]) == 1024
+    assert max(r["input_bits"] for r in result["samples"]) == 4096
+    assert max(r["difference_bits"] for r in result["samples"]) == 4097
+    assert calls.count((8, True)) == calls.count((8, False)) == 8
+    assert not list(tmp_path.rglob("*.pt"))
+
+
+def test_cost_fixture_matches_the_prepared_shape_separately_from_capacity_probes():
+    rows = benchmark().neural_fixtures(dict(max_input_bits=75, max_tokens=777))
+    matched = [r for r in rows if r["fixture_role"] == "preflight"]
+    assert len(matched) == 1
+    assert max(abs(int(v)).bit_length() for v in matched[0]["values"]) == 75
+    assert 777 <= len(matched[0]["tokens"]) <= 1024
+    assert max(len(r["tokens"]) for r in rows) == 1024
+
+
+@pytest.mark.parametrize("wrong,reason", [(True, None), (False, "aggregate_fuel")])
+def test_measurements_reject_wrong_answers_and_report_resource_exclusions(
+    monkeypatch, wrong, reason
+):
+    from types import SimpleNamespace
+    import json
+
+    module = benchmark()
+    case = dict(
+        name="square",
+        source="(program (return (mul (int 2) (int 2))))",
+        indices=["0"],
+        expected=["4"],
+        expected_reason=None,
+        supplied_bits=0,
+        result_bits=3,
+        old_source=None,
+    )
+    row = dict(
+        outcome="ok" if wrong else "failure",
+        values=["16"] if wrong else [],
+        reason=reason,
+        coverage=0,
+    )
+    reply = dict(
+        version="bigint-measurements/v1",
+        runtime_compile_seconds=0.1,
+        samples=[
+            dict(
+                result=dict(row),
+                timings=dict(prepare_seconds=0.1, execution_seconds=0.1, total_seconds=0.2),
+            )
+            for _ in range(2)
+        ],
+    )
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *a, **kw: SimpleNamespace(
+            returncode=0, stderr=b"", stdout=json.dumps(reply).encode()
+        ),
+    )
+    if wrong:
+        with pytest.raises(RuntimeError, match="disagreement"):
+            module.runtime_measurements(case, 1, 2)
+    else:
+        result = module.runtime_measurements(case, 1, 2)
+        assert (
+            len(result["resource_exclusions"]) == 2
+            and result["samples"][0]["result"]["outcome"] == "failure"
+        )

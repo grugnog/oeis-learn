@@ -212,6 +212,13 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 - [ ] T097 [US3] Exercise every supported quickstart command, clean retirement suite and normal/interrupted/bundle-cap exports; update `specs/008-bigint-constant-synthesis/quickstart.md` with verified commands and record mandatory artifact completeness, workspace persistence and historical reader results in `validation/operations.md`.
 - [ ] T098 Record immutable qualification identities and all Phase 5 pass/fail/pending gates in `specs/008-bigint-constant-synthesis/validation/phase-5.md`; permit controlled screens only after required runtime, isolation, real-GPU, cost and learnability gates pass, and return algorithm defects to the Phase 2 owner.
 
+Phase 5 implementation and per-task execution gates are recorded in
+[validation/phase-5.md](validation/phase-5.md). The measurement-only harness,
+portable CPU/HIP/data/cost/tiny runner, result archives and shared-image CI
+partitions are implemented. T089–T098 remain unchecked until actual new-image
+results are reviewed; unavailable HIP, engines or existing matched checkpoints
+are explicit blockers, not permission to substitute fixtures or lower gates.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

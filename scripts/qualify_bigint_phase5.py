@@ -327,6 +327,8 @@ def main():
         p.error("choose existing --inputs or --prepare")
     from foundation_local import Host, relative
     from oeis_learn.container_validation import validate
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.synthesis.contracts import identity
 
     output = ROOT / relative(args.output)
     if output.exists() or output.with_suffix(".zip").exists():
@@ -340,13 +342,17 @@ def main():
         stages={},
         engine=args.engine,
         pending={
+            "T091": "both Docker and Podman evidence required; this invocation tests one engine",
             "T092": "actual HIP on eventual image required",
             "T093": "actual matched checkpoint not supplied",
+            "T094": "actual neural measurements and any >5x slowdown review required",
             "T095": "complete paired dataset and matching non-scoring cost preflight required",
             "T096": "diverse32 training gate not run",
+            "T097": "review public command/export evidence including interrupted cases",
             "T098": "all prerequisite evidence must pass",
         },
     )
+    report["expected_source_sha256"] = identity(collect_snapshot(ROOT))
     code = 1
     try:
         host = Host(args)
@@ -371,6 +377,10 @@ def main():
             result = json.loads((stage / "summary.json").read_text())
             if result.get("status") != "PASS":
                 raise RuntimeError("mandatory group failed: " + group)
+            if result.get("source_sha256") != report["expected_source_sha256"]:
+                raise RuntimeError(
+                    "image source differs from this checkout; rebuild the current source"
+                )
             report["stages"][group] = result
             write(output / "summary.json", report)
         validate(host, "bigint-retirement", output / "retirement")
@@ -435,6 +445,14 @@ def main():
             (output / "performance/benchmark.json").read_text()
         )
         performance = report["stages"]["performance"]
+        if performance.get("source_sha256") != report["expected_source_sha256"]:
+            raise RuntimeError("measurement image source differs from this checkout")
+        if args.gpu and not performance.get("slowdown_investigations"):
+            report["pending"].pop("T094")
+        elif performance.get("slowdown_investigations"):
+            report["pending"]["T094"] = (
+                "review measured >5x small-value execution slowdowns before long runs"
+            )
         if inputs and performance.get("preflight_eligible"):
             report["pending"].pop("T095")
         if args.learnability:
@@ -478,9 +496,9 @@ def main():
                 checkpoint=json.loads((run / "checkpoint-identity.json").read_text()),
                 summary=json.loads((run / "summary.json").read_text()),
             )
-            report["pending"]["T096"] = (
-                "run complete; inspect actual full-denominator31/32 and control reports before promotion"
-            )
+            report["pending"].pop("T096")
+            passed = report["stages"]["learnability"]["summary"].get("memorization_gate") is True
+            report["gates"] = dict(learnability="PASS" if passed else "FAIL")
         if args.checkpoint_run:
             launch(
                 [
@@ -502,8 +520,9 @@ def main():
                 seconds=3600,
             )
             report["pending"].pop("T093")
-        report["status"] = "PASS"
-        code = 0
+        negative = report.get("gates", {}).get("learnability") == "FAIL"
+        report["status"] = "BLOCKED" if negative else "PASS"
+        code = 2 if negative else 0
     except BaseException as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"
         print(report["error"], file=sys.stderr)

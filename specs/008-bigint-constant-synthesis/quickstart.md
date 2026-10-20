@@ -1,13 +1,28 @@
 # Quickstart: Validation and Bounded Research
 
-Phase 3 is complete with passing CPU/native and user-supplied integrated HIP
-fixtures. Phase 4 migrates/retire callers and provides `bigint-retirement`,
-including an isolated installed-distribution audit and replacement regressions.
-Its clean-image execution gate T088 is pending CI; see
-[the Phase 4 evidence](validation/phase-4.md).
-Sections 3–7 are acceptance/research instructions, not authorization to run them.
-All training recipes intentionally fail until measured, matching non-scoring
-cost preflight is supplied and the prerequisite qualification gates are met.
+Phases 3 and 4 are complete at their recorded source/image identities.
+Phase 5 tooling is available in PR #58; current-image CPU/native CI, HIP,
+matched-checkpoint, cost and learnability outcomes remain pending. See
+[the Phase 5 gate table and run/archive commands](validation/phase-5.md).
+Historical HIP results do not automatically qualify the eventual Phase 5 image.
+Sections 3–7 remain acceptance/research instructions. Training requires matching
+measured cost preflight and the preceding gates. No long run is auto-authorized.
+
+## Phase 5 qualification runner
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
+  --output tmp-validation/008-phase5-hip-001
+```
+
+This runs qualified CPU/native/retirement and actual HIP suites, prepares/checks
+the complete paired dataset, measures non-scoring costs and conditionally runs
+the registered diverse32 gate. A failed cost gate stops before training. Omit
+`--prepare --learnability` for hardware/performance only, or substitute
+`--inputs PATH` for existing prepared data. Choose a new suffix for retries.
+It always writes a bounded result ZIP; share that ZIP after completion/failure.
+Use `--engine docker` if appropriate. The full runner and per-stage details are
+in [validation/phase-5.md](validation/phase-5.md).
 
 ## Phase 2 qualification available now
 

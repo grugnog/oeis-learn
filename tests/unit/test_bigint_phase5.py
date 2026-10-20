@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -63,3 +64,32 @@ def test_every_required_suite_node_exists_and_host_help_needs_only_stdlib():
         text=True,
     )
     assert result.returncode == 0 and "--gpu" in result.stdout
+
+
+def test_supplied_old_image_cannot_qualify_a_new_checkout(tmp_path, monkeypatch):
+    module = helper()
+    output = tmp_path / "mismatch"
+
+    class Host:
+        def __init__(self, args):
+            self.policy = dict(runtime="fixture")
+            self.engine = SimpleNamespace(name="docker")
+
+        def ensure(self):
+            return "sha256:" + "a" * 64
+
+    monkeypatch.setitem(
+        sys.modules, "foundation_local", SimpleNamespace(Host=Host, relative=lambda s: s)
+    )
+    launched = []
+
+    def stage(host, image, path, argv, **kwargs):
+        launched.append(path.name)
+        module.write(path / "summary.json", dict(status="PASS", source_sha256="sha256:" + "0" * 64))
+
+    monkeypatch.setattr(module, "container_stage", stage)
+    monkeypatch.setattr(sys, "argv", ["qualify", "--output", str(output)])
+    assert module.main() == 1
+    report = json.loads((output / "summary.json").read_text())
+    assert report["status"] == "FAIL" and "image source differs" in report["error"]
+    assert launched == ["arithmetic"] and output.with_suffix(".zip").is_file()
