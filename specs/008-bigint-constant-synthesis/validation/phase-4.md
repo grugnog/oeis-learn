@@ -130,3 +130,20 @@ The prior CI artifact's digest and G9 results were inspected; no local native
 execution is claimed from that evidence. See
 [phase-4-certificate-repair.json](phase-4-certificate-repair.json).
 T088 remains pending the new review/qualification run; new CI is left running.
+
+## Phase 4 exit review
+
+T088 passes at `8556cce87aec5d5b58f9a163e5c5d266a1f61341`, merged by PR #57
+as `be6070bead5f30147774b6517c0f50eb1cb3f6cc` without production source changes.
+Review run39355476087 succeeds. Container run39355476126 has successful image,
+installed/native, training/replay, G7/G8 software/G9 and both portable-engine
+execution jobs; only the separate non-critical Podman rebuild was cancelled.
+Verified artifact ZIP digests and individual JUnit counts are recorded in
+[phase-4-exit.json](phase-4-exit.json). The arbitrary-UID contract artifact has
+163 algorithm, 43 integration and 27 retirement cases with zero failures/errors/
+skips, plus a clean isolated installed audit. All native qualification owning
+suites pass without skipped cases. The native preparation artifact repeats the
+27 source retirement cases with one installed-context skip; that same case
+executes successfully in the required arbitrary-UID installed context. No skip
+is being counted as installed evidence. Historical reports remain bound to
+their original revisions; this closure grants no Phase 5 or research pass.

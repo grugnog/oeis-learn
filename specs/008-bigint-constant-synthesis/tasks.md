@@ -181,14 +181,15 @@ qualification are separate; no new CI run is monitored by this completion update
 - [X] T085 [US3] Delete `src/oeis_learn/decoder/constant_solver.py`, `grounding.py`, `dixon_solver.py`, `qfnia_solver.py`, obsolete `grounding_reference.py`/`grounding_evidence.py`, and inventoried solver-only `mersenne61_filter.py`/`recurrence.py` code after T082–T084; remove `fresh/search.py::grounded_variants` and verify no renamed executable solver remains.
 - [X] T086 [US3] Remove inventoried obsolete run008/009/010 launch scripts and exclusive configurations/examples listed with exact paths in `specs/008-bigint-constant-synthesis/retirement.md`; retain original specs/results/reproduction commit IDs, update `README.md` migration guidance and account for every disposition without deleting supported subsystems by age.
 - [X] T087 [US3] Remove Python `z3-solver` and other proven solver-only dependencies from `pyproject.toml`, `uv.lock` and `docker/dev/install.sh`; retain SymPy only for documented active independent certificate/discovery consumers, keep native solver pins and rebuild clean installed images for the audit.
-- [ ] T088 [US3] Close every entry in `specs/008-bigint-constant-synthesis/retirement.md` and record clean-install migration/compatibility evidence in `validation/phase-4.md`; require zero reachable old fitting implementations, all replacement counterexamples passing and no changes to historical numerical/evidence scope.
+- [X] T088 [US3] Close every entry in `specs/008-bigint-constant-synthesis/retirement.md` and record clean-install migration/compatibility evidence in `validation/phase-4.md`; require zero reachable old fitting implementations, all replacement counterexamples passing and no changes to historical numerical/evidence scope.
 
-Phase 4 code tasks T081–T087 are implemented; the path-by-path inventory is
-closed and source/caller regression evidence is in
-[validation/phase-4.md](validation/phase-4.md). **T088 remains unchecked** until
-the clean installed image, native replacements and compatibility/certificate
-checks pass. PR CI performs these checks and is left unmonitored. No Phase 4
-HIP-only gate is required; Phase 5 must review its eventual image identities.
+Phase 4 T081–T088 is complete at `8556cce`, merged by PR #57. Required
+installed/native/replacement/certificate and both Docker/Podman execution jobs
+passed; the separate non-critical Podman rebuild was cancelled. The merge
+changes no tested production source. See [the reviewed artifact hashes and
+case counts](validation/phase-4-exit.json) and
+[the Phase 4 exit review](validation/phase-4.md#phase-4-exit-review).
+This closes the entry gate; Phase 5 must bind its own eventual source/image.
 
 ## Phase 5: Qualification and performance screen
 

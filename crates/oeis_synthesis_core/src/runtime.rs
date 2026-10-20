@@ -27,6 +27,13 @@ pub struct Evaluation {
     pub outcome:String,pub reason:Option<String>,pub values:Vec<String>,
     pub coverage:usize,pub fuel:u64,pub resource_identity:String,
 }
+/// Observation-only timings. They do not alter limits or public execution records.
+#[derive(Default,Serialize)]
+pub struct Measurements {
+    pub prepare_seconds:f64,
+    pub execution_seconds:f64,
+    pub total_seconds:f64,
+}
 struct Clock { stop:mpsc::Sender<()>,thread:Option<thread::JoinHandle<()>> }
 impl Clock {
     fn start(engine:Engine,seconds:f64)->Self {
@@ -76,17 +83,29 @@ impl BigintRuntime {
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
-        let result=self.run(source,indices,r,&mut out);
+        let result=self.run(source,indices,r,&mut out,None);
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         out
     }
-    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation)->Result<(),String> {
+    /// Qualification-only observation of the same production run implementation.
+    pub fn evaluate_measured(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
+        let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
+        let mut measured=Measurements::default();
+        let start=Instant::now();
+        let result=self.run(source,indices,r,&mut out,Some(&mut measured));
+        measured.total_seconds=start.elapsed().as_secs_f64();
+        measured.execution_seconds=(measured.total_seconds-measured.prepare_seconds).max(0.0);
+        match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
+        (out,measured)
+    }
+    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation,measured:Option<&mut Measurements>)->Result<(),String> {
         r.validate()?;
         let start=Instant::now();
         if indices.is_empty()||indices.len()>100 {return Err("invalid_source".into());}
         let p=language::parse(source,r,false)?;
         let lowered=lowering::lower(&p,r)?;
         let candidate=Module::new(&self.engine,&lowered.wasm).map_err(trap)?;
+        if let Some(measured)=measured {measured.prepare_seconds=start.elapsed().as_secs_f64();}
         // Typed lookup below validates ABI signatures against the real guest.
         let literals=lowered.literals.iter().map(|s|integer(s,r.literal_bits)).collect::<Result<Vec<_>,_>>()?;
         for index in indices {

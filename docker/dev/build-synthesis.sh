@@ -20,6 +20,11 @@ cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.
   --example runtime_probe
 cp /opt/oeis-native-target/release/examples/runtime_probe /opt/oeis-build-info/runtime-probe
 
+# Observation-only executable; reuses the pinned native dependency cache.
+cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.toml \
+  --example benchmark_runtime
+cp /opt/oeis-native-target/release/examples/benchmark_runtime /opt/oeis-build-info/benchmark-runtime
+
 # Reuse the pinned native solver for independent certificate obligations.
 cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.toml \
   --bin certificate_solver
