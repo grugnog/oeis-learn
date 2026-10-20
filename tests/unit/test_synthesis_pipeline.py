@@ -181,11 +181,11 @@ def test_state_machine_duplicate_detection(sample_protocol, sample_target):
     assert rec2.duplicate_of == rec1.candidate_id
 
 
-def test_no_placeholder_mismatch_is_rejected_by_shared_grounding(sample_protocol, sample_target):
+def test_concrete_legacy_mismatch_is_rejected_without_solver_claims(sample_protocol, sample_target):
     wrong = '(module (func (export "compute") (param $n i32) (result i64) i64.const 0))'
     record = evaluate_candidate_stages(0, 42, [1], wrong, sample_target, sample_protocol, {})
     assert record.classification == "FAILED"
-    assert record.primary_failure_stage == "CONSTANT_RESOLUTION"
-    stage = next(s for s in record.stage_records if s.stage == "CONSTANT_RESOLUTION")
-    assert stage.reason_code == "PROVED_UNSAT_IN_SCOPE"
-    assert record.outputs == []
+    assert record.primary_failure_stage == 'OBSERVED_MATCH'
+    assert record.first_observed_divergence == 1
+    stage=next(s for s in record.stage_records if s.stage=='CONSTANT_RESOLUTION')
+    assert stage.status=='NOT_REQUIRED'

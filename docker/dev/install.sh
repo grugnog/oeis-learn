@@ -48,5 +48,8 @@ if [[ "$mode" == gpu ]]; then
     > /tmp/oeis-torch-after
   cmp /tmp/oeis-torch-before /tmp/oeis-torch-after
 fi
+# The pinned GPU base may contain Python packages outside this project's lock.
+# Certificate obligations now use the separately pinned native checker.
+uv pip uninstall --python "$VIRTUAL_ENV/bin/python" z3-solver
 uv pip check --python "$VIRTUAL_ENV/bin/python"
 chmod -R a+rX "$VIRTUAL_ENV"

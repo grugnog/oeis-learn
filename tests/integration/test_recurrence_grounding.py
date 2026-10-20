@@ -1,41 +1,19 @@
-from oeis_learn.decoder.recurrence import order2_template, recognize, recognize_grounded
-from oeis_learn.decoder.grounding import ground, splice
+"""Qualified carried-state recurrence execution; old recognition is retired."""
+
+from oeis_learn.synthesis.reference import evaluate
+from oeis_learn.synthesis.fitting import fit_program
+
+SOURCE = "(program (local $b0 bigint) (local $b1 bigint) (local $b2 bigint) (local $c0 control) (set $b1 (int 1)) (loop $c0 (to_control $index) (set $b2 (add (get $b0) (get $b1))) (set $b0 (get $b1)) (set $b1 (get $b2))) (return (get $b0)))"
 
 
-def terms():
-    out = [0, 1]
+def test_order2_carried_state_has_independent_exact_results():
+    expected = [0, 1]
     for _ in range(18):
-        out.append(sum(out[-2:]))
-    return out
+        expected.append(sum(expected[-2:]))
+    result = evaluate(SOURCE, list(map(str, range(20))))
+    assert result.outcome == "ok" and list(map(int, result.values)) == expected
 
 
-def test_alpha_renamed_and_interleaved_state_transfers():
-    source = order2_template()
-    for src, dst in (("b", "a"), ("t", "b")):
-        grouped = (
-            " ".join(f"local.get ${src}{j}" for j in range(4))
-            + " "
-            + " ".join(f"local.set ${dst}{j}" for j in reversed(range(4)))
-        )
-        paired = " ".join(f"local.get ${src}{j} local.set ${dst}{j}" for j in range(4))
-        source = source.replace(grouped, paired)
-    source = (
-        source.replace("$a", "$previous")
-        .replace("$b", "$current")
-        .replace("$t", "$next")
-        .replace("$i", "$counter")
-        .replace("$n", "$index")
-        .replace("$exit", "$done")
-        .replace("$loop", "$again")
-    )
-    assert recognize(source) == (0, 1)
-    result = ground(source, terms())
-    assert result.outcome == "verified_solution" and result.constants == (1, 1), result
-    assert recognize_grounded(result.source) == ((0, 1), (1, 1))
-    assert recognize(source.replace("i32.ge_s", "i32.gt_s")) is None
-
-
-def test_wrong_state_transfer_and_initial_condition():
-    source = order2_template()
-    assert recognize(source.replace("local.get $t0", "local.get $a0")) is None
-    assert ground(order2_template(1, 1), terms()).outcome == "unsupported"
+def test_old_recurrence_skeleton_is_explicitly_unsupported():
+    result = fit_program("(module (func (result i64) i64.const_?))", [0, 1, 1, 2, 3])
+    assert result.outcome == "unsupported"

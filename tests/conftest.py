@@ -101,3 +101,32 @@ def synthesis_driver():
     )
     run.runtime_sha256 = run.identity_for("bigint-body/v1")
     return run
+
+
+@pytest.fixture
+def certificate_solver():
+    """Loop proofs require the pinned native checker, not a Python fallback."""
+    binary = Path(
+        os.environ.get("OEIS_CERTIFICATE_SOLVER", "/opt/oeis-build-info/certificate-solver")
+    )
+    if not binary.is_file():
+        if any(os.environ.get(key) == "1" for key in ("OEIS_REQUIRE_BIGINT_BUILD", "OEIS_REQUIRE_NATIVE")):
+            pytest.fail("packaged native certificate solver required")
+        pytest.skip("requires native certificate solver in qualification image")
+    return binary
+
+
+@pytest.fixture
+def fitting_client():
+    """Real owning-role client; a required image may never silently skip it."""
+    from pathlib import Path
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.contracts import identity
+    import os
+    binary = Path('/opt/oeis-build-info/synthesis-worker')
+    if not binary.is_file():
+        if os.environ.get('OEIS_REQUIRE_BIGINT_BUILD') == '1':
+            pytest.fail('packaged native synthesis worker required')
+        pytest.skip('requires native qualification image')
+    with SynthesisClient(identity('retirement-caller-regressions/v1')) as client:
+        yield client

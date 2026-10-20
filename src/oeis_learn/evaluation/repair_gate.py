@@ -158,11 +158,11 @@ def require_g7(report, *, evidence_root=None):
     from oeis_learn.experiments.qualified_models import replay_record
 
     records = report["replay_records"]
-    if len(records) != 3 or {r["kind"] for r in records} != {"grounding_result", "proof_evidence"}:
+    if len(records) != 3 or {r["kind"] for r in records} != {"native_grounding_result", "proof_evidence"}:
         raise ValueError("G7 requires solution, scoped UNSAT and formula replay")
-    if {r.get("outcome") for r in records if r["kind"] == "grounding_result"} != {
+    if {r.get("result", {}).get("outcome") for r in records if r["kind"] == "native_grounding_result"} != {
         "verified_solution",
-        "proved_unsat_in_scope",
+        "unsat_in_scope",
     }:
         raise ValueError("incomplete grounding replay")
     if any(replay_record(r)["status"] != "verified" for r in records):
@@ -173,7 +173,7 @@ def require_g7(report, *, evidence_root=None):
 def run_qualification(output):
     """Run fixed software acceptance. Missing native execution is a hard failure."""
     from oeis_learn.sandbox.native_conformance import run_native_conformance
-    from oeis_learn.decoder.grounding import ground
+    from oeis_learn.synthesis.fitting import fit_program
     from oeis_learn.discovery.symbolic_prover import SymbolicProver
     from oeis_learn.discovery.formula_checker import qualified_proof
 
@@ -224,8 +224,8 @@ def run_qualification(output):
         run_native_conformance(output / "native")
         report["checks"]["native_parity"] = reference(output / "native/parity.json")
         report["replay_records"] = [
-            ground("i256.const_?", [7] * 20).to_qualified(),
-            ground("i256.const 1", [2] * 20).to_qualified(),
+            fit_program("i256.const 0", [7] * 20).to_qualified(),
+            fit_program("i256.const 1", [2] * 20, policy="none").to_qualified(),
             qualified_proof(SymbolicProver()._run(["n", "n"], [1, -1])[1]),
         ]
         report["status"] = "PASS"
@@ -278,7 +278,7 @@ def _exercise_activation(report, output):
         refs[sha] = value
         profile_refs[name] = sha
     settings = {
-        "solver": {"coefficient_bound": 1000, "timeout_ms": 2000, "max_parameters": 8},
+        "solver": {"coefficient_bits": 4096, "timeout_ms": 4000, "max_parameters": 8},
         "optimizer": {"waste_threshold_percent": 30},
         "native": {"workers": 1, "cache_bytes": 128 << 20},
         "formula_identity": {"timeout_ms": 2000},
@@ -303,7 +303,7 @@ def _exercise_activation(report, output):
     services = activate_qualified_contract(
         contract, g7_report=report, evidence_root=output, resolve=refs.__getitem__
     )
-    solution = services.ground("i256.const_?", [7] * 20)
+    solution = services.ground("i256.const 0", [7] * 20)
     if solution.outcome != "verified_solution":
         raise ValueError("activated grounding failed")
     rewrite = services.optimize("nop i256.const 7")

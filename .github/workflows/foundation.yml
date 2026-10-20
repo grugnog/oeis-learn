@@ -144,6 +144,21 @@ jobs:
               --junitxml=/evidence/installed-image.xml
             oeis-learn foundation --help > /evidence/installed-help.txt
           '
+      - name: Training and verified replay integration with packaged native fitter
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            export OMP_NUM_THREADS=2 OEIS_REQUIRE_BIGINT_BUILD=1
+            cd /opt/oeis-build
+            python -m pytest -q --durations=20 \
+              tests/integration/test_egca_training_step.py \
+              tests/integration/test_co_training_step.py \
+              tests/integration/test_bootstrap_admission.py \
+              --junitxml=/evidence/training-integration.xml
+          '
       - name: Mandatory Rust tests and G7 qualification
         run: |
           mkdir -p phase7-evidence
@@ -151,6 +166,7 @@ jobs:
           docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
             set -euo pipefail
             trap "chmod -R a+rX /evidence" EXIT
+            export OEIS_REQUIRE_BIGINT_BUILD=1 OEIS_REQUIRE_NATIVE=1
             mkdir -p /evidence/build-info/src
             cp /opt/oeis-build-info/* /evidence/build-info/
             cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/
@@ -224,6 +240,8 @@ jobs:
               trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
               python scripts/qualify_bigint_phase2.py --inside --output /evidence
               python -m pytest -q -m "not gpu" -p no:cacheprovider --basetemp=/tmp/phase3-pytest --junitxml=/evidence/phase3.xml tests/contract/test_bigint_workflow.py tests/integration/test_synthesis_worker.py tests/integration/test_bigint_workflow.py tests/unit/test_bigint_ci_regressions.py
+              python -I -m oeis_learn.synthesis.retirement --installed --output /evidence/retirement-installed.json
+              python -m pytest -q -m "not gpu" -p no:cacheprovider --basetemp=/tmp/phase4-pytest --junitxml=/evidence/phase4.xml tests/contract/test_solver_retirement.py tests/unit/test_retirement_callers.py
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '
       - name: Native dependency and retained-profile tests in shared image
@@ -237,6 +255,8 @@ jobs:
               trap "chmod -R a+rX /evidence" EXIT
               cargo test --release --locked --offline --manifest-path crates/oeis_synthesis_core/Cargo.toml > /evidence/core-tests.txt 2>&1
               cargo test --release --locked --offline --no-default-features --manifest-path crates/oeis_wasm_evaluator/Cargo.toml > /evidence/retained-tests.txt 2>&1
+              python -I -m oeis_learn.synthesis.retirement --installed --output /evidence/retirement-installed.json
+              python -m pytest -q -m "not gpu" -p no:cacheprovider --basetemp=/tmp/phase4-pytest --junitxml=/evidence/phase4.xml tests/contract/test_solver_retirement.py tests/unit/test_retirement_callers.py
               cp /opt/oeis-build-info/bigint-build.json /evidence/
             '
       - uses: actions/upload-artifact@v4

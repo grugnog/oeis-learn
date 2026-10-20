@@ -1,9 +1,10 @@
 # Quickstart: Validation and Bounded Research
 
-Phase 3 implements the bigint public commands and frozen recipes. The native
-integration gate T080 and the current-image HIP run are pending execution; see
-[the Phase 3 evidence and commands](validation/phase-3.md). `bigint-retirement`
-is registered but reports BLOCKED until the Phase 4 installed-distribution audit.
+Phase 3 is complete with passing CPU/native and user-supplied integrated HIP
+fixtures. Phase 4 migrates/retire callers and provides `bigint-retirement`,
+including an isolated installed-distribution audit and replacement regressions.
+Its clean-image execution gate T088 is pending CI; see
+[the Phase 4 evidence](validation/phase-4.md).
 Sections 3–7 are acceptance/research instructions, not authorization to run them.
 All training recipes intentionally fail until measured, matching non-scoring
 cost preflight is supplied and the prerequisite qualification gates are met.

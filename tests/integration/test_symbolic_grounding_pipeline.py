@@ -1,62 +1,26 @@
-"""Integration tests comparing decoupled three-tier symbolic grounding against SMT bit-blasting."""
+"""Native visible fitting, independent admission and scoped replay integration."""
 
-from __future__ import annotations
-
-import time
-import pytest
-from oeis_learn.decoder.constant_solver import parse_ast_placeholders, solve_constants
-from oeis_learn.sandbox.runner import WasmRunner
+from copy import deepcopy
+from tests.helpers.native_fitting import fit
+from oeis_learn.experiments.qualified_models import replay_record, seal_record
 
 
-def test_three_tier_grounding_linear_affine():
-    target_terms = [5 * n + 2 for n in range(20)]
-    wat_skeleton = """(module
-  (func (export "compute") (param $n i32) (result i64)
-    (i64.add
-      (i64.mul (i64.extend_i32_u (local.get $n)) i64.const_?)
-      i64.const_?
-    )
-  )
-)"""
-    skeleton = parse_ast_placeholders(wat_skeleton)
-    runner = WasmRunner(fuel_budget=10000)
-
-    start_t = time.perf_counter()
-    cand = solve_constants(skeleton, target_terms, runner=runner)
-    dur_ms = (time.perf_counter() - start_t) * 1000.0
-
-    assert cand.is_sat is True
-    assert cand.solver_tier == "z3_qfbv"
-    assert cand.constants == [5, 2]
-    assert cand.evidence["execution"]["production"] == [str(t) for t in target_terms]
-
-    # Verify execution of grounded program
-    assert cand.grounded_wat is not None
-    exec_res = runner.run_single(cand.grounded_wat, terms_to_generate=20)
-    assert exec_res.status == "SUCCESS"
-    assert exec_res.output == target_terms
+def test_linear_fitting_independent_execution_and_replay(fitting_client):
+    source = "(program (return (add (mul (param.get p0) $index) (param.get p1))))"
+    result = fit(fitting_client, source, [5 * n + 2 for n in range(20)])
+    assert result.outcome == "verified_solution" and result.constants == (5, 2)
+    assert replay_record(result.to_qualified())["status"] == "verified"
 
 
-def test_three_tier_grounding_fast_inconsistency_rejection():
-    # Target terms don't match linear affine model (e.g. exponential 2^n)
-    target_terms = [1 << n for n in range(20)]
-    wat_skeleton = """(module
-  (func (export "compute") (param $n i32) (result i64)
-    (i64.add
-      (i64.mul (i64.extend_i32_u (local.get $n)) i64.const_?)
-      i64.const_?
-    )
-  )
-)"""
-    skeleton = parse_ast_placeholders(wat_skeleton)
-    runner = WasmRunner(fuel_budget=10000)
-
-    start_t = time.perf_counter()
-    cand = solve_constants(skeleton, target_terms, runner=runner)
-    dur_ms = (time.perf_counter() - start_t) * 1000.0
-
-    assert cand.is_sat is False
-    assert cand.solver_tier == "z3_qfbv"
-    from oeis_learn.decoder.grounding_evidence import check_unsat
-    assert cand.outcome == "proved_unsat_in_scope"
-    assert check_unsat(cand.evidence["unsat_evidence"])
+def test_inconsistent_fitting_scoped_replay_rejects_tampering(fitting_client):
+    source = "(program (return (mul (int 2) (param.get p0))))"
+    result = fit(fitting_client, source, [1] * 20)
+    assert result.outcome == "unsat_in_scope"
+    record = result.to_qualified()
+    assert replay_record(record)["status"] == "verified"
+    bad = deepcopy(record)
+    bad["result"]["native"]["evidence"]["constraints_sha256"] = "sha256:" + "0" * 64
+    bad.pop("kind")
+    bad.pop("identity_sha256")
+    bad.pop("schema_version")
+    assert replay_record(seal_record("native_grounding_result", **bad))["status"] == "unknown"

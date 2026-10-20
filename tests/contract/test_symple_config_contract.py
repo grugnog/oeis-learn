@@ -37,9 +37,7 @@ def test_symple_configuration_schema_contract():
     assert symple_cfg["beta_sft_replay"] == 0.50
 
     assert "solver" in cfg
-    assert cfg["solver"]["enable_diophantine"] is True
-    assert cfg["solver"]["enable_smt"] is True
-    assert cfg["solver"]["smt_timeout_ms"] == 250
+    assert cfg['solver'] == dict(profile='native-fitting/v1',coefficient_bits=4096,timeout_ms=4000,max_parameters=8)
 
     assert "parsimony" in cfg
     assert cfg["parsimony"]["enable_dce"] is True

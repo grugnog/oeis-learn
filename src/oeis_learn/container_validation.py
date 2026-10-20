@@ -161,6 +161,30 @@ def _stages(host, suite, output):
                 ],
             ),
         ]
+    if suite == "bigint-retirement":
+        nodes = [
+            "tests/contract/test_solver_retirement.py",
+            "tests/contract/test_native_fitting.py",
+            "tests/contract/test_constant_solver_contract.py",
+            "tests/contract/test_symbolic_grounding_contract.py",
+            "tests/integration/test_symbolic_grounding_pipeline.py",
+            "tests/integration/test_recurrence_grounding.py",
+            "tests/integration/test_foundation_discovery.py",
+            "tests/integration/test_foundation_repair_gate.py",
+            "tests/unit/test_constant_solver.py",
+            "tests/unit/test_smt_constant_solver.py",
+            "tests/unit/test_dixon_diophantine_solver.py",
+            "tests/unit/test_mersenne61_filter.py",
+            "tests/unit/test_foundation_grounding.py",
+            "tests/unit/test_elite_buffer_replay.py",
+            "tests/unit/test_retirement_callers.py",
+        ]
+        stages = [
+            ("installed-audit", ["python", "-I", "-m", "oeis_learn.synthesis.retirement", "--installed", "--output", "/work/output/audit.json"]),
+            ("bigint-retirement-regressions", ["python", "-m", "pytest", "-q", *nodes,
+                "-m", "not gpu and not docker", "-p", "no:cacheprovider", "--basetemp=/tmp/retirement-pytest",
+                "--junitxml=/work/output/results.xml"]),
+        ]
     results = {}
     for name, argv in stages:
         out = output / name
@@ -323,19 +347,6 @@ def validate(host, suite, output):
     with lock(output / "validation.lock"):
         (output / "validation.json").unlink(missing_ok=True)
         # Do not overlap regression kernels with training in this workspace.
-        if suite == "bigint-retirement":
-            write(
-                output / "validation.json",
-                dict(
-                    status="BLOCKED",
-                    suite=suite,
-                    cause="installed solver retirement audit belongs to Phase4 (T081–T088); no passing evidence claimed",
-                    qualified=False,
-                ),
-            )
-            raise RuntimeError(
-                "bigint-retirement is blocked until the Phase4 installed-distribution audit"
-            )
         with host.gpu_lock() if suite in {"gpu", "bigint-gpu"} else nullcontext():
             host.engine.cleanup(token)
             try:

@@ -309,19 +309,19 @@ def test_inactive_settings_and_parent_chain():
         seal_record("qualified_contract", **fields)
 
 
-def test_real_grounding_solution_unsat_and_tamper_replay():
-    from oeis_learn.decoder.grounding import ground
+def test_real_grounding_solution_unsat_and_tamper_replay(fitting_client):
+    from oeis_learn.synthesis.fitting import fit_program
+    for source,terms,policy in [('i256.const 0',[7]*20,'eligible-literals/v1'), ('i256.const 1',[2]*20,'none')]:
+        record=fit_program(source,terms,policy=policy,client=fitting_client).to_qualified()
+        assert replay_record(record)['status'] == 'verified'
+        bad=deepcopy(record)
+        bad['values']=['99']*20
+        assert replay_record(reseal(bad))['status'] == 'unknown'
 
-    for source, terms in [
-        ("i256.const_?", [7] * 20),
-        ("i256.const 1", [2] * 20),
-        ("i256.const_? i64.const 2 i256.mul_scalar", [1] * 20),
-    ]:
-        record = ground(source, terms).to_qualified()
-        assert replay_record(record)["status"] == "verified", record
-        bad = deepcopy(record)
-        bad["visible_prompt_sha256"] = E
-        assert replay_record(reseal(bad))["status"] == "unknown"
+
+def test_historical_grounding_record_never_reexecutes():
+    record=seal_record('grounding_result',**fixtures()['grounding_result'])
+    assert replay_record(record)['status'] == 'historical_unreplayed'
 
 
 def test_real_scoped_formula_and_witness_replay():

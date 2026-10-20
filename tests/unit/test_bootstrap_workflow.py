@@ -9,7 +9,7 @@ from oeis_learn.fresh import worker
 from oeis_learn.fresh.bootstrap_config import learning_defaults
 from oeis_learn.fresh.common import digest, read, write
 from oeis_learn.fresh.diagnostics import evaluate
-from oeis_learn.fresh.search import select, grounded_variants
+from oeis_learn.fresh.search import select
 from oeis_learn.decoder.program_codec import encode_body
 from oeis_learn.sandbox.reference import execute_term
 from oeis_learn.sandbox.wat_ast import parse
@@ -46,7 +46,6 @@ def test_prefix_selection_rejects_complete_wrong_program():
     assert select(candidates, verified=True) == digest("i256.const 2")
     assert select(candidates[:1], verified=True) is None
     assert select(candidates, verified=False) == digest("i256.const 1")
-    assert "i256.const 2" in grounded_variants("i256.const 1", [2] * 20)
 
 
 def test_diagnostics_use_shuffled_prompts_and_retain_tokens(monkeypatch):

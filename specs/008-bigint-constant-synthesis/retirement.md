@@ -1,6 +1,6 @@
 # Retirement disposition — spec 008 (T001)
 
-Inventory baseline: `b96b92ff680a1509d3cede89e9abf0ddb65d2665`. This is a migration plan; Phase 1 does not delete working solvers. Regenerate the inventory with `python3 scripts/inventory_synthesis_retirement.py`. The path-by-path direct consumer inventory is [retirement-inventory.json](retirement-inventory.json). Phase 4 must close each row and rerun a whole-repository import/caller audit, including dynamic imports and installed distributions.
+Inventory baseline: `b96b92ff680a1509d3cede89e9abf0ddb65d2665`. Phase 4 code dispositions are closed below; clean installed-image validation remains pending T088. Check current reachability with `python3 scripts/inventory_synthesis_retirement.py --check`; this does not overwrite historical inventory decisions. The path-by-path direct consumer inventory is [retirement-inventory.json](retirement-inventory.json). Phase 4 must close each row and rerun a whole-repository import/caller audit, including dynamic imports and installed distributions.
 
 | Old surface | Consumers | Disposition / replacement | Rationale / regression |
 | --- | --- | --- | --- |
@@ -24,3 +24,47 @@ Inventory baseline: `b96b92ff680a1509d3cede89e9abf0ddb65d2665`. This is a migrat
 | Historical specs, contracts, provenance/results | Readers/reproduction | Retain original semantics and status; no rewritten histories | Baseline SHA above identifies old executables |
 
 No examples directory exists at the baseline. Other subsystems remain supported unless explicitly dispositioned after consumer review. No removed implementation may be copied/renamed or installed as an executable fallback. New files/consumers introduced after this inventory must be audited before T088 closes.
+
+## Phase 4 closure
+
+Every baseline consumer row has a code disposition in
+[retirement-inventory.json](retirement-inventory.json). T081–T087 remove eight
+implementation modules, their four obsolete public result/skeleton/filter
+records, the three inventoried historical launchers and three exclusive configs.
+Retained run011/tier1 diagnostic configs have explicit native settings; they are
+not new training recipes. No historical result/specification is deleted.
+
+Supported CLI/evaluation/RL/activation callers use `synthesis.fitting`; the fresh
+worker already used the Phase 3 native client. New qualified native fit records
+replay production execution plus independent admission or rederive scoped UNSAT
+through the native worker. Old qualified grounding envelopes remain valid JSON
+shapes but can only return `historical_unreplayed`. Legacy teacher ingestion is
+explicitly unsupported; verified training-archive admission remains.
+
+The non-fitting loop-certificate checker preserves its existing independent
+obligations while serializing SMT-LIB to `certificate-solver`, built against the
+same pinned Rust/Z3 native closure. It exports no assignment/model search API.
+Python `z3-solver` is removed from package metadata/lock and uninstalled from the
+image if inherited from its base. SymPy consumers listed above remain supported.
+The source audit detects retired imports (including literal dynamic imports),
+old callable names and unchanged nontrivial function bodies copied under another
+name. Clean installed audits use `python -I` outside the checkout and check both
+importability and distribution dependencies.
+
+Replacement regressions retain polynomial, square16-versus4, shared/large
+coefficients, singular prime pivots, integer feasibility/nonintegrality,
+inconsistent systems, carried-state recurrence arithmetic, checked intermediate
+overflow, visible-only fitting, provisional/tampered replay rejection and explicit
+unsupported old control/bitwise forms. Old modular-filter implementation-only
+microsecond/rank assertions are retired; exact integer rejection is the owning
+acceptance test. No global optimum is asserted for bounded discovered solutions.
+
+The budgeted `evaluation/search.py::typed_repairs` proposal generator is retained:
+it does not read visible target values or fit parameters, and each generated
+source is charged/checked under the existing search ledger. It is not a renamed
+fitter or a replacement for native admission.
+
+The code inventory is not clean-install proof. T088 closes only when the new
+installed image, native regressions and preserved compatibility/certificate
+checks pass. See [phase-4.md](validation/phase-4.md). Later Phase 5 qualification
+and all research runs remain separate.

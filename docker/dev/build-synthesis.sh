@@ -19,3 +19,8 @@ cargo test --release --locked --manifest-path crates/oeis_bigint_runtime/Cargo.t
 cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.toml \
   --example runtime_probe
 cp /opt/oeis-native-target/release/examples/runtime_probe /opt/oeis-build-info/runtime-probe
+
+# Reuse the pinned native solver for independent certificate obligations.
+cargo build --release --locked --manifest-path crates/oeis_synthesis_core/Cargo.toml \
+  --bin certificate_solver
+cp /opt/oeis-native-target/release/certificate_solver /opt/oeis-build-info/certificate-solver

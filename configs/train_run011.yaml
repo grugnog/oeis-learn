@@ -73,18 +73,12 @@ elite_buffer:
   inject_on_failure: true
   injection_reward: 1.0
 
+# Retained diagnostic recipe; new runs use configs/foundation/bigint_*.yaml.
 solver:
-  tier: "three_tier_decoupled"
-  fuel_budget: 20000
-  enable_m61_filter: true
-  m61_filter_timeout_us: 500
-  enable_dixon_diophantine: true
-  dixon_timeout_ms: 1.0
-  dixon_bound: 1000
-  enable_z3_qfnia: true
-  qfnia_timeout_ms: 240
-  prohibit_qf_bv: true
-  max_placeholders: 4
+  profile: native-fitting/v1
+  coefficient_bits: 4096
+  timeout_ms: 4000
+  max_parameters: 8
 
 canaries:
   eval_interval_epochs: 5

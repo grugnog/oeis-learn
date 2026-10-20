@@ -310,35 +310,8 @@ class LexicaseSelectionBatch:
 # =========================================================================
 
 
-@dataclass
-class ASTSkeleton:
-    """Represents an ungrounded WebAssembly program structure containing placeholder tokens."""
-
-    raw_wat: str
-    placeholder_count: int
-    is_linear: bool = True
-    placeholder_indices: List[int] = field(default_factory=list)
-    basis_signatures: List[str] = field(default_factory=list)
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
 
 
-@dataclass
-class ConstantSolverResult:
-    """Captures the output of Diophantine or SMT constant solving."""
-
-    solver_type: str
-    outcome: str = "unknown"
-    evidence: Optional[Dict[str, Any]] = None
-    constants: Optional[List[int]] = None
-    solve_duration_ms: float = 0.0
-    is_sat: bool = False
-    grounded_wat: Optional[str] = None
-    error_message: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
 
 
 @dataclass
@@ -1053,41 +1026,8 @@ class SymbolicCandidateSkeleton:
         return asdict(self)
 
 
-@dataclass(frozen=True)
-class ModularFilterCertificate:
-    """Finite-field rank analysis certificate from Mersenne-61 fast filter."""
-
-    status: str
-    prime: int = 2305843009213693951
-    augmented_rank: int = 0
-    coefficient_rank: int = 0
-    unknown_count: int = 0
-    elapsed_microseconds: float = 0.0
-    penalty_reward: float = 0.0
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
 
 
-@dataclass
-class GroundedCandidate:
-    """Candidate program whose constant placeholders have been grounded."""
-
-    skeleton_id: str
-    constants: List[int]
-    solver_tier: str
-    is_sat: bool
-    solve_duration_ms: float
-    grounded_wat: Optional[str] = None
-    certificate: Optional[ModularFilterCertificate] = None
-    outcome: str = "unknown"
-    evidence: Optional[Dict[str, Any]] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self)
-        if self.certificate is not None:
-            d["certificate"] = self.certificate.to_dict()
-        return d
 
 
 @dataclass

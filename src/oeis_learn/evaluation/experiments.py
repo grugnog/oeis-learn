@@ -2,25 +2,10 @@
 
 from __future__ import annotations
 
-import datetime
 import json
 import os
-import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-from oeis_learn.curriculum.mdl_verifier import MdlVerifier
-from oeis_learn.data.benchmark import BenchmarkCohort, BenchmarkTarget, load_benchmark_manifest
-from oeis_learn.data.models import (
-    ExperimentManifest,
-    ExperimentOutcome,
-    ExperimentVariant,
-)
-from oeis_learn.decoder.constant_solver import resolve_program_constants
-from oeis_learn.evaluation.checkpoint import CheckpointProvenance, load_checkpoint_v2
-from oeis_learn.evaluation.protocol import (
-    EvaluationProtocol,
-    canonical_json_dumps,
-    canonical_json_hash,
-)
+from typing import Any, Dict, Optional, Sequence, Tuple
+from oeis_learn.synthesis.fitting import fit_program
 from oeis_learn.sandbox.runner import WasmRunner
 
 
@@ -40,14 +25,10 @@ def evaluate_inference_ablation_pair(
     for raw_wat in raw_candidates:
         resolved_wat = raw_wat
         resolved_constants = []
-        if constant_resolution and "i64.const_?" in raw_wat:
-            r_wat, r_consts, r_st, _, _ = resolve_program_constants(
-                wat_code=raw_wat,
-                terms=obs,
-                timeout_ms=solver_timeout_ms,
-                max_placeholders=max_placeholders,
-                runner=wasm_runner,
-            )
+        if constant_resolution:
+            fit = fit_program(raw_wat, obs, timeout_ms=solver_timeout_ms)
+            r_wat, r_consts = fit.source, list(fit.constants)
+            r_st, _, _ = ("PASSED" if fit.outcome == "verified_solution" else fit.outcome.upper()), fit.elapsed_ms, fit.reason
             if r_st == "PASSED":
                 resolved_wat = r_wat
                 resolved_constants = r_consts

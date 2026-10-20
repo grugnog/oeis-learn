@@ -86,6 +86,9 @@ def run_benchmark(
         with open(config_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
 
+    from oeis_learn.synthesis.fitting import require_native_solver_settings
+    require_native_solver_settings(cfg)
+
     cfg["benchmark"] = {
         "num_epochs": num_epochs,
         "steps_per_epoch": steps_per_epoch,

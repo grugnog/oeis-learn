@@ -9,7 +9,7 @@ from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 
 
-def test_egca_training_step_executes_and_updates_gradients():
+def test_egca_training_step_executes_and_updates_gradients(fitting_client):
     encoder = TriStreamEncoder(d_model=64, n_heads=2, n_encoder_layers=2, d_ff=128)
     decoder = WatTransformerDecoder(d_model=64, n_heads=2, n_decoder_layers=2, d_ff=128)
     scheduler = CurriculumScheduler(initial_stage=1)
@@ -40,7 +40,7 @@ def test_egca_training_step_executes_and_updates_gradients():
     assert len(trainer.telemetry.records) == 1
 
 
-def test_original_policy_checkpoint_reproduces_next_rollout_update(tmp_path):
+def test_original_policy_checkpoint_reproduces_next_rollout_update(tmp_path, fitting_client):
     from oeis_learn.tracking.training_checkpoint import learning_state_digest
 
     torch.manual_seed(123)
@@ -65,7 +65,7 @@ def test_original_policy_checkpoint_reproduces_next_rollout_update(tmp_path):
 
 
 @pytest.mark.parametrize("objective", ["reinforce", "grpo"])
-def test_generic_training_prompt_uses_real_body_codec_policy_and_execution(tmp_path, objective):
+def test_generic_training_prompt_uses_real_body_codec_policy_and_execution(tmp_path, objective, fitting_client):
     from oeis_learn.encoder.integer_bytes import IntegerByteEncoder
     from oeis_learn.decoder.program_codec import (
         FOUNDATION_VOCAB_SIZE,

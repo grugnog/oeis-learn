@@ -56,3 +56,41 @@ cannot qualify the strict foundation track. Conversion preserves history and doe
 not manufacture missing optimizer, RNG, provenance or containment evidence.
 See [foundation migration and recovery](docs/foundation.md#migration-and-recovery)
 before reusing old artifacts. Long-run or LODA comparisons are separate work.
+
+## Spec 008 fitting migration
+
+New fitting uses the pinned native service and independent final-source
+verification. Use `python3 scripts/foundation_run.py --engine podman` with
+`configs/foundation/bigint_*.yaml`; substitute Docker when preferred. The
+`solve-constants` image-side diagnostic accepts `bigint-body/v1` parameter sources
+or the qualified bare checked-i256 concrete subset, and emits explicit outcomes.
+It no longer solves scalar/bit-vector `const_?` or recurrence skeletons. These
+unsupported forms are not reinterpreted under bigint semantics.
+
+| Retired surface | Supported replacement |
+| --- | --- |
+| Python constant/grounding/Dixon/QFNIA/modular-filter/recurrence fitters | `oeis_learn.synthesis.fitting.fit_program` → one native client → independent admission |
+| Literal-neighbour `fresh.search.grounded_variants` | Phase 3 native fitting portfolio |
+| Old grounding replay | New native scoped replay; old JSON stays `historical_unreplayed` |
+| Legacy teacher ingestion | Inspect historical JSON or use independently verified training-archive admission |
+| run008/009/010 scripts and exclusive configs | Portable foundation commands and versioned bigint recipes |
+| `enable_z3_qfnia`, Dixon/filter switches and scalar fitting methods | Explicit `native-fitting/v1` settings; old choices are unsupported |
+
+Retained signed-256 execution, codecs and checkpoint readers keep their original
+numerical meaning. SymPy remains for active independent certificate/discovery
+checks. Loop-certificate obligations now use the same pinned native Z3 dependency
+through a bounded certificate checker, with no Python solver package or model
+interface. Historical results/specifications remain unchanged; obsolete
+executables can be reproduced from commit
+`b96b92ff680a1509d3cede89e9abf0ddb65d2665`.
+
+Check the source audit with `python3 scripts/inventory_synthesis_retirement.py --check`. The clean installed-image audit and replacement regressions run with:
+
+```bash
+python3 scripts/foundation_run.py --engine podman validate \
+  --suite bigint-retirement --output tmp-validation/008-phase4-retirement-001
+```
+
+See [the Phase 4 evidence](specs/008-bigint-constant-synthesis/validation/phase-4.md)
+for the current pass/pending gates. Retirement is not permission to launch a
+research screen or change a checkpoint's profile.

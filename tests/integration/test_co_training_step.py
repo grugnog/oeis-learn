@@ -1,4 +1,4 @@
-"""Integration test for mixed SFT + RL co-training loss step and padding attention masks."""
+"""On-policy KL updates, padding masks and explicit retired-teacher rejection."""
 
 import pytest
 import torch
@@ -11,21 +11,14 @@ from oeis_learn.rl.elite_buffer import EliteSeedDemonstrationBuffer
 from oeis_learn.rl.trainer import EgcaGrpoTrainer
 
 
-def test_co_training_step_executes_with_sft_blending_and_kl():
+def test_on_policy_step_executes_with_kl_and_no_legacy_teacher(fitting_client):
     encoder = TriStreamEncoder(d_model=64, n_heads=2, n_encoder_layers=2)
     decoder = WatTransformerDecoder(d_model=64, n_heads=2, n_decoder_layers=2)
     ref_decoder = WatTransformerDecoder(d_model=64, n_heads=2, n_decoder_layers=2)
     scheduler = CurriculumScheduler(initial_stage=1)
     elite_buffer = EliteSeedDemonstrationBuffer()
 
-    from oeis_learn.data.models import EliteReplayBufferEntry
-
-    # Pre-populate elite buffer with canonical sequence A000217
     terms = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120, 136, 153, 171, 190]
-    wat_code = '(module (func (export "compute") (param $n i32) (result i64) local.get $n i64.extend_i32_s local.get $n i64.extend_i32_s i64.const 1 i64.add i64.mul i64.const 2 i64.div_s))'
-    elite_buffer.add_entry(
-        EliteReplayBufferEntry(oeis_id="A000217", terms=terms, wat_code=wat_code)
-    )
 
     trainer = EgcaGrpoTrainer(
         encoder=encoder,
@@ -53,6 +46,16 @@ def test_co_training_step_executes_with_sft_blending_and_kl():
     assert not torch.isnan(torch.tensor(metrics["loss"]))
     assert "entropy" in metrics
     assert metrics["entropy"] >= 0.0
+    assert not elite_buffer.entries and not elite_buffer.canonical_archive
+
+
+def test_legacy_teacher_entry_is_explicitly_rejected():
+    from oeis_learn.data.models import EliteReplayBufferEntry
+
+    buffer = EliteSeedDemonstrationBuffer()
+    with pytest.raises(ValueError, match="Legacy teacher ingestion is retired"):
+        buffer.add_entry(EliteReplayBufferEntry("A000012", [1] * 20, "i256.const 1"))
+    assert not buffer.entries and not buffer.canonical_archive
 
 
 def test_decoder_padding_mask_prevents_gradient_leak():
