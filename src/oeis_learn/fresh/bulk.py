@@ -141,7 +141,15 @@ def recover_object(repo, commit, row):
             if process.returncode:
                 raise subprocess.CalledProcessError(process.returncode, process.args)
             if not verified_object(temporary, row):
-                raise ValueError("LFS recovery returned a pointer or an incorrect size/hash")
+                size = temporary.stat().st_size
+                actual_hash = (
+                    file_hash(temporary) if size <= row["bytes"] else "not hashed (oversize)"
+                )
+                actual_pointer = pointer(temporary)
+                raise ValueError(
+                    f"LFS recovery output: {size} bytes, {actual_hash}, "
+                    f"pointer={actual_pointer!r}; expected {row['bytes']} bytes, {row['sha256']}"
+                )
             os.fchmod(out.fileno(), 0o644)
             os.fsync(out.fileno())
             os.replace(temporary, path)

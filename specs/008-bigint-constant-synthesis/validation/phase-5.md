@@ -207,3 +207,14 @@ After fetch succeeds, run the timestamped `--gpu --prepare --learnability`
 command above. Keep `tmp-oeis-bulk`; verified objects and the frozen plan are
 reused. If recovery fails, share its `RECOVER LFS object` line and subsequent
 stderr; the object is not silently excluded or counted as complete.
+
+The user's recovery attempt subsequently exited successfully from Git LFS,
+but independent output verification rejected its result. The initial error
+did not record actual output size/hash. That message now includes actual
+bytes, SHA-256 and any parsed pointer, alongside the expected identity.
+A real Git LFS regression confirms that a same-size corrupted local cache
+object can produce a zero exit while returning wrong bytes; verification
+rejects it and retains the original working pointer. This establishes a
+possible failure mode, not the cause on the user's machine. Recovery with the
+existing pre-push hook also passes. The user's cached object must be inspected
+before declaring a remote/client/cache diagnosis or deleting any objects.

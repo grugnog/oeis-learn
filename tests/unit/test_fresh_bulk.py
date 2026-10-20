@@ -316,6 +316,38 @@ def test_fetch_recovers_unresolved_pointer_via_real_lfs_and_preserves_cache(
     assert not list(repo.glob("files/*/.lfs-recovery-*"))
 
 
+def test_recovery_with_existing_hook(local_lfs_cache):
+    cache, repo, commit, rows, payloads = local_lfs_cache
+    bulk.git(repo, "lfs", "install", "--local", "--skip-repo")
+    hook = repo / ".git/hooks/pre-push"
+    hook.write_text(
+        '#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || exit 2\ngit lfs pre-push "$@"\n'
+    )
+    hook.chmod(0o755)
+    before = hook.read_bytes()
+    bulk.recover_object(repo, commit, rows[1])
+    assert (repo / rows[1]["path"]).read_bytes() == payloads[rows[1]["path"]]
+    assert hook.read_bytes() == before
+
+
+def test_recovery_reports_actual_output_hash_without_replacing_pointer(local_lfs_cache):
+    _, repo, commit, rows, _ = local_lfs_cache
+    row = rows[1]
+    bulk.git(repo, "lfs", "install", "--local", "--skip-repo")
+    oid = row["sha256"].removeprefix("sha256:")
+    cached = repo / ".git/lfs/objects" / oid[:2] / oid[2:4] / oid
+    cached.parent.mkdir(parents=True)
+    # Git LFS can read a same-size local object without validating its hash.
+    wrong = b"0 8\n1 6\n"
+    cached.write_bytes(wrong)
+    before = (repo / row["path"]).read_bytes()
+    actual_hash = "sha256:" + hashlib.sha256(wrong).hexdigest()
+    with pytest.raises(ValueError, match=f"LFS recovery output: 8 bytes, {actual_hash}"):
+        bulk.recover_object(repo, commit, row)
+    assert (repo / row["path"]).read_bytes() == before
+    assert not list(repo.glob("files/*/.lfs-recovery-*"))
+
+
 def import_fixture(cache):
     repo = cache / "oeisdata"
     seq = repo / "seq/A000/A000001.seq"
