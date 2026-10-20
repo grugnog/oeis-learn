@@ -82,3 +82,31 @@ merge or automatic promotion is launched by this work.
 
 T088 can be checked only after the actual new-image results satisfy the gate.
 `.specify/extensions.yml` is absent; no post-implementation hook is registered.
+
+## CI repair after `d24c7f7`
+
+Review run `39347074139` failed because Ruff named six deleted modules and the
+host-only training integration lacked the now-required native worker. Container
+run `39347074171` built the image successfully, passed native preparation, the
+installed retirement contracts and G7, then failed on a co-training fixture that
+still inserted a retired teacher. Both engine jobs reached their public CPU
+suite and failed only two assertions that expected the deleted launchers.
+
+The review workflow now lints `synthesis` rather than retired module paths.
+Training/replay integration runs in the existing shared qualification image,
+with mandatory native artifacts and durable JUnit output; no additional image
+build is introduced. Local training tests explicitly require the real native
+fixture. Retained wrapper inventory excludes the retired launchers, and tests
+require those launchers and exclusive recipes to be absent. The co-training
+test exercises on-policy KL with an empty legacy buffer; a separate assertion
+requires retired teacher ingestion to fail atomically.
+
+Local repair checks: **38 passed, six native/installed-image skips, zero
+failures/errors**; another **55 supporting tests passed** for policy, replay,
+handoff, learning gates and container validation. All review-workflow Ruff commands, both changed workflows'
+shell blocks, source retirement audit, current review disposition binding and
+Spec Kit artifact consistency pass. See
+[phase-4-ci-repair.json](phase-4-ci-repair.json) for source/test identities.
+The earlier 200-test record remains bound to its original snapshot. This repair
+does not close T088; the newly pushed container/native/compatibility checks must
+complete successfully first. New CI is deliberately left unmonitored.

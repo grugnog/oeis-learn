@@ -144,6 +144,21 @@ jobs:
               --junitxml=/evidence/installed-image.xml
             oeis-learn foundation --help > /evidence/installed-help.txt
           '
+      - name: Training and verified replay integration with packaged native fitter
+        run: |
+          mkdir -p phase7-evidence
+          chmod 777 phase7-evidence
+          docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
+            set -euo pipefail
+            trap "chmod -R a+rX /evidence" EXIT
+            export OMP_NUM_THREADS=2 OEIS_REQUIRE_BIGINT_BUILD=1
+            cd /opt/oeis-build
+            python -m pytest -q --durations=20 \
+              tests/integration/test_egca_training_step.py \
+              tests/integration/test_co_training_step.py \
+              tests/integration/test_bootstrap_admission.py \
+              --junitxml=/evidence/training-integration.xml
+          '
       - name: Mandatory Rust tests and G7 qualification
         run: |
           mkdir -p phase7-evidence

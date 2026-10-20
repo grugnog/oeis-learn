@@ -4,9 +4,6 @@ from pathlib import Path
 from oeis_learn.experiments.artifacts import compute_file_hash
 
 PATHS = (
-    "scripts/run_008_learning_run.py",
-    "scripts/run_009_recurrence_sprint.py",
-    "scripts/run_010_overnight_curriculum.py",
     "scripts/extract_oeis_data.py",
     "scripts/analyze_oeis_corpus_precision.py",
     "scripts/run_progressive_validation.py",

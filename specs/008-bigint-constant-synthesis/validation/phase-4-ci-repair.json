@@ -1,0 +1,82 @@
+{
+  "version": "phase4-ci-repair/v1",
+  "parent_revision": "d24c7f78527b1d6cd197c94da3ca7653b703fb6a",
+  "tasks": [
+    "T084",
+    "T086",
+    "T088"
+  ],
+  "implementation_sha256": "sha256:1bd29935e61ddcc9412250901de7e774447d4da473f25a21748b987c1dec856e",
+  "snapshot_sha256": "sha256:5c033b14944a859acd1963ebf7ac9e98d1f3a7782fdcba3443bbabaefb3022c5",
+  "changed_code_sha256": {
+    ".github/workflows/foundation.yml": "sha256:b46d7026086ac83e1af5e2dbd354fe8f2f54c403b38c60a3cf23a532d78bd2ae",
+    ".github/workflows/phase7-review.yml": "sha256:7ade6732ddde093ca1647abbd89c70124451fd774b8f081c7cb071539aad7f21",
+    "src/oeis_learn/evaluation/legacy_wrappers.py": "sha256:638b029f897323631dbf08de8320fef7cd7bd77965edf4d6e60385220b1ffb80",
+    "tests/integration/test_co_training_step.py": "sha256:3696c00f06f131ae9923d089a151d3d3cbfc2c86096990e3dadd24e2d2a144a0",
+    "tests/integration/test_egca_training_step.py": "sha256:4a0b8a480f8378acbce6dde0b7c83df624e7158707f992e8089ca3067f647c6b",
+    "tests/unit/test_foundation_legacy_wrappers.py": "sha256:b93f66144739cdae847529696d13ef45dbc7b25ed3152a54679d70e31cdc85bc"
+  },
+  "failed_runs": [
+    39347074139,
+    39347074171
+  ],
+  "local_runs": [
+    {
+      "name": "phase4-ci-repair",
+      "junit_sha256": "sha256:7bf45677f84a6f3e5d3922bed2c346d9cbca3a26316b385edcce5a13d555c0a7",
+      "passed": 38,
+      "skipped": [
+        {
+          "classname": "tests.integration.test_co_training_step",
+          "name": "test_on_policy_step_executes_with_kl_and_no_legacy_teacher",
+          "reason": "requires native qualification image"
+        },
+        {
+          "classname": "tests.integration.test_egca_training_step",
+          "name": "test_egca_training_step_executes_and_updates_gradients",
+          "reason": "requires native qualification image"
+        },
+        {
+          "classname": "tests.integration.test_egca_training_step",
+          "name": "test_original_policy_checkpoint_reproduces_next_rollout_update",
+          "reason": "requires native qualification image"
+        },
+        {
+          "classname": "tests.integration.test_egca_training_step",
+          "name": "test_generic_training_prompt_uses_real_body_codec_policy_and_execution[reinforce]",
+          "reason": "requires native qualification image"
+        },
+        {
+          "classname": "tests.integration.test_egca_training_step",
+          "name": "test_generic_training_prompt_uses_real_body_codec_policy_and_execution[grpo]",
+          "reason": "requires native qualification image"
+        },
+        {
+          "classname": "tests.contract.test_solver_retirement",
+          "name": "test_installed_distribution_has_no_retired_surface",
+          "reason": "requires clean installed qualification image outside checkout"
+        }
+      ],
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "phase4-ci-repair-support",
+      "junit_sha256": "sha256:2504edf276fa43d9187ea73876d5eb025adbecf9b8310faf8d2add319b40fb17",
+      "passed": 55,
+      "skipped": [],
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "checks": {
+    "workflow_ruff": "PASS",
+    "workflow_shell_syntax": "PASS",
+    "source_retirement": "PASS",
+    "spec_artifact_consistency": "PASS",
+    "review_disposition_items": 68
+  },
+  "clean_installed_native_gate": "PENDING_NEW_CI",
+  "hip_run_required": false,
+  "limits": "No local container engine or packaged native worker; no new CI was monitored."
+}

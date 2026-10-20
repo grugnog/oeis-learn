@@ -53,12 +53,16 @@ def test_warmstart_gate_samples_model_and_restores_modes(monkeypatch):
 
 
 def test_inventory_only_existing_files_and_historical_status():
+    from pathlib import Path
     from oeis_learn.evaluation.legacy_wrappers import wrapper_inventory
 
     rows = wrapper_inventory()
     assert all(row["status"] == "legacy_unverified" for row in rows)
     assert not any("cli/train_run008.py" in row["path"] for row in rows)
-    assert any(row["path"] == "scripts/run_008_learning_run.py" for row in rows)
+    assert rows and all(Path(row["path"]).is_file() for row in rows)
+    assert any(row["path"] == "src/oeis_learn/cli/train_run011.py" for row in rows)
+    assert not any(row["path"].startswith("scripts/run_00") for row in rows)
+    assert not any(row["path"] == "scripts/run_010_overnight_curriculum.py" for row in rows)
 
 
 def test_gate_stage_does_not_train_or_replace_missing_parent_states(tmp_path, monkeypatch):
@@ -141,12 +145,9 @@ def test_historical_resume_chooses_numeric_latest_epoch(tmp_path):
     assert path.name == "model_epoch_1000.v2.pt" and epoch == 1000
 
 
-def test_historical_launchers_check_resolved_parent_once():
-    import ast
+def test_retired_launchers_and_exclusive_recipes_are_absent():
     from pathlib import Path
 
-    for name in ("run_008_learning_run.py", "run_009_recurrence_sprint.py", "run_010_overnight_curriculum.py"):
-        tree = ast.parse((Path("scripts") / name).read_text())
-        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
-        assert sum(n.func.id == "require_legacy_parent" for n in calls) == 1
-        assert sum(n.func.id == "latest_legacy_checkpoint" for n in calls) == 1
+    for number, suffix in (("008", "learning_run"), ("009", "recurrence_sprint"), ("010", "overnight_curriculum")):
+        assert not (Path("scripts") / f"run_{number}_{suffix}.py").exists()
+        assert not (Path("configs") / f"train_run{number}.yaml").exists()

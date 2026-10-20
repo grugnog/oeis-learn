@@ -58,7 +58,7 @@ jobs:
       - name: Compile and check repaired modules
         run: |
           .review-venv/bin/python -m compileall -q src tests/unit/test_foundation_grounding.py tests/unit/test_foundation_symbolic.py
-          .review-venv/bin/ruff check --select F,E9 src/oeis_learn/decoder/grounding.py src/oeis_learn/decoder/grounding_reference.py src/oeis_learn/decoder/recurrence.py src/oeis_learn/decoder/constant_solver.py src/oeis_learn/decoder/dixon_solver.py src/oeis_learn/decoder/qfnia_solver.py src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
+          .review-venv/bin/ruff check --select F,E9 src/oeis_learn/synthesis src/oeis_learn/discovery/formula_syntax.py src/oeis_learn/discovery/formula_checker.py src/oeis_learn/discovery/symbolic_prover.py src/oeis_learn/sandbox/contained.py src/oeis_learn/sandbox/optimizer.py src/oeis_learn/evaluation/repair_gate.py
           .review-venv/bin/ruff check --select F,E9 scripts/verify_phase8.py src/oeis_learn/rl/policy.py src/oeis_learn/rl/prompt_weighting.py src/oeis_learn/rl/reward.py src/oeis_learn/rl/telemetry.py src/oeis_learn/rl/trainer.py src/oeis_learn/evaluation/learning_gate.py
           .review-venv/bin/ruff check --select F,E9 src/oeis_learn/discovery src/oeis_learn/sandbox/logical_ir.py src/oeis_learn/sandbox/wide_helpers.py src/oeis_learn/sandbox/streaming.py src/oeis_learn/evaluation/discovery_gate.py tests/unit/test_foundation_extended_wat.py tests/integration/test_foundation_discovery.py tests/integration/test_foundation_extended_wat.py tests/contract/test_foundation_discovery_cli.py
       - name: Phase 11 code quality
@@ -86,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [input-diagnostics, quickstart, training-integration]
+        check: [input-diagnostics, quickstart]
     env:
       OMP_NUM_THREADS: '2'
       PYTHONPATH: 'src:.'
@@ -113,19 +113,12 @@ jobs:
         run: |
           .review-venv/bin/python scripts/verify_phase11.py --output phase11-evidence/quickstart
           .review-venv/bin/python -m oeis_learn.evaluation.handoff --archive phase11-evidence/quickstart/handoff
-      - name: Training and verified replay integration
-        if: matrix.check == 'training-integration'
-        run: |
-          .review-venv/bin/python -m pytest -q --durations=20 \
-            tests/integration/test_egca_training_step.py tests/integration/test_bootstrap_admission.py \
-            --junitxml=phase7-training-integration.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: phase7-cpu-${{ matrix.check }}
           path: |
             phase7-${{ matrix.check }}-environment.txt
-            phase7-training-integration.xml
             phase13-evidence/**
             phase11-evidence/quickstart/*.stdout
             phase11-evidence/quickstart/*.stderr
