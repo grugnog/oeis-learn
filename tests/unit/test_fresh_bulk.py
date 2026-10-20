@@ -1,5 +1,7 @@
 import resource
+import shutil
 import sqlite3
+import subprocess
 from unittest.mock import patch
 
 import pytest
@@ -61,7 +63,7 @@ def test_import_replays_hashes_counts_and_retains_gaps(tmp_path):
         seq.parent.mkdir(parents=True, exist_ok=True)
         terms.parent.mkdir(parents=True, exist_ok=True)
         seq.write_text(entry(aid, -2))
-        terms.write_text("".join(f"{i-2} {-i}\n" for i in range(count)))
+        terms.write_text("".join(f"{i - 2} {-i}\n" for i in range(count)))
         rows.append(
             {
                 "aid": aid,
@@ -141,6 +143,76 @@ def test_fetch_is_batched_pinned_and_rerun_uses_verified_objects(tmp_path):
         with pytest.raises(ValueError, match="already pinned"):
             bulk.fetch(dict(config, revision="b" * 40), tmp_path)
     assert read(tmp_path / "fetch-result.json")["complete"]
+
+
+@pytest.mark.parametrize("custom_hooks_path", [False, True])
+def test_fetch_preserves_existing_hooks_and_resumes_with_real_lfs(
+    tmp_path, monkeypatch, custom_hooks_path
+):
+    if shutil.which("git-lfs") is None:
+        pytest.skip("requires git-lfs, installed in both project images")
+    # Use actual Git/LFS configuration and hooks without inheriting host config.
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    repo = tmp_path / "oeisdata"
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    bulk.git(repo, "remote", "add", "origin", bulk.REPOSITORY)
+    bulk.git(
+        repo,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "--quiet",
+        "--allow-empty",
+        "-m",
+        "fixture",
+    )
+    commit = bulk.git(repo, "rev-parse", "HEAD", capture=True).strip()
+    hooks = repo / ("kept-hooks" if custom_hooks_path else ".git/hooks")
+    hooks.mkdir(exist_ok=True)
+    if custom_hooks_path:
+        bulk.git(repo, "config", "--local", "core.hooksPath", "kept-hooks")
+        content = b"#!/bin/sh\n# Existing custom hook must not be overwritten.\nexit 0\n"
+    else:
+        # The older LFS hook reported by the HIP run is deliberately retained.
+        content = (
+            b"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { "
+            b'echo "git-lfs not found" >&2; exit 2; }\ngit lfs pre-push "$@"\n'
+        )
+    hook = hooks / "pre-push"
+    hook.write_bytes(content)
+    hook.chmod(0o755)
+    payload = repo / "files/A000/b000001.txt"
+    payload.parent.mkdir(parents=True)
+    payload.write_text("0 1\n1 2\n")
+    write(tmp_path / "snapshot.json", {"repository": bulk.REPOSITORY, "commit": commit})
+    plan = {
+        "selected": [
+            {
+                "path": str(payload.relative_to(repo)),
+                "bytes": payload.stat().st_size,
+                "sha256": file_hash(payload),
+            }
+        ]
+    }
+    write(tmp_path / "fetch-plan.json", plan, immutable=True)
+    config = {"revision": commit, "free_disk_floor_bytes": 0}
+    plan_hash = file_hash(tmp_path / "fetch-plan.json")
+    for _ in range(2):
+        assert bulk.fetch(config, tmp_path) == plan
+        assert hook.read_bytes() == content and hook.stat().st_mode & 0o777 == 0o755
+        assert file_hash(tmp_path / "fetch-plan.json") == plan_hash
+        assert read(tmp_path / "fetch-result.json") == {
+            "plan_sha256": plan_hash,
+            "complete": True,
+            "files": 1,
+        }
+    assert (
+        bulk.git(repo, "config", "--local", "--get", "filter.lfs.process", capture=True).strip()
+        == "git-lfs filter-process"
+    )
 
 
 def import_fixture(cache):

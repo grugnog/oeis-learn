@@ -140,3 +140,25 @@ and standard-library-only runner help pass. A broader CLI-contract attempt had
 two environment failures because this sandbox lacks
 `/proc/sys/kernel/random/boot_id`; those container-only paths await CI rather
 than changing their boot-identity checks. Follow-up CI is left unmonitored.
+
+## Bulk fetch hook compatibility follow-up
+
+The HIP attempt `008-phase5-hip-20261020T185302Z` reached bulk fetch but stopped
+at `git lfs install --local`: Git LFS 3.4.1 was present and rejected an existing
+pre-push hook. This is initialization failure, not a missing image dependency
+or HIP test result. Fetch now uses `git lfs install --local --skip-repo` to
+configure repository filters while preserving all hooks, including custom
+`core.hooksPath`. The download cache never pushes. Pinned plans, selected paths,
+checksums and batched downloads are unchanged.
+
+Actual Git/LFS regression tests reproduced the failure before the fix and now
+verify repeated cached fetches, filter setup, untouched older/custom hooks and
+unchanged plan/receipt hashes. Bulk and qualification-runner tests pass23/23;
+Ruff and whitespace checks pass. No image dependency layer changed. New CI is
+left running without monitoring; actual HIP qualification remains pending.
+
+After updating this branch, rerun the timestamped `--gpu --prepare --learnability`
+command above. Retain `tmp-oeis-bulk`: its pinned snapshot, plan and verified
+downloads are reused. Use a fresh output directory; do not use `--inputs` for
+this attempt because fetching failed before preparation produced complete
+inputs. The wrapper rebuilds for the new source and prints the new result ZIP.

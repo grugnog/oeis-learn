@@ -250,7 +250,10 @@ def fetch(config, cache):
         if not plan["selected"]:
             raise ValueError("no eligible b-files in bulk snapshot")
         git(repo, "lfs", "version")
-        git(repo, "lfs", "install", "--local")
+        # This cache only fetches/checks out pinned objects; it never pushes.
+        # Configure filters without installing/updating pre-push hooks, which
+        # may belong to another LFS version or an existing core.hooksPath.
+        git(repo, "lfs", "install", "--local", "--skip-repo")
         for start in range(0, len(plan["selected"]), 100):
             batch = plan["selected"][start : start + 100]
             missing = [
