@@ -1,3 +1,4 @@
+import hashlib
 import resource
 import shutil
 import sqlite3
@@ -213,6 +214,106 @@ def test_fetch_preserves_existing_hooks_and_resumes_with_real_lfs(
         bulk.git(repo, "config", "--local", "--get", "filter.lfs.process", capture=True).strip()
         == "git-lfs filter-process"
     )
+
+
+@pytest.fixture
+def local_lfs_cache(tmp_path, monkeypatch):
+    if shutil.which("git-lfs") is None:
+        pytest.skip("requires git-lfs, installed in both project images")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    monkeypatch.setenv("GIT_LFS_SKIP_SMUDGE", "1")
+    source, remote, cache = tmp_path / "source", tmp_path / "remote.git", tmp_path / "cache"
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    bulk.git(source, "lfs", "install", "--local", "--skip-repo")
+    (source / ".gitattributes").write_text("files/** filter=lfs diff=lfs merge=lfs -text\n")
+    payloads = {
+        "files/A000/b000001.txt": b"0 1\n1 2\n",
+        "files/A373/b373464.txt": b"0 7\n1 9\n",
+        "files/A999/b999999.txt": b"0 99\n1 99\n",
+    }
+    for name, data in payloads.items():
+        path = source / name
+        path.parent.mkdir(parents=True)
+        path.write_bytes(data)
+    bulk.git(source, "add", ".")
+    bulk.git(
+        source,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "fixture",
+    )
+    bulk.git(source, "remote", "add", "origin", str(remote))
+    bulk.git(source, "push", "-q", "origin", "HEAD")
+    bulk.git(source, "lfs", "push", "--all", "origin")
+    cache.mkdir()
+    repo = cache / "oeisdata"
+    subprocess.run(["git", "clone", "-q", str(remote), str(repo)], check=True)
+    commit = bulk.git(repo, "rev-parse", "HEAD", capture=True).strip()
+    monkeypatch.setattr(bulk, "REPOSITORY", str(remote))
+    write(cache / "snapshot.json", {"repository": str(remote), "commit": commit})
+    rows = [
+        {"path": name, "bytes": len(data), "sha256": "sha256:" + hashlib.sha256(data).hexdigest()}
+        for name, data in list(payloads.items())[:2]
+    ]
+    write(cache / "fetch-plan.json", {"selected": rows}, immutable=True)
+    # One object was already hydrated by an earlier partial attempt.
+    (repo / rows[0]["path"]).write_bytes(payloads[rows[0]["path"]])
+    return cache, repo, commit, rows, payloads
+
+
+@pytest.mark.parametrize(
+    "failure", [None, "missing_remote_object", "changed_worktree", "stale_plan"]
+)
+def test_fetch_recovers_unresolved_pointer_via_real_lfs_and_preserves_cache(
+    local_lfs_cache, monkeypatch, failure
+):
+    cache, repo, commit, rows, payloads = local_lfs_cache
+    row = rows[1]
+    path = repo / row["path"]
+    if failure == "missing_remote_object":
+        oid = row["sha256"].removeprefix("sha256:")
+        remote = cache.parent / "remote.git"
+        (remote / "lfs/objects" / oid[:2] / oid[2:4] / oid).unlink()
+    elif failure == "changed_worktree":
+        path.write_text("local modification\n")
+    elif failure == "stale_plan":
+        rows[1] = dict(row, bytes=row["bytes"] + 1)
+        write(cache / "fetch-plan.json", {"selected": rows})
+    before = path.read_bytes()
+    retained = {
+        p: file_hash(p)
+        for p in (cache / "snapshot.json", cache / "fetch-plan.json", repo / rows[0]["path"])
+    }
+    original_git, fetches = bulk.git, []
+
+    def incomplete_batch(root, *args, **kwargs):
+        if args[:4] == ("-c", "lfs.fetchrecentalways=false", "lfs", "fetch"):
+            fetches.append(args)
+            return ""  # Observed success-with-missing-object symptom; no network.
+        return original_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(bulk, "git", incomplete_batch)
+    config = {"revision": commit, "free_disk_floor_bytes": 0}
+    if failure:
+        with pytest.raises(ValueError, match="LFS .*failed|differs from pinned"):
+            bulk.fetch(config, cache)
+        assert path.read_bytes() == before
+        assert not (cache / "fetch-result.json").exists()
+    else:
+        bulk.fetch(config, cache)
+        assert path.read_bytes() == payloads[row["path"]]
+        assert read(cache / "fetch-result.json")["complete"]
+        bulk.fetch(config, cache)
+        assert len(fetches) == 1
+    assert all(file_hash(p) == sha for p, sha in retained.items())
+    assert bulk.pointer(repo / "files/A999/b999999.txt") is not None
+    assert not list(repo.glob("files/*/.lfs-recovery-*"))
 
 
 def import_fixture(cache):

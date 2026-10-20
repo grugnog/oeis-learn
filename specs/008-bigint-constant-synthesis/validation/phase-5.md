@@ -162,3 +162,48 @@ command above. Retain `tmp-oeis-bulk`: its pinned snapshot, plan and verified
 downloads are reused. Use a fresh output directory; do not use `--inputs` for
 this attempt because fetching failed before preparation produced complete
 inputs. The wrapper rebuilds for the new source and prints the new result ZIP.
+
+## Unresolved LFS object recovery
+
+The next HIP attempt `008-phase5-hip-20261020T191140Z` passed retirement, then
+bulk fetch reported success for a batch but checkout left
+`files/A373/b373464.txt` as a 130-byte pointer. User diagnostics confirm that
+its plan, pinned Git blob and working pointer all identify the same
+29,047-byte object, SHA-256
+`c0896a08bd0248bc1ee96779af5fdf1d21a1d69f2be38fc330d7b1e9849218f8`,
+at pinned commit `f0fb257e855fb356cc50a580e41e081a41443bd0`.
+A clean Git/LFS status therefore did not establish materialized input data.
+The original cause of the batch omission has not been established.
+
+Fetch still batches the frozen selected paths and verifies every size/hash.
+For an unresolved pointer or missing file only, it now checks the exact Git
+pointer against the existing plan and requests that object through `git lfs
+smudge`. It clears smudge-skip/filter exclusions for that command, allows one
+120-second attempt under the existing aggregate fetch/container deadline,
+monitors output size, and kills/reaps the process group on failure. Output
+stays in a temporary workspace file until exact size/SHA-256 verification
+passes, then replaces the pointer atomically. A changed working file is never
+overwritten. An unavailable object fails with its path/OID and leaves the
+pinned plan, pointer and earlier verified downloads intact. No HTTP API,
+cohort change, new snapshot, threshold change or dependency layer was added.
+
+Local tests use actual Git LFS 3.4.1 and a local file-backed remote, with the
+observed successful-but-incomplete batch injected explicitly. They cover
+successful recovery and reuse, missing remote data, changed working files,
+stale plans, temporary-file cleanup and untouched unselected pointers. The
+bulk, qualification-runner and benchmark tooling suites pass **34/34**, with
+zero skips. Ruff and whitespace checks pass. The exact remote omission and
+actual HIP execution still require the user's run; CI is left unmonitored.
+
+To test fetch first without repeating the qualification suites:
+
+```bash
+git pull --ff-only
+python3 scripts/foundation_run.py --engine podman data fetch \
+  --config configs/foundation/bigint_smoke.yaml
+```
+
+After fetch succeeds, run the timestamped `--gpu --prepare --learnability`
+command above. Keep `tmp-oeis-bulk`; verified objects and the frozen plan are
+reused. If recovery fails, share its `RECOVER LFS object` line and subsequent
+stderr; the object is not silently excluded or counted as complete.
