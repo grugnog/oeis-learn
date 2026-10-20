@@ -96,7 +96,9 @@ LOOP = "(pure (set 0 (index)) (while (gt (get 0) (const 0)) (set 0 (sub (get 0) 
         ),
     ],
 )
-def test_certificate_families_fresh_replay_and_mutation(kind, sources, domain, template):
+def test_certificate_families_fresh_replay_and_mutation(kind, sources, domain, template, request):
+    if kind == "loop_invariant":
+        request.getfixturevalue("certificate_solver")
     certificate = make_certificate(
         kind, sources, [1] if len(sources) == 1 else [1, -1], domain=domain, template=template
     )
@@ -109,7 +111,7 @@ def test_certificate_families_fresh_replay_and_mutation(kind, sources, domain, t
         assert check_certificate(mutated)["result"] != "verified"
 
 
-def test_nonterminating_ranking_cannot_certify():
+def test_nonterminating_ranking_cannot_certify(certificate_solver):
     source = LOOP.replace("(sub (get 0) (const 1))", "(add (get 0) (const 1))")
     with pytest.raises(ValueError, match="unproved"):
         make_certificate(
@@ -349,7 +351,7 @@ def test_certificate_resealed_semantics_compiler_and_coefficient_mutations():
         assert check_certificate(changed)["result"] != "verified"
 
 
-def test_loop_template_proposer_and_false_guard_overflow():
+def test_loop_template_proposer_and_false_guard_overflow(certificate_solver):
     from oeis_learn.discovery.loop_certificate import propose_loop_templates, check_loop
 
     domain = {"start": 0, "end": 100, "excluded_indices": []}

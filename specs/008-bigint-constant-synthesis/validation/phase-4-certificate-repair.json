@@ -1,0 +1,58 @@
+{
+  "version": "phase4-certificate-prerequisite-repair/v1",
+  "parent_revision": "74b71058bcd71d348f0647a5e5af9beb59c387f9",
+  "tasks": [
+    "T084",
+    "T088"
+  ],
+  "production_source_unchanged": true,
+  "implementation_sha256": "sha256:1bd29935e61ddcc9412250901de7e774447d4da473f25a21748b987c1dec856e",
+  "changed_code_sha256": {
+    ".github/workflows/foundation.yml": "sha256:0de0eaa3913e950dba1036314e240edc99c1d1f9c821eccf1ecc0ab67f8459ab",
+    "tests/conftest.py": "sha256:9f1bac4f34f4594792e03673e8940eee48468388aed9f1db8b92fb658c6d19ac",
+    "tests/integration/test_foundation_discovery.py": "sha256:987e286842261922df8f682ce06550fa795b29112073973ba98581ed58490c12"
+  },
+  "failed_host_run": 39349646906,
+  "prior_native_evidence": {
+    "run": 39349647960,
+    "conclusion": "success",
+    "artifact_id": 12232569269,
+    "artifact_sha256": "sha256:133aeb5094eb76a8e96dbbed96dddf8d0f97d4ede5f17218ebfe7726e1a9c3a6",
+    "g9_status": "PASS",
+    "loop_cases_passed": [
+      "test_certificate_families_fresh_replay_and_mutation[loop_invariant-sources4-domain4-template4]",
+      "test_nonterminating_ranking_cannot_certify",
+      "test_loop_template_proposer_and_false_guard_overflow"
+    ]
+  },
+  "local_validation": {
+    "environment": "Python3.12.14/Torch2.9.1+cpu/Wasmtime49.0.0; clean tracked checkout plus changed tests",
+    "junit_sha256": "sha256:cf3a19c7286ef91c379a5b82432bf245f5992239839765347991e528952d50d5",
+    "passed": 50,
+    "failures": 0,
+    "errors": 0,
+    "skipped": [
+      {
+        "classname": "tests.integration.test_foundation_discovery",
+        "name": "test_certificate_families_fresh_replay_and_mutation[loop_invariant-sources4-domain4-template4]",
+        "reason": "requires native certificate solver in qualification image"
+      },
+      {
+        "classname": "tests.integration.test_foundation_discovery",
+        "name": "test_nonterminating_ranking_cannot_certify",
+        "reason": "requires native certificate solver in qualification image"
+      },
+      {
+        "classname": "tests.integration.test_foundation_discovery",
+        "name": "test_loop_template_proposer_and_false_guard_overflow",
+        "reason": "requires native certificate solver in qualification image"
+      }
+    ],
+    "required_missing_checker_probe": "PASS: expected pytest error, not skip",
+    "required_probe_junit_sha256": "sha256:138beba96a003e74522bd70e92a13b413b9476804f836948becbeb75c394fdb2",
+    "ruff": "PASS",
+    "workflow_shell_syntax": "PASS"
+  },
+  "limits": "Native checker extracted from verified prior CI artifact requires libc++.so.1 unavailable locally; no new native or HIP execution claimed. New CI unmonitored.",
+  "T088": "PENDING_NEW_CI"
+}

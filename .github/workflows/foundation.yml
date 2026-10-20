@@ -166,6 +166,7 @@ jobs:
           docker run --rm -v "$PWD/phase7-evidence:/evidence" oeis-phase7 bash -c '
             set -euo pipefail
             trap "chmod -R a+rX /evidence" EXIT
+            export OEIS_REQUIRE_BIGINT_BUILD=1 OEIS_REQUIRE_NATIVE=1
             mkdir -p /evidence/build-info/src
             cp /opt/oeis-build-info/* /evidence/build-info/
             cp crates/oeis_wasm_evaluator/src/*.rs /evidence/build-info/src/

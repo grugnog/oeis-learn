@@ -110,3 +110,23 @@ Spec Kit artifact consistency pass. See
 The earlier 200-test record remains bound to its original snapshot. This repair
 does not close T088; the newly pushed container/native/compatibility checks must
 complete successfully first. New CI is deliberately left unmonitored.
+
+### Host certificate prerequisite follow-up after `74b7105`
+
+Container run `39349647960` passed every job, including actual G9 certificate
+execution and both portable engines. Review run `39349646906` passed lint,
+artifact consistency, input diagnostics and quickstart, but its host CPU suite
+failed two positive loop-certificate cases because the native certificate
+checker is available only in the qualification image.
+
+Loop-certificate tests now declare their native prerequisite, including the
+negative ranking case so a missing solver cannot make rejection pass vacuously.
+Other certificate families still run on the host. Image qualification explicitly
+requires both native artifact flags; missing artifacts fail rather than skip,
+and G9 still rejects any skipped owning case. The local affected set passes
+**50 tests with three explicit native-certificate skips**. A separate missing
+artifact probe confirms required-native execution errors instead of skipping.
+The prior CI artifact's digest and G9 results were inspected; no local native
+execution is claimed from that evidence. See
+[phase-4-certificate-repair.json](phase-4-certificate-repair.json).
+T088 remains pending the new review/qualification run; new CI is left running.

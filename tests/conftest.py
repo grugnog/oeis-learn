@@ -104,6 +104,19 @@ def synthesis_driver():
 
 
 @pytest.fixture
+def certificate_solver():
+    """Loop proofs require the pinned native checker, not a Python fallback."""
+    binary = Path(
+        os.environ.get("OEIS_CERTIFICATE_SOLVER", "/opt/oeis-build-info/certificate-solver")
+    )
+    if not binary.is_file():
+        if any(os.environ.get(key) == "1" for key in ("OEIS_REQUIRE_BIGINT_BUILD", "OEIS_REQUIRE_NATIVE")):
+            pytest.fail("packaged native certificate solver required")
+        pytest.skip("requires native certificate solver in qualification image")
+    return binary
+
+
+@pytest.fixture
 def fitting_client():
     """Real owning-role client; a required image may never silently skip it."""
     from pathlib import Path
