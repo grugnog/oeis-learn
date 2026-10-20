@@ -50,7 +50,16 @@ claimed locally. Required CI/image runs fail rather than skip missing artifacts.
 
 ## Copy-pastable hardware commands
 
-From this PR checkout, one CPU/native/retirement/performance qualification:
+Update this PR checkout before running; the wrapper builds and binds the exact
+current source rather than reusing an older image:
+
+```bash
+git fetch origin
+git switch implement/008-phase5
+git pull --ff-only
+```
+
+One CPU/native/retirement/performance qualification:
 
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine docker \
@@ -63,7 +72,7 @@ bounded diverse32 gate:
 
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
-  --output tmp-validation/008-phase5-hip-001
+  --output "tmp-validation/008-phase5-hip-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
 The second command may spend up to the registered preparation allowance plus
@@ -75,11 +84,20 @@ run. An explicit `--image IMAGE` must contain the exact current source snapshot;
 stale images fail before later qualification. New code means a new image/run.
 
 Each invocation prints its ZIP path, e.g.
-`tmp-validation/008-phase5-hip-001.zip`. Share that archive, including failed or
+`tmp-validation/008-phase5-hip-20261020T120000Z.zip`. Share that archive, including failed or
 blocked outcomes. It contains summaries, exact image/source/artifact hashes,
 receipts, JUnit, logs, observed isolation/cleanup, measurements and optional
 bounded run bundle, with an omission manifest. It omits private data/caches and
 weights. Use a new suffix (`002`, etc.) for a retry; earlier evidence stays intact.
+The timestamp in the command creates a fresh output automatically on each rerun.
+If preparation finished successfully, reuse its inputs while preserving the
+earlier evidence (replace the example timestamp with that run's directory):
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --learnability \
+  --inputs tmp-validation/008-phase5-hip-20261020T120000Z/inputs \
+  --output "tmp-validation/008-phase5-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+```
 
 A matched retained-run diagnostic can additionally be requested with
 `--checkpoint-run runs/ACTUAL_RUN`. No such run was supplied locally. Supplying
@@ -87,3 +105,38 @@ only a canonical program or a newly trained bigint model cannot satisfy T093.
 No task is checked off merely because these commands/tests exist. The phase can
 be closed only after required execution/review, including genuine HIP, matched
 checkpoint diagnosis, cost and learnability results, has a recorded outcome.
+
+## CI discovery follow-up
+
+At `c2a91dcb44d99278ef17e45e4f397a5a6f7dccca`, all five new bigint
+qualification partitions passed, as did native qualification, both preparation
+partitions, the image/Podman builds and portable Podman execution. Foundation
+review run39364753190 passed. Container run39364753246 failed only portable
+Docker's CPU regression: the two-program archive test returned no relation
+claims (1089 other tests passed). These job statuses do not replace review of
+the qualification artifacts or qualify the follow-up source/image.
+
+The test passes locally. Its exact relation can be silently omitted when the
+contained fitter exhausts its default two-second spawn/import/IPC deadline.
+A controlled 2.2-second cold SymPy import reproduced UNKNOWN at two seconds
+(2.021s total), then FIT with coefficients `[1, -1]` at ten seconds (2.526s).
+The original CI log did not retain the fit status, so its precise resource
+failure cannot be recovered. The discovery entry point now explicitly uses
+the existing ten-second maximum per candidate and records every fitting
+disposition, including UNKNOWN, in the sealed report. The killable worker,
+1-GiB memory cap, coefficient bounds and independent finite validation remain
+in force. No bigint numerical/solver profile or training recipe changed.
+
+Regression coverage checks the successful real archive path, propagation of
+the configured deadline, preservation of UNKNOWN without a claim, rejection
+of unbounded deadlines, and the fitter's existing immediate-timeout behavior.
+The earlier [local report](phase-5-local.json) remains evidence for its original
+source, not this follow-up. HIP and matched-checkpoint gates remain pending.
+
+Follow-up local checks: **68 passed, 3 skipped** across complete discovery,
+Phase 5 runner/benchmark and symbolic-proof suites. All three skips require the
+packaged native certificate solver. Ruff F/E9, formatting, whitespace checks
+and standard-library-only runner help pass. A broader CLI-contract attempt had
+two environment failures because this sandbox lacks
+`/proc/sys/kernel/random/boot_id`; those container-only paths await CI rather
+than changing their boot-identity checks. Follow-up CI is left unmonitored.

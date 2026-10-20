@@ -268,6 +268,7 @@ def run_program_discovery(
     validation_indices=tuple(range(10, 20)),
     final_indices=tuple(range(20, 100)),
     max_candidates=50,
+    fit_seconds=10,
 ):
     """Strict training-program analysis. External databases/definitions have no argument.
 
@@ -279,6 +280,11 @@ def run_program_discovery(
     from oeis_learn.discovery.novelty import seal_proposal
     from oeis_learn.experiments.artifacts import compute_canonical_digest as digest
 
+    # Includes spawn, cold CAS imports and IPC. The solver's two-second default
+    # can expire before fitting starts on a loaded portable CI runner. Use its
+    # existing maximum here; arithmetic, coefficient and memory bounds stay fixed.
+    if not 0 < fit_seconds <= 10:
+        raise ValueError("bounded fitting deadline required")
     parts = [tuple(p) for p in (fitting_indices, validation_indices, final_indices)]
     if (
         sum(map(len, parts)) > 120
@@ -323,11 +329,24 @@ def run_program_discovery(
         ("normalized_output_fingerprints", candidate.sequences) for candidate in candidates
     )
     claims = []
+    fitting = []
     seen = set()
     fit_solver = PslqRelationSolver()
     for retrieval_method, candidate in hypotheses:
         sources = list(candidate)
-        fit = fit_solver.fit([terms[k] for k in sources], parts[0])
+        fit = fit_solver.fit([terms[k] for k in sources], parts[0], seconds=fit_seconds)
+        # UNKNOWN is an incomplete attempt, never evidence of no relation. Keep
+        # it in the report so an empty claim list cannot conceal resource failure.
+        fitting.append(
+            {
+                "programs": sources,
+                "retrieval_method": retrieval_method,
+                "status": fit.status,
+                "rank": fit.rank,
+                "nullity": fit.nullity,
+                "attempts": fit.attempts,
+            }
+        )
         if fit.status != "FIT":
             continue
         operands = [SequenceRef(k, 1, 0) for k in sources]
@@ -388,6 +407,7 @@ def run_program_discovery(
         "version": "program-discovery/v1",
         "archive_root_sha256": snapshot["root_sha256"],
         "claims": claims,
+        "fitting": {"seconds_per_candidate": fit_seconds, "attempts": fitting},
         "unavailable": missing,
         "retrieval": {"numerical": search.last_metrics, "structural": structural_metrics},
         "proposals": len(hypotheses),
