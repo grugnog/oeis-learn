@@ -529,6 +529,13 @@ def handle_train(args: argparse.Namespace) -> int:
         with open(args.config, "r") as f:
             cfg = yaml.safe_load(f) or {}
 
+    from oeis_learn.synthesis.fitting import require_native_solver_settings
+    try:
+        require_native_solver_settings(cfg)
+    except ValueError as exc:
+        print(f'Validation error: {exc}')
+        return 2
+
     d_model = cfg.get("model", {}).get("d_model", 256)
     n_heads = cfg.get("model", {}).get("n_heads", 4)
     db_path = cfg.get("data", {}).get("db_path", "data/oeis_learn.duckdb")
@@ -832,15 +839,19 @@ def handle_solve_constants(args: argparse.Namespace) -> int:
     import json
     from pathlib import Path
 
-    source = Path(args.wat_file).read_text() if args.wat_file else args.wat
-    terms = [int(v.strip()) for v in args.terms.split(',')]
-    profile = 'bigint-body/v1' if source.lstrip().startswith('(program') else 'wat_i256_checked_v1'
-    result = fit_program(source, terms, profile=profile, timeout_ms=args.timeout_ms)
+    try:
+        source = Path(args.wat_file).read_text()
+        terms = [int(v.strip()) for v in args.terms.split(',')]
+        profile = 'bigint-body/v1' if source.lstrip().startswith('(program') else 'wat_i256_checked_v1'
+        result = fit_program(source, terms, profile=profile, timeout_ms=args.timeout_ms)
+        if args.output_wat and result.outcome == 'verified_solution':
+            Path(args.output_wat).write_text(result.source)
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(json.dumps(dict(outcome='invalid_or_unavailable', reason=str(exc))))
+        return 2
     print(json.dumps(dict(outcome=result.outcome, source=result.source,
                           constants=[str(v) for v in result.constants],
                           reason=result.reason, elapsed_ms=result.elapsed_ms)))
-    if args.output_wat and result.outcome == 'verified_solution':
-        Path(args.output_wat).write_text(result.source)
     return 0 if result.outcome == 'verified_solution' else 2
 
 

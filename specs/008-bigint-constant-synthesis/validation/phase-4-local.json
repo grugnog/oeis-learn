@@ -1,0 +1,158 @@
+{
+  "version": "phase4-local-review/v1",
+  "base_revision": "66d13fdb93bc7d107c0f1ac8fe90cf030dea47e9",
+  "implementation_sha256": "sha256:61a3f955c4147fa8ed43976329928c3fc7b2be0988fae543bfb152d361ae1825",
+  "snapshot_sha256": "sha256:4279ba20dcb1139122235c1a14dfba0b1837e1761a6be045f73f9f3b3183b79e",
+  "tests": {
+    "tests": 227,
+    "passed": 200,
+    "skipped": 27,
+    "failures": 0,
+    "errors": 0
+  },
+  "gpu_deselected": 1,
+  "junit_sha256": "sha256:a14a66f566ee8ec074fe040772c6dba61760b649a97555f629224ae512dd472e",
+  "skipped_cases": [
+    {
+      "classname": "tests.contract.test_foundation_qualified",
+      "name": "test_real_grounding_solution_unsat_and_tamper_replay",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.contract.test_solver_retirement",
+      "name": "test_installed_distribution_has_no_retired_surface",
+      "reason": "requires clean installed qualification image outside checkout"
+    },
+    {
+      "classname": "tests.integration.test_bigint_workflow",
+      "name": "test_selection_scoring_is_independent_of_private_truth",
+      "reason": "native integration image required"
+    },
+    {
+      "classname": "tests.integration.test_bigint_workflow",
+      "name": "test_native_prepared_archive_has_full_matched_private_views",
+      "reason": "native preparation integration required"
+    },
+    {
+      "classname": "tests.integration.test_symbolic_grounding_pipeline",
+      "name": "test_linear_fitting_independent_execution_and_replay",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.integration.test_symbolic_grounding_pipeline",
+      "name": "test_inconsistent_fitting_scoped_replay_rejects_tampering",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_constant_solver",
+      "name": "test_linear_affine_diophantine_grounding",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_constant_solver",
+      "name": "test_quadratic_polynomial_diophantine_grounding",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_constant_solver",
+      "name": "test_underdetermined_minimal_l1_norm",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_constant_solver",
+      "name": "test_inconsistent_linear_diophantine",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix0-rhs0]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix1-rhs1]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix2-rhs2]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix3-rhs3]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix4-rhs4]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix5-rhs5]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix6-rhs6]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_exact_equations_and_singular_modular_pivots[matrix7-rhs7]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_nonintegral_or_inconsistent_system_never_admitted[matrix0-rhs0]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_nonintegral_or_inconsistent_system_never_admitted[matrix1-rhs1]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_dixon_diophantine_solver",
+      "name": "test_nonintegral_or_inconsistent_system_never_admitted[matrix2-rhs2]",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_foundation_grounding",
+      "name": "test_nonlinear_parameter_local_square",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_foundation_grounding",
+      "name": "test_large_exact_signed_terms",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_foundation_grounding",
+      "name": "test_tail_is_not_fitting_data",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_foundation_grounding",
+      "name": "test_empty_parameter_domain_is_verified",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_mersenne61_filter",
+      "name": "test_modular_consistency_cannot_admit_noninteger_solution",
+      "reason": "requires native qualification image"
+    },
+    {
+      "classname": "tests.unit.test_mersenne61_filter",
+      "name": "test_prime_multiple_pivot_is_not_a_singular_integer_system",
+      "reason": "requires native qualification image"
+    }
+  ],
+  "source_audit": "PASS",
+  "locked_dependencies": "uv lock --check --offline: 67 packages; no unrelated pin changes",
+  "native_image": "pending T088; no Docker/Podman/Rust toolchain in this workspace",
+  "hip": "No Phase4-only hardware gate; prior evidence remains bound to its original image",
+  "broader_attempt": "Not acceptance evidence: broad collection requires unavailable oeis_wasm_evaluator; a contract probe passed 161 with 2 skips before failing on absent /proc/sys/kernel/random/boot_id; subsequent broader run was interrupted. Required current-image suites are delegated to CI without monitoring.",
+  "retirement_inventory_sha256": "sha256:e9eddeba795ef0f02457ba8f343321ca4cabe937e57650d56424043d1ecffb5e"
+}

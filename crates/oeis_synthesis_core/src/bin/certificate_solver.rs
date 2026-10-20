@@ -17,7 +17,9 @@ struct Response {
 }
 fn main() {
     let mut data = Vec::new();
-    io::stdin().take(1_048_577).read_to_end(&mut data).unwrap();
+    let stdin = io::stdin();
+    let mut reader = stdin.take(1_048_577);
+    reader.read_to_end(&mut data).unwrap();
     assert!(data.len() <= 1_048_576);
     let request: Request = serde_json::from_slice(&data).unwrap();
     assert!(request.declarations.len() <= 33 && request.assertion.len() <= 1_000_000);

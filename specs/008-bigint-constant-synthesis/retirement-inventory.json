@@ -12,7 +12,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "configs/train_run009.yaml",
@@ -23,7 +25,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "configs/train_run010.yaml",
@@ -34,7 +38,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "configs/train_run011.yaml",
@@ -45,7 +51,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "configs/train_tier1.yaml",
@@ -56,7 +64,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "pyproject.toml",
@@ -68,7 +78,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "scripts/run_008_learning_run.py",
@@ -79,7 +91,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "scripts/run_009_recurrence_sprint.py",
@@ -90,7 +104,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "scripts/run_010_overnight_curriculum.py",
@@ -101,7 +117,9 @@
       "replacement": "scripts/foundation_run.py versioned bigint recipes after integration",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/cli/main.py",
@@ -112,7 +130,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/data/models.py",
@@ -121,10 +141,12 @@
         "data.models.ConstantSolverResult"
       ],
       "disposition": "migrate",
-      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "replacement": "Retired public solver dataclasses removed; historical JSON preserved via synthesis.historical.inspect_record",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/constant_solver.py",
@@ -137,7 +159,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/dixon_solver.py",
@@ -149,7 +173,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/grounding.py",
@@ -165,7 +191,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/grounding_evidence.py",
@@ -179,7 +207,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/grounding_reference.py",
@@ -190,7 +220,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/decoder/qfnia_solver.py",
@@ -201,7 +233,9 @@
       "replacement": "qualified Phase 2 native API and independent reference/evidence",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/formula_syntax.py",
@@ -212,7 +246,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/loop_certificate.py",
@@ -220,10 +256,12 @@
         "z3"
       ],
       "disposition": "migrate",
-      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "replacement": "Existing independent certificate obligations serialized to pinned Rust/Z3 certificate-solver; no model or fitting API",
       "rationale": "Required certificate checker: migrate Z3 dependency before removing Python z3-solver",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/numerical_validator.py",
@@ -234,7 +272,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/polynomial_certificate.py",
@@ -245,7 +285,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/pslq_solver.py",
@@ -256,7 +298,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/discovery/recurrence_certificate.py",
@@ -267,7 +311,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/evaluation/engineering.py",
@@ -278,7 +324,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/evaluation/experiments.py",
@@ -289,7 +337,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/evaluation/repair_gate.py",
@@ -300,7 +350,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/evaluation/synthesis.py",
@@ -311,7 +363,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/experiments/config.py",
@@ -322,7 +376,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/experiments/qualified_models.py",
@@ -333,7 +389,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/fresh/search.py",
@@ -344,7 +402,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/fresh/worker.py",
@@ -352,10 +412,12 @@
         "fresh.search.grounded_variants"
       ],
       "disposition": "migrate",
-      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "replacement": "Phase3 native_variants already routes the owning native client; duplicate grounded_variants removed",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/rl/elite_buffer.py",
@@ -363,10 +425,12 @@
         "grounding_reference"
       ],
       "disposition": "migrate",
-      "replacement": "synthesis native transport/admission; independent reference for final execution",
+      "replacement": "Historical inspection only for legacy ingestion; verified training archive admission retained",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "src/oeis_learn/rl/trainer.py",
@@ -377,7 +441,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/contract/test_constant_solver_contract.py",
@@ -390,7 +456,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/contract/test_foundation_qualified.py",
@@ -401,7 +469,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/integration/test_foundation_repair_gate.py",
@@ -413,7 +483,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/integration/test_real_data_e2e.py",
@@ -424,7 +496,9 @@
       "replacement": "independent certificate/discovery consumer",
       "rationale": "Not an obsolete fitting implementation; do not delete independent acceptance",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "retained"
+      "status": "retained",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/integration/test_recurrence_grounding.py",
@@ -436,7 +510,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/integration/test_symbolic_grounding_pipeline.py",
@@ -448,7 +524,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_bootstrap_workflow.py",
@@ -459,7 +537,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_constant_solver.py",
@@ -470,7 +550,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_dixon_diophantine_solver.py",
@@ -481,7 +563,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_foundation_grounding.py",
@@ -496,7 +580,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_mersenne61_filter.py",
@@ -507,7 +593,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "tests/unit/test_smt_constant_solver.py",
@@ -518,7 +606,9 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
     },
     {
       "path": "uv.lock",
@@ -530,7 +620,68 @@
       "replacement": "synthesis native transport/admission; independent reference for final execution",
       "rationale": "Preserve supported callers and rejection regressions while routing one native fitter",
       "regression": "tests/fixtures/bigint/manifest.json; existing owning tests must be ported before deletion",
-      "status": "pending Phase 4"
+      "status": "migrated",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
+    },
+    {
+      "path": "src/oeis_learn/decoder/mersenne61_filter.py",
+      "interfaces": [
+        "retired fitting implementation"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "synthesis native service and independently derived fixtures",
+      "rationale": "Whole-repository Phase4 closure includes implementations not listed as direct imports at baseline",
+      "regression": "tests/unit/test_mersenne61_filter.py; tests/integration/test_recurrence_grounding.py",
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
+    },
+    {
+      "path": "src/oeis_learn/decoder/recurrence.py",
+      "interfaces": [
+        "retired fitting implementation"
+      ],
+      "disposition": "migrate_then_retire",
+      "replacement": "synthesis native service and independently derived fixtures",
+      "rationale": "Whole-repository Phase4 closure includes implementations not listed as direct imports at baseline",
+      "regression": "tests/unit/test_mersenne61_filter.py; tests/integration/test_recurrence_grounding.py",
+      "status": "retired",
+      "closure_task": "T081\u2013T087",
+      "validation_status": "source/caller regressions; clean installed native gate pending T088"
+    },
+    {
+      "path": "src/oeis_learn/evaluation/search.py",
+      "interfaces": [
+        "typed_repairs"
+      ],
+      "disposition": "retain",
+      "status": "retained",
+      "replacement": "Budgeted unguided token/operator proposals; no visible-value fitting or trial callback",
+      "rationale": "Candidate generation is separate from exact fitting; existing source/ledger/acceptance checks remain supported",
+      "regression": "tests/unit/test_foundation_search.py",
+      "closure_task": "T086",
+      "validation_status": "existing proposal and budget tests retained"
+    },
+    {
+      "path": "scripts/run_long_e2e_benchmark.py",
+      "interfaces": [
+        "retained diagnostic config loading"
+      ],
+      "disposition": "migrate",
+      "status": "migrated",
+      "replacement": "Validate explicit native settings before work; policy trainer/evaluation share native facade",
+      "rationale": "Transitive caller is retained; retired solver switches fail with migration guidance rather than being ignored",
+      "regression": "tests/unit/test_retirement_callers.py",
+      "closure_task": "T082/T086",
+      "validation_status": "source config guard implemented; clean image gate pending T088"
     }
-  ]
+  ],
+  "phase4_review": {
+    "base_revision": "66d13fdb93bc7d107c0f1ac8fe90cf030dea47e9",
+    "old_executable_reproduction": "b96b92ff680a1509d3cede89e9abf0ddb65d2665",
+    "code_dispositions_closed": true,
+    "installed_gate": "pending T088",
+    "current_audit": "python3 scripts/inventory_synthesis_retirement.py --check"
+  }
 }
