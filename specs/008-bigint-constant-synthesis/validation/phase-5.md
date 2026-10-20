@@ -218,3 +218,37 @@ rejects it and retains the original working pointer. This establishes a
 possible failure mode, not the cause on the user's machine. Recovery with the
 existing pre-push hook also passes. The user's cached object must be inspected
 before declaring a remote/client/cache diagnosis or deleting any objects.
+
+### Confirmed upstream pointer size defect
+
+The user's cache inspection resolves the failure: object
+`c0896a08bd0248bc1ee96779af5fdf1d21a1d69f2be38fc330d7b1e9849218f8`
+is **27,916 bytes**, and its SHA-256 exactly matches the pinned pointer/plan.
+The upstream pointer's **29,047-byte** size is overstated by 1,131 bytes.
+The payload is correct; changing the source pin or excluding the record would
+change the study unnecessarily. Git LFS's size check repeatedly treats this
+valid object as missing, and our earlier exact-size check rejected its output.
+
+The corrected importer treats declared bytes as the existing hard allowance
+and SHA-256 as the exact content identity: shorter content is accepted only
+with the pinned hash; oversized or wrong-hash content is rejected. Fetch now
+checks the configured local LFS object store before invoking LFS fetch/checkout,
+copies a verified object atomically to replace only its matching pinned pointer,
+and reuses the verified working file on subsequent runs. The immutable snapshot
+and plan retain their original commit, OID and declared size.
+
+Every such case is printed and recorded in `fetch-result.json` as
+`size_discrepancies` with path, SHA-256, declared bytes and actual bytes. The
+import report retains that audit as `lfs_size_discrepancies`, so prepared-source
+provenance records the upstream defect. Normal receipts retain their existing
+shape. No data member is dropped, and download/disk allowances do not increase.
+
+Regression tests use an actual Git commit containing an overstated LFS pointer
+and a correct shorter cached object. They verify recovery without any fetch,
+unchanged pin/plan hashes, deterministic discrepancy receipts, repeat execution,
+import-report propagation, and rejection of oversized or wrong-hash objects.
+The relevant bulk, qualification-runner and benchmark-tooling suites pass
+**39/39** with zero skips; Ruff, formatting and whitespace checks pass.
+Use the fetch-only command above first, retaining `tmp-oeis-bulk`, then rerun
+the timestamped HIP command once fetch completes. Actual HIP gates remain
+pending; new CI is left running unmonitored.

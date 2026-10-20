@@ -78,15 +78,17 @@ def blob_hash(payload):
 
 
 def verified_object(path, row):
+    # Some upstream pointers overstate size while identifying the exact payload
+    # correctly. SHA-256 binds content; declared bytes remain a hard allowance.
     return (
         path.is_file()
         and not path.is_symlink()
-        and path.stat().st_size == row["bytes"]
+        and path.stat().st_size <= row["bytes"]
         and file_hash(path) == row["sha256"]
     )
 
 
-def recover_object(repo, commit, row):
+def recover_object(repo, commit, row, media_dir=None):
     """Retry an unresolved pinned object via LFS, never a per-sequence HTTP API."""
     path = repo / row["path"]
     expected = {"sha256": row["sha256"], "bytes": row["bytes"]}
@@ -108,38 +110,47 @@ def recover_object(repo, commit, row):
         temporary = Path(out.name)
         process = None
         try:
-            process = subprocess.Popen(
-                [
-                    "git",
-                    "-C",
-                    str(repo),
-                    "-c",
-                    "lfs.fetchinclude=",
-                    "-c",
-                    "lfs.fetchexclude=",
-                    "-c",
-                    "lfs.skipdownloaderrors=false",
-                    "lfs",
-                    "smudge",
-                    "--",
-                    row["path"],
-                ],
-                stdin=subprocess.PIPE,
-                stdout=out,
-                env=env,
-                start_new_session=True,
-            )
-            process.stdin.write(raw.encode())
-            process.stdin.close()
-            deadline = time.monotonic() + 120
-            while process.poll() is None:
-                if temporary.stat().st_size > row["bytes"]:
-                    raise ValueError("LFS recovery exceeded expected object size")
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("LFS recovery exceeded 120 seconds")
-                time.sleep(0.05)
-            if process.returncode:
-                raise subprocess.CalledProcessError(process.returncode, process.args)
+            oid = row["sha256"].removeprefix("sha256:")
+            cached = media_dir / oid[:2] / oid[2:4] / oid if media_dir is not None else None
+            if cached is not None and verified_object(cached, row):
+                # LFS itself discards/re-downloads a shorter object because it
+                # trusts pointer size. Reuse it only after our own hash check.
+                with cached.open("rb") as source:
+                    shutil.copyfileobj(source, out, length=1 << 20)
+                out.flush()
+            else:
+                process = subprocess.Popen(
+                    [
+                        "git",
+                        "-C",
+                        str(repo),
+                        "-c",
+                        "lfs.fetchinclude=",
+                        "-c",
+                        "lfs.fetchexclude=",
+                        "-c",
+                        "lfs.skipdownloaderrors=false",
+                        "lfs",
+                        "smudge",
+                        "--",
+                        row["path"],
+                    ],
+                    stdin=subprocess.PIPE,
+                    stdout=out,
+                    env=env,
+                    start_new_session=True,
+                )
+                process.stdin.write(raw.encode())
+                process.stdin.close()
+                deadline = time.monotonic() + 120
+                while process.poll() is None:
+                    if temporary.stat().st_size > row["bytes"]:
+                        raise ValueError("LFS recovery exceeded expected object size")
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("LFS recovery exceeded 120 seconds")
+                    time.sleep(0.05)
+                if process.returncode:
+                    raise subprocess.CalledProcessError(process.returncode, process.args)
             if not verified_object(temporary, row):
                 size = temporary.stat().st_size
                 actual_hash = (
@@ -350,6 +361,15 @@ def fetch(config, cache):
         # Configure filters without installing/updating pre-push hooks, which
         # may belong to another LFS version or an existing core.hooksPath.
         git(repo, "lfs", "install", "--local", "--skip-repo")
+        media_dir = next(
+            (
+                Path(line.removeprefix("LocalMediaDir="))
+                for line in git(repo, "lfs", "env", capture=True).splitlines()
+                if line.startswith("LocalMediaDir=")
+            ),
+            None,
+        )
+        discrepancies = []
         for start in range(0, len(plan["selected"]), 100):
             batch = plan["selected"][start : start + 100]
             missing = [r for r in batch if not verified_object(repo / r["path"], r)]
@@ -357,6 +377,15 @@ def fetch(config, cache):
                 needed = sum(r["bytes"] for r in missing)
                 if shutil.disk_usage(cache).free < config["free_disk_floor_bytes"] + 2 * needed:
                     raise OSError("bulk download would consume the reserved disk floor")
+                if media_dir is not None:
+                    for row in missing:
+                        oid = row["sha256"].removeprefix("sha256:")
+                        cached = media_dir / oid[:2] / oid[2:4] / oid
+                        if verified_object(cached, row):
+                            recover_object(repo, pin["commit"], row, media_dir)
+                missing = [r for r in missing if not verified_object(repo / r["path"], r)]
+            if missing:
+                needed = sum(r["bytes"] for r in missing)
                 names = [r["path"] for r in missing]
                 print(
                     f"FETCH bulk batch {start // 100 + 1}: {len(names)} files, {needed} bytes",
@@ -377,10 +406,27 @@ def fetch(config, cache):
             for row in batch:
                 path = repo / row["path"]
                 if not verified_object(path, row):
-                    recover_object(repo, pin["commit"], row)
+                    recover_object(repo, pin["commit"], row, media_dir)
+                actual = path.stat().st_size
+                if actual != row["bytes"]:
+                    record = dict(
+                        path=row["path"],
+                        sha256=row["sha256"],
+                        declared_bytes=row["bytes"],
+                        actual_bytes=actual,
+                    )
+                    discrepancies.append(record)
+                    print(f"LFS pointer size discrepancy (SHA-256 verified): {record}", flush=True)
+        result = {
+            "plan_sha256": file_hash(plan_path),
+            "complete": True,
+            "files": len(plan["selected"]),
+        }
+        if discrepancies:
+            result["size_discrepancies"] = discrepancies
         write(
             cache / "fetch-result.json",
-            {"plan_sha256": file_hash(plan_path), "complete": True, "files": len(plan["selected"])},
+            result,
         )
         return plan
 
@@ -388,7 +434,8 @@ def fetch(config, cache):
 def import_snapshot(cache, output):
     cache, output = Path(cache), Path(output)
     plan = read(cache / "fetch-plan.json")
-    if read(cache / "fetch-result.json")["plan_sha256"] != file_hash(cache / "fetch-plan.json"):
+    fetched = read(cache / "fetch-result.json")
+    if fetched["plan_sha256"] != file_hash(cache / "fetch-plan.json"):
         raise ValueError("bulk fetch receipt mismatch")
     repo = cache / "oeisdata"
     output.mkdir(parents=True, exist_ok=True)
@@ -469,5 +516,7 @@ def import_snapshot(cache, output):
             "license": "CC BY-SA 4.0; OEIS Foundation",
             "diagnostic": True,
         }
+        if fetched.get("size_discrepancies"):
+            report["lfs_size_discrepancies"] = fetched["size_discrepancies"]
         write(output / "import-report.json", report, immutable=True)
         return report
