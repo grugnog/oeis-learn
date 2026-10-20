@@ -1,6 +1,9 @@
 """Read-only source/distribution audit; never imports a retired solver."""
 
 import ast
+import copy
+import hashlib
+import json
 import importlib.metadata
 from pathlib import Path
 import re
@@ -15,9 +18,16 @@ RETIRED_FUNCTIONS = {
 }
 
 
+def function_fingerprint(node):
+    node=copy.deepcopy(node)
+    node.name='_retired_body'
+    return hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()
+
+
 def audit(package_root, *, project_root=None, installed=False):
     package_root = Path(package_root)
     violations = []
+    fingerprints=set(json.loads(Path(__file__).with_name('retired-fingerprints.json').read_text())['sha256'])
     for name in RETIRED_MODULES:
         if (package_root / "decoder" / (name + ".py")).exists():
             violations.append("retired module: decoder/" + name + ".py")
@@ -26,6 +36,8 @@ def audit(package_root, *, project_root=None, installed=False):
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in RETIRED_FUNCTIONS:
                 violations.append(f"retired algorithm/API: {path.name}:{node.name}")
+            if isinstance(node, ast.FunctionDef) and function_fingerprint(node) in fingerprints:
+                violations.append(f"copied retired function body: {path.name}:{node.name}")
             names = []
             if isinstance(node, ast.Import):
                 names = [a.name for a in node.names]
@@ -68,3 +80,39 @@ def audit(package_root, *, project_root=None, installed=False):
         else:
             violations.append("installed Python z3-solver distribution")
     return dict(status="PASS" if not violations else "FAIL", violations=violations)
+
+
+def installed_audit():
+    """Run under python -I, so checkout/PYTHONPATH cannot hide wheel contents."""
+    import importlib.util
+    root = Path(__file__).resolve().parents[1]
+    result = audit(root, installed=True)
+    if 'site-packages' not in root.parts:
+        result['violations'].append('audit must import the clean installed distribution')
+    for name in RETIRED_MODULES:
+        if importlib.util.find_spec('oeis_learn.decoder.' + name) is not None:
+            result['violations'].append('importable retired module: ' + name)
+    if importlib.util.find_spec('z3') is not None:
+        result['violations'].append('importable Python z3')
+    for name in ('synthesis-worker', 'certificate-solver'):
+        if not (Path('/opt/oeis-build-info') / name).is_file():
+            result['violations'].append('missing pinned native artifact: ' + name)
+    result['status'] = 'PASS' if not result['violations'] else 'FAIL'
+    result['package_root'] = str(root)
+    return result
+
+
+if __name__ == '__main__':
+    import argparse
+    import json
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--installed', action='store_true', required=True)
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    report = installed_audit()
+    payload = json.dumps(report, sort_keys=True) + '\n'
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(payload)
+    print(payload, end='')
+    raise SystemExit(0 if report['status'] == 'PASS' else 1)

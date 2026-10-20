@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import random
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 from oeis_learn.data.models import EliteDemonstrationEntry, EliteReplayBufferEntry
-from oeis_learn.decoder.wat_grammar import tokenize_wat
 
 logger = logging.getLogger("oeis_learn.elite_buffer")
 
@@ -56,58 +54,10 @@ class EliteSeedDemonstrationBuffer:
         step: int = 0,
     ) -> None:
         """Stores a verified canonical AST program in the sequence archive, bounded by capacity and deduplicated."""
-        from oeis_learn.sandbox.runner import WasmRunner
-        from oeis_learn.decoder.grounding_reference import scalar_value
-        from oeis_learn.discovery.program_archive import eligibility
-
-        if not 1 <= len(terms) <= 100 or any(type(v) is not int for v in terms):
-            raise ValueError("real exact conditioning/validation terms required")
-        eligible, _, _ = eligibility(wat_code, self.context_limit, codec="legacy")
-        # Independent straight-line scalar inspection. Other legacy forms must
-        # use strict archive admission; native success alone is not evidence.
-        reference = [scalar_value(wat_code, i) for i in range(len(terms))]
-        result = WasmRunner().run_single(wat_code, terms_to_generate=len(terms))
-        if reference != terms or result.status != "SUCCESS" or result.output != terms:
-            raise ValueError("legacy admission mismatch; archive views unchanged")
-        tokens = tokenize_wat(wat_code)
-        fuel = result.total_fuel
-        canonical_str = " ".join(tokens)
-        ast_hash = hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
-
-        if oeis_id not in self.canonical_archive:
-            self.canonical_archive[oeis_id] = []
-
-        existing = self.canonical_archive[oeis_id]
-        # Check deduplication
-        if any(e.ast_hash == ast_hash for e in existing):
-            return
-
-        entry = EliteDemonstrationEntry(
-            oeis_id=oeis_id,
-            canonical_wat=wat_code,
-            token_length=len(tokens),
-            fuel_consumed=fuel,
-            ast_hash=ast_hash,
-            discovery_step=step,
-            mdl_score=-float(len(tokens)),
+        raise ValueError(
+            'Legacy teacher ingestion is retired; inspect old records with synthesis.historical '
+            'or use the independently verified training archive admission path.'
         )
-        existing.append(entry)
-        # Sort by shortest token length (Occam's razor)
-        existing.sort(key=lambda x: x.token_length)
-        if len(existing) > self.capacity_per_seq:
-            self.canonical_archive[oeis_id] = existing[: self.capacity_per_seq]
-
-        # Update backward-compatible entry
-        self.entries[oeis_id] = EliteReplayBufferEntry(
-            oeis_id=oeis_id,
-            terms=terms,
-            wat_code=wat_code,
-            byte_size=len(wat_code.encode("utf-8")),
-            extrapolation_passed=len(terms) > 20,
-            mdl_ratio=1.0,
-            source="LEGACY_INSPECTION",
-        )
-        self.last_visited[oeis_id] = step
 
     def get_entries_for_sequence(self, oeis_id: str) -> List[EliteDemonstrationEntry]:
         """Returns all stored canonical solutions for a sequence ID."""

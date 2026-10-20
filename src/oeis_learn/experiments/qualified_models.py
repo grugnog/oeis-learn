@@ -106,6 +106,13 @@ FIELDS = {
         objective=enum("sft", "reinforce", "grpo"),
         modes=obj(**{m: MODE for m in MODES}),
     ),
+    "native_grounding_result": dict(
+        original_source=S,
+        profile=enum("wat_i256_checked_v1", "bigint-body/v1"),
+        indices=array({"type": "string", "pattern": "^(0|-?[1-9][0-9]*)$"}, 1, 20),
+        values=array({"type": "string", "pattern": "^(0|-?[1-9][0-9]*)$", "maxLength": 1300}, 1, 20),
+        policy=enum("none", "eligible-literals/v1"), result=PAYLOAD,
+    ),
     "grounding_result": dict(
         source=S,
         parameter_values=array(Z, 0, 8),
@@ -614,6 +621,8 @@ def validate_record(record: dict) -> None:
 def replay_record(record: dict) -> dict:
     """Replay supported evidence in a bounded process, without model weights."""
     validate_record(record)
+    if record['kind'] == 'grounding_result':
+        return dict(record_sha256=record['identity_sha256'], status='historical_unreplayed')
     from oeis_learn.sandbox.contained import run_contained
 
     status, value = run_contained(_replay, (record,))
@@ -628,10 +637,10 @@ def replay_record(record: dict) -> dict:
 
 
 def _replay(record):
-    if record["kind"] == "grounding_result":
-        from oeis_learn.decoder.grounding_evidence import check_grounding_record
+    if record["kind"] == "native_grounding_result":
+        from oeis_learn.synthesis.replay import replay_native
 
-        return check_grounding_record(record)
+        return replay_native(record)
     if record["kind"] == "proof_evidence" and record["evidence_kind"] == "formula_identity":
         from oeis_learn.discovery.formula_checker import check_scoped_evidence
 

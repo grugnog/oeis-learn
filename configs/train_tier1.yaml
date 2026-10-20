@@ -44,11 +44,12 @@ symple:
   edb_capacity_per_seq: 4
   enable_virtual_sample_injection: true
 
+# Retained diagnostic recipe; new runs use configs/foundation/bigint_*.yaml.
 solver:
-  enable_diophantine: true
-  enable_smt: true
-  smt_timeout_ms: 250
-  max_placeholders: 4
+  profile: native-fitting/v1
+  coefficient_bits: 4096
+  timeout_ms: 4000
+  max_parameters: 8
 
 parsimony:
   enable_dce: true

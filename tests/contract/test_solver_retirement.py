@@ -1,11 +1,10 @@
 """Retirement tests inspect real sources/distributions and injected regressions."""
 
 from pathlib import Path
-import importlib.util
 import os
 import pytest
 
-from oeis_learn.synthesis.retirement import audit, RETIRED_MODULES
+from oeis_learn.synthesis.retirement import audit
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,13 +27,9 @@ def test_renamed_or_dynamic_python_solver_is_rejected(tmp_path, body):
 
 
 def test_installed_distribution_has_no_retired_surface():
-    if os.environ.get("OEIS_REQUIRE_RETIREMENT_IMAGE") != "1":
-        pytest.skip("requires clean installed qualification image outside checkout")
-    import oeis_learn
-    root = Path(oeis_learn.__file__).resolve().parent
-    assert "site-packages" in root.parts, root
-    result = audit(root, installed=True)
-    assert result["status"] == "PASS", result["violations"]
-    for name in RETIRED_MODULES:
-        assert importlib.util.find_spec("oeis_learn.decoder." + name) is None
-    assert importlib.util.find_spec("z3") is None
+    if not any(os.environ.get(k)=='1' for k in ('OEIS_REQUIRE_RETIREMENT_IMAGE','OEIS_REQUIRE_BIGINT_BUILD')):
+        pytest.skip('requires clean installed qualification image outside checkout')
+    import subprocess,sys,json
+    result=subprocess.run([sys.executable,'-I','-m','oeis_learn.synthesis.retirement','--installed'],capture_output=True,text=True,cwd='/tmp',timeout=30)
+    assert result.returncode==0,(result.stdout,result.stderr)
+    assert json.loads(result.stdout)['status']=='PASS'

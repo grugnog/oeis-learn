@@ -71,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--enable-symple", action="store_true", default=True, help="Enable SYMPLE multi-task bandit and EDB replay"
     )
     train_p.add_argument(
-        "--enable-solver", action="store_true", default=True, help="Enable decoupled Diophantine/SMT constant solver"
+        "--enable-solver", action="store_true", default=True, help="Enable decoupled native exact fitting service"
     )
     train_p.add_argument(
         "--enable-dce", action="store_true", default=True, help="Enable compiler dead code elimination (DCE) pass"
@@ -107,11 +107,11 @@ def build_parser() -> argparse.ArgumentParser:
     # Command: solve-constants
     solve_p = subparsers.add_parser(
         "solve-constants",
-        help="Ground abstract WAT skeletons containing i64.const_? placeholders via Diophantine/SMT solvers.",
+        help="Fit bigint parameters or supported concrete checked-i256 bodies via the native service.",
     )
     solve_p.add_argument("--wat-file", type=str, required=True, help="Path to input WAT skeleton file")
     solve_p.add_argument("--terms", type=str, required=True, help="Comma-separated 20 integer sequence terms")
-    solve_p.add_argument("--timeout-ms", type=int, default=250, help="Z3 SMT solver timeout in milliseconds")
+    solve_p.add_argument("--timeout-ms", type=int, default=4000, help="Native fitting and independent verification deadline in milliseconds")
     solve_p.add_argument("--output-wat", type=str, required=False, help="Path to write grounded WAT file")
 
     # Command 4: warmup-sft
@@ -828,50 +828,20 @@ def handle_discover(args: argparse.Namespace) -> int:
 
 def handle_solve_constants(args: argparse.Namespace) -> int:
     """Handles the `solve-constants` subcommand."""
-    from oeis_learn.sandbox.runner import WasmRunner
+    from oeis_learn.synthesis.fitting import fit_program
+    import json
+    from pathlib import Path
 
-    from oeis_learn.decoder.constant_solver import (
-        parse_ast_placeholders,
-        solve_linear_diophantine,
-        solve_smt_constants,
-        splice_constants_into_wat,
-    )
-
-    if not os.path.exists(args.wat_file):
-        print(f"Error: WAT file not found: {args.wat_file}")
-        return 1
-
-    with open(args.wat_file, "r") as f:
-        wat_skeleton = f.read()
-
-    terms = [int(x.strip()) for x in args.terms.split(",") if x.strip()]
-    if len(terms) < 20:
-        print(f"Error: expected at least 20 integer terms, got {len(terms)}")
-        return 1
-
-    skeleton = parse_ast_placeholders(wat_code=wat_skeleton)
-    print(f"Parsed skeleton: {skeleton.placeholder_count} placeholders, linear={skeleton.is_linear}")
-
-    runner = WasmRunner(fuel_budget=10000)
-    result = solve_linear_diophantine(skeleton=skeleton, terms=terms, runner=runner)
-    if not result.is_sat and not skeleton.is_linear:
-        print("Linear solver unsupported. Trying bounded bit-vector solver...")
-        result = solve_smt_constants(skeleton=skeleton, terms=terms, timeout_ms=args.timeout_ms)
-
-    if result.is_sat and result.constants:
-        print(f"Solution Found ({result.solver_type}) in {result.solve_duration_ms:.2f}ms: {result.constants}")
-        grounded_wat = splice_constants_into_wat(skeleton, result.constants)
-        if args.output_wat:
-            with open(args.output_wat, "w") as f:
-                f.write(grounded_wat)
-            print(f"Grounded WAT written to {args.output_wat}")
-        else:
-            print("\nGrounded WAT Code:")
-            print(grounded_wat)
-        return 0
-    else:
-        print(f"Failed to solve constants: {result.error_message}")
-        return 1
+    source = Path(args.wat_file).read_text() if args.wat_file else args.wat
+    terms = [int(v.strip()) for v in args.terms.split(',')]
+    profile = 'bigint-body/v1' if source.lstrip().startswith('(program') else 'wat_i256_checked_v1'
+    result = fit_program(source, terms, profile=profile, timeout_ms=args.timeout_ms)
+    print(json.dumps(dict(outcome=result.outcome, source=result.source,
+                          constants=[str(v) for v in result.constants],
+                          reason=result.reason, elapsed_ms=result.elapsed_ms)))
+    if args.output_wat and result.outcome == 'verified_solution':
+        Path(args.output_wat).write_text(result.source)
+    return 0 if result.outcome == 'verified_solution' else 2
 
 
 def handle_run_ablations(args: argparse.Namespace) -> int:

@@ -1,82 +1,19 @@
-"""Unit tests for Z3 SMT non-linear constant solver fallback."""
-
-from __future__ import annotations
-
+"""Retired wrapping/scalar fallback must fail explicitly without calling a solver."""
 import pytest
-from oeis_learn.decoder.constant_solver import (
-    parse_ast_placeholders,
-    solve_smt_constants,
-    splice_constants_into_wat,
-)
-from oeis_learn.sandbox.runner import WasmRunner
+from oeis_learn.synthesis.fitting import fit_program
 
 
-@pytest.fixture
-def wasm_runner():
-    return WasmRunner(fuel_budget=10000)
+@pytest.mark.parametrize('body',[
+ '(module (func (export "compute") (param $n i32) (result i64) (i64.rem_u (i64.const 17) i64.const_?)))',
+ '(module (func (export "compute") (param $n i32) (result i64) (i64.shl (i64.const 1) i64.const_?)))',
+ 'i256.const_? i64.const_? i256.mul_scalar',
+ '(loop $x i64.const_? drop br $x) i64.const 1',
+])
+def test_no_wrapping_bitwise_or_control_fallback(body):
+    result=fit_program(body,[4]*20)
+    assert result.outcome == 'unsupported' and not result.constants
+    assert 'retired' in result.reason
 
 
-def test_nonlinear_smt_modulo_grounding(wasm_runner):
-    # a(n) = (n * 3 + 1) % 5
-    target_terms = [(n * 3 + 1) % 5 for n in range(20)]
-
-    wat_skeleton = """(module
-  (func (export "compute") (param $n i32) (result i64)
-    (i64.rem_u
-      (i64.add
-        (i64.mul (i64.extend_i32_u (local.get $n)) (i64.const 3))
-        (i64.const 1)
-      )
-      i64.const_?
-    )
-  )
-)"""
-
-    skeleton = parse_ast_placeholders(wat_skeleton)
-    assert skeleton.placeholder_count == 1
-    assert skeleton.is_linear is False
-
-    result = solve_smt_constants(skeleton, target_terms, timeout_ms=500)
-    assert result.is_sat is True
-    assert result.solver_type == "z3_qfbv"
-    assert result.constants == [5]
-
-    grounded_wat = splice_constants_into_wat(skeleton, result.constants)
-    exec_res = wasm_runner.run_single(grounded_wat, terms_to_generate=20)
-    assert exec_res.status == "SUCCESS"
-    assert exec_res.output == target_terms
-
-
-def test_nonlinear_smt_bitwise_shift_grounding(wasm_runner):
-    # a(n) = n << 3
-    target_terms = [(n << 3) for n in range(20)]
-
-    wat_skeleton = """(module
-  (func (export "compute") (param $n i32) (result i64)
-    (i64.shl
-      (i64.extend_i32_u (local.get $n))
-      i64.const_?
-    )
-  )
-)"""
-
-    skeleton = parse_ast_placeholders(wat_skeleton)
-    assert skeleton.is_linear is False
-
-    result = solve_smt_constants(skeleton, target_terms, timeout_ms=500)
-    assert result.is_sat is True
-    assert result.constants == [3]
-
-
-def test_smt_solver_timeout_enforcement():
-    # Construct an unsatisfiable or very complex constraint and verify timeout
-    target_terms = [1000 * n for n in range(20)]
-    wat_skeleton = """(module
-  (func (export "compute") (param $n i32) (result i64)
-    (i64.rem_u (i64.extend_i32_u (local.get $n)) i64.const_?)
-  )
-)"""
-    skeleton = parse_ast_placeholders(wat_skeleton)
-    result = solve_smt_constants(skeleton, target_terms, timeout_ms=20)
-    # Target cannot be matched by modulo since target exceeds any remainder
-    assert result.is_sat is False
+def test_nonpositive_deadline_rejected():
+    with pytest.raises(ValueError): fit_program('i256.const 0',[1],timeout_ms=0)

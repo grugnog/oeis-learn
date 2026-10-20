@@ -10,10 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 from oeis_learn.curriculum.sampler import DynamicMixtureSampler
 from oeis_learn.curriculum.scheduler import CurriculumScheduler
-from oeis_learn.decoder.constant_solver import (
-    parse_ast_placeholders,
-    solve_constants,
-)
+from oeis_learn.synthesis.fitting import fit_program
 from oeis_learn.decoder.sampler import WatProgramSampler
 from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 from oeis_learn.decoder.wat_grammar import EOS_ID, PAD_ID
@@ -199,14 +196,14 @@ class EgcaGrpoTrainer:
         with timer.phase("grounding"):
             for trajectory in trajectories:
                 grounded = (
-                    solve_constants(parse_ast_placeholders(trajectory.source), terms)
+                    fit_program(trajectory.source, terms)
                     if trajectory.source
                     else None
                 )
                 self.last_grounding_results.append(grounded)
                 candidates.append(
-                    grounded.grounded_wat
-                    if grounded is not None and grounded.is_sat
+                    grounded.source
+                    if grounded is not None and grounded.outcome == "verified_solution"
                     else trajectory.source
                 )
         with timer.phase("runtime"):
@@ -357,7 +354,7 @@ class EgcaGrpoTrainer:
             ),
             **sensor_metrics(self.device),
             "solver_durations_ms": [
-                r.solve_duration_ms for r in self.last_grounding_results if r is not None
+                r.elapsed_ms for r in self.last_grounding_results if r is not None
             ],
             "solver_outcomes": [r.outcome for r in self.last_grounding_results if r is not None],
             "elapsed_s": time.monotonic() - started,

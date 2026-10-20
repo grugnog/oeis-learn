@@ -447,13 +447,12 @@ class QualifiedServices:
         )
 
     def ground(self, source, visible_terms):
-        from oeis_learn.decoder.grounding import ground
+        from oeis_learn.synthesis.fitting import fit_program
 
         settings = self._settings("solver")
-        return ground(
+        return fit_program(
             source,
             visible_terms,
-            bound=settings["coefficient_bound"],
             timeout_ms=settings["timeout_ms"],
         )
 
@@ -624,7 +623,7 @@ def activate_qualified_contract(
             raise ConfigError("qualified G8 identity/learning capability mismatch")
     profile_schemas = {
         "solver": {
-            "coefficient_bound": ("int",),
+            "coefficient_bits": ("int",),
             "timeout_ms": ("int",),
             "max_parameters": ("int",),
         },
@@ -653,8 +652,8 @@ def activate_qualified_contract(
         settings = profile["settings"]
         if name == "solver":
             _require(
-                0 <= settings["coefficient_bound"] <= 1000
-                and 1 <= settings["timeout_ms"] <= 2000
+                settings["coefficient_bits"] == 4096
+                and 1 <= settings["timeout_ms"] <= 4000
                 and settings["max_parameters"] == 8,
                 "solver limits mismatch",
             )
@@ -668,7 +667,7 @@ def activate_qualified_contract(
                 "native limits mismatch",
             )
         else:
-            _require(1 <= settings["timeout_ms"] <= 2000, "formula worker limits mismatch")
+            _require(1 <= settings["timeout_ms"] <= 4000, "formula worker limits mismatch")
         active[name] = deepcopy(profile)
     if learning_active:
         from oeis_learn.experiments.profiles import qualified_model_profile

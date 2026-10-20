@@ -34,23 +34,16 @@ def test_g7_does_not_accept_partial_or_self_declared_pass():
         require_architecture_measurement_gates({"gate": "G7", "status": "PASS"})
 
 
-def test_original_apis_share_ground_service(monkeypatch):
-    from oeis_learn.decoder import constant_solver as api
-    from oeis_learn.decoder.grounding import GroundingResult
-
-    calls = []
-
-    def fake(source, terms, **kwargs):
-        calls.append((source, terms))
-        return GroundingResult(
-            "unknown", source, (), (0,), "sha256:" + "0" * 64, "not_run", "not_run", 1000, 1.0
-        )
-
-    monkeypatch.setattr(api, "ground", fake)
-    skeleton = api.parse_ast_placeholders("i256.const_?")
-    assert not api.solve_constants(skeleton, [7]).is_sat
-    assert api.resolve_program_constants(skeleton.raw_wat, [7])[2] == "UNKNOWN"
-    assert len(calls) == 2
+def test_supported_facade_uses_only_native_client():
+    from oeis_learn.synthesis.fitting import fit_program
+    calls=[]
+    class Client:
+        def fit(self, source, prompt, **kwargs):
+            calls.append((source,prompt,kwargs))
+            return dict(outcome='unknown',admitted=[])
+    result=fit_program('i256.const 0',[7]*20,client=Client())
+    assert result.outcome == 'unknown' and not result.constants and len(calls)==1
+    assert calls[0][2]['profile'] == 'wat_i256_checked_v1'
 
 
 def oversize():
@@ -129,7 +122,7 @@ def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeyp
     from oeis_learn.experiments.qualified_models import seal_record, MODES
     from oeis_learn.experiments.artifacts import compute_canonical_digest
     from oeis_learn.evaluation import repair_gate
-    from oeis_learn.decoder import grounding
+    from oeis_learn.synthesis import fitting
     from pathlib import Path
 
     base = load_config("configs/foundation/wat_smoke.yaml").to_dict()
@@ -137,7 +130,7 @@ def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeyp
     profile = {
         "version": "qualified-service/v1",
         "service": "solver",
-        "settings": {"coefficient_bound": 5, "timeout_ms": 123, "max_parameters": 8},
+        "settings": {"coefficient_bits": 4096, "timeout_ms": 123, "max_parameters": 8},
     }
     profile_digest = compute_canonical_digest(profile)
     gate = "sha256:" + "3" * 64
@@ -171,8 +164,8 @@ def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeyp
         repair_gate, "require_g7", lambda report, **kwargs: seen.append(("gate", report)) or gate
     )
     monkeypatch.setattr(
-        grounding,
-        "ground",
+        fitting,
+        "fit_program",
         lambda source, terms, **kwargs: seen.append(("solver", kwargs)) or "result",
     )
     objects = {base_digest: base, profile_digest: profile}
@@ -182,12 +175,12 @@ def test_qualified_profiles_dispatch_effective_settings_after_gate_check(monkeyp
         evidence_root=Path("."),
         resolve=objects.__getitem__,
     )
-    assert services.ground("i256.const_?", [5] * 20) == "result"
-    assert seen == [("gate", {"diagnostic": "test"}), ("solver", {"bound": 5, "timeout_ms": 123})]
-    profile["settings"]["coefficient_bound"] = 999
+    assert services.ground("i256.const 0", [5] * 20) == "result"
+    assert seen == [("gate", {"diagnostic": "test"}), ("solver", {"timeout_ms": 123})]
+    profile["settings"]["coefficient_bits"] = 999
     leaked = services._settings("solver")
-    leaked["coefficient_bound"] = 888
-    assert services._settings("solver")["coefficient_bound"] == 5
+    leaked["coefficient_bits"] = 888
+    assert services._settings("solver")["coefficient_bits"] == 4096
     assert services.capabilities == ("solver",)
     with pytest.raises(ValueError, match="disabled"):
         services.optimize("i256.const 7")

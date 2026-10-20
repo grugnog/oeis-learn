@@ -5,26 +5,24 @@ from __future__ import annotations
 import datetime
 import hashlib
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional
 import torch
-from oeis_learn.curriculum.extrapolation import ExtrapolationVerifier
 from oeis_learn.curriculum.mdl_verifier import MdlVerifier
-from oeis_learn.data.benchmark import BenchmarkCohort, BenchmarkTarget
+from oeis_learn.data.benchmark import BenchmarkTarget
 from oeis_learn.data.models import (
     ExecutionResult,
     StageRecord,
     SynthesisCandidateRecord,
     SynthesisEvaluationResult,
 )
-from oeis_learn.decoder.constant_solver import resolve_program_constants
+from oeis_learn.synthesis.fitting import fit_program
 from oeis_learn.decoder.sampler import WatProgramSampler
 from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 from oeis_learn.decoder.wat_grammar import tokenize_wat
 from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
-from oeis_learn.evaluation.checkpoint import CheckpointProvenance, load_checkpoint_v2
+from oeis_learn.evaluation.checkpoint import CheckpointProvenance
 from oeis_learn.evaluation.protocol import (
     EvaluationProtocol,
-    canonical_json_hash,
     derive_candidate_seed,
 )
 from oeis_learn.sandbox.optimizer import optimize_wat_program
@@ -87,7 +85,6 @@ def evaluate_candidate_stages(
     # Target observed & unseen integer terms
     obs_integers = [int(x) for x in target.observed_terms]
     uns_integers = [int(x) for x in target.unseen_terms]
-    all_integers = obs_integers + uns_integers
 
     def record_stage(
         stage_name: str,
@@ -119,18 +116,14 @@ def evaluate_candidate_stages(
     # 2. Stage: CONSTANT_RESOLUTION
     if primary_failure is None:
         t0 = time.perf_counter()
-        if "i64.const_?" in raw_wat or "i256.const_?" in raw_wat or protocol.constant_resolution:
+        if "i64.const_?" in raw_wat or "i256.const_?" in raw_wat or (protocol.constant_resolution and not raw_wat.lstrip().startswith("(module")):
             if not protocol.constant_resolution:
                 record_stage("CONSTANT_RESOLUTION", "FAILED", 0.0, "SOLVER_DISABLED", "Placeholders emitted but constant_resolution is false")
                 primary_failure = "CONSTANT_RESOLUTION"
             else:
-                r_wat, r_consts, r_status, r_dur, r_err = resolve_program_constants(
-                    wat_code=raw_wat,
-                    terms=obs_integers,
-                    timeout_ms=protocol.solver_timeout_ms,
-                    max_placeholders=protocol.max_placeholders,
-                    runner=wasm_runner,
-                )
+                fit = fit_program(raw_wat, obs_integers, timeout_ms=protocol.solver_timeout_ms)
+                r_wat, r_consts = fit.source, list(fit.constants)
+                r_status, r_dur, r_err = ("PASSED" if fit.outcome == "verified_solution" else fit.outcome.upper()), fit.elapsed_ms, fit.reason
                 if r_status == "PASSED":
                     resolved_wat = r_wat
                     resolved_constants = [str(c) for c in r_consts]

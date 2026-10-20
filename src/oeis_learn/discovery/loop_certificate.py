@@ -5,7 +5,7 @@ initiation, consecution, exit, decreasing/nonnegative ranking and intermediate
 checked ranges are independently discharged. Solver UNKNOWN is preserved.
 """
 
-import z3
+from . import native_obligations as smt
 from oeis_learn.sandbox.logical_ir import parse_logical
 
 
@@ -29,14 +29,14 @@ def check_loop(source, domain, template):
         raise NotImplementedError("one restricted loop required")
     position = loops[0]
     loop = program.root.args[position]
-    n = z3.Int("n")
-    state = [z3.Int(f"s{i}") for i in range(32)]
+    n = smt.Int("n")
+    state = [smt.Int(f"s{i}") for i in range(32)]
     range_terms = []
 
     def expr(node, slots):
         op, a = node.op, node.args
         if op == "const":
-            v = z3.IntVal(a[0])
+            v = smt.IntVal(a[0])
         elif op == "index":
             v = n
         elif op == "get":
@@ -77,10 +77,10 @@ def check_loop(source, domain, template):
     invariants = [template_node(t, True) for t in template["invariants"]]
     ranking = template_node(template["ranking"])
     post = template_node(template["postcondition"], True)
-    initial = statements(program.root.args[:position], [z3.IntVal(0)] * 32)
+    initial = statements(program.root.args[:position], [smt.IntVal(0)] * 32)
     initialization_ranges = list(range_terms)
     range_terms.clear()
-    inv = z3.And(*[expr(t, state) for t in invariants])
+    inv = smt.And(*[expr(t, state) for t in invariants])
     range_terms.clear()
     guard = expr(loop.args[0], state)
     guard_ranges = list(range_terms)
@@ -91,19 +91,19 @@ def check_loop(source, domain, template):
     r = expr(ranking, state)
     ra = expr(ranking, after)
     range_terms.clear()
-    bounds = z3.And(
+    bounds = smt.And(
         n >= domain["start"], *([n <= domain["end"]] if domain["end"] is not None else [])
     )
-    bounds = z3.And(bounds, *[n != x for x in domain["excluded_indices"]])
+    bounds = smt.And(bounds, *[n != x for x in domain["excluded_indices"]])
     minimum, maximum = -(1 << 255), (1 << 255) - 1
 
     def safe(values):
-        return z3.And(*[z3.And(v >= minimum, v <= maximum) for v in values])
+        return smt.And(*[smt.And(v >= minimum, v <= maximum) for v in values])
 
-    assumptions = z3.And(bounds, safe(state))
-    inv_initial = z3.And(*[expr(t, initial) for t in invariants])
+    assumptions = smt.And(bounds, safe(state))
+    inv_initial = smt.And(*[expr(t, initial) for t in invariants])
     range_terms.clear()
-    inv_after = z3.And(*[expr(t, after) for t in invariants])
+    inv_after = smt.And(*[expr(t, after) for t in invariants])
     range_terms.clear()
     post_exit = expr(post, state)
     range_terms.clear()
@@ -112,35 +112,26 @@ def check_loop(source, domain, template):
     expr(program.root.args[-1].args[0], state)
     exit_ranges = list(range_terms)
     obligations = {
-        "initiation": z3.Implies(bounds, z3.And(inv_initial, safe(initialization_ranges))),
-        "consecution": z3.Implies(
-            z3.And(assumptions, inv, guard),
-            z3.And(inv_after, safe(guard_ranges + transition_ranges)),
+        "initiation": smt.Implies(bounds, smt.And(inv_initial, safe(initialization_ranges))),
+        "consecution": smt.Implies(
+            smt.And(assumptions, inv, guard),
+            smt.And(inv_after, safe(guard_ranges + transition_ranges)),
         ),
-        "ranking": z3.Implies(z3.And(assumptions, inv, guard), z3.And(r >= 0, ra >= 0, ra < r)),
-        "exit": z3.Implies(
-            z3.And(assumptions, inv, z3.Not(guard)),
-            z3.And(post_exit, safe(guard_ranges + exit_ranges)),
+        "ranking": smt.Implies(smt.And(assumptions, inv, guard), smt.And(r >= 0, ra >= 0, ra < r)),
+        "exit": smt.Implies(
+            smt.And(assumptions, inv, smt.Not(guard)),
+            smt.And(post_exit, safe(guard_ranges + exit_ranges)),
         ),
     }
     results = {}
     for name, condition in obligations.items():
-        solver = z3.Solver()
-        solver.set(timeout=1500)
-        solver.add(z3.Not(condition))
-        result = solver.check()
-        results[name] = str(result)
-        if result != z3.unsat:
-            return False, {
-                "obligations": results,
-                "reason": "unproved obligation",
-                "solver": z3.get_version_string(),
-            }
-    return True, {
-        "obligations": results,
-        "solver": z3.get_version_string(),
-        "scope": "checked_logical_ir_termination_and_postcondition",
-    }
+        reply = smt.discharge(condition)
+        result = reply['result']
+        results[name] = result
+        if result != 'unsat':
+            return False, dict(obligations=results, reason='unproved obligation', solver=reply['solver'])
+    return True, dict(obligations=results, solver=reply['solver'],
+                      scope='checked_logical_ir_termination_and_postcondition')
 
 
 def propose_loop_templates(source, domain, *, cap=64):
