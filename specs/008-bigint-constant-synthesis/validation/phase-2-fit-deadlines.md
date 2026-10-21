@@ -45,12 +45,13 @@ assignments, without promising success for the previously timed-out seed.
   container validation/replay commands. Actual native/HIP evidence is reported
   separately; do not wait for PR CI.
 
-These checkmarks record implementation and available local checks, not completed
-native qualification. The following execution evidence is still pending:
+These checkmarks record implementation and available local checks. The focused
+native execution gates below are now covered by reviewed CI artifacts; full
+Phase 5 qualification remains separate:
 
-- [ ] N001 Compile and run the new Rust tests in the managed image. The normal
+- [X] N001 Compile and run the new Rust tests in the managed image. The normal
   image build already runs all core tests and retains `core-tests.txt`.
-- [ ] N002 Run the packaged fitting/admission suite and optional single-case
+- [X] N002 Run the packaged fitting/admission suite and optional single-case
   replay against that rebuilt image. Review returned outcomes, timing policy,
   transport completion and worker health. A delivered empty timeout is an
   honest result; success on this particular seed is not an acceptance gate.
@@ -82,6 +83,33 @@ No Rust toolchain, container engine or HIP device is available here. Rust tests
 and actual packaged delivery have therefore **not** been run locally. These
 tests are included in the normal managed image build and fitting qualification;
 CI is deliberately left unmonitored.
+
+## Completed CI evidence and binding repair — 2026-10-21
+
+On the user's subsequent continuation, reviewed completed jobs from workflow
+`39684406792` for head `bc51f7a93047a228eb3e0aa1e11300bf809c7210`.
+The managed Docker image compiled the native correction. Its core suite passed
+**20 tests**, including all seven new deadline/enumeration regressions. Packaged
+fitting passed **37 tests with zero failures or skips**. The observed candidate's
+complete-status/healthy-worker regression passed in 1.942 seconds; that records
+delivery and subsequent execution, not a claim that this seed found a fit.
+Archive SHA256, JUnit SHA256, source identity and matching native build identity
+were independently checked. See the [bounded CI review](phase-2-fit-deadlines-ci.json).
+This closes N001/N002 for the focused CPU fitter correction; the optional full
+candidate replay remains available and has not been run against the new image.
+
+The general CPU review and both public Docker/Podman CLI jobs failed the same
+assertion: `current-dispositions.json` still bound the Phase 4 Python package
+hash. Reproduced the failure locally, refreshed its current implementation hash
+and descriptive revision, and checked all 68 original item/task mappings plus
+the historical template hash. All dispositions, pending tasks and the false
+full-completion flag remain unchanged. The focused owning tests then passed
+**54 tests with zero failures/skips**; the Spec 007 structural/schema validator
+also passed. This is a traceability repair, not new runtime qualification.
+No Python/Rust implementation bytes, dependencies or source snapshot identities
+changed in that repair. The new public-engine CI rerun remains pending; the
+long-running Podman image build is not polled or awaited. No HIP, training or
+hidden scoring work was executed.
 
 ## Run managed native validation
 
