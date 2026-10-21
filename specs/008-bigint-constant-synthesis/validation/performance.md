@@ -48,3 +48,21 @@ Shared small-value median execution slowdown above5x appears in
 scaling before long runs. Such a measurement cannot justify weaker semantics;
 algorithm changes return to Phase 2. See [phase-5.md](phase-5.md) for commands.
 
+## Scope follow-up and sequencing — 2026-10-21
+
+PR #59 changes admission accounting and execution panels, not the arithmetic
+runtime or measured generation algorithm. Both new cost scopes retain every
+registered control. The historical p95s motivate the finite diverse32 resource
+revision in [screen-preflight.md](screen-preflight.md); a fresh source/image HIP
+receipt must confirm it before the one bounded diagnostic.
+
+The reviewed 15 small-value ratios are execution ratios, already excluding
+candidate preparation and module compilation. New execution includes fresh
+stores, bigint arena/import calls, input loading and serialization, whereas the
+retained subset uses the old scalar representation. Those differences identify
+profiling targets; the ratios alone cannot attribute the slowdown to any one
+component. The targeted preflight retains cold/warm preparation/execution and
+batch1/20/100 records for that investigation. Per the merged scope decision,
+broad runtime optimization is deferred until after the single diverse32 result;
+the unresolved slowdown remains T094 evidence and prevents closing T098.
+

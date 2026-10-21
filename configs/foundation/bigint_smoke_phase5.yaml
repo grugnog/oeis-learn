@@ -1,7 +1,7 @@
 # T095 preregistered diverse32 budget revision; source-bound scoped receipt required.
 # 14400s includes diagnostics/reservations; 80% admission gate and all controls unchanged.
 # Basis: validation/phase-5-batched-hip-review.json; see validation/screen-preflight.md.
-# Model seeds:20261016,20261017,20261018; choose --seed before creating a run.
+# T096 registers exactly seed20261016; the reviewed runner enforces it.
 version: bigint-bootstrap/v1
 data:
   cache: tmp-oeis-bulk

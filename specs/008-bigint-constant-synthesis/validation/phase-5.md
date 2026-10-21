@@ -1,7 +1,8 @@
 # Phase 5 qualification (T089–T098)
 
-Code and reproducible qualification commands are implemented in
-[PR #58](https://github.com/grugnog/oeis-learn/pull/58). **The Phase 5 execution
+The initial qualification tooling merged in PR #58. Scope-specific cost
+admission and the reviewed single-attempt runner are implemented in
+[PR #59](https://github.com/grugnog/oeis-learn/pull/59). **The Phase 5 execution
 and promotion gate is pending.** No Phase 6 screen or final-cohort study ran.
 
 The reviewed `008-phase5-batched-20261021T001809Z` run passes all9 actual HIP
@@ -11,7 +12,10 @@ see [the review receipt](phase-5-batched-hip-review.json). Complete prepared
 inputs pass checking. The measured complete transfer-screen projection fails at
 47,749.33 seconds versus5,760 allowed. That receipt does not model the smaller
 32-prompt memorization scope, so T095 now requires separate scope-identified
-preflights and a preregistered finite budget revision before T096. Learnability
+preflights and a preregistered finite budget revision before T096. That code is
+now implemented; the explicit diverse32 budget is 14,400s, with the original
+smoke and historical receipts preserved. Fresh source/image HIP measurements
+and receipt review remain pending. Learnability
 has not run. Other Phase 5 tasks remain open. See [the measurement review and
 next decision](phase-5-generation.md#phase-5-cost-decision--2026-10-21).
 
@@ -37,7 +41,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
 | T094 | [Performance](performance.md): native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen small-value slowdowns of23.87–78.28x still require investigation. |
-| T095 | [Data and cost](screen-preflight.md): checked512/128/128 plus tiny32. The complete transfer-screen projection FAILS at47,749.33s versus5,760s. Implement distinct diverse32 and transfer-screen receipts, then preregister the diverse32 budget before T096. |
+| T095 | [Data and cost](screen-preflight.md): checked512/128/128 plus tiny32. The complete transfer-screen projection FAILS at47,749.33s versus5,760s. Distinct receipts and shared reservation functions are implemented. The 14,400s diverse32 budget is preregistered; fresh HIP receipts/review remain pending. |
 | T096 | [Learnability](learnability.md): not run; waits for the diverse32-specific T095 receipt and reviewed finite budget. The failed larger-screen estimate alone does not decide this gate. |
 | T097 | [Operations](operations.md): new-image and public hardware/checkpoint-dependent commands pending. |
 | T098 | This report, [local checks](phase-5-local.json) and [current HIP review](phase-5-batched-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
@@ -47,7 +51,7 @@ image provenance. They require nonempty zero-failure/error/skip JUnit, clean
 arbitrary-UID packaging and unchanged retained numerical controls. GPU execution
 is separate. New CI is left running after pushes as requested.
 
-## Local checks and limits
+## Initial PR #58 local checks and limits
 
 The affected CPU/policy/codec/reference and tooling set passes **135 tests with
 one explicit packaged-native measurement skip**, zero failures/errors. Ruff
@@ -60,64 +64,89 @@ This agent environment has no Docker/Podman/Rust/HIP toolchain. Native compilati
 new-image execution/benchmarks, real data preparation and GPU learning are not
 claimed locally. Required CI/image runs fail rather than skip missing artifacts.
 
+## Current follow-up implementation
+
+The PR #59 affected local suite passes **235 tests**, zero failures/errors,
+with six explicit packaged-native skips and one GPU deselection. The broad
+suite covers bigint policy, codec, reference, CPU encoder/training/checkpoint,
+workflow contracts, generation and retirement callers; a separate registration
+test verifies that only the smoke budget changes. Ruff F/E9 and formatting,
+standard-library-only host help, documented Bash syntax, Spec Kit prerequisites
+and whitespace checks pass. See [the source-bound local receipt](phase-5-scoped-local.json).
+No container build, native timing or new HIP/learning execution is claimed here.
+
+PR #59 separates admission authority for diverse32 and transfer-screen. Its
+forecast and coordinator use identical functions for exact panels, attempt
+rounds, raw/fitted/hidden checks, full teacher forcing, checkpoints and cleanup
+reservations. A full-budget ceiling is checked in addition to the 80% p95 limit.
+The diverse32 worker uses exactly its 32 training prompts for periodic synthesis;
+transfer-screen retains its three 32-row panels and complete 128+128 end screen.
+
+Receipts bind source, image, numerical/model/search profile, prepared shape,
+scope and registered schedule. Legacy receipts remain readable but cannot
+authorize new scoped training. Both receipts are written from the same measured
+p95 inputs; one passing scope gives no authority to the other. The reviewed
+runner reuses those measurements and the image, enforces seed20261016, validates
+sealed report/recipe identities and durably prevents a second fresh attempt.
+It archives public check/learnability/pack results, including negative and
+interrupted outcomes. Resume continues the original ledger.
+
+The [budget preregistration](phase-5-scoped-preregistration.json) is explicitly
+an inference from historical p95s, not new hardware evidence. It calculates
+7,999.085s for diverse32 and 10,183s of role reservations against a 14,400s cap.
+The independently corrected transfer estimate is 29,723.688s and remains over
+its original budget. Neither this calculation nor mocked orchestration tests
+establish learned accuracy. T095/T096 remain unchecked until execution/review.
+
 ## Copy-pastable hardware commands
 
-Update this PR checkout before running; the wrapper builds and binds the exact
-current source rather than reusing an older image:
+Run from the PR #59 checkout. On the HIP machine, the shortest useful next run
+reuses the prepared inputs and measures both scopes without training:
 
 ```bash
-git fetch origin
-git switch implement/008-phase5
-git pull --ff-only
+phase5_preflight="tmp-validation/008-phase5-scoped-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --cost-scope diverse32 --config configs/foundation/bigint_smoke_phase5.yaml \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "$phase5_preflight"
 ```
 
-One CPU/native/retirement/performance qualification:
+Review/share the resulting ZIP and both `performance/cost-SCOPE.json` receipts.
+Then follow [the separate single-attempt command](learnability.md), after the
+diverse32 receipt and finite budget are reviewed. There is no automatic learning
+or Phase 6 launch. A new code/profile/data/image identity requires a new receipt.
+
+For remaining complete CPU/native/retirement/operations checks on each engine:
 
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine docker \
-  --output tmp-validation/008-phase5-docker-001
+  --output "tmp-validation/008-phase5-docker-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman \
+  --output "tmp-validation/008-phase5-podman-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
-On the HIP machine, run the same CPU/native checks, actual GPU update/cache
-suite, capacity/shape cost measurements, and (only after passing preflight) the
-bounded diverse32 gate:
+To combine those partitions with the HIP preflight, omit `--performance-only`
+from the first command. For new preparation replace `--inputs PATH` with
+`--prepare`; retain the pinned bulk cache. Add `--render-node
+/dev/dri/renderD128` when device selection is needed. An explicit `--image IMAGE`
+must contain this exact source; stale images fail source binding.
 
-```bash
-python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
-  --output "tmp-validation/008-phase5-hip-$(date -u +%Y%m%dT%H%M%SZ)"
-```
+Each invocation creates a bounded ZIP on success/failure and prints its path.
+It retains summaries, source/image/artifact hashes, receipts, JUnit, logs and
+observed isolation/cleanup, with an omission manifest. Private inputs, weights
+and caches are excluded. Use a fresh output directory for measurement retries;
+learning uses the original attempt/ledger instead.
 
-The command remains blocked until T095 implements the scope-specific receipt and
-the revised diverse32 budget is written into a new recipe identity. It launches
-no Phase 6 screens. Use Docker instead
-if preferred. With multiple GPUs, add `--render-node /dev/dri/renderD128` for the
-intended device. For existing prepared data, replace `--prepare` with
-`--inputs PATH`. Omit `--prepare --learnability` for a hardware/performance-only
-run. An explicit `--image IMAGE` must contain the exact current source snapshot;
-stale images fail before later qualification. New code means a new image/run.
+T093 still needs a genuine retained matched-run directory. Add
+`--checkpoint-run runs/ACTUAL_RUN` to a full qualification command when those
+weights/metadata are available. The new tiny checkpoint cannot substitute for
+that evidence. No task is checked off merely because a command exists.
 
-Each invocation prints its ZIP path, e.g.
-`tmp-validation/008-phase5-hip-20261020T120000Z.zip`. Share that archive, including failed or
-blocked outcomes. It contains summaries, exact image/source/artifact hashes,
-receipts, JUnit, logs, observed isolation/cleanup, measurements and optional
-bounded run bundle, with an omission manifest. It omits private data/caches and
-weights. Use a new suffix (`002`, etc.) for a retry; earlier evidence stays intact.
-The timestamp in the command creates a fresh output automatically on each rerun.
-If preparation finished successfully, reuse its inputs while preserving the
-earlier evidence (replace the example timestamp with that run's directory):
+## Historical follow-ups
 
-```bash
-python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --learnability \
-  --inputs tmp-validation/008-phase5-hip-20261020T120000Z/inputs \
-  --output "tmp-validation/008-phase5-hip-$(date -u +%Y%m%dT%H%M%SZ)"
-```
-
-A matched retained-run diagnostic can additionally be requested with
-`--checkpoint-run runs/ACTUAL_RUN`. No such run was supplied locally. Supplying
-only a canonical program or a newly trained bigint model cannot satisfy T093.
-No task is checked off merely because these commands/tests exist. The phase can
-be closed only after required execution/review, including genuine HIP, matched
-checkpoint diagnosis, cost and learnability results, has a recorded outcome.
+The sections below describe earlier source identities and commands. Use the
+current commands above; the former integrated `--learnability` flow is replaced
+by a separate reviewed receipt step.
 
 ## CI discovery follow-up
 

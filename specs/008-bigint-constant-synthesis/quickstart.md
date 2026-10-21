@@ -1,44 +1,48 @@
 # Quickstart: Validation and Bounded Research
 
-Phases 3 and 4 are complete at their recorded source/image identities.
-Phase 5 tooling is available in PR #58. Current-source HIP passes9/9; the
-complete transfer-screen cost projection fails its initial budget, while the
-diverse32 cost receipt, CPU/native partitions, matched-checkpoint diagnostic and
-learnability outcome remain pending. See [the Phase 5 gate table and cost
-scope decision](validation/phase-5.md).
-Sections 3–7 remain acceptance/research instructions. Training requires matching
-measured cost preflight and the preceding gates. No long run is auto-authorized.
+Phase 5 code is available in [PR #59](https://github.com/grugnog/oeis-learn/pull/59).
+T092 retains its reviewed historical HIP PASS. The new scope-specific preflight
+and one diverse32 learning outcome need current-source HIP execution; full
+Phase 5 qualification and Phase 6 promotion remain pending. See
+[the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
 ## Phase 5 qualification runner
 
-For the current fixed-state timing/batching follow-up, first run the targeted
-measurement with existing inputs; see [protocol and reviewed hardware evidence](validation/phase-5-generation.md):
+For the targeted cost follow-up, reuse the already checked inputs. This runs
+actual HIP regression/parity checks and fixed-state measurements, writes
+independent diverse32 and transfer-screen receipts, and launches no learning:
 
 ```bash
+phase5_preflight="tmp-validation/008-phase5-scoped-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --cost-scope diverse32 --config configs/foundation/bigint_smoke_phase5.yaml \
   --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
-  --output "tmp-validation/008-phase5-batched-$(date -u +%Y%m%dT%H%M%SZ)"
+  --output "$phase5_preflight"
 ```
 
-It launches no learnability run. Share the resulting ZIP, including a BLOCKED
-cost outcome, before proceeding to the full conditional runner below.
+Share the resulting ZIP, including a BLOCKED outcome. Review the diverse32
+receipt and preregistered 14,400-second budget before running the next command.
+A passing diverse32 receipt cannot admit the transfer screen.
 
 ```bash
-python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
-  --output tmp-validation/008-phase5-hip-001
+python3 scripts/run_bigint_diverse32.py --engine podman \
+  --reviewed-preflight "$phase5_preflight/performance/benchmark.json" \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-phase5-diverse32-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
-This command is retained as the intended integrated flow, but do not run its
-learnability stage until T095 implements the `diverse32` receipt and a reviewed
-finite budget is frozen in a new recipe identity. It runs qualified CPU/native/
-retirement and actual HIP suites, prepares/checks the complete paired dataset,
-measures non-scoring costs and conditionally runs the registered diverse32 gate.
-A failed scope-matching cost gate stops before training. Omit the preparation and
-learnability flags for hardware/performance only, or substitute `--inputs PATH`
-for existing prepared data. Choose a new suffix for retries.
-It always writes a bounded result ZIP; share that ZIP after completion/failure.
-Use `--engine docker` if appropriate. The full runner and per-stage details are
-in [validation/phase-5.md](validation/phase-5.md).
+The second command reuses the reviewed image/costs, checks inputs, claims exactly
+one seed20261016 attempt and archives learning/pack results even on failure.
+Keep the reviewed directory in `phase5_preflight` if starting another shell.
+A negative outcome preserves all thresholds and blocks promotion; an interrupted
+attempt must resume its original run/ledger. See [learnability.md](validation/learnability.md).
+
+For full CPU/native/retirement/containment qualification rather than the targeted
+follow-up, omit `--performance-only`; use `--prepare` instead of `--inputs PATH`
+only when new preparation is necessary. Use a fresh output for measurement
+retries. Both Docker and Podman evidence is required for T091. The former
+integrated `--learnability` flag now directs users to the separate reviewed step.
+Commands and archive details are in [phase-5.md](validation/phase-5.md).
 
 ## Phase 2 qualification available now
 
@@ -117,18 +121,14 @@ Expected: pinned bulk snapshot cache, paired concrete/parameterized generic reco
 
 ## 4. Diverse tiny synthesis gate
 
-```bash
-# Run only after T095 records the scoped receipt and revised config identity.
-python3 scripts/foundation_run.py --engine podman learnability \
-  --config configs/foundation/bigint_smoke.yaml \
-  --inputs tmp-bigint-inputs-001 --view diverse \
-  --max-updates 3000 --budget-seconds REVISED_SECONDS \
-  --seed 20261016 --run runs/bigint-tiny-001
-python3 scripts/foundation_run.py --engine podman pack \
-  --run runs/bigint-tiny-001 --output tmp-analysis/bigint-tiny-001.zip
-```
-
-The smoke recipe resolves to the same explicit view/update/time values shown above; contradictory CLI/config values must fail rather than silently override. Expected: at least31/32 independently correct greedy-plus-fitting continuations with complete coverage and explicit raw/shuffled/absent/template results. Failure should produce a useful bundle and stop promotion; passing does not yet establish held-out structural transfer.
+Use the two-step Phase 5 commands above with the reviewed measured recipe.
+The original `bigint_smoke.yaml` remains a historical 7,200-second registration;
+`bigint_smoke_phase5.yaml` is the explicit 14,400-second resource revision.
+Do not bypass receipt binding through CLI budget overrides. The unchanged gate
+requires at least 31/32 independently correct greedy-plus-fitting continuations,
+32/32 complete coverage and 32/32 greedy termination, with explicit raw,
+shuffled, absent and template results. Negative results retain useful bundles
+and block promotion. Passing does not establish held-out structural transfer.
 
 ## 5. Three matched literal/parameterized screens
 

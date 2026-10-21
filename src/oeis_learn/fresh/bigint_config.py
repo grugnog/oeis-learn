@@ -253,7 +253,7 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("replay disabled in representation comparisons")
     if (
         not 1 <= result["learning"]["max_updates"] <= 3000
-        or result["budgets"]["training_seconds"] > 86400
+        or result["budgets"]["training_seconds"] > 14400
         or result["budgets"]["preparation_seconds"] > 7200
     ):
         raise ValueError("bounded registered screen required")

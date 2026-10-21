@@ -1,33 +1,63 @@
 # Diverse32 memorization gate — T096
 
-Status: pending the diverse32-specific T095 cost receipt and its reviewed,
-preregistered finite budget. Actual HIP and prepared-data checks now pass; no
-training run has launched. The reviewed47,749.33-second projection belongs to
-the larger complete transfer screen and does not by itself admit or reject this
-32-prompt diagnostic.
+Status: runner implemented; actual learning outcome pending a reviewed passing
+current-source diverse32 T095 receipt. Historical HIP measurements motivate the
+finite budget registration, but cannot admit this new source/image. The larger
+transfer screen remains independently blocked by cost.
 
-`--gpu --prepare --learnability` requests the bounded registered smoke run only
-after preceding gates pass. Before using it, T095 must make cost accounting and
-role reservations describe the exact diverse32 workload and must freeze a new
-recipe identity with its measured budget. The model/optimizer starting recipe
-remains d256,4+4 layers, batch8, LR1e-4, FP32/eager, seed20261016, up to3000
-updates,100-update validation, visible-only selection and the frozen patience
-rule. The original7,200-second cap is an initial unmeasured default, not the
-required runtime target.
-The actual prepared tiny set must contain32 prompts with the required structure,
-offset and non-affine composition. A raw runtime fixture cannot replace it.
+`configs/foundation/bigint_smoke_phase5.yaml` registers 14,400 seconds including
+diagnostics/reservations. The model/optimizer starting recipe remains d256,
+4+4 layers, batch8, LR1e-4, FP32/eager, seed20261016, at most 3000 updates,
+100-update validation, visible-only selection and the frozen patience rule.
+Training and periodic synthesis use exactly the prepared diverse32; full
+teacher-forcing validation still covers both 128-row development sets. Its
+composition, offsets, non-affine members and complete 512/128/128 preparation
+are checked through the public CLI. Runtime fixtures cannot replace those inputs.
 
-The public learnability path records raw/rescue, correct/shuffled/absent and
-non-neural controls, independently scored100-index continuations, termination,
-coverage and the selected real checkpoint. The unchanged gate requires at least
-31/32 rescue successes,32/32 complete evidence and32/32 greedy termination.
-The helper records PASS or FAIL from that gate and returns BLOCKED on a negative
-outcome, retaining the run bundle. It never lowers the threshold, changes seed,
-starts representation screens or evaluates the sealed final cohort automatically.
+First measure without launching learning:
 
+```bash
+phase5_preflight="tmp-validation/008-phase5-scoped-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --cost-scope diverse32 --config configs/foundation/bigint_smoke_phase5.yaml \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "$phase5_preflight"
+```
 
-Run exactly one seed after the scoped receipt passes. Record the resolved recipe,
-projected and realized phase costs, selected checkpoint and bounded bundle. A
-negative memorization result completes T096 as a research outcome while blocking
-promotion. Passing T096 does not admit the later transfer screen; that scope
-still needs its own T095 receipt.
+Review/share that output ZIP and both scope receipts. After the diverse32
+receipt and budget are reviewed, run exactly one registered attempt:
+
+```bash
+python3 scripts/run_bigint_diverse32.py --engine podman \
+  --reviewed-preflight "$phase5_preflight/performance/benchmark.json" \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-phase5-diverse32-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Keep `phase5_preflight` set to the reviewed directory if starting a new shell.
+Substitute Docker consistently if appropriate. Both commands always write a
+bounded ZIP on success/failure after creating their output directory. The
+learning runner reuses the receipt's immutable image and costs; it never
+remeasures, changes the seed or starts the transfer screen. It validates the
+report/receipt/recipe hashes and current source/image/shape/profile/schedule,
+then runs public `check`, `learnability` and `pack`.
+
+A durable workspace claim under `run-state/phase5-diverse32/` prevents a second
+fresh attempt for the same registration. An interruption preserves that claim
+and the original run ledger. Inspect its archived summary first; use public
+`foundation_run.py --engine podman resume --run ORIGINAL_RUN` to continue with
+the original image/recipe and remaining allowance. Never delete the claim to
+manufacture a new attempt or allowance. Public `pack --run ORIGINAL_RUN --output
+NEW.zip` can export the resumed result. The outer utility does not automatically
+retry or resume a learning failure.
+
+The public run records raw/rescue, correct/shuffled/absent and non-neural
+controls, independently scored 100-index continuations, coverage, greedy
+termination, realized ledger cost and the selected real checkpoint. The
+unchanged gate requires at least 31/32 rescue successes, 32/32 complete evidence
+and 32/32 greedy termination. The wrapper returns PASS/0 or negative
+BLOCKED/2 and retains the useful bundle; execution failure is FAIL/1. A completed
+negative result completes T096 as a research outcome while blocking promotion.
+T096 is left unchecked until that real result is reviewed. Other Phase 5 gates,
+including T093 existing matched-checkpoint rescue, remain separate; passing
+this diagnostic never admits Phase 6 or the sealed final cohort.

@@ -104,7 +104,7 @@ def test_scoped_admission_binds_authority_source_image_and_prepared_data(changed
     [
         ("learning", "validation_every", 500),
         ("learning", "max_updates", 2000),
-        ("budgets", "training_seconds", 20000),
+        ("budgets", "training_seconds", 12000),
         ("evaluation", "hidden_seconds", 20),
     ],
 )
@@ -136,6 +136,31 @@ def test_legacy_receipt_is_readable_without_new_training_authority():
             source_sha256="sha256:" + "b" * 64,
             shape_sha256="sha256:" + "c" * 64,
         )
+
+
+def test_budget_revision_preserves_finite_four_hour_resource_cap():
+    from oeis_learn.fresh.bigint_config import defaults, resolve
+
+    value = defaults()
+    value["budgets"]["training_seconds"] = 14400
+    assert resolve(value)["budgets"]["training_seconds"] == 14400
+    value["budgets"]["training_seconds"] = 14401
+    with pytest.raises(ValueError):
+        resolve(value)
+
+
+def test_preregistered_smoke_revision_changes_only_the_resource_budget():
+    from pathlib import Path
+    from oeis_learn.fresh.bigint_config import load
+
+    root = Path(__file__).resolve().parents[2] / "configs/foundation"
+    original = load(root / "bigint_smoke.yaml")
+    revised = load(root / "bigint_smoke_phase5.yaml")
+    original.pop("identity")
+    revised.pop("identity")
+    assert revised["budgets"]["training_seconds"] == 14400
+    revised["budgets"]["training_seconds"] = original["budgets"]["training_seconds"]
+    assert revised == original
 
 
 def test_memorization_periodic_panel_is_exactly_the_frozen32():

@@ -888,7 +888,14 @@ def run(
             from oeis_learn.fresh.bigint_config import load, packaged_artifacts
 
             recipe = load(
-                config or ROOT / "configs/foundation/bigint_smoke.yaml",
+                config
+                or ROOT
+                / "configs/foundation"
+                / (
+                    "bigint_smoke_phase5.yaml"
+                    if cost_scope == "diverse32"
+                    else "bigint_literal_screen.yaml"
+                ),
                 artifacts=packaged_artifacts(),
             )
             report["neural"] = neural_measurements(

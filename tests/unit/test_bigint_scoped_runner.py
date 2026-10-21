@@ -1,6 +1,5 @@
 """Scope receipts and one-shot orchestration; mock metadata never qualifies HIP."""
 
-from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
@@ -22,7 +21,7 @@ def runner():
 
 def report_fixture(tmp_path):
     from tests.unit.test_bigint_benchmark import benchmark
-    from oeis_learn.fresh.bigint_config import defaults
+    from oeis_learn.fresh.bigint_config import load
 
     root = Path(__file__).resolve().parents[2]
     # Historical p95 values exercise the preregistration rationale, not current hardware.
@@ -31,12 +30,8 @@ def report_fixture(tmp_path):
             root / "specs/008-bigint-constant-synthesis/validation/phase-5-batched-hip-review.json"
         ).read_text()
     )
-    tiny = defaults()
-    tiny["learning"]["validation_every"] = 100
-    tiny["budgets"]["training_seconds"] = 14400
-    screen = deepcopy(tiny)
-    screen["learning"]["validation_every"] = 500
-    screen["budgets"]["training_seconds"] = 7200
+    tiny = load(root / "configs/foundation/bigint_smoke_phase5.yaml")
+    screen = load(root / "configs/foundation/bigint_literal_screen.yaml")
     shapes = dict(
         counts=dict(training=512, parameter_development=128, structural_development=128),
         tiny_count=32,

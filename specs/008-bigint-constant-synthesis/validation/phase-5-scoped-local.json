@@ -1,0 +1,89 @@
+{
+  "version": "phase5-scoped-local-review/v1",
+  "base_revision": "42495ae0c53497f5c7813620cdb1576df0ed5a1f",
+  "code_parent_revision": "fe4e7a354bc84374990eee6b3bd9617c18fb6d9b",
+  "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+  "source_hash_method": "fresh.common.digest(experiments.source_snapshot.collect_snapshot(root))",
+  "python": "3.12.14",
+  "torch": "2.9.1+cpu",
+  "hardware": "CPU only; no Docker/Podman/Cargo/HIP execution available",
+  "tests": {
+    "passed": 235,
+    "failures": 0,
+    "errors": 0,
+    "gpu_deselected": 1,
+    "skipped": [
+      {
+        "classname": "tests.contract.test_bigint_build",
+        "name": "test_packaged_artifacts_and_binding_exact_numeral",
+        "reason": "requires built qualification/gpu image"
+      },
+      {
+        "classname": "tests.contract.test_bigint_build",
+        "name": "test_retained_signed_256_fixture_execution[rust]",
+        "reason": "requires the built native extension"
+      },
+      {
+        "classname": "tests.contract.test_bigint_performance",
+        "name": "test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries",
+        "reason": "requires pinned native qualification image"
+      },
+      {
+        "classname": "tests.contract.test_solver_retirement",
+        "name": "test_installed_distribution_has_no_retired_surface",
+        "reason": "requires clean installed qualification image outside checkout"
+      },
+      {
+        "classname": "tests.integration.test_bigint_workflow",
+        "name": "test_selection_scoring_is_independent_of_private_truth",
+        "reason": "native integration image required"
+      },
+      {
+        "classname": "tests.integration.test_bigint_workflow",
+        "name": "test_native_prepared_archive_has_full_matched_private_views",
+        "reason": "native preparation integration required"
+      }
+    ],
+    "junit": [
+      {
+        "path": "tmp-validation/phase5-scoped-local/results.xml",
+        "sha256": "sha256:464d75884b1457f76ee567bfba6ba9f4a79d0fe8e389dd8954320876b5222f33",
+        "tests": 240,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 6
+      },
+      {
+        "path": "tmp-validation/phase5-scoped-local/preregistration.xml",
+        "sha256": "sha256:152c2dda11693259551b3f8d806888e677b0d24813bc7d1955596cd501b51e7e",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "ruff_format": "PASS",
+    "stdlib_host_help": "PASS",
+    "documented_bash_syntax": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "diff_whitespace": "PASS"
+  },
+  "preregistration_sha256": "sha256:94846977d8bc8c60e30c507b2d7671c722da8f15f373230b5eb53a59f8a3c5b8",
+  "qualified": false,
+  "execution_tasks": {
+    "T089": "PENDING_NEW_IMAGE_ARITHMETIC",
+    "T090": "PENDING_NEW_IMAGE_FITTING",
+    "T091": "PENDING_BOTH_ENGINE_EXECUTION",
+    "T092": "CLOSED_AT_REVIEWED_HISTORICAL_IDENTITY_NEW_PREFLIGHT_RERUN_REQUIRED",
+    "T093": "BLOCKED_ACTUAL_MATCHED_CHECKPOINT_NOT_SUPPLIED",
+    "T094": "SLOWDOWN_INVESTIGATION_DEFERRED_UNTIL_AFTER_BOUNDED_DIVERSE32",
+    "T095": "SCOPED_CODE_PREREGISTERED_PENDING_FRESH_HIP_RECEIPTS_REVIEW",
+    "T096": "RUNNER_IMPLEMENTED_PENDING_SINGLE_REAL_RESULT",
+    "T097": "MOCK_ORCHESTRATION_PASS_ACTUAL_COMMAND_EXPORT_REVIEW_PENDING",
+    "T098": "PENDING_REQUIRED_EXECUTION_GATES"
+  },
+  "sha256": "sha256:329abc8de32fae1a9d8bca50d34c74147f10bc705904e588617442eb9867898a"
+}

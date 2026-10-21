@@ -307,7 +307,7 @@ def main():
     p.add_argument(
         "--learnability",
         action="store_true",
-        help="after HIP/data/cost gates, run the registered bounded diverse32 gate",
+        help="retired: use run_bigint_diverse32.py with a reviewed scoped preflight",
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
@@ -322,8 +322,6 @@ def main():
         p.error(
             "review the scoped preflight first; use scripts/run_bigint_diverse32.py --reviewed-preflight PATH"
         )
-    if args.learnability and not args.gpu:
-        p.error("--learnability requires --gpu; CPU fallback prohibited")
     if args.inputs and args.prepare:
         p.error("choose existing --inputs or --prepare")
     if args.performance_only and (

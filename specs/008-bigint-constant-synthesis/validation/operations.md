@@ -9,15 +9,26 @@ bundle-cap pressure. Installed retirement is rerun by the host helper using
 `validate --suite bigint-retirement`; installed audits execute with `python -I`
 outside the checkout. Historical readers remain read-only and unreplayed.
 
-The helper runs public prepare/check, GPU validation, optionally actual matched
-checkpoint diagnosis, and optionally bounded learnability/pack. Its final ZIP
+The preflight helper runs public prepare/check, GPU validation and optionally
+actual matched-checkpoint diagnosis. Learning is a separate reviewed-receipt
+step through `scripts/run_bigint_diverse32.py`, which invokes public
+check/learnability/pack without repeating measurement. Its final ZIP
 is created on success or failure, reserves the root summary first, hashes each
 included/omitted report and excludes weights, runtime caches, prepared/private
 payloads and scorer inputs. A successful tiny run also uses the supported pack
 command and includes that bounded bundle plus core status/checkpoint/summary
 records. Reports/inputs/caches stay in the workspace. Use a new output suffix
-for each retry. A training resume uses the original run's identical image/recipe
-and remaining ledger; the helper does not manufacture a fresh allowance.
+for each measurement retry. Learning has a durable single-attempt claim;
+an interrupted attempt must resume its original run's identical image/recipe
+and remaining ledger. The helper does not manufacture a fresh allowance.
+
+PR #59 adds host-only regression coverage for receipt tampering, stale
+source/image/prepared shape, cross-scope admission, changed schedule, duplicate
+attempt claims, negative learning outcomes and interrupted commands. The last
+two tests mock the external engine and verify durable claims, public command
+ordering and archive creation; they establish orchestration behavior, not HIP
+or learned accuracy. Standard-library-only `python3 -S ... --help` works for
+both host helpers. Actual new-image command/export execution is still pending.
 
 Full quickstart research/final-scoring commands remain Phase 6 gates; they are
 not launched merely to check off operations. See [phase-5.md](phase-5.md).
