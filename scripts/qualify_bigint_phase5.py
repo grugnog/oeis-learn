@@ -3,6 +3,7 @@
 
 Default runs CPU/native/retirement and measurements. --gpu additionally requires
 actual HIP and measures the production model. New outputs preserve earlier runs.
+--fitting-only runs fitting/admission regressions without data or GPU work.
 No Phase 6 screen or final-cohort evaluation is scheduled.
 """
 
@@ -291,6 +292,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--fitting-only",
+        action="store_true",
+        help="target CPU native fitting/admission; archive results without measurements or training",
+    )
+    p.add_argument(
         "--performance-only",
         action="store_true",
         help="target HIP parity and measured cost with existing inputs; never train",
@@ -326,6 +332,10 @@ def main():
         )
     if args.inputs and args.prepare:
         p.error("choose existing --inputs or --prepare")
+    if args.fitting_only and (
+        args.gpu or args.performance_only or args.inputs or args.prepare or args.checkpoint_run
+    ):
+        p.error("--fitting-only excludes GPU, measurements, inputs, preparation and checkpoints")
     if args.performance_only and (
         not args.gpu or not args.inputs or args.learnability or args.prepare or args.checkpoint_run
     ):
@@ -346,7 +356,11 @@ def main():
         status="FAIL",
         qualified=False,
         gpu_requested=args.gpu,
-        scope="performance-only" if args.performance_only else "full",
+        scope="fitting-only"
+        if args.fitting_only
+        else "performance-only"
+        if args.performance_only
+        else "full",
         stages={},
         engine=args.engine,
         pending={
@@ -368,13 +382,16 @@ def main():
                 "T090": "fitting qualification not rerun in targeted scope",
             }
         )
+    if args.fitting_only:
+        report["pending"]["T089"] = "arithmetic not rerun in targeted fitting scope"
     code = 1
     try:
         host = Host(args)
         image = host.ensure()
         report.update(image=image, runtime=host.policy["runtime"], engine=host.engine.name)
         write(output / "summary.json", report)
-        for group in () if args.performance_only else GROUPS:
+        groups = ("fitting",) if args.fitting_only else () if args.performance_only else GROUPS
+        for group in groups:
             stage = output / group
             container_stage(
                 host,
@@ -398,6 +415,9 @@ def main():
                 )
             report["stages"][group] = result
             write(output / "summary.json", report)
+        if args.fitting_only:
+            report["status"] = "PASS"
+            return 0  # finally publishes the bounded archive, including on failure.
         if not args.performance_only:
             validate(host, "bigint-retirement", output / "retirement")
             report["stages"]["retirement"] = json.loads(

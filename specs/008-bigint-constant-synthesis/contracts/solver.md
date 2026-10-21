@@ -29,9 +29,28 @@ An explicit signed-256 adapter supports checked whole-integer arithmetic whose s
 
 Initial profile: maximum eight parameters, coefficient capacity 4,096 magnitude bits, maximum eight assignments; native fitting/production budget 2 seconds/candidate plus a reserved independent-reference budget of 2 seconds/candidate. The parent portfolio has a 60-second visible-only wall budget/prompt, with all actual generation, solver and verification time counted. Unused reservation may be reused only under the frozen portfolio policy; neither a timeout retry nor an escalation gets a new parent allowance.
 
+The focused correction freezes internal policy `native-fit-deadlines/v1`. At
+native fit entry, use the earlier of the caller deadline and two seconds from
+entry. Of that remaining allowance, reserve 5% for response serialization and
+delivery, and 25% for final production checks; symbolic/affine/SMT work shares
+the first 70%. Shorter callers shrink every slice; expired callers remain
+expired. These are cooperative deadlines inside unchanged external supervision,
+not a guarantee against arbitrary solver/scheduler overrun. Earlier SAT models
+survive enumeration timeout and may undergo production checks in the reserved
+slice. UNKNOWN contributes no model and cannot establish uniqueness or UNSAT.
+The response records the timing policy, allowance/reserves and at most five
+scope summaries with outcome/reason, retained-model count and solver-check count.
+
 Unique affine solutions are solved directly, then checked against coefficient and numeric/resource limits. Ambiguous/nonlinear search escalates magnitude bounds 16, 64, 256, 1,024, 4,096 bits under the same budget. Report UNSAT only for completed scopes: failure at a smaller bound does not cover the maximum bound. If the final bound was not completed, outcome is resource-exhausted/unknown with earlier scoped evidence, not maximum-domain UNSAT.
 
 Rank discovered assignments by `(nonzero coefficient count, summed absolute bit lengths, signed coefficient tuple in parameter-ID order)`. This is deterministic ranking of the discovered set, not guaranteed deterministic discovery under wall-clock scheduling or global optimality. Keep seeds, engine version, constraints and actual assignments to replay evidence. Uniqueness uses a blocking clause for the complete assignment within the same declared scope and remaining budget; states are `unique_in_scope`, `multiple`, `unchecked`, `incomplete`. Do not infer uniqueness from one model.
+
+Once eight assignments have been retained, ambiguity is already established;
+return that discovered set without a ninth solver check. A cap of one still
+requires the blocking check to distinguish unique from multiple, and a timed-out
+blocking check leaves uniqueness incomplete. Discovery/ranking and admission
+rules otherwise stay unchanged. See the [focused work and pending native
+validation](../validation/phase-2-fit-deadlines.md).
 
 ## Native versus public statuses
 

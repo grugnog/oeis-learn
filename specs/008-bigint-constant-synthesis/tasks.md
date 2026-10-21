@@ -252,6 +252,11 @@ The subsequent [traced candidate replay](validation/phase-5-diverse32-deadline-r
 confirms a two-second worker deadline in the bound replay. Collection and
 failure-class diagnosis are complete; future native budget/response-delivery
 work returns to Phase 2 and does not reinterpret the original negative outcome.
+The user-authorized [F001–F005 deadline correction](validation/phase-2-fit-deadlines.md)
+implements internal production/response reserves and removes the redundant ninth
+solver check. Native compilation and packaged execution remain pending in the
+container environment; local Python checks do not close these execution gates
+or change the historical T036/T058 receipts.
 
 ## Phase 6: Controlled research and longer-run readiness
 
