@@ -208,8 +208,8 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
   and the other pending gates.
 - [ ] T093 [US2] Evaluate identified existing matched-run checkpoints through the retained-profile raw/exact paired diagnostic before parameterized training; record hashes, same-candidate rescue, unsupported fraction, continuation and fitting/reference cost in `specs/008-bigint-constant-synthesis/validation/checkpoint-rescue.md`; missing weights require an explicit evidence blocker, not substitution with canonical programs.
 - [ ] T094 [US1] Add and run the measurement-only harness `scripts/benchmark_bigint.py` for shared supported old/new small values and legal64/256/512/1024/4096-bit supplied values; construct up-to16,384-bit intermediate operands/results through supported operations from legal inputs, distinguish expected-overflow timings and identify any separately pinned wider-input benchmark-only profile; separate compile/execute/solve/reference/generation/training time, cold/warm batch behavior and resource coverage, recording results in `specs/008-bigint-constant-synthesis/validation/performance.md`; investigate >5x median small-value slowdown without weakening semantics.
-- [ ] T095 [US4] Prepare/check the frozen paired dataset and run complete-screen cost preflight using non-scoring fixtures via `scripts/foundation_run.py`; record complete512/128/128 counts, diverse32 composition, exclusions and projected p95 cost≤80% of budget in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`; preregister any resource/recipe revision before training.
-- [ ] T096 [US4] Execute the diverse32 memorization gate and raw/shuffled/absent/template controls from `configs/foundation/bigint_smoke.yaml`; record complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`; failure blocks promotion, not an excuse to lower the threshold.
+- [ ] T095 [US4] Preserve the measured full transfer-screen cost result, then implement and run scope-identified p95 preflights for `diverse32` and the later complete transfer screen via `scripts/foundation_run.py`; each receipt must use its exact periodic panel, end-of-run prompts, attempts, controls, cadence and reserve. Record complete512/128/128 counts, diverse32 composition, exclusions and both scope identities in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`. A passing diverse32 receipt may admit only T096; it cannot qualify the transfer screen. Preregister a finite measured budget/cadence/portfolio revision before training, without changing denominators or success thresholds.
+- [ ] T096 [US4] After the diverse32-specific T095 receipt and its revised finite budget are reviewed and frozen, execute exactly one diverse32 memorization gate and raw/shuffled/absent/template controls from `configs/foundation/bigint_smoke.yaml`; record realized cost, complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`. Failure blocks promotion; it does not authorize threshold changes or the later transfer screen.
 - [ ] T097 [US3] Exercise every supported quickstart command, clean retirement suite and normal/interrupted/bundle-cap exports; update `specs/008-bigint-constant-synthesis/quickstart.md` with verified commands and record mandatory artifact completeness, workspace persistence and historical reader results in `validation/operations.md`.
 - [ ] T098 Record immutable qualification identities and all Phase 5 pass/fail/pending gates in `specs/008-bigint-constant-synthesis/validation/phase-5.md`; permit controlled screens only after required runtime, isolation, real-GPU, cost and learnability gates pass, and return algorithm defects to the Phase 2 owner.
 
@@ -217,10 +217,12 @@ Phase 5 implementation and per-task execution gates are recorded in
 [validation/phase-5.md](validation/phase-5.md). The measurement-only harness,
 portable CPU/HIP/data/cost/tiny runner, result archives and shared-image CI
 partitions are implemented. T092 is closed by reviewed current-source HIP
-execution. T089–T091 and T093–T098 remain unchecked: measured cost admission
-fails, learnability has not run, and the remaining engine/checkpoint/operations
-reviews are pending. Missing evidence is not permission to substitute fixtures
-or lower gates.
+execution. T089–T091 and T093–T098 remain unchecked. The current receipt is a
+valid failed full transfer-screen estimate, but it overstates the distinct
+32-prompt memorization workload and cannot decide T096 admission. T095 now owns
+scope-specific cost receipts and a reviewed finite budget revision before the
+single T096 run. The remaining engine/checkpoint/operations reviews are pending.
+Missing evidence is not permission to substitute fixtures or lower gates.
 
 ## Phase 6: Controlled research and longer-run readiness
 

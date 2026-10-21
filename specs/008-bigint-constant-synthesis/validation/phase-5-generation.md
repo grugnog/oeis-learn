@@ -208,3 +208,29 @@ This evidence commit only updates Spec 008 qualification documentation and its
 review receipt. Those paths are outside the implementation snapshot collected
 by `experiments/source_snapshot.py`; the tested source/image identity remains
 applicable to T092.
+
+## Phase 5 cost decision — 2026-10-21
+
+A limited contract review found no measurement basis for treating the initial
+7,200-second value as a throughput requirement. The plan already describes
+initial budgets as finite qualification defaults, and the experiment contract
+permits a preregistered revision after measurement. Training updates contribute
+about241 seconds to the current projection; generation contributes43,837.95
+seconds (91.8%). A broad optimization pause would therefore precede evidence
+that the model can pass the diverse32 learning gate.
+
+Phase 5 will continue with T095 revised to produce scope-identified cost
+receipts. The existing47,749.33-second result remains the failed complete
+transfer-screen receipt. It must not be used as the diverse32 estimate because
+the current calculation charges256 end-screen prompts where the memorization
+path evaluates32, and the exact periodic workload and fixed costs also need
+explicit scope accounting. T095 will implement matching cost-policy/coordinator
+parameters, measure the exact diverse32 workload on the current source/image and
+preregister a finite budget before one T096 run. All denominators, controls,
+termination rules and the31/32 gate remain frozen. Passing that diagnostic will
+not qualify the later transfer screen.
+
+Substantial generation optimization is deferred until the diverse32 result
+shows whether repeated research screens are warranted. The measured full-screen
+failure and small-value slowdown investigation remain open evidence, not erased
+or reclassified by this decision.
