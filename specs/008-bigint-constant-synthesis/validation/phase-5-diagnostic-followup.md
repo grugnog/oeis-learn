@@ -193,3 +193,58 @@ replacement of T096's original negative outcome is warranted by this evidence.
 The reason-propagation and legacy tracing regressions pass in the49-test
 collector/evidence/adapter/worker subset, with one packaged-native skip. Native
 image execution remains a user-side check; CI is not monitored after pushing.
+
+## Traced replay diagnosis — 2026-10-21
+
+The subsequent `replay-traced-20261021T214004Z.zip` passes CRC, complete
+inventory and all9 manifest file hashes. Its case, original image/runtime and
+parent contract match the preceding review. Mounted utility bytes match
+published commit `0fb4df8`; the exact user Git revision is not reported. See
+the [deadline review receipt](phase-5-diverse32-deadline-review.json).
+
+The worker reports `resource_exhausted`, reason `deadline`, for fitting:
+
+| Observation | Value |
+| --- | ---: |
+| Fit worker allowance | 1.999855s |
+| Fit worker elapsed, including deadline handling | 2.007614s |
+| Returned fit results | 0 |
+| Cumulative queue wait across execute and fit | 0.000033s |
+| Cumulative observed worker RSS peak | 100.75 MiB |
+| Restarts after deadline retirement | 1 |
+| Whole replay work | 2.208825s |
+| Host cleanup | 0.100397s |
+
+Raw execution and independent visible verification succeed again. No RSS-limit
+or protocol failure is reported; the queue wait is negligible. The worker is
+retired after its deadline. The whole30-second diagnostic allowance was not
+exhausted: fitting has its own two-second native/worker ceiling within the
+four-second fitting/admission call. The75-second host reservation includes the
+nested30-second work allowance, with no refund or parent-budget mutation.
+
+This resolves the replay's failure class. It is consistent with T096's missing
+rescue candidate, but the original run did not retain a worker reason, so its
+precise historical phase cannot be reconstructed. No native response arrived;
+the trace does not establish which solver, enumeration or verification step
+was active at the cutoff. The earlier same-candidate success with another seed
+supports bounded fitting variability, not a claim that the language subset or
+model capacity cannot represent this case. T096 remains a completed negative
+result and promotion remains blocked.
+
+No further replay, retraining or HIP run is needed to identify this failure
+class. The remaining engineering scope is a Phase 2 review of time partitioning
+within the existing parent allowance: native search can consume the same deadline
+needed for production checks and response delivery. `SynthesisClient.fit`
+sets the worker deadline near two seconds; core fitting permits work until that
+deadline, and transport serializes/sends the result only after dispatch returns.
+This source inspection exposes an unreserved response-delivery boundary; it does
+not prove whether useful assignments were already found in this timed-out call.
+
+A focused follow-up should reserve bounded time for final checks and response
+delivery, report partially completed enumeration honestly, and test timeout
+recovery against this case plus independent fixtures. No provisional assignment
+may bypass production/reference admission. Preserve total budgets, native caps,
+ranking and gates unless an explicit reviewed policy change creates a new
+identity. Such a correction fits Spec 008's Phase 2 reopening rule; a broad
+solver redesign is not justified by this single case. Any new qualification
+must bind the changed image/source and is separate from the consumed T096 run.
