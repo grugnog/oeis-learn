@@ -128,6 +128,18 @@ def validation_loss(encoder, decoder, rows, device, *, deadline):
     )
 
 
+def periodic_panels(examples, scope):
+    """The memorization panel is exactly its frozen32, not three32-row panels."""
+    if scope == "diverse32":
+        ids = [r["id"] for r in examples["training"]]
+        if len(ids) != 32 or len(set(ids)) != 32:
+            raise ValueError("diverse32 requires the complete32-prompt panel")
+        return {"training": ids}
+    if scope != "transfer-screen":
+        raise ValueError("unknown periodic cost scope")
+    return {split: list(fixed_panel(group)) for split, group in examples.items()}
+
+
 def train(inputs, output):
     import numpy as np
     import torch
@@ -177,7 +189,9 @@ def train(inputs, output):
         stopping=stopping.snapshot(),
     )
     if not settings.get("fixture"):
-        selection["panels"] = {split: list(fixed_panel(group)) for split, group in examples.items()}
+        selection["panels"] = periodic_panels(
+            examples, settings.get("cost_scope", "transfer-screen")
+        )
     else:
         selection["panels"] = {split: [r["id"] for r in group] for split, group in examples.items()}
     if (inputs / "checkpoints/latest.json").exists():

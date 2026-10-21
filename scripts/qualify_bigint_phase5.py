@@ -30,6 +30,8 @@ GROUPS = {
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
         "tests/unit/test_bigint_generation.py",
+        "tests/unit/test_bigint_cost_scopes.py",
+        "tests/unit/test_bigint_scoped_runner.py",
         "tests/contract/test_bigint_performance.py",
     ],
     "fitting": [
@@ -269,26 +271,9 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
 
 def shape_manifest(inputs):
     """Read only public prepared records; never read a scoring/private payload."""
-    inputs = Path(inputs)
-    prepared = json.loads((inputs / "prepared.json").read_text())
-    examples = json.loads((inputs / "examples.json").read_text())
-    rows = [r for rs in examples["views"]["concrete"].values() for r in rs]
-    return dict(
-        prepared_sha256=sha(inputs / "prepared.json"),
-        split_sha256=prepared["split_sha256"],
-        counts=prepared["counts"],
-        tiny_count=len(examples["tiny_ids"]),
-        exclusions=prepared["exclusions"],
-        native_admitted=prepared["native_admitted"],
-        stages={stage: sum(r["stage"] == stage for r in rows) for stage in ("A", "B", "C", "D")},
-        max_input_bits=max(abs(int(v)).bit_length() for r in rows for v in r["values"]),
-        max_tokens=max(
-            len(r["tokens"])
-            for view in examples["views"].values()
-            for rs in view.values()
-            for r in rs
-        ),
-    )
+    from oeis_learn.fresh.cost_policy import prepared_shape
+
+    return prepared_shape(inputs)
 
 
 def main():
@@ -317,7 +302,8 @@ def main():
         action="store_true",
         help="fetch pinned bulk data and prepare complete paired inputs",
     )
-    p.add_argument("--config", default="configs/foundation/bigint_smoke.yaml")
+    p.add_argument("--config")
+    p.add_argument("--cost-scope", choices=("diverse32", "transfer-screen"), default="diverse32")
     p.add_argument(
         "--learnability",
         action="store_true",
@@ -327,6 +313,15 @@ def main():
     args = p.parse_args()
     if args.inside:
         return inside(args.output, args.inside)
+    args.config = args.config or (
+        "configs/foundation/bigint_smoke_phase5.yaml"
+        if args.cost_scope == "diverse32"
+        else "configs/foundation/bigint_literal_screen.yaml"
+    )
+    if args.learnability:
+        p.error(
+            "review the scoped preflight first; use scripts/run_bigint_diverse32.py --reviewed-preflight PATH"
+        )
     if args.learnability and not args.gpu:
         p.error("--learnability requires --gpu; CPU fallback prohibited")
     if args.inputs and args.prepare:
@@ -453,6 +448,8 @@ def main():
             "/work/output",
             "--config",
             "/work/output/measurement-config.yaml",
+            "--cost-scope",
+            args.cost_scope,
         ]
         if args.gpu:
             validate(host, "bigint-gpu", output / "gpu")
@@ -475,51 +472,9 @@ def main():
                 "review measured >5x small-value execution slowdowns before long runs"
             )
         if inputs and performance.get("preflight_eligible"):
-            report["pending"].pop("T095")
-        if args.learnability:
-            if not inputs or not performance.get("preflight_eligible"):
-                raise RuntimeError(
-                    "learnability blocked: complete prepared data and passing measured HIP preflight required"
-                )
-            run = output / "learnability-run"
-            launch(
-                [
-                    *public,
-                    "learnability",
-                    "--config",
-                    relative(str(output / "performance/measured-recipe.yaml")),
-                    "--inputs",
-                    relative(str(inputs)),
-                    "--view",
-                    "diverse",
-                    "--seed",
-                    "20261016",
-                    "--run",
-                    relative(str(run)),
-                ],
-                output / "learnability-command",
-                seconds=7500,
+            report["pending"]["T095"] = (
+                "matching scoped receipt passed; review both scope receipts and preregistration before closing T095"
             )
-            launch(
-                [
-                    *public,
-                    "pack",
-                    "--run",
-                    relative(str(run)),
-                    "--output",
-                    relative(str(output / "learnability.zip")),
-                ],
-                output / "pack-command",
-                seconds=300,
-            )
-            report["stages"]["learnability"] = dict(
-                run=relative(str(run)),
-                checkpoint=json.loads((run / "checkpoint-identity.json").read_text()),
-                summary=json.loads((run / "summary.json").read_text()),
-            )
-            report["pending"].pop("T096")
-            passed = report["stages"]["learnability"]["summary"].get("memorization_gate") is True
-            report["gates"] = dict(learnability="PASS" if passed else "FAIL")
         if args.checkpoint_run:
             launch(
                 [
@@ -541,9 +496,7 @@ def main():
                 seconds=3600,
             )
             report["pending"].pop("T093")
-        negative = report.get("gates", {}).get("learnability") == "FAIL" or (
-            args.performance_only and not performance.get("preflight_eligible")
-        )
+        negative = bool(args.gpu and inputs and not performance.get("preflight_eligible"))
         report["status"] = "BLOCKED" if negative else "PASS"
         code = 2 if negative else 0
     except BaseException as exc:

@@ -733,12 +733,12 @@ def parameter_tensor_digest(tensor):
     )
 
 
-def admit_cost_recipe(report, recipe, shapes, output):
+def admit_cost_recipe(report, recipe, shapes, output, *, scope="transfer-screen"):
     """Bind observed costs to the actual image/profile and complete prepared shape audit."""
     from copy import deepcopy
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.fresh.bigint_config import resolve
-    from oeis_learn.fresh.cost_policy import screen_cost
+    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity
     import yaml
 
     counts = {"training": 512, "parameter_development": 128, "structural_development": 128}
@@ -759,13 +759,14 @@ def admit_cost_recipe(report, recipe, shapes, output):
         raise ValueError("measured full batch8 latency and conservative singleton tail required")
     forecast = screen_cost(
         **report["costs"],
+        scope=scope,
         updates=recipe["learning"]["max_updates"],
         cadence=recipe["learning"]["validation_every"],
         budget=recipe["budgets"]["training_seconds"],
     )
     if not forecast["within_budget"]:
         raise ValueError(
-            f"measured screen cost {forecast['projected_seconds']:.3f}s exceeds "
+            f"measured {scope} cost {forecast['projected_seconds']:.3f}s exceeds "
             f"80% budget {forecast['budget'] * 0.8:.3f}s"
         )
     if (
@@ -806,12 +807,18 @@ def admit_cost_recipe(report, recipe, shapes, output):
                 runtime_cases=[r["case"] for r in report["cases"]],
             )
         ),
+        scope=scope,
+        source_sha256=report["source_sha256"],
+        shape_sha256=identity(shapes),
+        schedule_sha256=schedule_identity(recipe, scope),
     )
-    resolve(value)
-    path = Path(output) / "measured-recipe.yaml"
+    value = resolve(value)
+    path = Path(output) / f"measured-{scope}-recipe.yaml"
     path.write_text(yaml.safe_dump(value, sort_keys=False))
     return dict(
         path=path.name,
+        recipe=value,
+        scope=scope,
         shape_sha256=identity(shapes),
         qualification="bounded cost estimate, not transfer evidence",
     )
@@ -826,6 +833,7 @@ def run(
     device="cpu",
     config=None,
     shapes=None,
+    cost_scope="diverse32",
 ):
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -904,6 +912,7 @@ def run(
             )
             forecast = screen_cost(
                 **costs,
+                scope=cost_scope,
                 updates=recipe["learning"]["max_updates"],
                 cadence=recipe["learning"]["validation_every"],
                 budget=recipe["budgets"]["training_seconds"],
@@ -922,14 +931,18 @@ def run(
         report["status"] = "PASS"
         report.pop("active_measurement", None)
         if neural and shapes is not None:
-            try:
-                report["measured_recipe"] = admit_cost_recipe(report, recipe, shapes, output)
-                report["preflight_eligible"] = True
-                report["preflight_reason"] = (
-                    "HIP cost estimate and complete prepared shape audit bound to current image/profile"
+            other = "transfer-screen" if cost_scope == "diverse32" else "diverse32"
+            other_path = (
+                ROOT
+                / "configs/foundation"
+                / (
+                    "bigint_literal_screen.yaml"
+                    if other == "transfer-screen"
+                    else "bigint_smoke_phase5.yaml"
                 )
-            except ValueError as exc:
-                report["preflight_reason"] = str(exc)
+            )
+            recipes = {cost_scope: recipe, other: load(other_path, artifacts=packaged_artifacts())}
+            qualify_scopes(report, recipes, shapes, output, primary=cost_scope)
     except BaseException as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"
         raise
@@ -937,6 +950,59 @@ def run(
         report["report_sha256"] = identity(report)
         write(output / "benchmark.json", report)
     return report
+
+
+def qualify_scopes(report, recipes, shapes, output, *, primary):
+    """Record each registered workload independently; one pass grants no other scope."""
+    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity
+    from oeis_learn.synthesis.contracts import identity
+
+    receipts = {}
+    profile = lambda recipe: identity(
+        {k: recipe[k] for k in ("execution", "inputs", "model", "fitting", "search")}
+    )
+    for scope, recipe in recipes.items():
+        forecast = screen_cost(
+            **report["costs"],
+            scope=scope,
+            updates=recipe["learning"]["max_updates"],
+            cadence=recipe["learning"]["validation_every"],
+            budget=recipe["budgets"]["training_seconds"],
+        )
+        receipt = dict(
+            version="scoped-preflight/v1",
+            scope=scope,
+            status="BLOCKED",
+            source_sha256=report["source_sha256"],
+            image=report["image"],
+            profile_sha256=profile(recipe),
+            shape_sha256=identity(shapes),
+            schedule_sha256=schedule_identity(recipe, scope),
+            recipe_sha256=identity(recipe),
+            projection=forecast,
+            scoring_data=False,
+        )
+        try:
+            if profile(recipe) != profile(recipes[primary]):
+                raise ValueError("secondary scope profile differs from the measured model")
+            receipt["measured_recipe"] = admit_cost_recipe(
+                report, recipe, shapes, output, scope=scope
+            )
+            receipt["status"] = "PASS"
+        except ValueError as exc:
+            receipt["reason"] = str(exc)
+        receipt["receipt_sha256"] = identity(receipt)
+        write(Path(output) / f"cost-{scope}.json", receipt)
+        receipts[scope] = receipt
+    report["cost_scope"] = primary
+    report["cost_receipts"] = receipts
+    report["cost_projection"] = receipts[primary]["projection"]
+    report["preflight_eligible"] = receipts[primary]["status"] == "PASS"
+    report["preflight_reason"] = receipts[primary].get(
+        "reason", "matching scoped cost and complete shape audit passed"
+    )
+    if report["preflight_eligible"]:
+        report["measured_recipe"] = receipts[primary]["measured_recipe"]
 
 
 def main():
@@ -948,6 +1014,9 @@ def main():
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--config")
     parser.add_argument("--shape-manifest")
+    parser.add_argument(
+        "--cost-scope", choices=("diverse32", "transfer-screen"), default="diverse32"
+    )
     args = parser.parse_args()
     try:
         run(
@@ -960,6 +1029,7 @@ def main():
             shapes=json.loads(Path(args.shape_manifest).read_text())
             if args.shape_manifest
             else None,
+            cost_scope=args.cost_scope,
         )
     except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(str(exc), file=sys.stderr)

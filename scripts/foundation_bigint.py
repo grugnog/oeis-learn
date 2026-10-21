@@ -1,7 +1,6 @@
 """Standard-library host orchestration for qualified bigint roles."""
 
 import json
-import math
 import shutil
 import time
 import uuid
@@ -124,7 +123,12 @@ def _execute(host, args, *, coordinator_factory=None):
     from foundation_local import ROOT, relative, state_path
     from foundation_host import Coordinator
     from oeis_learn.fresh.bigint_inputs import check
-    from oeis_learn.fresh.cost_policy import screen_cost, generation_seconds
+    from oeis_learn.fresh.cost_policy import (
+        validate_preflight,
+        prepared_shape,
+        training_role_seconds,
+        end_role_seconds,
+    )
     from oeis_learn.fresh.bigint_bundle import pack
     from oeis_learn.fresh.provenance import (
         root_lineage,
@@ -206,33 +210,15 @@ def _execute(host, args, *, coordinator_factory=None):
                         != read(inputs / "assistance.json")["manifest_sha256"]
                     ):
                         raise ValueError("reviewed assistance changed since preparation")
-                cost = recipe["learning"]["cost_preflight"]
-                if cost is None:
-                    raise ValueError(
-                        "measured complete-screen cost_preflight required before training; run Phase 5 preflight"
-                    )
-                if (
-                    cost["image"] != image
-                    or cost["profile_sha256"]
-                    != digest(
-                        {
-                            k: recipe[k]
-                            for k in ("execution", "inputs", "model", "fitting", "search")
-                        }
-                    )
-                    or cost["scoring_data"] is not False
-                ):
-                    raise ValueError("cost preflight image/profile or non-scoring fixture mismatch")
-                forecast = screen_cost(
-                    **cost["costs"],
-                    updates=recipe["learning"]["max_updates"],
-                    cadence=recipe["learning"]["validation_every"],
-                    budget=recipe["budgets"]["training_seconds"],
+                from oeis_learn.experiments.source_snapshot import collect_snapshot
+
+                forecast = validate_preflight(
+                    recipe,
+                    scope="diverse32" if operation == "learnability" else "transfer-screen",
+                    image=image,
+                    source_sha256=digest(collect_snapshot(ROOT)),
+                    shape_sha256=digest(prepared_shape(inputs)),
                 )
-                if not forecast["within_budget"]:
-                    raise ValueError(
-                        "complete-screen projection exceeds80%; preregister revised recipe"
-                    )
                 probe_seconds = 30
                 probe = coordinator_factory(job / "roles", policy, image, Allowance(probe_seconds))
                 try:
@@ -299,9 +285,16 @@ def _execute(host, args, *, coordinator_factory=None):
                 __import__("foundation_host").process_identity(__import__("os").getpid()),
             )
             examples = read(inputs / "examples.json")
+            run_scope = (recipe["learning"]["cost_preflight"] or {}).get("scope", "transfer-screen")
+            if operation == "resume" and "scope" not in (
+                recipe["learning"]["cost_preflight"] or {}
+            ):
+                raise ValueError(
+                    "legacy receipt cannot authorize scoped training; retain original implementation for resume"
+                )
             view = "concrete" if recipe["learning"]["target_view"] == "literal" else "parameterized"
             learner = examples["views"][view]
-            if operation == "learnability":
+            if run_scope == "diverse32" and operation in {"train", "learnability", "resume"}:
                 wanted = set(examples["tiny_ids"])
                 learner = dict(
                     learner, training=[r for r in learner["training"] if r["id"] in wanted]
@@ -315,6 +308,7 @@ def _execute(host, args, *, coordinator_factory=None):
                     contract=run.record["contract"],
                     contract_sha256=run.contract.sha256,
                     device="cuda",
+                    cost_scope=run_scope,
                     seconds=max(0.01, seconds - 5),
                     ledger=run.ledger.snapshot(),
                 )
@@ -386,19 +380,7 @@ def _execute(host, args, *, coordinator_factory=None):
                     if progress >= recipe["learning"]["max_updates"]:
                         break
                     count = min(interval, recipe["learning"]["max_updates"] - progress)
-                    seconds = (
-                        math.ceil(
-                            (
-                                count * cost["training_p95"]
-                                + 256 * cost["teacher_forcing_p95"]
-                                + generation_seconds(96, cost)
-                                + 96 * (cost["fit_p95"] + cost["reference_p95"])
-                                + cost["checkpoint_p95"]
-                            )
-                            / 0.8
-                        )
-                        + 5
-                    )
+                    seconds = training_role_seconds(cost, run_scope, count)
                     files = checkpoint_files()
                     if foundation and progress == 0:
                         for path in (foundation / "checkpoints").rglob("*"):
@@ -589,7 +571,11 @@ def _execute(host, args, *, coordinator_factory=None):
                     truths = {
                         k: {r["id"]: alltruth[r["id"]] for r in rows} for k, rows in groups.items()
                     }
-                    if operation == "learnability":
+                    if run_scope == "diverse32" and operation in {
+                        "train",
+                        "learnability",
+                        "resume",
+                    }:
                         groups = {"tiny": learner["training"]}
                         truths = {"tiny": {r["id"]: alltruth[r["id"]] for r in groups["tiny"]}}
                 archive_remaining = recipe["archive"]["max_bytes"]
@@ -604,16 +590,7 @@ def _execute(host, args, *, coordinator_factory=None):
                             seconds = portion * 0.8
                         else:
                             cost = recipe["learning"]["cost_preflight"]["costs"]
-                            seconds = (
-                                math.ceil(
-                                    (
-                                        32 * generation_seconds(len(rows), cost)
-                                        + len(rows) * 40 * (cost["fit_p95"] + cost["reference_p95"])
-                                    )
-                                    / 0.8
-                                )
-                                + 5
-                            )
+                            seconds = end_role_seconds(cost, run_scope, len(rows), "generation")
                         result, out = launch(
                             "generate",
                             "generation",
@@ -640,7 +617,7 @@ def _execute(host, args, *, coordinator_factory=None):
                         score_seconds = (
                             portion * 0.2
                             if operation in {"evaluate", "diagnose"}
-                            else math.ceil(len(rows) * 6 * cost["hidden_scoring_p95"] / 0.8) + 5
+                            else end_role_seconds(cost, run_scope, len(rows), "score")
                         )
                         scored, score_out = launch(
                             "score",
@@ -715,7 +692,7 @@ def _execute(host, args, *, coordinator_factory=None):
                 post_training_ablation=operation == "diagnose",
                 retraining_claim=False,
             )
-            if operation == "learnability":
+            if run_scope == "diverse32" and operation in {"train", "learnability", "resume"}:
                 from oeis_learn.fresh.comparison import memorization_gate
 
                 tiny = summaries["0:tiny"]

@@ -253,7 +253,7 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("replay disabled in representation comparisons")
     if (
         not 1 <= result["learning"]["max_updates"] <= 3000
-        or result["budgets"]["training_seconds"] > 7200
+        or result["budgets"]["training_seconds"] > 86400
         or result["budgets"]["preparation_seconds"] > 7200
     ):
         raise ValueError("bounded registered screen required")
@@ -320,11 +320,25 @@ def resolve(value, *, seed=None, artifacts=None):
     cost = result["learning"]["cost_preflight"]
     if cost is not None:
         from oeis_learn.synthesis.state import require_hash
-        from .cost_policy import screen_cost
+        from .cost_policy import screen_cost, schedule_identity
 
         if (
             not isinstance(cost, dict)
-            or set(cost) != {"image", "profile_sha256", "scoring_data", "costs", "fixture_sha256"}
+            or set(cost)
+            not in (
+                {"image", "profile_sha256", "scoring_data", "costs", "fixture_sha256"},
+                {
+                    "image",
+                    "profile_sha256",
+                    "scoring_data",
+                    "costs",
+                    "fixture_sha256",
+                    "scope",
+                    "source_sha256",
+                    "shape_sha256",
+                    "schedule_sha256",
+                },
+            )
             or cost["scoring_data"] is not False
         ):
             raise ValueError("closed non-scoring measured cost preflight required")
@@ -344,7 +358,18 @@ def resolve(value, *, seed=None, artifacts=None):
             phases | {"generation_batch_p95", "generation_batch_size"},
         ):
             raise ValueError("complete measured p95 phases required")
-        screen_cost(**cost["costs"])
+        if "scope" in cost:
+            for key in ("source_sha256", "shape_sha256", "schedule_sha256"):
+                require_hash(cost[key])
+            if cost["schedule_sha256"] != schedule_identity(result, cost["scope"]):
+                raise ValueError("cost preflight schedule changed; new receipt required")
+        screen_cost(
+            **cost["costs"],
+            scope=cost.get("scope"),
+            updates=result["learning"]["max_updates"],
+            cadence=result["learning"]["validation_every"],
+            budget=result["budgets"]["training_seconds"],
+        )
     result["identity"] = identity(result)
     if existing is not None and existing != result["identity"]:
         raise ValueError("resolved recipe identity mismatch")
