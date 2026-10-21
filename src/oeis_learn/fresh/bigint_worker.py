@@ -1,17 +1,19 @@
 """Private bigint roles using qualified Phase 2 algorithms and exact checkpoints."""
 
-from pathlib import Path
 import random
 import shutil
 import time
-from .common import read, write, file_hash, verify
-from .bigint_state import CheckpointStore
-from .learning_policy import Curriculum, Stopping, fixed_panel, score_panel, choose_checkpoint
-from .replay import SynthesisReplay
-from oeis_learn.synthesis.contracts import canonical_integer, identity, ResourceProfile
-from oeis_learn.synthesis.service_policy import ServiceLimits
-from oeis_learn.synthesis.state import ExperimentContract, BudgetLedger
+from pathlib import Path
+
 from oeis_learn.synthesis.client import SynthesisClient
+from oeis_learn.synthesis.contracts import ResourceProfile, canonical_integer, identity
+from oeis_learn.synthesis.service_policy import ServiceLimits
+from oeis_learn.synthesis.state import BudgetLedger, ExperimentContract
+
+from .bigint_state import CheckpointStore
+from .common import file_hash, read, verify, write
+from .learning_policy import Curriculum, Stopping, choose_checkpoint, fixed_panel, score_panel
+from .replay import SynthesisReplay
 
 
 def models(recipe, device):
@@ -33,8 +35,8 @@ def models(recipe, device):
     from .bootstrap_contract import bigint_profile
 
     profile = bigint_profile(recipe)
-    from oeis_learn.experiments.bootstrap_models import construct_bigint_models
     from oeis_learn.encoder.ablation import InputMask
+    from oeis_learn.experiments.bootstrap_models import construct_bigint_models
 
     mask = InputMask(**recipe["inputs"]["mask"])
     encoder, decoder, counts = construct_bigint_models(
@@ -42,6 +44,7 @@ def models(recipe, device):
     )
     if recipe["inputs"]["profile"] == "tri-stream/v1":
         from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
+
         from .bootstrap_contract import PRIMES
 
         if mask.bits() != (True, True, True, False):
@@ -82,8 +85,9 @@ def client(settings, output):
 
 def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
     import torch
+
     from oeis_learn.decoder import bigint_codec as codec
-    from oeis_learn.rl.sft_trainer import teacher_forced_logits, supervised_step
+    from oeis_learn.rl.sft_trainer import supervised_step, teacher_forced_logits
 
     sequences = [[canonical_integer(v) for v in row["values"]] for row in rows]
     lists = [[codec.BOS_ID] + row["tokens"] for row in rows]
@@ -96,8 +100,8 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
         return supervised_step(
             encoder, decoder, optimizer, sequences, tokens, device=device, pad_id=codec.PAD_ID
         )
-    from oeis_learn.rl.token_loss import token_cross_entropy
     from oeis_learn.rl.policy import trajectory_mean
+    from oeis_learn.rl.token_loss import token_cross_entropy
 
     with torch.no_grad():
         logits = teacher_forced_logits(
@@ -513,13 +517,16 @@ def generate(inputs, output):
     for row in rows:
         key = row["id"]
         record = result["records"][key]
-        body = {k: record[k] for k in ("selections", "complete", "family", "strata")}
+        body = {
+            k: record[k] for k in ("selections", "arm_evidence", "complete", "family", "strata")
+        }
         if len(canonical({key: body})) > 4 << 20:
             raise ValueError("single sealed selection exceeds transport cap")
         if len(canonical(dict(group, **{key: body}))) > 4 << 20:
             flush()
         group[key] = body
     flush()
+    write_diagnostic_evidence(output, rows, result["records"])
     archive_bytes = 0
     archive_omissions = []
     aggregate = dict(
@@ -617,6 +624,43 @@ def generate(inputs, output):
     )
 
 
+def write_diagnostic_evidence(output, rows, records):
+    """Retain every prompt's compact failure evidence before sampled examples."""
+    from .bigint_diagnostics import compact_attempts
+    from .common import canonical
+
+    group = {}
+    number = 0
+
+    def flush():
+        nonlocal number
+        if group:
+            write(Path(output) / f"evidence/chunk-{number:04}.json", dict(group))
+            number += 1
+            group.clear()
+
+    for row in rows:
+        record = records[row["id"]]
+        correct = record["details"]["correct"]["details"]
+        body = dict(
+            version="bigint-prompt-evidence/v1",
+            id=row["id"],
+            prompt=dict(indices=row["indices"], values=row["values"]),
+            greedy_source=correct[0]["source"] if correct else None,
+            arms=record["arm_evidence"],
+            attempts={
+                mode: compact_attempts(value["details"])
+                for mode, value in record["details"].items()
+            },
+        )
+        if len(canonical({row["id"]: body})) > 1 << 20:
+            raise ValueError("single prompt evidence exceeds1 MiB")
+        if len(canonical(dict(group, **{row["id"]: body}))) > 1 << 20:
+            flush()
+        group[row["id"]] = body
+    flush()
+
+
 def score(inputs, output):
     from .bigint_diagnostics import score as evaluate
 
@@ -654,9 +698,9 @@ def probe(inputs, output):
 
 def admit_replay(replay, rows, diagnostic, synthesis, deadline):
     """Training-only oracle execution; no development/OEIS truth is accepted."""
+    from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.synthesis.admission import reference_identity, source_identity
     from oeis_learn.synthesis.reference import evaluate
-    from oeis_learn.decoder.bigint_codec import encode_body
 
     for row in rows:
         selected = diagnostic["records"].get(row["id"], {}).get("selections", {}).get("rescue")

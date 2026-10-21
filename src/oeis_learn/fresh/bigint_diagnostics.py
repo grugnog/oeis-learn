@@ -1,30 +1,40 @@
 """Visible-only generation/selection and separately mounted finite scoring."""
 
-from collections import Counter, defaultdict
 import time
-from .conditioning_controls import condition_memory, derangement
-from .synthesis_policy import Portfolio, select_visible, rescue_identity, transfer_success
-from .candidate_archive import retain_alternatives
-from .template_baseline import template_bank
+from collections import Counter, defaultdict
+
 from oeis_learn.synthesis.admission import VisiblePrompt, admit, reference_identity, source_identity
 from oeis_learn.synthesis.contracts import canonical_integer, identity
-from oeis_learn.synthesis.reference import evaluate as reference_evaluate
 from oeis_learn.synthesis.discovery_status import validate_discovery
+from oeis_learn.synthesis.reference import evaluate as reference_evaluate
+
+from .candidate_archive import retain_alternatives
+from .conditioning_controls import condition_memory, derangement
+from .synthesis_policy import Portfolio, rescue_identity, select_visible, transfer_success
+from .template_baseline import template_bank
+
+
+def _status(complete, outcome, reason=None):
+    return dict(complete=bool(complete), outcome=outcome, reason=reason)
 
 
 def _raw(client, source, prompt, deadline):
     production = client.execute(source, prompt.indices, deadline=deadline)
     if production.get("outcome") != "ok":
-        return None
+        return None, _status(False, "production_failure", production.get("reason"))
     reference = reference_evaluate(
         source, prompt.indices, client.limits, deadline=min(deadline, time.monotonic() + 2)
     )
     if reference.outcome != "ok":
-        return None
+        return None, _status(False, "reference_failure", reference.reason)
+    if len(production.get("values", [])) != len(prompt.indices) or reference.coverage != len(
+        prompt.indices
+    ):
+        return None, _status(False, "partial_visible_evidence")
     if list(reference.values) != production["values"]:
         raise RuntimeError("raw production/reference disagreement; reopen Phase2 qualification")
     if list(reference.values) != list(prompt.values):
-        return None
+        return None, _status(True, "visible_mismatch")
     record = dict(
         outcome="assignment_found",
         source=source,
@@ -51,11 +61,52 @@ def _raw(client, source, prompt, deadline):
         limits=client.limits,
         deadline=deadline,
     )
-    return (
+    if result.outcome == "verification_failure":
+        raise RuntimeError("raw independent admission disagreement")
+    found = (
         dict(record, verification=result.verification)
         if result.outcome == "verified_solution"
         else None
     )
+    return found, _status(found is not None, result.outcome, result.reason)
+
+
+def _arm_evidence(details, expected, *, raw=False):
+    """An absent selection is resolved only by this arm's own completed work."""
+    generation = [item["generation"] for item in details]
+    fitting = [item["raw" if raw else "fitting"] for item in details]
+    complete = len(details) == expected and all(item["complete"] for item in generation + fitting)
+    failure = next((item for item in generation + fitting if not item["complete"]), None)
+    reason = (
+        (failure["reason"] or failure["outcome"])
+        if failure
+        else ("attempts_unstarted" if len(details) != expected else fitting[-1]["outcome"])
+    )
+    return dict(
+        complete=complete,
+        reason=reason,
+        generation=dict(
+            expected=expected,
+            attempted=len(details),
+            completed=sum(item["complete"] for item in generation),
+        ),
+        fitting=dict(
+            required=not raw,
+            completed=sum(item["complete"] for item in fitting),
+            outcomes=[item["outcome"] for item in fitting],
+        ),
+    )
+
+
+def compact_attempts(details):
+    """No tokens, hidden values, native assignment payloads or unbounded traces."""
+    return [
+        {
+            key: item[key]
+            for key in ("position", "seed", "source_sha256", "generation", "raw", "fitting")
+        }
+        for item in details
+    ]
 
 
 def _seal(items, prompt, *, cost):
@@ -87,7 +138,7 @@ def _seal(items, prompt, *, cost):
 
 def _template_candidate(position):
     """Serialize the frozen template through the same codec as generated sources."""
-    from oeis_learn.decoder.bigint_codec import encode_body, decode_body
+    from oeis_learn.decoder.bigint_codec import decode_body, encode_body
 
     tokens = encode_body(template_bank()["sources"][position])
     return decode_body(tokens), tokens
@@ -106,6 +157,7 @@ def _portfolio(
     compare_cache=False,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
+
     from .bigint_program_identity import structural_identity
 
     prompt = VisiblePrompt(tuple(row["indices"]), tuple(row["values"]))
@@ -177,19 +229,34 @@ def _portfolio(
             source=source if complete else "",
             outcome="incomplete",
             generation_batch_size=1 if template else result["generation_batch_size"],
+            position=position,
+            seed=attempt["seed"] % 2**32,
+            source_sha256=source_identity(source) if complete else None,
+            generation=_status(
+                complete,
+                "decoded" if complete else "generation_incomplete",
+                None if template or complete else result.get("failure"),
+            ),
+            raw=_status(False, "not_attempted"),
+            fitting=_status(False, "not_attempted"),
         )
         details.append(detail)
         if not complete:
             incomplete = True
             continue
         if position == 0 and not template:
-            found = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
+            found, detail["raw"] = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
             if found:
                 raw.append(found)
         fitting_start = time.monotonic()
         if recipe["fitting"]["disabled"]:
-            found = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
-            fit = dict(outcome="raw_only", admitted=[found] if found else [])
+            found, raw_status = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
+            fit = dict(
+                outcome="raw_only",
+                admitted=[found] if found else [],
+                complete=raw_status["complete"],
+                reason=raw_status["reason"],
+            )
         else:
             fit = client.fit(
                 source,
@@ -203,6 +270,15 @@ def _portfolio(
             admitted["_original_source"] = source
         detail.update(
             outcome=fit["outcome"], native=fit.get("native"), fit_cache=fit.get("metrics")
+        )
+        native = fit.get("native") or {}
+        detail["fitting"] = _status(
+            fit.get(
+                "complete",
+                fit["outcome"] not in {"unknown", "resource_exhausted", "verification_failure"},
+            ),
+            fit["outcome"],
+            fit.get("reason") or native.get("reason"),
         )
         if fit["outcome"] == "verification_failure":
             raise RuntimeError("independent admission disagreement")
@@ -247,6 +323,11 @@ def _portfolio(
         details=details,
         archive=archive,
         cache_parity=parity,
+        arm_evidence=dict(
+            raw=_arm_evidence(details[:1], 1, raw=True),
+            rescue=_arm_evidence(details[:1], 1),
+            equal_budget=_arm_evidence(details, attempt_count),
+        ),
     )
 
 
@@ -309,7 +390,7 @@ def generate(
     mapping = derangement(ids, recipe["model"]["seed"]) if not periodic else {}
     order = [ids.index(mapping[k]) for k in ids] if mapping else None
     modes = ["correct"] if periodic else ["correct", "shuffled", "absent", "template"]
-    records = {r["id"]: dict(selections={}, complete=True) for r in rows}
+    records = {r["id"]: dict(selections={}, arm_evidence={}, complete=True) for r in rows}
     for mode in modes:
         controlled = (
             None
@@ -350,8 +431,10 @@ def generate(
                     record["selections"].update(
                         {key: result[key] for key in ("raw", "rescue", "equal_budget")}
                     )
+                    record["arm_evidence"].update(result["arm_evidence"])
                 else:
                     record["selections"][mode] = result["equal_budget"]
+                    record["arm_evidence"][mode] = result["arm_evidence"]["equal_budget"]
                 record.setdefault("details", {})[mode] = result
                 record["family"] = row.get("family", row["id"])
                 record["strata"] = row.get("strata", strata(row))
@@ -374,8 +457,11 @@ def score(selections, truth, client, *, deadline):
         outcomes[key] = {}
         for mode in ("raw", "rescue", "equal_budget", "shuffled", "absent", "template"):
             chosen = record.get("selections", {}).get(mode) if record else None
+            evidence = record.get("arm_evidence", {}).get(mode) if record else None
             success = False
             complete = False
+            scoring = _status(False, "not_attempted")
+            reason = "selection_record_missing" if record is None else "legacy_arm_evidence_missing"
             if chosen is not None and time.monotonic() < deadline:
                 expected_prompt = identity(
                     dict(indices=target["indices"][:20], values=target["values"][:20])
@@ -411,14 +497,49 @@ def score(selections, truth, client, *, deadline):
                 success = transfer_success(
                     chosen["selected"], target["indices"], target["values"], p, r
                 )
-                complete = p["outcome"] == r["outcome"] == "ok"
+                complete = (
+                    p["outcome"] == r["outcome"] == "ok"
+                    and len(p["values"]) == len(r["values"]) == len(target["indices"]) == 100
+                )
                 if complete and p["values"] != r["values"]:
                     raise RuntimeError("production/reference full-horizon disagreement")
-            elif record is not None:
-                complete = record["complete"]
+                reason = (
+                    "success"
+                    if success
+                    else "continuation_mismatch"
+                    if complete
+                    else "scoring_incomplete"
+                )
+                scoring = dict(
+                    complete=complete,
+                    outcome=reason,
+                    reason=None,
+                    production=dict(
+                        outcome=p["outcome"],
+                        reason=production.get("reason"),
+                        coverage=len(p["values"]),
+                    ),
+                    reference=dict(
+                        outcome=r["outcome"], reason=reference.reason, coverage=len(r["values"])
+                    ),
+                )
+            elif chosen is not None:
+                reason = "scoring_deadline"
+                scoring = _status(False, "not_attempted", "deadline")
+            elif evidence is not None:
+                complete = evidence["complete"] is True
+                reason = evidence["reason"]
+                scoring = _status(complete, "no_selected_candidate", reason)
             counts[mode]["success"] += success
             counts[mode]["complete"] += complete
-            outcomes[key][mode] = dict(success=success, complete=complete)
+            outcomes[key][mode] = dict(
+                success=success,
+                complete=complete,
+                reason=reason,
+                candidate_sha256=chosen["selected"]["source_sha256"] if chosen else None,
+                upstream=evidence,
+                scoring=scoring,
+            )
     strata_counts = {}
     for key, record in selections.items():
         for dimension, band in record.get("strata", {}).items():
@@ -442,6 +563,7 @@ def score(selections, truth, client, *, deadline):
                 accuracy=v["success"] / v["denominator"] if v["denominator"] else 0.0,
                 verified_admissions=True,
                 disagreement=False,
+                reasons=dict(Counter(row[k]["reason"] for row in outcomes.values())),
             )
             for k, v in counts.items()
         },

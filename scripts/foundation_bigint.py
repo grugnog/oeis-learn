@@ -5,8 +5,8 @@ import shutil
 import time
 import uuid
 
-from oeis_learn.fresh.common import read, write, digest, confined, lock
-from oeis_learn.fresh.bigint_state import DurableRun, expose_final, finish_final, child_analysis
+from oeis_learn.fresh.bigint_state import DurableRun, child_analysis, expose_final, finish_final
+from oeis_learn.fresh.common import confined, digest, lock, read, write
 
 
 class Allowance:
@@ -120,21 +120,22 @@ def execute(host, args, *, coordinator_factory=None):
 
 
 def _execute(host, args, *, coordinator_factory=None):
-    from foundation_local import ROOT, relative, state_path
     from foundation_host import Coordinator
+    from foundation_local import ROOT, relative, state_path
+
+    from oeis_learn.fresh.bigint_bundle import pack
     from oeis_learn.fresh.bigint_inputs import check
     from oeis_learn.fresh.cost_policy import (
-        validate_preflight,
+        end_role_seconds,
         prepared_shape,
         training_role_seconds,
-        end_role_seconds,
+        validate_preflight,
     )
-    from oeis_learn.fresh.bigint_bundle import pack
     from oeis_learn.fresh.provenance import (
-        root_lineage,
         descendant,
-        validate_assistance,
         fresh_cohort,
+        root_lineage,
+        validate_assistance,
     )
 
     coordinator_factory = coordinator_factory or Coordinator
@@ -649,6 +650,16 @@ def _execute(host, args, *, coordinator_factory=None):
                         }
                         for p in (out / "details").glob("*.json"):
                             target = analysis / "details" / f"{mask_number}-{split}-{p.name}"
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copyfile(p, target)
+                        for p in (out / "evidence").glob("*.json"):
+                            # Sort compact all-prompt evidence before sampled verbose examples
+                            # in the capped report packer; omissions remain manifest-visible.
+                            target = (
+                                analysis
+                                / "details"
+                                / f"000-evidence-{mask_number}-{split}-{p.name}"
+                            )
                             target.parent.mkdir(parents=True, exist_ok=True)
                             shutil.copyfile(p, target)
                 if final:
