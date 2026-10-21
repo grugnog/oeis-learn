@@ -39,6 +39,7 @@ pub mod symbolic;
 pub mod affine;
 pub mod smt;
 pub mod fit;
+pub mod fit_budget;
 pub mod substitute;
 pub mod evidence;
 pub mod cache;

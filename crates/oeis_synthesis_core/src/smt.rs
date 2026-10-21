@@ -4,7 +4,7 @@ use dashu_int::IBig;
 use std::time::Instant;
 use z3::{ast::{Bool,Int},Config,Params,SatResult,Solver};
 #[derive(Debug)]
-pub struct Search {pub assignments:Vec<Vec<IBig>>,pub outcome:String,pub uniqueness:String,pub reason:Option<String>}
+pub struct Search {pub assignments:Vec<Vec<IBig>>,pub outcome:String,pub uniqueness:String,pub reason:Option<String>,pub checks:usize}
 fn numeral(n:&IBig)->Int {n.to_string().parse().expect("canonical integer")}
 fn exact_model(n:&Int)->Result<IBig,String> {
     let text=n.to_string();
@@ -35,20 +35,26 @@ pub fn search(p:&Problem,r:&Resources,bound:usize,deadline:Instant,seed:u32,cap:
             solver.assert(value.le(&hi));solver.assert(value.ge(&lo));exprs.push(value);
         }
         for (out,expected) in p.outputs.iter().zip(&p.expected){solver.assert(exprs[*out].eq(numeral(expected)));}
-        let mut result=Search{assignments:vec![],outcome:"unknown".into(),uniqueness:"unchecked".into(),reason:None};
+        let mut result=Search{assignments:vec![],outcome:"unknown".into(),uniqueness:"unchecked".into(),reason:None,checks:0};
         loop {
             let remaining=deadline.saturating_duration_since(Instant::now()).as_millis();
             if remaining==0 {result.outcome="resource_exhausted".into();result.uniqueness=if result.assignments.len()>1{"multiple"}else{"incomplete"}.into();result.reason=Some("deadline".into());break;}
             let mut params=Params::new();params.set_u32("timeout",remaining.min(2000) as u32);params.set_u32("random_seed",seed);solver.set_params(&params);
+            result.checks+=1;
             match solver.check() {
                 SatResult::Unsat=>{result.outcome=if result.assignments.is_empty(){"unsat_in_scope"}else{"assignment_found"}.into();result.uniqueness=if result.assignments.len()==1{"unique_in_scope"}else if result.assignments.len()>1{"multiple"}else{"unchecked"}.into();break;},
                 SatResult::Unknown=>{result.reason=solver.get_reason_unknown();result.outcome=if Instant::now()>=deadline{"resource_exhausted"}else{"unknown"}.into();result.uniqueness=if result.assignments.len()>1{"multiple"}else{"incomplete"}.into();break;},
                 SatResult::Sat=>{
+                    // cap=1 still needs a second check to distinguish unique from multiple.
+                    if result.assignments.len()==cap {result.uniqueness="multiple".into();result.outcome="assignment_found".into();break;}
                     let model=solver.get_model().ok_or("missing_model")?;
                     let values=vars.iter().map(|x|exact_model(&model.eval(x,true).ok_or("missing_numeral")?)).collect::<Result<Vec<_>,String>>()?;
-                    if result.assignments.len()==cap {result.uniqueness="multiple".into();result.outcome="assignment_found".into();break;}
                     let blocking:Vec<Bool>=vars.iter().zip(&values).map(|(x,n)|x.eq(numeral(n)).not()).collect();
-                    result.assignments.push(values);solver.assert(Bool::or(&blocking));
+                    result.assignments.push(values);
+                    // Two or more retained models already establish ambiguity. Do not
+                    // spend the production reserve on an unused ninth solver check.
+                    if result.assignments.len()==cap && cap>1 {result.uniqueness="multiple".into();result.outcome="assignment_found".into();break;}
+                    solver.assert(Bool::or(&blocking));
                 }
             }
         }
