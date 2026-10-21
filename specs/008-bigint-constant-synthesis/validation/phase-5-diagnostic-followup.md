@@ -59,8 +59,10 @@ python3 scripts/diagnose_bigint_run.py replay --engine podman \
 
 Share `collection.zip` and `replay.zip` under that directory. Substitute Docker
 consistently if appropriate. Replay defaults to the original immutable image;
-it mounts only the collected visible case, this utility and a fresh output
-directory. The utility itself is mounted from the current checkout, while
+it stages only the collected visible case and this utility in a temporary
+workspace directory, mounts that directory read-only, and mounts a fresh output
+directory writable. Staged inputs are outside the writable output tree and
+are removed after reclamation. The utility is copied from the current checkout, while
 fitting, production execution and the reference load from the pinned image.
 The original greedy source, seed, abstraction policy, resource/service limits
 and four-second raw/fitting ceilings are retained. There is one fitting call,
@@ -118,3 +120,29 @@ checks pass. See the [CPU validation receipt](phase-5-diagnostic-followup-cpu.js
 for the source and JUnit identities. The original T096 receipt is unchanged;
 no new run, hidden scoring or final-cohort access occurred. CI is left running
 without monitoring.
+
+## Portable replay mount correction
+
+The first user replay failed before launch because `Engine.command` deliberately
+accepts directory bind mounts only; the utility supplied two file mounts. Replay
+now stages exactly `case.json` and `diagnose.py` into a temporary directory beside
+the new output, and mounts that directory read-only at `/work/input`. It does
+not mount the collection directory, checkout or parent run. The adapter's
+restrictions remain unchanged. Inputs are removed after success or failure.
+
+The regression now calls the actual `Engine.command` implementation for both
+Docker and Podman, instead of stubbing command construction. It verifies the
+staged bytes, minimal directory contents, read-only input capability, absence
+of networking/sockets and input cleanup. The collector plus adapter suite
+passes25 tests locally; this is command-policy validation without an actual
+engine/native run. Ruff, formatting and standard-library help also pass.
+
+Reuse the existing `collection` and a new replay output name after updating the
+branch; the failed invocation already created the old replay directory. No image
+rebuild, collection rerun or GPU is needed:
+
+```bash
+python3 scripts/diagnose_bigint_run.py replay --engine podman \
+  --evidence "$diagnostic_out/collection" \
+  --output "$diagnostic_out/replay-$(date -u +%Y%m%dT%H%M%SZ)"
+```

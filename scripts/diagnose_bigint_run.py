@@ -10,7 +10,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
+import tempfile
 import time
 import uuid
 import zipfile
@@ -394,9 +396,6 @@ def inside(case_path, output, seconds, image):
 
 def replay(args):
     from foundation_local import Host
-    from qualify_bigint_phase5 import launch
-    from oeis_learn.container_runtime import private_runtime_environment
-    from oeis_learn.synthesis.state import BudgetLedger
 
     case_path = Path(args.evidence).resolve() / "case.json"
     manifest = load(Path(args.evidence).resolve() / "archive-manifest.json")
@@ -409,21 +408,39 @@ def replay(args):
     output = fresh(Path(args.output).resolve())
     host = Host(args)
     image = host.engine.image(args.image or case["parent_image"])
+    # The portable adapter accepts directories only. Stage precisely the two
+    # permitted files, outside the writable output mount and original inputs.
+    with tempfile.TemporaryDirectory(prefix=".bigint-replay-", dir=output.parent) as directory:
+        staged = Path(directory)
+        staged.chmod(0o755)
+        shutil.copyfile(case_path, staged / "case.json")
+        shutil.copyfile(Path(__file__).resolve(), staged / "diagnose.py")
+        for path in staged.iterdir():
+            path.chmod(0o644)
+        if sha(staged / "case.json") != ref["sha256"]:
+            raise ValueError("collected replay case changed during staging")
+        return _replay_staged(args, host, image, case, case_path, output, staged)
+
+
+def _replay_staged(args, host, image, case, case_path, output, staged):
+    from qualify_bigint_phase5 import launch
+    from oeis_learn.container_runtime import private_runtime_environment
+    from oeis_learn.synthesis.state import BudgetLedger
+
     name = "oeis-bigint-replay-" + uuid.uuid4().hex
     command = host.engine.command(
         image=image,
         name=name,
         mounts=[
-            (case_path, "/work/case.json", False),
-            (Path(__file__).resolve(), "/work/diagnose.py", False),
+            (staged, "/work/input", False),
             (output, "/work/output", True),
         ],
         argv=[
             "python",
-            "/work/diagnose.py",
+            "/work/input/diagnose.py",
             "_inside",
             "--case",
-            "/work/case.json",
+            "/work/input/case.json",
             "--output",
             "/work/output",
             "--seconds",

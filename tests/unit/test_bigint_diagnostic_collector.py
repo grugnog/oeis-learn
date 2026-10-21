@@ -196,7 +196,10 @@ def test_visible_replay_keeps_seed_limits_and_separate_debit(tmp_path, monkeypat
     assert inventory(run) == before
 
 
-def test_replay_container_mounts_only_case_script_and_new_output(tmp_path, monkeypatch):
+@pytest.mark.parametrize("engine_name", ["docker", "podman"])
+def test_replay_container_mounts_only_case_script_and_new_output(
+    tmp_path, monkeypatch, engine_name
+):
     module, _, _, _ = fixture(tmp_path)
     collection = tmp_path / "collection"
     module.collect(tmp_path, "runs/parent", "prompt", collection)
@@ -206,11 +209,18 @@ def test_replay_container_mounts_only_case_script_and_new_output(tmp_path, monke
     import qualify_bigint_phase5
 
     commands, removed = [], []
-    engine = SimpleNamespace(
-        image=lambda image: image,
-        command=lambda **kwargs: commands.append(kwargs) or ["mock-engine"],
-        remove=lambda name: removed.append(name),
-    )
+    from oeis_learn.container_runtime import Engine
+
+    engine = Engine(engine_name, executable=engine_name, details={})
+    engine.image = lambda image: image
+    engine.remove = lambda name: removed.append(name)
+    build_command = engine.command
+
+    def command(**kwargs):
+        commands.append(kwargs)
+        return build_command(**kwargs)
+
+    engine.command = command
     monkeypatch.setattr(
         foundation_local,
         "Host",
@@ -218,6 +228,16 @@ def test_replay_container_mounts_only_case_script_and_new_output(tmp_path, monke
     )
 
     def launch(command, output, **kwargs):
+        staged = Path(commands[0]["mounts"][0][0])
+        assert staged.is_dir() and set(p.name for p in staged.iterdir()) == {
+            "case.json",
+            "diagnose.py",
+        }
+        assert (staged / "case.json").read_bytes() == (collection / "case.json").read_bytes()
+        assert (staged / "diagnose.py").read_bytes() == Path(module.__file__).read_bytes()
+        assert not staged.is_relative_to(output)
+        assert "--network=none" in command and "--read-only" in command
+        assert not any("sock" in arg for arg in command)
         write(
             output / "summary.json",
             dict(
@@ -235,10 +255,10 @@ def test_replay_container_mounts_only_case_script_and_new_output(tmp_path, monke
     assert target.exists() and removed
     mounts = commands[0]["mounts"]
     assert [(dst, writable) for _, dst, writable in mounts] == [
-        ("/work/case.json", False),
-        ("/work/diagnose.py", False),
+        ("/work/input", False),
         ("/work/output", True),
     ]
+    assert not Path(mounts[0][0]).exists()
     assert all(Path(src) != tmp_path / "runs/parent" for src, _, _ in mounts)
     assert "gpu" not in commands[0] and "network" not in commands[0]
 
@@ -289,6 +309,7 @@ def test_replay_failure_still_archives_and_charges_host_budget(tmp_path, monkeyp
     assert output.with_suffix(".zip").exists()
     assert BudgetLedger.restore(read(output / "host-budget.json")).remaining == 0
     assert read(output / "host-summary.json")["status"] == "FAIL"
+    assert not list(tmp_path.glob(".bigint-replay-*"))
 
 
 def test_help_is_standard_library_only():
