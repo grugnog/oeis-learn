@@ -117,3 +117,28 @@ whitespace and stdlib-only host help pass; all eight HIP test cases collect.
 Exact local counts and changed-code hashes are in
 [phase-5-generation-local.json](phase-5-generation-local.json).
 Actual HIP and packaged native qualification are pending the new image.
+
+## HIP test-package import follow-up
+
+The supplied `008-phase5-batched-20261020T235941Z` archive passed input checking
+and the three existing GPU tests, then failed all six new parity cases on
+`ModuleNotFoundError: test_bigint_decoding`. None reached decoding; the cost
+benchmark did not start. All 14 archived file hashes verify. These failures are
+test wiring errors and provide no parity or throughput result for the new source.
+
+The GPU test now imports the helper by its qualified package name,
+`tests.integration.test_bigint_decoding`, at module load time. This avoids a
+dependency on the integration directory being on `sys.path` and makes import
+failures visible during CPU collection, before any HIP-only skip guard. A fresh
+subprocess regression imports the GPU test through its package and executes the
+shared stochastic parity helper on CPU without adding that directory to its path.
+It failed before the fix and now passes. It does not simulate or claim HIP.
+
+Validation: **37 passed**, including the package-import regression, existing CI
+regressions, CPU mixed-prompt parity and generation scheduling tests. Ruff F/E9
+and whitespace checks pass; all eight GPU cases collect under pytest's
+`--import-mode=importlib`. Actual HIP parity and cost remain pending. After
+updating the same PR checkout, rerun the targeted command above with a fresh
+timestamp. Its source-bound image rebuild uses the existing dependency layers;
+no production algorithm, recipe, runtime resource or numerical setting changed
+in this import correction.

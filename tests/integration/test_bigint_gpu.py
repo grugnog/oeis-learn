@@ -1,6 +1,7 @@
 import pytest
 import os
 import torch
+from tests.integration.test_bigint_decoding import check_generation_batch_parity
 
 pytestmark = pytest.mark.gpu
 
@@ -12,7 +13,6 @@ def test_actual_hip_mixed_prompt_batched_generation_parity(prompt, temperature):
         if os.environ.get("OEIS_REQUIRE_BIGINT_GPU") == "1":
             pytest.fail("actual HIP device required")
         pytest.skip("actual HIP device required")
-    from test_bigint_decoding import check_generation_batch_parity
     from oeis_learn.decoder import bigint_codec as codec
     from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
 
