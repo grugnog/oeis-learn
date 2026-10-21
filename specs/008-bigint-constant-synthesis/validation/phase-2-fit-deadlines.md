@@ -96,7 +96,7 @@ delivery and subsequent execution, not a claim that this seed found a fit.
 Archive SHA256, JUnit SHA256, source identity and matching native build identity
 were independently checked. See the [bounded CI review](phase-2-fit-deadlines-ci.json).
 This closes N001/N002 for the focused CPU fitter correction; the optional full
-candidate replay remains available and has not been run against the new image.
+candidate replay had not yet been run at that CI review; it is covered below.
 
 The general CPU review and both public Docker/Podman CLI jobs failed the same
 assertion: `current-dispositions.json` still bound the Phase 4 Python package
@@ -110,6 +110,40 @@ No Python/Rust implementation bytes, dependencies or source snapshot identities
 changed in that repair. The new public-engine CI rerun remains pending; the
 long-running Podman image build is not polled or awaited. No HIP, training or
 hidden scoring work was executed.
+
+### User Podman validation and exact candidate replay — 2026-10-21
+
+The subsequent user artifacts close that optional replay. Reviewed
+`008-fit-deadlines-20261021T221541Z(2).zip` and
+`008-fit-deadlines-replay-20261021T225952Z.zip`: verified all seven qualification
+and nine replay archive entries, including byte counts and SHA256. Qualification
+passes all 37 fitting cases with zero failures/errors/skips, matches the current
+source snapshot, and records read-only root, no network, no privilege, only the
+output bind and cleanup within its bound. Replay uses that exact qualified
+image; its runtime identity matches the qualification worker/guest hashes.
+Case, parent contract, original source and mounted utility hashes match the
+reviewed original diagnosis. See the [replay review](phase-2-fit-deadlines-replay-review.json).
+
+With original greedy seed 75271729 and the unchanged abstraction/resources,
+the fit worker completes in **1.479677 seconds** against **1.999861 seconds**
+allowed, with zero restarts and one returned fit result. Search finds five SAT
+assignments at 16 bits, then exhausts its search slice on check six (reason
+`canceled`). Production checks all five and independent admission verifies all
+20 visible indices for each; final outcome is `verified_solution`. Repeated the
+independent reference admission for all five during this review. Each assignment
+retains the same polynomial `n^2 + 11*n - 15`; no extra indices were scored.
+Native fitting takes 1.307627 seconds; the entire raw-plus-fitting diagnostic
+takes 2.199450 seconds. Host and nested ledgers retain their full reservations,
+and cleanup completes in 0.305635 seconds.
+
+This demonstrates the intended correction: an exhausted enumeration slice no
+longer discards its already found, verifiable assignments or consumes response
+delivery time. The focused reproduced case and bounded diagnostic/reliability
+pass are complete. More same-case replay, HIP execution or a larger synthesis
+spec is unnecessary for this defect. The original T096 outcome remains NEGATIVE;
+this single visible replay does not grant 32/32 qualification or structural
+generalization. Next review the remaining Phase 5 gates and require a separately
+preregistered, source-bound attempt before any new qualification experiment.
 
 ## Run managed native validation
 

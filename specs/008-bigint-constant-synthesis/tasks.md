@@ -259,6 +259,12 @@ execution gates: 20 Rust core tests and 37 packaged fitting cases pass. This
 does not change historical T036/T058 receipts or close the remaining Phase 5
 gates. The current disposition binding was refreshed after its stale hash
 failed the general CPU and both public-engine CLI suites; reruns remain pending.
+The subsequent [user Podman validation and exact visible replay](validation/phase-2-fit-deadlines-replay-review.json)
+verify all 37 fitting cases and five independently admitted assignments for the
+original candidate/seed. Fit delivery completes within the original two-second
+allowance with no restart, resolving the reproduced case. The diagnostic pass
+is complete; no training, HIP run or new synthesis spec is required for this fix.
+The original negative T096 result and remaining Phase 5 gates stay unchanged.
 
 ## Phase 6: Controlled research and longer-run readiness
 
