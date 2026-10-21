@@ -238,26 +238,52 @@ jobs:
         run: |
           mkdir -p tmp-phase5-evidence
           chmod 777 tmp-phase5-evidence
-          "$ENGINE" run --rm --network none --read-only --user 12345:12345 \
-            --memory 16g --memory-swap 16g --cpus 2 --pids-limit 512 \
-            --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,size=2g \
-            -e HOME=/tmp -e OMP_NUM_THREADS=2 -e OEIS_REQUIRE_BIGINT_BUILD=1 -e OEIS_REQUIRE_NATIVE=1 \
-            -e OEIS_QUALIFICATION_IMAGE="$("$ENGINE" image inspect oeis-bigint-qualification --format '{{.Id}}')" \
-            -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build -e PARTITION \
-            -v "$PWD/tmp-phase5-evidence:/evidence" oeis-bigint-qualification bash -c '
-              set -euo pipefail
-              trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
-              if [ "$PARTITION" = performance ]; then
-                python scripts/benchmark_bigint.py --output /evidence
-              else
-                python scripts/qualify_bigint_phase5.py --inside "$PARTITION" --output /evidence
-              fi
-            '
+          if [ "$PARTITION" = containment ]; then
+            # Retain successful inspect and timed cleanup evidence through the
+            # same socket-free role launcher used by workstation qualification.
+            python3 -S - <<'PYCODE'
+          import os
+          import sys
+          from pathlib import Path
+          from types import SimpleNamespace
+          sys.path.insert(0, "scripts")
+          from foundation_local import Host
+          from qualify_bigint_phase5 import container_stage
+          host = Host(SimpleNamespace(
+              engine=os.environ["ENGINE"], image="oeis-bigint-qualification",
+              gpu_base_image=None, render_node=None, memory_gib=None, cpus=2,
+              free_disk_gib=5, host_free_memory_gib=1,
+          ))
+          container_stage(
+              host, host.ensure(), Path("tmp-phase5-evidence").resolve(),
+              ["python", "scripts/qualify_bigint_phase5.py", "--inside", "containment",
+               "--output", "/work/output"], seconds=3000,
+          )
+          PYCODE
+          else
+            "$ENGINE" run --rm --network none --read-only --user 12345:12345 \
+              --memory 16g --memory-swap 16g --cpus 2 --pids-limit 512 \
+              --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,size=2g \
+              -e HOME=/tmp -e OMP_NUM_THREADS=2 -e OEIS_REQUIRE_BIGINT_BUILD=1 -e OEIS_REQUIRE_NATIVE=1 \
+              -e OEIS_QUALIFICATION_IMAGE="$("$ENGINE" image inspect oeis-bigint-qualification --format '{{.Id}}')" \
+              -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build -e PARTITION \
+              -v "$PWD/tmp-phase5-evidence:/evidence" oeis-bigint-qualification bash -c '
+                set -euo pipefail
+                trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
+                if [ "$PARTITION" = performance ]; then
+                  python scripts/benchmark_bigint.py --output /evidence
+                else
+                  python scripts/qualify_bigint_phase5.py --inside "$PARTITION" --output /evidence
+                fi
+              '
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: bigint-qualification-${{ matrix.partition }}-${{ matrix.engine }}
-          path: tmp-phase5-evidence/
+          path: |
+            tmp-phase5-evidence/
+            !tmp-phase5-evidence/.runtime/**
 
   bigint-preparation:
     needs: image
