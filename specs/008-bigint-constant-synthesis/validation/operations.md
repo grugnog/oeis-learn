@@ -2,7 +2,10 @@
 
 Status: targeted new-image check/GPU/performance commands and their bounded ZIP
 are reviewed in [the scoped receipt](phase-5-scoped-hip-review.json). Full
-both-engine, checkpoint-dependent and learning/export execution remain pending.
+both-engine and retained-checkpoint-dependent command coverage remain pending.
+The completed negative diverse32 run and pack export are now reviewed in
+[the learning receipt](phase-5-diverse32-review.json):15 outer archive files,
+16 nested bundle files, no manifest omissions and complete core export.
 
 The containment suite exercises complete checkpoint/resume/no-refund, hidden
 mount rejection, final-plan access controls, normal/interrupted summaries and

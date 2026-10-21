@@ -10,9 +10,13 @@ tests and twelve fixed-state generation parity/deadline groups. All24 archived
 file hashes and the source/image/shape/recipe/schedule bindings verify. Diverse32
 projects7,926.648s within its11,520s admission allowance (80% of the preregistered
 14,400s); its10,082s of role ceilings also fit the complete budget. **T095 is
-complete and admits only the one registered T096 attempt.** The independently
+complete and admitted only the one registered T096 attempt.** The independently
 calculated transfer screen remains BLOCKED at29,637.220s versus5,760s allowed.
-Learnability has not run. See [the scoped review](phase-5-scoped-hip-review.json).
+That single learnability run is now reviewed and **T096 is complete with a
+negative outcome**:31/32 correct rescue continuations,31/32 complete rescue
+evidence and32/32 greedy termination. The required32/32 completeness fails.
+See [the scoped review](phase-5-scoped-hip-review.json) and
+[the learnability result](phase-5-diverse32-review.json). Promotion stays BLOCKED.
 
 The earlier HIP run closed T092 and retains its original failed larger-screen
 estimate at47,749.33s; [that historical receipt](phase-5-batched-hip-review.json)
@@ -42,7 +46,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
 | T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen current small-value slowdowns of23.24–73.81x still require investigation. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
-| T096 | [Learnability](learnability.md): one seed20261016 attempt is now admitted by the reviewed diverse32 receipt; actual learning outcome pending. |
+| T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
 | T097 | [Operations](operations.md): new-image and public hardware/checkpoint-dependent commands pending. |
 | T098 | This report, [local checks](phase-5-scoped-local.json) and [current HIP review](phase-5-scoped-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
 
@@ -97,7 +101,8 @@ an inference from historical p95s, not new hardware evidence. It calculates
 The independently corrected transfer estimate is 29,723.688s and remains over
 its original budget. Neither this calculation nor mocked orchestration tests
 establish learned accuracy. T095 is now closed by the reviewed fresh HIP
-receipts; T096 remains unchecked until its actual learning outcome is reviewed.
+receipts; T096 is closed by the reviewed negative learning outcome. The one
+attempt is consumed; its finalized ledger cannot be resumed for more training.
 
 ## Copy-pastable hardware commands
 
@@ -113,8 +118,8 @@ python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-onl
 ```
 
 Review/share the resulting ZIP and both `performance/cost-SCOPE.json` receipts.
-Then follow [the separate single-attempt command](learnability.md), after the
-diverse32 receipt and finite budget are reviewed. There is no automatic learning
+The [separate single-attempt command](learnability.md) has now run and is
+documented for provenance; do not repeat the consumed attempt. There is no automatic learning
 or Phase 6 launch. A new code/profile/data/image identity requires a new receipt.
 
 For remaining complete CPU/native/retirement/operations checks on each engine:

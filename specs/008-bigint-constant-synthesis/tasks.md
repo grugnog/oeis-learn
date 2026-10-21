@@ -215,7 +215,15 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
   (80% of the preregistered14,400s), with10,082s of debited role ceilings.
   The independent transfer scope remains BLOCKED at29,637.220s versus5,760s.
   See [review receipt](validation/phase-5-scoped-hip-review.json).
-- [ ] T096 [US4] After the diverse32-specific T095 receipt and its revised finite budget are reviewed and frozen, execute exactly one diverse32 memorization gate and raw/shuffled/absent/template controls from the revised `configs/foundation/bigint_smoke_phase5.yaml` registration (original `bigint_smoke.yaml` preserved); record realized cost, complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`. Failure blocks promotion; it does not authorize threshold changes or the later transfer screen.
+- [X] T096 [US4] After the diverse32-specific T095 receipt and its revised finite budget are reviewed and frozen, execute exactly one diverse32 memorization gate and raw/shuffled/absent/template controls from the revised `configs/foundation/bigint_smoke_phase5.yaml` registration (original `bigint_smoke.yaml` preserved); record realized cost, complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`. Failure blocks promotion; it does not authorize threshold changes or the later transfer screen.
+  Reviewed `008-phase5-diverse32-20261021T160815Z`: single seed20261016 run
+  completed1800 updates; all15 outer and16 nested bundle hashes verify.
+  Rescue31/32 correct meets the success threshold, but31/32 complete evidence
+  fails the frozen32/32 coverage gate; greedy termination passes32/32.
+  Raw30/32, equal-budget32/32, shuffled4/32, absent3/32, template0/32.
+  Debited7,730s of14,400s, no refund; selected checkpoint and sealed final
+  access recorded in [the review](validation/phase-5-diverse32-review.json).
+  T096 is complete as a negative research outcome; promotion stays BLOCKED.
 - [ ] T097 [US3] Exercise every supported quickstart command, clean retirement suite and normal/interrupted/bundle-cap exports; update `specs/008-bigint-constant-synthesis/quickstart.md` with verified commands and record mandatory artifact completeness, workspace persistence and historical reader results in `validation/operations.md`.
 - [ ] T098 Record immutable qualification identities and all Phase 5 pass/fail/pending gates in `specs/008-bigint-constant-synthesis/validation/phase-5.md`; permit controlled screens only after required runtime, isolation, real-GPU, cost and learnability gates pass, and return algorithm defects to the Phase 2 owner.
 
@@ -224,11 +232,13 @@ Phase 5 implementation and per-task execution gates are recorded in
 portable CPU/HIP/data/cost/tiny runner, result archives and shared-image CI
 partitions are implemented. T092 is closed by reviewed current-source HIP
 execution. T095 is closed by reviewed current-source HIP receipts: diverse32
-is admitted for exactly the registered T096 attempt; transfer-screen remains
-over budget and unadmitted. T089–T091, T093–T094 and T096–T098 remain unchecked.
+admitted exactly the registered T096 attempt; transfer-screen remains
+over budget and unadmitted. T096 is complete with a reviewed negative outcome
+that blocks promotion. T089–T091, T093–T094 and T097–T098 remain unchecked.
 PR #59 implements both receipts, shared coordinator reservations, the
 14,400-second preregistration and the reviewed single-attempt runner. The
-remaining engine/checkpoint/operations reviews and learning outcome are pending.
+remaining engine/checkpoint/slowdown/operations reviews are pending; the consumed
+T096 attempt is not retried or resumed to alter its result.
 Missing evidence is not permission to substitute fixtures or lower gates.
 
 ## Phase 6: Controlled research and longer-run readiness

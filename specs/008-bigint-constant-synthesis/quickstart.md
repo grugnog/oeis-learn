@@ -2,11 +2,18 @@
 
 Phase 5 code is available in [PR #59](https://github.com/grugnog/oeis-learn/pull/59).
 The current-source scoped HIP preflight is reviewed: T092 remains PASS and
-T095 is complete. Diverse32 is admitted for one seed20261016 attempt; its actual
-learning outcome, full Phase 5 qualification and Phase 6 promotion remain pending. See
+T095 and T096 are complete. The single seed20261016 diverse32 attempt finished
+with a negative result:31/32 rescue correctness and31/32 complete evidence,
+versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
 ## Phase 5 qualification runner
+
+The registered diverse32 attempt is consumed and finalized; do not repeat its
+training or resume it. Its [reviewed result](validation/phase-5-diverse32-review.json)
+retains the checkpoint, all controls and the debited ledger. The commands below
+document the completed procedure and tooling; any new learning experiment needs
+a separate reviewed registration rather than reusing this attempt.
 
 The latest reviewed preflight is
 `tmp-validation/008-phase5-scoped-20261021T115212Z`. Reuse that directory for the
