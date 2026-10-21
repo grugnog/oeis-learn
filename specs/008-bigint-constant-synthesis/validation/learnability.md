@@ -1,9 +1,9 @@
 # Diverse32 memorization gate — T096
 
-Status: runner implemented; actual learning outcome pending a reviewed passing
-current-source diverse32 T095 receipt. Historical HIP measurements motivate the
-finite budget registration, but cannot admit this new source/image. The larger
-transfer screen remains independently blocked by cost.
+Status: **ready for the one registered T096 attempt**. The reviewed current-source
+preflight `008-phase5-scoped-20261021T115212Z` passes diverse32 cost admission;
+see [the review receipt](phase-5-scoped-hip-review.json). Learning has not run.
+The larger transfer screen remains independently blocked by cost.
 
 `configs/foundation/bigint_smoke_phase5.yaml` registers 14,400 seconds including
 diagnostics/reservations. The model/optimizer starting recipe remains d256,
@@ -34,6 +34,9 @@ python3 scripts/run_bigint_diverse32.py --engine podman \
   --output "tmp-validation/008-phase5-diverse32-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
+For the reviewed run, set
+`phase5_preflight=tmp-validation/008-phase5-scoped-20261021T115212Z`.
+There is no need to repeat measurement for that unchanged source/image/data.
 Keep `phase5_preflight` set to the reviewed directory if starting a new shell.
 Substitute Docker consistently if appropriate. Both commands always write a
 bounded ZIP on success/failure after creating their output directory. The

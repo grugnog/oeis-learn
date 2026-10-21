@@ -1,12 +1,32 @@
 # Scope-identified cost preflight — T095
 
-Status: **open**. Prepared inputs pass checking with512/128/128 plus tiny32 and
-native admission. All12 current-source fixed-state batching groups pass
-parity/deadline checks. The reviewed receipt projects the **complete transfer
-screen** at47,749.33s (13h16m) against the initial5,760s admission allowance
-(80% of7,200s). That is a valid failed result for that scope; it is not a
-scope-correct admission decision for the distinct 32-prompt memorization gate.
-See [the exact receipt](phase-5-batched-hip-review.json).
+Status: **T095 complete; diverse32 admitted for T096 only**. The reviewed
+`008-phase5-scoped-20261021T115212Z` run passes all nine HIP tests and twelve
+fixed-state generation parity/deadline groups. Prepared inputs retain complete
+512/128/128 counts, tiny32, native admission and the same split/prepared hashes.
+Both independently scoped receipts and their executable reservations verify;
+see [the current review](phase-5-scoped-hip-review.json).
+
+| Scope | Measured projection | 80% admission limit | Reserved role ceilings | Decision |
+| --- | ---: | ---: | ---: | --- |
+| diverse32 |7,926.648s |11,520s |10,082s of14,400s |PASS; one T096 attempt |
+| transfer-screen |29,637.220s |5,760s |37,102s of7,200s |BLOCKED |
+
+The original complete-screen estimate of47,749.33s remains intact in
+[its historical receipt](phase-5-batched-hip-review.json). It does not authorize
+or reject the separately calculated diverse32 workload.
+
+The archive's24 file hashes, sealed report/receipt/recipe hashes, source/image/
+profile/prepared-shape/schedule identities and current recipe configuration all
+verify. Recomputing the p95 inputs and each scope's projection/role ceilings
+reproduces the receipts. The reviewed source is
+`sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542`;
+the reviewed image is
+`sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f`.
+The measured recipe identity is
+`sha256:560df5bd317e8d85573e491a152d071100d0d323bb03ccb9a2dd54741401aeed`.
+This review admits the preregistered finite budget and exact diverse32 schedule,
+not a transfer run or learned-accuracy claim. T096 remains unexecuted.
 
 ## Decision
 
@@ -25,8 +45,8 @@ smaller diagnostic. A projection must fit within80% of its own preregistered
 finite budget.
 
 The scope-specific implementation is available in PR #59. Cost policy and
-coordinator reservations now share the same workload functions. Run the new
-source-bound HIP preflight and review its receipt before T096. All32 denominator
+coordinator reservations now share the same workload functions. The new
+source-bound HIP preflight and receipt review are complete. All32 denominator
 members, controls, termination requirements and the31/32 threshold remain fixed.
 
 ## Preregistration — 2026-10-21

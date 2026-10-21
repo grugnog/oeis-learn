@@ -1,11 +1,12 @@
 # Measurement-only performance screen — T094
 
 Status: current-source native/HIP measurements are reviewed in
-[phase-5-generation.md](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21)
-and [the immutable receipt](phase-5-batched-hip-review.json). All12 frozen-state
+[the scoped HIP receipt](phase-5-scoped-hip-review.json); the earlier
+[batching review](phase-5-batched-hip-review.json) remains historical evidence. All12 frozen-state
 mixed-prompt generation groups pass parity, unchanged-weight and deadline checks.
-Complete-screen cost admission fails at47,749.33s versus5,760s. Fifteen shared
-small-value slowdown cases range from23.87x to78.28x and still require
+Diverse32 cost admission passes at7,926.648s versus11,520s. Complete-screen cost
+admission fails independently at29,637.220s versus5,760s. Fifteen current shared
+small-value slowdown cases range from23.24x to73.81x and still require
 investigation, so T094 remains open. Local CPU tests alone establish no
 accelerator throughput or utilization result.
 

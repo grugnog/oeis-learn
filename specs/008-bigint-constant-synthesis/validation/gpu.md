@@ -93,3 +93,17 @@ Phase 5 overall: complete-screen cost admission fails, learnability has not run,
 and the remaining execution/review gates stay open. The separate benchmark
 also passes all12 frozen-state generation parity/deadline groups; see
 [the cost review](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21).
+
+## Scoped preflight HIP review — 2026-10-21
+
+The subsequent `008-phase5-scoped-20261021T115212Z` run passes all nine HIP
+tests with zero failures, errors or skips, including a finite changed-weight
+update, checkpoint workflow and mixed-prompt decoding cases. All twelve
+fixed-state calibration/control/temperature groups pass parity, frozen-weight
+and deadline checks. The source/image, JUnit and all24 archive file hashes
+verify; see [the scoped review receipt](phase-5-scoped-hip-review.json).
+
+The actual device remains AMD Radeon Graphics (`gfx1151`), HIP
+`7.2.53211-e1a6bc5663`, PyTorch `2.9.1+rocm7.2.1.gitff65f5bc`, under Podman5.8.6.
+The reviewed diverse32 cost receipt admits the single T096 attempt; no
+learnability outcome or transfer-screen admission follows from these HIP tests.

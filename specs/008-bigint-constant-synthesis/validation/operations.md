@@ -1,7 +1,8 @@
 # Phase 5 operations and exports — T097
 
-Status: tooling and fixture checks available; new-image execution and the
-hardware/checkpoint-dependent public commands remain pending.
+Status: targeted new-image check/GPU/performance commands and their bounded ZIP
+are reviewed in [the scoped receipt](phase-5-scoped-hip-review.json). Full
+both-engine, checkpoint-dependent and learning/export execution remain pending.
 
 The containment suite exercises complete checkpoint/resume/no-refund, hidden
 mount rejection, final-plan access controls, normal/interrupted summaries and
@@ -28,7 +29,11 @@ attempt claims, negative learning outcomes and interrupted commands. The last
 two tests mock the external engine and verify durable claims, public command
 ordering and archive creation; they establish orchestration behavior, not HIP
 or learned accuracy. Standard-library-only `python3 -S ... --help` works for
-both host helpers. Actual new-image command/export execution is still pending.
+both host helpers. The reviewed current-source measurement ZIP contains24
+verified files, no omissions and successful cleanup in0.056s against5s allowed.
+Only the performance output directory is mounted into its offline/read-only
+measurement role. These observations do not replace the complete containment
+suite or actual learning/resume/pack evidence.
 
 Full quickstart research/final-scoring commands remain Phase 6 gates; they are
 not launched merely to check off operations. See [phase-5.md](phase-5.md).

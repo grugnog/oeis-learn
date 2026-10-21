@@ -1,12 +1,17 @@
 # Quickstart: Validation and Bounded Research
 
 Phase 5 code is available in [PR #59](https://github.com/grugnog/oeis-learn/pull/59).
-T092 retains its reviewed historical HIP PASS. The new scope-specific preflight
-and one diverse32 learning outcome need current-source HIP execution; full
-Phase 5 qualification and Phase 6 promotion remain pending. See
+The current-source scoped HIP preflight is reviewed: T092 remains PASS and
+T095 is complete. Diverse32 is admitted for one seed20261016 attempt; its actual
+learning outcome, full Phase 5 qualification and Phase 6 promotion remain pending. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
 ## Phase 5 qualification runner
+
+The latest reviewed preflight is
+`tmp-validation/008-phase5-scoped-20261021T115212Z`. Reuse that directory for the
+learning command below while source/image/prepared data are unchanged. The
+following measurement command is available when a new preflight is needed.
 
 For the targeted cost follow-up, reuse the already checked inputs. This runs
 actual HIP regression/parity checks and fixed-state measurements, writes
@@ -23,6 +28,9 @@ python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-onl
 Share the resulting ZIP, including a BLOCKED outcome. Review the diverse32
 receipt and preregistered 14,400-second budget before running the next command.
 A passing diverse32 receipt cannot admit the transfer screen.
+
+For the already reviewed result, use
+`phase5_preflight=tmp-validation/008-phase5-scoped-20261021T115212Z`.
 
 ```bash
 python3 scripts/run_bigint_diverse32.py --engine podman \

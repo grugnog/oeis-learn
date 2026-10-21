@@ -5,19 +5,19 @@ admission and the reviewed single-attempt runner are implemented in
 [PR #59](https://github.com/grugnog/oeis-learn/pull/59). **The Phase 5 execution
 and promotion gate is pending.** No Phase 6 screen or final-cohort study ran.
 
-The reviewed `008-phase5-batched-20261021T001809Z` run passes all9 actual HIP
-tests and all12 fixed-state generation parity/deadline groups, closing T092.
-All21 archived file hashes and the expected source/image identities verify;
-see [the review receipt](phase-5-batched-hip-review.json). Complete prepared
-inputs pass checking. The measured complete transfer-screen projection fails at
-47,749.33 seconds versus5,760 allowed. That receipt does not model the smaller
-32-prompt memorization scope, so T095 now requires separate scope-identified
-preflights and a preregistered finite budget revision before T096. That code is
-now implemented; the explicit diverse32 budget is 14,400s, with the original
-smoke and historical receipts preserved. Fresh source/image HIP measurements
-and receipt review remain pending. Learnability
-has not run. Other Phase 5 tasks remain open. See [the measurement review and
-next decision](phase-5-generation.md#phase-5-cost-decision--2026-10-21).
+The reviewed `008-phase5-scoped-20261021T115212Z` run passes all nine actual HIP
+tests and twelve fixed-state generation parity/deadline groups. All24 archived
+file hashes and the source/image/shape/recipe/schedule bindings verify. Diverse32
+projects7,926.648s within its11,520s admission allowance (80% of the preregistered
+14,400s); its10,082s of role ceilings also fit the complete budget. **T095 is
+complete and admits only the one registered T096 attempt.** The independently
+calculated transfer screen remains BLOCKED at29,637.220s versus5,760s allowed.
+Learnability has not run. See [the scoped review](phase-5-scoped-hip-review.json).
+
+The earlier HIP run closed T092 and retains its original failed larger-screen
+estimate at47,749.33s; [that historical receipt](phase-5-batched-hip-review.json)
+is preserved. Remaining engine, matched-checkpoint, slowdown and operations
+evidence is still required before overall Phase 5 promotion.
 
 Entry is merged Phase 4 PR #57 at
 `be6070bead5f30147774b6517c0f50eb1cb3f6cc`. T088 is closed by reviewed required
@@ -40,11 +40,11 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T091 | [Containment](containment.md): mandatory Docker and Podman partitions pending; host role inspection/cleanup is also recorded. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen small-value slowdowns of23.87–78.28x still require investigation. |
-| T095 | [Data and cost](screen-preflight.md): checked512/128/128 plus tiny32. The complete transfer-screen projection FAILS at47,749.33s versus5,760s. Distinct receipts and shared reservation functions are implemented. The 14,400s diverse32 budget is preregistered; fresh HIP receipts/review remain pending. |
-| T096 | [Learnability](learnability.md): not run; waits for the diverse32-specific T095 receipt and reviewed finite budget. The failed larger-screen estimate alone does not decide this gate. |
+| T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen current small-value slowdowns of23.24–73.81x still require investigation. |
+| T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
+| T096 | [Learnability](learnability.md): one seed20261016 attempt is now admitted by the reviewed diverse32 receipt; actual learning outcome pending. |
 | T097 | [Operations](operations.md): new-image and public hardware/checkpoint-dependent commands pending. |
-| T098 | This report, [local checks](phase-5-local.json) and [current HIP review](phase-5-batched-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
+| T098 | This report, [local checks](phase-5-scoped-local.json) and [current HIP review](phase-5-scoped-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
 
 The CI partitions reuse the existing shared qualification image and uploaded
 image provenance. They require nonempty zero-failure/error/skip JUnit, clean
@@ -96,7 +96,8 @@ an inference from historical p95s, not new hardware evidence. It calculates
 7,999.085s for diverse32 and 10,183s of role reservations against a 14,400s cap.
 The independently corrected transfer estimate is 29,723.688s and remains over
 its original budget. Neither this calculation nor mocked orchestration tests
-establish learned accuracy. T095/T096 remain unchecked until execution/review.
+establish learned accuracy. T095 is now closed by the reviewed fresh HIP
+receipts; T096 remains unchecked until its actual learning outcome is reviewed.
 
 ## Copy-pastable hardware commands
 
