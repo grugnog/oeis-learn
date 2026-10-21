@@ -15,6 +15,18 @@ from .admission import VisiblePrompt, admit, reference_identity, source_identity
 MAX_FRAME = 4 * 1024**2
 
 
+def _incomplete(response, **payload):
+    outcome = response.get("outcome")
+    return dict(
+        outcome=outcome
+        if outcome in {"verification_failure", "resource_exhausted"}
+        else "resource_exhausted",
+        reason=response.get("reason") or "incomplete worker result",
+        transport=response.get("failures", []),
+        **payload,
+    )
+
+
 def encoded(value):
     parts = []
     size = 0
@@ -170,6 +182,7 @@ class SynthesisClient:
         results = []
         unstarted = []
         complete = True
+        failures = []
         for batch in batches(rows):
             request = dict(
                 protocol="synthesis-worker/v1",
@@ -193,7 +206,25 @@ class SynthesisClient:
             results.extend(response["results"])
             unstarted.extend(response["unstarted"])
             complete &= response["complete"]
-        return dict(results=results, unstarted=unstarted, complete=complete)
+            if not response["complete"]:
+                failures.append(
+                    {
+                        key: response.get(key)
+                        for key in ("outcome", "reason", "generation", "metrics")
+                    }
+                )
+        failure = next(
+            (row for row in failures if row["outcome"] == "verification_failure"),
+            failures[0] if failures else {},
+        )
+        return dict(
+            results=results,
+            unstarted=unstarted,
+            complete=complete,
+            failures=failures,
+            outcome=failure.get("outcome", "ok"),
+            reason=failure.get("reason"),
+        )
 
     def execute(self, source, indices, *, profile="bigint-body/v1", deadline=None):
         response = self.request(
@@ -203,11 +234,7 @@ class SynthesisClient:
             profile=profile,
             deadline=deadline,
         )
-        return (
-            response["results"][0]
-            if response["results"]
-            else dict(outcome="resource_exhausted", values=[], reason="worker incomplete")
-        )
+        return response["results"][0] if response["results"] else _incomplete(response, values=[])
 
     def fit(
         self,
@@ -253,9 +280,7 @@ class SynthesisClient:
             native = (
                 response["results"][0]
                 if response["results"]
-                else dict(
-                    outcome="resource_exhausted", assignments=[], reason="incomplete worker result"
-                )
+                else _incomplete(response, assignments=[])
             )
         if (
             not isinstance(native, dict)

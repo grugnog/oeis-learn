@@ -146,3 +146,50 @@ python3 scripts/diagnose_bigint_run.py replay --engine podman \
   --evidence "$diagnostic_out/collection" \
   --output "$diagnostic_out/replay-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
+
+## Original candidate review — 2026-10-21
+
+The uploaded `collection.zip` and `replay-20261021T212653Z.zip` pass CRC,
+complete-inventory and all20 manifest size/hash checks. Parent contract,
+checkpoint identity, original prompt/source, case bytes, image and runtime bind
+to the reviewed T096 attempt. The mounted utility bytes match published commit
+`2ab3a28`; the user's exact Git revision is not reported. See the
+[machine-readable review](phase-5-diverse32-candidate-review.json).
+
+The original sealed selections contain a correct raw program and no rescue
+program. The missing rescue therefore predates hidden scoring. The same-image,
+same-runtime replay verifies the raw visible values again, but fitting returns
+`resource_exhausted`, `incomplete worker result`, with no admitted candidate.
+The2.213s duration is whole replay work, not a measured solver-only time. The
+host and nested work reservations completed without refund; the nested30s are
+included in the75s host reservation, not added to it.
+
+The source computes `n*n + 11*n - 15`. The original generation cache contains
+eight native fits of this identical source/prompt under seed75271731. Its key
+matches attempt position2 under the frozen schedule; the conditioning mode
+cannot be recovered. Native execution reports0.122s and16-bit coefficient
+scope. All eight assignments pass independent visible substitution/arithmetic
+checks and reduce to the same polynomial. This is analysis of existing cached
+evidence, not new production execution, hidden scoring or a qualification pass.
+The unsuccessful replay used the registered greedy seed75271729.
+
+These observations establish a fitting/worker failure rather than a missing
+learned program. Seed-sensitive bounded nonlinear solving is plausible, but
+the exact historical failure cannot be recovered: the original client discarded
+worker outcome/reason/metrics when no result arrived. A deadline, worker RSS
+limit or protocol failure all collapsed to the same generic message.
+
+The current client now retains the worker's failure class, reason, generation
+and metrics; protocol defects remain verification failures. The mounted replay
+utility also traces worker responses before the original-image client discards
+them. The wrapper neither changes request contents/deadlines nor adds fitting
+calls, so no rebuild is needed. One further visible replay using the same
+existing collection and a fresh output name (command above) can distinguish
+these causes. Its `summary.json` includes `worker_calls` with allowances,
+elapsed time, result counts and original failure reasons. Request source/values
+are excluded from this trace. No retraining, HIP work, threshold adjustment or
+replacement of T096's original negative outcome is warranted by this evidence.
+
+The reason-propagation and legacy tracing regressions pass in the49-test
+collector/evidence/adapter/worker subset, with one packaged-native skip. Native
+image execution remains a user-side check; CI is not monitored after pushing.

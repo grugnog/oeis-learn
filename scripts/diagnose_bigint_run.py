@@ -301,6 +301,43 @@ def collect(root, run, prompt_id, output):
     return archive(output)
 
 
+def trace_worker_calls(client, events):
+    """Observe original-image transport before legacy clients discard its reason."""
+    worker = getattr(client, "worker", None)
+    original = getattr(worker, "call", None)
+    if not callable(original):
+        return False
+
+    def call(request, *, deadline):
+        started = time.monotonic()
+        event = dict(operation=request["operation"], allowance_seconds=max(0, deadline - started))
+        try:
+            response = original(request, deadline=deadline)
+            event.update(
+                {
+                    key: response.get(key)
+                    for key in ("complete", "outcome", "reason", "generation", "metrics")
+                }
+            )
+            event.update(
+                results_count=len(response.get("results", [])),
+                unstarted_count=len(response.get("unstarted", [])),
+            )
+            return response
+        except BaseException as exc:
+            event.update(
+                complete=False, outcome="exception", reason=f"{type(exc).__name__}: {exc}"[:512]
+            )
+            raise
+        finally:
+            event["elapsed_seconds"] = time.monotonic() - started
+            if len(events) < 32:
+                events.append(event)
+
+    worker.call = call
+    return True
+
+
 def inside(case_path, output, seconds, image):
     """Visible-only CPU replay against the implementation packaged in the image."""
     from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
@@ -339,6 +376,7 @@ def inside(case_path, output, seconds, image):
         case_sha256=sha(case_path),
         analysis_identity=digest([digest(case), seconds, image, uuid.uuid4().hex]),
         purpose="visible-only fitting diagnosis; no continuation score or promotion",
+        worker_calls=[],
     )
     try:
         with SynthesisClient(
@@ -347,6 +385,7 @@ def inside(case_path, output, seconds, image):
             service_limits=ServiceLimits(**case["service_limits"]),
             cache_root=output / ".runtime/native-cache",
         ) as client:
+            report["transport_trace_available"] = trace_worker_calls(client, report["worker_calls"])
             report["runtime_sha256"] = client.runtime_identity("bigint-body/v1")
             report["same_runtime"] = (
                 report["runtime_sha256"] == case["expected_runtime_sha256"]

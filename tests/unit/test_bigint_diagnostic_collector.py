@@ -319,3 +319,30 @@ def test_help_is_standard_library_only():
         capture_output=True,
         timeout=10,
     )
+
+
+def test_replay_traces_legacy_worker_before_client_discards_reason():
+    module = utility()
+    events = []
+    worker = SimpleNamespace(
+        call=lambda *a, **kw: dict(
+            complete=False,
+            outcome="resource_exhausted",
+            reason="deadline",
+            generation=2,
+            results=[],
+            unstarted=["fit"],
+            metrics=dict(rss_peak_bytes=123),
+        )
+    )
+    assert module.trace_worker_calls(SimpleNamespace(worker=worker), events)
+    request = dict(
+        operation="fit", visible_values=["VISIBLE_ONLY"], candidates=[dict(source="SOURCE")]
+    )
+    import time
+
+    result = worker.call(request, deadline=time.monotonic() + 2)
+    assert result["reason"] == "deadline"
+    assert events[0]["reason"] == "deadline" and events[0]["operation"] == "fit"
+    assert events[0]["results_count"] == 0 and events[0]["unstarted_count"] == 1
+    assert "VISIBLE_ONLY" not in json.dumps(events) and "SOURCE" not in json.dumps(events)

@@ -253,3 +253,36 @@ def test_fit_preserves_independent_admission_exhaustion_reason(monkeypatch):
     assert result["outcome"] == "resource_exhausted" and not result["admitted"]
     assert result["reason"] == "reference_limit"
     assert result["admission"][0]["outcome"] == "resource_exhausted"
+
+
+@pytest.mark.parametrize(
+    "outcome,reason",
+    [
+        ("resource_exhausted", "deadline"),
+        ("resource_exhausted", "worker_rss"),
+        ("verification_failure", "stale or mismatched response"),
+    ],
+)
+def test_empty_worker_response_preserves_failure_class_and_reason(outcome, reason):
+    from oeis_learn.synthesis.client import SynthesisClient
+
+    worker = SimpleNamespace(generation=1, close=lambda: None)
+    worker.call = lambda request, **kw: dict(
+        results=[],
+        unstarted=[row["candidate_id"] for row in request["candidates"]],
+        complete=False,
+        outcome=outcome,
+        reason=reason,
+        generation=2,
+        metrics=dict(rss_peak_bytes=123),
+    )
+    source = "(program (return $index))"
+    with SynthesisClient("sha256:" + "1" * 64, worker=worker) as client:
+        client.runtime_identity = lambda profile: "mock-runtime"
+        fit = client.fit(
+            source, VisiblePrompt(tuple(map(str, range(20))), tuple(map(str, range(20))))
+        )
+        executed = client.execute(source, ["0"])
+    assert fit["outcome"] == executed["outcome"] == outcome
+    assert fit["reason"] == executed["reason"] == reason
+    assert fit["native"]["transport"][0]["generation"] == 2
