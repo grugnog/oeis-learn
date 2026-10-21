@@ -1,10 +1,13 @@
 # Measurement-only performance screen — T094
 
-Status: old-source HIP measurements are reviewed in
-[phase-5-generation.md](phase-5-generation.md). Cost admission failed; small-value
-slowdown review remains open. Fixed-state timing and production batching are now
-implemented; new-source native/HIP qualification remains pending. Local tests
-establish no accelerator throughput or utilization result.
+Status: current-source native/HIP measurements are reviewed in
+[phase-5-generation.md](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21)
+and [the immutable receipt](phase-5-batched-hip-review.json). All12 frozen-state
+mixed-prompt generation groups pass parity, unchanged-weight and deadline checks.
+Complete-screen cost admission fails at47,749.33s versus5,760s. Fifteen shared
+small-value slowdown cases range from23.87x to78.28x and still require
+investigation, so T094 remains open. Local CPU tests alone establish no
+accelerator throughput or utilization result.
 
 `scripts/benchmark_bigint.py` calls production APIs. Native observational timings
 split parse/lower/candidate compilation from fresh-store execution, literal/input
@@ -44,3 +47,4 @@ Shared small-value median execution slowdown above5x appears in
 `slowdown_investigations`. Review its cold compilation, prepare/execute and batch
 scaling before long runs. Such a measurement cannot justify weaker semantics;
 algorithm changes return to Phase 2. See [phase-5.md](phase-5.md) for commands.
+

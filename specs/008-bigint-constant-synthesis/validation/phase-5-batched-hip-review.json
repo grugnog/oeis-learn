@@ -1,0 +1,2028 @@
+{
+  "version": "phase5-batched-hip-review/v1",
+  "reviewed_archive": "008-phase5-batched-20261021T001809Z.zip",
+  "archive_sha256": "sha256:d91dfece68c3d2fba3fb4777d055603ac565bd16e661c7217d943cacdd56b283",
+  "tested_commit": "6cf65f1cb0d23fd11b5a16659b0e0b3015c6f697",
+  "source_sha256": "sha256:1e8d469e97912d3af3e40ad0b255a2df18ca09d13d9cb1209f67580cb9386a52",
+  "image": "sha256:3932b17d9612f8eb6e5b8128329fa7a6403839e66a49db54668a4becde89896b",
+  "decision": {
+    "status": "BLOCKED",
+    "qualified": false,
+    "completed_task": "T092",
+    "pending_tasks": {
+      "T091": "both Docker and Podman evidence required; this invocation tests one engine",
+      "T093": "actual matched checkpoint not supplied",
+      "T094": "review measured >5x small-value execution slowdowns before long runs",
+      "T095": "complete paired dataset and matching non-scoring cost preflight required",
+      "T096": "diverse32 training gate not run",
+      "T097": "review public command/export evidence including interrupted cases",
+      "T098": "all prerequisite evidence must pass",
+      "T089": "arithmetic not rerun in targeted measurement scope",
+      "T090": "fitting qualification not rerun in targeted scope"
+    },
+    "learnability_run": false,
+    "reason": "measured screen cost 47749.328s exceeds 80% budget 5760.000s",
+    "next_step": "Substantial generation optimization with affected parity/cost requalification, or explicit resource/recipe preregistration before training. Do not repeat this unchanged validation."
+  },
+  "artifact_verification": {
+    "verified_files": 21,
+    "mismatches": 0,
+    "files": [
+      {
+        "path": "summary.json",
+        "bytes": 348039,
+        "sha256": "sha256:97d3d61e1bfb2d0df1b5cffc8dbd0f01f7d5fdd1f6e58ba3d8140f9735fa86be"
+      },
+      {
+        "path": "check-command/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "check-command/stdout.log",
+        "bytes": 84,
+        "sha256": "sha256:49d958c613ce736150494ceb64cf211f45124f305efd2b2cfd1d869c846b15cb"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/gpu/encoder-update.json",
+        "bytes": 364,
+        "sha256": "sha256:3f91234ad6481740a07e2f9ae9f6ccb8a11e9cf3bc909302023320292f317dca"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/receipt.json",
+        "bytes": 537,
+        "sha256": "sha256:202c6e9e6c67bb10f09331737b1761ee9ef978013f5f9100653b056fe5c7b7d8"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/results.xml",
+        "bytes": 1500,
+        "sha256": "sha256:ac8ff78d5f2cc8527b04e88331382747f417d7426fd79c55a003c5954874be1f"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/stdout.log",
+        "bytes": 1809,
+        "sha256": "sha256:99fb57b8e124467235caa10b020d42773d96e4864588209ce36d75f0079bdd99"
+      },
+      {
+        "path": "gpu/environment/receipt.json",
+        "bytes": 328,
+        "sha256": "sha256:fea3809976e8db07664290c3f33b4bf78705276468259c50a80031a2db0abc44"
+      },
+      {
+        "path": "gpu/environment/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "gpu/environment/stdout.log",
+        "bytes": 364,
+        "sha256": "sha256:8a8b3f9d9a58a64db86223be5057bb18e15384f2e428b0f9a078d222974d5aea"
+      },
+      {
+        "path": "gpu/validation.json",
+        "bytes": 1039,
+        "sha256": "sha256:10e89523faa6de2fa4ee31e1e8b7bef9412b6cf14b9fc6ec0c0fea4e15078fb7"
+      },
+      {
+        "path": "performance/benchmark.json",
+        "bytes": 306395,
+        "sha256": "sha256:a811aeb1493148185f5101282ed90f769d3b4ee467d4955b19f5f74c937f22b4"
+      },
+      {
+        "path": "performance/cleanup.json",
+        "bytes": 87,
+        "sha256": "sha256:8b498b92ef99748b3e9a207e6ac587c5b0b507bd94d4005222e78ac7dbe5590b"
+      },
+      {
+        "path": "performance/container-inspect.json",
+        "bytes": 15783,
+        "sha256": "sha256:3f91b0bb964e22f7c4ecbcb06341b06c29c775fb144fc4579dbab43f62745562"
+      },
+      {
+        "path": "performance/measurement-config.yaml",
+        "bytes": 3513,
+        "sha256": "sha256:d4d030f018dc29a77d910da62d2e1e4ce35dc5261a01dbac9a17ad7e670e52bd"
+      },
+      {
+        "path": "performance/neural-partial.json",
+        "bytes": 53323,
+        "sha256": "sha256:2df230da90974e4e7eb41d468e3c39e187174d55ca588cc3ab9723ac23473a06"
+      },
+      {
+        "path": "performance/partial.json",
+        "bytes": 233603,
+        "sha256": "sha256:aea40147f89194389292068b2af90f37108e3c61fb4a2a8916b078bc5307bc48"
+      },
+      {
+        "path": "performance/shapes.json",
+        "bytes": 599,
+        "sha256": "sha256:33de805c0ebac9a49d06ff2586181312eafd78a5aee6ac48acff3ff96eb55722"
+      },
+      {
+        "path": "performance/stderr.log",
+        "bytes": 1315,
+        "sha256": "sha256:3be8222f7726c93bf3585108e46632e29c7d8df5c4a1a581aca4153da88129fe"
+      },
+      {
+        "path": "performance/stdout.log",
+        "bytes": 3363,
+        "sha256": "sha256:c0d18b17faa6343045b1ce43f9e0805cc01fedec2b403b15155fee12f2df8e64"
+      }
+    ],
+    "omissions": []
+  },
+  "runtime": {
+    "engine": "podman",
+    "engine_version": "5.8.6",
+    "memory_bytes": 17179869184,
+    "cpus": 4,
+    "render_node": "/dev/dri/renderD128",
+    "coordinator_sha256": "sha256:4721faec563ed6f1eb08287ec207710706f3554087b402f947a9c98f939d79af",
+    "adapter_sha256": "sha256:e2ae1d8ee03ddc4ee545762ca257273ab03d69dc8996eb07eae067888ef0d8e6",
+    "workers": 4,
+    "cpu_memory_bytes": 12884901888,
+    "free_disk_floor_bytes": 5368709120,
+    "host_free_memory_bytes": 1073741824
+  },
+  "device": "cuda",
+  "hip": "7.2.53211-e1a6bc5663",
+  "torch": "2.9.1+rocm7.2.1.gitff65f5bc",
+  "gpu": {
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "test_names": [
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0-correct]",
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0-shuffled]",
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0-absent]",
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0.8-correct]",
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0.8-shuffled]",
+      "test_actual_hip_mixed_prompt_batched_generation_parity[0.8-absent]",
+      "test_actual_hip_large_input_update",
+      "test_actual_hip_parameter_decoder_cache_and_position_growth",
+      "test_integrated_device_checkpoint_update[cuda]"
+    ],
+    "encoder_update": {
+      "device": "AMD Radeon Graphics",
+      "hip": "7.2.53211-e1a6bc5663",
+      "before_sha256": "f2737f4711ab0e954abb5ba41a1761e9c4953eb5e00b93207b7a5afea62c444c",
+      "after_sha256": "bd6d772ddc593f4a55ab13f99d75216645a6fe5f9fb61ed2980cd46756889dd7",
+      "widths": [
+        256,
+        512,
+        1024,
+        4096
+      ],
+      "difference_bits": 4097,
+      "finite": true,
+      "updated": true
+    }
+  },
+  "measurement_protocol": "fixed-state-batched/v2",
+  "frozen_states": [
+    {
+      "calibration": 3,
+      "updates": 15,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5"
+    },
+    {
+      "calibration": 5,
+      "updates": 25,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654"
+    }
+  ],
+  "generation_groups": [
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "correct",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:97add1a0981cb47cfe0340c8809159bec98524d9214df61cc3bfd713e3cd9524",
+      "samples": [
+        {
+          "seconds": 1.0155757158063352,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        },
+        {
+          "seconds": 1.0161465969868004,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        },
+        {
+          "seconds": 1.0165728139691055,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        1.6271996179129928,
+        0.9343266340438277,
+        0.9330984270200133,
+        0.9330390901304781,
+        0.9327118140645325,
+        0.9326191060245037,
+        0.9323440659791231,
+        0.9338939811568707
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "correct",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:97add1a0981cb47cfe0340c8809159bec98524d9214df61cc3bfd713e3cd9524",
+      "samples": [
+        {
+          "seconds": 31.664633515989408,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        },
+        {
+          "seconds": 31.67294179298915,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        },
+        {
+          "seconds": 31.667563924798742,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        17.363430372904986,
+        17.533131218049675,
+        17.04930013883859,
+        17.43808416603133,
+        13.374869225081056,
+        7.2805220920126885,
+        3.7712860440369695,
+        1.0023150509223342
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "shuffled",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:bde1fce9a5b64dd9fe8edc305177618b49914fbf572757eeeceb270d82ed48f1",
+      "samples": [
+        {
+          "seconds": 1.0169688588939607,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        },
+        {
+          "seconds": 1.0165182191412896,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        },
+        {
+          "seconds": 1.0158304458018392,
+          "generated_tokens": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:b657cad4d82c5b178c5fa5310dba51042036bac15008ed04c8a9929c4169b1be",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        0.9332378769759089,
+        0.932146267965436,
+        0.9325575579423457,
+        0.931601125979796,
+        0.9325782959349453,
+        0.9320121549535543,
+        0.9336224589496851,
+        0.932666057953611
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "shuffled",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:bde1fce9a5b64dd9fe8edc305177618b49914fbf572757eeeceb270d82ed48f1",
+      "samples": [
+        {
+          "seconds": 31.64320619381033,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        },
+        {
+          "seconds": 31.674815936014056,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        },
+        {
+          "seconds": 31.62048734514974,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            769,
+            488,
+            258,
+            68
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            null,
+            null,
+            "grammar_dead_end",
+            null
+          ],
+          "outputs_sha256": "sha256:8911f10af00d6c081d327dc6704e496862d5cce309ccb56c7b9372e2dfc9a414",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        17.35835194098763,
+        17.308153856080025,
+        16.868028858909383,
+        17.35835762694478,
+        13.345713339047506,
+        7.276479198830202,
+        3.769902337808162,
+        1.0021347729489207
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "absent",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:960a7aa1da425a156b9138971bdf7b88ecfdabae83155cd1fe70714028713d17",
+      "samples": [
+        {
+          "seconds": 2.2416282440535724,
+          "generated_tokens": [
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:f5b4d2f6cca2f277b6a9e142cf8bf443c60db848ff7fb8791f76844d29542eb7",
+          "parity": true
+        },
+        {
+          "seconds": 2.239777113078162,
+          "generated_tokens": [
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:f5b4d2f6cca2f277b6a9e142cf8bf443c60db848ff7fb8791f76844d29542eb7",
+          "parity": true
+        },
+        {
+          "seconds": 2.2386662401258945,
+          "generated_tokens": [
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end",
+            "grammar_dead_end"
+          ],
+          "outputs_sha256": "sha256:f5b4d2f6cca2f277b6a9e142cf8bf443c60db848ff7fb8791f76844d29542eb7",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        2.0224323919974267,
+        2.025049061048776,
+        2.025498921982944,
+        2.0281134569086134,
+        2.0258584190160036,
+        2.0280481500085443,
+        2.025265000993386,
+        2.0276408300269395
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "absent",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:960a7aa1da425a156b9138971bdf7b88ecfdabae83155cd1fe70714028713d17",
+      "samples": [
+        {
+          "seconds": 25.159796576946974,
+          "generated_tokens": [
+            223,
+            13,
+            1024,
+            226,
+            1024,
+            30,
+            1024,
+            64
+          ],
+          "complete": [
+            false,
+            true,
+            false,
+            false,
+            false,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            "token_cap_without_eos",
+            null,
+            "token_cap_without_eos",
+            null
+          ],
+          "outputs_sha256": "sha256:bc5b64e8624fda809f924c849906d18ceb7f8df3f63a6bc74c7fd23430577f18",
+          "parity": true
+        },
+        {
+          "seconds": 25.1766836468596,
+          "generated_tokens": [
+            223,
+            13,
+            1024,
+            226,
+            1024,
+            30,
+            1024,
+            64
+          ],
+          "complete": [
+            false,
+            true,
+            false,
+            false,
+            false,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            "token_cap_without_eos",
+            null,
+            "token_cap_without_eos",
+            null
+          ],
+          "outputs_sha256": "sha256:bc5b64e8624fda809f924c849906d18ceb7f8df3f63a6bc74c7fd23430577f18",
+          "parity": true
+        },
+        {
+          "seconds": 25.175412165001035,
+          "generated_tokens": [
+            223,
+            13,
+            1024,
+            226,
+            1024,
+            30,
+            1024,
+            64
+          ],
+          "complete": [
+            false,
+            true,
+            false,
+            false,
+            false,
+            true,
+            false,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            "token_cap_without_eos",
+            null,
+            "token_cap_without_eos",
+            null
+          ],
+          "outputs_sha256": "sha256:bc5b64e8624fda809f924c849906d18ceb7f8df3f63a6bc74c7fd23430577f18",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        3.251439557876438,
+        0.22375932591967285,
+        17.054583290126175,
+        3.26797395106405,
+        16.379960282938555,
+        0.4614181809592992,
+        17.788128664018586,
+        0.951502796029672
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "correct",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:48d1b0ed606a27356bdd6eed8c5ec17fdece83b0270d53393e8c10495e741cd1",
+      "samples": [
+        {
+          "seconds": 30.380637194029987,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        },
+        {
+          "seconds": 30.40315141202882,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        },
+        {
+          "seconds": 30.36057817004621,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        16.055953104048967,
+        16.048810828011483,
+        16.04059873195365,
+        16.032808664953336,
+        16.034500000998378,
+        16.03386623901315,
+        16.028043310856447,
+        15.980784102808684
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "correct",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:48d1b0ed606a27356bdd6eed8c5ec17fdece83b0270d53393e8c10495e741cd1",
+      "samples": [
+        {
+          "seconds": 24.878695783903822,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        },
+        {
+          "seconds": 24.79297375306487,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        },
+        {
+          "seconds": 24.682953425915912,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        5.341015859041363,
+        9.201362542109564,
+        0.33545328699983656,
+        12.56690350198187,
+        17.022323596989736,
+        0.4585146049503237,
+        9.889719469007105,
+        0.9959147558547556
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "shuffled",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:75fdfa0d01a5acb420a589473e17de89f6694afeb4751b9224877583909d3ad2",
+      "samples": [
+        {
+          "seconds": 30.260975586017594,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        },
+        {
+          "seconds": 30.3912399741821,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        },
+        {
+          "seconds": 30.611670908983797,
+          "generated_tokens": [
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024,
+            1024
+          ],
+          "complete": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "failures": [
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos",
+            "token_cap_without_eos"
+          ],
+          "outputs_sha256": "sha256:1ce243d4440bce9918d8b26d0eecaf7452e118ac9f8d8cdbe8dafda15f96338c",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        15.965761330211535,
+        15.963534170063213,
+        15.960389425978065,
+        15.966705193044618,
+        15.954638701165095,
+        15.957968012895435,
+        15.958055458962917,
+        15.956987059907988
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "shuffled",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:75fdfa0d01a5acb420a589473e17de89f6694afeb4751b9224877583909d3ad2",
+      "samples": [
+        {
+          "seconds": 24.900065518915653,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        },
+        {
+          "seconds": 24.845395897049457,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        },
+        {
+          "seconds": 24.896733448142186,
+          "generated_tokens": [
+            360,
+            598,
+            21,
+            721,
+            1024,
+            30,
+            637,
+            68
+          ],
+          "complete": [
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            null,
+            null,
+            null,
+            "token_cap_without_eos",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:48e22e4794ed8980b648516ab95a17a26b99af87d1d155eee9e7ed6092da80c1",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        5.39572979696095,
+        9.299748964142054,
+        0.33829192793928087,
+        12.685702407034114,
+        17.21606504218653,
+        0.46199284004978836,
+        9.990946951089427,
+        1.0053614259231836
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "absent",
+      "temperature": 0,
+      "seeds": [
+        266544655,
+        144493796,
+        146629916,
+        279913764,
+        24577223,
+        140457500,
+        282835508,
+        86813252
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:960a7aa1da425a156b9138971bdf7b88ecfdabae83155cd1fe70714028713d17",
+      "samples": [
+        {
+          "seconds": 3.9240873821545392,
+          "generated_tokens": [
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240
+          ],
+          "complete": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:2594a83afbe9e632481dd1725c3d9a4b2d59c262f6f72a38b44d0f496cc1a547",
+          "parity": true
+        },
+        {
+          "seconds": 3.925025447970256,
+          "generated_tokens": [
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240
+          ],
+          "complete": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:2594a83afbe9e632481dd1725c3d9a4b2d59c262f6f72a38b44d0f496cc1a547",
+          "parity": true
+        },
+        {
+          "seconds": 3.925728586036712,
+          "generated_tokens": [
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240,
+            240
+          ],
+          "complete": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:2594a83afbe9e632481dd1725c3d9a4b2d59c262f6f72a38b44d0f496cc1a547",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        3.376464572036639,
+        3.372217759024352,
+        3.3721383449155837,
+        3.3683736119419336,
+        3.369570297887549,
+        3.3716686598490924,
+        3.3761434298940003,
+        3.3750703940168023
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "fixture_role": "preflight",
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "absent",
+      "temperature": 0.8,
+      "seeds": [
+        266544656,
+        144493797,
+        146629917,
+        279913765,
+        24577224,
+        140457501,
+        282835509,
+        86813253
+      ],
+      "batch_size": 8,
+      "visible_sha256": "sha256:9d050bfcf22324b62bf282812403f153557acbc2a0229950d43b36b2725dd672",
+      "memory_sha256": "sha256:960a7aa1da425a156b9138971bdf7b88ecfdabae83155cd1fe70714028713d17",
+      "samples": [
+        {
+          "seconds": 26.490389367798343,
+          "generated_tokens": [
+            265,
+            424,
+            8,
+            1024,
+            1004,
+            30,
+            671,
+            650
+          ],
+          "complete": [
+            false,
+            false,
+            true,
+            false,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:05d3f3bfe39ee8815289a5d6f0cf8cd2551393b4521a64bf54500e1c18e5f429",
+          "parity": true
+        },
+        {
+          "seconds": 26.512032307917252,
+          "generated_tokens": [
+            265,
+            424,
+            8,
+            1024,
+            1004,
+            30,
+            671,
+            650
+          ],
+          "complete": [
+            false,
+            false,
+            true,
+            false,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:05d3f3bfe39ee8815289a5d6f0cf8cd2551393b4521a64bf54500e1c18e5f429",
+          "parity": true
+        },
+        {
+          "seconds": 26.528807357884943,
+          "generated_tokens": [
+            265,
+            424,
+            8,
+            1024,
+            1004,
+            30,
+            671,
+            650
+          ],
+          "complete": [
+            false,
+            false,
+            true,
+            false,
+            false,
+            true,
+            true,
+            true
+          ],
+          "failures": [
+            "grammar_dead_end",
+            "grammar_dead_end",
+            null,
+            "token_cap_without_eos",
+            "grammar_dead_end",
+            null,
+            null,
+            null
+          ],
+          "outputs_sha256": "sha256:05d3f3bfe39ee8815289a5d6f0cf8cd2551393b4521a64bf54500e1c18e5f429",
+          "parity": true
+        }
+      ],
+      "tail_seconds": [
+        3.9081961361225694,
+        6.277638328028843,
+        0.15471452893689275,
+        17.594025850994512,
+        16.894661116879433,
+        0.460604194086045,
+        10.63161085988395,
+        10.355958159081638
+      ],
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    }
+  ],
+  "prepared_shape": {
+    "prepared_sha256": "sha256:a33ad96a68cc7f335368998df9a406393697530da11ad6380ee19c53f5197baf",
+    "split_sha256": "sha256:6b86396a0ed40e6235dec15c68a919d71d5a6b68cbe797576b30a667af24fb95",
+    "counts": {
+      "parameter_development": 128,
+      "structural_development": 128,
+      "training": 512
+    },
+    "tiny_count": 32,
+    "exclusions": {
+      "generic": {
+        "split shortfall": 3
+      },
+      "oeis": {
+        "observed prefix/shift overlap": 110
+      }
+    },
+    "native_admitted": true,
+    "stages": {
+      "A": 85,
+      "B": 553,
+      "C": 40,
+      "D": 90
+    },
+    "max_input_bits": 92,
+    "max_tokens": 93
+  },
+  "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+  "costs": {
+    "training_p95": 0.0803463940974325,
+    "teacher_forcing_p95": 0.013580149738118052,
+    "checkpoint_p95": 0.22380971699021757,
+    "generation_p95": 17.788128664018586,
+    "generation_batch_p95": 31.674815936014056,
+    "generation_batch_size": 8,
+    "fit_p95": 0.2361673240084201,
+    "reference_p95": 0.004772203974425793,
+    "hidden_scoring_p95": 0.2568406338631629
+  },
+  "cost_projection": {
+    "phases": {
+      "training": 241.03918229229748,
+      "periodic_synthesis": 12096.839577555656,
+      "full_development_loss": 107.77206832170486,
+      "end_screen_generation": 32435.011518478394,
+      "end_screen_fitting": 2467.220766544342,
+      "end_screen_hidden": 394.50721361381824,
+      "checkpoint": 6.938101226696745
+    },
+    "projected_seconds": 47749.32842803291,
+    "budget": 7200,
+    "reserve_fraction": 0.2,
+    "within_budget": false,
+    "scheduled_validations": 30,
+    "end_screen_prompts": 256,
+    "omitted_prompts": 0,
+    "generation_batch_size": 8
+  },
+  "admission_limit_seconds": 5760.0,
+  "budget_ratio": 8.289813963200158,
+  "slowdown_investigations": [
+    {
+      "case": "shared-small-add",
+      "batch": 1,
+      "ratio": 36.093350636587935
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 20,
+      "ratio": 64.81618914280719
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "ratio": 78.28474759405877
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 1,
+      "ratio": 30.13911771237625
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 20,
+      "ratio": 64.54174185004116
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "ratio": 74.45765467913932
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 1,
+      "ratio": 32.58214405927062
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 20,
+      "ratio": 62.1722034761595
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 100,
+      "ratio": 70.65464579153554
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 1,
+      "ratio": 23.874363376068455
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 20,
+      "ratio": 58.46076400017025
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 100,
+      "ratio": 72.48165861804887
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 1,
+      "ratio": 48.5862512398984
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 20,
+      "ratio": 62.11641087319312
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 100,
+      "ratio": 75.884148920536
+    }
+  ],
+  "diagnostic_bound": {
+    "inference_only": true,
+    "assumption": "Hold all non-generation costs, prompt counts, controls and recipe settings fixed; scale measured full-batch latency only. This is not a registered recipe revision.",
+    "non_generation_seconds": 3911.383172589456,
+    "batch_latency_coefficient": 1384,
+    "required_batch_p95_seconds": 1.3357058001521271,
+    "generation_speedup_required": 23.713916591817245,
+    "generation_seconds": 43837.945255443454
+  }
+}

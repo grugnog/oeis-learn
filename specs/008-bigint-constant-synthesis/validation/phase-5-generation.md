@@ -3,7 +3,9 @@
 Phase 5 remains blocked. This implementation changes scheduling and measurement,
 not the architecture, recipe, numerical limits, sampler distribution, search
 attempt count, cadence, score denominator or 80% admission threshold. Its new
-source/image still needs actual HIP qualification; old receipts do not qualify it.
+source/image now passes the actual HIP correctness gate (T092), while measured
+complete-screen cost admission fails. The current reviewed outcome is below;
+older receipts retain their original source/image identities.
 
 ## Reviewed workstation evidence
 
@@ -78,11 +80,11 @@ this function; separate attempt rounds never combine tail rows into imaginary
 full batches. Legacy singleton receipts retain their original calculation.
 All scheduled validations and256 end-screen prompts remain included.
 
-## Next actual-device command
+## Executed actual-device command (reference)
 
-Update this PR checkout and run from its root. Reuse the original prepared inputs;
-the default builds/reuses an image matching this new source. Do not pass the old
-image digest above.
+The current-source run below used this command with the original prepared
+inputs. It builds/reuses a matching image. The completed result supplies the
+needed evidence; do not repeat it unchanged.
 
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
@@ -116,7 +118,8 @@ passed **70 tests**, with the same two skips. Ruff F/E9, Python compilation,
 whitespace and stdlib-only host help pass; all eight HIP test cases collect.
 Exact local counts and changed-code hashes are in
 [phase-5-generation-local.json](phase-5-generation-local.json).
-Actual HIP and packaged native qualification are pending the new image.
+At that local-only checkpoint, actual HIP and packaged native execution were
+pending. The subsequently supplied current-source outcome is recorded below.
 
 ## HIP test-package import follow-up
 
@@ -137,8 +140,71 @@ It failed before the fix and now passes. It does not simulate or claim HIP.
 Validation: **37 passed**, including the package-import regression, existing CI
 regressions, CPU mixed-prompt parity and generation scheduling tests. Ruff F/E9
 and whitespace checks pass; all eight GPU cases collect under pytest's
-`--import-mode=importlib`. Actual HIP parity and cost remain pending. After
-updating the same PR checkout, rerun the targeted command above with a fresh
-timestamp. Its source-bound image rebuild uses the existing dependency layers;
-no production algorithm, recipe, runtime resource or numerical setting changed
+`--import-mode=importlib`. HIP parity and cost were pending at this import-fix
+checkpoint. The subsequent run below validates the correction on actual HIP.
+The source-bound image rebuild used the existing dependency layers; no
+production algorithm, recipe, runtime resource or numerical setting changed
 in this import correction.
+
+
+## Reviewed current-source HIP run — 2026-10-21
+
+The supplied `008-phase5-batched-20261021T001809Z.zip` is **BLOCKED**, with
+`qualified:false`. All21 archived file sizes/hashes verify. The expected source
+snapshot, GPU result and benchmark agree on
+`sha256:1e8d469e97912d3af3e40ad0b255a2df18ca09d13d9cb1209f67580cb9386a52`
+and image
+`sha256:3932b17d9612f8eb6e5b8128329fa7a6403839e66a49db54668a4becde89896b`.
+Full reviewed identities, test names, group observations and cost values are in
+[phase-5-batched-hip-review.json](phase-5-batched-hip-review.json).
+
+**T092 is complete:**9 actual HIP tests pass with zero failures/errors/skips,
+including finite large-input encoder updates, cached/full decoding,
+checkpoint/resume and all six new mixed-prompt parity cases. The test-package
+import correction is validated on the device.
+
+All12 benchmark groups (two fixed calibrations × three conditioning controls ×
+two temperatures) pass singleton/batch token-disposition parity, unchanged
+parameter hashes and deadline completion. Calibration counts remain15 and25
+updates independently of timing repetitions. Some synthetic outputs reach the
+1024-token cap or grammar dead ends; those dispositions are retained. These are
+non-scoring cost fixtures, not a learnability success or failure. The partial
+progress report remains labelled PARTIAL; the final benchmark is complete.
+Its `status:PASS` means successful measurement collection, not cost admission.
+
+| Projected component | Seconds |
+| --- | ---: |
+| Training | 241.04 |
+| Periodic synthesis | 12,096.84 |
+| Full development loss | 107.77 |
+| End-screen generation | 32,435.01 |
+| End-screen fitting | 2,467.22 |
+| End-screen hidden scoring | 394.51 |
+| Checkpoints | 6.94 |
+| **Total** | **47,749.33** |
+| **80% admission allowance** | **5,760.00** |
+
+Checked prepared counts remain512/128/128 plus tiny32, with native admission.
+The cost calculation includes all30 scheduled validations and256 end-screen
+prompts, with zero omitted prompts. Batch8 p95 is31.6748s; singleton p95 is
+17.7881s. Generation accounts for43,837.95s of the projection. The result
+exceeds the frozen cost limit by8.29x. T095 stays open and T096 has not run.
+Fifteen small-value slowdown investigations range23.87–78.28x, leaving T094
+open. The measurement-only scope provides no new T089/T090/T091/T093/T097
+completion; T098 and Phase 5 overall remain blocked.
+
+An unchanged rerun is unnecessary: this is now a measured cost blocker, not an
+import, parity or missing-evidence failure. Further generation optimization
+must retain the registered semantics and rerun affected parity/cost gates.
+As a diagnostic bound, holding non-generation costs and the complete recipe
+fixed consumes3,911.38s outside generation. Batch8 p95 would need to fall to about
+1.34s (23.71x faster) to fit5,760s. This bound is an inference from the measured
+phase totals, not a registered recipe or permission to change limits.
+Alternatively, a resource/recipe revision must be explicitly preregistered
+before training; no budget, cadence, output cap, denominator or threshold is
+relaxed automatically. No further training or Phase 6 study is launched.
+
+This evidence commit only updates Spec 008 qualification documentation and its
+review receipt. Those paths are outside the implementation snapshot collected
+by `experiments/source_snapshot.py`; the tested source/image identity remains
+applicable to T092.

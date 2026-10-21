@@ -198,13 +198,14 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 - [ ] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
 - [ ] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
 - [ ] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
-- [ ] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
-  Phase 3 integrated HIP rerun:3 passed, zero failures/errors/skips, including
-  checkpoint/resume. See [reviewed evidence](validation/phase-3-hip/review.json).
-  This early evidence leaves the Phase 4 prerequisite and eventual source/image
-  binding review pending; it does not close the later qualification gate.
-  Earlier Phase 2 hardware evidence is also retained in
-  [validation/gpu.md](validation/gpu.md).
+- [X] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
+  Reviewed Phase 5 run `008-phase5-batched-20261021T001809Z`:9 actual HIP tests
+  passed with zero failures/errors/skips, including changed finite encoder
+  weights, checkpoint/resume and all six mixed-prompt parity cases. Source/image
+  binding and all21 archived file hashes verified; see
+  [review receipt](validation/phase-5-batched-hip-review.json) and
+  [device evidence](validation/gpu.md). Overall Phase 5 remains BLOCKED on cost
+  and the other pending gates.
 - [ ] T093 [US2] Evaluate identified existing matched-run checkpoints through the retained-profile raw/exact paired diagnostic before parameterized training; record hashes, same-candidate rescue, unsupported fraction, continuation and fitting/reference cost in `specs/008-bigint-constant-synthesis/validation/checkpoint-rescue.md`; missing weights require an explicit evidence blocker, not substitution with canonical programs.
 - [ ] T094 [US1] Add and run the measurement-only harness `scripts/benchmark_bigint.py` for shared supported old/new small values and legal64/256/512/1024/4096-bit supplied values; construct up-to16,384-bit intermediate operands/results through supported operations from legal inputs, distinguish expected-overflow timings and identify any separately pinned wider-input benchmark-only profile; separate compile/execute/solve/reference/generation/training time, cold/warm batch behavior and resource coverage, recording results in `specs/008-bigint-constant-synthesis/validation/performance.md`; investigate >5x median small-value slowdown without weakening semantics.
 - [ ] T095 [US4] Prepare/check the frozen paired dataset and run complete-screen cost preflight using non-scoring fixtures via `scripts/foundation_run.py`; record complete512/128/128 counts, diverse32 composition, exclusions and projected p95 cost≤80% of budget in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`; preregister any resource/recipe revision before training.
@@ -215,9 +216,11 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 Phase 5 implementation and per-task execution gates are recorded in
 [validation/phase-5.md](validation/phase-5.md). The measurement-only harness,
 portable CPU/HIP/data/cost/tiny runner, result archives and shared-image CI
-partitions are implemented. T089–T098 remain unchecked until actual new-image
-results are reviewed; unavailable HIP, engines or existing matched checkpoints
-are explicit blockers, not permission to substitute fixtures or lower gates.
+partitions are implemented. T092 is closed by reviewed current-source HIP
+execution. T089–T091 and T093–T098 remain unchecked: measured cost admission
+fails, learnability has not run, and the remaining engine/checkpoint/operations
+reviews are pending. Missing evidence is not permission to substitute fixtures
+or lower gates.
 
 ## Phase 6: Controlled research and longer-run readiness
 
@@ -311,3 +314,4 @@ All nine success criteria are covered. Numerical/resource limits and required fi
 | **Total** | **107** |
 
 Phase counts are 10 / 48 / 22 / 8 / 10 / 9. Eleven test-writing tasks have conditional parallel opportunities. **Task-generation validation**: All 107 tasks are unchecked, sequentially numbered and path-bearing; story labels, six phase boundaries, relative document links and requirement/success-criterion coverage are audited. The subsequent cross-artifact review and resolution of its five findings are recorded in [analyze-remediation.md](validation/analyze-remediation.md). These checks validate the design/task documents only; implementation and runtime qualification remain pending.
+

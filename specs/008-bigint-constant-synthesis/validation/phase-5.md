@@ -4,11 +4,13 @@ Code and reproducible qualification commands are implemented in
 [PR #58](https://github.com/grugnog/oeis-learn/pull/58). **The Phase 5 execution
 and promotion gate is pending.** No Phase 6 screen or final-cohort study ran.
 
-The supplied workstation runs passed old-source CPU/native/HIP checks and input
-preparation, but failed measured cost admission. Reviewed fixed-state batching
-results, the implementation follow-up and its targeted new-image command are in
-[phase-5-generation.md](phase-5-generation.md). Phase 5 checkboxes remain open;
-the new source/image needs qualification before promotion.
+The reviewed `008-phase5-batched-20261021T001809Z` run passes all9 actual HIP
+tests and all12 fixed-state generation parity/deadline groups, closing T092.
+All21 archived file hashes and the expected source/image identities verify;
+see [the review receipt](phase-5-batched-hip-review.json). Complete prepared
+inputs pass checking. Cost admission fails at47,749.33 seconds versus5,760
+allowed; learnability has not run. Other Phase 5 tasks remain open. See
+[the measurement review and next decision](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21).
 
 Entry is merged Phase 4 PR #57 at
 `be6070bead5f30147774b6517c0f50eb1cb3f6cc`. T088 is closed by reviewed required
@@ -19,8 +21,9 @@ not relabelled as execution of this new image.
 
 The requirements checklist passes16/16. All design documents, task list,
 contracts, AGENTS and constitution were reviewed. No extension hooks exist.
-The runtime change is observation-only timing around the same production run
-method; numerical, solver, encoder, selection and resource policies remain frozen.
+Native timing observes the same production run method. Generation scheduling
+now batches up to eight portfolios; numerical, solver, encoder, selection and
+resource policies remain frozen.
 Third-party manifests/locks and long Docker dependency layers are unchanged.
 
 | Task | Current execution status / evidence |
@@ -28,13 +31,13 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T089 | [Arithmetic](arithmetic.md): new shared-image CI pending. |
 | T090 | [Fitting](fitting.md): new shared-image CI pending. |
 | T091 | [Containment](containment.md): mandatory Docker and Podman partitions pending; host role inspection/cleanup is also recorded. |
-| T092 | [GPU](gpu.md): actual current-image HIP run required; prior device evidence remains historical. |
+| T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): native runtime measurements pending CI; neural measurements pending HIP; >5x results require review. |
-| T095 | [Data and cost](screen-preflight.md): complete512/128/128 preparation and matching HIP p95 preflight pending. |
-| T096 | [Learnability](learnability.md): bounded diverse32 run waits for its real data/HIP/cost gates; negative results block promotion. |
+| T094 | [Performance](performance.md): native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen small-value slowdowns of23.87–78.28x still require investigation. |
+| T095 | [Data and cost](screen-preflight.md): checked512/128/128 plus tiny32; matching HIP cost preflight FAILS at47,749.33s versus5,760s. |
+| T096 | [Learnability](learnability.md): not run; blocked by measured cost admission. No learned-accuracy result is claimed. |
 | T097 | [Operations](operations.md): new-image and public hardware/checkpoint-dependent commands pending. |
-| T098 | This report plus [phase-5-local.json](phase-5-local.json) records pass/fail/pending identities; overall qualification remains ungranted. |
+| T098 | This report, [local checks](phase-5-local.json) and [current HIP review](phase-5-batched-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
 
 The CI partitions reuse the existing shared qualification image and uploaded
 image provenance. They require nonempty zero-failure/error/skip JUnit, clean
@@ -258,3 +261,4 @@ The relevant bulk, qualification-runner and benchmark-tooling suites pass
 Use the fetch-only command above first, retaining `tmp-oeis-bulk`, then rerun
 the timestamped HIP command once fetch completes. Actual HIP gates remain
 pending; new CI is left running unmonitored.
+

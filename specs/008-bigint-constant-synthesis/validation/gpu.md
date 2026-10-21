@@ -64,25 +64,32 @@ AMD Radeon Graphics (`gfx1151`), and the same PyTorch/HIP versions above.
 This submission has no source manifest or Git revision; it is not given the
 independent source-match claim established for the earlier Phase 2 evidence.
 
-T092 stays unchecked because Phase 5 depends on Phase 4 retirement. Its
-integrated hardware fixtures now have passing early evidence; qualification
-must review that evidence against the eventual source/image and completed
-prerequisites. The wrapper's `qualified: false` does not negate the PASS result.
+At this earlier Phase 3 boundary, T092 remained unchecked pending Phase 4
+retirement and eventual source/image review. This historical evidence retains
+its own identity; the current Phase 5 result is recorded below.
 
-## Phase 5 eventual-image gate — T092
+## Phase 5 current-source review — T092 complete
 
-The earlier Phase 2/3 device results above retain their submitted source/image
-identities. They do not close T092 for the Phase 5 image. Run from PR #58's
-checkout:
+The supplied `008-phase5-batched-20261021T001809Z.zip` passes **9 actual HIP
+tests, zero failures/errors/skips**. All21 archive file sizes/hashes verify.
+The suite and cost benchmark report the expected source snapshot
+`sha256:1e8d469e97912d3af3e40ad0b255a2df18ca09d13d9cb1209f67580cb9386a52`
+and immutable image
+`sha256:3932b17d9612f8eb6e5b8128329fa7a6403839e66a49db54668a4becde89896b`.
+See [the preserved review receipt](phase-5-batched-hip-review.json).
 
-```bash
-python3 scripts/qualify_bigint_phase5.py --engine podman --gpu \
-  --output tmp-validation/008-phase5-hip-001
-```
+The device is AMD Radeon Graphics (`gfx1151`) with HIP
+`7.2.53211-e1a6bc5663` and PyTorch `2.9.1+rocm7.2.1.gitff65f5bc`.
+Finite actual-device encoder forward/backward/update covers256/512/1024/4096-bit
+inputs and4097-bit differences. The tracked weight changes from
+`f2737f4711ab0e954abb5ba41a1761e9c4953eb5e00b93207b7a5afea62c444c`
+to `bd6d772ddc593f4a55ab13f99d75216645a6fe5f9fb61ed2980cd46756889dd7`.
+The original cached/full decoder and checkpoint/update/resume cases pass.
+All six new mixed-prompt singleton/batched/reordered parity cases pass across
+correct/shuffled/absent conditioning and greedy/stochastic sampling.
 
-This includes the supported `validate --suite bigint-gpu` call and preserves
-its receipts, JUnit and `gpu/encoder-update.json` inside the result archive.
-The suite must execute every selected case on actual HIP with zero skips;
-CPU fallback, stale-image source hashes or missing changed-weight evidence fail.
-Add `--prepare --learnability` to request the gated complete data/cost/tiny work.
-No Phase 5 device execution has yet been supplied; T092 remains unchecked.
+This closes T092 after the completed Phase 4 prerequisite. It does not qualify
+Phase 5 overall: complete-screen cost admission fails, learnability has not run,
+and the remaining execution/review gates stay open. The separate benchmark
+also passes all12 frozen-state generation parity/deadline groups; see
+[the cost review](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21).

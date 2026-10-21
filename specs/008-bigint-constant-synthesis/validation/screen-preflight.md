@@ -1,8 +1,13 @@
 # Complete-screen cost preflight — T095
 
-Status: old-source prepared inputs passed, but measured HIP cost failed admission.
-The fixed-state/batched implementation requires a new source/image preflight.
-See [reviewed hardware results and next command](phase-5-generation.md).
+Status: current-source measured HIP preflight **FAILS**. Prepared inputs pass
+checking with512/128/128 plus tiny32 and native admission. All12 fixed-state
+batching groups pass parity/deadline checks. The complete-screen estimate is
+**47,749.33s** (13h16m) against **5,760s** (96min),8.29x the allowed cost.
+The registered7200s budget and20% reserve are unchanged. T095 remains open;
+no measured recipe is admitted and learnability has not run. See
+[reviewed results and next decision](phase-5-generation.md#reviewed-current-source-hip-run--2026-10-21)
+and [the exact receipt](phase-5-batched-hip-review.json).
 
 The helper's `--prepare` invokes the existing pinned bulk fetch, prepare and check
 commands with declared workspace caps. Alternatively pass `--inputs PATH` for
@@ -27,3 +32,4 @@ accounting; complete prompt counts and per-round tails remain charged. Old
 singleton receipts retain their original calculation. Failed mixed-prompt
 greedy/stochastic parity, deadline checks or an obsolete measurement protocol
 cannot produce an admitted recipe, even if a scalar forecast is cheap.
+
