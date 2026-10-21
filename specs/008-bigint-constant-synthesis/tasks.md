@@ -195,8 +195,8 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 
 **Entry**: T088 passes. These tasks execute integrated algorithms and calibrate explicit resource/config values; any new numerical, solver, encoder or decision policy reopens Phase 2. Actual engine/GPU access is an external gate, never fabricated.
 
-- [ ] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
-- [ ] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
+- [X] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
+- [X] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
 - [ ] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
 - [X] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
   Reviewed Phase 5 run `008-phase5-batched-20261021T001809Z`:9 actual HIP tests
@@ -234,7 +234,9 @@ partitions are implemented. T092 is closed by reviewed current-source HIP
 execution. T095 is closed by reviewed current-source HIP receipts: diverse32
 admitted exactly the registered T096 attempt; transfer-screen remains
 over budget and unadmitted. T096 is complete with a reviewed negative outcome
-that blocks promotion. T089–T091, T093–T094 and T097–T098 remain unchecked.
+that blocks promotion. T089/T090 are closed by reviewed current-implementation CI artifacts:184
+arithmetic and37 fitting cases with zero failures/errors/skips. T091, T093–T094
+and T097–T098 remain unchecked; see [the execution review](validation/phase-5-execution-review.json).
 PR #59 implements both receipts, shared coordinator reservations, the
 14,400-second preregistration and the reviewed single-attempt runner. The
 remaining engine/checkpoint/slowdown/operations reviews are pending; the consumed
@@ -258,7 +260,9 @@ solver check. Reviewed CI artifacts now close its focused N001/N002 native
 execution gates: 20 Rust core tests and 37 packaged fitting cases pass. This
 does not change historical T036/T058 receipts or close the remaining Phase 5
 gates. The current disposition binding was refreshed after its stale hash
-failed the general CPU and both public-engine CLI suites; reruns remain pending.
+failed the general CPU and both public-engine CLI suites. Completed run39686633400
+now passes both public-engine reruns; exact receipts and remaining containment
+audit gaps are recorded in [the execution review](validation/phase-5-execution-review.json).
 The subsequent [user Podman validation and exact visible replay](validation/phase-2-fit-deadlines-replay-review.json)
 verify all 37 fitting cases and five independently admitted assignments for the
 original candidate/seed. Fit delivery completes within the original two-second

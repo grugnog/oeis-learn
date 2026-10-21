@@ -1,6 +1,20 @@
 # Phase 5 fitting qualification — T090
 
-Status: pending `bigint-qualification-fitting-docker` for the new image.
+Status: **COMPLETE** for reviewed implementation source
+`sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562`.
+The `bigint-qualification-fitting-docker` artifact from completed
+workflow39686633400 passes37 cases with zero failures/errors/skips. ZIP CRC,
+archive/JUnit hashes, source and shared native artifact identities verify; see
+[the execution review](phase-5-execution-review.json). All18 measurements across
+six non-scoring fitting classes are complete and honestly classify fit, scoped
+UNSAT or unsupported outcomes. Native p95 is0.367194s and independent reference
+p95 is0.008184s in this CPU CI measurement; these are not a new HIP cost receipt.
+
+The [deadline correction](phase-2-fit-deadlines.md) additionally has20 passing
+Rust core tests and actual Docker/Podman fitting execution. The [exact visible
+replay](phase-2-fit-deadlines-replay-review.json) returns five independently
+verified assignments before the original worker deadline. The historical
+negative T096 result and promotion block remain unchanged.
 
 The mandatory suite exercises native affine and bounded SMT fitting, large/shared
 coefficients, integer rank deficiency, singular modular pivots, inconsistency,

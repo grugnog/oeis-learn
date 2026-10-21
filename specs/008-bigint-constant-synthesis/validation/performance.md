@@ -67,3 +67,60 @@ batch1/20/100 records for that investigation. Per the merged scope decision,
 broad runtime optimization is deferred until after the single diverse32 result;
 the unresolved slowdown remains T094 evidence and prevents closing T098.
 
+## Current CPU evidence and bounded next profiling step — 2026-10-21
+
+Reviewed the75-case CPU report from completed workflow39686633400, source
+`sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562`.
+Archive CRC/SHA256, canonical report hash and shared source/native/image bindings
+verify in [the execution review](phase-5-execution-review.json). The15 shared
+small-value ratios are26.09–100.91x on this CI CPU; this is separate evidence
+from the earlier23.24–73.81x HIP-host ratios, not a comparable regression trend.
+
+Warm shared-small-add execution illustrates the scaling:
+
+| Batch | Bigint execution | Retained execution | Bigint prepare | Bigint per term |
+| --- | --- | --- | --- | --- |
+| 1 | 0.717ms | 0.0257ms | 0.550ms | 0.717ms |
+| 20 | 13.936ms | 0.1553ms | 0.893ms | 0.697ms |
+| 100 | 68.831ms | 0.6925ms | 0.967ms | 0.688ms |
+
+The255-bit shared case takes68.893ms at batch100, close to the small case's
+68.831ms. Runtime compilation is separately0.176–0.181s; it is excluded from
+these execution ratios. Preparation at batch100 is about1.4% of bigint
+execution time. Thus compilation alone cannot explain the measured execution
+gap, and batching does not amortize the dominant new cost: it remains nearly
+constant per term. This is an inference from the measured scaling, not an
+attribution to a particular function.
+
+Source inspection identifies per-term operations worth measuring: fresh store
+and deadline-thread lifetime; guest instance/init; literal/index byte transport;
+linker/function registrations and candidate instantiation; compute; output
+serialization and teardown. Existing prepare/execute totals cannot separate
+them, so T094 stays open. In particular, these data do not justify blaming
+bigint arithmetic or changing safety/resource semantics.
+
+The next bounded engineering step is observation-only native profiling:
+
+1. Add opt-in qualification measurements around those phases in the existing
+   production run implementation. Ordinary execution remains the same path with
+   observation disabled. Preserve fresh stores, epoch deadlines, fuel, guards,
+   imports, numeric limits, output validation and failed-value suppression.
+2. Use the existing non-scoring corpus and unchanged three-sample schedule
+   (one cold, two warm), batch1/20/100 and retained controls. Include legal wide
+   values and expected overflow/resource exclusions. Bound the CPU role to ten
+   minutes, with separate existing cleanup allowance and a fresh result archive;
+   no training, checkpoint, hidden truth or HIP mount is needed.
+3. Verify measured/unmeasured output, failure, fuel and coverage parity; report
+   profiler overhead separately and retain unattributed time rather than forcing
+   phase sums. A measurement with meaningful observer distortion cannot be used
+   as precise causal attribution. Record source/binary/image and compiler/lock
+   identities and inspect/cleanup evidence.
+4. Rank observed phase costs before proposing a production optimization. Any
+   change to runtime or deadline behavior returns to Phase2 with independent
+   counterexamples and a frozen comparison. Expanded language/solver support,
+   selection or budget scheduling is outside this profiling step.
+
+No profiling run or causal performance fix is claimed by this review. It narrows
+the next implementation target using already collected evidence. The successful
+deadline replay does not close T094 or authorize another learning attempt.
+

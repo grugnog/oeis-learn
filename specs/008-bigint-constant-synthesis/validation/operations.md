@@ -7,6 +7,21 @@ The completed negative diverse32 run and pack export are now reviewed in
 [the learning receipt](phase-5-diverse32-review.json):15 outer archive files,
 16 nested bundle files, no manifest omissions and complete core export.
 
+Completed workflow39686633400 now supplies both-engine public validation and
+verified-rerun evidence. Each public CLI suite passes3/3 with zero skips; each
+host-role suite passes29/29. Broad public CPU validation contains1,115 cases
+with nine explicit hardware/legacy skips and no failures/errors; those skips
+are not promoted to mandatory qualification passes. The independent
+arbitrary-UID packaging/preparation suites pass202+44+27 cases without skips,
+and the installed `python -I` retirement audit passes with no violations. All
+archive and receipt-file hashes verify in [the execution review](phase-5-execution-review.json).
+
+This completes those portions of T097, not every supported quickstart/export
+operation. Matched-checkpoint diagnosis is still blocked on actual retained
+weights, and a complete current command/export checklist plus the successful
+containment inspect/cleanup artifacts remain unreviewed. No fixture substitutes
+for those missing operations and T097 stays open.
+
 The containment suite exercises complete checkpoint/resume/no-refund, hidden
 mount rejection, final-plan access controls, normal/interrupted summaries and
 bundle-cap pressure. Installed retirement is rerun by the host helper using

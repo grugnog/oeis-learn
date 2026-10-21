@@ -3,7 +3,8 @@
 The initial qualification tooling merged in PR #58. Scope-specific cost
 admission and the reviewed single-attempt runner are implemented in
 [PR #59](https://github.com/grugnog/oeis-learn/pull/59). **The Phase 5 execution
-and promotion gate is pending.** No Phase 6 screen or final-cohort study ran.
+and promotion gate remains BLOCKED. T089/T090 are complete; the current
+containment evidence gap and remaining external gates are listed below.** No Phase 6 screen or final-cohort study ran.
 
 The reviewed `008-phase5-scoped-20261021T115212Z` run passes all nine actual HIP
 tests and twelve fixed-state generation parity/deadline groups. All24 archived
@@ -39,16 +40,58 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 
 | Task | Current execution status / evidence |
 | --- | --- |
-| T089 | [Arithmetic](arithmetic.md): new shared-image CI pending. |
-| T090 | [Fitting](fitting.md): new shared-image CI pending. |
-| T091 | [Containment](containment.md): mandatory Docker and Podman partitions pending; host role inspection/cleanup is also recorded. |
+| T089 | [Arithmetic](arithmetic.md): COMPLETE,184 selected managed-image cases with zero failures/errors/skips; exact source/runtime/compiler/locks verified. |
+| T090 | [Fitting](fitting.md): COMPLETE,37 selected cases plus six complete non-scoring fitting classes; deadline correction and successful exact visible replay reviewed separately. |
+| T091 | [Containment](containment.md):64 cases per engine and29 host/3 public tests per engine PASS. Successful raw inspect/timed-cleanup records were missing; audited CI publication is implemented and awaits new artifacts. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Fifteen current small-value slowdowns of23.24–73.81x still require investigation. |
+| T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Historical HIP ratios23.24–73.81x and current CPU CI ratios26.09–100.91x require per-term profiling; these are separate machines/receipts. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
-| T097 | [Operations](operations.md): new-image and public hardware/checkpoint-dependent commands pending. |
+| T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete command/export and matched-checkpoint coverage remain open. |
 | T098 | This report, [local checks](phase-5-scoped-local.json) and [current HIP review](phase-5-scoped-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
+
+## Current implementation evidence reconciliation — 2026-10-21
+
+Reviewed eight artifacts from completed workflow39686633400 at head
+`9f86c4d10ab96a0e7a95bc44752c54a08afd3f94`. All archive CRCs/SHA256 values,
+mandatory JUnit hashes, portable receipt hashes and matching native identities
+verify. The tested source snapshot is
+`sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562`,
+and the shared image is
+`sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c`.
+Documentation and the containment workflow change do not alter that implementation
+snapshot; actual execution of the new audit path remains pending. The earlier
+stale disposition binding no longer fails either portable CLI job. See the
+[bounded execution review](phase-5-execution-review.json).
+
+The diagnostic/reliability follow-up is complete: [the reviewed user replay](phase-2-fit-deadlines-replay-review.json)
+returns five independently verified fits for the original candidate/seed within
+its unchanged worker allowance. This does not retroactively change T096 or
+satisfy32/32 qualification. No same-case replay or further training is needed
+to assess that defect.
+
+Remaining work, in dependency order:
+
+1. Review successful raw inspect and timed cleanup from the newly audited Docker
+   and Podman containment partitions; no build polling or new manual run is needed
+   while that CI is running.
+2. Attribute the small-value per-term execution overhead with the bounded
+   observation-only profiling plan in [performance.md](performance.md). Existing
+   CPU data excludes compilation as the main explanation; it does not isolate
+   timer, instance, linker, ABI or serialization cost. T094 remains open.
+3. Obtain a genuine retained matched-run checkpoint for T093. The completed new
+   bigint tiny checkpoint cannot substitute. Finish the supported operations and
+   export coverage checklist for T097.
+4. Update T098 with all remaining pass/fail/pending receipts. The completed
+   negative T096, missing prerequisites and unadmitted transfer screen continue
+   to block promotion. Any new qualification attempt needs a separate reviewed
+   registration and current source/image cost/device evidence; none is launched.
+
+T092/T095 remain completed historical tasks for their recorded source/image,
+not permission to reuse old HIP/cost receipts for new training. No numerical,
+solver, encoder, selection, data, budget or threshold policy changed in this
+reconciliation.
 
 The CI partitions reuse the existing shared qualification image and uploaded
 image provenance. They require nonempty zero-failure/error/skip JUnit, clean
@@ -68,7 +111,7 @@ This agent environment has no Docker/Podman/Rust/HIP toolchain. Native compilati
 new-image execution/benchmarks, real data preparation and GPU learning are not
 claimed locally. Required CI/image runs fail rather than skip missing artifacts.
 
-## Current follow-up implementation
+## Earlier scoped-cost implementation validation
 
 The PR #59 affected local suite passes **235 tests**, zero failures/errors,
 with six explicit packaged-native skips and one GPU deselection. The broad
@@ -106,8 +149,10 @@ attempt is consumed; its finalized ledger cannot be resumed for more training.
 
 ## Copy-pastable hardware commands
 
-Run from the PR #59 checkout. On the HIP machine, the shortest useful next run
-reuses the prepared inputs and measures both scopes without training:
+The diagnostic/reliability pass requires no further HIP execution. The command
+below is retained for a future separately scoped current-source device/cost
+receipt; it is not the immediate next step and does not authorize training.
+It reuses prepared inputs and measures both scopes without training:
 
 ```bash
 phase5_preflight="tmp-validation/008-phase5-scoped-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -122,7 +167,9 @@ The [separate single-attempt command](learnability.md) has now run and is
 documented for provenance; do not repeat the consumed attempt. There is no automatic learning
 or Phase 6 launch. A new code/profile/data/image identity requires a new receipt.
 
-For remaining complete CPU/native/retirement/operations checks on each engine:
+The updated CI automatically collects both containment audit records. No manual
+full-suite rerun is needed while those jobs execute. The following complete
+CPU/native/retirement/operations commands remain available for reproduction:
 
 ```bash
 python3 scripts/qualify_bigint_phase5.py --engine docker \
