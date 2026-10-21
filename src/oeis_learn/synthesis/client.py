@@ -271,6 +271,7 @@ class SynthesisClient:
                 reason="malformed provisional shortlist",
             )
         verified = []
+        admission = []
         for item in native.get("assignments", [])[:8]:
             if item.get("original_source_sha256") != source_identity(source):
                 return dict(
@@ -282,13 +283,24 @@ class SynthesisClient:
             result = admit(
                 item, prompt, runtime_sha256=runtime, limits=self.limits, deadline=deadline
             )
+            admission.append(
+                dict(
+                    source_sha256=item.get("source_sha256"),
+                    outcome=result.outcome,
+                    reason=result.reason,
+                )
+            )
             if result.outcome == "verified_solution":
                 verified.append(
                     dict(item, verification=result.verification, outcome="verified_solution")
                 )
             elif result.outcome == "verification_failure":
                 return dict(
-                    outcome="verification_failure", native=native, admitted=[], reason=result.reason
+                    outcome="verification_failure",
+                    native=native,
+                    admitted=[],
+                    reason=result.reason,
+                    admission=admission,
                 )
         if verified:
             self.caches.put(key, native)
@@ -300,5 +312,16 @@ class SynthesisClient:
             else "resource_exhausted",
             native=native,
             admitted=verified,
+            admission=admission,
+            reason=None
+            if verified
+            else next(
+                (
+                    row["reason"] or row["outcome"]
+                    for row in admission
+                    if row["outcome"] != "verified_solution"
+                ),
+                native.get("reason"),
+            ),
             metrics=self.caches.metrics(),
         )

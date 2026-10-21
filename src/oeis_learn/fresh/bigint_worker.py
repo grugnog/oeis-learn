@@ -627,18 +627,8 @@ def generate(inputs, output):
 def write_diagnostic_evidence(output, rows, records):
     """Retain every prompt's compact failure evidence before sampled examples."""
     from .bigint_diagnostics import compact_attempts
-    from .common import canonical
 
-    group = {}
-    number = 0
-
-    def flush():
-        nonlocal number
-        if group:
-            write(Path(output) / f"evidence/chunk-{number:04}.json", dict(group))
-            number += 1
-            group.clear()
-
+    entries = []
     for row in rows:
         record = records[row["id"]]
         correct = record["details"]["correct"]["details"]
@@ -653,12 +643,25 @@ def write_diagnostic_evidence(output, rows, records):
                 for mode, value in record["details"].items()
             },
         )
-        if len(canonical({row["id"]: body})) > 1 << 20:
+        entries.append((row["id"], body))
+    _evidence_chunks(output, entries)
+
+
+def _evidence_chunks(output, entries):
+    from .common import canonical
+
+    group = {}
+    number = 0
+    for key, body in entries:
+        if len(canonical({key: body})) > 1 << 20:
             raise ValueError("single prompt evidence exceeds1 MiB")
-        if len(canonical(dict(group, **{row["id"]: body}))) > 1 << 20:
-            flush()
-        group[row["id"]] = body
-    flush()
+        if len(canonical(dict(group, **{key: body}))) > 1 << 20:
+            write(Path(output) / f"evidence/chunk-{number:04}.json", group)
+            number += 1
+            group = {}
+        group[key] = body
+    if group:
+        write(Path(output) / f"evidence/chunk-{number:04}.json", group)
 
 
 def score(inputs, output):
@@ -676,7 +679,15 @@ def score(inputs, output):
         result = evaluate(
             selections, truth, synthesis, deadline=time.monotonic() + settings["seconds"]
         )
-    write(output / "outcomes.json", result.pop("outcomes"))
+    outcomes = result.pop("outcomes")
+    write(output / "outcomes.json", outcomes)
+    _evidence_chunks(
+        output,
+        (
+            (key, dict(version="bigint-score-evidence/v1", outcomes=value))
+            for key, value in outcomes.items()
+        ),
+    )
     return result
 
 

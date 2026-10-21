@@ -645,23 +645,34 @@ def _execute(host, args, *, coordinator_factory=None):
                         summaries[f"{mask_number}:{split}"] = scored
                         byid = {r["id"]: r for r in rows}
                         observations[f"{mask_number}:{split}"] = {
-                            key: dict(family=byid[key].get("family", key), outcomes=value)
+                            key: dict(
+                                family=byid[key].get("family", key),
+                                outcomes={
+                                    mode: {
+                                        k: v
+                                        for k, v in outcome.items()
+                                        if k in {"success", "complete", "reason"}
+                                    }
+                                    for mode, outcome in value.items()
+                                },
+                            )
                             for key, value in read(score_out / "outcomes.json").items()
                         }
                         for p in (out / "details").glob("*.json"):
                             target = analysis / "details" / f"{mask_number}-{split}-{p.name}"
                             target.parent.mkdir(parents=True, exist_ok=True)
                             shutil.copyfile(p, target)
-                        for p in (out / "evidence").glob("*.json"):
-                            # Sort compact all-prompt evidence before sampled verbose examples
-                            # in the capped report packer; omissions remain manifest-visible.
-                            target = (
-                                analysis
-                                / "details"
-                                / f"000-evidence-{mask_number}-{split}-{p.name}"
-                            )
-                            target.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copyfile(p, target)
+                        for label, role_out in (("generation", out), ("scoring", score_out)):
+                            for p in (role_out / "evidence").glob("*.json"):
+                                # Compact all-prompt evidence precedes sampled examples;
+                                # core observations retain reasons without duplicating traces.
+                                target = (
+                                    analysis
+                                    / "details"
+                                    / f"000-evidence-{mask_number}-{split}-{label}-{p.name}"
+                                )
+                                target.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copyfile(p, target)
                 if final:
                     write(
                         analysis / "final-study.json",

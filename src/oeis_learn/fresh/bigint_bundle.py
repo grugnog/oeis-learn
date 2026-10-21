@@ -51,7 +51,12 @@ def pack(root, output, *, max_bytes=64 << 20):
     if used > 8 << 20:
         raise ValueError("core records exceed8 MiB reserve")
     # Only deliberate report chunks are eligible; role inputs/truth/weights never enter.
-    for number, path in enumerate(sorted((root / "details").glob("*.json"))):
+    for number, path in enumerate(
+        sorted(
+            (root / "details").glob("*.json"),
+            key=lambda p: (not p.name.startswith("000-evidence-"), p.name),
+        )
+    ):
         if number >= 4096:
             raise ValueError("detail/omission ledger cap exceeded")
         path = confined(root, str(path.relative_to(root)))

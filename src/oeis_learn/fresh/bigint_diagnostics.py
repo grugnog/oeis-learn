@@ -275,11 +275,25 @@ def _portfolio(
         detail["fitting"] = _status(
             fit.get(
                 "complete",
-                fit["outcome"] not in {"unknown", "resource_exhausted", "verification_failure"},
+                fit["outcome"]
+                in {
+                    "verified_solution",
+                    "raw_only",
+                    "unsupported",
+                    "unsat_in_scope",
+                    "invalid_source",
+                },
             ),
             fit["outcome"],
             fit.get("reason") or native.get("reason"),
         )
+        detail["fitting"].update(
+            {
+                key: native.get(key)
+                for key in ("phase", "completed_bounds", "coefficient_bits", "uniqueness")
+            }
+        )
+        detail["fitting"]["admission"] = fit.get("admission", [])
         if fit["outcome"] == "verification_failure":
             raise RuntimeError("independent admission disagreement")
         if fit["outcome"] in {"unknown", "resource_exhausted"}:

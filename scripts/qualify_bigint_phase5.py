@@ -30,6 +30,8 @@ GROUPS = {
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
         "tests/unit/test_bigint_generation.py",
+        "tests/unit/test_bigint_diagnostic_evidence.py",
+        "tests/unit/test_bigint_diagnostic_collector.py",
         "tests/unit/test_bigint_cost_scopes.py",
         "tests/unit/test_bigint_scoped_runner.py",
         "tests/contract/test_bigint_performance.py",

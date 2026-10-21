@@ -36,6 +36,8 @@ CPU_TESTS = [
     "tests/unit/test_synthesis_provenance.py",
     "tests/unit/test_synthesis_archive.py",
     "tests/unit/test_bigint_qualification.py",
+    "tests/unit/test_bigint_diagnostic_evidence.py",
+    "tests/unit/test_bigint_diagnostic_collector.py",
 ]
 
 

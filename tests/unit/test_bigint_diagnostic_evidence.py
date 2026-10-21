@@ -155,3 +155,92 @@ def test_rescue_coverage_does_not_include_later_stochastic_fits(monkeypatch):
     assert evidence["rescue"]["complete"]
     assert not evidence["equal_budget"]["complete"]
     assert evidence["rescue"]["fitting"]["outcomes"] == ["unsupported"]
+
+
+def test_compact_all_prompt_evidence_survives_example_cap_and_pack(tmp_path):
+    import json
+    import zipfile
+    from oeis_learn.fresh.bigint_worker import write_diagnostic_evidence
+    from oeis_learn.fresh.bigint_bundle import pack, CORE
+    from oeis_learn.fresh.common import read, write
+
+    rows, records = [], {}
+    for n in range(32):
+        key = str(n)
+        rows.append(
+            dict(
+                id=key,
+                indices=list(map(str, range(20))),
+                values=["0"] * 20,
+                hidden_values=["NEVER_EXPORT"],
+            )
+        )
+        attempt = dict(
+            position=0,
+            seed=n,
+            source_sha256="source",
+            source="(program (return $index))",
+            generation=dict(complete=True, outcome="decoded", reason=None),
+            raw=dict(complete=True, outcome="visible_mismatch", reason=None),
+            fitting=dict(complete=False, outcome="unknown", reason="timeout"),
+            native=dict(private_debug="unbounded trace is excluded"),
+            tokens=[1, 2, 3],
+        )
+        records[key] = dict(
+            arm_evidence=dict(rescue=dict(complete=False, reason="timeout")),
+            details=dict(correct=dict(details=[attempt])),
+        )
+    role = tmp_path / "role"
+    write_diagnostic_evidence(role, rows, records)
+    saved = {}
+    report = tmp_path / "report"
+    for path in (role / "evidence").glob("*.json"):
+        saved.update(read(path))
+        write(report / "details" / ("000-evidence-" + path.name), read(path))
+    assert set(saved) == {str(i) for i in range(32)}
+    assert saved["31"]["attempts"]["correct"][0]["fitting"]["reason"] == "timeout"
+    assert "native" not in saved["31"]["attempts"]["correct"][0]
+    for name in CORE:
+        write(report / name, dict(final_access="sealed"))
+    target = tmp_path / "report.zip"
+    pack(report, target, max_bytes=16 << 20)
+    with zipfile.ZipFile(target) as bundle:
+        evidence_files = [
+            name for name in bundle.namelist() if name.startswith("details/000-evidence")
+        ]
+        assert evidence_files
+        assert "NEVER_EXPORT" not in "".join(bundle.read(n).decode() for n in evidence_files)
+        assert not json.loads(bundle.read("bundle-manifest.json"))["omitted"]
+
+
+def test_fit_preserves_independent_admission_exhaustion_reason(monkeypatch):
+    from oeis_learn.synthesis import client as clients
+    from oeis_learn.synthesis.admission import Admission
+
+    source = "(program (return $index))"
+    monkeypatch.setattr(
+        clients, "admit", lambda *a, **kw: Admission("resource_exhausted", "reference_limit")
+    )
+    with clients.SynthesisClient(
+        "sha256:" + "1" * 64, worker=SimpleNamespace(close=lambda: None)
+    ) as client:
+        client.runtime_identity = lambda profile: "mock-runtime"
+        client.request = lambda *a, **kw: dict(
+            results=[
+                dict(
+                    outcome="assignment_found",
+                    assignments=[
+                        dict(
+                            original_source_sha256=source_identity(source),
+                            source_sha256=source_identity(source),
+                        )
+                    ],
+                )
+            ]
+        )
+        result = client.fit(
+            source, VisiblePrompt(tuple(map(str, range(20))), tuple(map(str, range(20))))
+        )
+    assert result["outcome"] == "resource_exhausted" and not result["admitted"]
+    assert result["reason"] == "reference_limit"
+    assert result["admission"][0]["outcome"] == "resource_exhausted"
