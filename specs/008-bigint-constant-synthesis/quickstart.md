@@ -145,6 +145,11 @@ requires at least 31/32 independently correct greedy-plus-fitting continuations,
 shuffled, absent and template results. Negative results retain useful bundles
 and block promotion. Passing does not establish held-out structural transfer.
 
+For the completed negative T096 attempt, use the [read-only evidence collector
+and bounded visible-candidate replay](validation/phase-5-diagnostic-followup.md#collect-and-replay-the-original-failed-prompt).
+Those commands reuse the original image, require no GPU or rebuild, and create
+separate diagnostic archives without resuming training or changing its result.
+
 ## 5. Three matched literal/parameterized screens
 
 Run only after the preceding gates pass, the resolved experiment contract is reviewed and complete-screen cost preflight fits the frozen budget. Periodic synthesis uses a declared stratified panel; end-of-screen reports cover the complete fixed development sets. Recipes set `evaluation.primary_transfer_metric: continuation_accuracy_100` and `evaluation.final_access: sealed`. Ordinary training finalization does not evaluate or expose the final OEIS cohort. Each run is capped at7,200seconds; six sequential runs can consume up to12hours **combined**, including diagnostics. This is a matched screen, not one automatic full-scale training run.

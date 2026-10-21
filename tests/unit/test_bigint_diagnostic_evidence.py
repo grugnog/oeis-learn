@@ -179,7 +179,7 @@ def test_compact_all_prompt_evidence_survives_example_cap_and_pack(tmp_path):
             position=0,
             seed=n,
             source_sha256="source",
-            source="(program (return $index))",
+            source="(program (return $index))" + " " * 60000,
             generation=dict(complete=True, outcome="decoded", reason=None),
             raw=dict(complete=True, outcome="visible_mismatch", reason=None),
             fitting=dict(complete=False, outcome="unknown", reason="timeout"),
@@ -202,6 +202,10 @@ def test_compact_all_prompt_evidence_survives_example_cap_and_pack(tmp_path):
     assert "native" not in saved["31"]["attempts"]["correct"][0]
     for name in CORE:
         write(report / name, dict(final_access="sealed"))
+    # Verbose examples sort before "000-evidence" lexically and would crowd
+    # out the later evidence chunk without the packer's explicit priority.
+    for n in range(16):
+        write(report / f"details/0-tiny-example-{n:02}.json", dict(trace="x" * ((1 << 20) - 100)))
     target = tmp_path / "report.zip"
     pack(report, target, max_bytes=16 << 20)
     with zipfile.ZipFile(target) as bundle:
@@ -210,7 +214,12 @@ def test_compact_all_prompt_evidence_survives_example_cap_and_pack(tmp_path):
         ]
         assert evidence_files
         assert "NEVER_EXPORT" not in "".join(bundle.read(n).decode() for n in evidence_files)
-        assert not json.loads(bundle.read("bundle-manifest.json"))["omitted"]
+        omissions = json.loads(bundle.read("bundle-manifest.json"))["omitted"]
+        assert omissions and all("0-tiny-example-" in row["path"] for row in omissions)
+        recovered = {}
+        for name in evidence_files:
+            recovered.update(json.loads(bundle.read(name)))
+        assert set(recovered) == set(saved)
 
 
 def test_fit_preserves_independent_admission_exhaustion_reason(monkeypatch):

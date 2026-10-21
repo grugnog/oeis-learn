@@ -241,6 +241,14 @@ remaining engine/checkpoint/slowdown/operations reviews are pending; the consume
 T096 attempt is not retried or resumed to alter its result.
 Missing evidence is not permission to substitute fixtures or lower gates.
 
+**T096 diagnostic follow-up (user-authorized, 2026-10-21)**: completeness
+semantics return to the Phase 2 T043/T047/T058 ownership boundary. The scoped
+[D001–D005 work and validation](validation/phase-5-diagnostic-followup.md) repair
+per-arm evidence, preserve every prompt's compact trace and supply read-only
+collection plus separately budgeted visible candidate replay. T096's original
+negative assessment and consumed attempt remain unchanged. This does not
+close the other Phase 5 execution gates or authorize another training attempt.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

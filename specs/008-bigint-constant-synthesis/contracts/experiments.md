@@ -34,6 +34,23 @@ Raw evaluation uses complete grammar-constrained generation with no fitting. Sam
 
 For every split report total eligible N, attempted, complete evidence count, success count/N, resource/unsupported/invalid counts and exact exclusions before freezing N. All incomplete evaluation cases remain unsuccessful in the fixed-denominator score and also appear as incomplete coverage. Training selection uses synthetic visible-fit scores on the fixed full diagnostic set, then complete teacher-forced loss and smaller update as deterministic ties. Hidden continuation scores are reporting-only and never select a checkpoint or advance curriculum. Do not choose a checkpoint evaluated on an easier completed subset.
 
+The T096 diagnostic follow-up makes coverage evidence explicit per arm. Raw and
+same-candidate rescue refer only to the first greedy attempt; the equal-budget
+and conditioning/template arms retain their own scheduled portfolios. Record
+generation, fitting/admission and scoring separately. A sealed selection has
+complete scoring evidence only when production and reference both return all100
+values; an expired scoring deadline cannot inherit generation completeness.
+With no selected candidate, a completed arm may have a conclusive negative
+outcome (for example unsupported fitting or scoped UNSAT), but incomplete
+decoding, unstarted required attempts, unknown fitting and resource exhaustion
+remain incomplete. Other controls cannot supply or remove this evidence.
+Later unused attempts cannot invalidate an independently completed100-index
+score for the already sealed selection. Legacy records without per-arm evidence
+are explicitly unattributed; their historical assessments are not overwritten.
+This clarifies evidence accounting without changing selection or promotion
+thresholds. Compact stage receipts for every prompt precede sampled verbose
+examples in exports; any bounded-detail omission remains explicit.
+
 The Phase 5 scheduling follow-up groups up to eight visible prompts for each
 compatible decoder call. Each prompt keeps the same greedy/seven stochastic
 attempt order, per-attempt seed, grammar and token cap; fitting remains serial.
