@@ -1,0 +1,209 @@
+{
+  "version": "phase4-exit-review/v1",
+  "tested_revision": "8556cce87aec5d5b58f9a163e5c5d266a1f61341",
+  "merged_revision": "be6070bead5f30147774b6517c0f50eb1cb3f6cc",
+  "merged_source_changes": false,
+  "review_run": 39355476087,
+  "review_conclusion": "success",
+  "container_run": 39355476126,
+  "required_jobs": "all successful",
+  "noncritical_podman_rebuild": "cancelled",
+  "artifacts": [
+    {
+      "id": 12235232862,
+      "name": "bigint-preparation-contracts",
+      "sha256": "sha256:7c4d40492109de52410f48da7ad6fab34c389e422fcf6b8e832236afa568d719",
+      "junit": {
+        "phase3.xml": {
+          "tests": 43,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "phase4.xml": {
+          "tests": 27,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "tests.xml": {
+          "tests": 163,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        }
+      },
+      "installed_audit": {
+        "package_root": "/opt/oeis-venv/lib/python3.12/site-packages/oeis_learn",
+        "status": "PASS",
+        "violations": []
+      }
+    },
+    {
+      "id": 12235392235,
+      "name": "phase7-native-qualification",
+      "sha256": "sha256:e829868cd78114aaf850988a683dc92da643e6bc2487a630c044f9127e89d52d",
+      "junit": {
+        "containment_activation.xml": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "discovery/discovery_certificates.xml": {
+          "tests": 37,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "discovery/logical_native.xml": {
+          "tests": 32,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "discovery/logical_python.xml": {
+          "tests": 47,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "discovery/owning_discovery.xml": {
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "discovery_consumers.xml": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "grounding.xml": {
+          "tests": 33,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "installed-image.xml": {
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/archive_curriculum.xml": {
+          "tests": 22,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/cache.xml": {
+          "tests": 17,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/encoder_structure.xml": {
+          "tests": 20,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/policy.xml": {
+          "tests": 25,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/search_rounds_resume.xml": {
+          "tests": 22,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "learning/trace.xml": {
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "native_entrypoints.xml": {
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "optimizer.xml": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "qualified_contracts.xml": {
+          "tests": 29,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "recurrence_dataflow.xml": {
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "symbolic.xml": {
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "synthesis_consumers.xml": {
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        },
+        "training-integration.xml": {
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": []
+        }
+      },
+      "discovery/g9.json": {
+        "report_sha256": "sha256:2bd05fc02d25b1e886d15e4101df8f879fd769579dea9ffc033fd5b8977a75cf",
+        "status": "PASS"
+      },
+      "g7.json": {
+        "report_sha256": "sha256:c492b988f5214f5a16788356318dbb91458ae0486e54cb98a49148586b4603be",
+        "status": "PASS"
+      },
+      "learning/g8.json": {
+        "report_sha256": "sha256:7b5a558340d9bbe2cb967ef3184be46326257d8234640752b2b76c4897c5c10d",
+        "status": "PASS"
+      }
+    },
+    {
+      "id": 12235231616,
+      "name": "bigint-preparation-native",
+      "sha256": "sha256:ed334927780a2e2b81b66595cc102fc406ada2d4a82caa31815516ca7f1216fc",
+      "junit": {
+        "phase4.xml": {
+          "tests": 27,
+          "failures": 0,
+          "errors": 0,
+          "skipped": [
+            "test_installed_distribution_has_no_retired_surface"
+          ]
+        }
+      },
+      "installed_audit": {
+        "package_root": "/opt/oeis-venv/lib/python3.12/site-packages/oeis_learn",
+        "status": "PASS",
+        "violations": []
+      }
+    }
+  ],
+  "disposition": "T088 PASS at tested revision; later image/source qualification remains separate"
+}

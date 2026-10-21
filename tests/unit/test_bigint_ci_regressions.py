@@ -80,3 +80,32 @@ def test_fixed_template_candidates_bind_the_exact_complete_codec_source():
             attempt["id"], source=source, tokens=tokens, complete=True, now=index + 0.1
         )
     assert len(policy.records) == 8
+
+
+def test_gpu_parity_helper_loads_from_package_without_integration_path():
+    """CPU import/wiring regression; this never reports actual HIP evidence."""
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "\n".join(
+                [
+                    "from tests.integration import test_bigint_gpu as gpu",
+                    "from tests.integration.test_bigint_decoding import model",
+                    "gpu.check_generation_batch_parity(model(), 'cpu', 'correct', .8)",
+                ]
+            ),
+        ],
+        cwd=root,
+        env=dict(os.environ, PYTHONPATH=str(root / "src"), OMP_NUM_THREADS="2"),
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

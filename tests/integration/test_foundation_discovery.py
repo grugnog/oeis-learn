@@ -287,6 +287,26 @@ def test_program_archive_discovery_owns_provenance_and_keeps_implementations(tmp
     assert len(report["claims"]) == 1 and report["claims"][0]["status"] == "FINITE_VALIDATED"
     assert report["claims"][0]["proposal"]["retrieval_method"] == "typed_subtrees"
     assert {p["key"] for p in report["claims"][0]["proposal"]["programs"]} == {key, second_key}
+    assert report["fitting"]["seconds_per_candidate"] == 10
+    assert report["fitting"]["attempts"][0]["status"] == "FIT"
+    from oeis_learn.discovery.pslq_solver import RelationFit
+
+    def exhausted_fit(self, vectors, indices, *, seconds):
+        assert seconds == 10
+        return RelationFit("UNKNOWN", None, None, None, None, 0)
+
+    with monkeypatch.context() as exhausted:
+        exhausted.setattr(PslqRelationSolver, "fit", exhausted_fit)
+        incomplete = run_program_discovery(
+            archive,
+            fitting_indices=range(8),
+            validation_indices=range(8, 16),
+            final_indices=range(16, 24),
+        )
+    assert incomplete["claims"] == []
+    assert len(incomplete["fitting"]["attempts"]) == 1
+    assert incomplete["fitting"]["attempts"][0]["status"] == "UNKNOWN"
+    assert incomplete["fitting"]["attempts"][0]["rank"] is None
     index.rows[0]["source"] = "i256.const 999"
     with pytest.raises(ValueError):
         index.validate()
@@ -395,6 +415,14 @@ def test_matrix_proposer_caps_and_external_deadline():
         solver.fit([[1 << 4097], [1 << 4097]], [0])
     result = solver.fit([[1] * 20, [1] * 20], range(20), seconds=0.001)
     assert result.status == "UNKNOWN" and result.rank is None and result.nullity is None
+
+
+@pytest.mark.parametrize("seconds", [0, -1, 10.001, float("nan"), float("inf")])
+def test_program_discovery_rejects_unbounded_fitting_deadline(seconds):
+    from oeis_learn.discovery.pipeline import run_program_discovery
+
+    with pytest.raises(ValueError, match="bounded fitting deadline"):
+        run_program_discovery(None, fit_seconds=seconds)
 
 
 def test_actual_archive_macro_mining_value_repair_and_costs(tmp_path):

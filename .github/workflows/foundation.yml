@@ -209,6 +209,56 @@ jobs:
             phase7-evidence/learning/training/ledger.json
             phase7-evidence/learning/search/search.json
 
+  bigint-qualification:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [arithmetic, fitting, containment, performance]
+        engine: [docker]
+        include:
+          - partition: containment
+            engine: podman
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/load-ci-image
+        with:
+          engine: ${{ matrix.engine }}
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-bigint-qualification
+          token: ${{ github.token }}
+      - name: Mandatory Phase 5 suites and measurement in the shared image
+        env:
+          PARTITION: ${{ matrix.partition }}
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          mkdir -p tmp-phase5-evidence
+          chmod 777 tmp-phase5-evidence
+          "$ENGINE" run --rm --network none --read-only --user 12345:12345 \
+            --memory 16g --memory-swap 16g --cpus 2 --pids-limit 512 \
+            --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,size=2g \
+            -e HOME=/tmp -e OMP_NUM_THREADS=2 -e OEIS_REQUIRE_BIGINT_BUILD=1 -e OEIS_REQUIRE_NATIVE=1 \
+            -e OEIS_QUALIFICATION_IMAGE="$("$ENGINE" image inspect oeis-bigint-qualification --format '{{.Id}}')" \
+            -e PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build -e PARTITION \
+            -v "$PWD/tmp-phase5-evidence:/evidence" oeis-bigint-qualification bash -c '
+              set -euo pipefail
+              trap "find /evidence -mindepth 1 -exec chmod a+rX {} +" EXIT
+              if [ "$PARTITION" = performance ]; then
+                python scripts/benchmark_bigint.py --output /evidence
+              else
+                python scripts/qualify_bigint_phase5.py --inside "$PARTITION" --output /evidence
+              fi
+            '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bigint-qualification-${{ matrix.partition }}-${{ matrix.engine }}
+          path: tmp-phase5-evidence/
+
   bigint-preparation:
     needs: image
     runs-on: ubuntu-24.04

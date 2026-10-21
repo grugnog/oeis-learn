@@ -38,6 +38,13 @@ use oeis_synthesis_core::{language::parse,lowering::{lower,validate_candidate},v
     let mut runtime=BigintRuntime::new(&wasm).unwrap();
     let result=runtime.evaluate("(program (return $index))",&["0".into()],&Resources::default());
     assert_eq!(result.reason.as_deref(),Some("runtime_failure"));assert!(result.values.is_empty());
+    let (measured,timings)=runtime.evaluate_measured("(program (return $index))",&["0".into()],&Resources::default());
+    assert_eq!(result.outcome,measured.outcome);
+    assert_eq!(result.reason,measured.reason);
+    assert_eq!(result.values,measured.values);
+    assert_eq!(result.fuel,measured.fuel);
+    assert!(timings.prepare_seconds>=0.0 && timings.execution_seconds>=0.0);
+    assert!(timings.total_seconds>=timings.prepare_seconds);
     let a=Resources::default();let mut b=a.clone();b.aggregate_fuel=1;
     assert_ne!(a.identity(),b.identity());
 }

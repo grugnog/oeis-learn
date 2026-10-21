@@ -1,5 +1,8 @@
+import hashlib
 import resource
+import shutil
 import sqlite3
+import subprocess
 from unittest.mock import patch
 
 import pytest
@@ -50,7 +53,8 @@ def test_indexed_horizon_preserves_negative_offsets_signs_and_gaps(tmp_path):
             bulk.indexed_terms(path, 0)
 
 
-def test_import_replays_hashes_counts_and_retains_gaps(tmp_path):
+@pytest.mark.parametrize("size_discrepancy", [False, True])
+def test_import_replays_hashes_counts_and_retains_gaps(tmp_path, size_discrepancy):
     cache, output = tmp_path / "cache", tmp_path / "import"
     repo = cache / "oeisdata"
     rows = []
@@ -61,7 +65,7 @@ def test_import_replays_hashes_counts_and_retains_gaps(tmp_path):
         seq.parent.mkdir(parents=True, exist_ok=True)
         terms.parent.mkdir(parents=True, exist_ok=True)
         seq.write_text(entry(aid, -2))
-        terms.write_text("".join(f"{i-2} {-i}\n" for i in range(count)))
+        terms.write_text("".join(f"{i - 2} {-i}\n" for i in range(count)))
         rows.append(
             {
                 "aid": aid,
@@ -72,10 +76,26 @@ def test_import_replays_hashes_counts_and_retains_gaps(tmp_path):
                 "metadata": bulk.metadata(seq.read_text(), aid, "pinned"),
             }
         )
+    discrepancies = []
+    if size_discrepancy:
+        actual = rows[0]["bytes"]
+        rows[0]["bytes"] += 1131
+        discrepancies = [
+            dict(
+                path=rows[0]["path"],
+                sha256=rows[0]["sha256"],
+                declared_bytes=rows[0]["bytes"],
+                actual_bytes=actual,
+            )
+        ]
     plan = {"selected": rows, "snapshot": {"commit": "a" * 40}}
     write(cache / "fetch-plan.json", plan)
-    write(cache / "fetch-result.json", {"plan_sha256": file_hash(cache / "fetch-plan.json")})
+    receipt = {"plan_sha256": file_hash(cache / "fetch-plan.json")}
+    if discrepancies:
+        receipt["size_discrepancies"] = discrepancies
+    write(cache / "fetch-result.json", receipt)
     report = bulk.import_snapshot(cache, output)
+    assert report.get("lfs_size_discrepancies", []) == discrepancies
     assert report["records"] == 1
     assert report["horizons"]["complete_50"] == 2
     assert report["horizons"]["complete_100"] == 1
@@ -141,6 +161,282 @@ def test_fetch_is_batched_pinned_and_rerun_uses_verified_objects(tmp_path):
         with pytest.raises(ValueError, match="already pinned"):
             bulk.fetch(dict(config, revision="b" * 40), tmp_path)
     assert read(tmp_path / "fetch-result.json")["complete"]
+
+
+@pytest.mark.parametrize("custom_hooks_path", [False, True])
+def test_fetch_preserves_existing_hooks_and_resumes_with_real_lfs(
+    tmp_path, monkeypatch, custom_hooks_path
+):
+    if shutil.which("git-lfs") is None:
+        pytest.skip("requires git-lfs, installed in both project images")
+    # Use actual Git/LFS configuration and hooks without inheriting host config.
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    repo = tmp_path / "oeisdata"
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    bulk.git(repo, "remote", "add", "origin", bulk.REPOSITORY)
+    bulk.git(
+        repo,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "--quiet",
+        "--allow-empty",
+        "-m",
+        "fixture",
+    )
+    commit = bulk.git(repo, "rev-parse", "HEAD", capture=True).strip()
+    hooks = repo / ("kept-hooks" if custom_hooks_path else ".git/hooks")
+    hooks.mkdir(exist_ok=True)
+    if custom_hooks_path:
+        bulk.git(repo, "config", "--local", "core.hooksPath", "kept-hooks")
+        content = b"#!/bin/sh\n# Existing custom hook must not be overwritten.\nexit 0\n"
+    else:
+        # The older LFS hook reported by the HIP run is deliberately retained.
+        content = (
+            b"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { "
+            b'echo "git-lfs not found" >&2; exit 2; }\ngit lfs pre-push "$@"\n'
+        )
+    hook = hooks / "pre-push"
+    hook.write_bytes(content)
+    hook.chmod(0o755)
+    payload = repo / "files/A000/b000001.txt"
+    payload.parent.mkdir(parents=True)
+    payload.write_text("0 1\n1 2\n")
+    write(tmp_path / "snapshot.json", {"repository": bulk.REPOSITORY, "commit": commit})
+    plan = {
+        "selected": [
+            {
+                "path": str(payload.relative_to(repo)),
+                "bytes": payload.stat().st_size,
+                "sha256": file_hash(payload),
+            }
+        ]
+    }
+    write(tmp_path / "fetch-plan.json", plan, immutable=True)
+    config = {"revision": commit, "free_disk_floor_bytes": 0}
+    plan_hash = file_hash(tmp_path / "fetch-plan.json")
+    for _ in range(2):
+        assert bulk.fetch(config, tmp_path) == plan
+        assert hook.read_bytes() == content and hook.stat().st_mode & 0o777 == 0o755
+        assert file_hash(tmp_path / "fetch-plan.json") == plan_hash
+        assert read(tmp_path / "fetch-result.json") == {
+            "plan_sha256": plan_hash,
+            "complete": True,
+            "files": 1,
+        }
+    assert (
+        bulk.git(repo, "config", "--local", "--get", "filter.lfs.process", capture=True).strip()
+        == "git-lfs filter-process"
+    )
+
+
+@pytest.fixture
+def local_lfs_cache(tmp_path, monkeypatch, request):
+    if shutil.which("git-lfs") is None:
+        pytest.skip("requires git-lfs, installed in both project images")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    monkeypatch.setenv("GIT_LFS_SKIP_SMUDGE", "1")
+    source, remote, cache = tmp_path / "source", tmp_path / "remote.git", tmp_path / "cache"
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    bulk.git(source, "lfs", "install", "--local", "--skip-repo")
+    (source / ".gitattributes").write_text("files/** filter=lfs diff=lfs merge=lfs -text\n")
+    payloads = {
+        "files/A000/b000001.txt": b"0 1\n1 2\n",
+        "files/A373/b373464.txt": b"0 7\n1 9\n",
+        "files/A999/b999999.txt": b"0 99\n1 99\n",
+    }
+    for name, data in payloads.items():
+        path = source / name
+        path.parent.mkdir(parents=True)
+        path.write_bytes(data)
+    bulk.git(source, "add", ".")
+    bulk.git(
+        source,
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "fixture",
+    )
+    bulk.git(source, "remote", "add", "origin", str(remote))
+    bulk.git(source, "push", "-q", "origin", "HEAD")
+    bulk.git(source, "lfs", "push", "--all", "origin")
+    size_delta = getattr(request, "param", 0)
+    if size_delta:
+        name = "files/A373/b373464.txt"
+        oid = hashlib.sha256(payloads[name]).hexdigest()
+        (source / name).write_text(
+            f"version https://git-lfs.github.com/spec/v1\noid sha256:{oid}\n"
+            f"size {len(payloads[name]) + size_delta}\n"
+        )
+        bulk.git(source, "add", name)
+        bulk.git(
+            source,
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "incorrect upstream pointer size",
+        )
+        bulk.git(source, "-c", "core.hooksPath=unused-hooks", "push", "-q", "origin", "HEAD")
+    cache.mkdir()
+    repo = cache / "oeisdata"
+    subprocess.run(["git", "clone", "-q", str(remote), str(repo)], check=True)
+    commit = bulk.git(repo, "rev-parse", "HEAD", capture=True).strip()
+    monkeypatch.setattr(bulk, "REPOSITORY", str(remote))
+    write(cache / "snapshot.json", {"repository": str(remote), "commit": commit})
+    rows = [
+        {"path": name, "bytes": len(data), "sha256": "sha256:" + hashlib.sha256(data).hexdigest()}
+        for name, data in list(payloads.items())[:2]
+    ]
+    rows[1]["bytes"] += size_delta
+    write(cache / "fetch-plan.json", {"selected": rows}, immutable=True)
+    # One object was already hydrated by an earlier partial attempt.
+    (repo / rows[0]["path"]).write_bytes(payloads[rows[0]["path"]])
+    return cache, repo, commit, rows, payloads
+
+
+@pytest.mark.parametrize("local_lfs_cache", [1131], indirect=True)
+def test_incorrect_upstream_size_keeps_pinned_content_and_records_discrepancy(
+    local_lfs_cache, monkeypatch
+):
+    cache, repo, commit, rows, payloads = local_lfs_cache
+    row = rows[1]
+    oid = row["sha256"].removeprefix("sha256:")
+    local = repo / ".git/lfs/objects" / oid[:2] / oid[2:4] / oid
+    local.parent.mkdir(parents=True)
+    local.write_bytes(payloads[row["path"]])
+    real_git = bulk.git
+    calls = []
+
+    def count_git(root, *args, **kwargs):
+        if "fetch" in args:
+            calls.append(args)
+        return real_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(bulk, "git", count_git)
+    pin_hash = file_hash(cache / "snapshot.json")
+    plan_hash = file_hash(cache / "fetch-plan.json")
+    config = {"revision": commit, "free_disk_floor_bytes": 0}
+    bulk.fetch(config, cache)
+    assert (repo / row["path"]).read_bytes() == payloads[row["path"]]
+    receipt = read(cache / "fetch-result.json")
+    assert receipt["complete"]
+    assert receipt["size_discrepancies"] == [
+        {
+            "path": row["path"],
+            "sha256": row["sha256"],
+            "declared_bytes": row["bytes"],
+            "actual_bytes": 8,
+        }
+    ]
+    assert len(calls) == 0
+    count = len(calls)
+    bulk.fetch(config, cache)
+    assert len(calls) == count
+    assert read(cache / "fetch-result.json") == receipt
+    assert file_hash(cache / "snapshot.json") == pin_hash
+    assert file_hash(cache / "fetch-plan.json") == plan_hash
+
+
+def test_object_size_allowance_does_not_replace_hash_validation(tmp_path):
+    path = tmp_path / "object"
+    path.write_bytes(b"correct")
+    row = {"bytes": 20, "sha256": file_hash(path)}
+    assert bulk.verified_object(path, row)
+    assert not bulk.verified_object(path, dict(row, bytes=6))
+    path.write_bytes(b"wrong")
+    assert not bulk.verified_object(path, row)
+
+
+@pytest.mark.parametrize(
+    "failure", [None, "missing_remote_object", "changed_worktree", "stale_plan"]
+)
+def test_fetch_recovers_unresolved_pointer_via_real_lfs_and_preserves_cache(
+    local_lfs_cache, monkeypatch, failure
+):
+    cache, repo, commit, rows, payloads = local_lfs_cache
+    row = rows[1]
+    path = repo / row["path"]
+    if failure == "missing_remote_object":
+        oid = row["sha256"].removeprefix("sha256:")
+        remote = cache.parent / "remote.git"
+        (remote / "lfs/objects" / oid[:2] / oid[2:4] / oid).unlink()
+    elif failure == "changed_worktree":
+        path.write_text("local modification\n")
+    elif failure == "stale_plan":
+        rows[1] = dict(row, bytes=row["bytes"] + 1)
+        write(cache / "fetch-plan.json", {"selected": rows})
+    before = path.read_bytes()
+    retained = {
+        p: file_hash(p)
+        for p in (cache / "snapshot.json", cache / "fetch-plan.json", repo / rows[0]["path"])
+    }
+    original_git, fetches = bulk.git, []
+
+    def incomplete_batch(root, *args, **kwargs):
+        if args[:4] == ("-c", "lfs.fetchrecentalways=false", "lfs", "fetch"):
+            fetches.append(args)
+            return ""  # Observed success-with-missing-object symptom; no network.
+        return original_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(bulk, "git", incomplete_batch)
+    config = {"revision": commit, "free_disk_floor_bytes": 0}
+    if failure:
+        with pytest.raises(ValueError, match="LFS .*failed|differs from pinned"):
+            bulk.fetch(config, cache)
+        assert path.read_bytes() == before
+        assert not (cache / "fetch-result.json").exists()
+    else:
+        bulk.fetch(config, cache)
+        assert path.read_bytes() == payloads[row["path"]]
+        assert read(cache / "fetch-result.json")["complete"]
+        bulk.fetch(config, cache)
+        assert len(fetches) == 1
+    assert all(file_hash(p) == sha for p, sha in retained.items())
+    assert bulk.pointer(repo / "files/A999/b999999.txt") is not None
+    assert not list(repo.glob("files/*/.lfs-recovery-*"))
+
+
+def test_recovery_with_existing_hook(local_lfs_cache):
+    cache, repo, commit, rows, payloads = local_lfs_cache
+    bulk.git(repo, "lfs", "install", "--local", "--skip-repo")
+    hook = repo / ".git/hooks/pre-push"
+    hook.write_text(
+        '#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || exit 2\ngit lfs pre-push "$@"\n'
+    )
+    hook.chmod(0o755)
+    before = hook.read_bytes()
+    bulk.recover_object(repo, commit, rows[1])
+    assert (repo / rows[1]["path"]).read_bytes() == payloads[rows[1]["path"]]
+    assert hook.read_bytes() == before
+
+
+def test_recovery_reports_actual_output_hash_without_replacing_pointer(local_lfs_cache):
+    _, repo, commit, rows, _ = local_lfs_cache
+    row = rows[1]
+    bulk.git(repo, "lfs", "install", "--local", "--skip-repo")
+    oid = row["sha256"].removeprefix("sha256:")
+    cached = repo / ".git/lfs/objects" / oid[:2] / oid[2:4] / oid
+    cached.parent.mkdir(parents=True)
+    # Git LFS can read a same-size local object without validating its hash.
+    wrong = b"0 8\n1 6\n"
+    cached.write_bytes(wrong)
+    before = (repo / row["path"]).read_bytes()
+    actual_hash = "sha256:" + hashlib.sha256(wrong).hexdigest()
+    with pytest.raises(ValueError, match=f"LFS recovery output: 8 bytes, {actual_hash}"):
+        bulk.recover_object(repo, commit, row)
+    assert (repo / row["path"]).read_bytes() == before
+    assert not list(repo.glob("files/*/.lfs-recovery-*"))
 
 
 def import_fixture(cache):

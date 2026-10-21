@@ -1,9 +1,9 @@
 # Phase 4 migration and retirement (T081–T088)
 
-**T081–T087 code work is complete. T088 remains pending actual clean-image
-execution.** Entry is merged Phase 3 PR #56 at
-`66d13fdb93bc7d107c0f1ac8fe90cf030dea47e9`; its T080 evidence is preserved.
-[PR #57](https://github.com/grugnog/oeis-learn/pull/57) was opened with the failing
+**Phase 4 is complete: T081–T088 are closed.** Entry was merged Phase 3 PR #56
+at `66d13fdb93bc7d107c0f1ac8fe90cf030dea47e9`; its T080 evidence is preserved.
+The sections before the exit review retain the contemporaneous progression while
+[PR #57](https://github.com/grugnog/oeis-learn/pull/57) was open with the failing
 retirement audit before migration. Commits are added as work proceeds; new CI
 runs are deliberately left unmonitored.
 
@@ -18,7 +18,7 @@ runs are deliberately left unmonitored.
 | T085 | Eight old implementation modules and four public skeleton/solver/filter result dataclasses are removed. `fresh.search.grounded_variants` is removed; the worker already used Phase 3's qualified native route. |
 | T086 | run008/009/010 launchers and their three exclusive configs are removed. Retained run011/tier1 diagnostic configs have explicit native settings, replacing obsolete solver switches. Retained training loaders reject old settings before model construction. README/quickstart document replacements, unsupported methods and reproduction revision; historical specs/results are unchanged. |
 | T087 | Python z3-solver is removed from metadata/lock, and the image installer removes an inherited copy if present. The other locked package pins and native Z3/Wasmtime/toolchain pins are unchanged. SymPy remains for documented independent certificate/discovery consumers. The new native checker reuses the cached dependency closure. |
-| T088 | All inventory code dispositions are closed; the clean installed/native/compatibility evidence gate remains open until the new image passes. CI and the public retirement suite execute that gate; no source-only result is labelled clean-install qualification. |
+| T088 | Complete. All inventory code dispositions are closed, and the reviewed clean installed/native/compatibility jobs pass on the recorded image. CI and the public retirement suite supplied the gate; no source-only result is labelled clean-install qualification. |
 
 See the completed path inventory in
 [retirement-inventory.json](../retirement-inventory.json), the migration rationale
@@ -80,8 +80,9 @@ to its submitted image; eventual Phase 5 GPU qualification must identify that
 phase's effective image. No extra HIP run, research screen, final evaluation,
 merge or automatic promotion is launched by this work.
 
-T088 can be checked only after the actual new-image results satisfy the gate.
-`.specify/extensions.yml` is absent; no post-implementation hook is registered.
+This was the condition for checking T088. The exit review below records the
+actual new-image results that satisfied it. `.specify/extensions.yml` is absent;
+no post-implementation hook is registered.
 
 ## CI repair after `d24c7f7`
 
@@ -107,9 +108,9 @@ handoff, learning gates and container validation. All review-workflow Ruff comma
 shell blocks, source retirement audit, current review disposition binding and
 Spec Kit artifact consistency pass. See
 [phase-4-ci-repair.json](phase-4-ci-repair.json) for source/test identities.
-The earlier 200-test record remains bound to its original snapshot. This repair
-does not close T088; the newly pushed container/native/compatibility checks must
-complete successfully first. New CI is deliberately left unmonitored.
+The earlier 200-test record remains bound to its original snapshot. At this
+repair checkpoint T088 remained open until the newly pushed container/native/
+compatibility checks completed. The exit review below records their completion.
 
 ### Host certificate prerequisite follow-up after `74b7105`
 
@@ -129,4 +130,22 @@ artifact probe confirms required-native execution errors instead of skipping.
 The prior CI artifact's digest and G9 results were inspected; no local native
 execution is claimed from that evidence. See
 [phase-4-certificate-repair.json](phase-4-certificate-repair.json).
-T088 remains pending the new review/qualification run; new CI is left running.
+At this checkpoint T088 remained pending the new review/qualification run. The
+exit review below records its later completion.
+
+## Phase 4 exit review
+
+T088 passes at `8556cce87aec5d5b58f9a163e5c5d266a1f61341`, merged by PR #57
+as `be6070bead5f30147774b6517c0f50eb1cb3f6cc` without production source changes.
+Review run39355476087 succeeds. Container run39355476126 has successful image,
+installed/native, training/replay, G7/G8 software/G9 and both portable-engine
+execution jobs; only the separate non-critical Podman rebuild was cancelled.
+Verified artifact ZIP digests and individual JUnit counts are recorded in
+[phase-4-exit.json](phase-4-exit.json). The arbitrary-UID contract artifact has
+163 algorithm, 43 integration and 27 retirement cases with zero failures/errors/
+skips, plus a clean isolated installed audit. All native qualification owning
+suites pass without skipped cases. The native preparation artifact repeats the
+27 source retirement cases with one installed-context skip; that same case
+executes successfully in the required arbitrary-UID installed context. No skip
+is being counted as installed evidence. Historical reports remain bound to
+their original revisions; this closure grants no Phase 5 or research pass.

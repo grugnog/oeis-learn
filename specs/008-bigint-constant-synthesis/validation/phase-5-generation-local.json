@@ -1,0 +1,50 @@
+{
+  "version": "phase5-generation-local/v1",
+  "phase5_complete": false,
+  "qualified": false,
+  "base_commit": "9cc4ca16346305154eea6bd82db4348cd4414eab",
+  "validation": {
+    "broad_cpu": {
+      "passed": 130,
+      "skipped": 2,
+      "deselected": 1
+    },
+    "final_affected_rerun": {
+      "passed": 70,
+      "skipped": 2,
+      "deselected": 1
+    },
+    "skip_reason": "packaged native synthesis worker unavailable",
+    "checks": [
+      "Ruff F/E9",
+      "Python compilation",
+      "git diff --check",
+      "stdlib-only host help",
+      "8 GPU tests collect"
+    ],
+    "actual_hip": "PENDING",
+    "packaged_native": "PENDING"
+  },
+  "policy": {
+    "batch_size": 8,
+    "attempts": 8,
+    "greedy": 1,
+    "stochastic": 7,
+    "temperature": 0.8,
+    "token_cap": 1024,
+    "prompt_seconds": 60,
+    "training_budget": 7200,
+    "reserve_fraction": 0.2,
+    "denominators_changed": false,
+    "numerical_semantics_changed": false,
+    "dependency_pins_changed": false
+  },
+  "file_sha256": {
+    "scripts/benchmark_bigint.py": "sha256:8d7790edbb8d4f741bc193517e4acaeb4cf4d0bb6920145a3dcda17b034a64d7",
+    "scripts/foundation_bigint.py": "sha256:ad5f6ee4e070468ba31e17b2faeb1b1ad7b8b80669ef62bb6ce7bed9b811e145",
+    "scripts/qualify_bigint_phase5.py": "sha256:39ac04c6bc42810898b155383d094345b9bf28a65f7a95c775a5cecdb6bcd9a6",
+    "src/oeis_learn/decoder/bigint_generation.py": "sha256:05012f0556ac296da30c71d8608c65b148e1eaaf9f0182513908cb83e7799149",
+    "src/oeis_learn/fresh/bigint_diagnostics.py": "sha256:fd6c7c35a97c1f23a9f31295864f6c0fb0f0384d5e120a19c1f2d48c04935b40",
+    "src/oeis_learn/fresh/cost_policy.py": "sha256:ea98969304ba7901736424efe64ebf5d42db2ceb9646ea8ea561e5641de5e5f5"
+  }
+}

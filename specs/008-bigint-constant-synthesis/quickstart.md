@@ -1,13 +1,44 @@
 # Quickstart: Validation and Bounded Research
 
-Phase 3 is complete with passing CPU/native and user-supplied integrated HIP
-fixtures. Phase 4 migrates/retire callers and provides `bigint-retirement`,
-including an isolated installed-distribution audit and replacement regressions.
-Its clean-image execution gate T088 is pending CI; see
-[the Phase 4 evidence](validation/phase-4.md).
-Sections 3–7 are acceptance/research instructions, not authorization to run them.
-All training recipes intentionally fail until measured, matching non-scoring
-cost preflight is supplied and the prerequisite qualification gates are met.
+Phases 3 and 4 are complete at their recorded source/image identities.
+Phase 5 tooling is available in PR #58. Current-source HIP passes9/9; the
+complete transfer-screen cost projection fails its initial budget, while the
+diverse32 cost receipt, CPU/native partitions, matched-checkpoint diagnostic and
+learnability outcome remain pending. See [the Phase 5 gate table and cost
+scope decision](validation/phase-5.md).
+Sections 3–7 remain acceptance/research instructions. Training requires matching
+measured cost preflight and the preceding gates. No long run is auto-authorized.
+
+## Phase 5 qualification runner
+
+For the current fixed-state timing/batching follow-up, first run the targeted
+measurement with existing inputs; see [protocol and reviewed hardware evidence](validation/phase-5-generation.md):
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-phase5-batched-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+It launches no learnability run. Share the resulting ZIP, including a BLOCKED
+cost outcome, before proceeding to the full conditional runner below.
+
+```bash
+python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
+  --output tmp-validation/008-phase5-hip-001
+```
+
+This command is retained as the intended integrated flow, but do not run its
+learnability stage until T095 implements the `diverse32` receipt and a reviewed
+finite budget is frozen in a new recipe identity. It runs qualified CPU/native/
+retirement and actual HIP suites, prepares/checks the complete paired dataset,
+measures non-scoring costs and conditionally runs the registered diverse32 gate.
+A failed scope-matching cost gate stops before training. Omit the preparation and
+learnability flags for hardware/performance only, or substitute `--inputs PATH`
+for existing prepared data. Choose a new suffix for retries.
+It always writes a bounded result ZIP; share that ZIP after completion/failure.
+Use `--engine docker` if appropriate. The full runner and per-stage details are
+in [validation/phase-5.md](validation/phase-5.md).
 
 ## Phase 2 qualification available now
 
@@ -87,10 +118,11 @@ Expected: pinned bulk snapshot cache, paired concrete/parameterized generic reco
 ## 4. Diverse tiny synthesis gate
 
 ```bash
+# Run only after T095 records the scoped receipt and revised config identity.
 python3 scripts/foundation_run.py --engine podman learnability \
   --config configs/foundation/bigint_smoke.yaml \
   --inputs tmp-bigint-inputs-001 --view diverse \
-  --max-updates 3000 --budget-seconds 7200 \
+  --max-updates 3000 --budget-seconds REVISED_SECONDS \
   --seed 20261016 --run runs/bigint-tiny-001
 python3 scripts/foundation_run.py --engine podman pack \
   --run runs/bigint-tiny-001 --output tmp-analysis/bigint-tiny-001.zip

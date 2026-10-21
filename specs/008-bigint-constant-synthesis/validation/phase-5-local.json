@@ -1,0 +1,70 @@
+{
+  "version": "phase5-local-review/v1",
+  "base_revision": "be6070bead5f30147774b6517c0f50eb1cb3f6cc",
+  "code_parent_revision": "560b8b97e6f2ae88d29cacb85614d230a6322043",
+  "source_sha256": "sha256:c247055d9af5ea9e4cf77a99f4bc7064904900a1e9220dc28412daa231296be3",
+  "source_hash_method": "synthesis.contracts.identity(experiments.source_snapshot.collect_snapshot(root))",
+  "python": "3.12.14",
+  "torch": "2.9.1+cpu",
+  "hardware": "CPU only; no Docker/Podman/Rust/HIP toolchain available",
+  "tests": {
+    "passed": 135,
+    "skipped": [
+      {
+        "classname": "tests.contract.test_bigint_performance",
+        "name": "test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries",
+        "reason": "requires pinned native qualification image"
+      }
+    ],
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "sha256:6b11edfba4da6d5cec46da19fe04bb6551be6c5b85408fd4f151737b73f6a356"
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "python_compilation": "PASS",
+    "workflow_yaml_and_shell_syntax": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "spec007_artifact_consistency": "PASS",
+    "source_retirement": "PASS",
+    "diff_whitespace": "PASS"
+  },
+  "T088": "CLOSED_BY_REVIEWED_PHASE4_ARTIFACTS_AT_8556cce",
+  "phase5": {
+    "T089": "PENDING_NEW_IMAGE_CI",
+    "T090": "PENDING_NEW_IMAGE_CI",
+    "T091": "PENDING_NEW_IMAGE_CI",
+    "T092": "PENDING_ACTUAL_CURRENT_IMAGE_HIP",
+    "T093": "BLOCKED_ACTUAL_MATCHED_CHECKPOINT_NOT_SUPPLIED",
+    "T094": "PENDING_NATIVE_AND_HIP_MEASUREMENTS_AND_SLOWDOWN_REVIEW",
+    "T095": "PENDING_COMPLETE_DATA_AND_MATCHING_HIP_COST",
+    "T096": "PENDING_ACTUAL_GATED_DIVERSE32_RUN",
+    "T097": "PENDING_CURRENT_IMAGE_PUBLIC_OPERATIONAL_EVIDENCE",
+    "T098": "QUALIFICATION_NOT_GRANTED"
+  },
+  "qualification_granted": false,
+  "native_performance_claimed": false,
+  "hip_execution_claimed": false,
+  "neural_wiring_test_scope": "Small mocked tensors validate fixture/maximum target/checkpoint plumbing, not throughput, actual full-model training or HIP.",
+  "checkpoints": {
+    "tracked_trained_weight_files": 0,
+    "matched_run_supplied": false
+  },
+  "ci_partitions": [
+    "arithmetic/docker",
+    "fitting/docker",
+    "containment/docker",
+    "containment/podman",
+    "performance/docker"
+  ],
+  "code_files": {
+    "scripts/benchmark_bigint.py": "sha256:85ae98f39f4e220ff3265b767f87a2fd7935f3e79f1e0f8f8f116e9853f47774",
+    "scripts/qualify_bigint_phase5.py": "sha256:5d4656504cdf3111cb3928d270954ea2889a73833480acedb4839eb72f5a3994",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:9773b3a26cbc8a366ed890da129b3fa85df8e4a835651f095be9680037854254",
+    "crates/oeis_synthesis_core/examples/benchmark_runtime.rs": "sha256:05c8cef0c892337b5decba045fc23b227faa33fc6021bedbd3ce91ae88f52d03",
+    "crates/oeis_synthesis_core/tests/runtime_contract.rs": "sha256:3c83ba328071ff73c8b35a9d2955f9200c945b42c680640c3a15f2c07e74de1d",
+    "docker/dev/build-synthesis.sh": "sha256:4c93ce3186e55345bffcae3130f7ebabf305ac9ff7ee3e7f2590693cf2ac5777",
+    ".github/workflows/foundation.yml": "sha256:2b6e441f515d52ebb5c3fd62223ef4aceed09fd43a43f4c9dee466ed7e22a274"
+  },
+  "new_ci_monitored": false
+}
