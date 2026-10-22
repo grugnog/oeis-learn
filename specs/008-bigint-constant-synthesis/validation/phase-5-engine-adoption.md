@@ -30,10 +30,26 @@ Freeze this focused implementation scope:
   unavailable locally. Neural/HIP throughput claims require separate evidence;
   no new training, hidden scoring or consumed T096 retry is authorized.
 
-- [ ] A001 Add failing shared-policy/identity/default/control regression tests.
-- [ ] A002 Adopt64KiB and bind explicit policy in Rust/Python/build identities.
-- [ ] A003 Preserve zero comparison, archive readers and packaged regression routing.
-- [ ] A004 Verify available checks, push incrementally and provide CPU commands.
+- [X] A001 Add failing shared-policy/identity/default/control regression tests.
+- [X] A002 Adopt64KiB and bind explicit policy in Rust/Python/build identities.
+- [X] A003 Preserve zero comparison, archive readers and packaged regression routing.
+- [X] A004 Verify available checks, push incrementally and provide CPU commands.
 
 T094 remains open for qualification and remaining slowdown/measurement work.
 Original negative T096, immutable earlier receipts and promotion block persist.
+
+
+A001–A004 implementation/available checks are complete. Actual new-image native,
+container and eventual-device qualification remains pending. The shared manifest
+is copied only into native source-build stages and is included in native source
+provenance and Python package data. Dependency/lock inputs stay unchanged.
+The native extension exposes its compiled manifest for build-time comparison.
+
+`--engine-adoption-only` runs the existing arithmetic/fitting/containment groups
+(max3000s each) followed by the600s v2 comparison, without data/weights/training.
+It rejects unrelated scopes/GPU/preparation before engine access, requires the
+expected policy in each group's artifacts, binds source/image, and archives
+failures under the existing role/audit/cleanup and byte limits. Production is
+now64KiB; zero is qualification-only. Archived v1 summaries remain reproducible.
+See [phase-5-engine-adoption-local.json](phase-5-engine-adoption-local.json) and
+[quickstart](../quickstart.md) for evidence limits and CPU/optional HIP commands.

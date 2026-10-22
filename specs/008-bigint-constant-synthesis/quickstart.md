@@ -7,72 +7,67 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## CPU growth-reservation comparison — reviewed
-
-The [reviewed first-byte result](validation/phase-5-first-byte-review.json)
-localizes about99.85% of small-case byte transfer to the first call. Every one
-of8670 observed first calls requests64KiB growth. The empty guest buffer and zero
-growth reservation, together with pinned Wasmtime's relocation/copy path,
-provide a specific hypothesis to test. Copy time itself has not been measured.
+## Current next step: qualify the adopted64KiB engine policy
 
 The [reviewed comparison](validation/phase-5-growth-reservation-review.json)
-verifies all450 detailed/ordinary pairs and225 cross-setting groups. At batch100,
-64KiB improves ordinary small-add/cancel execution5.27/5.23x and total4.87/4.85x;
-4096-bit multiplication improves2.46x. Three batch1 rows are slower and two warm
-samples do not settle single-term behavior. The small-value retained gap remains
-13–14x, so T094 stays open.
+verified450 paired observations and225 cross-setting groups. At batch100,
+64KiB spare growth capacity improves small-add/cancel execution5.27/5.23x;
+results, fuel, coverage, failures and visible memory/growth requests match.
+Three batch1 rows are slower, and the retained execution gap remains13–14x.
+These measurements justify adoption, without establishing universal latency or
+HIP/end-to-end gains.
 
-The next focused work is explicit production-engine policy/identity adoption and
-native/container regression qualification, retaining the zero control. This has
-not changed production, which still uses zero. No repeat of the comparison is
-needed now; the command below reproduces the reviewed experiment:
+Production now uses explicit `bigint-engine-policy/v2`. Its shared manifest hash
+is bound into bigint runtime/build identities, caches, prepared inputs and
+checkpoint contracts. Rebuild the current image; do not silently resume an old
+contract or reinterpret the consumed negative T096 attempt under new artifacts.
+No new training or hidden scoring is scheduled by this change.
+
+Run CPU arithmetic, native fitting, containment and the updated comparison:
 
 ```bash
-growth_out="tmp-validation/008-growth-reservation-$(date -u +%Y%m%dT%H%M%SZ)"
+adopt_out="tmp-validation/008-engine-adoption-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --profile-input-load --compare-memory-growth \
-  --output "$growth_out"
+  --engine-adoption-only --output "$adopt_out"
 ```
 
-Share `$growth_out.zip`, including partial/failed results. Use a fresh output
-prefix. The helper builds/reuses the current checkout image; this build is
-outside the600s CPU work limit. Docker uses `--engine docker`. Cleanup keeps its
-5s allowance. The corpus stays25 non-scoring cases at batches1/20/100, three
-repetitions per setting:450 detailed/ordinary pairs. No data, weights or HIP
-hardware is needed. This command launches no training or hidden scoring.
+Share `$adopt_out.zip`, including partial/failed results. Use a fresh output
+prefix and `--engine docker` for Docker evidence. The helper builds/reuses the
+current source-bound image, then runs each of the three CPU groups with a3000s
+bound and the same25-case1/20/100 comparison with a600s bound. Building is
+outside these work limits; every container retains5s cleanup and the existing
+offline/read-only/output-only audited launch. No data, weights, GPU or fitting
+search on actual OEIS prompts is needed; fitting tests use bounded fixtures.
+A PASS is scoped CPU evidence with `qualified:false`, not full Phase5 promotion.
 
-Each setting runs in its own native process, with zero-first/reserved-first
-alternating across corpus rows. Each has its own cold first repetition and two
-warm repetitions; these are descriptive timings. Guest bytes, guest calls,
-fresh stores, visible memory/arena caps, fuel and failure semantics must match.
-Explicit engine manifests/hashes distinguish the qualification control from
-production. Both settings retain exact output hashes, expected overflow and
-aggregate-fuel exclusions. Reservation grants no additional visible guest memory.
+The current comparison reports production64KiB at top level and the complete
+zero-reservation qualification report under `memory_growth.zero`. Both have
+explicit engine/policy hashes. V1 archives retain their original opposite
+production/control meanings; new collection requires v2. Guest bytes, fresh
+stores, visible caps, fuel and failure semantics remain fixed. Review ordinary
+prepare/execute/total, first-byte/lifecycle times, observer distortion and
+per-process VmHWM; RSS includes compilation/JIT and both observations rather
+than aggregate or guest-only allocation. The last native report and completed
+settings survive later failure under the existing bounded archive policy.
 
-Review ordinary prepare/execute/total, runtime compilation, all ten lifecycle
-phases, first-byte timing, observer distortion and each process's Linux VmHWM.
-RSS includes compilation/JIT and both observations, measured before report
-serialization; it is neither aggregate RSS nor a pure guest allocation charge.
-No speedup is assumed, and moving time into initialization is not an improvement.
+For measurement alone, retain the existing `--runtime-profile-only
+--profile-input-load --compare-memory-growth` scope. `--compare-host-lookups`
+is a separate study. Shared CI covers arithmetic, fitting, containment and the
+comparison using the existing image; do not wait for it after pushing.
 
-`memory_growth.reserved` retains the complete second-setting report;
-`memory_growth` summarizes both. `growth-active.json` preserves completed settings
-if the next operation fails; `growth-latest-native.log` retains the last bounded
-raw native report even if validation rejects it. The archive keeps its existing
-64MiB cap and omission manifest. Source-bound benchmark execution/results are now
-reviewed. This archive does not include a standalone native regression-suite receipt.
+HIP is not needed for this CPU engine qualification. When collecting the eventual
+image's actual-HIP regression receipt for the remaining Phase5 device gate:
 
-Shared CI runs this comparison using its existing image and audited socket-free
-launcher. `--compare-host-lookups` remains available for its separate ordinary
-lookup study and is rejected alongside `--compare-memory-growth`. Omitting the
-new flag reproduces the reviewed first-byte profiler. Archived v1 input evidence
-remains readable; current input collection requires v2.
+```bash
+hip_out="tmp-validation/008-engine-adoption-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase2.py --engine podman --gpu --output "$hip_out"
+python3 -m zipfile -c "$hip_out.zip" "$hip_out"
+```
 
-HIP/ROCm runs the neural encoder/decoder and updates; generated programs execute
-on CPU in Rust/Wasmtime even during HIP-backed learning. This comparison isolates
-that CPU component. Any neural/end-to-end claim still requires source-bound HIP
-evidence. T094 remains open, original negative T096 is preserved, and promotion
-remains BLOCKED pending the existing gates.
+This optional device regression uses the new image and synthetic fixtures,
+without datasets, weights or training qualification. It is not an end-to-end
+throughput measurement. T094/T098 and the other remaining gates stay open;
+original negative T096 and promotion block are preserved.
 
 ## Phase 5 qualification runner
 

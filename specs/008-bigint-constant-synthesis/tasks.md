@@ -432,3 +432,11 @@ reserved execution remains13.4–13.7x retained and batch1 behavior is not settl
 [phase-5-engine-adoption.md](validation/phase-5-engine-adoption.md) adopt the
 reviewed64KiB setting with explicit engine identity, retain zero qualification
 control and require new-source regression evidence. No past receipt is relabelled.
+
+A001–A004 implementation and available checks are complete. Production now uses
+explicit `bigint-engine-policy/v2` (64KiB), with policy-bound runtime/build
+identities and a zero-reservation qualification control. CPU adoption scope and
+optional eventual-image HIP regression commands are in quickstart. New-source
+native/container execution and remaining T094 measurements are pending;
+[phase-5-engine-adoption-local.json](validation/phase-5-engine-adoption-local.json)
+distinguishes local checks from qualification. Original negative T096 is unchanged.

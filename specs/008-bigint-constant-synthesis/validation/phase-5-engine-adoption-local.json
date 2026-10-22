@@ -1,0 +1,99 @@
+{
+  "version": "phase5-engine-adoption-local/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "source_sha256": "sha256:59ad062210d7303134a8cd9b32772d1c6cbc49ceeb8a8c60a583663db4ba4658",
+  "files": {
+    "Dockerfile": "sha256:bf17fcd2ca3fcb485deb866522392d2da6498d98e2063042ad9dbaf0c50f0946",
+    "MANIFEST.in": "sha256:b68d2ddd1a41186628a549ba98a55d34baf565da74635cb913b5e1ea30d6961a",
+    "src/oeis_learn/synthesis/engine-policy.json": "sha256:3343245ef3f9906720637ee5261c8735125d6858a0c17e7ad04a4a9e995ee685",
+    "src/oeis_learn/synthesis/engine_policy.py": "sha256:5f3c34d51025057e62d352d9da63c79186e45becdbb050ea3435a9178482ffb5",
+    "src/oeis_learn/synthesis/client.py": "sha256:acbc495cce77519e837ebb1e7e03592bd02c6359c68bce9a700059f07dd04ba3",
+    "src/oeis_learn/sandbox/native_runtime.py": "sha256:fe697c67bcfe76d71ff0d6e19e76479a37c8a69312006e910e396a4ec3bba797",
+    "src/oeis_learn/fresh/bigint_config.py": "sha256:05b569a5a60976d573cd70b4a38808b721320bb90e104d8c7749e785b1dc3fc6",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:3042f7fddace5268e3a31e617a0d4b2cce805e1e3a1e517209e439cb18c75cc7",
+    "crates/oeis_synthesis_core/src/diagnostic.rs": "sha256:434eec2de0be80562510ff0779f3db114b2f85acf1d4f2a0559629ad40325247",
+    "crates/oeis_synthesis_core/src/runtime/host_lookup_tests.rs": "sha256:ccc733dac8de8b26afa42793862a097c1968fb662be370b4596912c1d60602ea",
+    "crates/oeis_synthesis_core/examples/benchmark_runtime.rs": "sha256:581d9b7a0341c733ad46d3630eb5f79a378d4ce2b8c8ebc12a214678a77834c4",
+    "crates/oeis_wasm_evaluator/build.rs": "sha256:e363a11bf01441a8e244b445d049de60f0cfe332227fc9886676dfece09c82d3",
+    "crates/oeis_wasm_evaluator/src/lib.rs": "sha256:5f70e64834c0e0f3e00a81b8de0621a1ff892ef8121612535e87843e23e35cca",
+    "scripts/inspect_bigint_build.py": "sha256:8b177ca646b3bd9f90ef634b17c63277a9d9edf88bc6936aa49119c15a2ec95d",
+    "scripts/qualify_bigint_phase5.py": "sha256:3fc157f6d0f90f700d2497ab950f3a723d9dd368800d3b92c8e612c8aab89c21",
+    "scripts/benchmark_bigint.py": "sha256:ed8bf2c9251208d2995e98a7f2f3cf7a323250416dc2b908470d2ffe435c1478",
+    "tests/unit/test_bigint_engine_policy.py": "sha256:cd71423a00f7e4ee5923ae0b0ea1755ff8bc3458807bea204f3c65f04d1629a9",
+    "tests/unit/test_bigint_growth_reservation.py": "sha256:be3a87d3565a87e310a54083cb93948e4894004c9c4aedd29de0277d86444efc",
+    "tests/contract/test_bigint_build.py": "sha256:6bdf41b0b318e92fbd6a6e33d347cba814e891aaaec2f7a859035fe8c727aeb6",
+    "tests/contract/test_bigint_performance.py": "sha256:6d6fbb095f6dda03a2a981d2dafda6fdf8735eeee1bb44b4591ad97c8d1fa831"
+  },
+  "python": "3.12.14",
+  "production_engine_policy": {
+    "manifest": {
+      "version": "bigint-engine-policy/v2",
+      "wasmtime": "20.0.2",
+      "consume_fuel": true,
+      "epoch_interruption": true,
+      "wasm_threads": false,
+      "parallel_compilation": false,
+      "static_memory_maximum_size": 0,
+      "static_memory_guard_size": 0,
+      "dynamic_memory_guard_size": 0,
+      "dynamic_memory_reserved_for_growth": 65536
+    },
+    "sha256": "sha256:5f83f13c2e58d767835f4aef303201b7ff6e72d6cd3f271c97665547a9f004cb"
+  },
+  "red_test": "New shared-policy test failed with ModuleNotFoundError before implementation.",
+  "tests": {
+    "passed": 220,
+    "failure": 0,
+    "error": 0,
+    "skipped": 9,
+    "junit_sha256": "sha256:abdf64ef0946441a96db654d7fc1cbc9cb6da6fb59c363db76cf720cd4d152ae",
+    "skipped_reason": "Packaged native build/binding and seven native measurement modes require the pinned image; mandatory in CI/adoption scope."
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "formatting": "PASS for touched active Python files",
+    "whitespace": "PASS",
+    "stdlib_only_host_help": "PASS",
+    "GPU_scope_rejected_before_engine": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "checklists": "16/16",
+    "extension_hooks": "none",
+    "workflow_yaml": "PASS",
+    "bash_run_blocks": 9,
+    "embedded_python": "PASS",
+    "documented_command_blocks": 2,
+    "policy_package_build": "PASS: setup.py build_py includes byte-identical shared policy",
+    "archived_v1_summaries_recomputed_exactly": 75,
+    "adoption_routing": "Mocked CPU arithmetic/fitting/containment + comparison; failed group/policy/source/profile produce failure archives"
+  },
+  "actual_execution": {
+    "Rust_compile": false,
+    "native_regressions": false,
+    "new_engine_adoption": false,
+    "Docker": false,
+    "Podman": false,
+    "HIP": false
+  },
+  "identity_changes": {
+    "policy": "bigint-engine-policy/v2",
+    "production_growth_reservation_bytes": 65536,
+    "zero_control": "qualification-only; no worker option",
+    "bigint_runtime": "binary + guest + language profile + engine_policy_sha256",
+    "retained_runtime": "existing three-field shape",
+    "numerical_caps_and_guest_bytes_changed": false,
+    "caches_and_prepared_contracts": "changed runtime/build/artifact hashes; no silent resume",
+    "comparison": "v2 production row at top level, zero control nested under memory_growth.zero"
+  },
+  "build_changes": "Shared policy copied only into native source stages; dependency/lock inputs unchanged. Included in Python package and exact native source closure; inspector compares compiled native policy with packaged policy.",
+  "performance_claim": "Reviewed earlier control motivates adoption; no new-source performance or qualification claimed.",
+  "pending": [
+    "New-source native compilation/cap/fuel/failure and Docker/Podman qualification",
+    "Remaining T094 >5x slowdown review and unsettled batch1 behavior",
+    "Eventual image HIP regression and any separately scoped end-to-end throughput evidence",
+    "T093 matched retained weights; T097/T098 remaining gates"
+  ],
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED",
+  "new_CI": "not polled or awaited"
+}
