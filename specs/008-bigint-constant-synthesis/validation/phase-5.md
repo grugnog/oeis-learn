@@ -45,7 +45,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): CPU lookup comparison reviewed,225 three-way groups match; wide values benefit but input loading stays about74% of small cases. Nested observation is implemented; new native regression/subphase timing evidence remains pending. |
+| T094 | [Performance](performance.md): [current Podman CPU adoption](phase-5-engine-adoption-review.json) passes334 arithmetic/37 fitting/64 containment tests and75 comparison rows. Small batch100 improves5.18–5.45x versus zero, but remains13.29–13.40x retained; timer lifecycle and single-term uncertainty remain open. No new whole-workload HIP/cost receipt. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
 | T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete command/export and matched-checkpoint coverage remain open. |
@@ -73,21 +73,26 @@ its unchanged worker allowance. This does not retroactively change T096 or
 satisfy32/32 qualification. No same-case replay or further training is needed
 to assess that defect.
 
-Remaining work, in dependency order:
+Remaining work, in dependency order (updated2026-10-22):
 
-1. The [uploaded lookup comparison](phase-5-host-lookups-review.json) is reviewed:
-   225 three-way groups and independent hashes match. Caching helps wide values,
-   but small batch100 add/cancel change only0.25%/2.18%; input loading stays74%.
-2. Collect the observation-only nested input-load profile in
-   [phase-5-input-load.md](phase-5-input-load.md), then review its subphase costs
-   and detailed/ordinary distortion. New-image native regressions and these
-   timings are pending; T094 stays open. CPU execution is sufficient here.
-3. Obtain a genuine retained matched-run checkpoint for T093. The completed new
-   bigint tiny checkpoint cannot substitute. Finish the supported operations and
-   export coverage checklist for T097.
-4. Update T098 with all remaining pass/fail/pending receipts. Negative T096,
-   missing prerequisites and the unadmitted transfer screen block promotion.
-   No new qualification/training attempt is launched.
+1. Current [Podman CPU adoption evidence](phase-5-engine-adoption-review.json)
+   passes435 tests without skips, verifies450 detailed/ordinary pairs and225
+   cross-setting groups, and confirms the64KiB policy optimization. That exact
+   source/image now has CPU regression/comparison evidence. The earlier failed
+   fixture-identity run remains FAIL in its separate review.
+2. T094 stays open: small batch100 execution remains13.29–13.40x retained;
+   three batch1 rows regress and only two warm samples exist. Timer start/stop
+   is roughly half of profiled small-case execution, making deadline-thread
+   lifecycle the next focused investigation. Any change must preserve deadline,
+   fuel, store isolation and cleanup semantics. A new design has no measured
+   speedup yet. Eventual-image HIP and whole-workload cost evidence are separate.
+3. Obtain genuine retained matched-run weights/metadata for T093 and complete
+   the supported command/export checklist for T097. The new bigint tiny
+   checkpoint cannot substitute. Current Podman adoption adds operation evidence;
+   it does not constitute new Docker/HIP execution or close the full checklist.
+4. Reconcile T098's final pass/fail/pending report. Negative T096, missing
+   prerequisites and the unadmitted transfer screen continue to block promotion.
+   No new qualification learning attempt is launched.
 
 T092/T095 remain completed historical tasks for their recorded source/image,
 not permission to reuse old HIP/cost receipts for new training. No numerical,

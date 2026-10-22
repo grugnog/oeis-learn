@@ -67,3 +67,24 @@ client and independently assembled manifests. Local regressions pass226 cases;
 were unstarted in the upload. Rerun the CPU adoption command on the updated
 branch; no HIP, data preparation or training is needed for this correction.
 Actual corrected-image qualification remains pending and T094 stays open.
+
+The subsequent [corrected-source Podman review](phase-5-engine-adoption-review.json)
+passes334 arithmetic,37 fitting and64 containment cases without failures,
+errors or skips. All27 archive entries, source/image/policy bindings, report
+identity,450 detailed/ordinary pairs and225 cross-setting groups verify.
+Independent expected output hashes match. All four roles are offline,
+read-only, unprivileged, GPU-free and bind only their output; cleanup stays
+below0.040s against5s. This closes the pending Podman CPU adoption regression
+and comparison step for that exact source/image, not overall Phase5 qualification.
+
+Small batch100 execution improves5.45x for add and5.18x for cancellation;
+4096-bit multiplication improves2.48x. Maximum per-process VmHWM across this
+corpus is19.25MiB for zero versus18.15MiB for production. The retained small-value
+gap remains13.29–13.40x. Three batch1 rows are slower; two warm samples do not
+settle single-term behavior. Timer start/stop accounts for roughly half of
+profiled small add/cancel execution. The code creates/joins a deadline thread
+per term, making timer lifecycle the next focused investigation; no alternative
+timer design or speedup is established. Preserve deadlines, fuel, fresh stores,
+cleanup and concurrent-engine isolation in any follow-up. T094 remains open;
+Docker/current-image HIP, whole-workload costs and other Phase5 gates remain
+separate. No training or consumed T096 retry follows from this CPU PASS.

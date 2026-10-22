@@ -7,7 +7,17 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: qualify the adopted64KiB engine policy
+## Current step: review remaining performance costs after CPU adoption
+
+The [updated Podman adoption run](validation/phase-5-engine-adoption-review.json)
+now passes334 arithmetic,37 fitting and64 containment tests with no skips,
+plus75 comparison rows. Source/image/policy, all27 archive entries and all450
+paired observations/225 cross-setting groups verify. CPU adoption does not need
+another identical Podman run. The command below remains for reproduction or
+Docker evidence. T094 stays open for the13–14x retained gap, uncertain batch1
+behavior and eventual-image whole-workload costs. Timer start/stop is roughly
+half of profiled small-case execution, making deadline lifecycle the next
+focused investigation without changing safeguards or launching training.
 
 The [reviewed comparison](validation/phase-5-growth-reservation-review.json)
 verified450 paired observations and225 cross-setting groups. At batch100,
@@ -23,7 +33,7 @@ checkpoint contracts. Rebuild the current image; do not silently resume an old
 contract or reinterpret the consumed negative T096 attempt under new artifacts.
 No new training or hidden scoring is scheduled by this change.
 
-Run CPU arithmetic, native fitting, containment and the updated comparison:
+To reproduce CPU arithmetic, native fitting, containment and the comparison:
 
 ```bash
 adopt_out="tmp-validation/008-engine-adoption-$(date -u +%Y%m%dT%H%M%SZ)"

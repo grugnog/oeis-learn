@@ -75,3 +75,11 @@ The uploaded lookup-comparison operation is also verified in
 groups, no manifest omissions and0.047662s cleanup. `--profile-input-load` now
 adds nested observation to the same600s CPU role. New-image execution remains
 pending and does not close the remaining T097 command/checkpoint/export coverage.
+
+
+The [current Podman CPU adoption operation](phase-5-engine-adoption-review.json)
+passes all three test groups and the75-row comparison, with verified archive,
+identity, output-only isolation and cleanup. Its earlier fixture-identity
+failure is preserved separately. This closes that new operation's pending
+Podman evidence; complete command/export coverage, retained-checkpoint diagnosis
+and eventual-image Docker/HIP evidence remain separately tracked. T097 stays open.

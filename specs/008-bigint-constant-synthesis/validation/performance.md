@@ -246,3 +246,31 @@ Use the [current CPU command](../quickstart.md#current-next-step-cpu-input-load-
 The same corpus, resource ceilings, source/image binding and failure archives
 apply; malformed native detail also retains a bounded raw log. Actual new-image
 native regression and subphase measurements are pending, so T094 stays open.
+
+## Reviewed production policy CPU qualification — 2026-10-22
+
+[The corrected-source adoption review](phase-5-engine-adoption-review.json)
+passes334 arithmetic,37 fitting and64 containment tests with no skips. All27
+archive entries and exact source/image/policy bindings verify. Every one of75
+comparison summaries recomputes,450 detailed/ordinary pairs and225 cross-setting
+groups agree, and independently expected value hashes match. Per arm,213 samples
+succeed;3 aggregate-fuel and9 integer-limit samples remain classified exclusions.
+Podman roles are offline/read-only/output-only, with cleanup below0.040s.
+
+Production64KiB ordinary batch100 small add/cancel takes4.165/4.220ms versus
+22.694/21.880ms at zero reservation (5.45/5.18x). Full4096-bit multiplication
+improves29.606 to11.931ms (2.48x). Corpus maximum per-process VmHWM is19.25MiB
+zero versus18.15MiB production, including compilation/JIT and observations;
+this is not aggregate or guest-only resident memory.
+
+The remaining small add/cancel retained execution gap is13.29/13.40x. Three
+batch1 rows are slower, up to2.05x; two warm observations do not resolve latency
+uncertainty. Timer start/stop now accounts for roughly half of profiled small
+add/cancel execution. Runtime code creates and joins a deadline thread per
+term. This supports investigating timer lifecycle next, not claiming that a
+replacement is safe or yields a particular speedup. Preserve per-term/aggregate
+deadlines, fuel, fresh stores, cleanup and concurrent-engine isolation.
+
+T094 stays open. This supplies CPU adoption evidence, not new Docker/HIP,
+neural throughput or whole-workload cost admission. Original negative T096,
+its consumed attempt and the promotion block remain unchanged.

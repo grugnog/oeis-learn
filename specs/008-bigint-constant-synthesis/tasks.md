@@ -448,3 +448,13 @@ regression for bigint policy binding and retained-profile compatibility.
 Local checks pass226 cases with15 native/artifact/benchmark skips. Corrected-image
 fitting, containment and comparison remain pending a fresh CPU adoption run;
 T094 stays unchecked, and no training/HIP retry is implied.
+
+**T094 corrected-source CPU adoption review (2026-10-22)**:
+[the reviewed Podman archive](validation/phase-5-engine-adoption-review.json)
+passes334 arithmetic/37 fitting/64 containment tests with zero skips. All27
+archive entries, source/image/policy identities,450 detailed/ordinary pairs and
+225 cross-setting groups verify. CPU adoption's regression/comparison step is
+complete for that source/image. T094 remains unchecked for the retained
+13.29–13.40x small batch100 gap, uncertain batch1 behavior and whole-workload
+costs. Deadline timer lifecycle is the next focused investigation; no new design,
+HIP/Docker result, training retry or promotion is inferred.
