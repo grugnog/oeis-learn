@@ -440,3 +440,11 @@ optional eventual-image HIP regression commands are in quickstart. New-source
 native/container execution and remaining T094 measurements are pending;
 [phase-5-engine-adoption-local.json](validation/phase-5-engine-adoption-local.json)
 distinguishes local checks from qualification. Original negative T096 is unchanged.
+
+The [first adoption-run failure review](validation/phase-5-engine-adoption-failure-review.json)
+preserves333 passing arithmetic cases and34/37 passing fitting cases. The three
+failures exposed a stale qualification-fixture identity, corrected with a
+regression for bigint policy binding and retained-profile compatibility.
+Local checks pass226 cases with15 native/artifact/benchmark skips. Corrected-image
+fitting, containment and comparison remain pending a fresh CPU adoption run;
+T094 stays unchecked, and no training/HIP retry is implied.

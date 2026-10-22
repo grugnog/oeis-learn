@@ -53,3 +53,17 @@ failures under the existing role/audit/cleanup and byte limits. Production is
 now64KiB; zero is qualification-only. Archived v1 summaries remain reproducible.
 See [phase-5-engine-adoption-local.json](phase-5-engine-adoption-local.json) and
 [quickstart](../quickstart.md) for evidence limits and CPU/optional HIP commands.
+
+The first uploaded adoption run is preserved as FAIL in
+[the failure review](phase-5-engine-adoption-failure-review.json). All12 manifest
+entries verify; arithmetic passes333 cases. Fitting passes34 and fails three
+independent-admission cases because the qualification fixture still calculates
+the old bigint runtime identity without the engine-policy hash. The native
+diagnostic and production client already include it. The fixture now includes
+the policy only for bigint; retained signed256 and strict admission are preserved.
+A regression reproduces the old mismatch and checks both profiles against the
+client and independently assembled manifests. Local regressions pass226 cases;
+15 native/artifact/benchmark cases skip explicitly. Containment and comparison
+were unstarted in the upload. Rerun the CPU adoption command on the updated
+branch; no HIP, data preparation or training is needed for this correction.
+Actual corrected-image qualification remains pending and T094 stays open.

@@ -1,0 +1,87 @@
+{
+  "version": "phase5-engine-adoption-failure-review/v1",
+  "date": "2026-10-22",
+  "archive": {
+    "filename": "008-engine-adoption-20261022T204308Z(1).zip",
+    "sha256": "sha256:08a57a5444c76d5029796b67f088627f9e1b2820d245f38549558a234f10821e",
+    "crc": "PASS",
+    "verified_entries": 12,
+    "omissions": 0
+  },
+  "status": "FAIL_PRESERVED",
+  "qualified": false,
+  "engine": "podman",
+  "source_sha256": "sha256:59ad062210d7303134a8cd9b32772d1c6cbc49ceeb8a8c60a583663db4ba4658",
+  "image": "sha256:0663cfc714e96d64d5dbaf3725a73ede2cb4ce76f3421dc6d6de8a98b0cc44e9",
+  "engine_policy": {
+    "manifest": {
+      "version": "bigint-engine-policy/v2",
+      "wasmtime": "20.0.2",
+      "consume_fuel": true,
+      "epoch_interruption": true,
+      "wasm_threads": false,
+      "parallel_compilation": false,
+      "static_memory_maximum_size": 0,
+      "static_memory_guard_size": 0,
+      "dynamic_memory_guard_size": 0,
+      "dynamic_memory_reserved_for_growth": 65536
+    },
+    "sha256": "sha256:5f83f13c2e58d767835f4aef303201b7ff6e72d6cd3f271c97665547a9f004cb"
+  },
+  "groups": {
+    "arithmetic": {
+      "tests": 333,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "sha256:3a93852e4025121ab508d2fed8ca4980afbac4ebcb510d08db183354f5c5721d",
+      "cleanup": {
+        "seconds": 0.03890746319666505,
+        "allowance_seconds": 5,
+        "within_bound": true
+      }
+    },
+    "fitting": {
+      "tests": 37,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "sha256:0c8718f23bcc95ed9c9661779a0fab73d6a15a5ba2200a2f195c1139bc0e4d08",
+      "cleanup": {
+        "seconds": 0.06667898991145194,
+        "allowance_seconds": 5,
+        "within_bound": true
+      },
+      "failed_cases": [
+        "test_native_fit_independent_admission[(program (return (add (mul (param.get p0) $index) (param.get p1))))-indices0-values0]",
+        "test_native_fit_independent_admission[(program (return (add (mul (int 2) (param.get p0)) (mul (int 3) (param.get p1)))))-indices1-values1]",
+        "test_native_fit_independent_admission[(program (return (mul (param.get p0) (param.get p0))))-indices2-values2]"
+      ],
+      "assessment": "All three found assignments; independent admission rejected them. Qualification fixture calculates obsolete bigint runtime identity without the engine policy hash."
+    }
+  },
+  "unstarted": [
+    "containment",
+    "runtime-profile"
+  ],
+  "diagnosis": {
+    "cause": "tests/conftest.py synthesis_driver.identity_for omitted engine_policy_sha256 for bigint-body/v1; diagnostic.rs and SynthesisClient already include it.",
+    "local_reproduction": "New qualification-driver identity regression failed before fixture correction and passed afterwards.",
+    "fix_commit": "a94b7729c008c07a55aacedc184e0f5449f135a7",
+    "fix": "Add canonical production policy hash only for bigint; preserve retained three-field identity and strict independent admission.",
+    "native_confirmation": "PENDING fresh engine-adoption-only run; archived failures are not reclassified as passes."
+  },
+  "local_validation": {
+    "tests": 241,
+    "passed": 226,
+    "skipped": 15,
+    "junit_sha256": "sha256:9c7b1de2f357d224a438df8b4c5fc5e2319232d4d63fd5d754fb6f2d611f3aef",
+    "limitations": "No Rust, Docker or Podman installed here; native artifact and benchmark cases skip. Fixture construction uses fake artifact bytes without executing them."
+  },
+  "gates": {
+    "T094": "OPEN; fitting/containment/comparison rerun required, remaining slowdown and single-term uncertainty unchanged",
+    "T096": "Original negative result and consumed single attempt unchanged",
+    "promotion": "BLOCKED",
+    "hip": "No HIP required for fixture/admission CPU regression or Wasmtime comparison; eventual-image neural device validation remains separate"
+  }
+}
