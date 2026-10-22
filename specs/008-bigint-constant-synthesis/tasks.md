@@ -372,3 +372,12 @@ All nine success criteria are covered. Numerical/resource limits and required fi
 
 Phase counts are 10 / 48 / 22 / 8 / 10 / 9. Eleven test-writing tasks have conditional parallel opportunities. **Task-generation validation**: All 107 tasks are unchecked, sequentially numbered and path-bearing; story labels, six phase boundaries, relative document links and requirement/success-criterion coverage are audited. The subsequent cross-artifact review and resolution of its five findings are recorded in [analyze-remediation.md](validation/analyze-remediation.md). These checks validate the design/task documents only; implementation and runtime qualification remain pending.
 
+
+## Focused Phase 5 runtime follow-up — 2026-10-22
+
+The uploaded CPU profile is reviewed in
+[phase-5-runtime-profile-review.json](validation/phase-5-runtime-profile-review.json).
+Input loading dominates the shared-small batch100 rows. The bounded Phase2 host
+adapter change and frozen comparison are L001–L004 in
+[phase-2-host-lookups.md](validation/phase-2-host-lookups.md). This does not
+change T096's negative result, close T094 before new evidence, or admit Phase6.
