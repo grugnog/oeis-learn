@@ -223,3 +223,30 @@ fn growth_before_and_after_first_byte_stays_out_of_first_scope() {
     assert_eq!(p.memory_events[2].scope,"after_first");
     assert_eq!(detail.byte_calls_attempted,3);
 }
+
+#[test]
+fn qualification_reservation_is_explicit_and_does_not_relax_memory_caps() {
+    let guest=wat::parse_str("(module (memory (export \"memory\") 1 3) (func (export \"grow\") (result i32) i32.const 1 memory.grow))").unwrap();
+    for cap in [65536,131072] {
+        let mut observations=Vec::new();
+        for reserved in [false,true] {
+            let runtime=if reserved {BigintRuntime::qualification_growth_control(&guest)}else{BigintRuntime::new(&guest)}.unwrap();
+            let config=runtime.engine_configuration();
+            assert_eq!(config["manifest"]["dynamic_memory_reserved_for_growth"],if reserved {65536}else{0});
+            assert_eq!(config["manifest"]["purpose"],if reserved {"qualification-growth-control"}else{"production"});
+            let limits=StoreLimitsBuilder::new().memory_size(cap).build();
+            let mut store=Store::new(&runtime.engine,Limits{inner:limits,memory_denied:false,memory_probe:Some(MemoryProbe::default())});
+            store.limiter(|s|s);store.set_fuel(100_000).unwrap();store.set_epoch_deadline(1);
+            let instance=Instance::new(&mut store,&runtime.runtime,&[]).unwrap();
+            let memory=instance.get_memory(&mut store,"memory").unwrap();
+            assert_eq!(memory.data_size(&store),65536); // reservation is not visible memory
+            let answer=instance.get_typed_func::<(),i32>(&mut store,"grow").unwrap().call(&mut store,()).unwrap();
+            observations.push((answer,store.get_fuel().unwrap(),store.data().memory_denied,memory.data_size(&store)));
+            assert_eq!(store.data().memory_probe.as_ref().unwrap().counts.denied,usize::from(cap==65536));
+        }
+        assert_eq!(observations[0],observations[1]);
+        assert_eq!(observations[0].0,if cap==65536 {-1}else{1});
+        assert_eq!(observations[0].2,cap==65536);
+        assert_eq!(observations[0].3,cap);
+    }
+}

@@ -34,6 +34,7 @@ GROUPS = {
         "tests/unit/test_bigint_host_lookups.py",
         "tests/unit/test_bigint_input_load_profile.py",
         "tests/unit/test_bigint_first_byte.py",
+        "tests/unit/test_bigint_growth_reservation.py",
         "tests/unit/test_bigint_generation.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
@@ -306,6 +307,11 @@ def main():
         help="add the pre-cache ordinary CPU baseline; requires --runtime-profile-only",
     )
     p.add_argument(
+        "--compare-memory-growth",
+        action="store_true",
+        help="qualification-only zero/64KiB comparison; requires runtime-profile-only and profile-input-load",
+    )
+    p.add_argument(
         "--runtime-profile-only",
         action="store_true",
         help="paired CPU execution-stage profiling;600seconds work, archive and no dataset/neural/fitting work",
@@ -338,6 +344,15 @@ def main():
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
+    if args.compare_memory_growth and (
+        not args.runtime_profile_only
+        or not args.profile_input_load
+        or args.compare_host_lookups
+        or args.inside
+    ):
+        p.error(
+            "--compare-memory-growth requires isolated CPU --runtime-profile-only --profile-input-load"
+        )
     if args.profile_input_load and (not args.runtime_profile_only or args.inside):
         p.error("--profile-input-load requires the CPU --runtime-profile-only scope")
     if args.compare_host_lookups and (not args.runtime_profile_only or args.inside):
@@ -392,6 +407,7 @@ def main():
         gpu_requested=args.gpu,
         compare_host_lookups=args.compare_host_lookups,
         profile_input_load=args.profile_input_load,
+        **({"compare_memory_growth": True} if args.compare_memory_growth else {}),
         scope=(
             "runtime-profile-only"
             if args.runtime_profile_only
@@ -446,6 +462,7 @@ def main():
                     "--runtime-profile",
                     *(["--compare-host-lookups"] if args.compare_host_lookups else []),
                     *(["--profile-input-load"] if args.profile_input_load else []),
+                    *(["--compare-memory-growth"] if args.compare_memory_growth else []),
                     "--output",
                     "/work/output",
                 ],
@@ -453,6 +470,8 @@ def main():
             )
             result = json.loads((stage / "benchmark.json").read_text())
             report["stages"]["runtime-profile"] = result
+            if args.compare_memory_growth and result.get("compare_memory_growth") is not True:
+                raise RuntimeError("requested memory growth comparison evidence missing")
             if args.profile_input_load and result.get("profile_input_load") is not True:
                 raise RuntimeError("requested nested input-load evidence missing")
             if args.compare_host_lookups and result.get("compare_host_lookups") is not True:

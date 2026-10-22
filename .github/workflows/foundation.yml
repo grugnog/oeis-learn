@@ -255,7 +255,7 @@ jobs:
               free_disk_gib=5, host_free_memory_gib=1,
           ))
           profiling = os.environ["PARTITION"] == "runtime-profile"
-          argv = (["python", "scripts/benchmark_bigint.py", "--runtime-profile", "--compare-host-lookups", "--profile-input-load"] if profiling
+          argv = (["python", "scripts/benchmark_bigint.py", "--runtime-profile", "--profile-input-load", "--compare-memory-growth"] if profiling
                   else ["python", "scripts/qualify_bigint_phase5.py", "--inside", "containment"])
           container_stage(
               host, host.ensure(), Path("tmp-phase5-evidence").resolve(),

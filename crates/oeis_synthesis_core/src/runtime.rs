@@ -249,17 +249,38 @@ fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bo
     Ok(h)
 }
 
-pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String}
+pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String,growth_reservation_bytes:usize}
 impl BigintRuntime {
     pub fn new(bytes:&[u8])->Result<Self,String> {
+        Self::with_growth_reservation(bytes,0)
+    }
+    /// Fixed qualification-only counterfactual. No worker request selects this.
+    #[doc(hidden)]
+    pub fn qualification_growth_control(bytes:&[u8])->Result<Self,String> {
+        Self::with_growth_reservation(bytes,65536)
+    }
+    fn with_growth_reservation(bytes:&[u8],growth_reservation_bytes:usize)->Result<Self,String> {
         if bytes.len()>16*1024*1024 {return Err("runtime_failure".into());}
         let compilation=Instant::now();
         let mut cfg=Config::new();cfg.consume_fuel(true).epoch_interruption(true).wasm_threads(false).parallel_compilation(false);
-        cfg.static_memory_maximum_size(0).static_memory_guard_size(0).dynamic_memory_guard_size(0).dynamic_memory_reserved_for_growth(0);
+        cfg.static_memory_maximum_size(0).static_memory_guard_size(0).dynamic_memory_guard_size(0).dynamic_memory_reserved_for_growth(growth_reservation_bytes as u64);
         let engine=Engine::new(&cfg).map_err(trap)?;
         let runtime=Module::new(&engine,bytes).map_err(trap)?;
         if runtime.imports().next().is_some() {return Err("runtime_failure".into());}
-        Ok(Self{engine,runtime,compilation_seconds:compilation.elapsed().as_secs_f64(),runtime_identity:crate::value::digest(bytes)})
+        Ok(Self{engine,runtime,compilation_seconds:compilation.elapsed().as_secs_f64(),runtime_identity:crate::value::digest(bytes),growth_reservation_bytes})
+    }
+    /// Explicit engine settings for qualification evidence, separate from guest bytes.
+    pub fn engine_configuration(&self)->serde_json::Value {
+        let manifest=serde_json::json!({
+            "version":"bigint-engine-configuration/v1",
+            "purpose":if self.growth_reservation_bytes==0 {"production"}else{"qualification-growth-control"},
+            "runtime_wasm_sha256":self.runtime_identity,"wasmtime":"20.0.2",
+            "consume_fuel":true,"epoch_interruption":true,"wasm_threads":false,"parallel_compilation":false,
+            "static_memory_maximum_size":0,"static_memory_guard_size":0,"dynamic_memory_guard_size":0,
+            "dynamic_memory_reserved_for_growth":self.growth_reservation_bytes,
+        });
+        let sha=crate::value::digest(manifest.to_string().as_bytes());
+        serde_json::json!({"manifest":manifest,"sha256":sha})
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};

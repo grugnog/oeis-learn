@@ -17,6 +17,8 @@ struct Request {
     compare_host_lookups: bool,
     #[serde(default)]
     profile_input_load: bool,
+    #[serde(default)]
+    growth_reservation_control: bool,
 }
 
 fn main() {
@@ -29,11 +31,12 @@ fn main() {
     assert!(request.source.len() <= 65536);
     assert!(!request.compare_host_lookups || request.profile);
     assert!(!request.profile_input_load || request.profile);
+    assert!(!request.growth_reservation_control || (request.profile && request.profile_input_load && !request.compare_host_lookups));
     let path = std::env::var("OEIS_BIGINT_WASM")
         .unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes = std::fs::read(path).unwrap();
     let start = Instant::now();
-    let mut runtime = BigintRuntime::new(&bytes).unwrap();
+    let mut runtime = if request.growth_reservation_control {BigintRuntime::qualification_growth_control(&bytes)}else{BigintRuntime::new(&bytes)}.unwrap();
     let runtime_compile_seconds = start.elapsed().as_secs_f64();
     let mut samples = Vec::new();
     for index in 0..request.repetitions {
@@ -67,11 +70,18 @@ fn main() {
         );
         samples.push(json!({"result": result, "timings": timings}));
     }
+    // Linux qualification role: process high-water RSS includes JIT and both
+    // ordinary/profiled execution, measured before report serialization.
+    let peak_process_rss_bytes=std::fs::read_to_string("/proc/self/status").ok().and_then(|s| {
+        s.lines().find_map(|line|line.strip_prefix("VmHWM:").and_then(|value|value.split_whitespace().next()?.parse::<u64>().ok()).and_then(|kb|kb.checked_mul(1024)))
+    });
     println!("{}", json!({
         "version": if request.profile {"bigint-measurements/v2"} else {"bigint-measurements/v1"},
         "profile_input_load": request.profile_input_load,
         "host_lookup_comparison": if request.compare_host_lookups {json!({"version":"per-term-host-lookups/v1","cached":"lazy-per-term","baseline":"per-call"})}else{serde_json::Value::Null},
         "runtime_compile_seconds": runtime_compile_seconds,
+        "engine_configuration":runtime.engine_configuration(),
+        "peak_process_rss_bytes":peak_process_rss_bytes,
         "samples": samples,
     }));
 }

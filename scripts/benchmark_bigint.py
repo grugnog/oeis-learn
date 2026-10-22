@@ -540,6 +540,163 @@ def measurement_results(sample):
     return rows
 
 
+def growth_comparison_summary(zero, reserved, order, batch):
+    """A distinct engine experiment; no control result can silently qualify production."""
+    from oeis_learn.synthesis.contracts import identity
+
+    if order not in ("zero-first", "reserved-first") or len(zero["samples"]) != len(
+        reserved["samples"]
+    ):
+        raise ValueError("invalid growth arm order/count")
+    configurations, profiles, nested, rss = {}, {}, {}, {}
+    guest_hash = zero["engine_configuration"]["manifest"]["runtime_wasm_sha256"]
+    if not isinstance(guest_hash, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", guest_hash):
+        raise ValueError("invalid growth guest identity")
+    for name, report, reserve in (("zero", zero, 0), ("reserved", reserved, 65536)):
+        record = report["engine_configuration"]
+        expected = dict(
+            version="bigint-engine-configuration/v1",
+            purpose="qualification-growth-control" if reserve else "production",
+            runtime_wasm_sha256=guest_hash,
+            wasmtime="20.0.2",
+            consume_fuel=True,
+            epoch_interruption=True,
+            wasm_threads=False,
+            parallel_compilation=False,
+            static_memory_maximum_size=0,
+            static_memory_guard_size=0,
+            dynamic_memory_guard_size=0,
+            dynamic_memory_reserved_for_growth=reserve,
+        )
+        # Canonical identity compares JSON types too (true must not masquerade as1).
+        if identity(record["manifest"]) != identity(expected) or record["sha256"] != identity(
+            expected
+        ):
+            raise ValueError("unbound or changed growth engine configuration")
+        configurations[name] = record["sha256"]
+        if (
+            type(report["peak_process_rss_bytes"]) is not int
+            or not 0 < report["peak_process_rss_bytes"] <= 16 << 30
+        ):
+            raise ValueError("bounded Linux process RSS required for each arm")
+        rss[name] = report["peak_process_rss_bytes"]
+        summarize([report["runtime_compile_seconds"]])
+        profiles[name] = profile_summary(report, batch)
+        nested[name] = input_load_summary(report, batch)
+        if nested[name]["policy"] != "bigint-input-load-profile/v2":
+            raise ValueError("growth comparison requires first-byte v2 evidence")
+    mismatches = []
+    for index, (a, b) in enumerate(zip(zero["samples"], reserved["samples"])):
+        fields = sorted(
+            k
+            for k in set(a["control"]["result"]) | set(b["control"]["result"])
+            if k not in a["control"]["result"]
+            or k not in b["control"]["result"]
+            or a["control"]["result"][k] != b["control"]["result"][k]
+        )
+        if fields:
+            mismatches.append(dict(sample=index, fields=fields))
+    ordinary = {name: p["control_warm"] for name, p in profiles.items()}
+    denominator = ordinary["zero"]["execution_seconds"]["median_seconds"]
+    policy = dict(
+        version="bigint-growth-reservation-comparison/v1",
+        configurations=configurations,
+        resource_identity=zero["samples"][0]["control"]["result"]["resource_identity"],
+        process_policy="separate-native-process-per-setting-and-row",
+        order_policy="alternate-corpus-row",
+        repetitions=len(zero["samples"]),
+    )
+    return dict(
+        **policy,
+        comparison_sha256=identity(policy),
+        order=order,
+        all_results_match=not mismatches
+        and all(p["paired_results_match"] for p in profiles.values()),
+        mismatches=mismatches,
+        ordinary_warm=ordinary,
+        ordinary_cold={
+            name: report["samples"][0]["control"]["timings"]
+            for name, report in (("zero", zero), ("reserved", reserved))
+        },
+        runtime_compile_seconds={
+            name: report["runtime_compile_seconds"]
+            for name, report in (("zero", zero), ("reserved", reserved))
+        },
+        peak_process_rss_bytes=rss,
+        first_byte_warm={
+            name: n["first_byte_probe"]["first_byte_warm"] for name, n in nested.items()
+        },
+        observer_ratios={name: p["warm_median_execution_ratio"] for name, p in profiles.items()},
+        warm_execution_ratio_reserved_over_zero=ordinary["reserved"]["execution_seconds"][
+            "median_seconds"
+        ]
+        / denominator
+        if denominator
+        else None,
+        interpretation="Qualification-only counterfactual. Review ordinary prepare/execute/total and lifecycle, first byte, observer distortion and exclusions. Per-process VmHWM includes compilation/JIT and both observations, measured before report serialization; it is not aggregate RSS or guest-only allocation. Production remains zero reservation.",
+    )
+
+
+def memory_growth_measurements(
+    case, batch, repetitions, *, order, failure_output, progress_output=None
+):
+    """Separate subprocesses prevent one setting's JIT/RSS from contaminating the other."""
+    if order not in ("zero-first", "reserved-first"):
+        raise ValueError("invalid growth arm order")
+    arms = {}
+    for name in ("zero", "reserved") if order == "zero-first" else ("reserved", "zero"):
+        if progress_output is not None:
+            write(
+                progress_output,
+                dict(
+                    status="FAIL",
+                    case=case["name"],
+                    batch=batch,
+                    order=order,
+                    active_arm=name,
+                    arms=arms,
+                ),
+            )
+        arms[name] = runtime_measurements(
+            case,
+            batch,
+            repetitions,
+            profile=True,
+            profile_input_load=True,
+            growth_reservation_control=name == "reserved",
+            failure_output=failure_output,
+            native_output=Path(failure_output).with_name("growth-latest-native.log"),
+        )
+        if progress_output is not None:
+            write(
+                progress_output,
+                dict(
+                    status="FAIL",
+                    case=case["name"],
+                    batch=batch,
+                    order=order,
+                    completed_arm=name,
+                    arms=arms,
+                ),
+            )
+    comparison = growth_comparison_summary(arms["zero"], arms["reserved"], order, batch)
+    if progress_output is not None:
+        write(
+            progress_output,
+            dict(
+                status="PASS" if comparison["all_results_match"] else "FAIL",
+                case=case["name"],
+                batch=batch,
+                order=order,
+                comparison_sha256=comparison["comparison_sha256"],
+                arms=arms,
+            ),
+        )
+    comparison["reserved"] = arms["reserved"]
+    arms["zero"]["memory_growth"] = comparison
+    return arms["zero"]
+
+
 def runtime_measurements(
     case,
     batch,
@@ -548,13 +705,20 @@ def runtime_measurements(
     profile=False,
     compare_host_lookups=False,
     profile_input_load=False,
+    growth_reservation_control=False,
     failure_output=None,
+    native_output=None,
 ):
     """Native compilation and execution are timed inside the production runtime."""
     from oeis_learn.synthesis.reference import evaluate
 
     if (compare_host_lookups or profile_input_load) and not profile:
         raise ValueError("host lookup/input-load details require runtime profiling")
+
+    if growth_reservation_control and (
+        not profile or not profile_input_load or compare_host_lookups
+    ):
+        raise ValueError("growth control requires isolated input profiling")
 
     # Repeated exact indices measure batch overhead, never pretend to be a dataset.
     indices = (case["indices"] * batch)[:batch]
@@ -570,12 +734,18 @@ def runtime_measurements(
                 **({"profile": True} if profile else {}),
                 **({"compare_host_lookups": True} if compare_host_lookups else {}),
                 **({"profile_input_load": True} if profile_input_load else {}),
+                **({"growth_reservation_control": True} if growth_reservation_control else {}),
             )
         ).encode(),
         capture_output=True,
         timeout=120,
     )
     subprocess_seconds = time.monotonic() - started
+    if native_output is not None:
+        target = Path(native_output)
+        temporary = target.with_suffix(target.suffix + ".tmp")
+        temporary.write_bytes(proc.stdout[: 4 << 20])
+        temporary.replace(target)
     if proc.returncode or len(proc.stdout) > 4 << 20:
         raise RuntimeError(
             "bounded native measurement failed: " + proc.stderr[:1000].decode(errors="replace")
@@ -1317,6 +1487,7 @@ def run(
     profile_runtime=False,
     compare_host_lookups=False,
     profile_input_load=False,
+    compare_memory_growth=False,
 ):
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -1329,6 +1500,7 @@ def run(
         version="bigint-runtime-profile/v1" if profile_runtime else "bigint-performance/v1",
         compare_host_lookups=compare_host_lookups,
         profile_input_load=profile_input_load,
+        **({"compare_memory_growth": True} if compare_memory_growth else {}),
         status="FAIL",
         qualified=False,
         python=sys.version,
@@ -1339,6 +1511,10 @@ def run(
         accounting="prepare includes parse/lower/candidate compilation; execute includes fresh stores, loading and serialization; runtime compilation separate; warm reuses runtime module only",
     )
     try:
+        if compare_memory_growth and (
+            not profile_runtime or not profile_input_load or compare_host_lookups
+        ):
+            raise ValueError("memory growth comparison requires isolated CPU input profiling")
         if (compare_host_lookups or profile_input_load) and not profile_runtime:
             raise ValueError("host lookup/input-load details require runtime profiling")
         if profile_runtime and (
@@ -1365,8 +1541,17 @@ def run(
         for case in cases():
             for batch in batches:
                 report["active_measurement"] = dict(case=case["name"], batch=batch)
-                row = (
-                    runtime_measurements(
+                if compare_memory_growth:
+                    row = memory_growth_measurements(
+                        case,
+                        batch,
+                        repetitions,
+                        order="zero-first" if len(report["cases"]) % 2 == 0 else "reserved-first",
+                        failure_output=output / "failed-native.log",
+                        progress_output=output / "growth-active.json",
+                    )
+                elif profile_runtime:
+                    row = runtime_measurements(
                         case,
                         batch,
                         repetitions,
@@ -1381,14 +1566,14 @@ def run(
                             else {}
                         ),
                     )
-                    if profile_runtime
-                    else runtime_measurements(case, batch, repetitions)
-                )
+                else:
+                    row = runtime_measurements(case, batch, repetitions)
                 report["cases"].append(row)
                 write(output / "partial.json", report)
                 if profile_runtime and (
                     not row["profiling"]["paired_results_match"]
                     or (compare_host_lookups and not row["host_lookups"]["all_results_match"])
+                    or (compare_memory_growth and not row["memory_growth"]["all_results_match"])
                 ):
                     raise RuntimeError(
                         "profiled/control/baseline semantic, fuel or coverage disagreement; partial.json retains all results"
@@ -1575,6 +1760,11 @@ def main():
         action="store_true",
         help="nested CPU transfer timings and partial byte/value counters; requires --runtime-profile",
     )
+    parser.add_argument(
+        "--compare-memory-growth",
+        action="store_true",
+        help="qualification-only zero/64KiB separate-process comparison; requires input runtime profiling",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--config")
     parser.add_argument("--shape-manifest")
@@ -1597,6 +1787,7 @@ def main():
             profile_runtime=args.runtime_profile,
             compare_host_lookups=args.compare_host_lookups,
             profile_input_load=args.profile_input_load,
+            compare_memory_growth=args.compare_memory_growth,
         )
     except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(str(exc), file=sys.stderr)

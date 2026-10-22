@@ -58,3 +58,27 @@ def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_bound
         assert row["warm"]["execution_seconds"]["samples"] == 1
         assert row["cold"]["total_seconds"] >= row["cold"]["prepare_seconds"]
         assert row["expected_reason"] == case["expected_reason"]
+
+
+@pytest.mark.parametrize("order", ["zero-first", "reserved-first"])
+def test_packaged_growth_comparison_preserves_exact_fuel_and_failures(order, tmp_path):
+    binary = Path(
+        os.environ.get("OEIS_BENCHMARK_RUNTIME", "/opt/oeis-build-info/benchmark-runtime")
+    )
+    if not binary.is_file():
+        if os.environ.get("OEIS_REQUIRE_BIGINT_BUILD") == "1":
+            pytest.fail("mandatory benchmark runtime missing")
+        pytest.skip("requires pinned native qualification image")
+    mod = benchmark()
+    for case in mod.cases():
+        row = mod.memory_growth_measurements(
+            case, 1, 2, order=order, failure_output=tmp_path / "failed-native.log"
+        )
+        assert row["memory_growth"]["all_results_match"], row
+        for arm in [row, row["memory_growth"]["reserved"]]:
+            assert arm["input_load_profiling"]["first_byte_probe"]["memory_in_first"][
+                "requests"
+            ] == [1, 1]
+            assert arm["input_load_profiling"]["first_byte_probe"]["memory_in_first"][
+                "requested_increase_bytes"
+            ] == [65536, 65536]
