@@ -7,7 +7,7 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: CPU growth-reservation comparison
+## CPU growth-reservation comparison — reviewed
 
 The [reviewed first-byte result](validation/phase-5-first-byte-review.json)
 localizes about99.85% of small-case byte transfer to the first call. Every one
@@ -15,8 +15,17 @@ of8670 observed first calls requests64KiB growth. The empty guest buffer and zer
 growth reservation, together with pinned Wasmtime's relocation/copy path,
 provide a specific hypothesis to test. Copy time itself has not been measured.
 
-The [frozen comparison](validation/phase-5-growth-reservation.md) runs exactly
-zero versus64KiB spare growth reservation. Production stays at zero. Run:
+The [reviewed comparison](validation/phase-5-growth-reservation-review.json)
+verifies all450 detailed/ordinary pairs and225 cross-setting groups. At batch100,
+64KiB improves ordinary small-add/cancel execution5.27/5.23x and total4.87/4.85x;
+4096-bit multiplication improves2.46x. Three batch1 rows are slower and two warm
+samples do not settle single-term behavior. The small-value retained gap remains
+13–14x, so T094 stays open.
+
+The next focused work is explicit production-engine policy/identity adoption and
+native/container regression qualification, retaining the zero control. This has
+not changed production, which still uses zero. No repeat of the comparison is
+needed now; the command below reproduces the reviewed experiment:
 
 ```bash
 growth_out="tmp-validation/008-growth-reservation-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -50,8 +59,8 @@ No speedup is assumed, and moving time into initialization is not an improvement
 `memory_growth` summarizes both. `growth-active.json` preserves completed settings
 if the next operation fails; `growth-latest-native.log` retains the last bounded
 raw native report even if validation rejects it. The archive keeps its existing
-64MiB cap and omission manifest. Code/metadata tests run locally, while new-source
-native compilation, regressions and actual comparison results remain pending.
+64MiB cap and omission manifest. Source-bound benchmark execution/results are now
+reviewed. This archive does not include a standalone native regression-suite receipt.
 
 Shared CI runs this comparison using its existing image and audited socket-free
 launcher. `--compare-host-lookups` remains available for its separate ordinary

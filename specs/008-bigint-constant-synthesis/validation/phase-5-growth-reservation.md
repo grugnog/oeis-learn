@@ -64,3 +64,42 @@ covers all batches including aggregate-fuel exhaustion. No new-source native
 execution, measured speedup or production adoption is claimed by test-code
 presence. See [phase-5-growth-reservation-local.json](phase-5-growth-reservation-local.json)
 for available checks and [quickstart](../quickstart.md) for the CPU command.
+
+
+## Reviewed user CPU result — 2026-10-22
+
+[phase-5-growth-reservation-review.json](phase-5-growth-reservation-review.json)
+verifies CRC and all nine manifest hashes, source/report binding, engine and
+comparison identities, independently expected output hashes,450 detailed/ordinary
+pairs and225 cross-setting groups. All summaries recompute exactly. Both settings
+have identical results, failure classification, fuel, coverage and semantic
+resources. The benchmark executes successfully; a separate native regression-suite
+receipt is not included. Initial visible memory/growth requests are unchanged.
+
+Warm batch100 ordinary execution:
+
+| Case | Zero |64KiB | Speedup |
+| --- | ---: | ---: | ---: |
+| Small addition |21.94ms |4.16ms |5.27x |
+| Small cancellation |22.38ms |4.28ms |5.23x |
+|4096-bit multiplication |29.69ms |12.04ms |2.46x |
+
+First-byte cost falls from about160us to2.7–3.1us per term on these rows.
+Small-case total time also improves4.85–4.87x; initialization does not absorb the
+savings. Store destruction falls from about2.1ms to0.52ms per100 terms. This
+additional lifecycle saving explains why execution improves beyond the earlier
+first-call-only estimate. Per-process maximum RSS across the corpus is19.25MiB
+versus18.31MiB; this is not an aggregate/guest-only memory measurement and some
+individual reserved rows have slightly higher RSS. Cleanup is0.03994s against5s.
+Isolation remains offline/read-only with no GPU and only the output bind writable.
+
+These are strong controlled results for a focused production-engine change, not
+broad latency or HIP evidence. Three batch1 rows are slower, up to2.16x, with
+substantial observer/order variation; two warm samples do not settle single-term
+behavior. Reserved small-value execution still takes13.4–13.7x the retained backend.
+The generated16384 batch100 fuel exclusion remains at82 completed terms.
+
+Recommend a focused64KiB production policy with explicit engine identity, retained
+zero control and native/container regression qualification. No production policy
+is changed by this review. T094 remains open for the remaining slowdown/measurement
+work; original negative T096 and promotion block are unchanged.

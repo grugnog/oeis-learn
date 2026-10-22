@@ -417,3 +417,13 @@ zero/64KiB comparison is runnable; production remains zero. Actual new-source
 native execution/comparison and any adoption remain pending. See
 [phase-5-growth-reservation-local.json](validation/phase-5-growth-reservation-local.json).
 T094 stays unchecked and no learning attempt is launched.
+
+
+**T094 reviewed growth comparison (2026-10-22)**:
+[phase-5-growth-reservation-review.json](validation/phase-5-growth-reservation-review.json)
+verifies450 detailed/ordinary pairs and225 cross-setting groups. A64KiB spare
+reservation improves small batch100 ordinary execution5.23–5.27x with identical
+results/fuel/failures and no corpus-level peak-RSS increase. Focused explicitly
+identified production adoption plus native/container regression qualification is
+recommended; this review changes no production setting. T094 stays unchecked:
+reserved execution remains13.4–13.7x retained and batch1 behavior is not settled.
