@@ -28,15 +28,47 @@ observation-only `bigint-input-load-profile/v1`, on the existing run path:
 - Use the same25-case corpus, batches1/20/100, three repetitions,600s CPU work
   plus5s cleanup and fresh bounded archives. No inputs, weights or HIP mount.
 
-- [ ] I001 Add native/Python counterexamples for nested accounting, early errors,
+- [X] I001 Add native/Python counterexamples for nested accounting, early errors,
   byte/value counters, malformed evidence and unchanged result/fuel parity.
-- [ ] I002 Add opt-in nested measurements in the native runtime/example, leaving
+- [X] I002 Add opt-in nested measurements in the native runtime/example, leaving
   ordinary and existing aggregate-only profiling available.
-- [ ] I003 Validate/summarize nested evidence, wire the portable helper/shared
+- [X] I003 Validate/summarize nested evidence, wire the portable helper/shared
   CI flag and retain mismatch/partial reports.
-- [ ] I004 Run available checks, record source-bound local evidence and provide
+- [X] I004 Run available checks, record source-bound local evidence and provide
   CPU commands, leaving actual new-image native results pending without CI waits.
 
 T094 remains open until actual subphase costs and observer distortion are
 reviewed. This step does not promise a further optimization or admit training.
 T093/T097/T098 and the original negative T096 remain unchanged.
+
+## Implemented observation and available checks
+
+The optional native `evaluate_input_profiled` wrapper uses the same production
+run/load helpers. Existing aggregate-only observation and ordinary execution do
+not read nested clocks. The seven fixed subphases include first-use export
+resolution in their respective guest-call phase; finish-load also includes sign
+selection in its original position. Magnitude encoding remains after begin-load,
+as before. Literal source parsing is outside the input-load parent. Byte-loop
+counters are separate from the one timer around the loop; value completion means
+its finish/status checks returned successfully, not candidate scoring completion.
+
+Native regression source covers exact guest call/fuel parity, successful/partial
+byte counts and empty nested profiles after early guest initialization failure.
+The packaged corpus now has five mode combinations, including nested profiling
+with/without the ordinary lookup baseline. Missing native artifacts fail in CI.
+Python evidence checks reject malformed policies, missing/extra phases, NaN or
+negative timings, double counting, impossible phase/value/byte counts and wrong
+scope. A bounded raw `failed-native.log` survives malformed native JSON/profile
+validation; the valid failed summary identifies the active case.
+
+Available checks pass103 Python tests, with five explicit packaged-native
+contract skips. Ruff/formatting, workflow YAML/Bash/embedded Python, mocked
+command routing, standard-library-only host help and documented shell commands
+are checked in [the local receipt](phase-5-input-load-local.json). There is no
+local Rust/container toolchain: native compilation/regressions and actual nested
+costs/observer distortion remain pending. No native or HIP result is fabricated,
+and new CI is left running without polling or waiting.
+
+Use the [current quickstart command](../quickstart.md#current-next-step-cpu-input-load-attribution).
+I001–I004 are complete as implementation/local-check tasks. T094 is open until
+the new results are reviewed; full Phase5 promotion is still blocked.

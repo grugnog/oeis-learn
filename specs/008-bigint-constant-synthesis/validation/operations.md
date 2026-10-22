@@ -69,3 +69,9 @@ inspection and0.040418s cleanup; see [the receipt](phase-5-runtime-profile-revie
 The new `--compare-host-lookups` extension adds a bounded ordinary baseline to
 the same role. Actual execution of that new source remains pending; it does not
 complete the remaining T097 command/checkpoint/export coverage.
+
+The uploaded lookup-comparison operation is also verified in
+[its review receipt](phase-5-host-lookups-review.json):75 rows/225 three-way
+groups, no manifest omissions and0.047662s cleanup. `--profile-input-load` now
+adds nested observation to the same600s CPU role. New-image execution remains
+pending and does not close the remaining T097 command/checkpoint/export coverage.

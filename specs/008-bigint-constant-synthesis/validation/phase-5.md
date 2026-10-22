@@ -45,7 +45,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): uploaded CPU profile reviewed,225 pairs match; input loading dominates shared-small batch100 at about74%. Per-term host lookup caching and ordinary baseline comparison are implemented; new-image native safety/performance evidence remains pending. |
+| T094 | [Performance](performance.md): CPU lookup comparison reviewed,225 three-way groups match; wide values benefit but input loading stays about74% of small cases. Nested observation is implemented; new native regression/subphase timing evidence remains pending. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
 | T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete command/export and matched-checkpoint coverage remain open. |
@@ -75,20 +75,19 @@ to assess that defect.
 
 Remaining work, in dependency order:
 
-1. The [uploaded CPU profile](phase-5-runtime-profile-review.json) is reviewed:
-   225 pairs match, and input loading accounts for about74% of shared-small
-   batch100 detailed execution. The preceding both-engine audit is complete.
-2. Validate the per-term lazy host-function cache against the frozen ordinary
-   lookup-per-call baseline in [phase-2-host-lookups.md](phase-2-host-lookups.md).
-   New-image native compilation/safety and measured comparison remain pending;
-   no speedup is claimed and T094 stays open.
+1. The [uploaded lookup comparison](phase-5-host-lookups-review.json) is reviewed:
+   225 three-way groups and independent hashes match. Caching helps wide values,
+   but small batch100 add/cancel change only0.25%/2.18%; input loading stays74%.
+2. Collect the observation-only nested input-load profile in
+   [phase-5-input-load.md](phase-5-input-load.md), then review its subphase costs
+   and detailed/ordinary distortion. New-image native regressions and these
+   timings are pending; T094 stays open. CPU execution is sufficient here.
 3. Obtain a genuine retained matched-run checkpoint for T093. The completed new
    bigint tiny checkpoint cannot substitute. Finish the supported operations and
    export coverage checklist for T097.
-4. Update T098 with all remaining pass/fail/pending receipts. The completed
-   negative T096, missing prerequisites and unadmitted transfer screen continue
-   to block promotion. Any new qualification attempt needs a separate reviewed
-   registration and current source/image cost/device evidence; none is launched.
+4. Update T098 with all remaining pass/fail/pending receipts. Negative T096,
+   missing prerequisites and the unadmitted transfer screen block promotion.
+   No new qualification/training attempt is launched.
 
 T092/T095 remain completed historical tasks for their recorded source/image,
 not permission to reuse old HIP/cost receipts for new training. No numerical,
@@ -161,11 +160,11 @@ checks; expected exclusions are not throughput successes. Normal candidate and
 worker protocols do not expose profiling.
 
 Earlier profiler checks passed55 tests with two native-only skips; the source-
-bound [receipt](phase-5-runtime-profile-local.json) is retained. Latest lookup
-comparison checks pass76 tests, with three native-only contract skips; see
-[the new local receipt](phase-2-host-lookups-local.json). The uploaded baseline
-profile is now reviewed; new cache compilation,
-comparison timings and Docker/Podman execution remain pending; no suitable
+bound [receipt](phase-5-runtime-profile-local.json) is retained. Latest nested-input
+checks pass103 tests, with five native-only contract skips; see
+[the new local receipt](phase-5-input-load-local.json). The uploaded cache
+comparison is now reviewed; new observation compilation,
+regressions and actual nested timings remain pending; no suitable
 engine/toolchain exists here. The CI adds a dedicated CPU partition using the
 shared image and audited socket-free launcher. No dependency layer/lock changes
 or measured speedup is claimed. T094 remains open until new cache safety and
@@ -175,11 +174,12 @@ step, and no training or T096 replay is launched.
 ```bash
 profile_out="tmp-validation/008-runtime-profile-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --compare-host-lookups --output "$profile_out"
+  --runtime-profile-only --profile-input-load --output "$profile_out"
 ```
 
-With `--compare-host-lookups`, each sample also includes an ordinary pre-cache
-lookup baseline; all three results must match. This builds/reuses the current
+With `--profile-input-load`, each detailed sample also partitions its input-load
+parent into seven nested phases with partial-work counters. Add
+`--compare-host-lookups` to repeat the optional third baseline. This builds/reuses the current
 checkout image, then runs only the fixed CPU corpus
 (25cases, batches1/20/100, three samples per arm). The work role is bounded
 to600seconds with separate5s cleanup; image building is outside that work limit.

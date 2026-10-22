@@ -217,3 +217,32 @@ learning. HIP is needed for neural updates/decoding or end-to-end throughput,
 not this candidate-executor microbenchmark. No data, weights, fitting, hidden
 scoring, GPU capability or learning retry is requested. Original T096 remains
 negative and promotion remains blocked.
+
+## Host-lookup result and finer input-load observation — 2026-10-22
+
+The [reviewed lookup archive](phase-5-host-lookups-review.json) verifies75 rows,
+225 three-way groups, exact output hashes, report/source bindings and actual
+isolation/cleanup (0.047662s against5s). At batch100 small-add/cancel use
+21.838/22.269ms with lookup-per-call versus21.782/21.784ms cached:0.25%/2.18%
+less time. The retained gap remains about71–73x, and input loading remains74%.
+The4096-bit multiplication row uses44.775ms versus29.350ms (34.45% less);
+the successful generated16384-bit batch20 uses38.67% less time. Batch100 of
+that latter case still exhausts aggregate fuel at82 terms and remains excluded.
+A batch100 loop row is5.25% slower with caching, whereas its batch20 row is9.63%
+faster; two warm samples cannot establish a stable small difference. No broad
+throughput superiority or new end-to-end HIP claim follows.
+
+The next bounded step is `bigint-input-load-profile/v1`, frozen in
+[phase-5-input-load.md](phase-5-input-load.md). It measures index parsing,
+begin-load, magnitude encoding, the entire byte-transfer loop, finish-load,
+status checks and sealing inside the existing input-load phase. It records
+attempted/returned byte calls and started/finished values, including early
+failure; no byte gets its own clock. Nested sums/residual must match the parent
+and do not contribute again to aggregate execution. The current ordinary pair
+still measures observer distortion; the old lookup strategy remains an optional
+third ordinary baseline.
+
+Use the [current CPU command](../quickstart.md#current-next-step-cpu-input-load-attribution).
+The same corpus, resource ceilings, source/image binding and failure archives
+apply; malformed native detail also retains a bounded raw log. Actual new-image
+native regression and subphase measurements are pending, so T094 stays open.

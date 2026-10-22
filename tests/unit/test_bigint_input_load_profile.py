@@ -132,7 +132,7 @@ def test_host_input_profile_rejects_unscoped_request_before_engine(monkeypatch):
     assert error.value.code == 2
 
 
-@pytest.mark.parametrize("kind", ["nan", "invalid-json"])
+@pytest.mark.parametrize("kind", ["nan", "invalid-json", "non-object"])
 def test_malformed_native_detail_keeps_bounded_raw_evidence_and_failure_status(
     tmp_path, monkeypatch, kind
 ):
@@ -142,7 +142,13 @@ def test_malformed_native_detail_keeps_bounded_raw_evidence_and_failure_status(
     module = benchmark()
     data = input_report()
     data["samples"][0]["timings"]["stages"]["input_load"]["unattributed_seconds"] = float("nan")
-    raw = b"{bad JSON" if kind == "invalid-json" else json.dumps(data).encode()
+    raw = (
+        b"[]"
+        if kind == "non-object"
+        else b"{bad JSON"
+        if kind == "invalid-json"
+        else json.dumps(data).encode()
+    )
     monkeypatch.setattr(bigint_config, "packaged_artifacts", lambda: {})
     monkeypatch.setattr(common, "file_hash", lambda p: "sha256:" + "a" * 64)
     monkeypatch.setattr(

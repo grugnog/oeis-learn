@@ -7,35 +7,41 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: CPU host-lookup comparison
+## Current next step: CPU input-load attribution
 
-Both-engine containment is reviewed. The uploaded CPU runtime profile now
-identifies input loading as about74% of shared-small batch100 execution; see
-[the receipt](validation/phase-5-runtime-profile-review.json). The focused change
-caches typed host export handles lazily per fresh term, retaining all guest
-calls, fuel and resource checks. Compare it against the earlier lookup behavior:
+The [uploaded host-lookup comparison](validation/phase-5-host-lookups-review.json)
+is reviewed:225 three-way groups match. Caching helps wide values, while small
+batch100 addition/cancellation change by only0.25%/2.18% and about74% of detailed
+execution remains in input loading. The next observation-only step splits that
+phase into parsing, begin-load, encoding, byte transfer, finish-load, status and
+sealing without changing guest calls or limits:
 
 ```bash
-lookup_out="tmp-validation/008-host-lookups-$(date -u +%Y%m%dT%H%M%SZ)"
+input_out="tmp-validation/008-input-load-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --compare-host-lookups --output "$lookup_out"
+  --runtime-profile-only --profile-input-load --output "$input_out"
 ```
 
-The helper builds/reuses the current checkout image, runs the fixed non-scoring
-corpus within600seconds plus5s cleanup, and prints a bounded result ZIP even
-on failure. Image building is outside that work limit. Share `$lookup_out.zip`;
-no dataset, weights or HIP device is needed. Docker uses `--engine docker`.
-Detailed, ordinary current and ordinary lookup-baseline results must match in
-values, failures, fuel, coverage and resource identity. Ordinary timing ratios
-measure caching separately from profiler overhead; actual new-image comparison
-is pending and no speedup is claimed. Omitting `--compare-host-lookups` retains
-the existing two-way profile. The [frozen scope](validation/phase-2-host-lookups.md)
-does not authorize training or alter the original negative T096 outcome.
+Share `$input_out.zip`, including a partial/failed result. The helper builds or
+reuses the current checkout image, then runs the fixed non-scoring corpus within
+600seconds work plus5s cleanup; building is outside that work limit. Docker uses
+`--engine docker`. No dataset, weights or HIP device is needed. Detailed and
+ordinary results must match in values, failures, fuel, coverage and resource
+identity. Review nested times together with detailed/ordinary observer distortion.
+Counters retain failed/partial transfers; returned byte calls do not imply byte
+acceptance after a sticky error. Nested times are part of input loading and
+must not be added again to total execution.
+
+Add `--compare-host-lookups` only to repeat the optional third ordinary baseline;
+the shared CI exercises that combination. Omitting `--profile-input-load` retains
+the existing ten-phase profile. New-image native compilation and nested timings
+remain pending. See [the frozen scope](validation/phase-5-input-load.md).
 
 HIP/ROCm runs the neural encoder/decoder and updates; generated candidate
 programs execute on CPU in Rust/Wasmtime, including during HIP-backed learning.
 This command isolates that CPU component. End-to-end training throughput still
-requires a separately source-bound HIP measurement.
+requires separately source-bound HIP measurement. The original negative T096
+and its consumed allowance are unchanged; this command launches no training.
 
 ## Phase 5 qualification runner
 

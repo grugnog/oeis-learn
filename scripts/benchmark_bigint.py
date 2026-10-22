@@ -443,6 +443,8 @@ def runtime_measurements(
         )
     try:
         report = json.loads(proc.stdout)
+        if not isinstance(report, dict):
+            raise ValueError("native measurement report must be an object")
         if (
             report.get("version")
             != ("bigint-measurements/v2" if profile else "bigint-measurements/v1")
@@ -474,7 +476,7 @@ def runtime_measurements(
                     for row in measurement_results(sample):
                         row["values_sha256"] = identity(row.pop("values"))
                 return report
-    except (ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError, AttributeError, OverflowError):
         if failure_output is not None:
             target = Path(failure_output)
             temporary = target.with_suffix(target.suffix + ".tmp")
