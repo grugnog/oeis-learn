@@ -406,3 +406,8 @@ verifies225 pairs and one allowed64KiB request in every one of8670 observed firs
 calls. First calls account for99.85% of small-case byte transfer. A controlled,
 separately identified growth-reservation comparison is next; production policy,
 T094's unchecked state, negative T096 and promotion block remain unchanged.
+
+**T094 bounded growth-reservation comparison (2026-10-22)**: G001–G004 in
+[phase-5-growth-reservation.md](validation/phase-5-growth-reservation.md) freeze
+separate-process zero/64KiB qualification controls. Production remains zero;
+semantic/resource gates and negative T096 are unchanged.
