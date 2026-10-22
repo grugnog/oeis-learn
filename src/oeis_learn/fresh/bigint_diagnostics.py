@@ -384,9 +384,23 @@ def portfolio(decoder, memory, row, recipe, client, **kwargs):
 
 
 def generate(
-    encoder, decoder, rows, recipe, client, *, deadline, periodic=False, compare_cache=False
+    encoder,
+    decoder,
+    rows,
+    recipe,
+    client,
+    *,
+    deadline,
+    periodic=False,
+    compare_cache=False,
+    diagnostic_attempts=None,
 ):
     import torch
+
+    if diagnostic_attempts is not None and (
+        periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
+    ):
+        raise ValueError("only the explicit reduced pipeline diagnostic portfolio is supported")
 
     if any(len(r["values"]) != 20 or len(r["indices"]) != 20 for r in rows):
         raise ValueError("only20 visible terms enter generation")
@@ -432,7 +446,9 @@ def generate(
                     recipe,
                     client,
                     deadline=until,
-                    attempt_count=1 if periodic else 8,
+                    attempt_count=(
+                        diagnostic_attempts[mode] if diagnostic_attempts else 1 if periodic else 8
+                    ),
                     template=mode == "template",
                     compare_cache=compare_cache and mode == "correct" and i < 3,
                 )

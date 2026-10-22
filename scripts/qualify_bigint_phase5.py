@@ -37,6 +37,7 @@ GROUPS = {
         "tests/unit/test_bigint_growth_reservation.py",
         "tests/unit/test_bigint_engine_policy.py",
         "tests/unit/test_bigint_generation.py",
+        "tests/unit/test_pipeline_profile.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
         "tests/unit/test_bigint_cost_scopes.py",
@@ -451,7 +452,7 @@ def main():
         pending={
             "T091": "both Docker and Podman evidence required; this invocation tests one engine",
             "T092": "actual HIP on eventual image required",
-            "T093": "actual matched checkpoint not supplied",
+            "T093": "DEFERRED by user; outside current Phase5 gate",
             "T094": "actual neural measurements and any >5x slowdown review required",
             "T095": "complete paired dataset and matching non-scoring cost preflight required",
             "T096": "diverse32 training gate not run",
