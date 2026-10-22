@@ -7,25 +7,35 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: CPU runtime profiling
+## Current next step: CPU host-lookup comparison
 
-Both-engine containment artifacts are reviewed and close T091 for their
-recorded implementation. The next T094 step needs CPU/native execution only:
+Both-engine containment is reviewed. The uploaded CPU runtime profile now
+identifies input loading as about74% of shared-small batch100 execution; see
+[the receipt](validation/phase-5-runtime-profile-review.json). The focused change
+caches typed host export handles lazily per fresh term, retaining all guest
+calls, fuel and resource checks. Compare it against the earlier lookup behavior:
 
 ```bash
-profile_out="tmp-validation/008-runtime-profile-$(date -u +%Y%m%dT%H%M%SZ)"
+lookup_out="tmp-validation/008-host-lookups-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --output "$profile_out"
+  --runtime-profile-only --compare-host-lookups --output "$lookup_out"
 ```
 
 The helper builds/reuses the current checkout image, runs the fixed non-scoring
 corpus within600seconds plus5s cleanup, and prints a bounded result ZIP even
-on failure. Image building is outside that work limit. Share `$profile_out.zip`;
+on failure. Image building is outside that work limit. Share `$lookup_out.zip`;
 no dataset, weights or HIP device is needed. Docker uses `--engine docker`.
-Detailed/control values, failures, fuel and coverage must match. Review phase
-costs together with observer overhead before choosing any optimization. Actual
-new-image execution is pending; no new learning attempt follows this command.
-See [the profiling scope](validation/performance.md#opt-in-phase-profiler-implementation).
+Detailed, ordinary current and ordinary lookup-baseline results must match in
+values, failures, fuel, coverage and resource identity. Ordinary timing ratios
+measure caching separately from profiler overhead; actual new-image comparison
+is pending and no speedup is claimed. Omitting `--compare-host-lookups` retains
+the existing two-way profile. The [frozen scope](validation/phase-2-host-lookups.md)
+does not authorize training or alter the original negative T096 outcome.
+
+HIP/ROCm runs the neural encoder/decoder and updates; generated candidate
+programs execute on CPU in Rust/Wasmtime, including during HIP-backed learning.
+This command isolates that CPU component. End-to-end training throughput still
+requires a separately source-bound HIP measurement.
 
 ## Phase 5 qualification runner
 

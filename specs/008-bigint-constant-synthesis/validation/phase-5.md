@@ -45,7 +45,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
-| T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Historical HIP ratios23.24–73.81x and current CPU CI ratios26.09–100.91x require per-term profiling; these are separate machines/receipts. |
+| T094 | [Performance](performance.md): uploaded CPU profile reviewed,225 pairs match; input loading dominates shared-small batch100 at about74%. Per-term host lookup caching and ordinary baseline comparison are implemented; new-image native safety/performance evidence remains pending. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
 | T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete command/export and matched-checkpoint coverage remain open. |
@@ -75,12 +75,13 @@ to assess that defect.
 
 Remaining work, in dependency order:
 
-1. Review the new CPU profiling artifact after CI completes, or use the targeted
-   command below; the preceding both-engine containment audit is now complete.
-2. Attribute the small-value per-term execution overhead with the bounded
-   observation-only profiling plan in [performance.md](performance.md). Existing
-   CPU data excludes compilation as the main explanation; it does not isolate
-   timer, instance, linker, ABI or serialization cost. T094 remains open.
+1. The [uploaded CPU profile](phase-5-runtime-profile-review.json) is reviewed:
+   225 pairs match, and input loading accounts for about74% of shared-small
+   batch100 detailed execution. The preceding both-engine audit is complete.
+2. Validate the per-term lazy host-function cache against the frozen ordinary
+   lookup-per-call baseline in [phase-2-host-lookups.md](phase-2-host-lookups.md).
+   New-image native compilation/safety and measured comparison remain pending;
+   no speedup is claimed and T094 stays open.
 3. Obtain a genuine retained matched-run checkpoint for T093. The completed new
    bigint tiny checkpoint cannot substitute. Finish the supported operations and
    export coverage checklist for T097.
@@ -159,24 +160,28 @@ phase ranking. Successful results retain the independent reference/production
 checks; expected exclusions are not throughput successes. Normal candidate and
 worker protocols do not expose profiling.
 
-Local checks pass55 tests, with two explicit packaged-native contract skips.
-Ruff and workflow/host smoke checks are recorded in
-[the profiling local receipt](phase-5-runtime-profile-local.json). Rust compile,
-actual native timings and new Docker/Podman execution are pending; no suitable
+Earlier profiler checks passed55 tests with two native-only skips; the source-
+bound [receipt](phase-5-runtime-profile-local.json) is retained. Latest lookup
+comparison checks pass76 tests, with three native-only contract skips; see
+[the new local receipt](phase-2-host-lookups-local.json). The uploaded baseline
+profile is now reviewed; new cache compilation,
+comparison timings and Docker/Podman execution remain pending; no suitable
 engine/toolchain exists here. The CI adds a dedicated CPU partition using the
 shared image and audited socket-free launcher. No dependency layer/lock changes
-or actual performance optimization are claimed. T094 remains open until phase
-costs and observer distortion are reviewed. No further HIP is needed for this
+or measured speedup is claimed. T094 remains open until new cache safety and
+ordinary comparison results are reviewed. No further HIP is needed for this
 step, and no training or T096 replay is launched.
 
 ```bash
 profile_out="tmp-validation/008-runtime-profile-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --output "$profile_out"
+  --runtime-profile-only --compare-host-lookups --output "$profile_out"
 ```
 
-This builds/reuses the current checkout image, then runs only the fixed CPU
-corpus (25cases, batches1/20/100, three paired samples). The work role is bounded
+With `--compare-host-lookups`, each sample also includes an ordinary pre-cache
+lookup baseline; all three results must match. This builds/reuses the current
+checkout image, then runs only the fixed CPU corpus
+(25cases, batches1/20/100, three samples per arm). The work role is bounded
 to600seconds with separate5s cleanup; image building is outside that work limit.
 Share `$profile_out.zip`, including a failed or partial result. Outputs include
 source/image/binary/build identities, phase/control measurements, logs, actual

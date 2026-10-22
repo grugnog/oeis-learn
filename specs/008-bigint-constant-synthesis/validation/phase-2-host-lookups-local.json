@@ -1,0 +1,116 @@
+{
+  "version": "phase2-host-lookups-local/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "source_sha256": "sha256:3b11b92032367835542f9fe3d6e01c2fdd988f2bc198a03083a87178d309f797",
+  "files": {
+    ".github/workflows/foundation.yml": "sha256:0a826b675b5a717b2c9f94f920b0869efc05ebf5f5b722ddf72524532567a334",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:bf2998831829ae36532c0a48834b4855c9d4fb7e9259b921a9f5654f23e5f5f3",
+    "crates/oeis_synthesis_core/src/runtime/host_lookup_tests.rs": "sha256:827344883bae0f02ba72116bc48f3a0efa65b6472ad6aeda87d5b199a660a5e3",
+    "crates/oeis_synthesis_core/examples/benchmark_runtime.rs": "sha256:7cb51eb936188c4125f35a3e0d0c6d87c7c3ea9686361f5ffcb9c567f85e11c5",
+    "scripts/benchmark_bigint.py": "sha256:cbc1d05a5e822f095650ddc3f51a3933aa0f1278ad4eedd4523d2eca36bc58da",
+    "scripts/qualify_bigint_phase5.py": "sha256:10c808bd7a28ee1d80ecf5d232fba59b2af4153983f0d82511da5fe57545e868",
+    "scripts/qualify_bigint_phase2.py": "sha256:a2fdde5f80d5ed2a886399e8a418f9147b8d1abde377bf4f696f2466148f8a08",
+    "tests/unit/test_bigint_host_lookups.py": "sha256:d002b4e9b5a725a545ef906f3d637ea4bc04589d4713d9acdc81a6beff1ed5e7",
+    "tests/unit/test_bigint_runtime_profile.py": "sha256:dccaa50b36ae01f69f678f6e549e0897b6e442f152a5666097a55594618d7094",
+    "tests/contract/test_bigint_performance.py": "sha256:e1bfed3a3a7e48e1a8788d8ef546837426be28102c316d23609a420eaa854774"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "red_test": "lookup_summary missing: reproduced AttributeError before implementation",
+  "tests": {
+    "passed": 76,
+    "failure": 0,
+    "error": 0,
+    "skipped": 3,
+    "junit_sha256": "sha256:acb0795d6351fdeddcde55309ad05e53efb3f475329c0da96ad030d855092c97",
+    "skipped_reason": "three packaged-native benchmark contract parametrizations; mandatory in CI image"
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "formatting": "PASS",
+    "whitespace": "PASS",
+    "stdlib_only_host_help": "PASS",
+    "GPU_scope_rejected_before_engine": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "requirements_checklist": "16/16",
+    "extension_hooks": "none",
+    "smoke": {
+      "uploaded_identity_and_independent_hashes": "PASS",
+      "workflow_yaml": "PASS",
+      "bash": "PASS",
+      "embedded_python": "PASS",
+      "documented_commands": "PASS",
+      "mocked_routes": [
+        {
+          "engine": "docker",
+          "partition": "containment",
+          "argv": [
+            "python",
+            "scripts/qualify_bigint_phase5.py",
+            "--inside",
+            "containment",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 3000
+        },
+        {
+          "engine": "docker",
+          "partition": "runtime-profile",
+          "argv": [
+            "python",
+            "scripts/benchmark_bigint.py",
+            "--runtime-profile",
+            "--compare-host-lookups",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 600
+        },
+        {
+          "engine": "podman",
+          "partition": "containment",
+          "argv": [
+            "python",
+            "scripts/qualify_bigint_phase5.py",
+            "--inside",
+            "containment",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 3000
+        },
+        {
+          "engine": "podman",
+          "partition": "runtime-profile",
+          "argv": [
+            "python",
+            "scripts/benchmark_bigint.py",
+            "--runtime-profile",
+            "--compare-host-lookups",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 600
+        }
+      ],
+      "actual_engine_execution": false
+    }
+  },
+  "actual_execution": {
+    "Rust_compile": false,
+    "native_regressions": false,
+    "new_native_comparison": false,
+    "Docker": false,
+    "Podman": false,
+    "HIP": false
+  },
+  "pending": [
+    "New-image Rust/native regressions in shared CI; not awaited",
+    "Workstation ordinary cached/lookup baseline timing and parity review",
+    "T093 genuine retained matched-run checkpoint and T097 remaining operations",
+    "T094/T098 remain OPEN; original T096 NEGATIVE preserved"
+  ],
+  "performance_claim": "NONE; synthetic tests establish accounting only",
+  "uploaded_evidence": "phase-5-runtime-profile-review.json"
+}

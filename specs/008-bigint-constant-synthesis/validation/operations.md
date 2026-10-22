@@ -62,3 +62,10 @@ operation with600seconds work, separate5s cleanup and a fresh bounded archive.
 Unit tests verify scope rejection, source mismatch, failed stage handling and
 archive creation. Its actual new-image execution remains pending and is not
 counted as complete T097 command coverage.
+
+The uploaded CPU profiling operation is now verified:75 rows/225 pairs, seven
+manifest entries plus manifest, no omissions, offline/read-only/output-only
+inspection and0.040418s cleanup; see [the receipt](phase-5-runtime-profile-review.json).
+The new `--compare-host-lookups` extension adds a bounded ordinary baseline to
+the same role. Actual execution of that new source remains pending; it does not
+complete the remaining T097 command/checkpoint/export coverage.

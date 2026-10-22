@@ -167,3 +167,53 @@ and [local validation receipt](phase-5-runtime-profile-local.json). P001–P005
 record implementation/checks, not actual native measurement qualification.
 Native compilation and the75-row corpus remain pending new CI or workstation
 execution. T094 is deliberately unchecked until those results are reviewed.
+
+## Reviewed workstation CPU profile — 2026-10-22
+
+The uploaded `008-runtime-profile-20261022T112858Z.zip` is reviewed in
+[the source-bound receipt](phase-5-runtime-profile-review.json): all archive
+hashes, report identity and225 profiled/control result pairs verify across75
+rows. The recorded source is `sha256:ca83192e992a165e88dc139eea7539bc78491c0640caf1878f9bce108eedd533`.
+Offline/read-only/output-only inspection passes and cleanup is0.040418s against5s.
+
+Shared-small batch100 ordinary execution is0.219898/0.220840ms per term for
+add/cancel, with retained slowdowns72.529x/71.045x. Input loading is74.41%/74.32%
+of detailed execution; computation is0.217%/0.220%. Detailed/control execution
+ratios are0.993875/0.991463 for these rows. Other single-term samples have larger
+variance (overall ratio range0.675–1.410), so this is descriptive attribution
+from two warm samples, not a precise causal cost model. The generated16384-bit
+batch100 hits aggregate fuel at82/100 on all three repetitions and is excluded
+from successful full-batch throughput. Expected overflow stays classified.
+
+These data identify input loading as the first target, not its internal cause.
+Source inspection shows repeated typed host-export resolution during each
+transfer and status check. The focused cache and independent ordinary baseline
+are frozen in [phase-2-host-lookups.md](phase-2-host-lookups.md). New CI and
+workstation comparison must establish its result; no speedup or T094 completion
+is inferred from source inspection alone.
+
+### Run the focused CPU comparison
+
+```bash
+lookup_out="tmp-validation/008-host-lookups-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman \
+  --runtime-profile-only --compare-host-lookups --output "$lookup_out"
+```
+
+Share `$lookup_out.zip`. A fresh current-checkout image is built/reused; explicit
+`--image` must match the checkout. Build time is outside600s work plus5s cleanup.
+Use Docker with `--engine docker`. Each row contains the ordinary current call,
+the detailed current call and an ordinary lookup-per-call baseline; baseline
+order alternates around the existing pair. First samples remain separate from
+the two warm samples; recorded order describes shared process warmup. Full
+Evaluation parity is mandatory across all three, and retained small-value ratios
+still use ordinary current execution. `host_lookups.cached_to_lookup_execution_ratio`
+compares ordinary execution, while `profiling.warm_median_execution_ratio`
+continues to measure detailed/ordinary observer distortion. Neither ratio turns
+a resource exclusion into a successful evaluation.
+
+The comparison uses CPU Rust/Wasmtime execution, which also runs inside HIP-backed
+learning. HIP is needed for neural updates/decoding or end-to-end throughput,
+not this candidate-executor microbenchmark. No data, weights, fitting, hidden
+scoring, GPU capability or learning retry is requested. Original T096 remains
+negative and promotion remains blocked.
