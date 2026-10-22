@@ -1,0 +1,1081 @@
+{
+  "version": "phase5-host-lookups-review/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "archive": "008-host-lookups-20261022T121628Z.zip",
+  "archive_sha256": "sha256:cff55b0bc6de309b213fb6af3ff7f271eb0f4ad22b217a17224fcdc811e2bb89",
+  "manifest": {
+    "files": [
+      {
+        "path": "summary.json",
+        "bytes": 1606365,
+        "sha256": "sha256:293d4e5c6d7c40258747b71638a6159a4cc9de11386dc1ae3341919fde51d687"
+      },
+      {
+        "path": "runtime-profile/benchmark.json",
+        "bytes": 1423974,
+        "sha256": "sha256:e92db6fb0be32ed1268476a3882bfa28c235b283369fba4ebbe0089fd2e5d7ac"
+      },
+      {
+        "path": "runtime-profile/cleanup.json",
+        "bytes": 87,
+        "sha256": "sha256:8e01bf046229ee065892357d0d169c8f537ab31fb227ad2730cc07d4dbc442c3"
+      },
+      {
+        "path": "runtime-profile/container-inspect.json",
+        "bytes": 15304,
+        "sha256": "sha256:a4e4eba913afa3005a6884025ba3df8221b9af837453b84392afcfb5c6571719"
+      },
+      {
+        "path": "runtime-profile/partial.json",
+        "bytes": 1420978,
+        "sha256": "sha256:369b5df1a3f8b635be56618da495bccbb186dc285841efb6db19727b927e612e"
+      },
+      {
+        "path": "runtime-profile/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "runtime-profile/stdout.log",
+        "bytes": 2391,
+        "sha256": "sha256:a945868dd81c388fbcffb64d5e1f13d09403675a7c19f30d8c5366abad79dd6a"
+      }
+    ],
+    "omissions": []
+  },
+  "source_sha256": "sha256:3b11b92032367835542f9fe3d6e01c2fdd988f2bc198a03083a87178d309f797",
+  "image": "sha256:29d9ba2ea65ce086654b4905ca74bf5205afa9db820133221c7923f8894035c6",
+  "report_sha256": "sha256:d5ce869e255dd37f23aecabd13ca8d81fe4a48b5175c6021e8244d72b84519ac",
+  "measurement_binary_sha256": "sha256:e28b4d613f8870ad1928c2ab40b207055f64ae46334da234526c391af314f8fc",
+  "artifacts": {
+    "build_sha256": "sha256:195642065d5e65ee8c49347407b003b04c1ce0abf084da32edf74f11efa5e30d",
+    "worker_sha256": "sha256:142f6643f3e7990b99ba86a853c365d29c2a5eff4ce33715681084f8b89acab3",
+    "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+    "native": {
+      "backend": "rust",
+      "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+      "consume_fuel": true,
+      "execution_threads": 1,
+      "source_sha256": "sha256:2e6772f0521336ccbc1f6519364ce955df69ec60293b7c4c5ef320244e62ffa6",
+      "wasmtime": "20.0.2"
+    },
+    "locks": {
+      "oeis_bigint_runtime": {
+        "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          }
+        ]
+      },
+      "oeis_synthesis_core": {
+        "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      },
+      "oeis_wasm_evaluator": {
+        "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+            "name": "pyo3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.20.3"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      }
+    },
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+  },
+  "rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00027951399999999997,
+      "cached_seconds": 0.0002918775,
+      "cached_to_lookup_ratio": 1.044232131485364,
+      "observer_ratio": 0.9421298318643951,
+      "input_load_fraction": 0.6210541244752015
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0044918895,
+      "cached_seconds": 0.004468833,
+      "cached_to_lookup_ratio": 0.9948670821043126,
+      "observer_ratio": 1.0051561559807674,
+      "input_load_fraction": 0.7224367329901211
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.021837750499999996,
+      "cached_seconds": 0.021782404499999998,
+      "cached_to_lookup_ratio": 0.9974655814480526,
+      "observer_ratio": 1.0027193049325662,
+      "input_load_fraction": 0.7414730694985664
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0002839775,
+      "cached_seconds": 0.000351871,
+      "cached_to_lookup_ratio": 1.2390805609599354,
+      "observer_ratio": 0.8550846759181632,
+      "input_load_fraction": 0.6057474836271665
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0044818765,
+      "cached_seconds": 0.0044423945,
+      "cached_to_lookup_ratio": 0.9911907434307929,
+      "observer_ratio": 1.079363167769094,
+      "input_load_fraction": 0.7283999627108227
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.022269097,
+      "cached_seconds": 0.021783881999999997,
+      "cached_to_lookup_ratio": 0.9782112853520731,
+      "observer_ratio": 1.0124739015754862,
+      "input_load_fraction": 0.74124898461217
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00027262750000000007,
+      "cached_seconds": 0.000306113,
+      "cached_to_lookup_ratio": 1.1228251001824832,
+      "observer_ratio": 1.1914080747959088,
+      "input_load_fraction": 0.6392692185886969
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004570117,
+      "cached_seconds": 0.004509913000000001,
+      "cached_to_lookup_ratio": 0.9868265954679061,
+      "observer_ratio": 1.0115368079162501,
+      "input_load_fraction": 0.7212887140413634
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0219760075,
+      "cached_seconds": 0.021868096,
+      "cached_to_lookup_ratio": 0.9950895766667354,
+      "observer_ratio": 0.9984066285423293,
+      "input_load_fraction": 0.7450439815378854
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000351361,
+      "cached_seconds": 0.0003161765,
+      "cached_to_lookup_ratio": 0.8998622499366747,
+      "observer_ratio": 1.0424746937232843,
+      "input_load_fraction": 0.524201622543279
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0046945745,
+      "cached_seconds": 0.0045631495000000005,
+      "cached_to_lookup_ratio": 0.9720049175915731,
+      "observer_ratio": 1.0000054786721317,
+      "input_load_fraction": 0.7254711604826859
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0223606735,
+      "cached_seconds": 0.0218936025,
+      "cached_to_lookup_ratio": 0.9791119440118832,
+      "observer_ratio": 1.000723202131764,
+      "input_load_fraction": 0.7433492126406177
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0002767494999999999,
+      "cached_seconds": 0.000402914,
+      "cached_to_lookup_ratio": 1.4558797757538862,
+      "observer_ratio": 0.7010689626074051,
+      "input_load_fraction": 0.6086423184013906
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004689299,
+      "cached_seconds": 0.0045688605,
+      "cached_to_lookup_ratio": 0.974316310390956,
+      "observer_ratio": 1.0048338092178566,
+      "input_load_fraction": 0.7216925141019425
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.022777252499999998,
+      "cached_seconds": 0.0222652245,
+      "cached_to_lookup_ratio": 0.9775202035451819,
+      "observer_ratio": 0.9968757332763475,
+      "input_load_fraction": 0.7376977537322386
+    },
+    {
+      "case": "add-64-1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0002691255,
+      "cached_seconds": 0.000304155,
+      "cached_to_lookup_ratio": 1.130160464170062,
+      "observer_ratio": 1.253421775081784,
+      "input_load_fraction": 0.6243125950038624
+    },
+    {
+      "case": "add-64-1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004618626000000001,
+      "cached_seconds": 0.004577761499999999,
+      "cached_to_lookup_ratio": 0.9911522387827026,
+      "observer_ratio": 1.0151276994225236,
+      "input_load_fraction": 0.7233393497435178
+    },
+    {
+      "case": "add-64-1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.021913017,
+      "cached_seconds": 0.021737091,
+      "cached_to_lookup_ratio": 0.9919716212514234,
+      "observer_ratio": 1.0019230724111152,
+      "input_load_fraction": 0.7453585450830763
+    },
+    {
+      "case": "add-64--1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0003001675,
+      "cached_seconds": 0.0004171955,
+      "cached_to_lookup_ratio": 1.389875652760542,
+      "observer_ratio": 0.7670936047967919,
+      "input_load_fraction": 0.5592510655317661
+    },
+    {
+      "case": "add-64--1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004540398,
+      "cached_seconds": 0.004485393000000001,
+      "cached_to_lookup_ratio": 0.9878854232602517,
+      "observer_ratio": 1.0039868301395216,
+      "input_load_fraction": 0.7262993347842033
+    },
+    {
+      "case": "add-64--1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.021817989000000003,
+      "cached_seconds": 0.0217088855,
+      "cached_to_lookup_ratio": 0.994999378723676,
+      "observer_ratio": 0.9958671761385448,
+      "input_load_fraction": 0.7472741606388941
+    },
+    {
+      "case": "full-mul-64",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0004214985,
+      "cached_seconds": 0.0003021465,
+      "cached_to_lookup_ratio": 0.7168388499603202,
+      "observer_ratio": 1.001621729856212,
+      "input_load_fraction": 0.5608527061342569
+    },
+    {
+      "case": "full-mul-64",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0045602839999999995,
+      "cached_seconds": 0.0045521245,
+      "cached_to_lookup_ratio": 0.9982107474008198,
+      "observer_ratio": 0.9959582608076735,
+      "input_load_fraction": 0.7220065791360131
+    },
+    {
+      "case": "full-mul-64",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0220736605,
+      "cached_seconds": 0.022064348,
+      "cached_to_lookup_ratio": 0.9995781170957123,
+      "observer_ratio": 0.9959092604957102,
+      "input_load_fraction": 0.7383742902464416
+    },
+    {
+      "case": "add-256-1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00037090100000000003,
+      "cached_seconds": 0.00035301850000000004,
+      "cached_to_lookup_ratio": 0.951786325731125,
+      "observer_ratio": 1.0026117611399967,
+      "input_load_fraction": 0.49959668362337745
+    },
+    {
+      "case": "add-256-1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004695651,
+      "cached_seconds": 0.004593065,
+      "cached_to_lookup_ratio": 0.9781529760197255,
+      "observer_ratio": 1.0055705721560655,
+      "input_load_fraction": 0.7167361205685383
+    },
+    {
+      "case": "add-256-1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.022600766,
+      "cached_seconds": 0.021979414,
+      "cached_to_lookup_ratio": 0.9725074804986698,
+      "observer_ratio": 1.0024480861955647,
+      "input_load_fraction": 0.7390576997557977
+    },
+    {
+      "case": "add-256--1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00028163300000000005,
+      "cached_seconds": 0.00028877149999999996,
+      "cached_to_lookup_ratio": 1.0253468166017474,
+      "observer_ratio": 0.973686807735528,
+      "input_load_fraction": 0.621782674723391
+    },
+    {
+      "case": "add-256--1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004699017,
+      "cached_seconds": 0.0046167775000000005,
+      "cached_to_lookup_ratio": 0.9824985736378482,
+      "observer_ratio": 0.9980503717149027,
+      "input_load_fraction": 0.7219968242817334
+    },
+    {
+      "case": "add-256--1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.022766403,
+      "cached_seconds": 0.022000792499999998,
+      "cached_to_lookup_ratio": 0.9663710380598989,
+      "observer_ratio": 1.0021073786319288,
+      "input_load_fraction": 0.7393780463253846
+    },
+    {
+      "case": "full-mul-256",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000292364,
+      "cached_seconds": 0.000315004,
+      "cached_to_lookup_ratio": 1.0774377146297083,
+      "observer_ratio": 1.0096205127553937,
+      "input_load_fraction": 0.5514637562905911
+    },
+    {
+      "case": "full-mul-256",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0047702825,
+      "cached_seconds": 0.0046777235,
+      "cached_to_lookup_ratio": 0.9805967466287372,
+      "observer_ratio": 1.0002633759776525,
+      "input_load_fraction": 0.7132790640988144
+    },
+    {
+      "case": "full-mul-256",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.023169157,
+      "cached_seconds": 0.022388734,
+      "cached_to_lookup_ratio": 0.9663162971358863,
+      "observer_ratio": 0.9973013436132655,
+      "input_load_fraction": 0.7331210557787512
+    },
+    {
+      "case": "add-512-1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0002965115,
+      "cached_seconds": 0.0003093135,
+      "cached_to_lookup_ratio": 1.043175391173698,
+      "observer_ratio": 0.9660926535699219,
+      "input_load_fraction": 0.5805612305509402
+    },
+    {
+      "case": "add-512-1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0048984665,
+      "cached_seconds": 0.004706506,
+      "cached_to_lookup_ratio": 0.960812123549278,
+      "observer_ratio": 1.0354665435463166,
+      "input_load_fraction": 0.6917832708978349
+    },
+    {
+      "case": "add-512-1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.023471949,
+      "cached_seconds": 0.022242497500000003,
+      "cached_to_lookup_ratio": 0.9476203914723913,
+      "observer_ratio": 1.0074452745245897,
+      "input_load_fraction": 0.7335703934546164
+    },
+    {
+      "case": "add-512--1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00036807150000000004,
+      "cached_seconds": 0.000622034,
+      "cached_to_lookup_ratio": 1.6899814302384182,
+      "observer_ratio": 0.7107441072352958,
+      "input_load_fraction": 0.5394044880537968
+    },
+    {
+      "case": "add-512--1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0048879810000000004,
+      "cached_seconds": 0.004647494,
+      "cached_to_lookup_ratio": 0.9508003406723553,
+      "observer_ratio": 1.0152057216211574,
+      "input_load_fraction": 0.7108969858498939
+    },
+    {
+      "case": "add-512--1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0235204285,
+      "cached_seconds": 0.0222258525,
+      "cached_to_lookup_ratio": 0.944959506158657,
+      "observer_ratio": 0.9996544789451833,
+      "input_load_fraction": 0.7349148375071164
+    },
+    {
+      "case": "full-mul-512",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000488175,
+      "cached_seconds": 0.000419705,
+      "cached_to_lookup_ratio": 0.8597429200594049,
+      "observer_ratio": 0.9242515576416769,
+      "input_load_fraction": 0.4452016302624558
+    },
+    {
+      "case": "full-mul-512",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0050539700000000005,
+      "cached_seconds": 0.0046416875,
+      "cached_to_lookup_ratio": 0.9184240310092857,
+      "observer_ratio": 1.006164245223316,
+      "input_load_fraction": 0.7094099950752627
+    },
+    {
+      "case": "full-mul-512",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0247916205,
+      "cached_seconds": 0.022930587500000002,
+      "cached_to_lookup_ratio": 0.9249329829004119,
+      "observer_ratio": 0.9998584423534721,
+      "input_load_fraction": 0.7153118472108947
+    },
+    {
+      "case": "add-1024-1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0003065195,
+      "cached_seconds": 0.0003017905,
+      "cached_to_lookup_ratio": 0.9845719440361869,
+      "observer_ratio": 0.938934459500879,
+      "input_load_fraction": 0.6143301048307551
+    },
+    {
+      "case": "add-1024-1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0051915304999999995,
+      "cached_seconds": 0.004670024,
+      "cached_to_lookup_ratio": 0.8995466751086217,
+      "observer_ratio": 1.0126129972779585,
+      "input_load_fraction": 0.7098268803895682
+    },
+    {
+      "case": "add-1024-1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0258398465,
+      "cached_seconds": 0.023033885500000004,
+      "cached_to_lookup_ratio": 0.8914095329474966,
+      "observer_ratio": 1.0059549657829112,
+      "input_load_fraction": 0.7210252413447874
+    },
+    {
+      "case": "add-1024--1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000505532,
+      "cached_seconds": 0.000395346,
+      "cached_to_lookup_ratio": 0.7820395148081624,
+      "observer_ratio": 1.0297865667035964,
+      "input_load_fraction": 0.43304341204847685
+    },
+    {
+      "case": "add-1024--1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0052223965,
+      "cached_seconds": 0.004717055500000001,
+      "cached_to_lookup_ratio": 0.9032358037157846,
+      "observer_ratio": 1.003100769113274,
+      "input_load_fraction": 0.7152056076464987
+    },
+    {
+      "case": "add-1024--1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.0256204565,
+      "cached_seconds": 0.023320954499999998,
+      "cached_to_lookup_ratio": 0.9102474227967015,
+      "observer_ratio": 0.9851459124453934,
+      "input_load_fraction": 0.7264540147762676
+    },
+    {
+      "case": "full-mul-1024",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00034718850000000007,
+      "cached_seconds": 0.00032980600000000003,
+      "cached_to_lookup_ratio": 0.9499335375451663,
+      "observer_ratio": 1.238105128469464,
+      "input_load_fraction": 0.6157292611817027
+    },
+    {
+      "case": "full-mul-1024",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.005548646,
+      "cached_seconds": 0.004790158,
+      "cached_to_lookup_ratio": 0.8633021461452037,
+      "observer_ratio": 1.0056553458153155,
+      "input_load_fraction": 0.6874158233082458
+    },
+    {
+      "case": "full-mul-1024",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.027645868999999997,
+      "cached_seconds": 0.023780607000000002,
+      "cached_to_lookup_ratio": 0.8601866340320141,
+      "observer_ratio": 1.0039334782329146,
+      "input_load_fraction": 0.7007984264150164
+    },
+    {
+      "case": "add-4096-1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00042136800000000004,
+      "cached_seconds": 0.000324672,
+      "cached_to_lookup_ratio": 0.770518881357863,
+      "observer_ratio": 0.9744033978907942,
+      "input_load_fraction": 0.5984609378827702
+    },
+    {
+      "case": "add-4096-1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.007197988000000001,
+      "cached_seconds": 0.0052381505,
+      "cached_to_lookup_ratio": 0.7277242612796798,
+      "observer_ratio": 0.9980913110457592,
+      "input_load_fraction": 0.6844735305636169
+    },
+    {
+      "case": "add-4096-1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.03585885799999999,
+      "cached_seconds": 0.025974992500000002,
+      "cached_to_lookup_ratio": 0.724367532842234,
+      "observer_ratio": 1.0010755152287338,
+      "input_load_fraction": 0.6900861822143188
+    },
+    {
+      "case": "add-4096--1",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00041148499999999995,
+      "cached_seconds": 0.000332507,
+      "cached_to_lookup_ratio": 0.8080659076272526,
+      "observer_ratio": 0.9734381531817373,
+      "input_load_fraction": 0.5963450992507918
+    },
+    {
+      "case": "add-4096--1",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0072193865,
+      "cached_seconds": 0.005235910999999999,
+      "cached_to_lookup_ratio": 0.7252570561224281,
+      "observer_ratio": 1.011767293217933,
+      "input_load_fraction": 0.6756368329465646
+    },
+    {
+      "case": "add-4096--1",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.03569256,
+      "cached_seconds": 0.026090814,
+      "cached_to_lookup_ratio": 0.7309874662954969,
+      "observer_ratio": 1.0061274822625312,
+      "input_load_fraction": 0.6892107767854436
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0005725645,
+      "cached_seconds": 0.00044058300000000003,
+      "cached_to_lookup_ratio": 0.76949059887576,
+      "observer_ratio": 0.9879500570834553,
+      "input_load_fraction": 0.4248186199956809
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.008949460999999999,
+      "cached_seconds": 0.005992536,
+      "cached_to_lookup_ratio": 0.6695974204480024,
+      "observer_ratio": 0.9973294278081934,
+      "input_load_fraction": 0.5906764499314612
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.044774863,
+      "cached_seconds": 0.029350437,
+      "cached_to_lookup_ratio": 0.6555114864338055,
+      "observer_ratio": 1.001503895836372,
+      "input_load_fraction": 0.6006933183627715
+    },
+    {
+      "case": "generated-16384",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000701844,
+      "cached_seconds": 0.00047611849999999994,
+      "cached_to_lookup_ratio": 0.6783822330888345,
+      "observer_ratio": 0.971773833614951,
+      "input_load_fraction": 0.4134373794386827
+    },
+    {
+      "case": "generated-16384",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0127903745,
+      "cached_seconds": 0.007844826999999999,
+      "cached_to_lookup_ratio": 0.6133383350112226,
+      "observer_ratio": 0.9978532987406863,
+      "input_load_fraction": 0.4579764540983815
+    },
+    {
+      "case": "generated-16384",
+      "batch": 100,
+      "outcome": "failure",
+      "reason": "aggregate_fuel",
+      "coverage": 82,
+      "baseline_seconds": 0.0536893755,
+      "cached_seconds": 0.032261624,
+      "cached_to_lookup_ratio": 0.600894007418656,
+      "observer_ratio": 0.9978098281723201,
+      "input_load_fraction": 0.46037634379124165
+    },
+    {
+      "case": "generated-cancellation",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.0004048675,
+      "cached_seconds": 0.0003630565,
+      "cached_to_lookup_ratio": 0.8967291768294565,
+      "observer_ratio": 0.9551887929289242,
+      "input_load_fraction": 0.5382993908373284
+    },
+    {
+      "case": "generated-cancellation",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.0059839095,
+      "cached_seconds": 0.0050303165,
+      "cached_to_lookup_ratio": 0.8406404709162129,
+      "observer_ratio": 0.9991544269629953,
+      "input_load_fraction": 0.7065118364015731
+    },
+    {
+      "case": "generated-cancellation",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.029507894,
+      "cached_seconds": 0.0246726225,
+      "cached_to_lookup_ratio": 0.8361363403298114,
+      "observer_ratio": 1.003487772732712,
+      "input_load_fraction": 0.7103153743081968
+    },
+    {
+      "case": "expected-overflow",
+      "batch": 1,
+      "outcome": "failure",
+      "reason": "integer_limit",
+      "coverage": 0,
+      "baseline_seconds": 0.000457554,
+      "cached_seconds": 0.000426707,
+      "cached_to_lookup_ratio": 0.9325828208255201,
+      "observer_ratio": 1.0073739123098517,
+      "input_load_fraction": 0.4330766179640273
+    },
+    {
+      "case": "expected-overflow",
+      "batch": 20,
+      "outcome": "failure",
+      "reason": "integer_limit",
+      "coverage": 0,
+      "baseline_seconds": 0.00045784000000000005,
+      "cached_seconds": 0.0004300234999999999,
+      "cached_to_lookup_ratio": 0.9392440590599334,
+      "observer_ratio": 0.9950630605071585,
+      "input_load_fraction": 0.4369742498548144
+    },
+    {
+      "case": "expected-overflow",
+      "batch": 100,
+      "outcome": "failure",
+      "reason": "integer_limit",
+      "coverage": 0,
+      "baseline_seconds": 0.0004490485,
+      "cached_seconds": 0.000426588,
+      "cached_to_lookup_ratio": 0.9499820175326272,
+      "observer_ratio": 0.968387530825996,
+      "input_load_fraction": 0.45158404996338686
+    },
+    {
+      "case": "non-scoring-loop",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.00027966000000000004,
+      "cached_seconds": 0.0002836125000000001,
+      "cached_to_lookup_ratio": 1.0141332332117574,
+      "observer_ratio": 0.9739979725858342,
+      "input_load_fraction": 0.6188196410341806
+    },
+    {
+      "case": "non-scoring-loop",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.005047016499999999,
+      "cached_seconds": 0.004561096000000001,
+      "cached_to_lookup_ratio": 0.9037212380819443,
+      "observer_ratio": 1.0002492821900701,
+      "input_load_fraction": 0.7191791826502503
+    },
+    {
+      "case": "non-scoring-loop",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.023083926999999997,
+      "cached_seconds": 0.024295435,
+      "cached_to_lookup_ratio": 1.052482751310035,
+      "observer_ratio": 0.9581162057810447,
+      "input_load_fraction": 0.7136879050255932
+    },
+    {
+      "case": "non-scoring-branch",
+      "batch": 1,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 1,
+      "baseline_seconds": 0.000292043,
+      "cached_seconds": 0.000416819,
+      "cached_to_lookup_ratio": 1.427252151224306,
+      "observer_ratio": 0.7640006813508983,
+      "input_load_fraction": 0.5456476683937822
+    },
+    {
+      "case": "non-scoring-branch",
+      "batch": 20,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 20,
+      "baseline_seconds": 0.004571776,
+      "cached_seconds": 0.0046079915,
+      "cached_to_lookup_ratio": 1.0079215385880675,
+      "observer_ratio": 0.9909678652836055,
+      "input_load_fraction": 0.7270606432262466
+    },
+    {
+      "case": "non-scoring-branch",
+      "batch": 100,
+      "outcome": "ok",
+      "reason": null,
+      "coverage": 100,
+      "baseline_seconds": 0.022118872,
+      "cached_seconds": 0.022106234500000002,
+      "cached_to_lookup_ratio": 0.9994286553129834,
+      "observer_ratio": 1.0000373650247851,
+      "input_load_fraction": 0.7402641341665482
+    }
+  ],
+  "three_way_groups": 225,
+  "all_results_match": true,
+  "independent_output_hashes": "PASS",
+  "summaries_recomputed": "PASS",
+  "isolation": {
+    "network": "none",
+    "readonly_root": true,
+    "privileged": false,
+    "binds": [
+      {
+        "destination": "/work/output",
+        "writable": true
+      }
+    ]
+  },
+  "cleanup": {
+    "seconds": 0.04766213707625866,
+    "allowance_seconds": 5,
+    "within_bound": true
+  },
+  "interpretation": "Wide-value repeated lookups improve; small batch100 adds/cancellation change by only0.25%/2.18%, leaving about74% in input loading and the retained gap unresolved. Two warm samples are descriptive; no end-to-end throughput claim.",
+  "T094": "OPEN: input-load detail next",
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED",
+  "native_unit_suites": "not included in this archive; benchmark parity does not substitute for every regression"
+}

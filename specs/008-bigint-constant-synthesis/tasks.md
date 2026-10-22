@@ -381,3 +381,9 @@ Input loading dominates the shared-small batch100 rows. The bounded Phase2 host
 adapter change and frozen comparison are L001–L004 in
 [phase-2-host-lookups.md](validation/phase-2-host-lookups.md). This does not
 change T096's negative result, close T094 before new evidence, or admit Phase6.
+
+**T094 input-load attribution (2026-10-22)**: the uploaded lookup comparison
+is recorded in [phase-5-host-lookups-review.json](validation/phase-5-host-lookups-review.json).
+Wide values benefit, but small-value fixed overhead remains. Observation-only
+I001–I004 in [phase-5-input-load.md](validation/phase-5-input-load.md) split that
+phase without changing production policies or the original negative T096.
