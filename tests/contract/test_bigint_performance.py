@@ -75,7 +75,15 @@ def test_packaged_growth_comparison_preserves_exact_fuel_and_failures(order, tmp
             case, 1, 2, order=order, failure_output=tmp_path / "failed-native.log"
         )
         assert row["memory_growth"]["all_results_match"], row
-        for arm in [row, row["memory_growth"]["reserved"]]:
+        assert (
+            row["engine_configuration"]["manifest"]["dynamic_memory_reserved_for_growth"] == 65536
+        )
+        assert row["engine_configuration"]["manifest"]["purpose"] == "production"
+        assert (
+            row["memory_growth"]["zero"]["engine_configuration"]["manifest"]["purpose"]
+            == "qualification-zero-growth-control"
+        )
+        for arm in [row, row["memory_growth"]["zero"]]:
             assert arm["input_load_profiling"]["first_byte_probe"]["memory_in_first"][
                 "requests"
             ] == [1, 1]

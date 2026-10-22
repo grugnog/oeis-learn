@@ -18,7 +18,7 @@ struct Request {
     #[serde(default)]
     profile_input_load: bool,
     #[serde(default)]
-    growth_reservation_control: bool,
+    zero_growth_control: bool,
 }
 
 fn main() {
@@ -31,12 +31,12 @@ fn main() {
     assert!(request.source.len() <= 65536);
     assert!(!request.compare_host_lookups || request.profile);
     assert!(!request.profile_input_load || request.profile);
-    assert!(!request.growth_reservation_control || (request.profile && request.profile_input_load && !request.compare_host_lookups));
+    assert!(!request.zero_growth_control || (request.profile && request.profile_input_load && !request.compare_host_lookups));
     let path = std::env::var("OEIS_BIGINT_WASM")
         .unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes = std::fs::read(path).unwrap();
     let start = Instant::now();
-    let mut runtime = if request.growth_reservation_control {BigintRuntime::qualification_growth_control(&bytes)}else{BigintRuntime::new(&bytes)}.unwrap();
+    let mut runtime = if request.zero_growth_control {BigintRuntime::qualification_zero_growth_control(&bytes)}else{BigintRuntime::new(&bytes)}.unwrap();
     let runtime_compile_seconds = start.elapsed().as_secs_f64();
     let mut samples = Vec::new();
     for index in 0..request.repetitions {

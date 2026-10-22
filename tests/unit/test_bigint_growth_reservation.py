@@ -10,7 +10,12 @@ from tests.unit.test_bigint_first_byte import byte_report
 from tests.unit.test_bigint_phase5 import helper
 
 
-def configuration(reserve):
+def configuration(reserve, *, legacy=False):
+    if not legacy:
+        from oeis_learn.synthesis.engine_policy import engine_configuration
+
+        return engine_configuration("sha256:" + "a" * 64, zero_control=reserve == 0)
+
     from oeis_learn.synthesis.contracts import identity
 
     manifest = dict(
@@ -79,7 +84,7 @@ def test_unbound_or_malformed_growth_evidence_is_rejected(kind):
     config = reserved["engine_configuration"]
     m = config["manifest"]
     if kind == "purpose":
-        m["purpose"] = "production"
+        m["purpose"] = "qualification-growth-control"
     elif kind == "reserve":
         m["dynamic_memory_reserved_for_growth"] = 1 << 30
     elif kind == "guest":
@@ -144,16 +149,16 @@ def test_separate_process_arm_order_and_control_selection(order, monkeypatch):
     seen = []
 
     def measure(case, batch, repetitions, **kwargs):
-        reserve = kwargs.get("growth_reservation_control", False)
+        reserve = kwargs.get("zero_growth_control", False)
         seen.append(reserve)
-        return arm(65536 if reserve else 0)
+        return arm(0 if reserve else 65536)
 
     monkeypatch.setattr(mod, "runtime_measurements", measure)
     row = mod.memory_growth_measurements({}, 1, 3, order=order, failure_output="fixture.log")
-    assert seen == ([False, True] if order == "zero-first" else [True, False])
+    assert seen == ([True, False] if order == "zero-first" else [False, True])
     assert row["memory_growth"]["all_results_match"]
-    assert row["memory_growth"]["reserved"]["engine_configuration"] == configuration(65536)
-    assert row["engine_configuration"] == configuration(0)
+    assert row["memory_growth"]["zero"]["engine_configuration"] == configuration(0)
+    assert row["engine_configuration"] == configuration(65536)
 
 
 @pytest.mark.parametrize("kind", ["pass", "missing", "failed"])
@@ -222,7 +227,7 @@ def test_completed_arm_survives_later_native_failure(tmp_path, monkeypatch):
     calls = []
 
     def measure(*args, **kwargs):
-        calls.append(kwargs["growth_reservation_control"])
+        calls.append(kwargs["zero_growth_control"])
         if len(calls) == 2:
             raise ValueError("bad native JSON")
         return arm(0)
@@ -271,7 +276,32 @@ def test_latest_raw_native_record_survives_configuration_or_expected_value_failu
             3,
             profile=True,
             profile_input_load=True,
-            growth_reservation_control=True,
+            zero_growth_control=False,
             native_output=capture,
         )
     assert capture.read_bytes() == raw
+
+
+def test_archived_v1_growth_reader_keeps_original_production_meaning():
+    zero = arm(0)
+    reserved = arm(65536)
+    zero["engine_configuration"] = configuration(0, legacy=True)
+    reserved["engine_configuration"] = configuration(65536, legacy=True)
+    result = benchmark().growth_comparison_summary(zero, reserved, "zero-first", 1)
+    assert result["version"] == "bigint-growth-reservation-comparison/v1"
+    assert "production_setting" not in result
+    assert result["all_results_match"]
+
+
+def test_current_growth_collection_rejects_archived_configuration_labels(monkeypatch):
+    mod = benchmark()
+
+    def archived(*args, **kwargs):
+        reserve = 0 if kwargs["zero_growth_control"] else 65536
+        row = arm(reserve)
+        row["engine_configuration"] = configuration(reserve, legacy=True)
+        return row
+
+    monkeypatch.setattr(mod, "runtime_measurements", archived)
+    with pytest.raises(ValueError, match="v2 engine evidence"):
+        mod.memory_growth_measurements({}, 1, 3, order="zero-first", failure_output="fixture.log")

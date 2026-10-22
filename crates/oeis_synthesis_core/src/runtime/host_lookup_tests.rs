@@ -230,10 +230,10 @@ fn qualification_reservation_is_explicit_and_does_not_relax_memory_caps() {
     for cap in [65536,131072] {
         let mut observations=Vec::new();
         for reserved in [false,true] {
-            let runtime=if reserved {BigintRuntime::qualification_growth_control(&guest)}else{BigintRuntime::new(&guest)}.unwrap();
+            let runtime=if reserved {BigintRuntime::new(&guest)}else{BigintRuntime::qualification_zero_growth_control(&guest)}.unwrap();
             let config=runtime.engine_configuration();
             assert_eq!(config["manifest"]["dynamic_memory_reserved_for_growth"],if reserved {65536}else{0});
-            assert_eq!(config["manifest"]["purpose"],if reserved {"qualification-growth-control"}else{"production"});
+            assert_eq!(config["manifest"]["purpose"],if reserved {"production"}else{"qualification-zero-growth-control"});
             let limits=StoreLimitsBuilder::new().memory_size(cap).build();
             let mut store=Store::new(&runtime.engine,Limits{inner:limits,memory_denied:false,memory_probe:Some(MemoryProbe::default())});
             store.limiter(|s|s);store.set_fuel(100_000).unwrap();store.set_epoch_deadline(1);
@@ -249,4 +249,21 @@ fn qualification_reservation_is_explicit_and_does_not_relax_memory_caps() {
         assert_eq!(observations[0].2,cap==65536);
         assert_eq!(observations[0].3,cap);
     }
+}
+
+
+#[test]
+fn production_policy_is_shared_canonical_and_default64k() {
+    let bytes=wat::parse_str("(module)").unwrap();
+    let runtime=BigintRuntime::new(&bytes).unwrap();
+    let policy=production_engine_policy();
+    assert_eq!(policy["version"],"bigint-engine-policy/v2");
+    assert_eq!(policy["dynamic_memory_reserved_for_growth"],65536);
+    let config=runtime.engine_configuration();
+    assert_eq!(config["manifest"]["policy_sha256"],production_engine_policy_identity());
+    assert_eq!(config["manifest"]["dynamic_memory_reserved_for_growth"],65536);
+    assert_eq!(config["manifest"]["purpose"],"production");
+    let zero=BigintRuntime::qualification_zero_growth_control(&bytes).unwrap().engine_configuration();
+    assert_ne!(config["sha256"],zero["sha256"]);
+    assert_eq!(zero["manifest"]["dynamic_memory_reserved_for_growth"],0);
 }

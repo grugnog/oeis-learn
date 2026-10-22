@@ -58,7 +58,7 @@ RUN mkdir -p /opt/oeis-build/crates/oeis_wasm_evaluator/src && echo '// Dependen
 # Real sources replace the inert cache seed and are always compiled/tested.
 FROM native-dependencies AS synthesis-build
 COPY crates /opt/oeis-build/crates
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY tests/fixtures/bigint /opt/oeis-build/tests/fixtures/bigint
 COPY docker/dev/build-synthesis.sh /opt/oeis-setup/build-synthesis.sh
 RUN mkdir -p /opt/oeis-build-info && bash /opt/oeis-setup/build-synthesis.sh
@@ -89,7 +89,7 @@ COPY --from=native-dependencies /opt/oeis-native-target /opt/oeis-native-target
 COPY crates /opt/oeis-build/crates
 COPY Dockerfile rustfmt.toml /opt/oeis-build/
 COPY docker/dev/build-native.sh docker/dev/build-native-wheel.sh docker/dev/build-synthesis.sh docker/dev/install.sh /opt/oeis-build/docker/dev/
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY src/oeis_learn/sandbox/preamble.wat /opt/oeis-build/src/oeis_learn/sandbox/preamble.wat
 RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 
@@ -123,7 +123,7 @@ COPY --from=native-dependencies /opt/oeis-native-target /opt/oeis-native-target
 COPY crates /opt/oeis-build/crates
 COPY Dockerfile rustfmt.toml /opt/oeis-build/
 COPY docker/dev/build-native.sh docker/dev/build-native-wheel.sh docker/dev/build-synthesis.sh docker/dev/install.sh /opt/oeis-build/docker/dev/
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY src/oeis_learn/sandbox/preamble.wat /opt/oeis-build/src/oeis_learn/sandbox/preamble.wat
 RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 

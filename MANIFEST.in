@@ -24,3 +24,5 @@ include AGENTS.md docs/fresh-training.md
 recursive-include crates/oeis_synthesis_core *.rs *.toml *.lock
 recursive-include crates/oeis_bigint_runtime *.rs *.toml *.lock
 recursive-include specs/008-bigint-constant-synthesis *.md *.json
+
+include src/oeis_learn/synthesis/engine-policy.json

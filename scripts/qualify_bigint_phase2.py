@@ -43,6 +43,7 @@ CPU_TESTS = [
     "tests/unit/test_bigint_input_load_profile.py",
     "tests/unit/test_bigint_first_byte.py",
     "tests/unit/test_bigint_growth_reservation.py",
+    "tests/unit/test_bigint_engine_policy.py",
 ]
 
 

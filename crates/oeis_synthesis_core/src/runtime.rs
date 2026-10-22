@@ -249,40 +249,57 @@ fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bo
     Ok(h)
 }
 
-pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String,growth_reservation_bytes:usize}
+pub fn production_engine_policy()->serde_json::Value {
+    serde_json::from_str(include_str!("../../../src/oeis_learn/synthesis/engine-policy.json")).expect("compiled engine policy")
+}
+fn canonical_identity(value:&serde_json::Value)->String {
+    let ordered:std::collections::BTreeMap<_,_>=value.as_object().expect("flat policy object").iter().collect();
+    crate::value::digest(&serde_json::to_vec(&ordered).expect("policy JSON"))
+}
+pub fn production_engine_policy_identity()->String {canonical_identity(&production_engine_policy())}
+pub fn execution_identity(guest:&str,binary:&str,profile:&str)->String {
+    let mut manifest=serde_json::json!({"guest_sha256":guest,"binary_sha256":binary,"profile":profile});
+    if profile=="bigint-body/v1" {manifest["engine_policy_sha256"]=serde_json::json!(production_engine_policy_identity());}
+    canonical_identity(&manifest)
+}
+
+pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String,engine_policy:serde_json::Value}
 impl BigintRuntime {
-    pub fn new(bytes:&[u8])->Result<Self,String> {
-        Self::with_growth_reservation(bytes,0)
-    }
-    /// Fixed qualification-only counterfactual. No worker request selects this.
+    pub fn new(bytes:&[u8])->Result<Self,String> {Self::with_engine_policy(bytes,false)}
+    /// Fixed historical counterfactual; no production worker request selects it.
     #[doc(hidden)]
-    pub fn qualification_growth_control(bytes:&[u8])->Result<Self,String> {
-        Self::with_growth_reservation(bytes,65536)
-    }
-    fn with_growth_reservation(bytes:&[u8],growth_reservation_bytes:usize)->Result<Self,String> {
+    pub fn qualification_zero_growth_control(bytes:&[u8])->Result<Self,String> {Self::with_engine_policy(bytes,true)}
+    fn with_engine_policy(bytes:&[u8],zero_control:bool)->Result<Self,String> {
         if bytes.len()>16*1024*1024 {return Err("runtime_failure".into());}
         let compilation=Instant::now();
-        let mut cfg=Config::new();cfg.consume_fuel(true).epoch_interruption(true).wasm_threads(false).parallel_compilation(false);
-        cfg.static_memory_maximum_size(0).static_memory_guard_size(0).dynamic_memory_guard_size(0).dynamic_memory_reserved_for_growth(growth_reservation_bytes as u64);
+        let mut policy=production_engine_policy();
+        if zero_control {
+            policy["version"]=serde_json::json!("bigint-engine-policy/zero-control-v1");
+            policy["dynamic_memory_reserved_for_growth"]=serde_json::json!(0);
+        }
+        let mut cfg=Config::new();
+        cfg.consume_fuel(policy["consume_fuel"].as_bool().unwrap())
+            .epoch_interruption(policy["epoch_interruption"].as_bool().unwrap())
+            .wasm_threads(policy["wasm_threads"].as_bool().unwrap())
+            .parallel_compilation(policy["parallel_compilation"].as_bool().unwrap());
+        cfg.static_memory_maximum_size(policy["static_memory_maximum_size"].as_u64().unwrap())
+            .static_memory_guard_size(policy["static_memory_guard_size"].as_u64().unwrap())
+            .dynamic_memory_guard_size(policy["dynamic_memory_guard_size"].as_u64().unwrap())
+            .dynamic_memory_reserved_for_growth(policy["dynamic_memory_reserved_for_growth"].as_u64().unwrap());
         let engine=Engine::new(&cfg).map_err(trap)?;
         let runtime=Module::new(&engine,bytes).map_err(trap)?;
         if runtime.imports().next().is_some() {return Err("runtime_failure".into());}
-        Ok(Self{engine,runtime,compilation_seconds:compilation.elapsed().as_secs_f64(),runtime_identity:crate::value::digest(bytes),growth_reservation_bytes})
+        Ok(Self{engine,runtime,compilation_seconds:compilation.elapsed().as_secs_f64(),runtime_identity:crate::value::digest(bytes),engine_policy:policy})
     }
-    /// Explicit engine settings for qualification evidence, separate from guest bytes.
     pub fn engine_configuration(&self)->serde_json::Value {
-        let manifest=serde_json::json!({
-            "version":"bigint-engine-configuration/v1",
-            "purpose":if self.growth_reservation_bytes==0 {"production"}else{"qualification-growth-control"},
-            "runtime_wasm_sha256":self.runtime_identity,"wasmtime":"20.0.2",
-            "consume_fuel":true,"epoch_interruption":true,"wasm_threads":false,"parallel_compilation":false,
-            "static_memory_maximum_size":0,"static_memory_guard_size":0,"dynamic_memory_guard_size":0,
-            "dynamic_memory_reserved_for_growth":self.growth_reservation_bytes,
-        });
-        // Explicit key ordering keeps the identity canonical even if another
-        // linked crate enables serde_json's preserve_order feature.
-        let canonical:std::collections::BTreeMap<_,_>=manifest.as_object().unwrap().iter().collect();
-        let sha=crate::value::digest(&serde_json::to_vec(&canonical).expect("configuration JSON"));
+        let mut manifest=self.engine_policy.clone();
+        let production=manifest["version"]=="bigint-engine-policy/v2";
+        manifest["policy_version"]=manifest["version"].clone();
+        manifest["policy_sha256"]=serde_json::json!(canonical_identity(&self.engine_policy));
+        manifest["version"]=serde_json::json!("bigint-engine-configuration/v2");
+        manifest["purpose"]=serde_json::json!(if production {"production"}else{"qualification-zero-growth-control"});
+        manifest["runtime_wasm_sha256"]=serde_json::json!(self.runtime_identity);
+        let sha=canonical_identity(&manifest);
         serde_json::json!({"manifest":manifest,"sha256":sha})
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {

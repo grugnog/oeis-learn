@@ -82,6 +82,13 @@ def inspect(root=Path("/opt/oeis-build"), info=Path("/opt/oeis-build-info")):
         raise ValueError("standalone dashu dependency smoke failed")
     if native.synthesis_dependency_smoke() != SMOKE_INTEGER:
         raise ValueError("native binding narrowed the exact Z3 numeral")
+    from oeis_learn.synthesis.engine_policy import production_policy
+    from oeis_learn.synthesis.contracts import identity
+
+    engine_policy = dict(manifest=production_policy())
+    engine_policy["sha256"] = identity(engine_policy["manifest"])
+    if identity(json.loads(native.synthesis_engine_policy())) != engine_policy["sha256"]:
+        raise ValueError("compiled engine policy differs from packaged policy; rebuild image")
     locks = {}
     for crate in ("oeis_bigint_runtime", "oeis_synthesis_core", "oeis_wasm_evaluator"):
         path = root / "crates" / crate / "Cargo.lock"
@@ -101,7 +108,7 @@ def inspect(root=Path("/opt/oeis-build"), info=Path("/opt/oeis-build-info")):
         "runtime_sha256": sha256(raw), "runtime_bytes": len(raw),
         "imports": [], "target_features": target_features(raw),
         "exports": [{"name": e.name, "kind": type(e.type).__name__} for e in module.exports],
-        "native": native_identity(), "locks": locks,
+        "native": native_identity(), "locks": locks, "engine_policy": engine_policy,
         "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip(),
         "guest_flags": {"target": "wasm32-unknown-unknown", "profile": "release",
                         "panic": "abort", "lto": True, "codegen_units": 1, "opt_level": "s"},

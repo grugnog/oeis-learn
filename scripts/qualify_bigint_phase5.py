@@ -35,6 +35,7 @@ GROUPS = {
         "tests/unit/test_bigint_input_load_profile.py",
         "tests/unit/test_bigint_first_byte.py",
         "tests/unit/test_bigint_growth_reservation.py",
+        "tests/unit/test_bigint_engine_policy.py",
         "tests/unit/test_bigint_generation.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
@@ -297,6 +298,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--engine-adoption-only",
+        action="store_true",
+        help="CPU arithmetic/fitting/containment plus production/zero comparison; no data or training",
+    )
+    p.add_argument(
         "--profile-input-load",
         action="store_true",
         help="nested transfer timings; requires CPU --runtime-profile-only",
@@ -344,8 +350,27 @@ def main():
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
+    if args.engine_adoption_only:
+        if (
+            args.gpu
+            or args.inside
+            or args.runtime_profile_only
+            or args.fitting_only
+            or args.performance_only
+            or args.inputs
+            or args.prepare
+            or args.checkpoint_run
+            or args.learnability
+            or args.compare_host_lookups
+            or args.config
+        ):
+            p.error(
+                "--engine-adoption-only excludes GPU, other scopes, inputs/preparation, checkpoints and training"
+            )
+        args.profile_input_load = True
+        args.compare_memory_growth = True
     if args.compare_memory_growth and (
-        not args.runtime_profile_only
+        not (args.runtime_profile_only or args.engine_adoption_only)
         or not args.profile_input_load
         or args.compare_host_lookups
         or args.inside
@@ -353,7 +378,9 @@ def main():
         p.error(
             "--compare-memory-growth requires isolated CPU --runtime-profile-only --profile-input-load"
         )
-    if args.profile_input_load and (not args.runtime_profile_only or args.inside):
+    if args.profile_input_load and (
+        not (args.runtime_profile_only or args.engine_adoption_only) or args.inside
+    ):
         p.error("--profile-input-load requires the CPU --runtime-profile-only scope")
     if args.compare_host_lookups and (not args.runtime_profile_only or args.inside):
         p.error("--compare-host-lookups requires the CPU --runtime-profile-only scope")
@@ -409,7 +436,9 @@ def main():
         profile_input_load=args.profile_input_load,
         **({"compare_memory_growth": True} if args.compare_memory_growth else {}),
         scope=(
-            "runtime-profile-only"
+            "engine-adoption-only"
+            if args.engine_adoption_only
+            else "runtime-profile-only"
             if args.runtime_profile_only
             else "fitting-only"
             if args.fitting_only
@@ -431,6 +460,12 @@ def main():
         },
     )
     report["expected_source_sha256"] = identity(collect_snapshot(ROOT))
+    if args.engine_adoption_only:
+        from oeis_learn.synthesis.engine_policy import production_policy
+
+        report["expected_engine_policy"] = dict(
+            manifest=production_policy(), sha256=identity(production_policy())
+        )
     if args.performance_only:
         report["pending"].update(
             {
@@ -446,11 +481,50 @@ def main():
         image = host.ensure()
         report.update(image=image, runtime=host.policy["runtime"], engine=host.engine.name)
         write(output / "summary.json", report)
-        if args.runtime_profile_only:
-            report["pending"].update(
-                T089="arithmetic not rerun in runtime profiling scope",
-                T090="fitting not rerun in runtime profiling scope",
+        groups = (
+            ()
+            if args.runtime_profile_only or args.performance_only
+            else ("fitting",)
+            if args.fitting_only
+            else GROUPS
+        )
+        for group in groups:
+            stage = output / group
+            container_stage(
+                host,
+                image,
+                stage,
+                [
+                    "python",
+                    "scripts/qualify_bigint_phase5.py",
+                    "--inside",
+                    group,
+                    "--output",
+                    "/work/output",
+                ],
+                seconds=3000 if args.engine_adoption_only else 3600,
             )
+            result = json.loads((stage / "summary.json").read_text())
+            report["stages"][group] = result
+            write(output / "summary.json", report)
+            if (
+                args.engine_adoption_only
+                and result.get("artifacts", {}).get("engine_policy")
+                != report["expected_engine_policy"]
+            ):
+                raise RuntimeError("group engine policy mismatch: " + group)
+            if result.get("status") != "PASS":
+                raise RuntimeError("mandatory group failed: " + group)
+            if result.get("source_sha256") != report["expected_source_sha256"]:
+                raise RuntimeError(
+                    "image source differs from this checkout; rebuild the current source"
+                )
+        if args.runtime_profile_only or args.engine_adoption_only:
+            if args.runtime_profile_only:
+                report["pending"].update(
+                    T089="arithmetic not rerun in runtime profiling scope",
+                    T090="fitting not rerun in runtime profiling scope",
+                )
             stage = output / "runtime-profile"
             container_stage(
                 host,
@@ -484,31 +558,6 @@ def main():
                 )
             report["status"] = "PASS"
             return 0
-        groups = ("fitting",) if args.fitting_only else () if args.performance_only else GROUPS
-        for group in groups:
-            stage = output / group
-            container_stage(
-                host,
-                image,
-                stage,
-                [
-                    "python",
-                    "scripts/qualify_bigint_phase5.py",
-                    "--inside",
-                    group,
-                    "--output",
-                    "/work/output",
-                ],
-            )
-            result = json.loads((stage / "summary.json").read_text())
-            if result.get("status") != "PASS":
-                raise RuntimeError("mandatory group failed: " + group)
-            if result.get("source_sha256") != report["expected_source_sha256"]:
-                raise RuntimeError(
-                    "image source differs from this checkout; rebuild the current source"
-                )
-            report["stages"][group] = result
-            write(output / "summary.json", report)
         if args.fitting_only:
             report["status"] = "PASS"
             return 0  # finally publishes the bounded archive, including on failure.

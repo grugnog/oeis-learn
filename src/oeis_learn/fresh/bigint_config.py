@@ -386,7 +386,19 @@ def packaged_artifacts():
     from .common import read, file_hash
 
     build = read("/opt/oeis-build-info/bigint-build.json")
+    from oeis_learn.synthesis.engine_policy import production_policy
+
+    policy = dict(manifest=production_policy(), sha256=identity(production_policy()))
+    saved = build.get("engine_policy")
+    if (
+        not isinstance(saved, dict)
+        or set(saved) != {"manifest", "sha256"}
+        or saved["sha256"] != identity(saved["manifest"])
+        or saved["sha256"] != policy["sha256"]
+    ):
+        raise ValueError("packaged engine policy mismatch; rebuild current image")
     return dict(
+        engine_policy=policy,
         build_sha256=file_hash("/opt/oeis-build-info/bigint-build.json"),
         worker_sha256=file_hash("/opt/oeis-build-info/synthesis-worker"),
         guest_sha256=build["runtime_sha256"],

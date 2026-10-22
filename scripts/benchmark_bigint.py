@@ -554,20 +554,29 @@ def growth_comparison_summary(zero, reserved, order, batch):
         raise ValueError("invalid growth guest identity")
     for name, report, reserve in (("zero", zero, 0), ("reserved", reserved, 65536)):
         record = report["engine_configuration"]
-        expected = dict(
-            version="bigint-engine-configuration/v1",
-            purpose="qualification-growth-control" if reserve else "production",
-            runtime_wasm_sha256=guest_hash,
-            wasmtime="20.0.2",
-            consume_fuel=True,
-            epoch_interruption=True,
-            wasm_threads=False,
-            parallel_compilation=False,
-            static_memory_maximum_size=0,
-            static_memory_guard_size=0,
-            dynamic_memory_guard_size=0,
-            dynamic_memory_reserved_for_growth=reserve,
+        legacy = (
+            zero["engine_configuration"]["manifest"].get("version")
+            == "bigint-engine-configuration/v1"
         )
+        if legacy:
+            expected = dict(
+                version="bigint-engine-configuration/v1",
+                purpose="qualification-growth-control" if reserve else "production",
+                runtime_wasm_sha256=guest_hash,
+                wasmtime="20.0.2",
+                consume_fuel=True,
+                epoch_interruption=True,
+                wasm_threads=False,
+                parallel_compilation=False,
+                static_memory_maximum_size=0,
+                static_memory_guard_size=0,
+                dynamic_memory_guard_size=0,
+                dynamic_memory_reserved_for_growth=reserve,
+            )
+        else:
+            from oeis_learn.synthesis.engine_policy import engine_configuration
+
+            expected = engine_configuration(guest_hash, zero_control=name == "zero")["manifest"]
         # Canonical identity compares JSON types too (true must not masquerade as1).
         if identity(record["manifest"]) != identity(expected) or record["sha256"] != identity(
             expected
@@ -599,7 +608,9 @@ def growth_comparison_summary(zero, reserved, order, batch):
     ordinary = {name: p["control_warm"] for name, p in profiles.items()}
     denominator = ordinary["zero"]["execution_seconds"]["median_seconds"]
     policy = dict(
-        version="bigint-growth-reservation-comparison/v1",
+        version="bigint-growth-reservation-comparison/v1"
+        if legacy
+        else "bigint-growth-reservation-comparison/v2",
         configurations=configurations,
         resource_identity=zero["samples"][0]["control"]["result"]["resource_identity"],
         process_policy="separate-native-process-per-setting-and-row",
@@ -608,6 +619,7 @@ def growth_comparison_summary(zero, reserved, order, batch):
     )
     return dict(
         **policy,
+        **({"production_setting": "reserved"} if not legacy else {}),
         comparison_sha256=identity(policy),
         order=order,
         all_results_match=not mismatches
@@ -633,7 +645,12 @@ def growth_comparison_summary(zero, reserved, order, batch):
         / denominator
         if denominator
         else None,
-        interpretation="Qualification-only counterfactual. Review ordinary prepare/execute/total and lifecycle, first byte, observer distortion and exclusions. Per-process VmHWM includes compilation/JIT and both observations, measured before report serialization; it is not aggregate RSS or guest-only allocation. Production remains zero reservation.",
+        interpretation="Qualification-only counterfactual. Review ordinary prepare/execute/total and lifecycle, first byte, observer distortion and exclusions. Per-process VmHWM includes compilation/JIT and both observations, measured before report serialization; it is not aggregate RSS or guest-only allocation. "
+        + (
+            "Production remains zero reservation."
+            if legacy
+            else "Production uses64KiB reservation; zero is a qualification control."
+        ),
     )
 
 
@@ -663,7 +680,7 @@ def memory_growth_measurements(
             repetitions,
             profile=True,
             profile_input_load=True,
-            growth_reservation_control=name == "reserved",
+            zero_growth_control=name == "zero",
             failure_output=failure_output,
             native_output=Path(failure_output).with_name("growth-latest-native.log"),
         )
@@ -692,9 +709,11 @@ def memory_growth_measurements(
                 arms=arms,
             ),
         )
-    comparison["reserved"] = arms["reserved"]
-    arms["zero"]["memory_growth"] = comparison
-    return arms["zero"]
+    if comparison["version"] != "bigint-growth-reservation-comparison/v2":
+        raise ValueError("current collection requires production64KiB v2 engine evidence")
+    comparison["zero"] = arms["zero"]
+    arms["reserved"]["memory_growth"] = comparison
+    return arms["reserved"]
 
 
 def runtime_measurements(
@@ -705,7 +724,7 @@ def runtime_measurements(
     profile=False,
     compare_host_lookups=False,
     profile_input_load=False,
-    growth_reservation_control=False,
+    zero_growth_control=False,
     failure_output=None,
     native_output=None,
 ):
@@ -715,9 +734,7 @@ def runtime_measurements(
     if (compare_host_lookups or profile_input_load) and not profile:
         raise ValueError("host lookup/input-load details require runtime profiling")
 
-    if growth_reservation_control and (
-        not profile or not profile_input_load or compare_host_lookups
-    ):
+    if zero_growth_control and (not profile or not profile_input_load or compare_host_lookups):
         raise ValueError("growth control requires isolated input profiling")
 
     # Repeated exact indices measure batch overhead, never pretend to be a dataset.
@@ -734,7 +751,7 @@ def runtime_measurements(
                 **({"profile": True} if profile else {}),
                 **({"compare_host_lookups": True} if compare_host_lookups else {}),
                 **({"profile_input_load": True} if profile_input_load else {}),
-                **({"growth_reservation_control": True} if growth_reservation_control else {}),
+                **({"zero_growth_control": True} if zero_growth_control else {}),
             )
         ).encode(),
         capture_output=True,

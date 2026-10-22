@@ -143,13 +143,16 @@ class SynthesisClient:
         )
         with binary.open("rb") as handle:
             binary_hash = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
-        result = identity(
-            dict(
-                binary_sha256=binary_hash,
-                guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
-                profile=profile,
-            )
+        manifest = dict(
+            binary_sha256=binary_hash,
+            guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
+            profile=profile,
         )
+        if profile == "bigint-body/v1":
+            from .engine_policy import production_policy
+
+            manifest["engine_policy_sha256"] = identity(production_policy())
+        result = identity(manifest)
         self.runtime_identities[profile] = result
         return result
 
