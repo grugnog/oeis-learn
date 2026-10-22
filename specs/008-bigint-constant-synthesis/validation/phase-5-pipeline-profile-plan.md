@@ -50,8 +50,8 @@ actual batch sizes. Do not cherry-pick only fast or successful candidates.
 | Segment | Fixed work | Purpose |
 | --- | --- | --- |
 | Startup/warmup | Capture cold role/model/worker initialization once;20 scratch warmup updates and one batch8 greedy decode, excluded from steady-state summaries | Separate startup, allocator/cache and compilation cost |
-| Weight updates |500 timed updates, batch8, in20 blocks of25 using a frozen schedule over128 synthetic training examples; restore identical copied weights/optimizer/RNG/data state before each block | Enough sustained work to sample training utilization, with forward/loss/backward/optimizer/metrics costs separated |
-| Validation | One full256-row synthetic development teacher-forced loss pass, with fixed order/batch policy | Measure actual validation shape without candidate or hidden-term selection |
+| Weight updates |500 timed updates **per arm** (1000 total), batch8, in20 blocks of25 using a frozen schedule over128 synthetic training examples; restore identical copied weights/optimizer/RNG/data state before each block | Enough sustained work to sample training utilization, with forward/loss/backward/optimizer/metrics costs separated |
+| Validation | One full256-row synthetic development teacher-forced loss pass per arm, with fixed order/batch policy | Measure actual validation shape without candidate or hidden-term selection |
 | Production portfolio |32 prompts: correct conditioning with greedy plus seven stochastic attempts; shuffled and absent conditioning with greedy only; eight fixed templates per prompt; baseline generation batch8, fitting serial | Exercise real inference, fitting, raw checks and reference admission across the existing diverse set |
 | Continuation verification | Execute the frozen selected candidates over their100-index synthetic training horizons in the separate scorer role | Include production/reference verification cost while keeping truth out of generation |
 | Short/long trace probes | Separate replay of one short and one long decode from the fixed workload; if no long output exists, use a separately labelled existing fixed-state long-output fixture | Attribute kernel/launch/synchronization costs without pretending a worst-case stress output is typical |
@@ -78,6 +78,7 @@ start/end timestamps independently of budget reservations. Proposed stage caps:
 portfolio/scoring,600s focused traces,300s analysis/archive. Work is finite;
 partial/incomplete results and unstarted stages are retained on any cap.
 
+The work table applies to each measurement arm, except the separate trace probes.
 Two paired measurement passes use identical frozen inputs/seeds and independent
 analysis/cache directories: ordinary execution and execution with lightweight
 telemetry. Alternate their order across the four groups of eight prompts, while
@@ -86,9 +87,13 @@ outside timed update windows. Describe cold versus warm worker/compiled/result
 cache state and report hit/miss counts; do not let the second arm inherit cached
 answers from the first. Reuse existing production cache policy within each arm.
 
-Expected duration is roughly45–60minutes from historical long-output forecasts;
-a trained checkpoint may finish sooner. Do not add repetitions just to fill a
-clock target. Keep per-group and per-attempt distributions; two passes do not
+Treat45–60minutes as a planning estimate, not a demonstrated runtime: before
+launch, compute a conservative bound from both arms, actual deadline scope
+(per prompt versus per batch), scoring and role startup. If the fixed work cannot
+fit its stage caps, revise and freeze the manifest before execution; never
+silently shorten only the second arm.
+A trained checkpoint may finish sooner than historical long-output forecasts;
+do not add repetitions just to fill a clock target. Keep per-group and per-attempt distributions; two passes do not
 provide a precise tail-latency estimate. If the cap prevents completion, report
 coverage and narrow a separately identified follow-up rather than extending it.
 
@@ -114,6 +119,13 @@ per sample or stream unbounded command output.
 | GPU | Selected AMD device busy/memory-busy counters where supported, clocks, temperature and power; PyTorch allocated/reserved/peak bytes | Device busy is sampled activity, not occupancy, FLOP efficiency or proof of bandwidth saturation; report device-wide background activity |
 | Memory | Role/native-worker RSS/high-water marks, cgroup current/peak/events, host available/swap; allocator peaks per stage | APU GPU/system counters overlap. Never sum RSS, cgroup usage and GPU allocator bytes as independent consumption |
 | Work | Actual emitted/useful tokens per second, batch/sequence lengths, termination, fit/execution/reference counts/outcomes, queue/IPC/cache timings and worker restarts | Distinguish more work from slower operations; include failed/capped work and compare like shapes |
+
+Capture a short idle/background sample during capability checking and record
+competing workloads. Prefer cumulative CPU/cgroup deltas at stage boundaries
+as well as1Hz samples: sampling alone can miss short-lived native children.
+Use monotonic timestamps for all same-host roles; report sensor sample age and
+clock alignment uncertainty. Collector activity must be identifiable separately
+from workload activity.
 
 Use stdlib `/proc`, readable cgroup files and AMD sysfs counters, plus existing
 PyTorch memory APIs. Map the GPU sensor to the selected render node/PCI identity;
@@ -153,7 +165,8 @@ events belongs to a separately tested observer-overhead change, not a silent
 alteration of this baseline. Preserve required validation even if entropy,
 per-parameter finite checks or logging prove expensive; first measure them.
 
-Collect short PyTorch CPU/HIP traces **outside headline throughput measurements**:
+Run coarse measurements first. Collect short PyTorch CPU/HIP traces
+**outside headline throughput measurements**, targeted using those measurements:
 one five-update window and one short/long generation window, at most30s and
 256 token steps per decode window. Initial traces use operator/range events,
 no shapes/stacks/tensor memory histories. Check that GPU kernels are actually
@@ -179,14 +192,39 @@ outputs and parameter hashes. Report telemetry overhead separately; investigate
 median paired slowdown above5% or output/disposition differences. If overhead
 is material, keep ordinary timing authoritative and reduce sampling/ranges in
 a new labelled pass. Profiler windows are explanatory, never throughput claims.
+Deadline-limited portfolios can do different amounts of work under even a small
+observer slowdown. Report this as a measurement effect, not automatically as
+semantic nondeterminism. Use paired completed, matching attempts to estimate
+per-operation overhead, and separately show unmatched/capped work; do not hide
+that work or compare truncated aggregate times as a speedup. Compare update
+parameter hashes at corresponding block ends, not against the unchanged parent.
 A missing sensor does not imply idle hardware. Material changes in output length,
 timeouts or cache hits invalidate a simple speed ratio and must be explained.
 
 Produce an interactive or standalone timeline plus a compact table of exclusive
 wall shares, CPU core-equivalents, GPU busy distributions, memory/pressure,
 tokens/sec, native cost, waits and collector coverage for each phase. Include
-cold startup, failed work and unallocated residual. Compute the upper bound on
-whole-run benefit from accelerating each category before recommending work.
+cold startup, failed work and unallocated residual.
+
+**Do not interpret this diagnostic's aggregate wall shares as the training run's
+shares.** Its deliberately oversampled updates, reduced control portfolios and
+paired/traced repetitions have a different mix. Publish two separate views:
+(1) measured diagnostic phase times and utilization; (2) a schedule-weighted
+projection using the intended training/evaluation frequency and actual token
+length/batch distributions. State assumptions and uncertainty, and leave an
+unmeasured category unknown. Exclude observer duplication, trace probes and
+state restoration from that projection, while retaining real production startup,
+checkpoint/export and waiting costs. Since this plan does not time a real
+checkpoint/export, either add one bounded scratch checkpoint/export measurement
+within the existing cap or explicitly label that cost unmeasured. Do not use
+synthetic long-output stress results as the representative decode distribution.
+
+Compute Amdahl-style upper bounds using the schedule-weighted **critical path**,
+not summed CPU time or overlapping device spans. Spare cores establish capacity,
+not independent work: document which native requests could be concurrent without
+changing candidate dependencies, selection order or shared deadlines. Distinguish
+speeding up native work from overlapping it with inference; the latter is bounded
+by both available overlap and contention, particularly on a shared-memory APU.
 
 - GPU consistently busy and decode dominates: investigate batch occupancy,
   output-length effects and kernel work before adding CPU workers.
@@ -220,7 +258,7 @@ must be exportable. Old negative T096 and historical receipts stay unchanged.
   normalization, missing-sensor handling and bounded cleanup/archive tests.
 - [ ] W003 Add the fixed-state paired workload and short trace mode; test stable
   seeds/counts/state restoration, no cross-arm cached answers, limits and trace
-  bounds before actual HIP execution. Separate mocks/CPU tests from device evidence.
+  bounds, per-arm counts and schedule-weighted reporting before actual HIP execution. Separate mocks/CPU tests from device evidence.
 - [ ] W004 Push incrementally and provide one copy-pastable Podman/Docker command
   for capability check plus bounded collection/rerun/archive. No command for this
   proposed harness exists yet. Do not launch it automatically or wait for PR CI.
