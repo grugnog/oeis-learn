@@ -197,7 +197,7 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 
 - [X] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
 - [X] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
-- [ ] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
+- [X] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
 - [X] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
   Reviewed Phase 5 run `008-phase5-batched-20261021T001809Z`:9 actual HIP tests
   passed with zero failures/errors/skips, including changed finite encoder
@@ -235,8 +235,9 @@ execution. T095 is closed by reviewed current-source HIP receipts: diverse32
 admitted exactly the registered T096 attempt; transfer-screen remains
 over budget and unadmitted. T096 is complete with a reviewed negative outcome
 that blocks promotion. T089/T090 are closed by reviewed current-implementation CI artifacts:184
-arithmetic and37 fitting cases with zero failures/errors/skips. T091, T093–T094
-and T097–T098 remain unchecked; see [the execution review](validation/phase-5-execution-review.json).
+arithmetic and37 fitting cases with zero failures/errors/skips. T091 is closed by the subsequent verified Docker/Podman inspect and cleanup
+artifacts in [the containment review](validation/phase-5-containment-review.json).
+T093–T094 and T097–T098 remain unchecked; see [the execution review](validation/phase-5-execution-review.json).
 PR #59 implements both receipts, shared coordinator reservations, the
 14,400-second preregistration and the reviewed single-attempt runner. The
 remaining engine/checkpoint/slowdown/operations reviews are pending; the consumed

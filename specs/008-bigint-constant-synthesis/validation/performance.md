@@ -124,3 +124,30 @@ No profiling run or causal performance fix is claimed by this review. It narrows
 the next implementation target using already collected evidence. The successful
 deadline replay does not close T094 or authorize another learning attempt.
 
+
+## Opt-in phase profiler implementation
+
+Freeze observation policy `bigint-runtime-profile/v1`: use the existing corpus,
+batches1/20/100 and three paired repetitions (first profiled-first, then alternate
+order). Compare ordinary aggregate measurement with opt-in detailed observation
+on the same runtime implementation. Preserve every production resource/semantic
+check and independently validate both outputs. Record phase call counts and
+seconds, attempted/finished terms, unattributed execution time, paired parity
+and observer overhead; do not claim causal attribution before reviewing them.
+The dedicated CPU role has600seconds work plus the existing separate cleanup
+allowance, retains partial/failure reports and produces a bounded archive. It
+receives no dataset, weights, hidden scoring or GPU capability.
+
+- [ ] P001 Add native and Python regressions for phase accounting, early failure,
+  measured/control semantic/fuel/coverage parity and malformed profile evidence.
+- [ ] P002 Add opt-in native timings around the existing execution path, leaving
+  ordinary aggregate measurement available as the paired control.
+- [ ] P003 Summarize phase costs, order and observer overhead with explicit
+  unattributed time; retain failures and report resource exclusions honestly.
+- [ ] P004 Wire an archived CPU-only host/CI profiling role with600seconds work,
+  source/image/binary binding and actual inspect/cleanup records.
+- [ ] P005 Run available checks, push incrementally and provide CPU repro commands;
+  leave actual native profiling evidence pending instead of awaiting new CI.
+
+T094 remains open until actual phase/observer-overhead results are reviewed.
+A production optimization is outside this measurement-only implementation.
