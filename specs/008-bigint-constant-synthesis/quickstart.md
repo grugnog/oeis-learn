@@ -7,7 +7,18 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current step: review remaining performance costs after CPU adoption
+## Current next step: review the whole-pipeline profiling plan
+
+T093 historical-model comparison is user-deferred and no longer a prerequisite
+for the from-scratch Phase5 path; no historical-model evaluation is claimed.
+The [proposed whole-pipeline HIP profile](validation/phase-5-pipeline-profile-plan.md)
+freezes a meaningful32-prompt diagnostic, disposable update measurements,
+lightweight GPU/CPU/memory sampling, ordinary/observed comparisons and bounded
+trace windows before implementation. The harness does not exist yet and no run
+has started. Read/review the plan before implementing it; do not repeat the
+consumed T096 experiment or launch a new qualification run from this document.
+
+## Completed CPU adoption and reproduction
 
 The [updated Podman adoption run](validation/phase-5-engine-adoption-review.json)
 now passes334 arithmetic,37 fitting and64 containment tests with no skips,

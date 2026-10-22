@@ -128,3 +128,14 @@ Run mathematical/property tests in the native CPU job, container contract tests 
 ## Complexity Tracking
 
 No unjustified constitutional violations. Separate WASM and native dependency closures are required to keep solver/host code out of metered candidate arithmetic. A distinct reference interpreter is deliberate verification independence. Three numerical/model identities (historical signed-256, bigint runtime, variable-width hybrid) are explicit experimental controls rather than silent replacements.
+
+## User-approved qualification scope update — 2026-10-22
+
+T093's historical retained-model raw/fitted comparison is explicitly deferred,
+not passed, and outside current Phase5 completion. It does not require
+conversion of pre007 weights or block training from scratch. Keep supported
+read-only readers/compatibility tests. Current-model profiling uses a separate
+frozen bigint checkpoint only as an analysis input. See
+[the disposition](validation/checkpoint-rescue.md) and
+[the proposed whole-pipeline profile](validation/phase-5-pipeline-profile-plan.md).
+No runtime, learning, success-threshold or admission behavior changes here.

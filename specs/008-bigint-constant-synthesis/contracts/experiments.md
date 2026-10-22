@@ -16,7 +16,7 @@ For parameter-dev, reserve variants within training families while keeping detec
 
 | Study | Fixed controls | Changed factor / report |
 | --- | --- | --- |
-| Existing checkpoint rescue | Same checkpoint, prompts, decoded candidates and old numerical semantics | Original vs eligible-literal fitting; supported fraction, rescue rate, continuation, cost; unsupported legacy candidates remain explicit |
+| Existing checkpoint rescue — T093 user-deferred2026-10-22 | Optional historical comparison, outside current Phase5 completion; no model conversion required | Read-only implementation/compatibility retained; no executed result claimed |
 | Literal vs parameterized bootstrap | Same generic behaviors/structures/splits, small backbone, chosen input profile, optimization and seeds | Representation and fitting; raw/fitted scores, token/parameter counts and realized compute |
 | Curriculum and replay | Winning or inconclusive representation decision explicitly frozen | Enable curriculum first, then verified replay as a separate recorded comparison, not an unlabelled joint intervention |
 | Generic-only vs assisted | Same generic foundation checkpoint and downstream budgets | Reviewed mathematical demonstrations; shared foundation cost, lineage and transfer on excluded families/compositions |

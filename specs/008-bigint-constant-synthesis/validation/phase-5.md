@@ -21,8 +21,8 @@ See [the scoped review](phase-5-scoped-hip-review.json) and
 
 The earlier HIP run closed T092 and retains its original failed larger-screen
 estimate at47,749.33s; [that historical receipt](phase-5-batched-hip-review.json)
-is preserved. Remaining matched-checkpoint, slowdown and operations
-evidence is still required before overall Phase 5 promotion.
+is preserved. Remaining slowdown and operations evidence is still required
+before overall Phase5 promotion. Historical-model task T093 is user-deferred.
 
 Entry is merged Phase 4 PR #57 at
 `be6070bead5f30147774b6517c0f50eb1cb3f6cc`. T088 is closed by reviewed required
@@ -44,11 +44,11 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T090 | [Fitting](fitting.md): COMPLETE,37 selected cases plus six complete non-scoring fitting classes; deadline correction and successful exact visible replay reviewed separately. |
 | T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
-| T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
+| T093 | [Checkpoint rescue](checkpoint-rescue.md): USER-DEFERRED2026-10-22; historical model comparison is outside the current completion gate. No result claimed. |
 | T094 | [Performance](performance.md): [current Podman CPU adoption](phase-5-engine-adoption-review.json) passes334 arithmetic/37 fitting/64 containment tests and75 comparison rows. Small batch100 improves5.18–5.45x versus zero, but remains13.29–13.40x retained; timer lifecycle and single-term uncertainty remain open. No new whole-workload HIP/cost receipt. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
-| T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete command/export and matched-checkpoint coverage remain open. |
+| T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete current-scope command/export coverage remains open; T093-dependent historical diagnosis is deferred. |
 | T098 | This report, [local checks](phase-5-scoped-local.json) and [current HIP review](phase-5-scoped-hip-review.json) retain their exact identities; overall qualification remains BLOCKED. |
 
 ## Current implementation evidence reconciliation — 2026-10-21
@@ -82,13 +82,14 @@ Remaining work, in dependency order (updated2026-10-22):
    fixture-identity run remains FAIL in its separate review.
 2. T094 stays open: small batch100 execution remains13.29–13.40x retained;
    three batch1 rows regress and only two warm samples exist. Timer start/stop
-   is roughly half of profiled small-case execution, making deadline-thread
-   lifecycle the next focused investigation. Any change must preserve deadline,
+   is roughly half of profiled small-case execution. The user now requests the
+   [whole-pipeline HIP plan](phase-5-pipeline-profile-plan.md) before choosing
+   further timer/WASM optimization. Any change must preserve deadline,
    fuel, store isolation and cleanup semantics. A new design has no measured
    speedup yet. Eventual-image HIP and whole-workload cost evidence are separate.
-3. Obtain genuine retained matched-run weights/metadata for T093 and complete
-   the supported command/export checklist for T097. The new bigint tiny
-   checkpoint cannot substitute. Current Podman adoption adds operation evidence;
+3. T093 historical-model comparison is user-deferred and missing historical
+   weights no longer block current Phase5. Complete the supported current-scope
+   command/export checklist for T097. Current Podman adoption adds operation evidence;
    it does not constitute new Docker/HIP execution or close the full checklist.
 4. Reconcile T098's final pass/fail/pending report. Negative T096, missing
    prerequisites and the unadmitted transfer screen continue to block promotion.
@@ -238,10 +239,9 @@ observed isolation/cleanup, with an omission manifest. Private inputs, weights
 and caches are excluded. Use a fresh output directory for measurement retries;
 learning uses the original attempt/ledger instead.
 
-T093 still needs a genuine retained matched-run directory. Add
-`--checkpoint-run runs/ACTUAL_RUN` to a full qualification command when those
-weights/metadata are available. The new tiny checkpoint cannot substitute for
-that evidence. No task is checked off merely because a command exists.
+T093 historical-model diagnosis is user-deferred; `--checkpoint-run` remains
+a supported optional operation rather than a current Phase5 prerequisite.
+No historical-model result is claimed. See [the disposition](checkpoint-rescue.md).
 
 ## Historical follow-ups
 
@@ -396,3 +396,12 @@ Use the fetch-only command above first, retaining `tmp-oeis-bulk`, then rerun
 the timestamped HIP command once fetch completes. Actual HIP gates remain
 pending; new CI is left running unmonitored.
 
+
+## Current performance direction — user decision2026-10-22
+
+T093 is deferred, not passed, and removed from current Phase5 prerequisites.
+Before further timer/WASM optimization, use the
+[whole-pipeline profiling plan](phase-5-pipeline-profile-plan.md) to measure real
+HIP generation, scratch update cost, CPU fitting/execution/reference work and
+resource/waiting timelines. This is a proposed bounded diagnostic, not an
+implemented command, new qualification attempt or training authorization.

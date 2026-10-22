@@ -206,7 +206,7 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
   [review receipt](validation/phase-5-batched-hip-review.json) and
   [device evidence](validation/gpu.md). Overall Phase 5 remains BLOCKED on cost
   and the other pending gates.
-- [ ] T093 [US2] Evaluate identified existing matched-run checkpoints through the retained-profile raw/exact paired diagnostic before parameterized training; record hashes, same-candidate rescue, unsupported fraction, continuation and fitting/reference cost in `specs/008-bigint-constant-synthesis/validation/checkpoint-rescue.md`; missing weights require an explicit evidence blocker, not substitution with canonical programs.
+- [ ] T093 [US2] **DEFERRED by user, 2026-10-22; outside the current Phase 5 completion gate.** Historical retained-model raw/exact comparison may be revisited separately if useful. Preserve its read-only diagnostic implementation and compatibility tests; do not convert or require historical weights for the from-scratch path. No checkpoint evaluation is claimed. See `validation/checkpoint-rescue.md`.
 - [ ] T094 [US1] Add and run the measurement-only harness `scripts/benchmark_bigint.py` for shared supported old/new small values and legal64/256/512/1024/4096-bit supplied values; construct up-to16,384-bit intermediate operands/results through supported operations from legal inputs, distinguish expected-overflow timings and identify any separately pinned wider-input benchmark-only profile; separate compile/execute/solve/reference/generation/training time, cold/warm batch behavior and resource coverage, recording results in `specs/008-bigint-constant-synthesis/validation/performance.md`; investigate >5x median small-value slowdown without weakening semantics.
 - [X] T095 [US4] Preserve the measured full transfer-screen cost result, then implement and run scope-identified p95 preflights for `diverse32` and the later complete transfer screen via `scripts/foundation_run.py`; each receipt must use its exact periodic panel, end-of-run prompts, attempts, controls, cadence and reserve. Record complete512/128/128 counts, diverse32 composition, exclusions and both scope identities in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`. A passing diverse32 receipt may admit only T096; it cannot qualify the transfer screen. Preregister a finite measured budget/cadence/portfolio revision before training, without changing denominators or success thresholds.
   Reviewed `008-phase5-scoped-20261021T115212Z`: all24 archived file hashes,
@@ -237,7 +237,7 @@ over budget and unadmitted. T096 is complete with a reviewed negative outcome
 that blocks promotion. T089/T090 are closed by reviewed current-implementation CI artifacts:184
 arithmetic and37 fitting cases with zero failures/errors/skips. T091 is closed by the subsequent verified Docker/Podman inspect and cleanup
 artifacts in [the containment review](validation/phase-5-containment-review.json).
-T093–T094 and T097–T098 remain unchecked; see [the execution review](validation/phase-5-execution-review.json).
+T093 is now explicitly deferred by the user; T094 and T097–T098 remain open; see [the execution review](validation/phase-5-execution-review.json).
 PR #59 implements both receipts, shared coordinator reservations, the
 14,400-second preregistration and the reviewed single-attempt runner. The
 new-source native validation and remaining checkpoint/slowdown/operations reviews are pending; the consumed
@@ -313,7 +313,7 @@ Phase 2 order is runtime/reference/codec/encoder → native fitting/admission �
 | Story | Depends on | Independently testable delivery | Full acceptance |
 | --- | --- | --- | --- |
 | US1 P1 | Phase 1 | T025 CPU arithmetic/input library, no trained model required | T089/T092/T094; exact values, limits, historical compatibility and actual-device updates |
-| US2 P1 | US1 execution/reference | T036 native fitting against fixed candidates, no training required | T090/T093; independently verified fits, scope/ambiguity and checkpoint rescue evidence |
+| US2 P1 | US1 execution/reference | T036 native fitting against fixed candidates, no training required | T090; independently verified fits and scope/ambiguity. Historical checkpoint rescue T093 is user-deferred. |
 | US3 P1 | Qualified US1/US2 plus T038 state rules | T080 portable CPU workflow | T088/T091/T097; one installed fitter, recovery/resume and useful exports |
 | US4 P2 | US1/US2, US3 production path | T052 deterministic data/policies and ablation interfaces | T095/T096/T100–T105; complete matched evidence, sealed final study and explicit negative/promotion outcome |
 | US5 P2 | US2 admission, US4 grouping, US3 artifacts | T055–T057 fixture-based lineage/archive policies | T103/T105/T106; reviewed assisted lineage, gated final access and separate discovery evidence; reviewed data availability may block research |
@@ -339,7 +339,7 @@ Native mathematical suites, Python regressions and portable container tests may 
 | Requirement | Implementation tasks | Acceptance evidence |
 | --- | --- | --- |
 | FR-001–003, FR-013–015 | T011–T025, T067–T068 | T089/T091/T092/T094; SC-001–003/009 |
-| FR-004–006, FR-016–017 | T026–T036, T061–T062, T069–T070 | T090/T093; SC-001/002 |
+| FR-004–006, FR-016–017 | T026–T036, T061–T062, T069–T070 | T090; SC-001/002. T093 historical-model comparison is user-deferred. |
 | FR-018 | T015/T018/T034/T043/T047/T066/T067/T071 | T079/T089/T091/T101; exact20/100 scope and hidden isolation |
 | FR-007, FR-019–023 | T041–T052, T067/T071–T074 | T095/T096/T099–T102; SC-004/007–009 |
 | FR-008–009, FR-024–025 | T037–T038/T053–T057, T064–T066/T075–T076 | T079/T099/T103/T105/T106; lineage, sealed-to-exposed final study and discovery audit |
@@ -458,3 +458,16 @@ complete for that source/image. T094 remains unchecked for the retained
 13.29–13.40x small batch100 gap, uncertain batch1 behavior and whole-workload
 costs. Deadline timer lifecycle is the next focused investigation; no new design,
 HIP/Docker result, training retry or promotion is inferred.
+
+**User scope decision — 2026-10-22**: defer T093 historical-model comparison.
+It is not a missing-weights blocker for completing current Phase5 or training
+from scratch. The checkbox remains unchecked to distinguish deferral from a
+passed experiment. T097 excludes execution of this deferred comparison while
+retained readers/compatibility tests remain supported. Historical review JSON
+and earlier pending lists retain their original meaning. T094 and T097/T098,
+negative T096 and the unadmitted transfer screen remain separate.
+
+The next performance work is planned in
+[the whole-pipeline profiling plan](validation/phase-5-pipeline-profile-plan.md).
+This turn changes scope/documents only; no profiler, training or hardware run
+has started and no new attempt is admitted.

@@ -2,7 +2,8 @@
 
 Status: targeted new-image check/GPU/performance commands and their bounded ZIP
 are reviewed in [the scoped receipt](phase-5-scoped-hip-review.json). Full
-both-engine and retained-checkpoint-dependent command coverage remain pending.
+current-scope command/export coverage remains pending. T093-dependent historical
+checkpoint evaluation is user-deferred2026-10-22.
 The completed negative diverse32 run and pack export are now reviewed in
 [the learning receipt](phase-5-diverse32-review.json):15 outer archive files,
 16 nested bundle files, no manifest omissions and complete core export.
@@ -17,8 +18,9 @@ and the installed `python -I` retirement audit passes with no violations. All
 archive and receipt-file hashes verify in [the execution review](phase-5-execution-review.json).
 
 This completes those portions of T097, not every supported quickstart/export
-operation. Matched-checkpoint diagnosis is still blocked on actual retained
-weights. A complete current command/export checklist remains open. Successful
+operation. Historical matched-checkpoint diagnosis is now user-deferred and
+does not block T097. A complete current command/export checklist remains open.
+Successful
 containment inspect/cleanup artifacts are now reviewed
 in [the containment receipt](phase-5-containment-review.json). No fixture substitutes
 for those missing operations and T097 stays open.
@@ -83,3 +85,8 @@ identity, output-only isolation and cleanup. Its earlier fixture-identity
 failure is preserved separately. This closes that new operation's pending
 Podman evidence; complete command/export coverage, retained-checkpoint diagnosis
 and eventual-image Docker/HIP evidence remain separately tracked. T097 stays open.
+
+
+Current scope decision2026-10-22: T093-dependent historical-model execution is
+excluded from T097 completion; retained reader and compatibility regressions
+remain required. Prior receipts and historical pending lists are unchanged.
