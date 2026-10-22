@@ -247,7 +247,13 @@ MEMORY_SCOPES = {
     "memory_in_first": "first_byte",
     "memory_after_first": "after_first",
 }
-MEMORY_FIELDS = ("requests", "allowed", "denied", "allocation_failures", "requested_increase_bytes")
+MEMORY_FIELDS = (
+    "requests",
+    "allowed",
+    "denied",
+    "grow_failed_callbacks",
+    "requested_increase_bytes",
+)
 
 
 def first_byte_summary(samples):
@@ -298,10 +304,7 @@ def first_byte_summary(samples):
             c = p[name]
             for field in MEMORY_FIELDS:
                 count(c[field])
-            if (
-                c["allowed"] + c["denied"] != c["requests"]
-                or c["allocation_failures"] > c["requests"]
-            ):
+            if c["allowed"] + c["denied"] != c["requests"]:
                 raise ValueError("unbalanced memory request counters")
             if c["requested_increase_bytes"] > c["requests"] * 2**32:
                 raise ValueError("invented wasm32 growth")
@@ -589,6 +592,8 @@ def runtime_measurements(
             raise ValueError("incomplete native measurement report")
         if profile_input_load:
             report["input_load_profiling"] = input_load_summary(report, batch)
+            if report["input_load_profiling"]["policy"] != "bigint-input-load-profile/v2":
+                raise ValueError("current native input profiling requires first-byte v2 evidence")
         elif report.get("profile_input_load") is True or any(
             s.get("timings", {}).get("stages", {}).get("input_load") is not None
             for s in report["samples"]

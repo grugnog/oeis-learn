@@ -7,12 +7,12 @@ use crate::{language,lowering::{self,ABI},value::{integer,Resources}};
 
 #[derive(Clone,Copy,Default,Serialize)]
 pub struct MemoryCounts {
-    pub requests:usize,pub allowed:usize,pub denied:usize,pub allocation_failures:usize,
+    pub requests:usize,pub allowed:usize,pub denied:usize,pub grow_failed_callbacks:usize,
     pub requested_increase_bytes:u64,
 }
 impl MemoryCounts {
-    fn since(self,b:Self)->Self {Self{requests:self.requests-b.requests,allowed:self.allowed-b.allowed,denied:self.denied-b.denied,allocation_failures:self.allocation_failures-b.allocation_failures,requested_increase_bytes:self.requested_increase_bytes-b.requested_increase_bytes}}
-    fn add(&mut self,b:Self) {self.requests+=b.requests;self.allowed+=b.allowed;self.denied+=b.denied;self.allocation_failures+=b.allocation_failures;self.requested_increase_bytes+=b.requested_increase_bytes;}
+    fn since(self,b:Self)->Self {Self{requests:self.requests-b.requests,allowed:self.allowed-b.allowed,denied:self.denied-b.denied,grow_failed_callbacks:self.grow_failed_callbacks-b.grow_failed_callbacks,requested_increase_bytes:self.requested_increase_bytes-b.requested_increase_bytes}}
+    fn add(&mut self,b:Self) {self.requests+=b.requests;self.allowed+=b.allowed;self.denied+=b.denied;self.grow_failed_callbacks+=b.grow_failed_callbacks;self.requested_increase_bytes+=b.requested_increase_bytes;}
 }
 #[derive(Clone,Copy)]
 struct GrowthRequest {ordinal:usize,current_bytes:usize,desired_bytes:usize,allowed:bool}
@@ -40,7 +40,7 @@ impl ResourceLimiter for Limits {
         self.inner.table_growing(current,desired,maximum)
     }
     fn memory_grow_failed(&mut self,error:wasmtime::Error)->wasmtime::Result<()> {
-        if let Some(p)=self.memory_probe.as_mut() {p.counts.allocation_failures+=1;}
+        if let Some(p)=self.memory_probe.as_mut() {p.counts.grow_failed_callbacks+=1;}
         self.memory_denied=true;Err(error)
     }
     fn instances(&self)->usize {2}
@@ -91,23 +91,25 @@ impl Default for InputLoadMeasurements {
 struct InputObserver<'a> {detail:Option<&'a mut InputLoadMeasurements>,first_seen:bool,before:Option<MemoryCounts>,after:Option<MemoryCounts>}
 impl<'a> InputObserver<'a> {
     fn new(detail:Option<&'a mut InputLoadMeasurements>)->Self {Self{detail,first_seen:false,before:None,after:None}}
-    fn transfer_byte(&mut self,calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,b:u8)->Result<(),String> {
-        if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_attempted+=1;}
-        calls.call1(i,s,"host_load_byte",b as i32)?;
-        if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_returned+=1;}
-        Ok(())
-    }
     fn byte(&mut self,calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,b:u8)->Result<(),String> {
-        if self.first_seen || self.detail.is_none() {return self.transfer_byte(calls,i,s,b);}
-        self.first_seen=true;
-        self.before=s.data().memory_probe.as_ref().map(|p|p.counts);
-        let start=Instant::now();
-        let result=self.transfer_byte(calls,i,s,b);
-        let seconds=start.elapsed().as_secs_f64();
-        self.after=s.data().memory_probe.as_ref().map(|p|p.counts);
-        let p=&mut self.detail.as_deref_mut().unwrap().first_byte_probe;
-        p.first_byte.calls+=1;p.first_byte.seconds+=seconds;
-        if result.is_ok(){p.first_byte_calls_returned+=1;}
+        let first=!self.first_seen && self.detail.is_some();
+        if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_attempted+=1;}
+        if first {
+            self.first_seen=true;
+            self.before=s.data().memory_probe.as_ref().map(|p|p.counts);
+        }
+        // Include lazy typed lookup and the guest call, excluding probe snapshots
+        // and counters. No later byte reads a clock.
+        let start=if first {Some(Instant::now())}else{None};
+        let result=calls.call1(i,s,"host_load_byte",b as i32).map(|_|());
+        if let Some(start)=start {
+            let seconds=start.elapsed().as_secs_f64();
+            self.after=s.data().memory_probe.as_ref().map(|p|p.counts);
+            let p=&mut self.detail.as_deref_mut().unwrap().first_byte_probe;
+            p.first_byte.calls+=1;p.first_byte.seconds+=seconds;
+            if result.is_ok(){p.first_byte_calls_returned+=1;}
+        }
+        if result.is_ok() {if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_returned+=1;}}
         result
     }
     fn finish_memory(&mut self,probe:Option<&MemoryProbe>) {

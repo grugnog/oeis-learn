@@ -12,7 +12,7 @@ def counts(requests=0, increase=0):
         requests=requests,
         allowed=requests,
         denied=0,
-        allocation_failures=0,
+        grow_failed_callbacks=0,
         requested_increase_bytes=increase,
     )
 
@@ -207,3 +207,38 @@ def test_impossible_first_call_and_trace_locations_are_rejected(kind):
         p["first_byte_calls_returned"] = 0
     with pytest.raises((ValueError, KeyError)):
         benchmark().input_load_summary(data, 1)
+
+
+def test_current_native_cannot_downgrade_to_archived_v1(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    module = benchmark()
+    raw = json.dumps(input_report()).encode()
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *a, **kw: SimpleNamespace(returncode=0, stdout=raw, stderr=b""),
+    )
+    failure = tmp_path / "failed-native.log"
+    with pytest.raises(ValueError, match="v2 evidence"):
+        module.runtime_measurements(
+            dict(source="fixture", indices=["0"]),
+            1,
+            3,
+            profile=True,
+            profile_input_load=True,
+            failure_output=failure,
+        )
+    assert failure.read_bytes() == raw
+
+
+def test_growth_failure_callbacks_do_not_invent_a_request_or_prove_oom():
+    data = byte_report()
+    for sample in data["samples"]:
+        p = sample["timings"]["stages"]["input_load"]["first_byte_probe"]
+        p.update(memory_before_first=counts(), memory_in_first=counts(), memory_events=[])
+        p["memory_in_first"]["grow_failed_callbacks"] = 1
+    p = benchmark().input_load_summary(data, 1)["first_byte_probe"]
+    assert p["memory_in_first"]["requests"] == [0] * 3
+    assert p["memory_in_first"]["grow_failed_callbacks"] == [1] * 3

@@ -16,8 +16,10 @@ seven subphases, counters and ordinary control. Add `bigint-first-byte-probe/v1`
 - Retain first-call attempted/returned counts and partial transfer evidence.
 - Observe the existing ResourceLimiter callbacks without changing decisions.
   Partition requests before the first byte, during it and after it until input
-  loading ends. Record allowed/denied requests and allocation-failure callbacks.
+  loading ends. Record allowed/denied requests and `memory_grow_failed` callbacks.
   Allowed requests are not labelled successful physical allocation or copy time.
+  Failure callbacks are counted independently, without assuming a paired request
+  or that the operating system failed to allocate memory.
 - Bound raw growth-event samples to four per store and16 per evaluation, with
   exact omission counts. Record current/desired bytes, request order, term and
   phase; count all requests even when their detailed samples are omitted.
@@ -30,12 +32,30 @@ seven subphases, counters and ordinary control. Add `bigint-first-byte-probe/v1`
   batches1/20/100, three repetitions,600s CPU work plus5s cleanup and bounded
   result archives. HIP, data, weights, hidden scoring and training are excluded.
 
-- [ ] B001 Add native/Python tests for first versus later calls, real guest growth,
+- [X] B001 Add native/Python tests for first versus later calls, real guest growth,
   traps/denials, unchanged fuel/results, bounded traces and malformed evidence.
-- [ ] B002 Add optional native limiter/first-call telemetry on the existing path.
-- [ ] B003 Validate and summarize v2 while preserving v1 readers and archived failures.
-- [ ] B004 Run available checks, push incrementally and provide CPU repro commands;
+- [X] B002 Add optional native limiter/first-call telemetry on the existing path.
+- [X] B003 Validate and summarize v2 while preserving v1 readers and archived failures.
+- [X] B004 Run available checks, push incrementally and provide CPU repro commands;
   leave new-image native regression and hypothesis confirmation pending.
 
 T094 remains open. No performance fix or first-allocation cause is claimed.
 The negative T096, remaining checkpoint/operations gates and promotion block stay.
+
+
+Implementation: the current input-detail path emits v2 and carries optional
+limiter counters plus a fixed four-request buffer per store. One timer wraps
+only the first lazy host adapter dispatch/guest byte call per fresh term.
+Snapshots and counters remain outside that timer. Finalizing input observation
+on both success and error preserves first-call traps and partial receipts.
+Initial memory creation is counted; compute/serialization growth after input
+completion is excluded. No new flag, dependency, image layer or runtime resource
+identity is introduced. The Python reader retains v1 without inventing fields,
+rejects mixed policies and requires v2 for current native collection. Invalid
+raw native output still reaches the existing bounded failure archive.
+
+B001–B004 mark implementation and available checks only, not actual execution
+of the new native source or confirmation of the hypothesis. New-image native
+regressions, first-call attribution and observer distortion require CI/the CPU
+command in [quickstart](../quickstart.md). The local receipt is
+[phase-5-first-byte-local.json](phase-5-first-byte-local.json). T094 stays open.

@@ -7,35 +7,45 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: CPU input-load attribution
+## Current next step: CPU first-byte and memory-growth attribution
 
-The [uploaded host-lookup comparison](validation/phase-5-host-lookups-review.json)
-is reviewed:225 three-way groups match. Caching helps wide values, while small
-batch100 addition/cancellation change by only0.25%/2.18% and about74% of detailed
-execution remains in input loading. The next observation-only step splits that
-phase into parsing, begin-load, encoding, byte transfer, finish-load, status and
-sealing without changing guest calls or limits:
+The [reviewed input-load profile](validation/phase-5-input-load-review.json)
+verifies225 detailed/control pairs. Small batch100 byte transfer takes about
+158.9us per term for three calls;4096-bit multiplication takes175.5us for512
+calls. The byte loop accounts for98.3% of small-case input loading and about73%
+of execution. This suggests fixed first-use work; allocation/growth is still a
+hypothesis. The next observation times one first byte per fresh term and records
+existing limiter requests before, during and after it until input loading ends:
 
 ```bash
-input_out="tmp-validation/008-input-load-$(date -u +%Y%m%dT%H%M%SZ)"
+byte_out="tmp-validation/008-first-byte-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --profile-input-load --output "$input_out"
+  --runtime-profile-only --profile-input-load --output "$byte_out"
 ```
 
-Share `$input_out.zip`, including a partial/failed result. The helper builds or
-reuses the current checkout image, then runs the fixed non-scoring corpus within
-600seconds work plus5s cleanup; building is outside that work limit. Docker uses
+Share `$byte_out.zip`, including a partial/failed result. Use a fresh output
+prefix. The helper builds or reuses the current checkout image, then runs the
+same25 non-scoring cases at batches1/20/100, three repetitions, within600seconds
+work plus5s cleanup; building is outside that work limit. Docker uses
 `--engine docker`. No dataset, weights or HIP device is needed. Detailed and
 ordinary results must match in values, failures, fuel, coverage and resource
-identity. Review nested times together with detailed/ordinary observer distortion.
-Counters retain failed/partial transfers; returned byte calls do not imply byte
-acceptance after a sticky error. Nested times are part of input loading and
-must not be added again to total execution.
+identity. Review first-call time together with detailed/ordinary observer cost.
+
+The v2 nested record retains all seven input phases and adds
+`first_byte_probe`: first attempted/returned calls, first-call time, remaining
+byte-loop time, and memory request counts plus at most16 event samples. The
+first timer includes the lazy host adapter lookup and guest call, excluding
+probe snapshots/counters; other bytes get no individual clocks. Limiter counts
+include initial memory creation. An allowed request does not prove successful
+physical allocation or identify the cause of latency. The remainder includes
+later calls, loop and observer overhead. Returned calls do not prove byte
+acceptance after a sticky error. All nested times belong inside their parents.
 
 Add `--compare-host-lookups` only to repeat the optional third ordinary baseline;
-the shared CI exercises that combination. Omitting `--profile-input-load` retains
-the existing ten-phase profile. New-image native compilation and nested timings
-remain pending. See [the frozen scope](validation/phase-5-input-load.md).
+shared CI exercises that combination. Omitting `--profile-input-load` retains
+the ten-phase profile. Archived v1 input evidence remains readable, but current
+native collection requires v2. New-source native compilation/regressions and
+first-byte costs remain pending. See [the frozen scope and remaining validation](validation/phase-5-first-byte.md).
 
 HIP/ROCm runs the neural encoder/decoder and updates; generated candidate
 programs execute on CPU in Rust/Wasmtime, including during HIP-backed learning.

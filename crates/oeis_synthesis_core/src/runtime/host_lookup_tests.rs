@@ -185,9 +185,9 @@ fn memory_denial_and_trace_caps_preserve_limiter_decisions() {
 #[test]
 fn memory_trace_is_bounded_across_fresh_terms_and_failure_callbacks() {
     let mut detail = InputLoadMeasurements::default();
-    for _ in 0..20 {
+    for term in 0..21 {
         let mut limits = Limits {inner:StoreLimitsBuilder::new().build(),memory_denied:false,memory_probe:Some(MemoryProbe::default())};
-        assert!(limits.memory_growing(0,65536,None).unwrap());
+        if term<20 {assert!(limits.memory_growing(0,65536,None).unwrap());}
         assert!(limits.memory_grow_failed(wasmtime::Error::msg("fixture allocation failure")).is_err());
         InputObserver::new(Some(&mut detail)).finish_memory(limits.memory_probe.as_ref());
     }
@@ -195,7 +195,31 @@ fn memory_trace_is_bounded_across_fresh_terms_and_failure_callbacks() {
     assert_eq!(p.memory_events.len(),16);
     assert_eq!(p.memory_events_omitted,4);
     assert_eq!(p.memory_before_first.requests,20);
-    assert_eq!(p.memory_before_first.allocation_failures,20);
-    assert_eq!(p.terms_observed,20);
-    assert_eq!(p.memory_probe_terms,20);
+    assert_eq!(p.memory_before_first.grow_failed_callbacks,21);
+    assert_eq!(p.terms_observed,21);
+    assert_eq!(p.memory_probe_terms,21);
+}
+
+#[test]
+fn growth_before_and_after_first_byte_stays_out_of_first_scope() {
+    let guest=TRANSFER.replace("(global $calls", "(memory 1 6) (global $calls")
+        .replace("(export \"host_begin_load\") (param i32) (result i32) call $bump", "(export \"host_begin_load\") (param i32) (result i32) i32.const 1 memory.grow drop call $bump")
+        .replace("(export \"host_finish_load\") (param i32) (result i32) call $bump", "(export \"host_finish_load\") (param i32) (result i32) i32.const 1 memory.grow drop call $bump");
+    let (_runtime, mut store, instance)=fixture_with_probe(&guest,100_000,true,6*65536);
+    let mut detail=InputLoadMeasurements::default();
+    let mut input=InputObserver::new(Some(&mut detail));
+    let mut calls=HostCalls::new(true);
+    for n in [IBig::from(512),IBig::ZERO] {
+        load(&mut calls,&instance,&mut store,&n,true,&mut input).unwrap();
+    }
+    input.finish_memory(store.data().memory_probe.as_ref());
+    let p=&detail.first_byte_probe;
+    assert_eq!(p.first_byte.calls,1);
+    assert_eq!(p.first_byte_calls_returned,1);
+    assert_eq!(p.memory_before_first.requests,2);
+    assert_eq!(p.memory_in_first.requests,0);
+    assert_eq!(p.memory_after_first.requests,3);
+    assert_eq!(p.memory_events_omitted,1);
+    assert_eq!(p.memory_events[2].scope,"after_first");
+    assert_eq!(detail.byte_calls_attempted,3);
 }

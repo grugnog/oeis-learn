@@ -393,3 +393,8 @@ is recorded in [phase-5-input-load-review.json](validation/phase-5-input-load-re
 B001–B004 in [phase-5-first-byte.md](validation/phase-5-first-byte.md) measure the
 first byte and existing limiter events without changing memory/execution policy.
 T094 remains open and the original negative T096 is unchanged.
+
+B001–B004 implementation and available checks are complete; the new-source
+native regressions and first-call/growth hypothesis remain pending CPU evidence.
+See [phase-5-first-byte-local.json](validation/phase-5-first-byte-local.json).
+No Phase5 qualification gate is closed by synthetic observation tests.
