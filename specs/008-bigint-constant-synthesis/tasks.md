@@ -427,3 +427,8 @@ results/fuel/failures and no corpus-level peak-RSS increase. Focused explicitly
 identified production adoption plus native/container regression qualification is
 recommended; this review changes no production setting. T094 stays unchecked:
 reserved execution remains13.4–13.7x retained and batch1 behavior is not settled.
+
+**T094 production engine adoption (2026-10-22)**: A001–A004 in
+[phase-5-engine-adoption.md](validation/phase-5-engine-adoption.md) adopt the
+reviewed64KiB setting with explicit engine identity, retain zero qualification
+control and require new-source regression evidence. No past receipt is relabelled.

@@ -1,0 +1,39 @@
+# Explicit64KiB production engine adoption — 2026-10-22
+
+T094 follows the reviewed [zero/64KiB comparison](phase-5-growth-reservation-review.json):
+450 paired observations and225 cross-setting groups agree, with5.23–5.27x small
+batch100 execution improvement and no corpus-level peak-RSS increase. Three
+batch1 regressions and the remaining13–14x retained gap remain visible.
+
+Freeze this focused implementation scope:
+
+- `BigintRuntime::new` selects64KiB spare growth capacity under explicit
+  `bigint-engine-policy/v2`. Dynamic memory, zero guards, pinned Wasmtime/guest,
+  fresh stores, candidate ABI, visible memory/arena caps, fuel, deadlines, failure
+  mapping and cleanup remain unchanged. Reservation does not grant visible memory.
+- One shared immutable JSON policy supplies Rust settings and Python metadata.
+  Bind its canonical hash into bigint runtime identities, fitting evidence,
+  caches/prepared contracts and packaged build artifacts. Retained signed256
+  keeps its existing identity shape. Old checkpoints/contracts do not silently
+  resume under the changed artifacts or claim the old negative study became PASS.
+- The only alternate constructor fixes zero for qualification. No worker/request
+  setting or mutable reservation-size override is added. Engine configuration and
+  comparison v2 distinguish production64KiB from zero qualification control.
+  New comparison rows report production at top level and nest the complete zero
+  report. Keep v1 archival readers and immutable historical records unchanged.
+- Tests cover default/zero manifests and identities, changed-policy separation,
+  exact results/fuel/failures, first-byte growth, visible memory before/after
+  accepted growth and denial, and packaged artifact identity. Shared CPU/native
+  and Docker/Podman paths exercise the same production constructor/worker.
+- Publish available local checks and commands for native/container qualification.
+  Do not wait for PR CI. Actual new-image qualification remains pending where
+  unavailable locally. Neural/HIP throughput claims require separate evidence;
+  no new training, hidden scoring or consumed T096 retry is authorized.
+
+- [ ] A001 Add failing shared-policy/identity/default/control regression tests.
+- [ ] A002 Adopt64KiB and bind explicit policy in Rust/Python/build identities.
+- [ ] A003 Preserve zero comparison, archive readers and packaged regression routing.
+- [ ] A004 Verify available checks, push incrementally and provide CPU commands.
+
+T094 remains open for qualification and remaining slowdown/measurement work.
+Original negative T096, immutable earlier receipts and promotion block persist.
