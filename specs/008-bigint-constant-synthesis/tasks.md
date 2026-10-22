@@ -387,3 +387,9 @@ is recorded in [phase-5-host-lookups-review.json](validation/phase-5-host-lookup
 Wide values benefit, but small-value fixed overhead remains. Observation-only
 I001–I004 in [phase-5-input-load.md](validation/phase-5-input-load.md) split that
 phase without changing production policies or the original negative T096.
+
+**T094 first-byte attribution (2026-10-22)**: the reviewed nested input profile
+is recorded in [phase-5-input-load-review.json](validation/phase-5-input-load-review.json).
+B001–B004 in [phase-5-first-byte.md](validation/phase-5-first-byte.md) measure the
+first byte and existing limiter events without changing memory/execution policy.
+T094 remains open and the original negative T096 is unchanged.
