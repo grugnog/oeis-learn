@@ -242,17 +242,148 @@ INPUT_COUNTERS = (
 )
 
 
+MEMORY_SCOPES = {
+    "memory_before_first": "before_first",
+    "memory_in_first": "first_byte",
+    "memory_after_first": "after_first",
+}
+MEMORY_FIELDS = ("requests", "allowed", "denied", "allocation_failures", "requested_increase_bytes")
+
+
+def first_byte_summary(samples):
+    """Limiter requests are observations, not proof of physical allocation or causality."""
+    probes = []
+    later_attempted, later_returned = [], []
+    for sample in samples:
+        stages = sample["timings"]["stages"]
+        detail = stages["input_load"]
+        p = detail["first_byte_probe"]
+        if p.get("policy") != "bigint-first-byte-probe/v1":
+            raise ValueError("unknown first-byte policy")
+
+        def count(value, maximum=2**64 - 1):
+            if type(value) is not int or not 0 <= value <= maximum:
+                raise ValueError("invalid first-byte/memory counter")
+            return value
+
+        terms = count(p["terms_observed"], stages["phases"]["input_load"]["calls"])
+        if (
+            terms != stages["phases"]["input_load"]["calls"]
+            or count(p["memory_probe_terms"]) != terms
+        ):
+            raise ValueError("missing input memory probes")
+        first = count(p["first_byte"]["calls"], min(terms, detail["byte_calls_attempted"]))
+        returned = count(p["first_byte_calls_returned"], min(first, detail["byte_calls_returned"]))
+        later_attempted.append(detail["byte_calls_attempted"] - first)
+        later_returned.append(detail["byte_calls_returned"] - returned)
+        if detail["byte_calls_attempted"] and not first:
+            raise ValueError("attempted bytes without a first-byte call")
+        if later_returned[-1] > later_attempted[-1]:
+            raise ValueError("invented later byte returns")
+        summarize([p["first_byte"]["seconds"], p["remaining_transfer_seconds"]])
+        if not first and p["first_byte"]["seconds"] != 0:
+            raise ValueError("first-byte time without calls")
+        if (
+            abs(
+                p["first_byte"]["seconds"]
+                + p["remaining_transfer_seconds"]
+                - detail["phases"]["byte_transfer"]["seconds"]
+            )
+            > 1e-6
+        ):
+            raise ValueError("first-byte times do not partition transfer")
+        total_requests = 0
+        traced = {scope: dict.fromkeys(MEMORY_FIELDS, 0) for scope in MEMORY_SCOPES.values()}
+        for name in MEMORY_SCOPES:
+            c = p[name]
+            for field in MEMORY_FIELDS:
+                count(c[field])
+            if (
+                c["allowed"] + c["denied"] != c["requests"]
+                or c["allocation_failures"] > c["requests"]
+            ):
+                raise ValueError("unbalanced memory request counters")
+            if c["requested_increase_bytes"] > c["requests"] * 2**32:
+                raise ValueError("invented wasm32 growth")
+            total_requests += c["requests"]
+        if not first and any(p["memory_in_first"][field] for field in MEMORY_FIELDS):
+            raise ValueError("growth in a missing first byte")
+        events = p["memory_events"]
+        omitted = count(p["memory_events_omitted"])
+        if (
+            not isinstance(events, list)
+            or not min(total_requests, 4) <= len(events) <= 16
+            or len(events) + omitted != total_requests
+        ):
+            raise ValueError("unbounded or unaccounted memory trace")
+        previous_term, previous_ordinal, previous_scope = 0, 0, -1
+        for e in events:
+            term = count(e["term"], terms)
+            ordinal = count(e["ordinal"], 4)
+            scope = e["scope"]
+            if scope not in traced or term == 0 or ordinal == 0:
+                raise ValueError("unknown memory trace location")
+            scope_index = list(MEMORY_SCOPES.values()).index(scope)
+            if (
+                term < previous_term
+                or ordinal != (previous_ordinal + 1 if term == previous_term else 1)
+                or (term == previous_term and scope_index < previous_scope)
+            ):
+                raise ValueError("unordered memory trace")
+            previous_term, previous_ordinal, previous_scope = term, ordinal, scope_index
+            current = count(e["current_bytes"], 2**32)
+            desired = count(e["desired_bytes"], 2**32)
+            if current > desired or type(e["allowed"]) is not bool:
+                raise ValueError("invalid memory request")
+            c = traced[scope]
+            c["requests"] += 1
+            c["allowed" if e["allowed"] else "denied"] += 1
+            c["requested_increase_bytes"] += desired - current
+        for name, scope in MEMORY_SCOPES.items():
+            for field in ("requests", "allowed", "denied", "requested_increase_bytes"):
+                if traced[scope][field] > p[name][field] or (
+                    not omitted and traced[scope][field] != p[name][field]
+                ):
+                    raise ValueError("memory trace disagrees with scope counters")
+        probes.append(p)
+    return dict(
+        policy="bigint-first-byte-probe/v1",
+        first_byte_warm=summarize([p["first_byte"]["seconds"] for p in probes[1:]]),
+        remaining_transfer_warm=summarize([p["remaining_transfer_seconds"] for p in probes[1:]]),
+        first_byte_calls=[p["first_byte"]["calls"] for p in probes],
+        first_byte_calls_returned=[p["first_byte_calls_returned"] for p in probes],
+        later_byte_calls_attempted=later_attempted,
+        later_byte_calls_returned=later_returned,
+        **{
+            name: {field: [p[name][field] for p in probes] for field in MEMORY_FIELDS}
+            for name in MEMORY_SCOPES
+        },
+        **{
+            name: [p[name] for p in probes]
+            for name in ("terms_observed", "memory_probe_terms", "memory_events_omitted")
+        },
+        interpretation="First-call time is inside byte_transfer; the remainder includes later calls and loop/observer overhead. Growth scopes stop at input completion. Allowed limiter requests do not prove successful physical allocation, copy time or the cause of latency.",
+    )
+
+
 def input_load_summary(report, batch):
     """Nested observation partitions its parent; never count it twice in execution."""
     samples = report.get("samples", [])
     if report.get("profile_input_load") is not True or len(samples) < 2:
         raise ValueError("requested paired input-load profiling required")
+    policies = {s["timings"]["stages"]["input_load"].get("policy") for s in samples}
+    if len(policies) != 1 or not policies <= {
+        "bigint-input-load-profile/v1",
+        "bigint-input-load-profile/v2",
+    }:
+        raise ValueError("mixed or unknown input-load policies")
+    policy = next(iter(policies))
     for sample in samples:
         parent = sample["timings"]["stages"]["phases"]["input_load"]
         detail = sample["timings"]["stages"]["input_load"]
-        if detail.get("policy") != "bigint-input-load-profile/v1" or set(detail["phases"]) != set(
-            INPUT_LOAD_PHASES
-        ):
+        if (policy == "bigint-input-load-profile/v2") != ("first_byte_probe" in detail):
+            raise ValueError("first-byte record/policy mismatch")
+        if set(detail["phases"]) != set(INPUT_LOAD_PHASES):
             raise ValueError("unknown or incomplete input-load profile")
         max_values = batch * (4096 + 1)  # bounded AST literals plus one actual index per term
         for name in INPUT_COUNTERS:
@@ -312,7 +443,12 @@ def input_load_summary(report, batch):
             else None,
         )
     return dict(
-        policy="bigint-input-load-profile/v1",
+        policy=policy,
+        **(
+            {"first_byte_probe": first_byte_summary(samples)}
+            if policy == "bigint-input-load-profile/v2"
+            else {}
+        ),
         parent_input_load_warm=parent,
         phases=phases,
         counters={

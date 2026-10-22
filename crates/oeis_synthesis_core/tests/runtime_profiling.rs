@@ -53,11 +53,14 @@ fn nested_input_profile_is_empty_when_guest_init_fails() {
     let stages=timings.stages.unwrap();
     assert_eq!(stages.phases["input_load"].calls, 0);
     let detail=stages.input_load.unwrap();
-    assert_eq!(detail.policy, "bigint-input-load-profile/v1");
+    assert_eq!(detail.policy, "bigint-input-load-profile/v2");
     assert!(detail.phases.values().all(|p|p.calls==0 && p.seconds==0.0));
     assert_eq!(detail.literal_values_started, 0);
     assert_eq!(detail.index_values_started, 0);
     assert_eq!(detail.values_finished, 0);
     assert_eq!(detail.byte_calls_attempted, 0);
     assert_eq!(detail.unattributed_seconds, 0.0);
+    assert_eq!(detail.first_byte_probe.first_byte.calls, 0);
+    assert_eq!(detail.first_byte_probe.terms_observed, 0);
+    assert!(detail.first_byte_probe.memory_events.is_empty());
 }

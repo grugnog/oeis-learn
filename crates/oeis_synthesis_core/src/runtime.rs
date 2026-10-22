@@ -5,10 +5,34 @@ use serde::Serialize;
 use wasmtime::{Config,Engine,Instance,Linker,Module,Store,StoreLimits,StoreLimitsBuilder,ResourceLimiter,Trap,TypedFunc};
 use crate::{language,lowering::{self,ABI},value::{integer,Resources}};
 
-struct Limits { inner:StoreLimits, memory_denied:bool }
+#[derive(Clone,Copy,Default,Serialize)]
+pub struct MemoryCounts {
+    pub requests:usize,pub allowed:usize,pub denied:usize,pub allocation_failures:usize,
+    pub requested_increase_bytes:u64,
+}
+impl MemoryCounts {
+    fn since(self,b:Self)->Self {Self{requests:self.requests-b.requests,allowed:self.allowed-b.allowed,denied:self.denied-b.denied,allocation_failures:self.allocation_failures-b.allocation_failures,requested_increase_bytes:self.requested_increase_bytes-b.requested_increase_bytes}}
+    fn add(&mut self,b:Self) {self.requests+=b.requests;self.allowed+=b.allowed;self.denied+=b.denied;self.allocation_failures+=b.allocation_failures;self.requested_increase_bytes+=b.requested_increase_bytes;}
+}
+#[derive(Clone,Copy)]
+struct GrowthRequest {ordinal:usize,current_bytes:usize,desired_bytes:usize,allowed:bool}
+#[derive(Default)]
+struct MemoryProbe {counts:MemoryCounts,events:[Option<GrowthRequest>;4]}
+impl MemoryProbe {
+    fn request(&mut self,current:usize,desired:usize,allowed:bool) {
+        self.counts.requests+=1;
+        if allowed {self.counts.allowed+=1;}else{self.counts.denied+=1;}
+        self.counts.requested_increase_bytes+=desired.saturating_sub(current) as u64;
+        if self.counts.requests<=self.events.len() {
+            self.events[self.counts.requests-1]=Some(GrowthRequest{ordinal:self.counts.requests,current_bytes:current,desired_bytes:desired,allowed});
+        }
+    }
+}
+struct Limits { inner:StoreLimits, memory_denied:bool, memory_probe:Option<MemoryProbe> }
 impl ResourceLimiter for Limits {
     fn memory_growing(&mut self,current:usize,desired:usize,maximum:Option<usize>)->wasmtime::Result<bool> {
         let result=self.inner.memory_growing(current,desired,maximum);
+        if let Some(p)=self.memory_probe.as_mut() {p.request(current,desired,matches!(&result,Ok(true)));}
         if !matches!(&result,Ok(true)) {self.memory_denied=true;}
         result
     }
@@ -16,6 +40,7 @@ impl ResourceLimiter for Limits {
         self.inner.table_growing(current,desired,maximum)
     }
     fn memory_grow_failed(&mut self,error:wasmtime::Error)->wasmtime::Result<()> {
+        if let Some(p)=self.memory_probe.as_mut() {p.counts.allocation_failures+=1;}
         self.memory_denied=true;Err(error)
     }
     fn instances(&self)->usize {2}
@@ -39,6 +64,18 @@ pub struct Measurements {
 pub const PROFILE_PHASES:[&str;10]=["literal_decode","store_setup","clock_start","guest_init","input_load","link_instantiate","compute","serialize","clock_stop","store_drop"];
 #[derive(Default,Serialize)]
 pub struct PhaseMeasurement {pub calls:usize,pub seconds:f64}
+#[derive(Serialize)]
+pub struct MemoryEvent {pub term:usize,pub scope:&'static str,pub ordinal:usize,pub current_bytes:usize,pub desired_bytes:usize,pub allowed:bool}
+#[derive(Serialize)]
+pub struct FirstByteMeasurements {
+    pub policy:&'static str,pub first_byte:PhaseMeasurement,pub first_byte_calls_returned:usize,
+    pub remaining_transfer_seconds:f64,pub terms_observed:usize,pub memory_probe_terms:usize,
+    pub memory_before_first:MemoryCounts,pub memory_in_first:MemoryCounts,pub memory_after_first:MemoryCounts,
+    pub memory_events:Vec<MemoryEvent>,pub memory_events_omitted:usize,
+}
+impl Default for FirstByteMeasurements {
+    fn default()->Self {Self{policy:"bigint-first-byte-probe/v1",first_byte:PhaseMeasurement::default(),first_byte_calls_returned:0,remaining_transfer_seconds:0.0,terms_observed:0,memory_probe_terms:0,memory_before_first:MemoryCounts::default(),memory_in_first:MemoryCounts::default(),memory_after_first:MemoryCounts::default(),memory_events:Vec::new(),memory_events_omitted:0}}
+}
 pub const INPUT_LOAD_PHASES:[&str;7]=["index_parse","begin_load","magnitude_encode","byte_transfer","finish_load","status_check","seal"];
 #[derive(Serialize)]
 pub struct InputLoadMeasurements {
@@ -46,12 +83,53 @@ pub struct InputLoadMeasurements {
     pub phases:std::collections::BTreeMap<&'static str,PhaseMeasurement>,
     pub literal_values_started:usize,pub index_values_started:usize,pub values_finished:usize,
     pub byte_calls_attempted:usize,pub byte_calls_returned:usize,pub unattributed_seconds:f64,
+    pub first_byte_probe:FirstByteMeasurements,
 }
 impl Default for InputLoadMeasurements {
-    fn default()->Self {Self{policy:"bigint-input-load-profile/v1",phases:INPUT_LOAD_PHASES.into_iter().map(|name|(name,PhaseMeasurement::default())).collect(),literal_values_started:0,index_values_started:0,values_finished:0,byte_calls_attempted:0,byte_calls_returned:0,unattributed_seconds:0.0}}
+    fn default()->Self {Self{policy:"bigint-input-load-profile/v2",phases:INPUT_LOAD_PHASES.into_iter().map(|name|(name,PhaseMeasurement::default())).collect(),literal_values_started:0,index_values_started:0,values_finished:0,byte_calls_attempted:0,byte_calls_returned:0,unattributed_seconds:0.0,first_byte_probe:FirstByteMeasurements::default()}}
 }
-struct InputObserver<'a> {detail:Option<&'a mut InputLoadMeasurements>}
-impl InputObserver<'_> {
+struct InputObserver<'a> {detail:Option<&'a mut InputLoadMeasurements>,first_seen:bool,before:Option<MemoryCounts>,after:Option<MemoryCounts>}
+impl<'a> InputObserver<'a> {
+    fn new(detail:Option<&'a mut InputLoadMeasurements>)->Self {Self{detail,first_seen:false,before:None,after:None}}
+    fn transfer_byte(&mut self,calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,b:u8)->Result<(),String> {
+        if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_attempted+=1;}
+        calls.call1(i,s,"host_load_byte",b as i32)?;
+        if let Some(d)=self.detail.as_deref_mut(){d.byte_calls_returned+=1;}
+        Ok(())
+    }
+    fn byte(&mut self,calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,b:u8)->Result<(),String> {
+        if self.first_seen || self.detail.is_none() {return self.transfer_byte(calls,i,s,b);}
+        self.first_seen=true;
+        self.before=s.data().memory_probe.as_ref().map(|p|p.counts);
+        let start=Instant::now();
+        let result=self.transfer_byte(calls,i,s,b);
+        let seconds=start.elapsed().as_secs_f64();
+        self.after=s.data().memory_probe.as_ref().map(|p|p.counts);
+        let p=&mut self.detail.as_deref_mut().unwrap().first_byte_probe;
+        p.first_byte.calls+=1;p.first_byte.seconds+=seconds;
+        if result.is_ok(){p.first_byte_calls_returned+=1;}
+        result
+    }
+    fn finish_memory(&mut self,probe:Option<&MemoryProbe>) {
+        if let Some(d)=self.detail.as_deref_mut() {
+            let p=&mut d.first_byte_probe;p.terms_observed+=1;
+            if let Some(probe)=probe {
+                p.memory_probe_terms+=1;
+                let before=self.before.unwrap_or(probe.counts);
+                let after=self.after.unwrap_or(before);
+                p.memory_before_first.add(before);
+                p.memory_in_first.add(after.since(before));
+                p.memory_after_first.add(probe.counts.since(after));
+                let previous=p.memory_events.len();
+                for e in probe.events.iter().flatten() {
+                    if p.memory_events.len()==16 {break;}
+                    let scope=if e.ordinal<=before.requests {"before_first"}else if e.ordinal<=after.requests {"first_byte"}else{"after_first"};
+                    p.memory_events.push(MemoryEvent{term:p.terms_observed,scope,ordinal:e.ordinal,current_bytes:e.current_bytes,desired_bytes:e.desired_bytes,allowed:e.allowed});
+                }
+                p.memory_events_omitted+=probe.counts.requests-(p.memory_events.len()-previous);
+            }
+        }
+    }
     fn phase<T>(&mut self,name:&'static str,work:impl FnOnce(&mut Self)->T)->T {
         let start=self.detail.as_ref().map(|_|Instant::now());
         let result=work(self);
@@ -86,7 +164,7 @@ impl Observer<'_> {
     }
     fn input_phase<T>(&mut self,work:impl FnOnce(&mut InputObserver<'_>)->T)->T {
         let start=self.stages.as_ref().map(|_|Instant::now());
-        let result=work(&mut InputObserver{detail:self.stages.as_deref_mut().and_then(|s|s.input_load.as_mut())});
+        let result=work(&mut InputObserver::new(self.stages.as_deref_mut().and_then(|s|s.input_load.as_mut())));
         if let Some(start)=start {
             let seconds=start.elapsed().as_secs_f64();
             let phase=self.stages.as_deref_mut().unwrap().phases.get_mut("input_load").unwrap();
@@ -153,12 +231,10 @@ fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bo
     let bytes=input.phase("magnitude_encode",|_| {
         let mut bytes=n.clone().into_parts().1.to_le_bytes().into_vec();if bytes.is_empty(){bytes.push(0);}bytes
     });
-    // One clock around the loop; counters survive a partial/trapping transfer.
+    // One loop clock plus one first-call clock per fresh term, never per later byte.
     input.phase("byte_transfer",|input|->Result<(),String>{
         for b in bytes {
-            if let Some(d)=input.detail.as_deref_mut(){d.byte_calls_attempted+=1;}
-            calls.call1(i,s,"host_load_byte",b as i32)?;
-            if let Some(d)=input.detail.as_deref_mut(){d.byte_calls_returned+=1;}
+            input.byte(calls,i,s,b)?;
         }
         Ok(())
     })?;
@@ -220,6 +296,7 @@ impl BigintRuntime {
             if let Some(input)=stages.input_load.as_mut() {
                 let nested:f64=input.phases.values().map(|p|p.seconds).sum();
                 input.unattributed_seconds=(input_seconds-nested).max(0.0);
+                input.first_byte_probe.remaining_transfer_seconds=(input.phases["byte_transfer"].seconds-input.first_byte_probe.first_byte.seconds).max(0.0);
             }
         }
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
@@ -242,10 +319,11 @@ impl BigintRuntime {
             let fuel=r.term_fuel.min(r.aggregate_fuel.saturating_sub(out.fuel));
             if fuel==0 {return Err("aggregate_fuel".into());}
             observer.started();
+            let probe_enabled=observer.stages.as_ref().and_then(|s|s.input_load.as_ref()).is_some();
             let mut store=observer.phase("store_setup",||->Result<Store<Limits>,String>{
             let limit=StoreLimitsBuilder::new().instances(2).memories(1).tables(1).table_elements(1024)
                 .memory_size(r.memory_bytes).trap_on_grow_failure(true).build();
-            let mut store=Store::new(&self.engine,Limits{inner:limit,memory_denied:false});store.limiter(|x|x);store.set_fuel(fuel).map_err(trap)?;
+            let mut store=Store::new(&self.engine,Limits{inner:limit,memory_denied:false,memory_probe:if probe_enabled {Some(MemoryProbe::default())}else{None}});store.limiter(|x|x);store.set_fuel(fuel).map_err(trap)?;
             store.set_epoch_deadline(1);Ok(store)})?;
             let clock=observer.phase("clock_start",||Clock::start(self.engine.clone(),remaining.min(r.term_seconds)));
             let mut calls=HostCalls::new(cached);
@@ -257,10 +335,12 @@ impl BigintRuntime {
                     r.arena_entries as i32,r.arena_bytes as i32,r.output_bytes as i32,r.control_max as i32)).map_err(trap)?;
                 if ok!=1 {return Err("runtime_failure".into());}Ok(runtime)})?;
                 let h=observer.input_phase(|input|->Result<i32,String>{
+                let result=(|| {
                 for literal in &literals {load(&mut calls,&runtime,&mut store,literal,true,input)?;}
                 let n=input.phase("index_parse",|_|integer(index,r.input_bits).map_err(|_|"integer_limit".to_string()))?;
                 let h=load(&mut calls,&runtime,&mut store,&n,false,input)?;
-                input.phase("seal",|_|calls.call0(&runtime,&mut store,"host_seal"))?;Ok(h)})?;
+                input.phase("seal",|_|calls.call0(&runtime,&mut store,"host_seal"))?;Ok(h)})();
+                input.finish_memory(store.data().memory_probe.as_ref());result})?;
                 let (_linker,instance)=observer.phase("link_instantiate",||->Result<_,String>{
                 let mut linker=Linker::new(&self.engine);
                 // Explicit single-function registrations: NEVER linker.instance.

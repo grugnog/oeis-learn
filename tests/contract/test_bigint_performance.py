@@ -38,6 +38,10 @@ def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_bound
             profile_input_load=detail,
         )
         if detail:
+            probe = row["input_load_profiling"]["first_byte_probe"]
+            assert row["input_load_profiling"]["policy"] == "bigint-input-load-profile/v2"
+            assert probe["terms_observed"] == probe["memory_probe_terms"] == [1, 1]
+            assert probe["first_byte_calls"] == [1, 1]
             assert set(row["input_load_profiling"]["phases"]) == set(module.INPUT_LOAD_PHASES)
         if compare:
             assert row["host_lookups"]["all_results_match"], row
