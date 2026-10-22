@@ -2,7 +2,7 @@
 use std::{sync::mpsc,thread,time::{Duration,Instant}};
 use dashu_int::{IBig,UBig};
 use serde::Serialize;
-use wasmtime::{Config,Engine,Instance,Linker,Module,Store,StoreLimits,StoreLimitsBuilder,ResourceLimiter,Trap};
+use wasmtime::{Config,Engine,Instance,Linker,Module,Store,StoreLimits,StoreLimitsBuilder,ResourceLimiter,Trap,TypedFunc};
 use crate::{language,lowering::{self,ABI},value::{integer,Resources}};
 
 struct Limits { inner:StoreLimits, memory_denied:bool }
@@ -79,21 +79,44 @@ fn status(code:i32)->Option<String> {
     match code {0=>None,1=>Some("invalid_handle"),2=>Some("integer_limit"),3=>Some("literal_limit"),
         4=>Some("output_limit"),5=>Some("arena_limit"),6=>Some("control_range"),7=>Some("loop_limit"),_=>Some("runtime_failure")}.map(str::to_owned)
 }
-fn call0(i:&Instance,s:&mut Store<Limits>,name:&str)->Result<i32,String> {
-    i.get_typed_func::<(),i32>(&mut *s,name).map_err(trap)?.call(s,()).map_err(trap)
+/// Only host transfer/status functions; never added to the candidate linker.
+/// A cache belongs to one fresh term and resolves each export at first use.
+#[derive(Default)]
+struct HostCalls {
+    cached:bool,
+    status:Option<TypedFunc<(),i32>>,seal:Option<TypedFunc<(),i32>>,sign:Option<TypedFunc<(),i32>>,
+    begin:Option<TypedFunc<i32,i32>>,byte:Option<TypedFunc<i32,i32>>,finish:Option<TypedFunc<i32,i32>>,
+    serialize:Option<TypedFunc<i32,i32>>,output:Option<TypedFunc<i32,i32>>,
 }
-fn call1(i:&Instance,s:&mut Store<Limits>,name:&str,x:i32)->Result<i32,String> {
-    i.get_typed_func::<i32,i32>(&mut *s,name).map_err(trap)?.call(s,x).map_err(trap)
+impl HostCalls {
+    fn new(cached:bool)->Self {Self{cached,..Self::default()}}
+    fn call0(&mut self,i:&Instance,s:&mut Store<Limits>,name:&str)->Result<i32,String> {
+        // The uncached branch is qualification-only and reproduces the old
+        // get_typed_func/call ordering, without changing any guest instruction.
+        if !self.cached {return i.get_typed_func::<(),i32>(&mut *s,name).map_err(trap)?.call(s,()).map_err(trap);}
+        let slot=match name {"host_status"=>&mut self.status,"host_seal"=>&mut self.seal,
+            "host_output_sign"=>&mut self.sign,_=>return Err("runtime_failure".into())};
+        if slot.is_none() {*slot=Some(i.get_typed_func::<(),i32>(&mut *s,name).map_err(trap)?);}
+        slot.as_ref().unwrap().call(s,()).map_err(trap)
+    }
+    fn call1(&mut self,i:&Instance,s:&mut Store<Limits>,name:&str,x:i32)->Result<i32,String> {
+        if !self.cached {return i.get_typed_func::<i32,i32>(&mut *s,name).map_err(trap)?.call(s,x).map_err(trap);}
+        let slot=match name {"host_begin_load"=>&mut self.begin,"host_load_byte"=>&mut self.byte,
+            "host_finish_load"=>&mut self.finish,"host_serialize"=>&mut self.serialize,
+            "host_output_byte"=>&mut self.output,_=>return Err("runtime_failure".into())};
+        if slot.is_none() {*slot=Some(i.get_typed_func::<i32,i32>(&mut *s,name).map_err(trap)?);}
+        slot.as_ref().unwrap().call(s,x).map_err(trap)
+    }
 }
-fn check(i:&Instance,s:&mut Store<Limits>)->Result<(),String> {
-    if let Some(e)=status(call0(i,s,"host_status")?) {Err(e)} else {Ok(())}
+fn check(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>)->Result<(),String> {
+    if let Some(e)=status(calls.call0(i,s,"host_status")?) {Err(e)} else {Ok(())}
 }
-fn load(i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bool)->Result<i32,String> {
-    call1(i,s,"host_begin_load",i32::from(literal))?;
+fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bool)->Result<i32,String> {
+    calls.call1(i,s,"host_begin_load",i32::from(literal))?;
     let mut bytes=n.clone().into_parts().1.to_le_bytes().into_vec();if bytes.is_empty(){bytes.push(0);}
-    for b in bytes {call1(i,s,"host_load_byte",b as i32)?;}
+    for b in bytes {calls.call1(i,s,"host_load_byte",b as i32)?;}
     let sign=if n<&IBig::ZERO {-1} else if n==&IBig::ZERO {0} else {1};
-    let h=call1(i,s,"host_finish_load",sign)?;check(i,s)?;Ok(h)
+    let h=calls.call1(i,s,"host_finish_load",sign)?;check(calls,i,s)?;Ok(h)
 }
 
 pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String}
@@ -110,23 +133,27 @@ impl BigintRuntime {
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
-        let result=self.run(source,indices,r,&mut out,None);
+        let result=self.run(source,indices,r,&mut out,None,true);
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         out
     }
     /// Qualification-only observation of the same production run implementation.
     pub fn evaluate_measured(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
-        self.evaluate_observed(source,indices,r,false)
+        self.evaluate_observed(source,indices,r,false,true)
     }
     /// Opt-in qualification profiler; not reachable through candidate/worker requests.
     pub fn evaluate_profiled(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
-        self.evaluate_observed(source,indices,r,true)
+        self.evaluate_observed(source,indices,r,true,true)
     }
-    fn evaluate_observed(&mut self,source:&str,indices:&[String],r:&Resources,profile:bool)->(Evaluation,Measurements) {
+    /// Qualification-only lookup-per-call control. No worker request selects it.
+    pub fn evaluate_lookup_baseline(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
+        self.evaluate_observed(source,indices,r,false,false)
+    }
+    fn evaluate_observed(&mut self,source:&str,indices:&[String],r:&Resources,profile:bool,cached:bool)->(Evaluation,Measurements) {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
         let mut measured=Measurements{stages:if profile {Some(StageMeasurements::default())}else{None},..Measurements::default()};
         let start=Instant::now();
-        let result=self.run(source,indices,r,&mut out,Some(&mut measured));
+        let result=self.run(source,indices,r,&mut out,Some(&mut measured),cached);
         measured.total_seconds=start.elapsed().as_secs_f64();
         measured.execution_seconds=(measured.total_seconds-measured.prepare_seconds).max(0.0);
         if let Some(stages)=measured.stages.as_mut() {
@@ -136,7 +163,7 @@ impl BigintRuntime {
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         (out,measured)
     }
-    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation,mut measured:Option<&mut Measurements>)->Result<(),String> {
+    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation,mut measured:Option<&mut Measurements>,cached:bool)->Result<(),String> {
         r.validate()?;
         let start=Instant::now();
         if indices.is_empty()||indices.len()>100 {return Err("invalid_source".into());}
@@ -159,6 +186,7 @@ impl BigintRuntime {
             let mut store=Store::new(&self.engine,Limits{inner:limit,memory_denied:false});store.limiter(|x|x);store.set_fuel(fuel).map_err(trap)?;
             store.set_epoch_deadline(1);Ok(store)})?;
             let clock=observer.phase("clock_start",||Clock::start(self.engine.clone(),remaining.min(r.term_seconds)));
+            let mut calls=HostCalls::new(cached);
             let term=(|| {
                 let runtime=observer.phase("guest_init",||->Result<Instance,String>{
                 let runtime=Instance::new(&mut store,&self.runtime,&[]).map_err(trap)?;
@@ -167,10 +195,10 @@ impl BigintRuntime {
                     r.arena_entries as i32,r.arena_bytes as i32,r.output_bytes as i32,r.control_max as i32)).map_err(trap)?;
                 if ok!=1 {return Err("runtime_failure".into());}Ok(runtime)})?;
                 let h=observer.phase("input_load",||->Result<i32,String>{
-                for literal in &literals {load(&runtime,&mut store,literal,true)?;}
+                for literal in &literals {load(&mut calls,&runtime,&mut store,literal,true)?;}
                 let n=integer(index,r.input_bits).map_err(|_|"integer_limit".to_string())?;
-                let h=load(&runtime,&mut store,&n,false)?;
-                call0(&runtime,&mut store,"host_seal")?;Ok(h)})?;
+                let h=load(&mut calls,&runtime,&mut store,&n,false)?;
+                calls.call0(&runtime,&mut store,"host_seal")?;Ok(h)})?;
                 let (_linker,instance)=observer.phase("link_instantiate",||->Result<_,String>{
                 let mut linker=Linker::new(&self.engine);
                 // Explicit single-function registrations: NEVER linker.instance.
@@ -181,16 +209,16 @@ impl BigintRuntime {
                 let instance=linker.instantiate(&mut store,&candidate).map_err(trap)?;Ok((linker,instance))})?;
                 let answer=observer.phase("compute",||->Result<i32,String>{
                 let answer=instance.get_typed_func::<i32,i32>(&mut store,"compute").map_err(trap)?.call(&mut store,h).map_err(trap)?;
-                check(&runtime,&mut store)?;
+                check(&mut calls,&runtime,&mut store)?;
                 if answer<0 {return Err(status(-answer).unwrap_or("runtime_failure".into()));}Ok(answer)})?;
                 observer.phase("serialize",||->Result<String,String>{
-                let len=call1(&runtime,&mut store,"host_serialize",answer)?;
-                check(&runtime,&mut store)?;
+                let len=calls.call1(&runtime,&mut store,"host_serialize",answer)?;
+                check(&mut calls,&runtime,&mut store)?;
                 if len<1 || len as usize>r.output_bytes {return Err("output_limit".into());}
-                let sign=call0(&runtime,&mut store,"host_output_sign")?;
+                let sign=calls.call0(&runtime,&mut store,"host_output_sign")?;
                 let mut raw=Vec::with_capacity(len as usize);
-                for at in 0..len {raw.push(call1(&runtime,&mut store,"host_output_byte",at)? as u8);}
-                check(&runtime,&mut store)?;
+                for at in 0..len {raw.push(calls.call1(&runtime,&mut store,"host_output_byte",at)? as u8);}
+                check(&mut calls,&runtime,&mut store)?;
                 let mut n=IBig::from(UBig::from_le_bytes(&raw));if sign<0{n=-n;}
                 if start.elapsed().as_secs_f64()+self.compilation_seconds>=r.evaluation_seconds {return Err("deadline".into());}
                 Ok(n.to_string())})
@@ -222,3 +250,7 @@ impl crate::ExecutionBackend for BigintBackend {
         if result.outcome=="ok" {Ok(result.values)} else {Err(result.reason.unwrap_or("runtime_failure".into()))}
     }
 }
+
+#[cfg(test)]
+#[path="runtime/host_lookup_tests.rs"]
+mod host_lookup_tests;

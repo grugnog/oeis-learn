@@ -7,8 +7,10 @@ import pytest
 from tests.unit.test_bigint_benchmark import benchmark
 
 
-@pytest.mark.parametrize("profile", [False, True])
-def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries(profile):
+@pytest.mark.parametrize("profile,compare", [(False, False), (True, False), (True, True)])
+def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries(
+    profile, compare
+):
     binary = Path(
         os.environ.get("OEIS_BENCHMARK_RUNTIME", "/opt/oeis-build-info/benchmark-runtime")
     )
@@ -18,7 +20,11 @@ def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_bound
         pytest.skip("requires pinned native qualification image")
     module = benchmark()
     for case in module.cases():
-        row = module.runtime_measurements(case, batch=1, repetitions=2, profile=profile)
+        row = module.runtime_measurements(
+            case, batch=1, repetitions=2, profile=profile, compare_host_lookups=compare
+        )
+        if compare:
+            assert row["host_lookups"]["all_results_match"], row
         if profile:
             assert row["profiling"]["paired_results_match"], row
             assert len(row["profiling"]["phases"]) == 10

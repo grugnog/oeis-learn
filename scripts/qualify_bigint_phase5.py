@@ -31,6 +31,7 @@ GROUPS = {
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
         "tests/unit/test_bigint_runtime_profile.py",
+        "tests/unit/test_bigint_host_lookups.py",
         "tests/unit/test_bigint_generation.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
@@ -293,6 +294,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--compare-host-lookups",
+        action="store_true",
+        help="add the pre-cache ordinary CPU baseline; requires --runtime-profile-only",
+    )
+    p.add_argument(
         "--runtime-profile-only",
         action="store_true",
         help="paired CPU execution-stage profiling;600seconds work, archive and no dataset/neural/fitting work",
@@ -325,6 +331,8 @@ def main():
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
+    if args.compare_host_lookups and (not args.runtime_profile_only or args.inside):
+        p.error("--compare-host-lookups requires the CPU --runtime-profile-only scope")
     if args.inside:
         return inside(args.output, args.inside)
     args.config = args.config or (
@@ -373,6 +381,7 @@ def main():
         status="FAIL",
         qualified=False,
         gpu_requested=args.gpu,
+        compare_host_lookups=args.compare_host_lookups,
         scope=(
             "runtime-profile-only"
             if args.runtime_profile_only
@@ -425,6 +434,7 @@ def main():
                     "python",
                     "scripts/benchmark_bigint.py",
                     "--runtime-profile",
+                    *(["--compare-host-lookups"] if args.compare_host_lookups else []),
                     "--output",
                     "/work/output",
                 ],
@@ -432,6 +442,8 @@ def main():
             )
             result = json.loads((stage / "benchmark.json").read_text())
             report["stages"]["runtime-profile"] = result
+            if args.compare_host_lookups and result.get("compare_host_lookups") is not True:
+                raise RuntimeError("requested host lookup comparison evidence missing")
             if result.get("status") != "PASS":
                 raise RuntimeError("runtime profiling failed; inspect stage report and logs")
             if result.get("source_sha256") != report["expected_source_sha256"]:

@@ -128,8 +128,9 @@ def test_runtime_profile_rejects_unrelated_work_before_engine(extra, monkeypatch
     assert error.value.code == 2
 
 
+@pytest.mark.parametrize("compare", [False, True])
 @pytest.mark.parametrize("kind", ["pass", "failed", "old-source"])
-def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, kind):
+def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, kind, compare):
     from oeis_learn.experiments import source_snapshot
     from oeis_learn.synthesis.contracts import identity
 
@@ -154,18 +155,30 @@ def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, ki
     def stage(host, image, path, argv, **kwargs):
         assert kwargs == dict(seconds=600)
         assert "--runtime-profile" in argv and "--neural" not in argv
+        assert ("--compare-host-lookups" in argv) == compare
         stages.append(path.name)
         module.write(
             path / "benchmark.json",
             dict(
                 status="FAIL" if kind == "failed" else "PASS",
+                compare_host_lookups=compare,
                 source_sha256="old" if kind == "old-source" else identity(snapshot),
             ),
         )
 
     monkeypatch.setattr(module, "container_stage", stage)
     monkeypatch.setattr(module, "launch", lambda *a, **kw: pytest.fail("unrelated work"))
-    monkeypatch.setattr(sys, "argv", ["qualify", "--runtime-profile-only", "--output", str(output)])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "qualify",
+            "--runtime-profile-only",
+            *(["--compare-host-lookups"] if compare else []),
+            "--output",
+            str(output),
+        ],
+    )
     assert module.main() == (0 if kind == "pass" else 1)
     summary = json.loads((output / "summary.json").read_text())
     assert summary["scope"] == "runtime-profile-only" and summary["qualified"] is False

@@ -39,6 +39,7 @@ CPU_TESTS = [
     "tests/unit/test_bigint_diagnostic_evidence.py",
     "tests/unit/test_bigint_diagnostic_collector.py",
     "tests/unit/test_bigint_runtime_profile.py",
+    "tests/unit/test_bigint_host_lookups.py",
 ]
 
 

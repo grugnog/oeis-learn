@@ -181,7 +181,9 @@ def profile_summary(report, batch):
         fields = sorted(
             k
             for k in set(sample["result"]) | set(control["result"])
-            if sample["result"].get(k) != control["result"].get(k)
+            if k not in sample["result"]
+            or k not in control["result"]
+            or sample["result"][k] != control["result"][k]
         )
         if fields or not sample["parity"]:
             mismatches.append(dict(sample=index, fields=fields or ["native_parity_flag"]))
@@ -222,9 +224,87 @@ def profile_summary(report, batch):
     )
 
 
-def runtime_measurements(case, batch, repetitions, *, profile=False):
+def lookup_summary(report):
+    """Compare ordinary cached/baseline execution, separately from observation cost."""
+    if (
+        report.get("host_lookup_comparison")
+        != dict(version="per-term-host-lookups/v1", cached="lazy-per-term", baseline="per-call")
+        or len(report.get("samples", [])) < 2
+    ):
+        raise ValueError("complete host lookup comparison required")
+    mismatches = []
+    for index, sample in enumerate(report["samples"]):
+        baseline = sample["lookup_baseline"]
+        if baseline.get("order") != ("baseline-first" if index % 2 == 0 else "baseline-last"):
+            raise ValueError("host lookup baseline order mismatch")
+        if type(baseline.get("parity")) is not bool:
+            raise ValueError("explicit lookup parity flag required")
+        for arm in (baseline, sample["control"]):
+            timings = arm["timings"]
+            if "stages" in timings:
+                raise ValueError("lookup comparison requires ordinary calls")
+            for key in ("prepare_seconds", "execution_seconds", "total_seconds"):
+                summarize([timings[key]])
+            if (
+                abs(
+                    timings["prepare_seconds"]
+                    + timings["execution_seconds"]
+                    - timings["total_seconds"]
+                )
+                > 1e-6
+            ):
+                raise ValueError("lookup baseline timing mismatch")
+        fields = sorted(
+            k
+            for k in set(baseline["result"]) | set(sample["control"]["result"])
+            if k not in baseline["result"]
+            or k not in sample["control"]["result"]
+            or baseline["result"][k] != sample["control"]["result"][k]
+        )
+        if fields or not baseline["parity"]:
+            mismatches.append(dict(sample=index, fields=fields or ["native_parity_flag"]))
+    warm = report["samples"][1:]
+    summaries = {
+        arm: {
+            key: summarize([s[arm]["timings"][key] for s in warm])
+            for key in ("prepare_seconds", "execution_seconds", "total_seconds")
+        }
+        for arm in ("control", "lookup_baseline")
+    }
+    old = summaries["lookup_baseline"]["execution_seconds"]["median_seconds"]
+    return dict(
+        policy="per-term-host-lookups/v1",
+        all_results_match=not mismatches,
+        mismatches=mismatches,
+        baseline_order=[s["lookup_baseline"]["order"] for s in report["samples"]],
+        ordinary_cached_warm=summaries["control"],
+        ordinary_baseline_warm=summaries["lookup_baseline"],
+        cached_to_lookup_execution_ratio=summaries["control"]["execution_seconds"]["median_seconds"]
+        / old
+        if old
+        else None,
+        unavailable_reason=None if old else "zero-duration lookup baseline",
+        warm_paired_savings_seconds=statistics.median(
+            s["lookup_baseline"]["timings"]["execution_seconds"]
+            - s["control"]["timings"]["execution_seconds"]
+            for s in warm
+        ),
+        interpretation="Ordinary calls isolate lookup caching from detailed observation cost; review order/noise and exclusions before claiming a speedup.",
+    )
+
+
+def measurement_results(sample):
+    rows = [sample["result"]]
+    rows += [sample[name]["result"] for name in ("control", "lookup_baseline") if name in sample]
+    return rows
+
+
+def runtime_measurements(case, batch, repetitions, *, profile=False, compare_host_lookups=False):
     """Native compilation and execution are timed inside the production runtime."""
     from oeis_learn.synthesis.reference import evaluate
+
+    if compare_host_lookups and not profile:
+        raise ValueError("host lookup comparison requires runtime profiling")
 
     # Repeated exact indices measure batch overhead, never pretend to be a dataset.
     indices = (case["indices"] * batch)[:batch]
@@ -238,6 +318,7 @@ def runtime_measurements(case, batch, repetitions, *, profile=False):
                 indices=indices,
                 repetitions=repetitions,
                 **({"profile": True} if profile else {}),
+                **({"compare_host_lookups": True} if compare_host_lookups else {}),
             )
         ).encode(),
         capture_output=True,
@@ -254,14 +335,22 @@ def runtime_measurements(case, batch, repetitions, *, profile=False):
         or len(report.get("samples", [])) != repetitions
     ):
         raise ValueError("incomplete native measurement report")
+    if compare_host_lookups:
+        report["host_lookups"] = lookup_summary(report)
+    elif report.get("host_lookup_comparison") is not None or any(
+        "lookup_baseline" in s for s in report["samples"]
+    ):
+        raise ValueError("unrequested host lookup comparison")
     if profile:
         report["profiling"] = profile_summary(report, batch)
-        if not report["profiling"]["paired_results_match"]:
+        if not report["profiling"]["paired_results_match"] or (
+            compare_host_lookups and not report["host_lookups"]["all_results_match"]
+        ):
             report.update(case=case["name"], batch=batch)
             from oeis_learn.synthesis.contracts import identity
 
             for sample in report["samples"]:
-                for row in (sample["result"], sample["control"]["result"]):
+                for row in measurement_results(sample):
                     row["values_sha256"] = identity(row.pop("values"))
             return report
     reference_times = []
@@ -325,11 +414,8 @@ def runtime_measurements(case, batch, repetitions, *, profile=False):
     from oeis_learn.synthesis.contracts import identity
 
     for sample in report["samples"]:
-        sample["result"]["values_sha256"] = identity(sample["result"].pop("values"))
-        if profile:
-            sample["control"]["result"]["values_sha256"] = identity(
-                sample["control"]["result"].pop("values")
-            )
+        for result in measurement_results(sample):
+            result["values_sha256"] = identity(result.pop("values"))
     if case["old_source"]:
         from oeis_learn.sandbox.pipeline import Runtime, PreparedCandidate
 
@@ -958,6 +1044,7 @@ def run(
     shapes=None,
     cost_scope="diverse32",
     profile_runtime=False,
+    compare_host_lookups=False,
 ):
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -968,6 +1055,7 @@ def run(
         raise ValueError("new output directory required; preserve previous measurements")
     report = dict(
         version="bigint-runtime-profile/v1" if profile_runtime else "bigint-performance/v1",
+        compare_host_lookups=compare_host_lookups,
         status="FAIL",
         qualified=False,
         python=sys.version,
@@ -978,6 +1066,8 @@ def run(
         accounting="prepare includes parse/lower/candidate compilation; execute includes fresh stores, loading and serialization; runtime compilation separate; warm reuses runtime module only",
     )
     try:
+        if compare_host_lookups and not profile_runtime:
+            raise ValueError("host lookup comparison requires runtime profiling")
         if profile_runtime and (
             neural or device != "cpu" or config is not None or shapes is not None
         ):
@@ -1003,15 +1093,24 @@ def run(
             for batch in batches:
                 report["active_measurement"] = dict(case=case["name"], batch=batch)
                 row = (
-                    runtime_measurements(case, batch, repetitions, profile=True)
+                    runtime_measurements(
+                        case,
+                        batch,
+                        repetitions,
+                        profile=True,
+                        **({"compare_host_lookups": True} if compare_host_lookups else {}),
+                    )
                     if profile_runtime
                     else runtime_measurements(case, batch, repetitions)
                 )
                 report["cases"].append(row)
                 write(output / "partial.json", report)
-                if profile_runtime and not row["profiling"]["paired_results_match"]:
+                if profile_runtime and (
+                    not row["profiling"]["paired_results_match"]
+                    or (compare_host_lookups and not row["host_lookups"]["all_results_match"])
+                ):
                     raise RuntimeError(
-                        "profiled/control semantic, fuel or coverage disagreement; partial.json retains both results"
+                        "profiled/control/baseline semantic, fuel or coverage disagreement; partial.json retains all results"
                     )
                 print("MEASURED", case["name"], "batch", batch, flush=True)
         if not profile_runtime:
@@ -1185,6 +1284,11 @@ def main():
         action="store_true",
         help="paired CPU runtime phases and observer overhead; no fitting/neural work",
     )
+    parser.add_argument(
+        "--compare-host-lookups",
+        action="store_true",
+        help="add an ordinary pre-cache lookup baseline to the CPU runtime profile",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--config")
     parser.add_argument("--shape-manifest")
@@ -1205,6 +1309,7 @@ def main():
             else None,
             cost_scope=args.cost_scope,
             profile_runtime=args.runtime_profile,
+            compare_host_lookups=args.compare_host_lookups,
         )
     except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(str(exc), file=sys.stderr)

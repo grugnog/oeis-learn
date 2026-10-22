@@ -13,6 +13,8 @@ struct Request {
     repetitions: usize,
     #[serde(default)]
     profile: bool,
+    #[serde(default)]
+    compare_host_lookups: bool,
 }
 
 fn main() {
@@ -23,6 +25,7 @@ fn main() {
     assert!((1..=5).contains(&request.repetitions));
     assert!((1..=100).contains(&request.indices.len()));
     assert!(request.source.len() <= 65536);
+    assert!(!request.compare_host_lookups || request.profile);
     let path = std::env::var("OEIS_BIGINT_WASM")
         .unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes = std::fs::read(path).unwrap();
@@ -32,7 +35,11 @@ fn main() {
     let mut samples = Vec::new();
     for index in 0..request.repetitions {
         if request.profile {
-            // Alternate pair order; the first profiled sample retains cold setup.
+            let mut baseline = if request.compare_host_lookups && index % 2 == 0 {
+                Some(runtime.evaluate_lookup_baseline(&request.source, &request.indices, &Resources::default()))
+            } else { None };
+            // Alternate pair order; retain the first sample separately and
+            // record baseline order so shared process warmup is explicit.
             let ((result, timings), (control, control_timings)) = if index % 2 == 0 {
                 let profiled = runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default());
                 (profiled, runtime.evaluate_measured(&request.source, &request.indices, &Resources::default()))
@@ -41,7 +48,15 @@ fn main() {
                 (runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default()), control)
             };
             let parity = serde_json::to_value(&result).unwrap() == serde_json::to_value(&control).unwrap();
-            samples.push(json!({"result":result,"timings":timings,"control":{"result":control,"timings":control_timings},"parity":parity,"order":if index%2==0 {"profiled-first"}else{"control-first"}}));
+            if request.compare_host_lookups && baseline.is_none() {
+                baseline=Some(runtime.evaluate_lookup_baseline(&request.source, &request.indices, &Resources::default()));
+            }
+            let mut sample=json!({"result":result,"timings":timings,"control":{"result":control,"timings":control_timings},"parity":parity,"order":if index%2==0 {"profiled-first"}else{"control-first"}});
+            if let Some((baseline_result,baseline_timings))=baseline {
+                let parity=serde_json::to_value(&baseline_result).unwrap()==sample["control"]["result"];
+                sample["lookup_baseline"]=json!({"result":baseline_result,"timings":baseline_timings,"parity":parity,"order":if index%2==0 {"baseline-first"}else{"baseline-last"}});
+            }
+            samples.push(sample);
             continue;
         }
         let (result, timings) = runtime.evaluate_measured(
@@ -51,6 +66,7 @@ fn main() {
     }
     println!("{}", json!({
         "version": if request.profile {"bigint-measurements/v2"} else {"bigint-measurements/v1"},
+        "host_lookup_comparison": if request.compare_host_lookups {json!({"version":"per-term-host-lookups/v1","cached":"lazy-per-term","baseline":"per-call"})}else{serde_json::Value::Null},
         "runtime_compile_seconds": runtime_compile_seconds,
         "samples": samples,
     }));
