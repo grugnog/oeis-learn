@@ -1,11 +1,10 @@
 # Whole-pipeline resource and performance profile — proposed2026-10-22
 
-Status: PLAN ONLY. User requested planning before implementation or execution.
-This is a focused T094/T097 follow-up within Spec008. No profiling code, new
-model training run, qualification attempt or parallel scheduler is implemented
-or launched by this document. A broader synthesis/model spec is not needed to
-collect this evidence. Production scheduling changes require their own reviewed
-scope after the results.
+Status: IMPLEMENTED, actual HIP collection/review pending (W005). The user
+approved implementation after the focused plan review. No profiling run, new
+training experiment, qualification attempt or parallel scheduler has been
+launched here. This is a focused T094/T097 diagnostic within Spec008; production
+scheduling changes still require their own reviewed scope after the results.
 
 ## Decision and questions
 
@@ -54,7 +53,7 @@ actual batch sizes. Do not cherry-pick only fast or successful candidates.
 | Validation | One full256-row synthetic development teacher-forced loss pass per arm, with fixed order/batch policy | Measure actual validation shape without candidate or hidden-term selection |
 | Production portfolio |32 prompts: correct conditioning with greedy plus seven stochastic attempts; shuffled and absent conditioning with greedy only; eight fixed templates per prompt; baseline generation batch8, fitting serial | Exercise real inference, fitting, raw checks and reference admission across the existing diverse set |
 | Continuation verification | Execute the frozen selected candidates over their100-index synthetic training horizons in the separate scorer role | Include production/reference verification cost while keeping truth out of generation |
-| Short/long trace probes | Separate replay of one short and one long decode from the fixed workload; if no long output exists, use a separately labelled existing fixed-state long-output fixture | Attribute kernel/launch/synchronization costs without pretending a worst-case stress output is typical |
+| Short/long trace probes | Separate bounded replay of the observed shortest and longest correct-conditioning decode batches; explicitly report missing long-output coverage rather than substituting untrained weights | Attribute kernel/launch/synchronization costs without pretending a worst-case stress output is typical |
 
 Scratch update states are disposable and never selected, promoted or used for
 main inference; every inference pass starts from the selected original weights.
@@ -251,17 +250,16 @@ must be exportable. Old negative T096 and historical receipts stay unchanged.
 
 ## Implementation and execution sequence after plan review
 
-- [ ] W001 Add a separate diagnostic manifest/host harness and analysis identity;
+- [X] W001 Add a separate diagnostic manifest/host harness and analysis identity;
   reject training/resume/final-study authority and missing source/weights. New
   summaries must reflect T093 deferral rather than copying stale blocker lists.
-- [ ] W002 Add coarse spans and1Hz resource collection with GPU mapping, CPU quota
+- [X] W002 Add coarse spans and1Hz resource collection with GPU mapping, CPU quota
   normalization, missing-sensor handling and bounded cleanup/archive tests.
-- [ ] W003 Add the fixed-state paired workload and short trace mode; test stable
+- [X] W003 Add the fixed-state paired workload and short trace mode; test stable
   seeds/counts/state restoration, no cross-arm cached answers, limits and trace
   bounds, per-arm counts and schedule-weighted reporting before actual HIP execution. Separate mocks/CPU tests from device evidence.
-- [ ] W004 Push incrementally and provide one copy-pastable Podman/Docker command
-  for capability check plus bounded collection/rerun/archive. No command for this
-  proposed harness exists yet. Do not launch it automatically or wait for PR CI.
+- [X] W004 Push incrementally and provide one copy-pastable Podman/Docker command
+  for capability check plus bounded collection/rerun/archive. The command below is implemented. Do not launch it automatically or wait for PR CI.
 - [ ] W005 Review actual HIP evidence, publish phase/resource/overhead results and
   recommend one measured next step. This does not itself close T094/T098, admit
   transfer-screen training, retry T096 or require deferred T093.
@@ -278,3 +276,73 @@ Relevant primary documentation (reviewed2026-10-22):
   of this plan; retain this project's launch boundary.
 - [AMDGPU sensors](https://kernel.org/doc/html/latest/gpu/amdgpu/thermal.html):
   busy counters and sensor semantics, including CPU-inclusive APU power.
+
+## Implemented command and interpretation
+
+```bash
+python3 scripts/profile_bigint_pipeline.py --engine podman \
+  --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-pipeline-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Adjust the two existing input paths if moved; the selected checkpoint, parent
+contract, prepared-data identities and every copied input are checked. The host
+needs only Python and its normal engine connection. The current GPU image is
+built unless `--image` supplies an existing image; a stale image fails the source
+check before loading weights. Building is outside measurement caps. A new output
+suffix reruns the analysis; existing outputs and the parent are never resumed.
+Use `--engine docker` for Docker. Collection requests16 CPU-equivalents and
+keeps two PyTorch threads, batch8 decoding and one active native request.
+
+Concrete paired portfolio/scoring ceilings are eight group-arm pairs of240s
+of generation plus180s of scoring:3360s within the3600s stage budget. Per-prompt
+60s and native/reference limits remain nested inside these caps. The GPU role's
+external ceiling is3100s and the scorer's is1600s, reduced by remaining allowance;
+cleanup/analysis/archive have remaining room inside90minutes. The external host
+watchdog polls every2s, caps each log at8MiB and each role's working output at8GiB.
+These disk/log watchdogs are polling bounds, not filesystem quotas. Traces use
+40MiB per-file export limits and the128MiB archive trace cap. The archive reserves
+core reports and caps selected uncompressed artifacts at255MiB plus its manifest.
+
+Implementation details and explicit coverage limits:
+
+- The only model input is the selected current bigint checkpoint's weights,
+  loaded with `weights_only=True`. A diagnostic AdamW is warmed20 disposable
+  steps; its moments, the original weights, and RNG state are copied/restored
+  identically before each25-update block. The parent optimizer is never resumed.
+- Both arms retain separate native clients/caches in each role. Their two idle
+  histories coexist in role memory, but requests stay serial; this additional
+  diagnostic memory is disclosed and must not be mistaken for production memory
+  at a future worker count. Tensor snapshot storage is counted separately; raw
+  allocator/cgroup peaks include those analysis copies too. The scorer has no GPU or generation/training inputs.
+- The ordinary arm records coarse phase boundaries and cumulative process CPU
+  deltas. The observed arm adds1Hz telemetry and nested host spans; neither adds
+  token-by-token logs. Short profiler windows preserve the observed batch and
+  seed order, cap decoding at256 steps/30s, and report actual kernel-event presence.
+- Refinement after implementation review: the longest observed decode is not
+  called a long-output fixture if all actual outputs are short. Its coverage flag
+  records that gap. An additional calibrated synthetic stress model is deferred
+  unless reviewing the actual profile shows it is needed; it would not estimate
+  this trained checkpoint's normal runtime. This avoids adding an unrelated
+  disposable model to the first whole-pipeline run.
+- Schedule-weighted update/validation estimates use the parent's intended cadence
+  and maximum updates. Full-control, changing-weight/early-stop, checkpoint/export
+  and periodic cache effects remain explicitly unknown. There is no fabricated
+  total, normalized100% breakdown or Amdahl claim from that incomplete projection.
+  Diagnostic exclusive phase times and resource timelines are reported separately.
+- Native IPC includes solver search, compilation, production checks and transport.
+  Detailed WASM phases are disabled; unresolved native subcosts stay unresolved.
+  Hidden ancestor cgroup quotas or unavailable device counters are labelled gaps.
+
+Share the generated sibling ZIP even for a FAIL/PARTIAL outcome. It contains
+`summary.json`, the frozen manifest, `analysis.json`, a standalone hoverable
+`timeline.html`, events/samples, workload dispositions, bounded traces and actual
+container/cleanup audits. Inputs, weights, synthetic truth, caches and final/OEIS
+data are excluded. No actual device result or throughput gain is claimed until
+W005 reviews that archive. See tests in `tests/unit/test_pipeline_profile.py`.
+
+Local validation:78 focused tests pass, including25 new profile cases; lint,
+formatting, stdlib help/scope rejection, documentation links and Spec Kit gates
+pass. [Local receipt](phase-5-pipeline-profile-local.json) is explicitly CPU/mock
+evidence; no container or actual HIP execution is claimed.

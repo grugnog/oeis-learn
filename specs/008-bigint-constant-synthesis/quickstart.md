@@ -7,16 +7,36 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: review the whole-pipeline profiling plan
+## Current next step: collect the whole-pipeline HIP profile
 
-T093 historical-model comparison is user-deferred and no longer a prerequisite
-for the from-scratch Phase5 path; no historical-model evaluation is claimed.
-The [proposed whole-pipeline HIP profile](validation/phase-5-pipeline-profile-plan.md)
-freezes a meaningful32-prompt diagnostic, disposable update measurements,
-lightweight GPU/CPU/memory sampling, ordinary/observed comparisons and bounded
-trace windows before implementation. The harness does not exist yet and no run
-has started. Read/review the plan before implementing it; do not repeat the
-consumed T096 experiment or launch a new qualification run from this document.
+T093 historical-model comparison is user-deferred. The
+[reviewed profiling plan and implementation](validation/phase-5-pipeline-profile-plan.md)
+now provide a separate weights-only child diagnostic: paired ordinary/telemetry
+arms,500 scratch updates per arm,32 training prompts, CPU/GPU/memory sampling,
+bounded operator traces, isolated CPU scoring and a result ZIP. No run has been
+started here. This command preserves the original negative T096 and cannot
+resume training, admit a new experiment or access final scoring.
+
+```bash
+python3 scripts/profile_bigint_pipeline.py --engine podman \
+  --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-pipeline-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Adjust existing parent/data paths if moved. Leave `--image` unset to build the
+current source; image build time is separate. Expect roughly45–60minutes, with
+finite role/stage caps and room for cleanup/export inside90minutes. A slow or
+capped run retains PARTIAL/FAIL evidence; it does not extend its budget. Share
+the sibling ZIP even after failure. Rerun with a fresh timestamp; do not delete
+or reuse the original output. `--engine docker` uses Docker.
+
+The diagnostic requests16 CPU-equivalents but keeps current serial native work,
+batch8 generation and two PyTorch threads. Missing sensors stay unavailable.
+Runtime proportions from this oversampled diagnostic are separate from the
+partially measured, schedule-weighted projection. Whole-run WASM microprofiling
+is disabled; detailed tools remain available. Current-source HIP evidence and
+its review remain pending.
 
 ## Completed CPU adoption and reproduction
 

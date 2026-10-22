@@ -60,6 +60,7 @@ def report(output):
         defaultdict(list),
         [],
     )
+    fractions, throttle, memory_events = defaultdict(list), {}, {}
     for arm in ("ordinary", "telemetry"):
         selected = [x for x in rows if f"/arms/{arm}/" in "/" + x["path"]]
         # Compute per recording; timestamps from different roles are not nested.
@@ -80,16 +81,44 @@ def report(output):
             delta -= sum(
                 p["cpu_seconds"] for p in a["processes"] if p["pid"] != a["processes"][0]["pid"]
             )
-            cpu[f"{arm}:{x['name']}"].append(max(0, delta) / max(1e-9, x["end"] - x["start"]))
+            cores = max(0, delta) / max(1e-9, x["end"] - x["start"])
+            cpu[f"{arm}:{x['name']}"].append(cores)
+            capability = read(output / Path(x["path"]).parent / "capability.json")
+            capacity = capability["effective_cpus"]
+            fractions[f"{arm}:{x['name']}"].append(cores / capacity if capacity else None)
+
+            def counters(value):
+                return {
+                    parts[0]: int(parts[1])
+                    for line in (value or "").splitlines()
+                    if len(parts := line.split()) == 2 and parts[1].isdigit()
+                }
+
+            ac, bc = (counters(z["cgroup"].get("cpu.stat")) for z in (a, b))
+            throttle[x["path"] + ":" + x["name"]] = {
+                k: bc[k] - ac[k] for k in ("nr_throttled", "throttled_usec") if k in ac and k in bc
+            }
+            ae, be = (counters(z["cgroup"].get("memory.events")) for z in (a, b))
+            memory_events[x["path"] + ":" + x["name"]] = {
+                k: be[k] - ae[k] for k in ae.keys() & be.keys()
+            }
     for p in output.rglob("samples.jsonl"):
         if "trace-events" in p.parts:
             continue
-        for line in p.read_text().splitlines():
+        for line in p.open():
             try:
                 row = json.loads(line)
             except json.JSONDecodeError:
                 continue
             label = str(p.parent.relative_to(output))
+            phases = [
+                x
+                for x in rows
+                if str(Path(x["path"]).parent) == label
+                and x["start"] <= row.get("time", -1) <= x["end"]
+            ]
+            if phases:
+                label += ":" + max(phases, key=lambda x: x["depth"])["name"]
             gpu = row.get("gpu") or {}
             try:
                 value = float(gpu["gpu_busy_percent"])
@@ -143,11 +172,18 @@ def report(output):
         qualified=False,
         diagnostic_exclusive_seconds=groups,
         cpu_core_equivalents={k: statistics.mean(v) for k, v in cpu.items()},
+        cpu_fraction_effective_quota={
+            k: statistics.mean([x for x in v if x is not None])
+            for k, v in fractions.items()
+            if any(x is not None for x in v)
+        },
+        cgroup_throttle_deltas=throttle,
+        cgroup_memory_event_deltas=memory_events,
         gpu_busy={
             k: dict(mean=statistics.mean(v), maximum=max(v), samples=len(v))
             for k, v in busy.items()
         },
-        memory_current_peaks_bytes={k: max(v) for k, v in memory.items()},
+        memory_current_peaks_bytes={k: max(v) if v else None for k, v in memory.items()},
         memory_note="shared counters overlap; do not sum RSS/cgroup/GPU allocation",
         telemetry=telemetry,
         paired_attempts=paired,

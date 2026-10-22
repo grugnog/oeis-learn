@@ -90,3 +90,19 @@ and eventual-image Docker/HIP evidence remain separately tracked. T097 stays ope
 Current scope decision2026-10-22: T093-dependent historical-model execution is
 excluded from T097 completion; retained reader and compatibility regressions
 remain required. Prior receipts and historical pending lists are unchanged.
+
+
+## Whole-pipeline diagnostic implementation — 2026-10-22
+
+The [profile plan](phase-5-pipeline-profile-plan.md) and [quickstart](../quickstart.md)
+document the new stdlib-only host harness. Its parent is read-only, selected
+weights use a separate child identity, generation never receives synthetic truth,
+and scoring receives only sealed selections and synthetic training truth. Native
+requests remain serial. Fresh outputs, per-role external deadlines, log/disk
+watchdogs, actual isolation/cleanup audits and bounded report-only archives
+retain partial failures. Scope flags for training, resume and final evaluation
+are absent/rejected. Existing detailed WASM tools remain intact and disabled for
+this diagnostic. Unit tests exercise restoration, identity rejection, missing
+sensors, partial work, collector/hook cleanup, audit rejection, watchdog expiry
+and archive exclusions. Actual container/HIP execution is still pending W005;
+these tests are not device or T097 execution evidence.

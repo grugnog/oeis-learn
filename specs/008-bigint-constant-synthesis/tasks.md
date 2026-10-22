@@ -279,6 +279,15 @@ are complete as implementation tasks; native compilation/execution and actual
 phase/observer-cost review remain pending. T094 stays unchecked. No production
 optimization, HIP request or training retry is implied.
 
+**T094 whole-pipeline profiling follow-up (2026-10-22)**: W001–W004 in
+[the reviewed profile plan](validation/phase-5-pipeline-profile-plan.md) are
+implemented: immutable weights-only child inputs, paired fixed-state updates,
+reduced visible portfolios,1Hz resource sampling, bounded CPU/HIP traces,
+separate truth-mounted CPU scoring, observer checks, partial schedule projection,
+standalone timeline and capped archives. The quickstart supplies one portable
+Podman/Docker command. Actual HIP collection/review W005 remains pending;
+T094/T097/T098 stay open. T093 is deferred; original negative T096 is preserved.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

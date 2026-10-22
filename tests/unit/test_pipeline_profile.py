@@ -328,3 +328,202 @@ def test_gpu_role_rejects_source_before_loading_or_executing_weights(tmp_path, m
     assert (
         "image/source differs" in json.loads((tmp_path / "out/summary.json").read_text())["error"]
     )
+
+
+def test_scorer_keeps_independent_arm_clients_and_original_order(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.fresh import bigint_worker, bigint_diagnostics
+    from oeis_learn.fresh.pipeline_profile import scorer_work
+    from oeis_learn.fresh.common import write, digest, file_hash
+
+    instances, calls = [], []
+
+    class Client:
+        def __init__(self, settings, folder):
+            self.folder = folder
+            self.worker = SimpleNamespace(stats={})
+            self.caches = SimpleNamespace(metrics=lambda: {})
+            instances.append(self)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+    def score(selections, truth, client, **kw):
+        calls.append((str(client.folder), list(truth)))
+        assert set(selections) == set(truth)
+        return dict(outcomes={}, splits={})
+
+    monkeypatch.setattr(bigint_worker, "client", Client)
+    monkeypatch.setattr(bigint_diagnostics, "score", score)
+    truth = {str(i): {} for i in range(32)}
+    write(tmp_path / "input/truth.json", truth)
+    write(tmp_path / "input/selections.json", {arm: truth for arm in ("ordinary", "telemetry")})
+    manifest = dict(
+        identity="analysis",
+        plan=runner().workload(),
+        truth_sha256=digest(truth),
+        prompt_ids=list(truth),
+    )
+    work = dict(
+        manifest=manifest,
+        recipe={},
+        selections_sha256=file_hash(tmp_path / "input/selections.json"),
+    )
+    summary = {}
+    scorer_work(tmp_path / "input", tmp_path / "out", work, summary)
+    assert len(instances) == 2 and len(calls) == 8
+    for arm in ("ordinary", "telemetry"):
+        assert [ids for folder, ids in calls if folder.endswith(arm)] == [
+            list(truth)[i : i + 8] for i in range(0, 32, 8)
+        ]
+
+
+@pytest.mark.parametrize("bad_audit", [False, True])
+def test_role_isolation_audit_and_cleanup_run_even_after_failure(tmp_path, monkeypatch, bad_audit):
+    from types import SimpleNamespace
+
+    module = runner()
+    calls = []
+    inspection = [
+        dict(
+            HostConfig=dict(
+                NetworkMode="host" if bad_audit else "none",
+                ReadonlyRootfs=True,
+                Privileged=False,
+                Devices=[],
+            ),
+            Mounts=[
+                dict(Type="bind", Destination="/work/input", RW=False),
+                dict(Type="bind", Destination="/work/output", RW=True),
+            ],
+        )
+    ]
+
+    class Engine:
+        def command(self, **kw):
+            calls.append(kw)
+            return ["fake"]
+
+        def call(self, *a, **kw):
+            return SimpleNamespace(stdout=json.dumps(inspection))
+
+        def remove(self, name):
+            calls.append("removed")
+
+    (tmp_path / "input").mkdir()
+    monkeypatch.setattr(module, "launch", lambda *a, **kw: None)
+    host = SimpleNamespace(engine=Engine(), policy=dict(memory_bytes=1 << 30, cpus=16))
+    if bad_audit:
+        with pytest.raises(RuntimeError, match="isolation"):
+            module.container_stage(
+                host,
+                "image",
+                tmp_path / "input",
+                tmp_path / "out",
+                mode="scorer",
+                seconds=5,
+                gpu=False,
+            )
+    else:
+        module.container_stage(
+            host, "image", tmp_path / "input", tmp_path / "out", mode="scorer", seconds=5, gpu=False
+        )
+    assert calls[-1] == "removed"
+    assert calls[0]["gpu"] is False and calls[0]["mounts"][0][2] is False
+    assert json.loads((tmp_path / "out/cleanup.json").read_text())["within_bound"]
+
+
+def test_external_watchdog_kills_blocked_role(tmp_path):
+    with pytest.raises(TimeoutError, match="external deadline"):
+        runner().launch(
+            [sys.executable, "-c", "import time; time.sleep(5)"], tmp_path, seconds=0.03
+        )
+
+
+def test_report_exports_timeline_without_inventing_missing_gpu_counters(tmp_path):
+    from oeis_learn.fresh.common import write
+    from oeis_learn.fresh.pipeline_report import report
+
+    write(
+        tmp_path / "input/work.json",
+        dict(recipe=dict(learning=dict(max_updates=3000, validation_every=100))),
+    )
+    write(tmp_path / "gpu/summary.json", dict(updates={}, work={}, validation={}))
+    write(tmp_path / "gpu/attempts.json", dict(ordinary=[], telemetry=[]))
+    with Recorder(tmp_path / "gpu/arms/telemetry/group-0", instrumented=True) as r:
+        with r.phase("portfolio", group=0):
+            pass
+    result = report(tmp_path)
+    assert result["gpu_busy"] == {}
+    assert (tmp_path / "timeline.html").is_file()
+    assert result["schedule_weighted"]["total_seconds"] is None
+
+
+@pytest.mark.parametrize("role_failure", [False, True])
+def test_host_exports_success_or_partial_failure_without_parent_writes(
+    tmp_path, monkeypatch, role_failure
+):
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    from oeis_learn.fresh.common import read, write, file_hash
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.fresh import pipeline_report
+
+    run, inputs, output = parent_fixture(tmp_path)
+    output.rmdir()
+    parent_hashes = {str(p): file_hash(p) for p in run.rglob("*") if p.is_file()}
+    module = runner()
+    module.ROOT = tmp_path
+
+    class Host:
+        def __init__(self, args):
+            self.policy = dict(render_node="/dev/dri/renderD128")
+
+        def ensure(self):
+            return "sha256:" + "a" * 64
+
+        def select_gpu(self):
+            pass
+
+        def gpu_lock(self):
+            return nullcontext()
+
+    monkeypatch.setitem(sys.modules, "foundation_local", SimpleNamespace(Host=Host, relative=str))
+    monkeypatch.setattr(source_snapshot, "collect_snapshot", lambda root: {})
+    monkeypatch.setattr(pipeline_report, "report", lambda output: dict(mock=True))
+    calls = []
+
+    def stage(host, image, source, destination, *, mode, **kw):
+        destination.mkdir()
+        calls.append(mode)
+        if mode == "gpu":
+            assert not (source / "truth.json").exists()
+            if role_failure:
+                raise RuntimeError("injected role failure")
+            write(destination / "selections.json", {})
+        else:
+            assert not (source / "weights.pt").exists()
+            work = read(source / "work.json")
+            assert work["selections_sha256"] == file_hash(source / "selections.json")
+        write(destination / "summary.json", dict(status="COMPLETE"))
+
+    monkeypatch.setattr(module, "container_stage", stage)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [module.__file__, "--run", str(run), "--inputs", str(inputs), "--output", str(output)],
+    )
+    assert module.main() == (1 if role_failure else 0)
+    assert calls == (["gpu"] if role_failure else ["gpu", "scorer"])
+    assert {str(p): file_hash(p) for p in run.rglob("*") if p.is_file()} == parent_hashes
+    import zipfile
+
+    with zipfile.ZipFile(output.with_suffix(".zip")) as z:
+        assert "summary.json" in z.namelist()
+        assert not any(
+            "/private/" in "/" + n or "/input/" in "/" + n or n.endswith(".pt")
+            for n in z.namelist()
+        )

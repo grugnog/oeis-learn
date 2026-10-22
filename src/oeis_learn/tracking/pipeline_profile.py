@@ -124,6 +124,7 @@ class Recorder:
         self.gpu = gpu_sensor_path(render_node)
         self.cgroup = cgroup_path()
         self.stop = threading.Event()
+        self.ready = threading.Event()
         self.thread = None
         self.depth = 0
         self.events = []
@@ -132,6 +133,7 @@ class Recorder:
         self.collector_cpu = 0.0
         self.started = time.monotonic()
         self.overflow = 0
+        self.collector_error = None
 
     def capacity(self):
         cg = self.cgroup
@@ -148,6 +150,8 @@ class Recorder:
             if self.gpu
             else "selected render-node sysfs mapping unavailable",
             cpu_topology=read_text("/proc/cpuinfo"),
+            kernel=list(os.uname()),
+            amdgpu_module_version=read_text("/sys/module/amdgpu/version"),
             gpu_units={
                 "gpu_busy_percent": "percent",
                 "mem_busy_percent": "percent",
@@ -158,6 +162,7 @@ class Recorder:
         )
 
     def snapshot(self):
+        started = time.monotonic()
         cg = self.cgroup
         usage = resource.getrusage(resource.RUSAGE_SELF)
         children = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -175,7 +180,10 @@ class Recorder:
                 if p.name in {"temp1_input", "power1_average", "power1_input"}:
                     gpu[str(p.relative_to(self.gpu))] = read_text(p)
         return dict(
-            time=time.monotonic(),
+            time=started,
+            capture_seconds=time.monotonic() - started,
+            sensor_age_seconds=None,
+            sensor_age_reason="sysfs firmware cadence not exposed; timestamp is host read time",
             role_cpu_seconds=usage.ru_utime + usage.ru_stime,
             reaped_children_cpu_seconds=children.ru_utime + children.ru_stime,
             role_peak_rss_bytes=usage.ru_maxrss * 1024,
@@ -212,8 +220,14 @@ class Recorder:
                     handle.flush()
                     self.samples += 1
                 except (OSError, ValueError, IndexError) as exc:
-                    handle.write(json.dumps(dict(time=time.monotonic(), error=str(exc))) + "\n")
+                    try:
+                        handle.write(json.dumps(dict(time=time.monotonic(), error=str(exc))) + "\n")
+                    except OSError:
+                        self.collector_error = f"{type(exc).__name__}: {exc}"
+                        self.ready.set()
+                        return
                     self.missed += 1
+                self.ready.set()
                 self.collector_cpu += time.thread_time() - begin
                 due += 1
                 now = time.monotonic()
@@ -228,6 +242,7 @@ class Recorder:
         if self.instrumented:
             self.thread = threading.Thread(target=self._collect, daemon=True)
             self.thread.start()
+            self.ready.wait(timeout=2)
         return self
 
     def __exit__(self, *_):
@@ -245,6 +260,7 @@ class Recorder:
                     collector_native_tid=None if self.thread is None else self.thread.native_id,
                     seconds=time.monotonic() - self.started,
                     event_overflow=self.overflow,
+                    collector_error=self.collector_error,
                 )
             )
         )

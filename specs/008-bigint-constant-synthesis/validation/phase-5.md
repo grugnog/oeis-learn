@@ -403,5 +403,7 @@ T093 is deferred, not passed, and removed from current Phase5 prerequisites.
 Before further timer/WASM optimization, use the
 [whole-pipeline profiling plan](phase-5-pipeline-profile-plan.md) to measure real
 HIP generation, scratch update cost, CPU fitting/execution/reference work and
-resource/waiting timelines. This is a proposed bounded diagnostic, not an
-implemented command, new qualification attempt or training authorization.
+resource/waiting timelines. The paired harness is now implemented as
+`scripts/profile_bigint_pipeline.py`; see the plan/quickstart for the bounded
+Podman/Docker command. Actual HIP collection/review (W005) is pending. No new
+qualification attempt or training experiment is authorized by this diagnostic.

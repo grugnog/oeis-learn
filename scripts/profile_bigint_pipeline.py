@@ -5,6 +5,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import time
 import uuid
@@ -203,7 +204,6 @@ def archive(output, *, cap=256 << 20):
 
 
 def container_stage(host, image, source, output, *, mode, seconds, gpu):
-    from qualify_bigint_phase5 import launch
     from oeis_learn.container_runtime import private_runtime_environment
 
     output.mkdir(parents=True, exist_ok=True)
@@ -247,11 +247,15 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
                 for m in inspection[0].get("Mounts", [])
                 if m["Type"] == "bind"
             }
+            devices = {d.get("PathOnHost") for d in config.get("Devices") or []}
+            expected_devices = {"/dev/kfd", host.policy["render_node"]} if gpu else set()
             if (
                 config.get("NetworkMode") != "none"
                 or not config.get("ReadonlyRootfs")
                 or config.get("Privileged")
                 or binds != {"/work/input": False, "/work/output": True}
+                or devices != expected_devices
+                or config.get("DeviceRequests")
             ):
                 raise RuntimeError("actual role isolation audit failed")
         finally:
@@ -264,6 +268,54 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             )
             if elapsed > 5:
                 raise RuntimeError("role cleanup exceeded5seconds")
+
+
+def launch(command, output, *, seconds):
+    """External watchdog survives blocked torch/native calls; bounded log/disk use."""
+    print(f"RUN pipeline role; logs: {output}", flush=True)
+    started, last_progress = time.monotonic(), time.monotonic()
+    with (output / "stdout.log").open("wb") as out, (output / "stderr.log").open("wb") as err:
+        process = subprocess.Popen(command, stdout=out, stderr=err, stdin=subprocess.DEVNULL)
+        try:
+            while process.poll() is None:
+                if time.monotonic() - started >= seconds:
+                    raise TimeoutError("profile role external deadline")
+                if any(
+                    (output / name).stat().st_size > 8 << 20
+                    for name in ("stdout.log", "stderr.log")
+                ):
+                    raise RuntimeError("profile role log cap8MiB")
+                if disk_bytes(output) > 8 << 30:
+                    raise RuntimeError("profile role disk watchdog8GiB")
+                try:
+                    process.wait(timeout=min(2, max(0.01, seconds - (time.monotonic() - started))))
+                except subprocess.TimeoutExpired:
+                    pass
+                if time.monotonic() - last_progress >= 30:
+                    print(
+                        f"  running {int(time.monotonic() - started)}s; {output}/progress.json",
+                        flush=True,
+                    )
+                    last_progress = time.monotonic()
+            if process.returncode:
+                raise RuntimeError(
+                    f"profile role exit{process.returncode}; inspect {output}/summary.json and stderr.log"
+                )
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+
+
+def disk_bytes(output):
+    size = 0
+    for p in output.rglob("*"):
+        try:
+            if p.is_file() and not p.is_symlink():
+                size += p.stat().st_size
+        except FileNotFoundError:
+            pass  # Atomic progress/cache replacement during the watchdog scan.
+    return size
 
 
 def main():

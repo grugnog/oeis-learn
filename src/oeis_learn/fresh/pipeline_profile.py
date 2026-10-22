@@ -6,6 +6,7 @@ from functools import wraps
 from pathlib import Path
 import random
 import resource
+import signal
 import time
 
 from .common import digest, file_hash, read, write
@@ -62,6 +63,30 @@ def parameter_digest(encoder, decoder):
         h.update(name.encode())
         h.update(value.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes())
     return "sha256:" + h.hexdigest()
+
+
+def snapshot_bytes(*states):
+    import torch
+
+    seen, total = set(), {}
+
+    def visit(value):
+        if isinstance(value, torch.Tensor):
+            storage = value.untyped_storage()
+            key = (str(value.device), storage.data_ptr())
+            if key not in seen:
+                seen.add(key)
+                total[key[0]] = total.get(key[0], 0) + storage.nbytes()
+        elif isinstance(value, dict):
+            for v in value.values():
+                visit(v)
+        elif isinstance(value, (tuple, list)):
+            for v in value:
+                visit(v)
+
+    for state in states:
+        visit(state)
+    return total
 
 
 @contextmanager
@@ -180,6 +205,7 @@ def trace_probe(output, label, function):
     path = folder / (label + ".json")
     summary = dict(label=label, status="UNAVAILABLE", gpu_kernels=False)
     before = resource.getrlimit(resource.RLIMIT_FSIZE)
+    before_signal = signal.getsignal(signal.SIGXFSZ)
     try:
         with torch.profiler.profile(
             activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
@@ -188,6 +214,7 @@ def trace_probe(output, label, function):
             profile_memory=False,
         ) as p:
             function()
+        signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
         resource.setrlimit(
             resource.RLIMIT_FSIZE,
             (min(40 << 20, before[0]) if before[0] >= 0 else 40 << 20, before[1]),
@@ -213,6 +240,7 @@ def trace_probe(output, label, function):
         summary["reason"] = f"{type(exc).__name__}: {exc}"
     finally:
         resource.setrlimit(resource.RLIMIT_FSIZE, before)
+        signal.signal(signal.SIGXFSZ, before_signal)
         write(folder / (label + "-summary.json"), summary)
     return summary
 
@@ -269,6 +297,10 @@ def gpu_work(inputs, output, work, summary):
             restore(frozen, encoder, decoder, optimizer)
             scratch = deepcopy(frozen)
             scratch["optimizer"] = warmed_optimizer
+            summary["analysis_snapshot_storage_bytes"] = snapshot_bytes(frozen, scratch)
+            summary["memory_interpretation"] = (
+                "raw allocator/cgroup peaks include analysis snapshots and alternate idle cache; not production baseline memory"
+            )
             summary["optimizer"] = (
                 "diagnostic AdamW warmed20 steps, restored per block; original weights; no parent optimizer resume"
             )
@@ -382,6 +414,8 @@ def gpu_work(inputs, output, work, summary):
                             diagnostic_attempts=plan["attempts"],
                         )
                     sealed, items = compact_group(result)
+                    for item in items:
+                        item["group"] = group
                     selections[arm].update(sealed)
                     attempts[arm].extend(items)
                     write(
@@ -399,6 +433,7 @@ def gpu_work(inputs, output, work, summary):
                         ),
                     )
                 write(output / "selections.json", selections)
+                write(output / "attempts.json", attempts)
                 write(output / "progress.json", summary)
     write(output / "attempts.json", attempts)
     expected = 32 * sum(plan["attempts"].values())
@@ -441,28 +476,44 @@ def gpu_work(inputs, output, work, summary):
                         item = sorted(complete, key=lambda x: x["tokens"])[
                             0 if label == "short-decode" else -1
                         ]
-                        row = next(x for x in work["prompts"] if x["id"] == item["prompt"])
+                        batch = [
+                            x
+                            for x in complete
+                            if x["group"] == item["group"] and x["position"] == item["position"]
+                        ]
+                        byid = {x["prompt"]: x for x in batch}
+                        batch = [byid[x["id"]] for x in work["prompts"] if x["id"] in byid]
+                        rows = [
+                            next(x for x in work["prompts"] if x["id"] == b["prompt"])
+                            for b in batch
+                        ]
                         with torch.no_grad():
                             memory = encoder.forward_from_sequences(
-                                [[int(v) for v in row["values"]]], device="cuda"
+                                [[int(v) for v in row["values"]] for row in rows], device="cuda"
                             )
                         summary.setdefault("trace_inputs", {})[label] = dict(
-                            item, trace_cap=256, stress=False
+                            attempts=batch,
+                            trace_cap=256,
+                            stress=False,
+                            long_output_coverage=max(x["tokens"] for x in batch) >= 256,
+                            reason="observed shortest/longest batch; no claim of unobserved long-output stress coverage",
                         )
                         sample_batch(
                             decoder,
                             [
                                 GenerationRequest(
-                                    memory,
-                                    item["seed"],
-                                    0 if item["position"] == 0 else 0.8,
+                                    memory[i : i + 1],
+                                    b["seed"],
+                                    0 if b["position"] == 0 else 0.8,
                                     trace_deadline,
                                     max_length=256,
                                 )
+                                for i, b in enumerate(batch)
                             ],
                         )
 
             summary["traces"].append(trace_probe(output, label, probe))
+    summary["trace_coverage_complete"] = all(x["status"] == "COMPLETE" for x in summary["traces"])
     summary["seconds"] = time.monotonic() - started
     summary["checkpoint_export"] = dict(
         seconds=None, reason="not measured; projection cannot assume zero"
@@ -489,24 +540,35 @@ def scorer_work(inputs, output, work, summary):
     ):
         raise ValueError("scoring truth/selection integrity mismatch")
     summary["groups"] = {arm: [] for arm in manifest["plan"]["arms"]}
-    for group in range(4):
-        keys = manifest["prompt_ids"][group * 8 : (group + 1) * 8]
-        for arm in group_order(group):
-            folder = output / "arms" / arm / f"group-{group}"
-            with Recorder(folder, instrumented=arm == "telemetry") as r:
-                with client(
-                    dict(recipe=work["recipe"], contract_sha256=manifest["identity"]), folder
-                ) as synthesis:
+    with ExitStack() as stack:
+        clients = {
+            arm: stack.enter_context(
+                client(
+                    dict(recipe=work["recipe"], contract_sha256=manifest["identity"]),
+                    output / "arms" / arm,
+                )
+            )
+            for arm in manifest["plan"]["arms"]
+        }
+        for group in range(4):
+            keys = manifest["prompt_ids"][group * 8 : (group + 1) * 8]
+            for arm in group_order(group):
+                folder = output / "arms" / arm / f"group-{group}"
+                with Recorder(folder, instrumented=arm == "telemetry") as r:
                     with instrument(r), r.phase("scoring", group=group):
                         result = score(
                             {k: selections[arm][k] for k in keys},
                             {k: truth[k] for k in keys},
-                            synthesis,
+                            clients[arm],
                             deadline=time.monotonic() + manifest["plan"]["scoring_group_seconds"],
                         )
-            write(folder / "outcomes.json", result.pop("outcomes"))
-            summary["groups"][arm].append(result)
-            write(output / "progress.json", summary)
+                write(folder / "outcomes.json", result.pop("outcomes"))
+                write(
+                    folder / "worker.json",
+                    dict(worker=clients[arm].worker.stats, cache=clients[arm].caches.metrics()),
+                )
+                summary["groups"][arm].append(result)
+                write(output / "progress.json", summary)
     summary["status"] = "COMPLETE"
 
 
