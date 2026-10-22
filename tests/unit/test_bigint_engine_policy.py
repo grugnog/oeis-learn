@@ -61,6 +61,38 @@ def test_runtime_identity_adds_policy_for_bigint_only(tmp_path):
             os.environ["OEIS_BIGINT_WASM"] = prior
 
 
+def test_qualification_driver_identity_matches_client_and_policy(tmp_path, monkeypatch):
+    from tests.conftest import synthesis_driver
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.engine_policy import production_policy
+
+    binary = tmp_path / "driver"
+    binary.write_bytes(b"fixture diagnostic binary")
+    guest = tmp_path / "guest.wasm"
+    guest.write_bytes(b"fixture guest")
+    monkeypatch.setenv("OEIS_SYNTHESIS_DRIVER", str(binary))
+    monkeypatch.setenv("OEIS_BIGINT_WASM", str(guest))
+    # Construct the real fixture without invoking native execution or a solver.
+    driver = synthesis_driver.__wrapped__()
+    client = SynthesisClient.__new__(SynthesisClient)
+    client.worker = SimpleNamespace(command=[str(binary)])
+    client.runtime_identities = {}
+    for profile in ("bigint-body/v1", "wat_i256_checked_v1"):
+        manifest = dict(
+            binary_sha256="sha256:" + hashlib.sha256(binary.read_bytes()).hexdigest(),
+            guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
+            profile=profile,
+        )
+        old_identity = identity(manifest)
+        if profile == "bigint-body/v1":
+            manifest["engine_policy_sha256"] = identity(production_policy())
+            assert driver.identity_for(profile) != old_identity
+        assert (
+            driver.identity_for(profile) == client.runtime_identity(profile) == identity(manifest)
+        )
+    assert driver.runtime_sha256 == driver.identity_for("bigint-body/v1")
+
+
 def test_native_source_inventory_includes_policy_bytes(tmp_path):
     from oeis_learn.sandbox.native_runtime import source_bytes
     import shutil
