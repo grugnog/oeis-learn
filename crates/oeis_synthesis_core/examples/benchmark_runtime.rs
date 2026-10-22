@@ -11,6 +11,8 @@ struct Request {
     source: String,
     indices: Vec<String>,
     repetitions: usize,
+    #[serde(default)]
+    profile: bool,
 }
 
 fn main() {
@@ -28,14 +30,27 @@ fn main() {
     let mut runtime = BigintRuntime::new(&bytes).unwrap();
     let runtime_compile_seconds = start.elapsed().as_secs_f64();
     let mut samples = Vec::new();
-    for _ in 0..request.repetitions {
+    for index in 0..request.repetitions {
+        if request.profile {
+            // Alternate pair order; the first profiled sample retains cold setup.
+            let ((result, timings), (control, control_timings)) = if index % 2 == 0 {
+                let profiled = runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default());
+                (profiled, runtime.evaluate_measured(&request.source, &request.indices, &Resources::default()))
+            } else {
+                let control = runtime.evaluate_measured(&request.source, &request.indices, &Resources::default());
+                (runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default()), control)
+            };
+            let parity = serde_json::to_value(&result).unwrap() == serde_json::to_value(&control).unwrap();
+            samples.push(json!({"result":result,"timings":timings,"control":{"result":control,"timings":control_timings},"parity":parity,"order":if index%2==0 {"profiled-first"}else{"control-first"}}));
+            continue;
+        }
         let (result, timings) = runtime.evaluate_measured(
             &request.source, &request.indices, &Resources::default(),
         );
         samples.push(json!({"result": result, "timings": timings}));
     }
     println!("{}", json!({
-        "version": "bigint-measurements/v1",
+        "version": if request.profile {"bigint-measurements/v2"} else {"bigint-measurements/v1"},
         "runtime_compile_seconds": runtime_compile_seconds,
         "samples": samples,
     }));

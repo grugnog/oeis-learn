@@ -7,7 +7,8 @@ import pytest
 from tests.unit.test_bigint_benchmark import benchmark
 
 
-def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries():
+@pytest.mark.parametrize("profile", [False, True])
+def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries(profile):
     binary = Path(
         os.environ.get("OEIS_BENCHMARK_RUNTIME", "/opt/oeis-build-info/benchmark-runtime")
     )
@@ -17,7 +18,15 @@ def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_bound
         pytest.skip("requires pinned native qualification image")
     module = benchmark()
     for case in module.cases():
-        row = module.runtime_measurements(case, batch=1, repetitions=2)
+        row = module.runtime_measurements(case, batch=1, repetitions=2, profile=profile)
+        if profile:
+            assert row["profiling"]["paired_results_match"], row
+            assert len(row["profiling"]["phases"]) == 10
+            for sample in row["samples"]:
+                stages = sample["timings"]["stages"]
+                assert stages["terms_started"] == stages["terms_finished"] == 1
+                assert stages["phases"]["clock_stop"]["calls"] == 1
+                assert stages["phases"]["store_drop"]["calls"] == 1
         assert len(row["samples"]) == 2
         assert row["runtime_compile_seconds"] >= 0
         assert row["warm"]["execution_seconds"]["samples"] == 1

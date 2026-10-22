@@ -120,7 +120,109 @@ def write(path, record):
     temporary.replace(path)
 
 
-def runtime_measurements(case, batch, repetitions):
+PROFILE_PHASES = (
+    "literal_decode",
+    "store_setup",
+    "clock_start",
+    "guest_init",
+    "input_load",
+    "link_instantiate",
+    "compute",
+    "serialize",
+    "clock_stop",
+    "store_drop",
+)
+
+
+def profile_summary(report, batch):
+    """Validate paired evidence independently of native parity labels."""
+    samples = report.get("samples", [])
+    if report.get("version") != "bigint-measurements/v2" or len(samples) < 2:
+        raise ValueError("paired native profile required")
+    mismatches = []
+    for index, sample in enumerate(samples):
+        control = sample["control"]
+        if sample.get("order") != ("profiled-first" if index % 2 == 0 else "control-first"):
+            raise ValueError("profile pair order mismatch")
+        if type(sample.get("parity")) is not bool or "stages" in control["timings"]:
+            raise ValueError("ordinary control and explicit parity flag required")
+        for timings in (sample["timings"], control["timings"]):
+            for key in ("prepare_seconds", "execution_seconds", "total_seconds"):
+                summarize([timings[key]])
+            if (
+                abs(
+                    timings["prepare_seconds"]
+                    + timings["execution_seconds"]
+                    - timings["total_seconds"]
+                )
+                > 1e-6
+            ):
+                raise ValueError("aggregate timing mismatch")
+        stages = sample["timings"]["stages"]
+        if stages.get("policy") != "bigint-runtime-profile/v1" or set(stages["phases"]) != set(
+            PROFILE_PHASES
+        ):
+            raise ValueError("unknown or incomplete phase profile")
+        for key in ("terms_started", "terms_finished"):
+            if type(stages[key]) is not int or not 0 <= stages[key] <= batch:
+                raise ValueError("invalid term count")
+        if stages["terms_finished"] > stages["terms_started"]:
+            raise ValueError("invented completed terms")
+        for phase in stages["phases"].values():
+            if type(phase["calls"]) is not int or not 0 <= phase["calls"] <= batch:
+                raise ValueError("invalid phase calls")
+            summarize([phase["seconds"]])
+        summarize([stages["unattributed_seconds"]])
+        accounted = (
+            sum(p["seconds"] for p in stages["phases"].values()) + stages["unattributed_seconds"]
+        )
+        if abs(accounted - sample["timings"]["execution_seconds"]) > 1e-6:
+            raise ValueError("phase accounting mismatch")
+        fields = sorted(
+            k
+            for k in set(sample["result"]) | set(control["result"])
+            if sample["result"].get(k) != control["result"].get(k)
+        )
+        if fields or not sample["parity"]:
+            mismatches.append(dict(sample=index, fields=fields or ["native_parity_flag"]))
+    warm = samples[1:]
+    control_warm = {
+        key: summarize([s["control"]["timings"][key] for s in warm])
+        for key in ("prepare_seconds", "execution_seconds", "total_seconds")
+    }
+    baseline = control_warm["execution_seconds"]["median_seconds"]
+    return dict(
+        policy="bigint-runtime-profile/v1",
+        paired_results_match=not mismatches,
+        mismatches=mismatches,
+        pair_order=[s["order"] for s in samples],
+        control_warm=control_warm,
+        phases={
+            name: dict(
+                seconds=summarize(
+                    [s["timings"]["stages"]["phases"][name]["seconds"] for s in warm]
+                ),
+                calls=[s["timings"]["stages"]["phases"][name]["calls"] for s in samples],
+            )
+            for name in PROFILE_PHASES
+        },
+        unattributed=summarize([s["timings"]["stages"]["unattributed_seconds"] for s in warm]),
+        warm_median_execution_ratio=statistics.median(
+            s["timings"]["execution_seconds"] for s in warm
+        )
+        / baseline
+        if baseline
+        else None,
+        overhead_unavailable_reason=None if baseline else "zero-duration control",
+        warm_paired_delta_seconds=statistics.median(
+            s["timings"]["execution_seconds"] - s["control"]["timings"]["execution_seconds"]
+            for s in warm
+        ),
+        interpretation="Review observer cost and pair order before causal attribution; exclusions are not successful throughput.",
+    )
+
+
+def runtime_measurements(case, batch, repetitions, *, profile=False):
     """Native compilation and execution are timed inside the production runtime."""
     from oeis_learn.synthesis.reference import evaluate
 
@@ -131,7 +233,12 @@ def runtime_measurements(case, batch, repetitions):
     proc = subprocess.run(
         [binary],
         input=json.dumps(
-            dict(source=case["source"], indices=indices, repetitions=repetitions)
+            dict(
+                source=case["source"],
+                indices=indices,
+                repetitions=repetitions,
+                **({"profile": True} if profile else {}),
+            )
         ).encode(),
         capture_output=True,
         timeout=120,
@@ -143,10 +250,20 @@ def runtime_measurements(case, batch, repetitions):
         )
     report = json.loads(proc.stdout)
     if (
-        report.get("version") != "bigint-measurements/v1"
+        report.get("version") != ("bigint-measurements/v2" if profile else "bigint-measurements/v1")
         or len(report.get("samples", [])) != repetitions
     ):
         raise ValueError("incomplete native measurement report")
+    if profile:
+        report["profiling"] = profile_summary(report, batch)
+        if not report["profiling"]["paired_results_match"]:
+            report.update(case=case["name"], batch=batch)
+            from oeis_learn.synthesis.contracts import identity
+
+            for sample in report["samples"]:
+                for row in (sample["result"], sample["control"]["result"]):
+                    row["values_sha256"] = identity(row.pop("values"))
+            return report
     reference_times = []
     for _ in range(repetitions):
         start = time.monotonic()
@@ -209,6 +326,10 @@ def runtime_measurements(case, batch, repetitions):
 
     for sample in report["samples"]:
         sample["result"]["values_sha256"] = identity(sample["result"].pop("values"))
+        if profile:
+            sample["control"]["result"]["values_sha256"] = identity(
+                sample["control"]["result"].pop("values")
+            )
     if case["old_source"]:
         from oeis_learn.sandbox.pipeline import Runtime, PreparedCandidate
 
@@ -228,13 +349,15 @@ def runtime_measurements(case, batch, repetitions):
             ):
                 raise RuntimeError("retained small-value semantics disagreed")
         old = summarize(old_execute[1:])
-        ratio = report["warm"]["execution_seconds"]["median_seconds"] / max(
+        comparison = report["profiling"]["control_warm"] if profile else report["warm"]
+        ratio = comparison["execution_seconds"]["median_seconds"] / max(
             old["median_seconds"], 1e-12
         )
         report["retained"] = dict(
             prepare=summarize(old_prepare[1:]),
             execution=old,
             small_value_slowdown=ratio,
+            ratio_basis="ordinary-control" if profile else "aggregate-measured",
             investigation_required=ratio > 5,
         )
     else:
@@ -834,6 +957,7 @@ def run(
     config=None,
     shapes=None,
     cost_scope="diverse32",
+    profile_runtime=False,
 ):
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -843,7 +967,7 @@ def run(
     if (output / "benchmark.json").exists():
         raise ValueError("new output directory required; preserve previous measurements")
     report = dict(
-        version="bigint-performance/v1",
+        version="bigint-runtime-profile/v1" if profile_runtime else "bigint-performance/v1",
         status="FAIL",
         qualified=False,
         python=sys.version,
@@ -854,6 +978,12 @@ def run(
         accounting="prepare includes parse/lower/candidate compilation; execute includes fresh stores, loading and serialization; runtime compilation separate; warm reuses runtime module only",
     )
     try:
+        if profile_runtime and (
+            neural or device != "cpu" or config is not None or shapes is not None
+        ):
+            raise ValueError(
+                "runtime profiling is CPU-only and excludes neural/data/configuration work"
+            )
         from oeis_learn.fresh.bigint_config import packaged_artifacts
         from oeis_learn.fresh.common import file_hash
 
@@ -872,11 +1002,21 @@ def run(
         for case in cases():
             for batch in batches:
                 report["active_measurement"] = dict(case=case["name"], batch=batch)
-                report["cases"].append(runtime_measurements(case, batch, repetitions))
+                row = (
+                    runtime_measurements(case, batch, repetitions, profile=True)
+                    if profile_runtime
+                    else runtime_measurements(case, batch, repetitions)
+                )
+                report["cases"].append(row)
                 write(output / "partial.json", report)
+                if profile_runtime and not row["profiling"]["paired_results_match"]:
+                    raise RuntimeError(
+                        "profiled/control semantic, fuel or coverage disagreement; partial.json retains both results"
+                    )
                 print("MEASURED", case["name"], "batch", batch, flush=True)
-        report["active_measurement"] = dict(phase="fitting")
-        report["fitting"] = fitting_measurements(repetitions)
+        if not profile_runtime:
+            report["active_measurement"] = dict(phase="fitting")
+            report["fitting"] = fitting_measurements(repetitions)
         import resource
 
         report["resource_metrics"] = dict(
@@ -929,6 +1069,28 @@ def run(
             report["preflight_eligible"] = False
             report["preflight_reason"] = (
                 "tensor cost screen only; matched complete dataset size/complexity and hardware binding must be reviewed before recipe admission"
+            )
+        if profile_runtime:
+            report["profiling_overview"] = dict(
+                rows=len(report["cases"]),
+                paired_results_match=all(
+                    r["profiling"]["paired_results_match"] for r in report["cases"]
+                ),
+                phase_ranking=sorted(
+                    [
+                        dict(
+                            phase=name,
+                            summed_warm_median_seconds=sum(
+                                r["profiling"]["phases"][name]["seconds"]["median_seconds"]
+                                for r in report["cases"]
+                            ),
+                        )
+                        for name in PROFILE_PHASES
+                    ],
+                    key=lambda row: row["summed_warm_median_seconds"],
+                    reverse=True,
+                ),
+                interpretation="Descriptive ranking across the fixed corpus; inspect per-case overhead, order and residual before attributing a bottleneck.",
             )
         report["slowdown_investigations"] = [
             dict(case=r["case"], batch=r["batch"], ratio=r["retained"]["small_value_slowdown"])
@@ -1018,6 +1180,11 @@ def main():
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--batches", default="1,20,100")
     parser.add_argument("--neural", action="store_true")
+    parser.add_argument(
+        "--runtime-profile",
+        action="store_true",
+        help="paired CPU runtime phases and observer overhead; no fitting/neural work",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--config")
     parser.add_argument("--shape-manifest")
@@ -1037,6 +1204,7 @@ def main():
             if args.shape_manifest
             else None,
             cost_scope=args.cost_scope,
+            profile_runtime=args.runtime_profile,
         )
     except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(str(exc), file=sys.stderr)

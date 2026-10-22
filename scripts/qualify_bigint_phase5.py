@@ -30,6 +30,7 @@ GROUPS = {
         "tests/unit/test_bigint_encoder.py",
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
+        "tests/unit/test_bigint_runtime_profile.py",
         "tests/unit/test_bigint_generation.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
@@ -292,6 +293,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--runtime-profile-only",
+        action="store_true",
+        help="paired CPU execution-stage profiling;600seconds work, archive and no dataset/neural/fitting work",
+    )
+    p.add_argument(
         "--fitting-only",
         action="store_true",
         help="target CPU native fitting/admission; archive results without measurements or training",
@@ -330,6 +336,17 @@ def main():
         p.error(
             "review the scoped preflight first; use scripts/run_bigint_diverse32.py --reviewed-preflight PATH"
         )
+    if args.runtime_profile_only and (
+        args.gpu
+        or args.performance_only
+        or args.fitting_only
+        or args.inputs
+        or args.prepare
+        or args.checkpoint_run
+    ):
+        p.error(
+            "--runtime-profile-only excludes GPU, other scopes, inputs, preparation and checkpoints"
+        )
     if args.inputs and args.prepare:
         p.error("choose existing --inputs or --prepare")
     if args.fitting_only and (
@@ -356,11 +373,15 @@ def main():
         status="FAIL",
         qualified=False,
         gpu_requested=args.gpu,
-        scope="fitting-only"
-        if args.fitting_only
-        else "performance-only"
-        if args.performance_only
-        else "full",
+        scope=(
+            "runtime-profile-only"
+            if args.runtime_profile_only
+            else "fitting-only"
+            if args.fitting_only
+            else "performance-only"
+            if args.performance_only
+            else "full"
+        ),
         stages={},
         engine=args.engine,
         pending={
@@ -390,6 +411,35 @@ def main():
         image = host.ensure()
         report.update(image=image, runtime=host.policy["runtime"], engine=host.engine.name)
         write(output / "summary.json", report)
+        if args.runtime_profile_only:
+            report["pending"].update(
+                T089="arithmetic not rerun in runtime profiling scope",
+                T090="fitting not rerun in runtime profiling scope",
+            )
+            stage = output / "runtime-profile"
+            container_stage(
+                host,
+                image,
+                stage,
+                [
+                    "python",
+                    "scripts/benchmark_bigint.py",
+                    "--runtime-profile",
+                    "--output",
+                    "/work/output",
+                ],
+                seconds=600,
+            )
+            result = json.loads((stage / "benchmark.json").read_text())
+            report["stages"]["runtime-profile"] = result
+            if result.get("status") != "PASS":
+                raise RuntimeError("runtime profiling failed; inspect stage report and logs")
+            if result.get("source_sha256") != report["expected_source_sha256"]:
+                raise RuntimeError(
+                    "profiling image source differs from this checkout; rebuild current source"
+                )
+            report["status"] = "PASS"
+            return 0
         groups = ("fitting",) if args.fitting_only else () if args.performance_only else GROUPS
         for group in groups:
             stage = output / group

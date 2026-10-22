@@ -216,7 +216,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: [arithmetic, fitting, containment, performance]
+        partition: [arithmetic, fitting, containment, performance, runtime-profile]
         engine: [docker]
         include:
           - partition: containment
@@ -238,7 +238,7 @@ jobs:
         run: |
           mkdir -p tmp-phase5-evidence
           chmod 777 tmp-phase5-evidence
-          if [ "$PARTITION" = containment ]; then
+          if [ "$PARTITION" = containment ] || [ "$PARTITION" = runtime-profile ]; then
             # Retain successful inspect and timed cleanup evidence through the
             # same socket-free role launcher used by workstation qualification.
             python3 -S - <<'PYCODE'
@@ -254,10 +254,12 @@ jobs:
               gpu_base_image=None, render_node=None, memory_gib=None, cpus=2,
               free_disk_gib=5, host_free_memory_gib=1,
           ))
+          profiling = os.environ["PARTITION"] == "runtime-profile"
+          argv = (["python", "scripts/benchmark_bigint.py", "--runtime-profile"] if profiling
+                  else ["python", "scripts/qualify_bigint_phase5.py", "--inside", "containment"])
           container_stage(
               host, host.ensure(), Path("tmp-phase5-evidence").resolve(),
-              ["python", "scripts/qualify_bigint_phase5.py", "--inside", "containment",
-               "--output", "/work/output"], seconds=3000,
+              [*argv, "--output", "/work/output"], seconds=600 if profiling else 3000,
           )
           PYCODE
           else
