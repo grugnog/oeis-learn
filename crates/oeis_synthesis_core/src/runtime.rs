@@ -279,7 +279,10 @@ impl BigintRuntime {
             "static_memory_maximum_size":0,"static_memory_guard_size":0,"dynamic_memory_guard_size":0,
             "dynamic_memory_reserved_for_growth":self.growth_reservation_bytes,
         });
-        let sha=crate::value::digest(manifest.to_string().as_bytes());
+        // Explicit key ordering keeps the identity canonical even if another
+        // linked crate enables serde_json's preserve_order feature.
+        let canonical:std::collections::BTreeMap<_,_>=manifest.as_object().unwrap().iter().collect();
+        let sha=crate::value::digest(&serde_json::to_vec(&canonical).expect("configuration JSON"));
         serde_json::json!({"manifest":manifest,"sha256":sha})
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {

@@ -26,7 +26,7 @@ Freeze `bigint-growth-reservation-comparison/v1` before execution:
   both settings, first-byte/nested phases, observer distortion and per-process
   Linux VmHWM. Peak RSS includes JIT/compilation and both observations; it is not
   aggregate RSS or a pure guest allocation measurement. The role's memory cap and
- 5s cleanup bound remain enforced. Extra virtual reservation is at most64KiB per
+  5s cleanup bound remain enforced. Extra virtual reservation is at most64KiB per
   mapping beyond its visible size; it does not authorize extra guest linear memory.
 - Use new `--compare-memory-growth` only with CPU `--runtime-profile-only` and
   `--profile-input-load`. Reject simultaneous host-lookup comparison to keep the
@@ -36,13 +36,31 @@ Freeze `bigint-growth-reservation-comparison/v1` before execution:
   ordinary host-lookup coverage remains in native/contract tests. No new build
   layer, dependency lock or independent image build is needed.
 
-- [ ] G001 Add failing evidence/scope tests and native cap/fuel regression source.
-- [ ] G002 Add the fixed qualification constructor and explicit engine/RSS records.
-- [ ] G003 Add bounded separate-process comparison, validation and host/CI routing.
-- [ ] G004 Verify available checks, publish incremental commits and CPU commands.
+- [X] G001 Add failing evidence/scope tests and native cap/fuel regression source.
+- [X] G002 Add the fixed qualification constructor and explicit engine/RSS records.
+- [X] G003 Add bounded separate-process comparison, validation and host/CI routing.
+- [X] G004 Verify available checks, publish incremental commits and CPU commands.
 
 Acceptance for this implementation is trustworthy comparison evidence, not an
 assumed speedup. Production adoption requires review of exact semantic parity,
 ordinary execution/total/lifecycle time, memory/cleanup and observer cost.
 No inference of HIP or end-to-end throughput follows from this CPU comparison.
 T094 remains open; original negative T096 and the promotion block remain intact.
+
+
+Implementation and available-check status: G001–G004 are complete for code and
+metadata validation only. The production constructor still selects zero; the
+only alternate constructor fixes64KiB and is selected solely by the bounded
+native benchmark request. Python rejects changed/unbound manifests, mismatched
+results/fuel/coverage/failures, missing v2 probes and invalid per-process RSS.
+Each setting is independently checked against the exact arithmetic reference.
+The raw report is capped at4MiB; the active-setting journal preserves progress
+on later failure and the existing archive cap/omissions remain enforced.
+
+The new native unit source checks unchanged initial visible memory, equal fuel,
+accepted growth and identical limiter denial with both reservations. Packaged
+contract modes cover both setting orders, and the runtime-profile CI partition
+covers all batches including aggregate-fuel exhaustion. No new-source native
+execution, measured speedup or production adoption is claimed by test-code
+presence. See [phase-5-growth-reservation-local.json](phase-5-growth-reservation-local.json)
+for available checks and [quickstart](../quickstart.md) for the CPU command.

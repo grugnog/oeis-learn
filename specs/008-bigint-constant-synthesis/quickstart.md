@@ -7,56 +7,63 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## CPU first-byte and memory-growth attribution — reviewed
+## Current next step: CPU growth-reservation comparison
 
-The [first-byte result](validation/phase-5-first-byte-review.json) is now
-reviewed: all225 pairs match. In8670 observed first calls, each requests one
-allowed64KiB expansion. Warm batch100 small-add/cancel first calls take about
-161us per term and99.85% of byte-transfer time. The empty guest transfer buffer
-and zero growth reservation point to memory relocation/copy, but a controlled
-comparison is needed to establish its contribution.
+The [reviewed first-byte result](validation/phase-5-first-byte-review.json)
+localizes about99.85% of small-case byte transfer to the first call. Every one
+of8670 observed first calls requests64KiB growth. The empty guest buffer and zero
+growth reservation, together with pinned Wasmtime's relocation/copy path,
+provide a specific hypothesis to test. Copy time itself has not been measured.
 
-The next focused work is a separately identified, CPU-only comparison of zero
-versus a small bounded growth reservation, preserving guest calls, fresh state,
-fuel and visible memory caps. That comparison is not implemented yet. There is
-no need to repeat the reviewed profile now; the command below reproduces it.
+The [frozen comparison](validation/phase-5-growth-reservation.md) runs exactly
+zero versus64KiB spare growth reservation. Production stays at zero. Run:
 
 ```bash
-byte_out="tmp-validation/008-first-byte-$(date -u +%Y%m%dT%H%M%SZ)"
+growth_out="tmp-validation/008-growth-reservation-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman \
-  --runtime-profile-only --profile-input-load --output "$byte_out"
+  --runtime-profile-only --profile-input-load --compare-memory-growth \
+  --output "$growth_out"
 ```
 
-Share `$byte_out.zip`, including a partial/failed result. Use a fresh output
-prefix. The helper builds or reuses the current checkout image, then runs the
-same25 non-scoring cases at batches1/20/100, three repetitions, within600seconds
-work plus5s cleanup; building is outside that work limit. Docker uses
-`--engine docker`. No dataset, weights or HIP device is needed. Detailed and
-ordinary results must match in values, failures, fuel, coverage and resource
-identity. Review first-call time together with detailed/ordinary observer cost.
+Share `$growth_out.zip`, including partial/failed results. Use a fresh output
+prefix. The helper builds/reuses the current checkout image; this build is
+outside the600s CPU work limit. Docker uses `--engine docker`. Cleanup keeps its
+5s allowance. The corpus stays25 non-scoring cases at batches1/20/100, three
+repetitions per setting:450 detailed/ordinary pairs. No data, weights or HIP
+hardware is needed. This command launches no training or hidden scoring.
 
-The v2 nested record retains all seven input phases and adds
-`first_byte_probe`: first attempted/returned calls, first-call time, remaining
-byte-loop time, and memory request counts plus at most16 event samples. The
-first timer includes the lazy host adapter lookup and guest call, excluding
-probe snapshots/counters; other bytes get no individual clocks. Limiter counts
-include initial memory creation. An allowed request does not prove successful
-physical allocation or identify the cause of latency. The remainder includes
-later calls, loop and observer overhead. Returned calls do not prove byte
-acceptance after a sticky error. All nested times belong inside their parents.
+Each setting runs in its own native process, with zero-first/reserved-first
+alternating across corpus rows. Each has its own cold first repetition and two
+warm repetitions; these are descriptive timings. Guest bytes, guest calls,
+fresh stores, visible memory/arena caps, fuel and failure semantics must match.
+Explicit engine manifests/hashes distinguish the qualification control from
+production. Both settings retain exact output hashes, expected overflow and
+aggregate-fuel exclusions. Reservation grants no additional visible guest memory.
 
-Add `--compare-host-lookups` only to repeat the optional third ordinary baseline;
-shared CI exercises that combination. Omitting `--profile-input-load` retains
-the ten-phase profile. Archived v1 input evidence remains readable, but current
-native collection requires v2. Source-bound native profiling execution and
-first-byte costs are reviewed; this archive does not contain a standalone native
-regression-suite receipt. See [the reviewed result and next comparison](validation/phase-5-first-byte.md).
+Review ordinary prepare/execute/total, runtime compilation, all ten lifecycle
+phases, first-byte timing, observer distortion and each process's Linux VmHWM.
+RSS includes compilation/JIT and both observations, measured before report
+serialization; it is neither aggregate RSS nor a pure guest allocation charge.
+No speedup is assumed, and moving time into initialization is not an improvement.
 
-HIP/ROCm runs the neural encoder/decoder and updates; generated candidate
-programs execute on CPU in Rust/Wasmtime, including during HIP-backed learning.
-This command isolates that CPU component. End-to-end training throughput still
-requires separately source-bound HIP measurement. The original negative T096
-and its consumed allowance are unchanged; this command launches no training.
+`memory_growth.reserved` retains the complete second-setting report;
+`memory_growth` summarizes both. `growth-active.json` preserves completed settings
+if the next operation fails; `growth-latest-native.log` retains the last bounded
+raw native report even if validation rejects it. The archive keeps its existing
+64MiB cap and omission manifest. Code/metadata tests run locally, while new-source
+native compilation, regressions and actual comparison results remain pending.
+
+Shared CI runs this comparison using its existing image and audited socket-free
+launcher. `--compare-host-lookups` remains available for its separate ordinary
+lookup study and is rejected alongside `--compare-memory-growth`. Omitting the
+new flag reproduces the reviewed first-byte profiler. Archived v1 input evidence
+remains readable; current input collection requires v2.
+
+HIP/ROCm runs the neural encoder/decoder and updates; generated programs execute
+on CPU in Rust/Wasmtime even during HIP-backed learning. This comparison isolates
+that CPU component. Any neural/end-to-end claim still requires source-bound HIP
+evidence. T094 remains open, original negative T096 is preserved, and promotion
+remains BLOCKED pending the existing gates.
 
 ## Phase 5 qualification runner
 

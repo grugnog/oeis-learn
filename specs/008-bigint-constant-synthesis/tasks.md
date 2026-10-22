@@ -411,3 +411,9 @@ T094's unchecked state, negative T096 and promotion block remain unchanged.
 [phase-5-growth-reservation.md](validation/phase-5-growth-reservation.md) freeze
 separate-process zero/64KiB qualification controls. Production remains zero;
 semantic/resource gates and negative T096 are unchanged.
+
+G001–G004 implementation and available checks are complete. The qualification-only
+zero/64KiB comparison is runnable; production remains zero. Actual new-source
+native execution/comparison and any adoption remain pending. See
+[phase-5-growth-reservation-local.json](validation/phase-5-growth-reservation-local.json).
+T094 stays unchecked and no learning attempt is launched.
