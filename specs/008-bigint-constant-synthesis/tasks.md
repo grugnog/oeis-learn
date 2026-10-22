@@ -398,3 +398,11 @@ B001–B004 implementation and available checks are complete; the new-source
 native regressions and first-call/growth hypothesis remain pending CPU evidence.
 See [phase-5-first-byte-local.json](validation/phase-5-first-byte-local.json).
 No Phase5 qualification gate is closed by synthetic observation tests.
+
+
+**T094 reviewed first-byte evidence (2026-10-22)**:
+[phase-5-first-byte-review.json](validation/phase-5-first-byte-review.json)
+verifies225 pairs and one allowed64KiB request in every one of8670 observed first
+calls. First calls account for99.85% of small-case byte transfer. A controlled,
+separately identified growth-reservation comparison is next; production policy,
+T094's unchecked state, negative T096 and promotion block remain unchanged.

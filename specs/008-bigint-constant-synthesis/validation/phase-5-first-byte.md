@@ -59,3 +59,37 @@ of the new native source or confirmation of the hypothesis. New-image native
 regressions, first-call attribution and observer distortion require CI/the CPU
 command in [quickstart](../quickstart.md). The local receipt is
 [phase-5-first-byte-local.json](phase-5-first-byte-local.json). T094 stays open.
+
+
+## Reviewed user CPU result — 2026-10-22
+
+[phase-5-first-byte-review.json](phase-5-first-byte-review.json) verifies archive
+CRC, all seven manifest hashes, current source/report binding, independent
+expected value hashes and all225 paired summaries. The benchmark executes the
+new source successfully; a standalone native test-suite receipt is not included.
+Every one of8670 observed first calls has one allowed64KiB growth request; no
+request is denied and no failure callback fires. The sampled transition is
+17 to18 pages. No later growth occurs during input loading. Failed-term probes
+remain counted without treating their results as successful throughput.
+
+Warm batch100 small-add/cancel first calls take160.93/161.50us per term,
+99.85% of byte-transfer time and about73% of detailed execution. Remaining
+transfer costs about0.24us per term.4096-bit multiplication spends157.92us in
+its first call and13.98us in the remaining loop. Observer ratios on these rows
+are1.0049/1.0079/1.0049. Batch1 varies materially; two warm samples are descriptive.
+
+The guest starts its transfer Vec empty, then allocates on the first push.
+The host forces dynamic memories with zero guard/reserved growth space. Pinned
+[Wasmtime20.0.2](https://github.com/bytecodealliance/wasmtime/blob/v20.0.2/crates/runtime/src/memory.rs)
+allocates a new mapping and copies prior accessible memory in `grow_to` when
+existing reservation is exceeded. Relocation/copy is therefore a strong
+explanation consistent with the evidence, not directly timed or causally proven.
+
+The next focused work is a separately identified qualification-only comparison
+of zero versus a small bounded growth reservation. Preserve guest bytes/calls,
+fresh state, fuel and visible memory limits; include ordinary execution,
+first-byte timing, total lifecycle, RSS and cleanup. Verify exact outputs and
+failure semantics, and bind configuration/source/image identities. Do not
+change production memory policy before reviewing the comparison. This stays
+CPU-only. No new learning attempt or wider synthesis spec is warranted by this
+result. T094 and promotion remain open/blocked; original negative T096 is intact.

@@ -7,15 +7,19 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: CPU first-byte and memory-growth attribution
+## CPU first-byte and memory-growth attribution — reviewed
 
-The [reviewed input-load profile](validation/phase-5-input-load-review.json)
-verifies225 detailed/control pairs. Small batch100 byte transfer takes about
-158.9us per term for three calls;4096-bit multiplication takes175.5us for512
-calls. The byte loop accounts for98.3% of small-case input loading and about73%
-of execution. This suggests fixed first-use work; allocation/growth is still a
-hypothesis. The next observation times one first byte per fresh term and records
-existing limiter requests before, during and after it until input loading ends:
+The [first-byte result](validation/phase-5-first-byte-review.json) is now
+reviewed: all225 pairs match. In8670 observed first calls, each requests one
+allowed64KiB expansion. Warm batch100 small-add/cancel first calls take about
+161us per term and99.85% of byte-transfer time. The empty guest transfer buffer
+and zero growth reservation point to memory relocation/copy, but a controlled
+comparison is needed to establish its contribution.
+
+The next focused work is a separately identified, CPU-only comparison of zero
+versus a small bounded growth reservation, preserving guest calls, fresh state,
+fuel and visible memory caps. That comparison is not implemented yet. There is
+no need to repeat the reviewed profile now; the command below reproduces it.
 
 ```bash
 byte_out="tmp-validation/008-first-byte-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -44,8 +48,9 @@ acceptance after a sticky error. All nested times belong inside their parents.
 Add `--compare-host-lookups` only to repeat the optional third ordinary baseline;
 shared CI exercises that combination. Omitting `--profile-input-load` retains
 the ten-phase profile. Archived v1 input evidence remains readable, but current
-native collection requires v2. New-source native compilation/regressions and
-first-byte costs remain pending. See [the frozen scope and remaining validation](validation/phase-5-first-byte.md).
+native collection requires v2. Source-bound native profiling execution and
+first-byte costs are reviewed; this archive does not contain a standalone native
+regression-suite receipt. See [the reviewed result and next comparison](validation/phase-5-first-byte.md).
 
 HIP/ROCm runs the neural encoder/decoder and updates; generated candidate
 programs execute on CPU in Rust/Wasmtime, including during HIP-backed learning.
