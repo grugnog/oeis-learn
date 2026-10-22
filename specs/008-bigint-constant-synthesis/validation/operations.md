@@ -18,8 +18,9 @@ archive and receipt-file hashes verify in [the execution review](phase-5-executi
 
 This completes those portions of T097, not every supported quickstart/export
 operation. Matched-checkpoint diagnosis is still blocked on actual retained
-weights, and a complete current command/export checklist plus the successful
-containment inspect/cleanup artifacts remain unreviewed. No fixture substitutes
+weights. A complete current command/export checklist remains open. Successful
+containment inspect/cleanup artifacts are now reviewed
+in [the containment receipt](phase-5-containment-review.json). No fixture substitutes
 for those missing operations and T097 stays open.
 
 The containment suite exercises complete checkpoint/resume/no-refund, hidden
@@ -55,3 +56,9 @@ suite or actual learning/resume/pack evidence.
 
 Full quickstart research/final-scoring commands remain Phase 6 gates; they are
 not launched merely to check off operations. See [phase-5.md](phase-5.md).
+
+The observation-only `--runtime-profile-only` command adds a targeted CPU
+operation with600seconds work, separate5s cleanup and a fresh bounded archive.
+Unit tests verify scope rejection, source mismatch, failed stage handling and
+archive creation. Its actual new-image execution remains pending and is not
+counted as complete T097 command coverage.

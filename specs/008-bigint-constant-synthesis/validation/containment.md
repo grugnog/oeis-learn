@@ -1,30 +1,27 @@
 # Phase 5 containment qualification — T091
 
-Status: **PARTIAL**. Completed workflow39686633400 passes64 mandatory cases
-on each of Docker and Podman, with zero failures/errors/skips. Each engine also
-passes29 host/actual-role tests and three public CLI tests. The latter verify
-private compiler storage, public CPU validation and unchanged receipt-based
-reruns. CRC/SHA256, mandatory JUnit and shared source/native identities verify;
-see [the execution review](phase-5-execution-review.json).
+Status: **COMPLETE for the recorded implementation**. Completed workflow
+39693058662 at head46f33bd supplies the successful raw inspection and separately
+timed cleanup records missing from the earlier run. Docker and Podman each pass
+64 mandatory cases with zero failures/errors/skips. Cleanup takes0.015571s and
+0.048828s respectively, within the existing5s allowance. Archive CRC/SHA256,
+JUnit, source/native identities and inspect/cleanup file hashes verify in
+[the containment review](phase-5-containment-review.json).
 
-Actual host-role cases assert no network, read-only root and input mount, exact
-input/output binds, no CPU GPU/socket/private-truth access, successful repeated
-service use and removal/reaping. Those passing assertions are evidence of the
-checks performed. However, the old CI paths only retained raw inspection on
-failure, and containment partitions used automatic removal. They do not provide
-the successful raw role inspection and separately timed cleanup records needed
-to close this task. No elapsed cleanup value is invented from a whole-test time.
+Both inspect records show no network, read-only root, no privileged mode and
+only the explicit writable `/work/output` bind. The earlier completed workflow
+39686633400 supplies29 host/actual-role and three public CLI tests per engine,
+covering private compiler storage, public CPU validation and unchanged
+receipt-based reruns; see [the execution review](phase-5-execution-review.json).
+Together these close T091 for their recorded source/image. The new observation
+code changes that source identity: matching new CI remains necessary before
+promotion, and historical passes are not relabelled as its execution.
 
-The containment CI partitions now call the existing audited `container_stage`
-launcher, retaining `container-inspect.json` and `cleanup.json` on success, with
-a five-second cleanup bound and no runtime socket inside the role. Host resource
-selection uses the same portable policy as workstation qualification; the
-arbitrary-UID packaging suite remains independent. Disposable `.runtime` files
-are excluded from uploads. Embedded host code passes standard-library-only
-Docker/Podman command/inspection/failure-cleanup smoke tests with simulated
-engines;47 owning Python regressions pass locally and one actual-engine case is
-explicitly deselected. **Actual audited CI artifacts remain pending**, and T091
-stays unchecked until they are reviewed. No running build was awaited.
+The audited launcher retains `container-inspect.json` and `cleanup.json` on
+success with a five-second cleanup bound and no runtime socket in the role.
+It now also launches the bounded CPU profiler; its actual new-image execution
+is pending. Disposable `.runtime` files are excluded from uploads. The separate
+arbitrary-UID packaging suite is unchanged.
 
 The suite runs framed transport, malformed/stale responses, restart/reaping,
 RSS/deadline failures, count-first/byte-first pressure, cancellation and partial

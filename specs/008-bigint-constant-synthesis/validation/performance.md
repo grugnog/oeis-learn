@@ -138,16 +138,32 @@ The dedicated CPU role has600seconds work plus the existing separate cleanup
 allowance, retains partial/failure reports and produces a bounded archive. It
 receives no dataset, weights, hidden scoring or GPU capability.
 
-- [ ] P001 Add native and Python regressions for phase accounting, early failure,
+- [X] P001 Add native and Python regressions for phase accounting, early failure,
   measured/control semantic/fuel/coverage parity and malformed profile evidence.
-- [ ] P002 Add opt-in native timings around the existing execution path, leaving
+- [X] P002 Add opt-in native timings around the existing execution path, leaving
   ordinary aggregate measurement available as the paired control.
-- [ ] P003 Summarize phase costs, order and observer overhead with explicit
+- [X] P003 Summarize phase costs, order and observer overhead with explicit
   unattributed time; retain failures and report resource exclusions honestly.
-- [ ] P004 Wire an archived CPU-only host/CI profiling role with600seconds work,
+- [X] P004 Wire an archived CPU-only host/CI profiling role with600seconds work,
   source/image/binary binding and actual inspect/cleanup records.
-- [ ] P005 Run available checks, push incrementally and provide CPU repro commands;
+- [X] P005 Run available checks, push incrementally and provide CPU repro commands;
   leave actual native profiling evidence pending instead of awaiting new CI.
 
 T094 remains open until actual phase/observer-overhead results are reviewed.
 A production optimization is outside this measurement-only implementation.
+
+Implementation is pushed in PR59. Native stages are `literal_decode`,
+`store_setup`, `clock_start`, `guest_init`, `input_load`, `link_instantiate`,
+`compute`, `serialize`, `clock_stop` and `store_drop`; failed phases retain
+calls/time and normal failure suppression. The paired report independently
+compares every Evaluation field and hashes retained values after comparison.
+Ordinary controls have no detailed clocks; retained slowdown uses their warm
+execution time, so detailed observation cost is reported separately. Warm phase
+medians provide a descriptive ranking, not a production optimization decision.
+
+The dedicated `--runtime-profile-only` helper and CI partition use the existing
+shared image and actual audited launcher. See the [command](phase-5.md#bounded-cpu-runtime-profiling)
+and [local validation receipt](phase-5-runtime-profile-local.json). P001–P005
+record implementation/checks, not actual native measurement qualification.
+Native compilation and the75-row corpus remain pending new CI or workstation
+execution. T094 is deliberately unchecked until those results are reviewed.

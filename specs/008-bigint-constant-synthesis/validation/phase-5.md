@@ -3,8 +3,8 @@
 The initial qualification tooling merged in PR #58. Scope-specific cost
 admission and the reviewed single-attempt runner are implemented in
 [PR #59](https://github.com/grugnog/oeis-learn/pull/59). **The Phase 5 execution
-and promotion gate remains BLOCKED. T089/T090 are complete; the current
-containment evidence gap and remaining external gates are listed below.** No Phase 6 screen or final-cohort study ran.
+and promotion gate remains BLOCKED. T089/T090/T091 are complete for their recorded implementation; remaining
+external gates and new-source validation are listed below.** No Phase 6 screen or final-cohort study ran.
 
 The reviewed `008-phase5-scoped-20261021T115212Z` run passes all nine actual HIP
 tests and twelve fixed-state generation parity/deadline groups. All24 archived
@@ -21,7 +21,7 @@ See [the scoped review](phase-5-scoped-hip-review.json) and
 
 The earlier HIP run closed T092 and retains its original failed larger-screen
 estimate at47,749.33s; [that historical receipt](phase-5-batched-hip-review.json)
-is preserved. Remaining engine, matched-checkpoint, slowdown and operations
+is preserved. Remaining matched-checkpoint, slowdown and operations
 evidence is still required before overall Phase 5 promotion.
 
 Entry is merged Phase 4 PR #57 at
@@ -42,7 +42,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | --- | --- |
 | T089 | [Arithmetic](arithmetic.md): COMPLETE,184 selected managed-image cases with zero failures/errors/skips; exact source/runtime/compiler/locks verified. |
 | T090 | [Fitting](fitting.md): COMPLETE,37 selected cases plus six complete non-scoring fitting classes; deadline correction and successful exact visible replay reviewed separately. |
-| T091 | [Containment](containment.md):64 cases per engine and29 host/3 public tests per engine PASS. Successful raw inspect/timed-cleanup records were missing; audited CI publication is implemented and awaits new artifacts. |
+| T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): BLOCKED on actual retained matched-run weights/metadata. |
 | T094 | [Performance](performance.md): current native/neural measurements collected; all12 generation groups pass parity/deadline checks. Historical HIP ratios23.24–73.81x and current CPU CI ratios26.09–100.91x require per-term profiling; these are separate machines/receipts. |
@@ -60,8 +60,10 @@ verify. The tested source snapshot is
 `sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562`,
 and the shared image is
 `sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c`.
-Documentation and the containment workflow change do not alter that implementation
-snapshot; actual execution of the new audit path remains pending. The earlier
+The subsequent audit-only run39693058662 retains that implementation snapshot
+and supplies both-engine successful inspect/timed cleanup, closing T091; see
+[the containment receipt](phase-5-containment-review.json). The new runtime
+profiling implementation changes the snapshot and awaits matching native CI. The earlier
 stale disposition binding no longer fails either portable CLI job. See the
 [bounded execution review](phase-5-execution-review.json).
 
@@ -73,9 +75,8 @@ to assess that defect.
 
 Remaining work, in dependency order:
 
-1. Review successful raw inspect and timed cleanup from the newly audited Docker
-   and Podman containment partitions; no build polling or new manual run is needed
-   while that CI is running.
+1. Review the new CPU profiling artifact after CI completes, or use the targeted
+   command below; the preceding both-engine containment audit is now complete.
 2. Attribute the small-value per-term execution overhead with the bounded
    observation-only profiling plan in [performance.md](performance.md). Existing
    CPU data excludes compilation as the main explanation; it does not isolate
@@ -147,6 +148,43 @@ establish learned accuracy. T095 is now closed by the reviewed fresh HIP
 receipts; T096 is closed by the reviewed negative learning outcome. The one
 attempt is consumed; its finalized ledger cannot be resumed for more training.
 
+## Bounded CPU runtime profiling
+
+The opt-in `bigint-runtime-profile/v1` implementation measures ten execution
+phases on the production run path, including deadline-thread and store cleanup.
+Each detailed call is paired with an ordinary aggregate call, with alternating
+order; full values/failure/fuel/coverage/resource identity must match. The report
+keeps per-case overhead, phase call counts, residual time and a descriptive
+phase ranking. Successful results retain the independent reference/production
+checks; expected exclusions are not throughput successes. Normal candidate and
+worker protocols do not expose profiling.
+
+Local checks pass55 tests, with two explicit packaged-native contract skips.
+Ruff and workflow/host smoke checks are recorded in
+[the profiling local receipt](phase-5-runtime-profile-local.json). Rust compile,
+actual native timings and new Docker/Podman execution are pending; no suitable
+engine/toolchain exists here. The CI adds a dedicated CPU partition using the
+shared image and audited socket-free launcher. No dependency layer/lock changes
+or actual performance optimization are claimed. T094 remains open until phase
+costs and observer distortion are reviewed. No further HIP is needed for this
+step, and no training or T096 replay is launched.
+
+```bash
+profile_out="tmp-validation/008-runtime-profile-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman \
+  --runtime-profile-only --output "$profile_out"
+```
+
+This builds/reuses the current checkout image, then runs only the fixed CPU
+corpus (25cases, batches1/20/100, three paired samples). The work role is bounded
+to600seconds with separate5s cleanup; image building is outside that work limit.
+Share `$profile_out.zip`, including a failed or partial result. Outputs include
+source/image/binary/build identities, phase/control measurements, logs, actual
+inspection and cleanup, with a bounded archive/omission manifest. Use a fresh
+output on retry and `--engine docker` for Docker. An explicit `--image` must
+contain the exact current checkout; stale source fails binding. No inputs,
+checkpoint, `--gpu`, `--prepare` or additional measurement scope is accepted.
+
 ## Copy-pastable hardware commands
 
 The diagnostic/reliability pass requires no further HIP execution. The command
@@ -167,8 +205,8 @@ The [separate single-attempt command](learnability.md) has now run and is
 documented for provenance; do not repeat the consumed attempt. There is no automatic learning
 or Phase 6 launch. A new code/profile/data/image identity requires a new receipt.
 
-The updated CI automatically collects both containment audit records. No manual
-full-suite rerun is needed while those jobs execute. The following complete
+The preceding CI supplied both containment audit records; new-source CI will
+repeat them. No manual full-suite rerun is needed while those jobs execute. The following complete
 CPU/native/retirement/operations commands remain available for reproduction:
 
 ```bash

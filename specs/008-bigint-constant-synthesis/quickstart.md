@@ -1,11 +1,31 @@
 # Quickstart: Validation and Bounded Research
 
 Phase 5 code is available in [PR #59](https://github.com/grugnog/oeis-learn/pull/59).
-The current-source scoped HIP preflight is reviewed: T092 remains PASS and
+The recorded scoped HIP preflight is reviewed: T092 remains PASS and
 T095 and T096 are complete. The single seed20261016 diverse32 attempt finished
 with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
+
+## Current next step: CPU runtime profiling
+
+Both-engine containment artifacts are reviewed and close T091 for their
+recorded implementation. The next T094 step needs CPU/native execution only:
+
+```bash
+profile_out="tmp-validation/008-runtime-profile-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman \
+  --runtime-profile-only --output "$profile_out"
+```
+
+The helper builds/reuses the current checkout image, runs the fixed non-scoring
+corpus within600seconds plus5s cleanup, and prints a bounded result ZIP even
+on failure. Image building is outside that work limit. Share `$profile_out.zip`;
+no dataset, weights or HIP device is needed. Docker uses `--engine docker`.
+Detailed/control values, failures, fuel and coverage must match. Review phase
+costs together with observer overhead before choosing any optimization. Actual
+new-image execution is pending; no new learning attempt follows this command.
+See [the profiling scope](validation/performance.md#opt-in-phase-profiler-implementation).
 
 ## Phase 5 qualification runner
 

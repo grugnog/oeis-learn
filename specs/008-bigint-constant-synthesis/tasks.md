@@ -240,7 +240,7 @@ artifacts in [the containment review](validation/phase-5-containment-review.json
 T093–T094 and T097–T098 remain unchecked; see [the execution review](validation/phase-5-execution-review.json).
 PR #59 implements both receipts, shared coordinator reservations, the
 14,400-second preregistration and the reviewed single-attempt runner. The
-remaining engine/checkpoint/slowdown/operations reviews are pending; the consumed
+new-source native validation and remaining checkpoint/slowdown/operations reviews are pending; the consumed
 T096 attempt is not retried or resumed to alter its result.
 Missing evidence is not permission to substitute fixtures or lower gates.
 
@@ -270,6 +270,14 @@ original candidate/seed. Fit delivery completes within the original two-second
 allowance with no restart, resolving the reproduced case. The diagnostic pass
 is complete; no training, HIP run or new synthesis spec is required for this fix.
 The original negative T096 result and remaining Phase 5 gates stay unchanged.
+
+**T094 profiling follow-up (2026-10-21)**: opt-in paired CPU phase profiling,
+strict parity/accounting checks, partial failure retention, a600second audited
+host/CI role and bounded archives are implemented. P001–P005 in
+[performance.md](validation/performance.md#opt-in-phase-profiler-implementation)
+are complete as implementation tasks; native compilation/execution and actual
+phase/observer-cost review remain pending. T094 stays unchecked. No production
+optimization, HIP request or training retry is implied.
 
 ## Phase 6: Controlled research and longer-run readiness
 
