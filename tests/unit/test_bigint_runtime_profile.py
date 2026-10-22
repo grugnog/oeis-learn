@@ -128,9 +128,19 @@ def test_runtime_profile_rejects_unrelated_work_before_engine(extra, monkeypatch
     assert error.value.code == 2
 
 
-@pytest.mark.parametrize("compare", [False, True])
-@pytest.mark.parametrize("kind", ["pass", "failed", "old-source"])
-def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, kind, compare):
+@pytest.mark.parametrize(
+    "compare,detail,kind",
+    [
+        (c, d, k)
+        for c in (False, True)
+        for d in (False, True)
+        for k in ("pass", "failed", "old-source")
+    ]
+    + [(False, True, "missing-detail")],
+)
+def test_profile_host_bounds_and_archives_even_failure(
+    tmp_path, monkeypatch, kind, compare, detail
+):
     from oeis_learn.experiments import source_snapshot
     from oeis_learn.synthesis.contracts import identity
 
@@ -156,12 +166,14 @@ def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, ki
         assert kwargs == dict(seconds=600)
         assert "--runtime-profile" in argv and "--neural" not in argv
         assert ("--compare-host-lookups" in argv) == compare
+        assert ("--profile-input-load" in argv) == detail
         stages.append(path.name)
         module.write(
             path / "benchmark.json",
             dict(
                 status="FAIL" if kind == "failed" else "PASS",
                 compare_host_lookups=compare,
+                profile_input_load=detail and kind != "missing-detail",
                 source_sha256="old" if kind == "old-source" else identity(snapshot),
             ),
         )
@@ -175,6 +187,7 @@ def test_profile_host_bounds_and_archives_even_failure(tmp_path, monkeypatch, ki
             "qualify",
             "--runtime-profile-only",
             *(["--compare-host-lookups"] if compare else []),
+            *(["--profile-input-load"] if detail else []),
             "--output",
             str(output),
         ],

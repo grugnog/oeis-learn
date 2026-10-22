@@ -224,6 +224,108 @@ def profile_summary(report, batch):
     )
 
 
+INPUT_LOAD_PHASES = (
+    "index_parse",
+    "begin_load",
+    "magnitude_encode",
+    "byte_transfer",
+    "finish_load",
+    "status_check",
+    "seal",
+)
+INPUT_COUNTERS = (
+    "literal_values_started",
+    "index_values_started",
+    "values_finished",
+    "byte_calls_attempted",
+    "byte_calls_returned",
+)
+
+
+def input_load_summary(report, batch):
+    """Nested observation partitions its parent; never count it twice in execution."""
+    samples = report.get("samples", [])
+    if report.get("profile_input_load") is not True or len(samples) < 2:
+        raise ValueError("requested paired input-load profiling required")
+    for sample in samples:
+        parent = sample["timings"]["stages"]["phases"]["input_load"]
+        detail = sample["timings"]["stages"]["input_load"]
+        if detail.get("policy") != "bigint-input-load-profile/v1" or set(detail["phases"]) != set(
+            INPUT_LOAD_PHASES
+        ):
+            raise ValueError("unknown or incomplete input-load profile")
+        max_values = batch * (4096 + 1)  # bounded AST literals plus one actual index per term
+        for name in INPUT_COUNTERS:
+            if type(detail[name]) is not int or not 0 <= detail[name] <= max_values * 512:
+                raise ValueError("invalid input-load counter")
+        literals, indices = detail["literal_values_started"], detail["index_values_started"]
+        started = literals + indices
+        if literals > batch * 4096 or indices > batch or detail["values_finished"] > started:
+            raise ValueError("invented input values")
+        if (
+            not 0
+            <= detail["byte_calls_returned"]
+            <= detail["byte_calls_attempted"]
+            <= started * 512
+        ):
+            raise ValueError("invented byte calls")
+        for phase in detail["phases"].values():
+            if type(phase["calls"]) is not int or not 0 <= phase["calls"] <= max_values:
+                raise ValueError("invalid input phase calls")
+            summarize([phase["seconds"]])
+            if phase["calls"] == 0 and phase["seconds"] != 0:
+                raise ValueError("time without input phase calls")
+        counts = {k: v["calls"] for k, v in detail["phases"].items()}
+        if counts["begin_load"] != started or not (
+            counts["begin_load"]
+            >= counts["magnitude_encode"]
+            >= counts["byte_transfer"]
+            >= counts["finish_load"]
+            >= counts["status_check"]
+            >= detail["values_finished"]
+        ):
+            raise ValueError("input phase order/count mismatch")
+        if not indices <= counts["index_parse"] <= parent["calls"] or counts["seal"] > indices:
+            raise ValueError("input index/seal count mismatch")
+        if counts["byte_transfer"] > detail["byte_calls_attempted"]:
+            raise ValueError("byte transfer without attempted calls")
+        summarize([parent["seconds"]])
+        summarize([detail["unattributed_seconds"]])
+        accounted = (
+            sum(p["seconds"] for p in detail["phases"].values()) + detail["unattributed_seconds"]
+        )
+        if abs(accounted - parent["seconds"]) > 1e-6:
+            raise ValueError("nested input timings overlap or exceed their parent")
+    warm = samples[1:]
+    parent = summarize([s["timings"]["stages"]["phases"]["input_load"]["seconds"] for s in warm])
+    parent_median = parent["median_seconds"]
+    phases = {}
+    for name in INPUT_LOAD_PHASES:
+        summary = summarize(
+            [s["timings"]["stages"]["input_load"]["phases"][name]["seconds"] for s in warm]
+        )
+        phases[name] = dict(
+            seconds=summary,
+            calls=[s["timings"]["stages"]["input_load"]["phases"][name]["calls"] for s in samples],
+            warm_fraction_of_input_load=summary["median_seconds"] / parent_median
+            if parent_median
+            else None,
+        )
+    return dict(
+        policy="bigint-input-load-profile/v1",
+        parent_input_load_warm=parent,
+        phases=phases,
+        counters={
+            name: [s["timings"]["stages"]["input_load"][name] for s in samples]
+            for name in INPUT_COUNTERS
+        },
+        unattributed=summarize(
+            [s["timings"]["stages"]["input_load"]["unattributed_seconds"] for s in warm]
+        ),
+        interpretation="Nested times partition input_load and are not additional execution; review detailed/ordinary distortion and partial calls. Returned byte calls do not prove bytes were accepted after a sticky failure.",
+    )
+
+
 def lookup_summary(report):
     """Compare ordinary cached/baseline execution, separately from observation cost."""
     if (
@@ -299,12 +401,21 @@ def measurement_results(sample):
     return rows
 
 
-def runtime_measurements(case, batch, repetitions, *, profile=False, compare_host_lookups=False):
+def runtime_measurements(
+    case,
+    batch,
+    repetitions,
+    *,
+    profile=False,
+    compare_host_lookups=False,
+    profile_input_load=False,
+    failure_output=None,
+):
     """Native compilation and execution are timed inside the production runtime."""
     from oeis_learn.synthesis.reference import evaluate
 
-    if compare_host_lookups and not profile:
-        raise ValueError("host lookup comparison requires runtime profiling")
+    if (compare_host_lookups or profile_input_load) and not profile:
+        raise ValueError("host lookup/input-load details require runtime profiling")
 
     # Repeated exact indices measure batch overhead, never pretend to be a dataset.
     indices = (case["indices"] * batch)[:batch]
@@ -319,6 +430,7 @@ def runtime_measurements(case, batch, repetitions, *, profile=False, compare_hos
                 repetitions=repetitions,
                 **({"profile": True} if profile else {}),
                 **({"compare_host_lookups": True} if compare_host_lookups else {}),
+                **({"profile_input_load": True} if profile_input_load else {}),
             )
         ).encode(),
         capture_output=True,
@@ -329,30 +441,46 @@ def runtime_measurements(case, batch, repetitions, *, profile=False, compare_hos
         raise RuntimeError(
             "bounded native measurement failed: " + proc.stderr[:1000].decode(errors="replace")
         )
-    report = json.loads(proc.stdout)
-    if (
-        report.get("version") != ("bigint-measurements/v2" if profile else "bigint-measurements/v1")
-        or len(report.get("samples", [])) != repetitions
-    ):
-        raise ValueError("incomplete native measurement report")
-    if compare_host_lookups:
-        report["host_lookups"] = lookup_summary(report)
-    elif report.get("host_lookup_comparison") is not None or any(
-        "lookup_baseline" in s for s in report["samples"]
-    ):
-        raise ValueError("unrequested host lookup comparison")
-    if profile:
-        report["profiling"] = profile_summary(report, batch)
-        if not report["profiling"]["paired_results_match"] or (
-            compare_host_lookups and not report["host_lookups"]["all_results_match"]
+    try:
+        report = json.loads(proc.stdout)
+        if (
+            report.get("version")
+            != ("bigint-measurements/v2" if profile else "bigint-measurements/v1")
+            or len(report.get("samples", [])) != repetitions
         ):
-            report.update(case=case["name"], batch=batch)
-            from oeis_learn.synthesis.contracts import identity
+            raise ValueError("incomplete native measurement report")
+        if profile_input_load:
+            report["input_load_profiling"] = input_load_summary(report, batch)
+        elif report.get("profile_input_load") is True or any(
+            s.get("timings", {}).get("stages", {}).get("input_load") is not None
+            for s in report["samples"]
+        ):
+            raise ValueError("unrequested nested input profiling")
+        if compare_host_lookups:
+            report["host_lookups"] = lookup_summary(report)
+        elif report.get("host_lookup_comparison") is not None or any(
+            "lookup_baseline" in s for s in report["samples"]
+        ):
+            raise ValueError("unrequested host lookup comparison")
+        if profile:
+            report["profiling"] = profile_summary(report, batch)
+            if not report["profiling"]["paired_results_match"] or (
+                compare_host_lookups and not report["host_lookups"]["all_results_match"]
+            ):
+                report.update(case=case["name"], batch=batch)
+                from oeis_learn.synthesis.contracts import identity
 
-            for sample in report["samples"]:
-                for row in measurement_results(sample):
-                    row["values_sha256"] = identity(row.pop("values"))
-            return report
+                for sample in report["samples"]:
+                    for row in measurement_results(sample):
+                        row["values_sha256"] = identity(row.pop("values"))
+                return report
+    except (ValueError, KeyError, TypeError):
+        if failure_output is not None:
+            target = Path(failure_output)
+            temporary = target.with_suffix(target.suffix + ".tmp")
+            temporary.write_bytes(proc.stdout)  # already bounded to4MiB above
+            temporary.replace(target)
+        raise
     reference_times = []
     for _ in range(repetitions):
         start = time.monotonic()
@@ -1045,6 +1173,7 @@ def run(
     cost_scope="diverse32",
     profile_runtime=False,
     compare_host_lookups=False,
+    profile_input_load=False,
 ):
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -1056,6 +1185,7 @@ def run(
     report = dict(
         version="bigint-runtime-profile/v1" if profile_runtime else "bigint-performance/v1",
         compare_host_lookups=compare_host_lookups,
+        profile_input_load=profile_input_load,
         status="FAIL",
         qualified=False,
         python=sys.version,
@@ -1066,8 +1196,8 @@ def run(
         accounting="prepare includes parse/lower/candidate compilation; execute includes fresh stores, loading and serialization; runtime compilation separate; warm reuses runtime module only",
     )
     try:
-        if compare_host_lookups and not profile_runtime:
-            raise ValueError("host lookup comparison requires runtime profiling")
+        if (compare_host_lookups or profile_input_load) and not profile_runtime:
+            raise ValueError("host lookup/input-load details require runtime profiling")
         if profile_runtime and (
             neural or device != "cpu" or config is not None or shapes is not None
         ):
@@ -1099,6 +1229,14 @@ def run(
                         repetitions,
                         profile=True,
                         **({"compare_host_lookups": True} if compare_host_lookups else {}),
+                        **(
+                            {
+                                "profile_input_load": True,
+                                "failure_output": output / "failed-native.log",
+                            }
+                            if profile_input_load
+                            else {}
+                        ),
                     )
                     if profile_runtime
                     else runtime_measurements(case, batch, repetitions)
@@ -1289,6 +1427,11 @@ def main():
         action="store_true",
         help="add an ordinary pre-cache lookup baseline to the CPU runtime profile",
     )
+    parser.add_argument(
+        "--profile-input-load",
+        action="store_true",
+        help="nested CPU transfer timings and partial byte/value counters; requires --runtime-profile",
+    )
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--config")
     parser.add_argument("--shape-manifest")
@@ -1310,6 +1453,7 @@ def main():
             cost_scope=args.cost_scope,
             profile_runtime=args.runtime_profile,
             compare_host_lookups=args.compare_host_lookups,
+            profile_input_load=args.profile_input_load,
         )
     except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(str(exc), file=sys.stderr)

@@ -40,3 +40,24 @@ fn invalid_source_cannot_invent_term_measurements() {
     assert_eq!(stages.terms_finished, 0);
     assert!(stages.phases.values().all(|p| p.calls == 0 && p.seconds == 0.0));
 }
+
+#[test]
+fn nested_input_profile_is_empty_when_guest_init_fails() {
+    let bytes=wat::parse_str("(module (func (export \"host_init\") (param i32 i32 i32 i32 i32 i32 i32) (result i32) unreachable))").unwrap();
+    let mut runtime=BigintRuntime::new(&bytes).unwrap();
+    let indices=vec!["0".into()];
+    let (ordinary, aggregate)=runtime.evaluate_measured("(program (return $index))", &indices, &Resources::default());
+    let (profiled, timings)=runtime.evaluate_input_profiled("(program (return $index))", &indices, &Resources::default());
+    assert_eq!(serde_json::to_value(ordinary).unwrap(), serde_json::to_value(profiled).unwrap());
+    assert!(aggregate.stages.is_none());
+    let stages=timings.stages.unwrap();
+    assert_eq!(stages.phases["input_load"].calls, 0);
+    let detail=stages.input_load.unwrap();
+    assert_eq!(detail.policy, "bigint-input-load-profile/v1");
+    assert!(detail.phases.values().all(|p|p.calls==0 && p.seconds==0.0));
+    assert_eq!(detail.literal_values_started, 0);
+    assert_eq!(detail.index_values_started, 0);
+    assert_eq!(detail.values_finished, 0);
+    assert_eq!(detail.byte_calls_attempted, 0);
+    assert_eq!(detail.unattributed_seconds, 0.0);
+}

@@ -7,9 +7,18 @@ import pytest
 from tests.unit.test_bigint_benchmark import benchmark
 
 
-@pytest.mark.parametrize("profile,compare", [(False, False), (True, False), (True, True)])
+@pytest.mark.parametrize(
+    "profile,compare,detail",
+    [
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (True, False, True),
+        (True, True, True),
+    ],
+)
 def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_boundaries(
-    profile, compare
+    profile, compare, detail
 ):
     binary = Path(
         os.environ.get("OEIS_BENCHMARK_RUNTIME", "/opt/oeis-build-info/benchmark-runtime")
@@ -21,8 +30,15 @@ def test_packaged_measurement_path_preserves_values_failures_and_cold_warm_bound
     module = benchmark()
     for case in module.cases():
         row = module.runtime_measurements(
-            case, batch=1, repetitions=2, profile=profile, compare_host_lookups=compare
+            case,
+            batch=1,
+            repetitions=2,
+            profile=profile,
+            compare_host_lookups=compare,
+            profile_input_load=detail,
         )
+        if detail:
+            assert set(row["input_load_profiling"]["phases"]) == set(module.INPUT_LOAD_PHASES)
         if compare:
             assert row["host_lookups"]["all_results_match"], row
         if profile:

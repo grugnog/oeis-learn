@@ -15,6 +15,8 @@ struct Request {
     profile: bool,
     #[serde(default)]
     compare_host_lookups: bool,
+    #[serde(default)]
+    profile_input_load: bool,
 }
 
 fn main() {
@@ -26,6 +28,7 @@ fn main() {
     assert!((1..=100).contains(&request.indices.len()));
     assert!(request.source.len() <= 65536);
     assert!(!request.compare_host_lookups || request.profile);
+    assert!(!request.profile_input_load || request.profile);
     let path = std::env::var("OEIS_BIGINT_WASM")
         .unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes = std::fs::read(path).unwrap();
@@ -41,11 +44,11 @@ fn main() {
             // Alternate pair order; retain the first sample separately and
             // record baseline order so shared process warmup is explicit.
             let ((result, timings), (control, control_timings)) = if index % 2 == 0 {
-                let profiled = runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default());
+                let profiled = if request.profile_input_load {runtime.evaluate_input_profiled(&request.source, &request.indices, &Resources::default())}else{runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default())};
                 (profiled, runtime.evaluate_measured(&request.source, &request.indices, &Resources::default()))
             } else {
                 let control = runtime.evaluate_measured(&request.source, &request.indices, &Resources::default());
-                (runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default()), control)
+                (if request.profile_input_load {runtime.evaluate_input_profiled(&request.source, &request.indices, &Resources::default())}else{runtime.evaluate_profiled(&request.source, &request.indices, &Resources::default())}, control)
             };
             let parity = serde_json::to_value(&result).unwrap() == serde_json::to_value(&control).unwrap();
             if request.compare_host_lookups && baseline.is_none() {
@@ -66,6 +69,7 @@ fn main() {
     }
     println!("{}", json!({
         "version": if request.profile {"bigint-measurements/v2"} else {"bigint-measurements/v1"},
+        "profile_input_load": request.profile_input_load,
         "host_lookup_comparison": if request.compare_host_lookups {json!({"version":"per-term-host-lookups/v1","cached":"lazy-per-term","baseline":"per-call"})}else{serde_json::Value::Null},
         "runtime_compile_seconds": runtime_compile_seconds,
         "samples": samples,

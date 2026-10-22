@@ -39,14 +39,40 @@ pub struct Measurements {
 pub const PROFILE_PHASES:[&str;10]=["literal_decode","store_setup","clock_start","guest_init","input_load","link_instantiate","compute","serialize","clock_stop","store_drop"];
 #[derive(Default,Serialize)]
 pub struct PhaseMeasurement {pub calls:usize,pub seconds:f64}
+pub const INPUT_LOAD_PHASES:[&str;7]=["index_parse","begin_load","magnitude_encode","byte_transfer","finish_load","status_check","seal"];
+#[derive(Serialize)]
+pub struct InputLoadMeasurements {
+    pub policy:&'static str,
+    pub phases:std::collections::BTreeMap<&'static str,PhaseMeasurement>,
+    pub literal_values_started:usize,pub index_values_started:usize,pub values_finished:usize,
+    pub byte_calls_attempted:usize,pub byte_calls_returned:usize,pub unattributed_seconds:f64,
+}
+impl Default for InputLoadMeasurements {
+    fn default()->Self {Self{policy:"bigint-input-load-profile/v1",phases:INPUT_LOAD_PHASES.into_iter().map(|name|(name,PhaseMeasurement::default())).collect(),literal_values_started:0,index_values_started:0,values_finished:0,byte_calls_attempted:0,byte_calls_returned:0,unattributed_seconds:0.0}}
+}
+struct InputObserver<'a> {detail:Option<&'a mut InputLoadMeasurements>}
+impl InputObserver<'_> {
+    fn phase<T>(&mut self,name:&'static str,work:impl FnOnce(&mut Self)->T)->T {
+        let start=self.detail.as_ref().map(|_|Instant::now());
+        let result=work(self);
+        if let Some(start)=start {
+            let seconds=start.elapsed().as_secs_f64();
+            let phase=self.detail.as_deref_mut().unwrap().phases.get_mut(name).expect("fixed input observation phase");
+            phase.calls+=1;phase.seconds+=seconds;
+        }
+        result
+    }
+}
 #[derive(Serialize)]
 pub struct StageMeasurements {
     pub policy:&'static str,
     pub phases:std::collections::BTreeMap<&'static str,PhaseMeasurement>,
     pub terms_started:usize,pub terms_finished:usize,pub unattributed_seconds:f64,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub input_load:Option<InputLoadMeasurements>,
 }
 impl Default for StageMeasurements {
-    fn default()->Self {Self{policy:"bigint-runtime-profile/v1",phases:PROFILE_PHASES.into_iter().map(|name|(name,PhaseMeasurement::default())).collect(),terms_started:0,terms_finished:0,unattributed_seconds:0.0}}
+    fn default()->Self {Self{policy:"bigint-runtime-profile/v1",phases:PROFILE_PHASES.into_iter().map(|name|(name,PhaseMeasurement::default())).collect(),terms_started:0,terms_finished:0,unattributed_seconds:0.0,input_load:None}}
 }
 struct Observer<'a> {stages:Option<&'a mut StageMeasurements>}
 impl Observer<'_> {
@@ -57,6 +83,16 @@ impl Observer<'_> {
             let phase=stages.phases.get_mut(name).expect("fixed observation phase");
             phase.calls+=1;phase.seconds+=seconds;result
         } else {work()}
+    }
+    fn input_phase<T>(&mut self,work:impl FnOnce(&mut InputObserver<'_>)->T)->T {
+        let start=self.stages.as_ref().map(|_|Instant::now());
+        let result=work(&mut InputObserver{detail:self.stages.as_deref_mut().and_then(|s|s.input_load.as_mut())});
+        if let Some(start)=start {
+            let seconds=start.elapsed().as_secs_f64();
+            let phase=self.stages.as_deref_mut().unwrap().phases.get_mut("input_load").unwrap();
+            phase.calls+=1;phase.seconds+=seconds;
+        }
+        result
     }
     fn started(&mut self) {if let Some(s)=self.stages.as_deref_mut(){s.terms_started+=1;}}
     fn finished(&mut self) {if let Some(s)=self.stages.as_deref_mut(){s.terms_finished+=1;}}
@@ -111,12 +147,28 @@ impl HostCalls {
 fn check(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>)->Result<(),String> {
     if let Some(e)=status(calls.call0(i,s,"host_status")?) {Err(e)} else {Ok(())}
 }
-fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bool)->Result<i32,String> {
-    calls.call1(i,s,"host_begin_load",i32::from(literal))?;
-    let mut bytes=n.clone().into_parts().1.to_le_bytes().into_vec();if bytes.is_empty(){bytes.push(0);}
-    for b in bytes {calls.call1(i,s,"host_load_byte",b as i32)?;}
-    let sign=if n<&IBig::ZERO {-1} else if n==&IBig::ZERO {0} else {1};
-    let h=calls.call1(i,s,"host_finish_load",sign)?;check(calls,i,s)?;Ok(h)
+fn load(calls:&mut HostCalls,i:&Instance,s:&mut Store<Limits>,n:&IBig,literal:bool,input:&mut InputObserver<'_>)->Result<i32,String> {
+    if let Some(d)=input.detail.as_deref_mut() {if literal {d.literal_values_started+=1;}else{d.index_values_started+=1;}}
+    input.phase("begin_load",|_|calls.call1(i,s,"host_begin_load",i32::from(literal)))?;
+    let bytes=input.phase("magnitude_encode",|_| {
+        let mut bytes=n.clone().into_parts().1.to_le_bytes().into_vec();if bytes.is_empty(){bytes.push(0);}bytes
+    });
+    // One clock around the loop; counters survive a partial/trapping transfer.
+    input.phase("byte_transfer",|input|->Result<(),String>{
+        for b in bytes {
+            if let Some(d)=input.detail.as_deref_mut(){d.byte_calls_attempted+=1;}
+            calls.call1(i,s,"host_load_byte",b as i32)?;
+            if let Some(d)=input.detail.as_deref_mut(){d.byte_calls_returned+=1;}
+        }
+        Ok(())
+    })?;
+    let h=input.phase("finish_load",|_| {
+        let sign=if n<&IBig::ZERO {-1} else if n==&IBig::ZERO {0} else {1};
+        calls.call1(i,s,"host_finish_load",sign)
+    })?;
+    input.phase("status_check",|_|check(calls,i,s))?;
+    if let Some(d)=input.detail.as_deref_mut(){d.values_finished+=1;}
+    Ok(h)
 }
 
 pub struct BigintRuntime {engine:Engine,runtime:Module,compilation_seconds:f64,pub runtime_identity:String}
@@ -139,19 +191,24 @@ impl BigintRuntime {
     }
     /// Qualification-only observation of the same production run implementation.
     pub fn evaluate_measured(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
-        self.evaluate_observed(source,indices,r,false,true)
+        self.evaluate_observed(source,indices,r,false,true,false)
     }
     /// Opt-in qualification profiler; not reachable through candidate/worker requests.
     pub fn evaluate_profiled(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
-        self.evaluate_observed(source,indices,r,true,true)
+        self.evaluate_observed(source,indices,r,true,true,false)
+    }
+    /// Opt-in nested transfer observation; no worker request selects it.
+    pub fn evaluate_input_profiled(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
+        self.evaluate_observed(source,indices,r,true,true,true)
     }
     /// Qualification-only lookup-per-call control. No worker request selects it.
     pub fn evaluate_lookup_baseline(&mut self,source:&str,indices:&[String],r:&Resources)->(Evaluation,Measurements) {
-        self.evaluate_observed(source,indices,r,false,false)
+        self.evaluate_observed(source,indices,r,false,false,false)
     }
-    fn evaluate_observed(&mut self,source:&str,indices:&[String],r:&Resources,profile:bool,cached:bool)->(Evaluation,Measurements) {
+    fn evaluate_observed(&mut self,source:&str,indices:&[String],r:&Resources,profile:bool,cached:bool,input_detail:bool)->(Evaluation,Measurements) {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
         let mut measured=Measurements{stages:if profile {Some(StageMeasurements::default())}else{None},..Measurements::default()};
+        if input_detail {measured.stages.as_mut().unwrap().input_load=Some(InputLoadMeasurements::default());}
         let start=Instant::now();
         let result=self.run(source,indices,r,&mut out,Some(&mut measured),cached);
         measured.total_seconds=start.elapsed().as_secs_f64();
@@ -159,6 +216,11 @@ impl BigintRuntime {
         if let Some(stages)=measured.stages.as_mut() {
             let attributed:f64=stages.phases.values().map(|p|p.seconds).sum();
             stages.unattributed_seconds=(measured.execution_seconds-attributed).max(0.0);
+            let input_seconds=stages.phases["input_load"].seconds;
+            if let Some(input)=stages.input_load.as_mut() {
+                let nested:f64=input.phases.values().map(|p|p.seconds).sum();
+                input.unattributed_seconds=(input_seconds-nested).max(0.0);
+            }
         }
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         (out,measured)
@@ -194,11 +256,11 @@ impl BigintRuntime {
                 let ok=init.call(&mut store,(r.input_bits as i32,r.literal_bits as i32,r.intermediate_bits as i32,
                     r.arena_entries as i32,r.arena_bytes as i32,r.output_bytes as i32,r.control_max as i32)).map_err(trap)?;
                 if ok!=1 {return Err("runtime_failure".into());}Ok(runtime)})?;
-                let h=observer.phase("input_load",||->Result<i32,String>{
-                for literal in &literals {load(&mut calls,&runtime,&mut store,literal,true)?;}
-                let n=integer(index,r.input_bits).map_err(|_|"integer_limit".to_string())?;
-                let h=load(&mut calls,&runtime,&mut store,&n,false)?;
-                calls.call0(&runtime,&mut store,"host_seal")?;Ok(h)})?;
+                let h=observer.input_phase(|input|->Result<i32,String>{
+                for literal in &literals {load(&mut calls,&runtime,&mut store,literal,true,input)?;}
+                let n=input.phase("index_parse",|_|integer(index,r.input_bits).map_err(|_|"integer_limit".to_string()))?;
+                let h=load(&mut calls,&runtime,&mut store,&n,false,input)?;
+                input.phase("seal",|_|calls.call0(&runtime,&mut store,"host_seal"))?;Ok(h)})?;
                 let (_linker,instance)=observer.phase("link_instantiate",||->Result<_,String>{
                 let mut linker=Linker::new(&self.engine);
                 // Explicit single-function registrations: NEVER linker.instance.

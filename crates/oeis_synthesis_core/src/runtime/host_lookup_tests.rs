@@ -27,7 +27,7 @@ fn cache_preserves_every_transfer_call_and_fuel() {
         let (_runtime, mut store, instance) = fixture(TRANSFER, 100_000);
         let mut calls = HostCalls::new(cached);
         for n in [IBig::ZERO, IBig::from(-257), IBig::from(512)] {
-            assert_eq!(load(&mut calls, &instance, &mut store, &n, true), Ok(1));
+            assert_eq!(load(&mut calls, &instance, &mut store, &n, true, &mut InputObserver{detail:None}), Ok(1));
         }
         let fuel = store.get_fuel().unwrap();
         let count = instance.get_typed_func::<(), i32>(&mut store, "count").unwrap().call(&mut store, ()).unwrap();
@@ -44,7 +44,7 @@ fn lookup_is_lazy_and_missing_or_mistyped_status_preserves_prior_calls() {
         for cached in [false, true] {
             let (_runtime, mut store, instance) = fixture(&guest, 100_000);
             let mut calls = HostCalls::new(cached);
-            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), true), Err("runtime_failure".into()));
+            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), true, &mut InputObserver{detail:None}), Err("runtime_failure".into()));
             let count = instance.get_typed_func::<(), i32>(&mut store, "count").unwrap().call(&mut store, ()).unwrap();
             assert_eq!(count, 3); // lookup failure must not precede begin/byte/finish
         }
@@ -57,7 +57,7 @@ fn cache_is_fresh_for_each_store_and_fuel_failure() {
         for _ in 0..2 {
             let (_runtime, mut store, instance) = fixture(TRANSFER, 100_000);
             let mut calls = HostCalls::new(cached);
-            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), false), Ok(1));
+            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), false, &mut InputObserver{detail:None}), Ok(1));
             let count = instance.get_typed_func::<(), i32>(&mut store, "count").unwrap().call(&mut store, ()).unwrap();
             assert_eq!(count, 4);
             store.set_fuel(0).unwrap();
@@ -73,7 +73,7 @@ fn sticky_failure_and_early_guest_trap_match_the_lookup_baseline() {
         let (_runtime, mut store, instance) = fixture(&sticky, 100_000);
         let mut calls = HostCalls::new(cached);
         for _ in 0..2 {
-            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), false), Err("invalid_handle".into()));
+            assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(1), false, &mut InputObserver{detail:None}), Err("invalid_handle".into()));
         }
     }
     let bytes = wat::parse_str("(module (func (export \"host_init\") (param i32 i32 i32 i32 i32 i32 i32) (result i32) unreachable))").unwrap();
@@ -82,4 +82,47 @@ fn sticky_failure_and_early_guest_trap_match_the_lookup_baseline() {
     let (cached, _) = runtime.evaluate_measured("(program (return $index))", &indices, &Resources::default());
     let (baseline, _) = runtime.evaluate_lookup_baseline("(program (return $index))", &indices, &Resources::default());
     assert_eq!(serde_json::to_value(cached).unwrap(), serde_json::to_value(baseline).unwrap());
+}
+
+#[test]
+fn input_detail_counts_values_and_bytes_without_changing_fuel() {
+    let (_runtime, mut store, instance) = fixture(TRANSFER, 100_000);
+    let mut calls = HostCalls::new(true);
+    let mut detail = InputLoadMeasurements::default();
+    for n in [IBig::ZERO, IBig::from(-257), IBig::from(512)] {
+        assert_eq!(load(&mut calls, &instance, &mut store, &n, true, &mut InputObserver{detail:Some(&mut detail)}), Ok(1));
+    }
+    let observed_fuel = store.get_fuel().unwrap();
+    assert_eq!(detail.literal_values_started, 3);
+    assert_eq!(detail.index_values_started, 0);
+    assert_eq!(detail.values_finished, 3);
+    assert_eq!(detail.byte_calls_attempted, 5);
+    assert_eq!(detail.byte_calls_returned, 5);
+    for name in ["begin_load", "magnitude_encode", "byte_transfer", "finish_load", "status_check"] {
+        assert_eq!(detail.phases[name].calls, 3);
+    }
+    assert_eq!(detail.phases["index_parse"].calls, 0);
+    assert_eq!(detail.phases["seal"].calls, 0);
+    let (_runtime, mut store, instance) = fixture(TRANSFER, 100_000);
+    let mut calls = HostCalls::new(true);
+    for n in [IBig::ZERO, IBig::from(-257), IBig::from(512)] {
+        load(&mut calls, &instance, &mut store, &n, true, &mut InputObserver{detail:None}).unwrap();
+    }
+    assert_eq!(observed_fuel, store.get_fuel().unwrap());
+}
+
+#[test]
+fn input_detail_preserves_partial_transfer_failure() {
+    let guest=TRANSFER.replace("(export \"host_load_byte\") (param i32) (result i32) call $bump i32.const 1", "(export \"host_load_byte\") (param i32) (result i32) unreachable");
+    let (_runtime, mut store, instance) = fixture(&guest, 100_000);
+    let mut calls=HostCalls::new(true);
+    let mut detail=InputLoadMeasurements::default();
+    assert_eq!(load(&mut calls, &instance, &mut store, &IBig::from(512), false, &mut InputObserver{detail:Some(&mut detail)}), Err("runtime_failure".into()));
+    assert_eq!(detail.index_values_started, 1);
+    assert_eq!(detail.values_finished, 0);
+    assert_eq!(detail.byte_calls_attempted, 1);
+    assert_eq!(detail.byte_calls_returned, 0);
+    assert_eq!(detail.phases["byte_transfer"].calls, 1);
+    assert_eq!(detail.phases["finish_load"].calls, 0);
+    assert_eq!(detail.phases["status_check"].calls, 0);
 }

@@ -32,6 +32,7 @@ GROUPS = {
         "tests/unit/test_bigint_benchmark.py",
         "tests/unit/test_bigint_runtime_profile.py",
         "tests/unit/test_bigint_host_lookups.py",
+        "tests/unit/test_bigint_input_load_profile.py",
         "tests/unit/test_bigint_generation.py",
         "tests/unit/test_bigint_diagnostic_evidence.py",
         "tests/unit/test_bigint_diagnostic_collector.py",
@@ -294,6 +295,11 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--profile-input-load",
+        action="store_true",
+        help="nested transfer timings; requires CPU --runtime-profile-only",
+    )
+    p.add_argument(
         "--compare-host-lookups",
         action="store_true",
         help="add the pre-cache ordinary CPU baseline; requires --runtime-profile-only",
@@ -331,6 +337,8 @@ def main():
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
+    if args.profile_input_load and (not args.runtime_profile_only or args.inside):
+        p.error("--profile-input-load requires the CPU --runtime-profile-only scope")
     if args.compare_host_lookups and (not args.runtime_profile_only or args.inside):
         p.error("--compare-host-lookups requires the CPU --runtime-profile-only scope")
     if args.inside:
@@ -382,6 +390,7 @@ def main():
         qualified=False,
         gpu_requested=args.gpu,
         compare_host_lookups=args.compare_host_lookups,
+        profile_input_load=args.profile_input_load,
         scope=(
             "runtime-profile-only"
             if args.runtime_profile_only
@@ -435,6 +444,7 @@ def main():
                     "scripts/benchmark_bigint.py",
                     "--runtime-profile",
                     *(["--compare-host-lookups"] if args.compare_host_lookups else []),
+                    *(["--profile-input-load"] if args.profile_input_load else []),
                     "--output",
                     "/work/output",
                 ],
@@ -442,6 +452,8 @@ def main():
             )
             result = json.loads((stage / "benchmark.json").read_text())
             report["stages"]["runtime-profile"] = result
+            if args.profile_input_load and result.get("profile_input_load") is not True:
+                raise RuntimeError("requested nested input-load evidence missing")
             if args.compare_host_lookups and result.get("compare_host_lookups") is not True:
                 raise RuntimeError("requested host lookup comparison evidence missing")
             if result.get("status") != "PASS":
