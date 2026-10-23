@@ -258,40 +258,49 @@ def _stages(host, suite, output, *, external_seconds=None):
         print(f"RUN {name}; log: {out / 'stdout.log'}", flush=True)
         try:
             try:
-                with (
-                    (out / "stdout.log").open("wb") as stdout,
-                    (out / "stderr.log").open("wb") as stderr,
-                ):
-                    process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
-                    started = time.monotonic()
-                    cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
-                    if external_seconds is not None:
-                        cap = min(cap, max(0, external_seconds-(time.monotonic()-invocation_started)))
+                if external_seconds is not None:
+                    from .pipeline_validation.supervision import launch
+                    cap=external_seconds-(time.monotonic()-invocation_started)
+                    if cap<=0:raise TimeoutError('owning pipeline stage allowance exhausted')
                     try:
-                        while True:
-                            left = cap - (time.monotonic() - started)
-                            if left <= 0:
-                                raise subprocess.TimeoutExpired(command, cap)
-                            try:
-                                returncode = process.wait(timeout=min(30, left))
-                                if returncode:
-                                    raise subprocess.CalledProcessError(returncode, command)
-                                break
-                            except subprocess.TimeoutExpired:
-                                print(
-                                    f"  running {int(time.monotonic() - started)}s; log: {out / 'stdout.log'}",
-                                    flush=True,
-                                )
+                        launch(command,out,seconds=cap)
                     finally:
+                        host.engine.remove(container,timeout=5)
+                else:
+                    with (
+                        (out / "stdout.log").open("wb") as stdout,
+                        (out / "stderr.log").open("wb") as stderr,
+                    ):
+                        process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
+                        started = time.monotonic()
+                        cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
+                        if external_seconds is not None:
+                            cap = min(cap, max(0, external_seconds-(time.monotonic()-invocation_started)))
                         try:
-                            host.engine.remove(container)
+                            while True:
+                                left = cap - (time.monotonic() - started)
+                                if left <= 0:
+                                    raise subprocess.TimeoutExpired(command, cap)
+                                try:
+                                    returncode = process.wait(timeout=min(30, left))
+                                    if returncode:
+                                        raise subprocess.CalledProcessError(returncode, command)
+                                    break
+                                except subprocess.TimeoutExpired:
+                                    print(
+                                        f"  running {int(time.monotonic() - started)}s; log: {out / 'stdout.log'}",
+                                        flush=True,
+                                    )
                         finally:
-                            if process.poll() is None:
-                                process.kill()
-                                process.wait(timeout=5)
+                            try:
+                                host.engine.remove(container)
+                            finally:
+                                if process.poll() is None:
+                                    process.kill()
+                                    process.wait(timeout=5)
             except BaseException:
                 # Popen itself may fail before a process object is available.
-                if process is None:
+                if process is None and external_seconds is None:
                     host.engine.remove(container)
                 raise
             counts = {}
@@ -339,6 +348,11 @@ def _stages(host, suite, output, *, external_seconds=None):
                     "qualified": False,
                 },
             )
+            if isinstance(exc,(KeyboardInterrupt,MemoryError)):
+                raise
+            if external_seconds is not None:
+                from .pipeline_validation.runner import ResourceBreach
+                if isinstance(exc,ResourceBreach):raise
             raise RuntimeError(
                 f"{name} failed; inspect {out / 'stderr.log'} and {out / 'stdout.log'}"
             ) from exc

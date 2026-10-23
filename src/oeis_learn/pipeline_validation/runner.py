@@ -55,7 +55,12 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
             try:
                 if hasattr(adapter,'receipts'):
                     adapter.receipts=dict(receipts)
-                result=adapter(stage,root) or {}
+                from .disk import DiskWatchdog
+                budgets=(contract or {}).get('budgets',{})
+                with DiskWatchdog(output,root,cap=budgets.get('transient_bytes',8<<30),
+                        trace_cap=budgets.get('trace_bytes',128<<20),
+                        free_reserve=budgets.get('mandatory_reserve_bytes',16<<20)):
+                    result=adapter(stage,root) or {}
                 files={str(p.relative_to(root)):file_hash(p) for p in root.rglob('*') if p.is_file() and not p.is_symlink() and public(p.relative_to(root)) and p.suffix in {'.json','.xml','.jsonl'} and p.name not in {'receipt.json','transitions.jsonl'}}
                 ledger.transition(result.get('stage_state','PASS'),files=files,observations=dict(elapsed_seconds=time.monotonic()-begin,result=result))
             except KeyboardInterrupt:
@@ -82,7 +87,10 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         print(f'SUMMARY {output}/summary.json; ARCHIVE {archive}',flush=True)
     except (OSError,ValueError) as exc:
         print(f'ARCHIVE FAILED: {exc}; surviving evidence: {output}/summary.json',flush=True)
-        write(output/'export-failure.json',dict(error=str(exc),surviving=str(output/'summary.json')))
+        try:
+            write(output/'export-failure.json',dict(error=str(exc),surviving=str(output/'summary.json')))
+        except OSError:
+            pass
         code=code or 1
     return code
 
