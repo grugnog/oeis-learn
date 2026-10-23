@@ -129,6 +129,7 @@ def _gpu(inputs,output,config,evidence):
             fit_p95=max((a.get('native_seconds') or 0 for a in attempts),default=0),
             reference_p95=max((a.get('native_seconds') or 0 for a in attempts),default=0),checkpoint_p95=timings['checkpoint']),
         seconds=time.monotonic()-started,device=dict(torch=torch.__version__,hip=torch.version.hip,name=torch.cuda.get_device_name()),
+        torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
         authority='disposable diagnostic; weights-only parent; no research resume'))
     return summary
 

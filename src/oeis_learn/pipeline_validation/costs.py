@@ -1,5 +1,6 @@
 """Exact-scope finite cost observations; reduced diagnostic work cannot admit study work."""
-from .identity import seal,number
+from .identity import seal,number,digest
+from .workloads import MANDATORY_STRATA
 from oeis_learn.fresh.cost_policy import pipeline_forecast,workload
 
 COMPONENTS={'training_p95','teacher_forcing_p95','generation_p95','fit_p95',
@@ -14,7 +15,11 @@ def forecast_trials(rows,scope,*,updates,cadence,budget):
     for row in rows:
         try:
             gpu=row['gpu'];score=row['score'];options=row['options']
-            bindings.add((gpu['source'],gpu['weights'],row['work']))
+            bindings.add(digest(dict(source=gpu['source'],weights=gpu['weights'],work=row['work'],
+                policy=options.get('policy'),ceiling=gpu['resources'].get('ceiling_bytes'))))
+            if not MANDATORY_STRATA <= set(row.get('strata',{})):
+                missing.append('representative complete material production strata')
+            for value in row.get('strata',{}).values():number(value,positive=True)
             if (row['complete'] is not True or options.get('assessment')!='cost-full' or options.get('scope')!=scope
                     or len(gpu['prompt_ids'])!=n or len(set(gpu['prompt_ids']))!=n or gpu['scheduled_attempts']!=n*32):
                 missing.append('full frozen '+scope+' controls')
@@ -27,7 +32,7 @@ def forecast_trials(rows,scope,*,updates,cadence,budget):
             for value in row['cost_components'].values():number(value)
         except (KeyError,TypeError,ValueError):
             missing.append('valid bound cost observation')
-    if len(bindings)!=1:missing.append('identical source, weights and completed work')
+    if len(bindings)!=1:missing.append('identical source, weights, policies, resources and completed work')
     envelopes={} if missing else {name:2*max(row['cost_components'][name] for row in rows) for name in COMPONENTS}
     forecast=pipeline_forecast(envelopes,scope,updates=updates,cadence=cadence,budget=budget)
     return seal(dict(version='pipeline-cost-observations/v1',scope=scope,observations=[r['identity'] for r in rows],

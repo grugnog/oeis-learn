@@ -49,7 +49,8 @@ class _SerialWorker:
         self.closed = False
         self.stderr_tail = b""
         self.stats = dict(
-            queue_wait_seconds=0.0, batches=0, restarts=0, stderr_bytes=0, rss_peak_bytes=None
+            queue_wait_seconds=0.0, batches=0, restarts=0, stderr_bytes=0, rss_peak_bytes=None,
+            last_process_id=None, threads_peak=None, thread_policy='one configurable native numerical thread'
         )
 
     def __enter__(self):
@@ -112,6 +113,8 @@ class _SerialWorker:
             self._retire()
         env = dict(
             os.environ,
+            OMP_NUM_THREADS='1', MKL_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1',
+            NUMEXPR_NUM_THREADS='1', RAYON_NUM_THREADS='1',
             OEIS_SYNTHESIS_CONTRACT=self.contract,
             OEIS_REFERENCE_SHA256=reference_identity(),
             OEIS_SYNTHESIS_RESOURCES=json.dumps(asdict(self.resources)),
@@ -128,14 +131,19 @@ class _SerialWorker:
             start_new_session=True,
             env=env,
         )
+        self.stats['last_process_id'] = self.process.pid
         for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
             os.set_blocking(stream.fileno(), False)
 
     def _rss(self):
         try:
+            rss = None
             for line in Path(f"/proc/{self.process.pid}/status").read_text().splitlines():
                 if line.startswith("VmRSS:"):
-                    return int(line.split()[1]) * 1024
+                    rss = int(line.split()[1]) * 1024
+                elif line.startswith('Threads:'):
+                    self.stats['threads_peak'] = max(self.stats['threads_peak'] or 0, int(line.split()[1]))
+            return rss
         except FileNotFoundError:
             pass
         return None

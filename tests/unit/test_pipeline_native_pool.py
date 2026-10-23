@@ -79,14 +79,14 @@ class ProcessSlots(unittest.TestCase):
         import time
         from oeis_learn.synthesis.worker_pool import WorkerPool
         from oeis_learn.synthesis.service_policy import ServiceLimits
-        worker = '''import json,struct,sys
+        worker = '''import json,struct,sys,os
 while True:
     head=sys.stdin.buffer.read(4)
     if not head: break
     n=struct.unpack('<I',head)[0]
     r=json.loads(sys.stdin.buffer.read(n))
     out={k:r[k] for k in ['protocol','request_id','worker_generation','contract_sha256']}
-    out.update(results=[dict(candidate_id=c['candidate_id'],outcome='ok',values=[]) for c in r['candidates']],unstarted=[],complete=True)
+    out.update(results=[dict(candidate_id=c['candidate_id'],outcome='ok',values=[os.environ.get('OMP_NUM_THREADS')]) for c in r['candidates']],unstarted=[],complete=True)
     raw=json.dumps(out).encode();sys.stdout.buffer.write(struct.pack('<I',len(raw))+raw);sys.stdout.buffer.flush()
 '''
         with tempfile.TemporaryDirectory() as folder:
@@ -104,6 +104,7 @@ while True:
                 for t in threads:t.join(timeout=5)
                 self.assertEqual(len(rows),2)
                 self.assertTrue(all(r['complete'] for r in rows),rows)
+                self.assertTrue(all(r['results'][0]['values']==['1'] for r in rows),rows)
                 self.assertEqual(len({s.generation for s in pool.slots}),2)
                 self.assertFalse(pool.capacity.active)
                 self.assertFalse(pool.capacity.pending)

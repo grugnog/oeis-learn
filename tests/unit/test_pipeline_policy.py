@@ -12,7 +12,7 @@ class Policy(unittest.TestCase):
         report=fixture_report()
         self.assertTrue(report['fixtures_only'])
         comparison=report['records'][0]
-        self.assertEqual(comparison['selections']['v1']['attempt_ordinal'],1)
+        self.assertEqual(comparison['selected_provenance']['v1']['attempt_ordinal'],1)
         self.assertEqual(comparison['selections']['v2']['attempt_ordinal'],0)
         self.assertTrue(comparison['differences']['selection'])
         self.assertEqual(comparison['archives']['v2']['retained'][0]['attempt_ordinal'],0)

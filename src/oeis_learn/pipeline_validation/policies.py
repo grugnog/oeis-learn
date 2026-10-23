@@ -16,9 +16,14 @@ def compare_records(candidates, alternatives):
             legacy[old['id']]=old
     a=retain_alternatives(list(legacy.values()))
     b=retain_alternatives(alternatives,policy='structure-pareto/v2')
-    selections={version:select_visible(candidates,policy='visible-only/'+version) for version in ('v1','v2')}
+    visible_fields={'source','source_sha256','verified','visible_count','cost'}
+    old_selection=select_visible([{k:row[k] for k in visible_fields} for row in candidates])
+    old_provenance=next((deepcopy(row) for row in candidates if old_selection is not None
+        and all(row[k]==old_selection[k] for k in visible_fields)),None)
+    selections={'v1':old_selection,'v2':select_visible(candidates,policy='visible-only/v2')}
     representatives={'v1':training_representative(a),'v2':training_representative(b)}
     return seal(dict(version='pipeline-policy-comparison/v1',selections=selections,
+        selected_provenance={'v1':old_provenance,'v2':selections['v2']},
         archives={'v1':a,'v2':b},training_representatives=representatives,
         differences=dict(selection=selections['v1']!=selections['v2'],archive=a!=b,
             training_representative=representatives['v1']!=representatives['v2']),
