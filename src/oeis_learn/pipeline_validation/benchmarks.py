@@ -97,8 +97,8 @@ class Benchmarks:
         except ValueError as exc:
             return dict(stage_state='INCONCLUSIVE',reason=str(exc),candidate_runs=0)
         self.calibration=calibration
-        write(output/'calibration.json',dict(calibration,subset=self.subset,original_denominator=32,
-            exclusions=[p for p in cold['gpu']['prompt_ids'] if p not in self.subset]))
+        write(output/'calibration.json',seal(dict(calibration=calibration,subset=self.subset,original_denominator=32,
+            exclusions=[p for p in cold['gpu']['prompt_ids'] if p not in self.subset])))
         return calibration
 
     def inference(self,output,*,cap):
@@ -132,7 +132,7 @@ class Benchmarks:
         candidates=[dict(BASE_POLICY,workers=self.selected_workers,overlap=True,lookahead=lookahead,
             bookkeeping='hoisted/v1' if self.inference_eligible else 'baseline') for lookahead in (1,2)]
         candidates += [dict(candidates[0],batch_size=16),dict(candidates[0],batch_size=1)]
-        required=(2+4*len(candidates)+20+20)*reservation
+        required=(2+5*len(candidates)+4+20+20)*reservation
         if required>cap:raise CapabilityError(f'preregistered joint scope needs {required}s reservation, exceeds phase cap {cap}s; no exploratory/confirmation candidates started')
         contract=seal(dict(version='pipeline-joint-comparison/v1',calibration=self.calibration['identity'],
             candidates=candidates,subset=self.subset,confirmation_order=ORDER,cold_warm=['cold','warm'],
@@ -144,6 +144,8 @@ class Benchmarks:
         write(output/'telemetry.json',dict(overhead=telemetry['seconds']/ordinary['seconds']-1,primary='ordinary'))
         exploratory=[]
         for n,candidate in enumerate(candidates):
+            self.trial(output/f'candidate{n}-warmup',policy=candidate,prompt_ids=self.subset,
+                seconds=reservation/2,bookkeeping=candidate['bookkeeping'])
             pairs=[]
             for i,order in enumerate(['AB','BA']):
                 arms={}
@@ -155,10 +157,14 @@ class Benchmarks:
         eligible=[r for r in exploratory if r['eligible']]
         write(output/'exploratory.json',exploratory)
         if not eligible:return dict(stage_state='INCONCLUSIVE',adoption='NO_ADOPTION',reason='no complete equivalent exploratory candidate')
-        selected=min(eligible,key=lambda r:(r['median'],digest(r['candidate'])))['candidate']
+        fastest=min(r['median'] for r in eligible)
+        selected=next(r['candidate'] for r in eligible if r['median']<=1.05*fastest)
         write(output/'selected-candidate.json',seal(dict(version='pipeline-selected/v1',parent=contract['identity'],policy=selected)))
         confirmations={}
         for scope in ('cold','warm'):
+            for arm,policy in [('A',BASE_POLICY),('B',selected)]:
+                self.trial(output/f'confirm-{scope}-warmup-{arm}',policy=policy,prompt_ids=self.subset,
+                    seconds=reservation/2,bookkeeping=policy['bookkeeping'],cache_state=scope)
             pairs=[]
             for i,order in enumerate(ORDER):
                 arms={};budget={}
@@ -175,12 +181,12 @@ class Benchmarks:
                 pairs.append(dict(order=order,baseline=a['seconds'],candidate=b['seconds'],
                     complete=a['complete'] and b['complete'],work=a['work'],candidate_work=b['work'],
                     strata=strata,correct=a['gpu']['semantic']==b['gpu']['semantic'] and a['gpu']['tokens']==b['gpu']['tokens'],
-                    resources=True,baseline_success=fixed_a['success'],candidate_success=fixed_b['success'],
+                    resources=all(t['gpu'].get('resources',{}).get('qualified') is True and t['score'].get('resources',{}).get('qualified') is True for t in [a,b,*budget.values()]),baseline_success=fixed_a['success'],candidate_success=fixed_b['success'],
                     baseline_complete=fixed_a['complete'],candidate_complete=fixed_b['complete'],reset=True,scope=scope,kind='confirmation'))
             confirmations[scope]=decide(pairs,required_strata={'updates','validation','generation_native','checkpoint'})
             write(output/f'confirmation-{scope}.json',dict(pairs=pairs,decision=confirmations[scope]))
         result=seal(dict(version='pipeline-joint-result/v1',selected=selected,confirmations=confirmations,
-            adoption='ADOPT' if all(r['adoption']=='ADOPT' for r in confirmations.values()) else 'INCONCLUSIVE',
+            adoption='ADOPT' if all(r['adoption']=='ADOPT' for r in confirmations.values()) else 'NO_ADOPTION' if any(r['adoption']=='NO_ADOPTION' for r in confirmations.values()) else 'INCONCLUSIVE',
             default='serial baseline retained',coverage_scope=dict(subset=self.subset,original_denominator=32)))
         write(output/'comparison.json',result)
         return dict(result,stage_state='INCONCLUSIVE' if result['adoption']=='INCONCLUSIVE' else 'PASS')

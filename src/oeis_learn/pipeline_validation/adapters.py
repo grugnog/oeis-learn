@@ -66,10 +66,12 @@ class Adapters:
         if stage.adapter=='image':
             target=parts[2]
             if target=='gpu':host.select_gpu()
-            image=self.images.ensure(host,target,output/'build')
+            import time
+            started=time.monotonic()
+            image=self.images.ensure(host,target,output/'build',seconds=stage.seconds)
             # Whole installed package inspection is mandatory for pinned and built images.
             from oeis_learn.container_validation import inspect_current_image
-            inspect_current_image(host,image,output/'inspection',seconds=stage.seconds)
+            inspect_current_image(host,image,output/'inspection',seconds=min(600,max(1,stage.seconds-(time.monotonic()-started))))
             write(output/'image.json',dict(image=image,target=target,engine=name))
             return dict(image=image)
         target='gpu' if stage.adapter=='hip' else 'qualification'

@@ -243,7 +243,11 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
         },
     )
     try:
-        launch(command, output, seconds=seconds)
+        if argv is None:
+            launch(command, output, seconds=seconds)
+        else:
+            from oeis_learn.pipeline_validation.supervision import launch as supervised
+            supervised(command,output,seconds=seconds)
     finally:
         try:
             result = host.engine.call(["inspect", name], capture_output=True, timeout=10)

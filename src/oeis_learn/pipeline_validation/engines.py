@@ -8,11 +8,11 @@ class Images:
     def __init__(self, cap=14400):
         self.cap=cap;self.used={};self.images={}
 
-    def ensure(self, host, target, output):
+    def ensure(self, host, target, output, *, seconds=None):
         key=(host.engine.name,target)
         if key in self.images:
             return self.images[key]
-        remaining=self.cap-self.used.get(key[0],0)
+        remaining=min(self.cap-self.used.get(key[0],0), seconds if seconds is not None else self.cap)
         if remaining<=0:
             raise TimeoutError('shared engine build allowance exhausted')
         start=time.monotonic()

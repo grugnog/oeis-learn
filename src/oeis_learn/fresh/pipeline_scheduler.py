@@ -32,11 +32,17 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
             completed.put((i,copy.deepcopy(value),None))
         except BaseException as exc:
             completed.put((i,None,exc))
-    for i in range(len(generators)):
-        advance(i)
+    next_prompt=0
+    def admit():
+        nonlocal next_prompt
+        while next_prompt<len(generators) and len(ready)+len(active)<lookahead*batch_size:
+            advance(next_prompt)
+            next_prompt+=1
+    admit()
     cursor=0
     try:
         while len(done)<len(generators):
+            admit()
             # Observe before admission/dispatch; strict < deadline eligibility is owner-side.
             while not completed.empty():
                 i,value,error=completed.get_nowait()
