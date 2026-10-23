@@ -375,3 +375,32 @@ def validate(host, suite, output):
             {"suite": suite, "image": image, "results": results, "qualified": False},
         )
         print(json.dumps({"status": "PASS", "output": str(output), "qualified": False}))
+
+
+def inspect_current_image(host, image, output, *, seconds=600):
+    """Compare every installed package byte and packaged build snapshot before reuse."""
+    from .pipeline_validation.supervision import launch
+    from .pipeline_validation.identity import write as public_write
+    from .experiments.source_snapshot import collect_snapshot
+    output = Path(output)
+    output.mkdir(parents=True)
+    inputs = output / 'inputs'
+    inputs.mkdir()
+    public_write(inputs / 'expected.json', collect_snapshot(host.policy['workspace']))
+    name = 'oeis-package-inspect-' + uuid.uuid4().hex
+    code = (
+        "import json; from pathlib import Path; "
+        "from oeis_learn.experiments.source_snapshot import source_snapshot; "
+        "expected=json.loads(Path('/work/input/expected.json').read_text()); "
+        "actual=source_snapshot(); assert actual==expected, 'current installed package/source mismatch'; "
+        "print(json.dumps(actual,sort_keys=True))"
+    )
+    command = host.engine.command(image=image, name=name,
+        mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
+        argv=['python','-c',code], auto_remove=False, gpu=False,
+        memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
+        workdir='/tmp', environment=private_runtime_environment(output))
+    try:
+        launch(command, output / 'logs', seconds=seconds)
+    finally:
+        host.engine.remove(name)
