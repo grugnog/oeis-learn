@@ -4,7 +4,7 @@
 **Source baseline**: `ef240bf8e5ad04df93555fa43097565250d9eed5` (PR #59)  
 **Owning specification**: [Spec 009](spec.md)
 
-This register accounts for all thirteen unchecked tasks in [Spec 008 tasks](../008-bigint-constant-synthesis/tasks.md), plus completed tasks whose evidence or admission must be reconsidered after a pipeline change. Transfer is not completion. Historical task checkboxes and source-bound receipts retain their meanings. Spec 009 owns the future work below; subsequent planning must map these rows to concrete tasks and acceptance evidence before implementation.
+This register accounts for all thirteen unchecked tasks in [Spec 008 tasks](../008-bigint-constant-synthesis/tasks.md), plus completed tasks whose evidence or admission must be reconsidered after a pipeline change. Transfer is not completion. Historical task checkboxes and source-bound receipts retain their meanings. Spec 009 owns the future work below; [tasks.md](tasks.md#requirement-and-carryover-coverage) maps these rows to concrete tasks and acceptance evidence before implementation.
 
 ## Outstanding task disposition
 

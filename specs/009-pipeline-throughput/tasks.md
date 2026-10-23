@@ -14,12 +14,17 @@
 
 - [ ] T001 Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.
 - [ ] T002 Create the stdlib-only host package boundary in `src/oeis_learn/pipeline_validation/__init__.py` and establish the static module layout from `specs/009-pipeline-throughput/plan.md`; do not add a scheduler service, host dependency or second trainer.
-- [ ] T003 [P] Add an executable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
+- [ ] T003 [P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
 
 ## Shared foundations — required before story integration
 
 - [ ] T004 [P] Add schema/identity rejection tests in `tests/unit/test_pipeline_contracts.py` for unknown keys, nonfinite/negative timing, path-only identities, changed policies, duplicate logical IDs and immutable terminal records; use independent expected payloads and known old v1 fixtures.
 - [ ] T005 Implement shared canonical identity and confined-reference helpers in `src/oeis_learn/pipeline_validation/identity.py`, reusing existing hashes: "Unknown keys fail closed for versioned authority-bearing records", "Timing values are finite, nonnegative observations and never substitute for identities", and "a path string alone is never an input identity"; preserve old v1 identity/seal validators.
+
+  > Every authority-bearing document has `version`, `identity` and an immutable canonical payload. Compute identity over the payload excluding its own identity and mutable presentation fields. Paths are workspace-confined references plus content hash; a path string alone is never an input identity. Large/private payloads are not embedded in public bundles.
+  >
+  > Record both full source snapshot and the explicitly versioned dependency closure used for a stage. Bind image digest, installed package inventory, native binary, guest, numerical/engine/fit/reference policies and workload hashes as relevant. Code paths that ignore an effective policy in contract identity must be corrected before reusing their artifacts. Old v1 identity and seal validators stay available; never rewrite an old record to look like v2.
+
 - [ ] T006 [P] Add resource-resolution tests in `tests/unit/test_pipeline_resources.py` for measured physical/ancestor limits, quota/cpuset, current availability, unknown sensors, shared CPU/GPU charging and reservation-versus-ceiling distinctions; prove the old Host 16 GiB default cannot override workstation90.
 - [ ] T007 Implement `ResourcePolicy` resolution/reservations in `src/oeis_learn/pipeline_validation/resources.py`: ceiling `min(floor(0.90 * physical_bytes), effective_engine_or_ancestor_limit)` rounded down to MiB, profiles historical16/capacity64/workstation90, expected peak plus `max(1 GiB, 10% peak)` headroom, one full-envelope compute role, and explicit unavailable accounting; "Resource policy changes acquire a new hash".
   <details>
@@ -328,7 +333,7 @@
   </details>
 
 - [ ] T090 [US5] Wire phase6/study-manifest/final-plan routing in `scripts/foundation_local.py` and internal study adapters in `src/oeis_learn/pipeline_validation/adapters.py`, reusing existing learning/evaluation paths, one archive and all mandatory subordinate controls; reject engineering-manifest mixing and stop before undecided arms, final access or unauthorized long training.
-- [ ] T091 [US5] Implement matched-study reports in `src/oeis_learn/pipeline_validation/study_reports.py` using existing `src/oeis_learn/fresh/comparison.py`: full128+128 denominators, raw/rescue/equal-budget/correct/shuffled/absent/template, visible20/continuation100, seed spread/frozen family uncertainty, stopped/unstarted costs and inherited one-endpoint transfer gate; no hidden result selects checkpoints/candidates.
+- [ ] T091 [US5] Implement matched-study reports in `src/oeis_learn/pipeline_validation/study_reports.py` using existing `src/oeis_learn/fresh/comparison.py`: full128+128 denominators, raw/rescue/equal-budget/correct/shuffled/absent/template, visible20/continuation100, seed spread/predeclared structure-family bootstrap (2,000 fixed-seed resamples; descriptive 95% intervals), stopped/unstarted costs and inherited one-endpoint transfer gate; no hidden result selects checkpoints/candidates.
 - [ ] T092 [US5] Run fixture-only research/finalization tests, register phase6 availability and document concrete manifest-driven batch examples in `specs/009-pipeline-throughput/quickstart.md`; record `specs/009-pipeline-throughput/validation/phase-6-local.md` without marking any actual study executed.
 
 ### Prospective decisions and gated execution — separate from code/local checks
@@ -370,6 +375,8 @@
 | Phase6 US5 code | Stable host identities/registry and existing research contracts; T087/T088 before T089–T091 | Fixture-only code does not require a successful learning attempt |
 | Phase6 actual studies | Phase5 relevant qualification/resource/cost + each explicit study decision; T093→T094; T095 before revised screens; T094 learning PASS before T096; T096→T097; supported recipe→T098→separate replay decision T099; assistance/encoder decisions before T104→T105→T106/T107 | Matched preparation can precede learning success but cannot execute studies. Already decided independent studies may share one admitted batch. Missing optional assistance can be prospectively deferred; mandatory gates cannot |
 | Closeout | T109 after CLI is implemented; T110 after last relevant code changes; T111 records all remaining dispositions | Engineering closeout does not wait indefinitely for blocked research; unchecked execution tasks remain visible |
+
+**Delivery ranges**: Phase 1 T001–T034 (including shared foundations); phase 2 T035–T042; phase 3 T043–T062; phase 4 T063–T076; phase 5 T077–T086; phase 6 T087–T108; cross-cutting closeout T109–T111. Use these ranges for future phase implementation requests.
 
 **Integration ordering**: Read the relevant quoted data-model constraints and full contract before each implementation. Tasks touching the same file execute serially even across phases. Evidence reviews follow collection; collection never implies scientific PASS. Changes after a receipt invalidate affected descendants via the closure rules rather than silently reusing stale evidence.
 

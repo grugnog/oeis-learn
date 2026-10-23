@@ -1,6 +1,6 @@
 # Planned operator guide: Spec 009
 
-**Status**: These pipeline options are the implementation target, not available commands in this planning PR. No validation or training run is requested now. `/speckit:tasks` is next.
+**Status**: These pipeline options are the implementation target, not available commands in this planning PR. No validation or training run is requested now. [tasks.md](tasks.md) defines the implementation sequence; phase 1 is next.
 
 ## Default handoff: one combined command
 
