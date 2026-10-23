@@ -8,20 +8,21 @@ from .runner import ResourceBreach
 
 
 class DiskWatchdog:
-    def __init__(self, root, output, *, cap=8<<30, trace_cap=128<<20, free_reserve=16<<20):
-        self.root=Path(root);self.output=Path(output);self.cap=cap;self.trace_cap=trace_cap
+    def __init__(self, root, output, *, cap=8<<30, trace_cap=128<<20, free_reserve=16<<20, extra_roots=()):
+        self.root=Path(root);self.extra_roots=tuple(Path(p) for p in extra_roots);self.output=Path(output);self.cap=cap;self.trace_cap=trace_cap
         self.free_reserve=free_reserve;self.stop=threading.Event();self.breach=None
         self.peak=0;self.trace_peak=0
 
     def usage(self):
         seen=set();size=traces=0
-        for path in self.root.rglob('*'):
+        from itertools import chain
+        for path in chain.from_iterable(root.rglob('*') for root in (self.root,*self.extra_roots) if root.exists()):
             try:
                 if path.is_symlink() or not path.is_file():continue
                 info=path.stat();key=(info.st_dev,info.st_ino)
                 if key in seen:continue
                 seen.add(key);size+=info.st_size
-                if 'traces' in path.relative_to(self.root).parts:traces+=info.st_size
+                if 'traces' in path.parts:traces+=info.st_size
             except FileNotFoundError:
                 continue  # Atomic role progress/cache publication.
         self.peak=max(self.peak,size);self.trace_peak=max(self.trace_peak,traces)

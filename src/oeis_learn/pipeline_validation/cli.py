@@ -95,12 +95,12 @@ def study_main(args,root,host_factory):
     host=host_factory(host_options)
     from .studies import StudyLedger
     study_ledger=StudyLedger(root/'run-state/pipeline-studies',contract)
-    stages=[Stage(arm['id'],6,seconds=arm['wall_seconds'],adapter='study') for arm in contract['arms']]
+    stages=[Stage(arm['id'],6,seconds=arm.get('attempt',arm)['wall_seconds'],adapter='study') for arm in contract['arms']]
     def run_arm(stage,destination):
         from argparse import Namespace
         from foundation_bigint import execute as execute_bigint,resolve_recipe
         arm=next(a for a in contract['arms'] if a['id']==stage.id)
-        study_ledger.reserve(arm)
+        reservation=study_ledger.reserve(arm)
         run=reference(root,arm['run']).parent if arm['run'] else destination/'run'
         config=reference(root,arm['config']) if arm['config'] else None
         inputs=reference(root,arm['inputs']).parent if arm['inputs'] else None
@@ -119,25 +119,33 @@ def study_main(args,root,host_factory):
         options.explicit_options=[]
         if config:
             recipe=resolve_recipe(host,options,destination/'resolve')
-            if recipe['model']['seed']!=arm['seed'] or recipe['budgets']['training_seconds']+recipe['budgets'].get('preparation_seconds',0)+300>arm['wall_seconds']:
+            if recipe['model']['seed']!=arm['seed'] or recipe['budgets']['training_seconds']+recipe['budgets'].get('preparation_seconds',0)+300>reservation['wall_seconds']:
                 raise ValueError('recipe seed/budget differs from admitted arm')
-        write(destination/'admission.json',dict(study=contract['identity'],arm=arm['id'],work_debit=arm['work'],disk_reservation=arm['disk_bytes']))
+        write(destination/'admission.json',dict(study=contract['identity'],arm=arm['id'],reservation=reservation))
         from .supervision import launch
         import sys
         descriptor=destination/'private/arm.json'
         write(descriptor,vars(options))
         try:
-            observations=launch([sys.executable,str(root/'scripts/pipeline_study_arm.py'),str(descriptor)],
-                destination/'supervision',seconds=arm['wall_seconds']-5,cleanup_seconds=5)
+            from .disk import DiskWatchdog
+            from foundation_local import state_path
+            with DiskWatchdog(destination,destination/'resource',cap=reservation['disk_bytes'],extra_roots=[state_path(str(run))]):
+                observations=launch([sys.executable,str(root/'scripts/pipeline_study_arm.py'),str(descriptor)],
+                    destination/'supervision',seconds=reservation['wall_seconds']-5,cleanup_seconds=5)
         except BaseException:
-            study_ledger.finish(arm['id'],'INTERRUPTED')
+            study_ledger.finish(arm['id'],'INTERRUPTED',attempt=reservation['attempt'])
             raise
-        study_ledger.finish(arm['id'],'INCONCLUSIVE')
+        study_ledger.finish(arm['id'],'COMPLETE' if contract['kind']=='final' else 'INCONCLUSIVE',attempt=reservation['attempt'])
         return dict(study=contract['identity'],arm=arm['id'],observations=observations,
             result='execution ended; scientific outcome requires reviewed report',stage_state='INCONCLUSIVE')
     maximum=contract['budgets']['wall_seconds']
     if args.max_seconds is not None:
         if not 0<number(args.max_seconds)<=maximum:raise ValueError('study ceiling can only be lowered')
         maximum=args.max_seconds
-    return execute(stages,output,adapter=run_arm,binding={'source':source,'study':contract['identity']},cap=maximum,
-        reserve=contract['budgets']['cleanup_seconds']+contract['budgets']['archive_seconds'],contract=contract)
+    from oeis_learn.fresh.common import lock
+    import uuid
+    with lock(study_ledger.root/'controller.lock'):
+        if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh study output required')
+        study_ledger.begin_invocation(uuid.uuid4().hex)
+        return execute(stages,output,adapter=run_arm,binding={'source':source,'study':contract['identity']},cap=maximum,
+            reserve=contract['budgets']['cleanup_seconds']+contract['budgets']['archive_seconds'],contract=contract)

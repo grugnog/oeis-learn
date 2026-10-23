@@ -47,3 +47,23 @@ class Studies(unittest.TestCase):
         admitted=dict(row,identity='other',state='ADMITTED',authority={'path':'review'},gates={'runtime':'receipt'},cost={'path':'cost'})
         self.assertEqual(decision_payload(row),decision_payload(admitted))
         self.assertNotEqual(decision_payload(row),decision_payload(dict(row,hypothesis='changed')))
+
+    def test_same_final_plan_retry_spends_remaining_budget_without_refund(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.pipeline_validation.studies import StudyLedger
+        arm=dict(id='A',wall_seconds=100,work=10,disk_bytes=1000,
+                 attempt={'wall_seconds':40,'work':4,'disk_bytes':100})
+        contract=dict(decision_id='final-decision',identity='sha256:'+'a'*64,kind='final',arms=[arm],
+            budgets={'wall_seconds':120,'work':12,'disk_bytes':2000,'cleanup_seconds':5,'archive_seconds':5})
+        with tempfile.TemporaryDirectory() as folder:
+            ledger=StudyLedger(Path(folder),contract)
+            first=ledger.reserve(arm)
+            self.assertEqual(first['wall_seconds'],40)
+            ledger.finish('A','INTERRUPTED')
+            second=ledger.reserve(arm)
+            self.assertEqual(second['attempt'],1)
+            ledger.finish('A','INTERRUPTED')
+            with self.assertRaises(ValueError):ledger.reserve(arm)
+            changed=dict(contract,identity='sha256:'+'b'*64)
+            with self.assertRaises(ValueError):StudyLedger(Path(folder),changed)

@@ -57,16 +57,26 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
     if record['state']!='ADMITTED':missing.append('explicit_admission')
     ids=set();totals={'wall_seconds':budgets['cleanup_seconds']+budgets['archive_seconds'],'work':0,'disk_bytes':0}
     for arm in record['arms']:
-        if set(arm)!={'id','operation','inputs','config','run','seed','checkpoint','wall_seconds','work','disk_bytes'}:
+        fields={'id','operation','inputs','config','run','seed','checkpoint','wall_seconds','work','disk_bytes'}
+        if not fields<=set(arm) or set(arm)-fields-{'attempt'}:
             raise ValueError('closed arm specification required')
         if arm['id'] in ids or not isinstance(arm['id'],str) or not arm['id'].isalnum():
             raise ValueError('unique alphanumeric arm IDs required')
         ids.add(arm['id'])
+        if number(arm.get('attempt',arm)['wall_seconds'],positive=True)<=5:
+            raise ValueError('arm attempt must reserve more than five seconds including cleanup')
         allowed={'learnability'} if record['kind']=='learnability' else {'evaluate'} if record['kind']=='final' else {'train','diagnose'}
         if arm['operation'] not in allowed or arm['seed'] not in record['seeds']:
             raise ValueError('study kind/operation/seed mismatch')
         for key in totals:
             totals[key]+=number(arm[key],positive=True)
+        if 'attempt' in arm:
+            if record['kind']!='final' or set(arm['attempt'])!={'wall_seconds','work','disk_bytes'}:
+                raise ValueError('only final plans may predeclare bounded remaining-budget attempts')
+            for key,value in arm['attempt'].items():
+                if number(value,positive=True)>arm[key]:raise ValueError('attempt exceeds cumulative arm allowance')
+            attempts=min(int(arm[k]//arm['attempt'][k]) for k in arm['attempt'])
+            totals['wall_seconds']+=(attempts-1)*(budgets['cleanup_seconds']+budgets['archive_seconds'])
     if any(totals[k]>budgets[k] for k in totals):
         raise ValueError('arm reservations must fit shared study budget')
     if root is not None:
@@ -118,28 +128,64 @@ class StudyLedger:
             else:
                 write(path,contract)
 
+    def reservations(self, arm=None):
+        values=[]
+        for path in sorted(self.root.glob('*.reservation.json')):
+            row=json.loads(path.read_text())
+            if arm is None or row['arm']==arm:values.append(row)
+        return values
+
+    def begin_invocation(self, identity):
+        from .identity import write
+        from oeis_learn.fresh.common import lock
+        with lock(self.root/'study.lock'):
+            budgets=self.contract['budgets']
+            overhead=budgets['cleanup_seconds']+budgets['archive_seconds']
+            previous=sum(json.loads(p.read_text())['wall_seconds'] for p in self.root.glob('*.invocation.json'))
+            if previous+overhead+sum(r['wall_seconds'] for r in self.reservations())>budgets['wall_seconds']:
+                raise ValueError('study cleanup/archive budget exhausted; no refund')
+            write(self.root/(identity+'.invocation.json'),dict(study=self.contract['identity'],wall_seconds=overhead))
+
     def reserve(self, arm):
         from .identity import write
         from oeis_learn.fresh.common import lock
         if arm not in self.contract['arms']:
             raise ValueError('unregistered study arm')
         with lock(self.root/'study.lock'):
-            path=self.root/(arm['id']+'.reservation.json')
-            if path.exists():
-                raise ValueError('arm already debited; interrupted allowances are not refunded')
-            write(path,dict(study=self.contract['identity'],arm=arm['id'],
-                wall_seconds=arm['wall_seconds'],work=arm['work'],disk_bytes=arm['disk_bytes']))
+            previous=self.reservations(arm['id'])
+            attempt=len(previous)
+            amounts=arm.get('attempt',{k:arm[k] for k in ('wall_seconds','work','disk_bytes')})
+            if previous:
+                if self.contract.get('kind')!='final' or 'attempt' not in arm:
+                    raise ValueError('arm already debited; interrupted allowances are not refunded')
+                terminal=self.root/(arm['id']+f'.{attempt-1:04d}.terminal.json')
+                if not terminal.exists() or json.loads(terminal.read_text())['outcome']!='INTERRUPTED':
+                    raise ValueError('only acknowledged interrupted final attempts may use remaining allowance')
+            if any(sum(r[k] for r in previous)+amounts[k]>arm[k] for k in amounts):
+                raise ValueError('cumulative arm allowance exhausted; no refund')
+            budgets=self.contract.get('budgets')
+            if budgets:
+                all_rows=self.reservations()
+                overhead=sum(json.loads(p.read_text())['wall_seconds'] for p in self.root.glob('*.invocation.json'))
+                if not overhead:overhead=budgets['cleanup_seconds']+budgets['archive_seconds']
+                if any(sum(r[k] for r in all_rows)+amounts[k]+(overhead if k=='wall_seconds' else 0)>budgets[k] for k in amounts):
+                    raise ValueError('cumulative shared study allowance exhausted')
+            row=dict(study=self.contract['identity'],arm=arm['id'],attempt=attempt,**amounts)
+            write(self.root/(arm['id']+f'.{attempt:04d}.reservation.json'),row)
+            return row
 
-    def finish(self, arm, outcome):
+    def finish(self, arm, outcome, *, attempt=None):
         from .identity import write
         from oeis_learn.fresh.common import lock
         if outcome not in {'COMPLETE','NEGATIVE','INCONCLUSIVE','INTERRUPTED'}:
             raise ValueError('explicit terminal study outcome required')
         with lock(self.root/'study.lock'):
-            if not (self.root/(arm+'.reservation.json')).exists():
-                raise ValueError('study arm was not debited')
-            path=self.root/(arm+'.terminal.json')
+            rows=self.reservations(arm)
+            if not rows:raise ValueError('study arm was not debited')
+            ordinal=rows[-1]['attempt'] if attempt is None else attempt
+            if ordinal not in {r['attempt'] for r in rows}:raise ValueError('attempt was not reserved')
+            path=self.root/(arm+f'.{ordinal:04d}.terminal.json')
             if path.exists():
                 raise ValueError('terminal study outcome is immutable')
-            write(path,dict(study=self.contract['identity'],arm=arm,outcome=outcome,
-                charging='full original reservation retained'))
+            write(path,dict(study=self.contract['identity'],arm=arm,attempt=ordinal,outcome=outcome,
+                charging='full original attempt reservation retained'))

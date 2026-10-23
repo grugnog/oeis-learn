@@ -57,7 +57,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
                     adapter.receipts=dict(receipts)
                 from .disk import DiskWatchdog
                 budgets=(contract or {}).get('budgets',{})
-                with DiskWatchdog(output,root,cap=budgets.get('transient_bytes',8<<30),
+                with DiskWatchdog(output,root,cap=budgets.get('transient_bytes',budgets.get('disk_bytes',8<<30)),
                         trace_cap=budgets.get('trace_bytes',128<<20),
                         free_reserve=budgets.get('mandatory_reserve_bytes',16<<20)):
                     result=adapter(stage,root) or {}
