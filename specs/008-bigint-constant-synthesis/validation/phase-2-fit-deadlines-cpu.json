@@ -1,0 +1,47 @@
+{
+  "version": "native-fit-deadlines-cpu/v1",
+  "date": "2026-10-21",
+  "policy": "native-fit-deadlines/v1",
+  "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+  "qualified": false,
+  "python": "3.12.14",
+  "pytest": {
+    "paths": [
+      "tests/unit/test_bigint_phase5.py",
+      "tests/contract/test_native_fitting.py",
+      "tests/unit/test_bigint_diagnostic_evidence.py",
+      "tests/unit/test_bigint_diagnostic_collector.py",
+      "tests/integration/test_synthesis_worker.py",
+      "tests/unit/test_synthesis_service_limits.py",
+      "tests/unit/test_synthesis_state.py",
+      "tests/unit/test_container_runtime.py",
+      "tests/unit/test_container_validation.py",
+      "tests/unit/test_foundation_roles.py"
+    ],
+    "marker": "not docker and not gpu",
+    "deselected": [
+      "tests/unit/test_foundation_roles.py::test_actual_container_role_views_and_reclamation"
+    ],
+    "passed": 96,
+    "skipped": 7,
+    "failed": 0,
+    "errors": 0,
+    "skip_reason": "packaged native binaries/qualification image unavailable"
+  },
+  "checks": [
+    "ruff F,E9",
+    "ruff format --check",
+    "stdlib-only qualifier help",
+    "git diff --check"
+  ],
+  "rust_tests_executed": false,
+  "container_engine_available": false,
+  "native_image_available": false,
+  "hip_available": false,
+  "pending": [
+    "managed image build and core tests",
+    "packaged fitting/admission and delivered-status regression",
+    "optional current-image visible replay"
+  ],
+  "original_T096": "NEGATIVE; unchanged; no training or hidden scoring executed"
+}

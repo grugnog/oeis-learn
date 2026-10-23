@@ -1,0 +1,108 @@
+{
+  "version": "phase5-runtime-profile-local/v1",
+  "review_date": "2026-10-21",
+  "qualified": false,
+  "source_sha256": "sha256:ca83192e992a165e88dc139eea7539bc78491c0640caf1878f9bce108eedd533",
+  "files": {
+    ".github/workflows/foundation.yml": "sha256:322ab148f0d5cea3032335b9068d6e78485d4e29fac69702b4dc67779bc2dc37",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:3370039d7474bdd4dbd4683c734e3bd21b0464031b7c8bc6f636a42051047ec4",
+    "crates/oeis_synthesis_core/examples/benchmark_runtime.rs": "sha256:b1dc1613c04895392aecd15c6d6b762255b195b8b832e1a0dcfe01eccb2b1a51",
+    "crates/oeis_synthesis_core/tests/runtime_profiling.rs": "sha256:185dd14bad0e1144887b75efa856254fbcf141381a09cefdf9b09f3c8587564d",
+    "scripts/benchmark_bigint.py": "sha256:dac4abe1525e6750e9808a4061e395a70580249856e3f9c1f4d0fc9aac492f78",
+    "scripts/qualify_bigint_phase5.py": "sha256:7440819a7f3156e009ca9f403630f8a5fea4074dfe4d7753f63fd07e26cb04c6",
+    "scripts/qualify_bigint_phase2.py": "sha256:694248fd11c4ab73084bafc75b4ef190d6e6f6cee6303252f295b989d69d19ff",
+    "tests/unit/test_bigint_runtime_profile.py": "sha256:405d5242918866cdf5b1f286702e64f23ad1ac1908253c6cdb4d32ef1ce3e2ad",
+    "tests/contract/test_bigint_performance.py": "sha256:c3fa0e0c8c1dcbb55f1887b5b290840a4c708dc1f90ad5c481de779ad426aac8"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "tests": {
+    "passed": 55,
+    "failure": 0,
+    "error": 0,
+    "skipped": 2,
+    "junit_sha256": "sha256:5056f4368cd1a22b684b3fff2ec040d6e8d07691681af8e2605f9cd39f5b4a46",
+    "skipped_reason": "two parametrizations require the packaged native benchmark image"
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "formatting": "PASS",
+    "whitespace": "PASS",
+    "stdlib_only_host_help": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "requirements_checklist": "16/16",
+    "workflow": {
+      "yaml": "PASS",
+      "shell": "PASS",
+      "embedded_python": "PASS",
+      "mocked_routes": [
+        {
+          "engine": "docker",
+          "partition": "containment",
+          "argv": [
+            "python",
+            "scripts/qualify_bigint_phase5.py",
+            "--inside",
+            "containment",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 3000
+        },
+        {
+          "engine": "docker",
+          "partition": "runtime-profile",
+          "argv": [
+            "python",
+            "scripts/benchmark_bigint.py",
+            "--runtime-profile",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 600
+        },
+        {
+          "engine": "podman",
+          "partition": "containment",
+          "argv": [
+            "python",
+            "scripts/qualify_bigint_phase5.py",
+            "--inside",
+            "containment",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 3000
+        },
+        {
+          "engine": "podman",
+          "partition": "runtime-profile",
+          "argv": [
+            "python",
+            "scripts/benchmark_bigint.py",
+            "--runtime-profile",
+            "--output",
+            "/work/output"
+          ],
+          "seconds": 600
+        }
+      ],
+      "actual_engine_execution": false
+    }
+  },
+  "actual_execution": {
+    "rust_compile": false,
+    "native_profile": false,
+    "docker": false,
+    "podman": false,
+    "HIP": false
+  },
+  "pending": [
+    "New-image native compilation, Rust tests and CPU profiling execution",
+    "Review phase ranking together with per-case observer overhead/order and residual before closing T094",
+    "T093 genuine retained matched checkpoint and T097 operations coverage",
+    "T098 remains BLOCKED by negative T096 and remaining gates"
+  ],
+  "T091_review": "phase-5-containment-review.json",
+  "T096": "original NEGATIVE preserved; no training or scoring retry",
+  "new_CI": "not polled or awaited"
+}

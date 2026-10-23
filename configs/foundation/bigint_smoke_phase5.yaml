@@ -1,0 +1,174 @@
+# T095 preregistered diverse32 budget revision; source-bound scoped receipt required.
+# 14400s includes diagnostics/reservations; 80% admission gate and all controls unchanged.
+# Basis: validation/phase-5-batched-hip-review.json; see validation/screen-preflight.md.
+# T096 registers exactly seed20261016; the reviewed runner enforces it.
+version: bigint-bootstrap/v1
+data:
+  cache: tmp-oeis-bulk
+  revision: null
+  seed: 20261016
+  max_records: 5000
+  max_download_bytes: 21474836480
+  free_disk_floor_bytes: 5368709120
+  generator: bigint-connected/v1
+  variants: 16
+  max_families: 4096
+  training: 512
+  parameter_development: 128
+  structural_development: 128
+  oeis_development: 8
+  oeis_final: 8
+execution:
+  language: bigint-body/v1
+  codec: bigint-codec/v1
+  runtime: bigint-wasm/v1
+  resources:
+    input_bits: 4096
+    literal_bits: 4096
+    intermediate_bits: 16384
+    output_bytes: 2048
+    arena_entries: 65536
+    arena_bytes: 33554432
+    memory_bytes: 67108864
+    term_fuel: 10000000
+    aggregate_fuel: 100000000
+    reference_steps: 1000000
+    aggregate_reference_steps: 50000000
+    control_max: 65536
+    loop_iterations: 1024
+    aggregate_loop_iterations: 65536
+    ast_nodes: 4096
+    source_bytes: 65536
+    nesting: 32
+    bigint_locals: 16
+    control_locals: 8
+    bool_locals: 8
+    term_seconds: 2.0
+    evaluation_seconds: 30.0
+    cleanup_seconds: 5.0
+  artifacts: null
+inputs:
+  profile: hybrid-chunks/v1
+  primes:
+  - 3
+  - 5
+  - 7
+  - 11
+  - 13
+  - 17
+  - 19
+  - 23
+  - 29
+  - 31
+  - 37
+  - 41
+  - 43
+  - 47
+  - 53
+  - 59
+  max_valuation: 32
+  use_film: true
+  summary_tokens: false
+  mask:
+    magnitude: true
+    modular: true
+    difference: true
+    exact_bytes: true
+  ablation_mode: post_training
+model:
+  d_model: 256
+  heads: 4
+  encoder_layers: 4
+  decoder_layers: 4
+  ff: 1024
+  precision: float32
+  attention: eager
+  token_scale: 1
+  position_scale: 16
+  dropout: 0
+learning:
+  target_view: literal
+  learning_rate: 0.0001
+  batch_size: 8
+  max_updates: 3000
+  validation_every: 100
+  patience: 8
+  min_improvement: 1
+  curriculum: false
+  replay: false
+  representation_comparison: true
+  replay_capacity: 4096
+  replay_fraction: 0.25
+  earlier_fraction: 0.25
+  advancement_threshold: 0.8
+  advancement_coverage: 0.95
+  advancement_validations: 2
+  cost_preflight: null
+fitting:
+  profile: native-fitting/v1
+  disabled: false
+  max_parameters: 8
+  max_assignments: 8
+  coefficient_bits: 4096
+  bounds:
+  - 16
+  - 64
+  - 256
+  - 1024
+  - 4096
+  native_seconds: 2
+  reference_seconds: 2
+  service_limits:
+    max_inflight_batches: 1
+    max_pending_batches: 8
+    max_pending_bytes: 33554432
+    result_cache_max_entries: 4096
+    result_cache_max_bytes: 67108864
+    compiled_cache_max_entries: 32
+    compiled_cache_max_bytes: 67108864
+    disk_cache_max_entries: 256
+    disk_cache_max_bytes: 536870912
+search:
+  attempts: 8
+  greedy: 1
+  stochastic: 7
+  tokens: 1024
+  seconds: 60
+  beam: null
+evaluation:
+  visible: 20
+  horizon: 100
+  periodic_panel: 32
+  primary_transfer_metric: continuation_accuracy_100
+  portfolio: exact_equal_budget
+  controls:
+  - correct
+  - shuffled
+  - absent
+  - template
+  final_access: sealed
+  hidden_seconds: 30
+  coverage: 0.95
+  family_resamples: 2000
+  paired_seeds:
+  - 20261016
+  - 20261017
+  - 20261018
+track:
+  kind: generic_only
+  foundation: null
+  assisted_manifest: null
+archive:
+  max_alternatives: 8
+  max_bytes: 536870912
+budgets:
+  preparation_seconds: 7200
+  training_seconds: 14400
+  cleanup_seconds: 5
+  ledger: debit-before-work/v1
+reporting:
+  bundle_bytes: 67108864
+  core_reserve_bytes: 8388608
+  max_examples: 8
+  detail_chunk_bytes: 1048576
+  max_core_bytes: 8388608

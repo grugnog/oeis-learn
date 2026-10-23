@@ -253,7 +253,7 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("replay disabled in representation comparisons")
     if (
         not 1 <= result["learning"]["max_updates"] <= 3000
-        or result["budgets"]["training_seconds"] > 7200
+        or result["budgets"]["training_seconds"] > 14400
         or result["budgets"]["preparation_seconds"] > 7200
     ):
         raise ValueError("bounded registered screen required")
@@ -320,11 +320,25 @@ def resolve(value, *, seed=None, artifacts=None):
     cost = result["learning"]["cost_preflight"]
     if cost is not None:
         from oeis_learn.synthesis.state import require_hash
-        from .cost_policy import screen_cost
+        from .cost_policy import screen_cost, schedule_identity
 
         if (
             not isinstance(cost, dict)
-            or set(cost) != {"image", "profile_sha256", "scoring_data", "costs", "fixture_sha256"}
+            or set(cost)
+            not in (
+                {"image", "profile_sha256", "scoring_data", "costs", "fixture_sha256"},
+                {
+                    "image",
+                    "profile_sha256",
+                    "scoring_data",
+                    "costs",
+                    "fixture_sha256",
+                    "scope",
+                    "source_sha256",
+                    "shape_sha256",
+                    "schedule_sha256",
+                },
+            )
             or cost["scoring_data"] is not False
         ):
             raise ValueError("closed non-scoring measured cost preflight required")
@@ -344,7 +358,18 @@ def resolve(value, *, seed=None, artifacts=None):
             phases | {"generation_batch_p95", "generation_batch_size"},
         ):
             raise ValueError("complete measured p95 phases required")
-        screen_cost(**cost["costs"])
+        if "scope" in cost:
+            for key in ("source_sha256", "shape_sha256", "schedule_sha256"):
+                require_hash(cost[key])
+            if cost["schedule_sha256"] != schedule_identity(result, cost["scope"]):
+                raise ValueError("cost preflight schedule changed; new receipt required")
+        screen_cost(
+            **cost["costs"],
+            scope=cost.get("scope"),
+            updates=result["learning"]["max_updates"],
+            cadence=result["learning"]["validation_every"],
+            budget=result["budgets"]["training_seconds"],
+        )
     result["identity"] = identity(result)
     if existing is not None and existing != result["identity"]:
         raise ValueError("resolved recipe identity mismatch")
@@ -361,7 +386,19 @@ def packaged_artifacts():
     from .common import read, file_hash
 
     build = read("/opt/oeis-build-info/bigint-build.json")
+    from oeis_learn.synthesis.engine_policy import production_policy
+
+    policy = dict(manifest=production_policy(), sha256=identity(production_policy()))
+    saved = build.get("engine_policy")
+    if (
+        not isinstance(saved, dict)
+        or set(saved) != {"manifest", "sha256"}
+        or saved["sha256"] != identity(saved["manifest"])
+        or saved["sha256"] != policy["sha256"]
+    ):
+        raise ValueError("packaged engine policy mismatch; rebuild current image")
     return dict(
+        engine_policy=policy,
         build_sha256=file_hash("/opt/oeis-build-info/bigint-build.json"),
         worker_sha256=file_hash("/opt/oeis-build-info/synthesis-worker"),
         guest_sha256=build["runtime_sha256"],

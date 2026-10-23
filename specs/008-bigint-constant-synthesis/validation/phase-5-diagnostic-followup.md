@@ -1,0 +1,250 @@
+# Diverse32 failure diagnosis and evidence reliability
+
+The reviewed T096 attempt remains complete with a negative outcome. Its
+31/32 rescue successes meet the success threshold, but 31/32 complete rescue
+observations do not meet the frozen coverage requirement. The incomplete
+prompt has a successful raw selection and equal-budget selection. The bounded
+bundle lacks its detailed fitting trace, so the cause is not established.
+
+This follow-up implements the user-approved diagnostic plan within Spec 008.
+Evidence semantics return to Phase 2 ownership (T043/T047/T058); persistence
+and export changes cover T069/T072/T077. No solver subset, candidate ranking,
+raw/rescue fallback, model, budget, threshold or experiment is changed. The
+original completed run is never resumed or automatically retried. Changed
+source requires new qualification identities before future experiments.
+
+## Work and acceptance
+
+- [X] D001 Reproduce deadline and cross-arm completeness defects with focused
+  tests; define separate generation, fitting and scoring evidence per arm.
+- [X] D002 Correct accounting without changing visible-only selection; retain
+  compact, reason-bearing evidence for every prompt, including failed cases
+  outside the detailed-example allowance.
+- [X] D003 Add a standard-library, read-only collector for the original run's
+  sealed selections, permitted logs and retained fit evidence. Report missing
+  records explicitly and produce a bounded archive without weights or private
+  scoring truth.
+- [X] D004 Provide a bounded candidate replay path with a separate analysis
+  identity, original resource limits, and immutable parent records. Supply
+  portable container commands; decoding replay on HIP is conditional on the
+  collected evidence and is not an automatic qualification rerun.
+- [X] D005 Run focused CPU regressions, document remaining hardware/data
+  requirements, and leave CI unmonitored after pushing.
+
+Completion means failures can be attributed to a stage and outcome, expired
+scoring cannot count as complete, and unrelated controls cannot contaminate
+another arm's coverage. It does not mean T096 passes. If diagnosis establishes
+a wider solver/search limitation, propose a separate design and preregistered
+experiment rather than tuning against this failed prompt's hidden outcomes.
+
+## Collect and replay the original failed prompt
+
+Run from the repository root after updating the branch. These commands require
+no image rebuild and no GPU. Collection reads the original run and its
+`run-state` siblings, verifies sealed selection hashes, records available
+generation/scoring logs and fit-cache matches, and reports missing detailed
+traces explicitly. It never opens private truth or checkpoint weights. Inputs
+remain on the machine where the original run executed.
+
+```bash
+diagnostic_out="tmp-analysis/008-diverse32-diagnosis-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/diagnose_bigint_run.py collect \
+  --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run \
+  --prompt sha256:02aa8138af680017900e08e7c01148a4128583e1d0778195d05f4119c337b6b9 \
+  --output "$diagnostic_out/collection"
+python3 scripts/diagnose_bigint_run.py replay --engine podman \
+  --evidence "$diagnostic_out/collection" \
+  --output "$diagnostic_out/replay"
+```
+
+Share `collection.zip` and `replay.zip` under that directory. Substitute Docker
+consistently if appropriate. Replay defaults to the original immutable image;
+it stages only the collected visible case and this utility in a temporary
+workspace directory, mounts that directory read-only, and mounts a fresh output
+directory writable. Staged inputs are outside the writable output tree and
+are removed after reclamation. The utility is copied from the current checkout, while
+fitting, production execution and the reference load from the pinned image.
+The original greedy source, seed, abstraction policy, resource/service limits
+and four-second raw/fitting ceilings are retained. There is one fitting call,
+with a fresh cache, within a30-second work allowance. The separate host ledger
+reserves that work plus15seconds startup and30seconds cleanup before launch;
+the nested work ledger records its30seconds without refund. Timeouts and
+cleanup errors still produce a report archive with the full reservation charged.
+`.runtime` caches never enter the archive. Every output directory must be fresh.
+
+This is an isolated visible-candidate analysis, not an exact replay of original
+queue/cache timing, a new decoding attempt, a continuation score, a corrected
+T096 decision or a promotion. Image/runtime differences are explicit. Successful
+fits alone were cached by the original client; missing failed-fit traces are
+not evidence that fitting completed or that a particular failure occurred.
+
+## Diagnosis decision
+
+The first review should distinguish a missing rescue selection from a failed
+100-index scoring call, then identify generation, native fit, independent
+admission or deadline failure. If no original failed-fit receipt survives,
+use the bounded visible replay as new diagnostic evidence and retain that
+limitation. A changed implementation cannot manufacture historical completeness.
+Only if this still requires decoding should a separately scoped fixed-checkpoint
+HIP analysis be designed, with source/checkpoint identities, fixed prompts,
+attempts and a finite child ledger. No retraining is part of this follow-up.
+
+A larger solver subset, different raw/fitted selection policy or scheduler
+redesign requires a separate design and preregistered experiment after this
+diagnosis. The existing source-bound cost/HIP receipts remain historical;
+future qualification must bind the changed source and image.
+
+## Local implementation validation — 2026-10-21
+
+The final CPU regression pass completed182 tests with zero failures/errors,
+three explicit packaged-native skips and one GPU deselection. The skipped
+cases require actual native scoring/preparation/fit-execute artifacts. No
+Docker/Podman engine, packaged native image or HIP accelerator is available in
+this implementation environment; mocked replay/container tests are not native
+or hardware qualification. The original run's private role files are not
+available here, so its exact failed fitting/scoring operation remains pending
+the collection/replay commands above.
+
+The suite covers deadline-expired scoring, full-horizon partial results,
+legacy evidence, isolated greedy-versus-stochastic completion, independent
+admission exhaustion reasons, all32 compact receipts under bundle pressure,
+host generation/scoring evidence copying, core-summary bounds, parent
+immutability, sealed-file tampering, symlink/traversal rejection, truth/weight
+exclusion and replay timeout/missing-summary/cleanup failure accounting.
+The regressions are registered in both qualification utilities; the standard
+bigint CPU suite also discovers them automatically.
+
+Ruff F/E9, formatting, standard-library-only utility help, documented Bash
+syntax, Spec Kit prerequisites, the16/16 requirements checklist and whitespace
+checks pass. See the [CPU validation receipt](phase-5-diagnostic-followup-cpu.json)
+for the source and JUnit identities. The original T096 receipt is unchanged;
+no new run, hidden scoring or final-cohort access occurred. CI is left running
+without monitoring.
+
+## Portable replay mount correction
+
+The first user replay failed before launch because `Engine.command` deliberately
+accepts directory bind mounts only; the utility supplied two file mounts. Replay
+now stages exactly `case.json` and `diagnose.py` into a temporary directory beside
+the new output, and mounts that directory read-only at `/work/input`. It does
+not mount the collection directory, checkout or parent run. The adapter's
+restrictions remain unchanged. Inputs are removed after success or failure.
+
+The regression now calls the actual `Engine.command` implementation for both
+Docker and Podman, instead of stubbing command construction. It verifies the
+staged bytes, minimal directory contents, read-only input capability, absence
+of networking/sockets and input cleanup. The collector plus adapter suite
+passes25 tests locally; this is command-policy validation without an actual
+engine/native run. Ruff, formatting and standard-library help also pass.
+
+Reuse the existing `collection` and a new replay output name after updating the
+branch; the failed invocation already created the old replay directory. No image
+rebuild, collection rerun or GPU is needed:
+
+```bash
+python3 scripts/diagnose_bigint_run.py replay --engine podman \
+  --evidence "$diagnostic_out/collection" \
+  --output "$diagnostic_out/replay-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+## Original candidate review — 2026-10-21
+
+The uploaded `collection.zip` and `replay-20261021T212653Z.zip` pass CRC,
+complete-inventory and all20 manifest size/hash checks. Parent contract,
+checkpoint identity, original prompt/source, case bytes, image and runtime bind
+to the reviewed T096 attempt. The mounted utility bytes match published commit
+`2ab3a28`; the user's exact Git revision is not reported. See the
+[machine-readable review](phase-5-diverse32-candidate-review.json).
+
+The original sealed selections contain a correct raw program and no rescue
+program. The missing rescue therefore predates hidden scoring. The same-image,
+same-runtime replay verifies the raw visible values again, but fitting returns
+`resource_exhausted`, `incomplete worker result`, with no admitted candidate.
+The2.213s duration is whole replay work, not a measured solver-only time. The
+host and nested work reservations completed without refund; the nested30s are
+included in the75s host reservation, not added to it.
+
+The source computes `n*n + 11*n - 15`. The original generation cache contains
+eight native fits of this identical source/prompt under seed75271731. Its key
+matches attempt position2 under the frozen schedule; the conditioning mode
+cannot be recovered. Native execution reports0.122s and16-bit coefficient
+scope. All eight assignments pass independent visible substitution/arithmetic
+checks and reduce to the same polynomial. This is analysis of existing cached
+evidence, not new production execution, hidden scoring or a qualification pass.
+The unsuccessful replay used the registered greedy seed75271729.
+
+These observations establish a fitting/worker failure rather than a missing
+learned program. Seed-sensitive bounded nonlinear solving is plausible, but
+the exact historical failure cannot be recovered: the original client discarded
+worker outcome/reason/metrics when no result arrived. A deadline, worker RSS
+limit or protocol failure all collapsed to the same generic message.
+
+The current client now retains the worker's failure class, reason, generation
+and metrics; protocol defects remain verification failures. The mounted replay
+utility also traces worker responses before the original-image client discards
+them. The wrapper neither changes request contents/deadlines nor adds fitting
+calls, so no rebuild is needed. One further visible replay using the same
+existing collection and a fresh output name (command above) can distinguish
+these causes. Its `summary.json` includes `worker_calls` with allowances,
+elapsed time, result counts and original failure reasons. Request source/values
+are excluded from this trace. No retraining, HIP work, threshold adjustment or
+replacement of T096's original negative outcome is warranted by this evidence.
+
+The reason-propagation and legacy tracing regressions pass in the49-test
+collector/evidence/adapter/worker subset, with one packaged-native skip. Native
+image execution remains a user-side check; CI is not monitored after pushing.
+
+## Traced replay diagnosis — 2026-10-21
+
+The subsequent `replay-traced-20261021T214004Z.zip` passes CRC, complete
+inventory and all9 manifest file hashes. Its case, original image/runtime and
+parent contract match the preceding review. Mounted utility bytes match
+published commit `0fb4df8`; the exact user Git revision is not reported. See
+the [deadline review receipt](phase-5-diverse32-deadline-review.json).
+
+The worker reports `resource_exhausted`, reason `deadline`, for fitting:
+
+| Observation | Value |
+| --- | ---: |
+| Fit worker allowance | 1.999855s |
+| Fit worker elapsed, including deadline handling | 2.007614s |
+| Returned fit results | 0 |
+| Cumulative queue wait across execute and fit | 0.000033s |
+| Cumulative observed worker RSS peak | 100.75 MiB |
+| Restarts after deadline retirement | 1 |
+| Whole replay work | 2.208825s |
+| Host cleanup | 0.100397s |
+
+Raw execution and independent visible verification succeed again. No RSS-limit
+or protocol failure is reported; the queue wait is negligible. The worker is
+retired after its deadline. The whole30-second diagnostic allowance was not
+exhausted: fitting has its own two-second native/worker ceiling within the
+four-second fitting/admission call. The75-second host reservation includes the
+nested30-second work allowance, with no refund or parent-budget mutation.
+
+This resolves the replay's failure class. It is consistent with T096's missing
+rescue candidate, but the original run did not retain a worker reason, so its
+precise historical phase cannot be reconstructed. No native response arrived;
+the trace does not establish which solver, enumeration or verification step
+was active at the cutoff. The earlier same-candidate success with another seed
+supports bounded fitting variability, not a claim that the language subset or
+model capacity cannot represent this case. T096 remains a completed negative
+result and promotion remains blocked.
+
+No further replay, retraining or HIP run is needed to identify this failure
+class. The remaining engineering scope is a Phase 2 review of time partitioning
+within the existing parent allowance: native search can consume the same deadline
+needed for production checks and response delivery. `SynthesisClient.fit`
+sets the worker deadline near two seconds; core fitting permits work until that
+deadline, and transport serializes/sends the result only after dispatch returns.
+This source inspection exposes an unreserved response-delivery boundary; it does
+not prove whether useful assignments were already found in this timed-out call.
+
+A focused follow-up should reserve bounded time for final checks and response
+delivery, report partially completed enumeration honestly, and test timeout
+recovery against this case plus independent fixtures. No provisional assignment
+may bypass production/reference admission. Preserve total budgets, native caps,
+ranking and gates unless an explicit reviewed policy change creates a new
+identity. Such a correction fits Spec 008's Phase 2 reopening rule; a broad
+solver redesign is not justified by this single case. Any new qualification
+must bind the changed image/source and is separate from the consumed T096 run.

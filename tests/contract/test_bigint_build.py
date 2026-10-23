@@ -93,6 +93,9 @@ def test_packaged_artifacts_and_binding_exact_numeral():
     report = inspect(ROOT, info)
     saved = json.loads((info / "bigint-build.json").read_text())
     assert report == saved
+    from oeis_learn.synthesis.engine_policy import production_policy
+    from oeis_learn.synthesis.contracts import identity
+    assert report["engine_policy"] == dict(manifest=production_policy(), sha256=identity(production_policy()))
     assert report["production_enabled"] is False
     assert report["imports"] == []
     for path in (

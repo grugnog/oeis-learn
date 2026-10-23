@@ -174,3 +174,71 @@ def test_targeted_measurement_never_runs_training_or_claims_full_qualification(
     assert stages == ["performance"] and validations == ["bigint-gpu"]
     assert len(launches) == 1 and "check" in launches[0]
     assert output.with_suffix(".zip").is_file()
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ["--gpu"],
+        ["--performance-only"],
+        ["--inputs", "fixture"],
+        ["--prepare"],
+        ["--checkpoint-run", "fixture"],
+    ],
+)
+def test_fitting_scope_rejects_unrelated_work_before_engine_access(extra, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["qualify", "--fitting-only", "--output", "unused", *extra])
+    with pytest.raises(SystemExit) as error:
+        helper().main()
+    assert error.value.code == 2
+
+
+@pytest.mark.parametrize("result", ["pass", "failed", "old-source"])
+def test_fitting_scope_binds_image_and_archives_without_other_work(tmp_path, monkeypatch, result):
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.synthesis.contracts import identity
+
+    module = helper()
+    output = tmp_path / "fitting"
+    snapshot = {"fixture": "immutable"}
+    monkeypatch.setattr(source_snapshot, "collect_snapshot", lambda root: snapshot)
+
+    class Host:
+        def __init__(self, args):
+            self.policy = dict(runtime={})
+            self.engine = SimpleNamespace(name="podman")
+
+        def ensure(self):
+            return "sha256:" + "a" * 64
+
+    monkeypatch.setitem(
+        sys.modules, "foundation_local", SimpleNamespace(Host=Host, relative=lambda s: s)
+    )
+    stages = []
+
+    def stage(host, image, path, argv, **kwargs):
+        stages.append(path.name)
+        module.write(
+            path / "summary.json",
+            dict(
+                status="FAIL" if result == "failed" else "PASS",
+                source_sha256="old" if result == "old-source" else identity(snapshot),
+            ),
+        )
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("targeted fitting must not fetch, prepare, benchmark, validate HIP or train")
+
+    monkeypatch.setattr(module, "container_stage", stage)
+    monkeypatch.setattr(module, "launch", forbidden)
+    import oeis_learn.container_validation as validation
+
+    monkeypatch.setattr(validation, "validate", forbidden)
+    monkeypatch.setattr(sys, "argv", ["qualify", "--fitting-only", "--output", str(output)])
+    assert module.main() == (0 if result == "pass" else 1)
+    report = json.loads((output / "summary.json").read_text())
+    assert report["scope"] == "fitting-only" and report["qualified"] is False
+    assert report["status"] == ("PASS" if result == "pass" else "FAIL")
+    assert {"T089", "T092", "T096", "T098"} <= report["pending"].keys()
+    assert stages == ["fitting"]
+    assert output.with_suffix(".zip").is_file()

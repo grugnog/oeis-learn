@@ -98,12 +98,70 @@ def test_native_fit_independent_admission(synthesis_driver, source, indices, val
     result = synthesis_driver("fit", source, indices, values)
     assert result["outcome"] == "assignment_found", result
     assert result["assignments"]
+    timing = result["timing"]
+    assert timing["policy"] == "native-fit-deadlines/v1"
+    assert 0 < timing["search_allowance_seconds"] < timing["native_allowance_seconds"] <= 2
+    assert 0 < timing["production_reserve_seconds"] <= 0.5
+    assert 0 < timing["response_reserve_seconds"] <= 0.1
+    assert len(result["searches"]) <= 5
+    for search in result["searches"]:
+        if search["assignments"] == 8:
+            assert search["checks"] == 8 and search["uniqueness"] == "multiple"
     prompt = VisiblePrompt(tuple(indices), tuple(values))
     for item in result["assignments"]:
         assert (
             _admit(item, prompt, runtime_sha256=synthesis_driver.runtime_sha256).outcome
             == "verified_solution"
         ), item
+
+
+def test_observed_candidate_returns_native_status_and_worker_stays_healthy(
+    fitting_client, monkeypatch
+):
+    # Visible-only diagnostic fixture. This is not a new T096 score or a promise
+    # that this seed discovers a fit; even an empty timeout must return its phase.
+    import time
+
+    source = (
+        "( program ( return ( add ( mul ( add $index ( int 11 ) ) $index ) "
+        "( add ( mul ( int -2 ) ( int 11 ) ) ( int 7 ) ) ) ) )"
+    )
+    prompt = VisiblePrompt(
+        tuple(str(n) for n in range(20)), tuple(str(n * n + 11 * n - 15) for n in range(20))
+    )
+    responses = []
+    call = fitting_client.worker.call
+
+    def traced(request, **kwargs):
+        response = call(request, **kwargs)
+        responses.append(response)
+        return response
+
+    monkeypatch.setattr(fitting_client.worker, "call", traced)
+    result = fitting_client.fit(
+        source,
+        prompt,
+        policy="eligible-literals/v1",
+        seed=75271729,
+        deadline=time.monotonic() + 4,
+    )
+    assert len(responses) == 1 and responses[0]["complete"], responses
+    native = result["native"]
+    assert native["timing"]["policy"] == "native-fit-deadlines/v1", result
+    assert native["outcome"] in {"assignment_found", "unknown", "resource_exhausted"}, result
+    assert native["admitted"] is False
+    if native["assignments"]:
+        assert result["outcome"] == "verified_solution", result
+        assert result["admitted"] and all(
+            row["outcome"] == "verified_solution" for row in result["admission"]
+        ), result
+    else:
+        assert result["admitted"] == [] and native["reason"], result
+    generation = fitting_client.worker.generation
+    assert generation == 0  # A delivered status does not retire/restart the worker.
+    healthy = fitting_client.execute("(program (return $index))", ["-7", "19"])
+    assert healthy["values"] == ["-7", "19"]
+    assert responses[-1]["complete"] and fitting_client.worker.generation == generation
 
 
 def test_native_unsat_replay_rederives_problem(synthesis_driver):

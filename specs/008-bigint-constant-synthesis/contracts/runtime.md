@@ -62,6 +62,33 @@ Benchmark labels distinguish supplied operand width from generated intermediate/
 
 Failures: `invalid_source`, `unsupported_profile`, `invalid_handle`, `integer_limit`, `literal_limit`, `output_limit`, `arena_limit`, `memory_limit`, `term_fuel`, `aggregate_fuel`, `reference_limit`, `control_range`, `loop_limit`, `deadline`, `runtime_failure`. Runtime logical errors set a sticky bounded host-readable status before failure; limiter denial, fuel exhaustion and external kills supply separate evidence. Unknown traps stay `runtime_failure`, not guessed OOM. No numeric result survives a sticky failure. Failure of independent verification is not candidate success.
 
+## Engine allocation policy and execution identity
+
+The reviewed CPU growth comparison motivates `bigint-engine-policy/v2`:
+64KiB spare virtual capacity for dynamic linear-memory growth, retaining zero
+guards, pinned Wasmtime20.0.2, fresh stores, visible memory/arena caps, fuel and
+failure semantics. This does not enlarge `bigint-resources/v1`'s visible64MiB
+memory cap or change arithmetic/guest bytes. The immutable manifest in
+`src/oeis_learn/synthesis/engine-policy.json` supplies both actual Rust settings
+and Python/build metadata. The native build inspector compares the compiled
+manifest against packaged data and rejects stale policy bytes.
+
+Bigint execution identity is the canonical hash of binary hash, guest hash,
+language profile and canonical `engine_policy_sha256`. Python admission and
+native fitting use the same record. Retained signed256 keeps its earlier
+three-field identity shape. Changed policy/build/runtime hashes invalidate
+cached/prepared/checkpoint contracts; historical receipts remain historical,
+not automatically qualified under this policy. Existing numerical profiles and
+reference arithmetic identities remain distinct from this engine policy.
+
+The only alternate constructor fixes zero growth reservation for qualification.
+Engine configuration/comparison v2 labels64KiB as production and nests the full
+zero control under `memory_growth.zero`; v1 archival readers preserve the old
+zero-production/64KiB-control interpretation. No worker request or mutable size
+flag selects an engine policy. Actual new-image native/container qualification
+is required before declaring adoption qualified; T094's remaining slowdown work
+and other Phase5 gates stay open.
+
 ## Width-extensible hybrid contract
 
 Preserve the historical mathematical streams with the explicit bootstrap prime list `[3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59]` for modulo and valuation streams, valuation cap32, FiLM enabled, first/second differences, summary tokens disabled and d256 four-encoder/four-decoder backbone. Verify these constants against the frozen current bootstrap contract during implementation rather than constructor defaults. A new input profile replaces only the fixed byte projection; decoder gain/dropout settings are separately recorded.

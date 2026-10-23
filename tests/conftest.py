@@ -96,9 +96,15 @@ def synthesis_driver():
     with path.open("rb") as handle:
         binary_hash = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
     guest_hash = "sha256:" + hashlib.sha256(wasm.read_bytes()).hexdigest()
-    run.identity_for = lambda profile: identity(
-        dict(guest_sha256=guest_hash, binary_sha256=binary_hash, profile=profile)
-    )
+    def identity_for(profile):
+        manifest = dict(guest_sha256=guest_hash, binary_sha256=binary_hash, profile=profile)
+        if profile == "bigint-body/v1":
+            from oeis_learn.synthesis.engine_policy import production_policy
+
+            manifest["engine_policy_sha256"] = identity(production_policy())
+        return identity(manifest)
+
+    run.identity_for = identity_for
     run.runtime_sha256 = run.identity_for("bigint-body/v1")
     return run
 

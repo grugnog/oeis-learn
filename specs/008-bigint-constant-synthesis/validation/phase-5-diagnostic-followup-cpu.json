@@ -1,0 +1,45 @@
+{
+  "version": "phase5-diagnostic-followup-cpu/v1",
+  "date": "2026-10-21",
+  "source_sha256": "sha256:c73be4cd4fe7c26ae37a16c58cf484ee9d270366599719d75a80b2393b5a10f6",
+  "qualified": false,
+  "python": "3.12.14",
+  "tests": {
+    "passed": 182,
+    "failed": 0,
+    "errors": 0,
+    "skipped": [
+      {
+        "name": "tests.integration.test_bigint_workflow.test_selection_scoring_is_independent_of_private_truth",
+        "reason": "native integration image required"
+      },
+      {
+        "name": "tests.integration.test_bigint_workflow.test_native_prepared_archive_has_full_matched_private_views",
+        "reason": "native preparation integration required"
+      },
+      {
+        "name": "tests.integration.test_synthesis_worker.test_real_packaged_native_fit_and_execute",
+        "reason": "requires qualification image"
+      }
+    ],
+    "gpu_deselected": 1
+  },
+  "junit": {
+    "path": "tmp-validation/diagnostic-followup-final.xml",
+    "sha256": "sha256:cb1fe87ae95facb425ae2383b47cc56daa79e2171650cb16aa36a8168849c795"
+  },
+  "native_image_available": false,
+  "container_engine_available": false,
+  "hip_available": false,
+  "original_run_replayed": false,
+  "original_T096_outcome": "NEGATIVE; promotion BLOCKED",
+  "checks": [
+    "ruff F,E9",
+    "ruff format",
+    "stdlib-only utility help",
+    "Spec Kit prerequisites",
+    "requirements checklist16/16",
+    "git diff --check",
+    "documented Bash syntax"
+  ]
+}

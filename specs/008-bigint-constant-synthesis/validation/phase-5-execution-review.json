@@ -1,0 +1,1276 @@
+{
+  "version": "phase5-execution-reconciliation/v1",
+  "review_date": "2026-10-21",
+  "qualified": false,
+  "workflow_run_id": 39686633400,
+  "tested_head_sha": "9f86c4d10ab96a0e7a95bc44752c54a08afd3f94",
+  "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+  "image": "sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c",
+  "artifacts": {
+    "build_sha256": "sha256:60ac7f9eb89178d774a693761f7a703b81a4f33f32d94505ffb73b1dd035104b",
+    "worker_sha256": "sha256:de26134870e67e21380a3cc5d9b8ccb20409ea68a27ca5de5bc425b09f3f8cb6",
+    "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+    "native": {
+      "backend": "rust",
+      "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+      "consume_fuel": true,
+      "execution_threads": 1,
+      "source_sha256": "sha256:69f87f6f07148a64e7ed2ff385d5d31bd35d02045eb59193aa2cae5dd75a6189",
+      "wasmtime": "20.0.2"
+    },
+    "locks": {
+      "oeis_bigint_runtime": {
+        "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          }
+        ]
+      },
+      "oeis_synthesis_core": {
+        "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      },
+      "oeis_wasm_evaluator": {
+        "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+            "name": "pyo3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.20.3"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      }
+    },
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+  },
+  "reviewed_artifacts": {
+    "bigint-qualification-arithmetic-docker": {
+      "name": "bigint-qualification-arithmetic-docker",
+      "id": 12386218840,
+      "sha256": "sha256:faf4270acf5777a00d266e06a497a90dd5f233c0658df1740b6a5f8d1af0ffc7",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "results.xml",
+          "bytes": 28078,
+          "sha256": "sha256:5f8290a60cbccace424ba4da4d11cb6b6fd2e4144d04d89237c186f5cb114a1d"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 4662,
+          "sha256": "sha256:31c7c0d08058689f1457d3daf12aab545e39f3930f16e7ce30faa7dea82d3c1c"
+        }
+      ],
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "tests": {
+        "tests": 184,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "sha256": "sha256:5f8290a60cbccace424ba4da4d11cb6b6fd2e4144d04d89237c186f5cb114a1d"
+      }
+    },
+    "bigint-qualification-fitting-docker": {
+      "name": "bigint-qualification-fitting-docker",
+      "id": 12386228699,
+      "sha256": "sha256:1dab150265848c14349bed3ba30c34de73485884b5943597c4e4e1c3208c6e64",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "results.xml",
+          "bytes": 5493,
+          "sha256": "sha256:e84a6e6229b353c8ff6c79482e23e1234f4a0c38bad18a8376493d72136df953"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 4658,
+          "sha256": "sha256:2ba8bc58d8942f43d93f7a7866733956cdb76745b88bc0562469291d7387e7e2"
+        }
+      ],
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "tests": {
+        "tests": 37,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "sha256": "sha256:e84a6e6229b353c8ff6c79482e23e1234f4a0c38bad18a8376493d72136df953"
+      }
+    },
+    "bigint-qualification-containment-docker": {
+      "name": "bigint-qualification-containment-docker",
+      "id": 12386694489,
+      "sha256": "sha256:77ad0141dcde40d91ee4c691346feacbb3d736828c0ccf7c5908061b58623159",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "results.xml",
+          "bytes": 9447,
+          "sha256": "sha256:5dc9b03d9a5934ec846fccb342479df12b72eec965e2abda569896b646f962b8"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 4662,
+          "sha256": "sha256:a9979009af320230d247e438a8cfb976e782c7d69858ba805952e699b1bb7a2d"
+        }
+      ],
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "tests": {
+        "tests": 64,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "sha256": "sha256:5dc9b03d9a5934ec846fccb342479df12b72eec965e2abda569896b646f962b8"
+      }
+    },
+    "bigint-qualification-containment-podman": {
+      "name": "bigint-qualification-containment-podman",
+      "id": 12387705078,
+      "sha256": "sha256:dd6980fd95b19abbbc406a20ff0a6b9e192e824d68e02c05801bdd2a7ad16990",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "results.xml",
+          "bytes": 9447,
+          "sha256": "sha256:b4cf735e68c2d098b0d3cf2f2df2ac08b645a873a7ea412807bc7b49645fc6e2"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 4662,
+          "sha256": "sha256:e259746ab90049a05eea26c8bf4dc1ab4bf45b95c60b491d37c9048b62ad126f"
+        }
+      ],
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "tests": {
+        "tests": 64,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "sha256": "sha256:b4cf735e68c2d098b0d3cf2f2df2ac08b645a873a7ea412807bc7b49645fc6e2"
+      }
+    },
+    "portable-docker": {
+      "name": "portable-docker",
+      "id": 12386089280,
+      "sha256": "sha256:b554f93f9b509d778ef0c452e59e200f19a96f377caf8708d76cc036dd603945",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "docker.xml",
+          "bytes": 4140,
+          "sha256": "sha256:1cedc72009578ccc05380e83cd7339789ed0d9c5d559c1f2bdc685e09b30556a"
+        },
+        {
+          "path": "public-cli/initial.stdout.log",
+          "bytes": 2473,
+          "sha256": "sha256:47deac911698000b62975e9d2ec5c1fd83476f6dc361dc04980890b099cf5e89"
+        },
+        {
+          "path": "public-cli/initial.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/repeat.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/repeat.stdout.log",
+          "bytes": 220,
+          "sha256": "sha256:e41e5e4e3f1daff5371a6098cce2eaba8a6d3b1a8fc28f7b5d2d066fab6b1317"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/receipt.json",
+          "bytes": 441,
+          "sha256": "sha256:1b412b86c9ed22524a2883c3c90ff37f1303f0e2df6da69fa56e1a8249067706"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/results.xml",
+          "bytes": 161086,
+          "sha256": "sha256:e5e16c23e4fa173222d35c648548b638a959c0eb20f29b9ccdc6cef8b7077af4"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/stdout.log",
+          "bytes": 3858,
+          "sha256": "sha256:0ce86da52612816937733a48a325a4f770a1683affda5284cf15a3ca1946e846"
+        },
+        {
+          "path": "public-cli/validation/environment/receipt.json",
+          "bytes": 329,
+          "sha256": "sha256:6778769244373c9921c5544cae900228fa8486acf07bc5b2c39ae5dcb99e3b12"
+        },
+        {
+          "path": "public-cli/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/validation/environment/stdout.log",
+          "bytes": 75,
+          "sha256": "sha256:43b5fbc5e1c2bee7a18589ab27d4d60469d74652f9a7a272ef03c53c57b607fa"
+        },
+        {
+          "path": "public-cli/validation/validation.json",
+          "bytes": 930,
+          "sha256": "sha256:4b77785e02fe9ffde46dcb1bd18a199086649f109b9e45bbd60af00db4b6e6a5"
+        },
+        {
+          "path": "public-cli.xml",
+          "bytes": 655,
+          "sha256": "sha256:016d1e8832b3a3acf4f634c15379e520e90a2f30e9bd495fb8c42bc9ce33d446"
+        },
+        {
+          "path": "pytest/test_actual_container_role_vie0/live/service-99355c0eefc945f4b4b8d5961fead018/output/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_vie0/live/service-99355c0eefc945f4b4b8d5961fead018/output/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_viecurrent/live/service-99355c0eefc945f4b4b8d5961fead018/output/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_viecurrent/live/service-99355c0eefc945f4b4b8d5961fead018/output/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc1/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc1/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:c4aae4287427b87d4a39e6f77b72d9e9ecdd6a66d618730641a33dc897accde1"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-learning/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-learning/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:c4aae4287427b87d4a39e6f77b72d9e9ecdd6a66d618730641a33dc897accde1"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-learning/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-learning/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        }
+      ],
+      "engine": "docker",
+      "junit": {
+        "docker.xml": {
+          "tests": 29,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:1cedc72009578ccc05380e83cd7339789ed0d9c5d559c1f2bdc685e09b30556a"
+        },
+        "public-cli.xml": {
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:016d1e8832b3a3acf4f634c15379e520e90a2f30e9bd495fb8c42bc9ce33d446"
+        }
+      },
+      "image": "sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c",
+      "public_cpu_validation": {
+        "skipped": 9,
+        "tests": 1115
+      },
+      "explicit_cpu_skips": [
+        {
+          "name": "tests.contract.test_foundation_qualified_cli.test_installed_train_resume_search",
+          "reason": "actual native G7/G8/G9 artifacts required"
+        },
+        {
+          "name": "tests.contract.test_foundation_qualified_cli.test_installed_discover_and_fresh_certificate",
+          "reason": "actual native G7/G8/G9 artifacts required"
+        },
+        {
+          "name": "tests.integration.test_foundation_evaluation.test_gpu_checkpoint_loading_and_prefix_only_generation",
+          "reason": "requires AMD HIP GPU in a GPU-enabled container; CPU fixture is not device evidence"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_train",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_resume",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_warmstart",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_evaluate",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.unit.test_foundation_roles.test_actual_container_role_views_and_reclamation",
+          "reason": "actual engine image required; CPU fixtures do not substitute"
+        },
+        {
+          "name": "tests.unit.test_foundation_sampler.test_complete_effective_constructors_and_real_forward_backward[cuda]",
+          "reason": "requires AMD HIP GPU in a GPU-enabled container; CPU diagnostics are not hardware evidence"
+        }
+      ],
+      "verified_rerun": true
+    },
+    "portable-podman": {
+      "name": "portable-podman",
+      "id": 12387004277,
+      "sha256": "sha256:cc9b07fe5eed4f90f27211ed39547b4d4878eded0c4e5f30afde631e9cadd19f",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "podman.xml",
+          "bytes": 4142,
+          "sha256": "sha256:cdcfb2d3046506c53c6bb8b19782dceb4f9d0784afb04e0da39ade7e58d6f6e2"
+        },
+        {
+          "path": "public-cli/initial.stdout.log",
+          "bytes": 2343,
+          "sha256": "sha256:b802693886c99184b5ceced221ab271af6c0b12784812cc221b37068525a98aa"
+        },
+        {
+          "path": "public-cli/initial.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/repeat.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/repeat.stdout.log",
+          "bytes": 220,
+          "sha256": "sha256:e41e5e4e3f1daff5371a6098cce2eaba8a6d3b1a8fc28f7b5d2d066fab6b1317"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/results.xml",
+          "bytes": 161086,
+          "sha256": "sha256:419bba70df8e74950b5a2eedbcf9c368d39068e0d5c389d6fec379f5080b85f1"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/receipt.json",
+          "bytes": 441,
+          "sha256": "sha256:86b005507da21b7bad7d6572f95d6c9447a0f43fb5aebbbfdbe489601ede8513"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "public-cli/validation/environment/stdout.log",
+          "bytes": 75,
+          "sha256": "sha256:43b5fbc5e1c2bee7a18589ab27d4d60469d74652f9a7a272ef03c53c57b607fa"
+        },
+        {
+          "path": "public-cli/validation/environment/receipt.json",
+          "bytes": 329,
+          "sha256": "sha256:5aea3cf4720e6ee17087681140bd98c74877b8ffb9cdbc7b1e88d8d9be8ab13f"
+        },
+        {
+          "path": "public-cli/validation/cpu-regressions/stdout.log",
+          "bytes": 3858,
+          "sha256": "sha256:9bbc30ef9991769afb56698cb2f679e8c56f2a884f22e54b3e03b80474a7cc36"
+        },
+        {
+          "path": "public-cli/validation/validation.json",
+          "bytes": 930,
+          "sha256": "sha256:8fc85ef9f0ad6c7ec068a0cc8bd62edd26ae4d8ae9fdb0b48daab4fb66ff9d7d"
+        },
+        {
+          "path": "public-cli.xml",
+          "bytes": 655,
+          "sha256": "sha256:09f9cd3f0b70ce400d038b41de86b193da9622500e7e6963689217d725895f39"
+        },
+        {
+          "path": "pytest/test_actual_container_role_vie0/live/service-bd6b5a916d294276803baf0c1aff844f/output/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_vie0/live/service-bd6b5a916d294276803baf0c1aff844f/output/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_viecurrent/live/service-bd6b5a916d294276803baf0c1aff844f/output/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_actual_container_role_viecurrent/live/service-bd6b5a916d294276803baf0c1aff844f/output/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failed_rerun_removes_old_current/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc1/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc1/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_suc2/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_failure_never_records_succurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:c4aae4287427b87d4a39e6f77b72d9e9ecdd6a66d618730641a33dc897accde1"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-learning/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-learning/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_rechec0/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:c4aae4287427b87d4a39e6f77b72d9e9ecdd6a66d618730641a33dc897accde1"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-learning/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-learning/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_environment_is_recheccurrent/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_not0/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/gpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_gpu_skips_fail_and_do_notcurrent/validation/gpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bu0/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/cpu-regressions/stdout.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/cpu-regressions/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/environment/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pytest/test_verified_receipts_skip_bucurrent/validation/environment/stdout.log",
+          "bytes": 5,
+          "sha256": "sha256:bb3ae0bc3e812f42cd1d17ef96eed0296a23a96830f57965df21fe3302257ff4"
+        }
+      ],
+      "engine": "podman",
+      "junit": {
+        "podman.xml": {
+          "tests": 29,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:cdcfb2d3046506c53c6bb8b19782dceb4f9d0784afb04e0da39ade7e58d6f6e2"
+        },
+        "public-cli.xml": {
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:09f9cd3f0b70ce400d038b41de86b193da9622500e7e6963689217d725895f39"
+        }
+      },
+      "image": "sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c",
+      "public_cpu_validation": {
+        "skipped": 9,
+        "tests": 1115
+      },
+      "explicit_cpu_skips": [
+        {
+          "name": "tests.contract.test_foundation_qualified_cli.test_installed_train_resume_search",
+          "reason": "actual native G7/G8/G9 artifacts required"
+        },
+        {
+          "name": "tests.contract.test_foundation_qualified_cli.test_installed_discover_and_fresh_certificate",
+          "reason": "actual native G7/G8/G9 artifacts required"
+        },
+        {
+          "name": "tests.integration.test_foundation_evaluation.test_gpu_checkpoint_loading_and_prefix_only_generation",
+          "reason": "requires AMD HIP GPU in a GPU-enabled container; CPU fixture is not device evidence"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_train",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_resume",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_warmstart",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.integration.test_foundation_legacy_artifacts.test_legacy_evaluate",
+          "reason": "Actual legacy parent/configuration required by later artifact stage"
+        },
+        {
+          "name": "tests.unit.test_foundation_roles.test_actual_container_role_views_and_reclamation",
+          "reason": "actual engine image required; CPU fixtures do not substitute"
+        },
+        {
+          "name": "tests.unit.test_foundation_sampler.test_complete_effective_constructors_and_real_forward_backward[cuda]",
+          "reason": "requires AMD HIP GPU in a GPU-enabled container; CPU diagnostics are not hardware evidence"
+        }
+      ],
+      "verified_rerun": true
+    },
+    "bigint-qualification-performance-docker": {
+      "name": "bigint-qualification-performance-docker",
+      "id": 12386213787,
+      "sha256": "sha256:09f7fa316e6e8cfe67b6b291b432cdd3cb8c80d9efdff947a554fccfa7315d34",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "benchmark.json",
+          "bytes": 238803,
+          "sha256": "sha256:9a0e658bfb80ee27e3e6c60608b09b0b0c061eaa3f161a44a31675ab3520fd53"
+        },
+        {
+          "path": "partial.json",
+          "bytes": 233447,
+          "sha256": "sha256:e7fcce2475e95c3744ba1385219328116eb0beff943725423a0c4fa3ac03bbc3"
+        }
+      ],
+      "report_sha256": "sha256:5e12ebbc4a6d8362665364521744d9a421ab6a3175afa70e3c14924c79d76adb",
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "image": "sha256:2792f2f01f8f7380cb468ca16c63096fb3c1f1f7442e2863bb3e1cdf9fb9145c",
+      "cases": 75,
+      "slowdown_investigations": [
+        {
+          "case": "shared-small-add",
+          "batch": 1,
+          "ratio": 27.89102514052778
+        },
+        {
+          "case": "shared-small-add",
+          "batch": 20,
+          "ratio": 89.71915740033913
+        },
+        {
+          "case": "shared-small-add",
+          "batch": 100,
+          "ratio": 99.39556109720783
+        },
+        {
+          "case": "shared-small-cancel",
+          "batch": 1,
+          "ratio": 32.411051618834804
+        },
+        {
+          "case": "shared-small-cancel",
+          "batch": 20,
+          "ratio": 84.53788928202826
+        },
+        {
+          "case": "shared-small-cancel",
+          "batch": 100,
+          "ratio": 97.89937887207734
+        },
+        {
+          "case": "shared-add-64",
+          "batch": 1,
+          "ratio": 29.653034947706416
+        },
+        {
+          "case": "shared-add-64",
+          "batch": 20,
+          "ratio": 83.21291621935865
+        },
+        {
+          "case": "shared-add-64",
+          "batch": 100,
+          "ratio": 94.87167034254553
+        },
+        {
+          "case": "shared-add-128",
+          "batch": 1,
+          "ratio": 26.08924663396188
+        },
+        {
+          "case": "shared-add-128",
+          "batch": 20,
+          "ratio": 85.85537221697636
+        },
+        {
+          "case": "shared-add-128",
+          "batch": 100,
+          "ratio": 98.49170516840017
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 1,
+          "ratio": 26.26187152656304
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 20,
+          "ratio": 86.79964592750831
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 100,
+          "ratio": 100.91109895452831
+        }
+      ],
+      "fitting_complete": true,
+      "resource_exclusions": [
+        {
+          "case": "generated-16384",
+          "batch": 100,
+          "samples": [
+            {
+              "reason": "aggregate_fuel",
+              "coverage": 82
+            },
+            {
+              "reason": "aggregate_fuel",
+              "coverage": 82
+            },
+            {
+              "reason": "aggregate_fuel",
+              "coverage": 82
+            }
+          ]
+        }
+      ],
+      "representative_execution": [
+        {
+          "case": "shared-small-add",
+          "batch": 1,
+          "bigint_execution_seconds": 0.000716632,
+          "retained_execution_seconds": 2.5694000001408313e-05,
+          "bigint_prepare_seconds": 0.0005498165,
+          "runtime_compile_seconds": 0.177400754
+        },
+        {
+          "case": "shared-small-add",
+          "batch": 20,
+          "bigint_execution_seconds": 0.013935987,
+          "retained_execution_seconds": 0.0001553290000018137,
+          "bigint_prepare_seconds": 0.0008928465,
+          "runtime_compile_seconds": 0.176624057
+        },
+        {
+          "case": "shared-small-add",
+          "batch": 100,
+          "bigint_execution_seconds": 0.0688305315,
+          "retained_execution_seconds": 0.0006924910000023488,
+          "bigint_prepare_seconds": 0.000967374,
+          "runtime_compile_seconds": 0.178963663
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 1,
+          "bigint_execution_seconds": 0.0007618174999999999,
+          "retained_execution_seconds": 2.9008499993210535e-05,
+          "bigint_prepare_seconds": 0.000557671,
+          "runtime_compile_seconds": 0.180735651
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 20,
+          "bigint_execution_seconds": 0.013556672500000002,
+          "retained_execution_seconds": 0.00015618350000323744,
+          "bigint_prepare_seconds": 0.0007526835,
+          "runtime_compile_seconds": 0.178463694
+        },
+        {
+          "case": "shared-add-255",
+          "batch": 100,
+          "bigint_execution_seconds": 0.068892865,
+          "retained_execution_seconds": 0.000682708499994078,
+          "bigint_prepare_seconds": 0.0009258834999999999,
+          "runtime_compile_seconds": 0.175533951
+        }
+      ]
+    },
+    "bigint-preparation-contracts": {
+      "name": "bigint-preparation-contracts",
+      "id": 12387635323,
+      "sha256": "sha256:be8faa4b03f1f202c08d3729cbb1f7f43376d8ca479feb586f2c5cba31cf3686",
+      "crc": "PASS",
+      "members": [
+        {
+          "path": "bigint-build.json",
+          "bytes": 6615,
+          "sha256": "sha256:60ac7f9eb89178d774a693761f7a703b81a4f33f32d94505ffb73b1dd035104b"
+        },
+        {
+          "path": "phase3.xml",
+          "bytes": 15238,
+          "sha256": "sha256:d0a6f39b6a24f2d84ebcea9c7daf9e87a7efbd662c168dc0a95d8b978da1c3b6"
+        },
+        {
+          "path": "phase4.xml",
+          "bytes": 4367,
+          "sha256": "sha256:a8c159bc365cccc252bf0b5dc0de9ebfe1fb9af46244f15b98f34e7a7125123b"
+        },
+        {
+          "path": "retirement-installed.json",
+          "bytes": 111,
+          "sha256": "sha256:1ad7021034300736f81662ad0eecd92483d6133fc1a61d6b51c21e3880f980c3"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 41531,
+          "sha256": "sha256:b38b14152c12c85918fd43d990a5e09cefa2771641b48f951b49fa5dd68acf42"
+        },
+        {
+          "path": "tests.xml",
+          "bytes": 30145,
+          "sha256": "sha256:6a12df6b3ce5aa090f2d6c6fcb9fe2ab551f776d0e1efb5e613b1829ada17765"
+        }
+      ],
+      "junit": {
+        "tests.xml": {
+          "tests": 202,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:6a12df6b3ce5aa090f2d6c6fcb9fe2ab551f776d0e1efb5e613b1829ada17765"
+        },
+        "phase3.xml": {
+          "tests": 44,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:d0a6f39b6a24f2d84ebcea9c7daf9e87a7efbd662c168dc0a95d8b978da1c3b6"
+        },
+        "phase4.xml": {
+          "tests": 27,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "sha256:a8c159bc365cccc252bf0b5dc0de9ebfe1fb9af46244f15b98f34e7a7125123b"
+        }
+      },
+      "installed_retirement": {
+        "package_root": "/opt/oeis-venv/lib/python3.12/site-packages/oeis_learn",
+        "status": "PASS",
+        "violations": []
+      }
+    }
+  },
+  "decision": {
+    "T089": "COMPLETE:184 zero-disagreement selected arithmetic/codec/reference/native cases; resource exclusions remain explicit",
+    "T090": "COMPLETE:37 native fitting/admission cases plus six measured non-scoring fitting classes; deadline correction and exact visible replay separately reviewed",
+    "T091": "PARTIAL:64 containment cases per engine and29 host/3 public cases per engine pass, but successful raw containment role inspect/cleanup evidence was not retained; audited CI launcher now implemented and awaiting artifacts",
+    "T093": "BLOCKED:actual retained matched checkpoint not supplied; bigint tiny checkpoint cannot substitute",
+    "T094": "OPEN:15 small-value ratios26.09\u2013100.91x in this CPU CI measurement; per-term profiling required before attribution or optimization",
+    "T097": "PARTIAL:arbitrary-UID suites202+44+27 and clean installed retirement pass; public validate/rerun pass on both engines; full documented operation/checkpoint/export coverage remains unreviewed",
+    "T098": "BLOCKED:remaining Phase5 gates and original negative T096 prohibit promotion"
+  },
+  "local_audit_wiring": {
+    "tests_passed": 47,
+    "engine_test_deselected": 1,
+    "stdlib_smoke": "Docker/Podman command construction, successful inspection publication and failed-launch cleanup; simulated engine only",
+    "workflow_yaml_bash_python_syntax": "PASS",
+    "implementation": "Existing container_stage launcher; no runtime, algorithm, dependency, dataset, threshold or training changes"
+  },
+  "limitations": [
+    "The nine broad public-CPU skips are explicit and are not counted as mandatory Phase5 suite passes.",
+    "Raw successful inspection/timed-cleanup artifacts are required to close T091; tests alone are not substituted for those missing records.",
+    "The reviewed implementation source snapshot is unchanged by documentation and workflow-only edits; the changed CI path still requires actual engine execution.",
+    "Historical HIP/cost/learning receipts retain their original source/image; they do not authorize new training with the corrected fitter.",
+    "Only completed jobs were reviewed; running checks were not awaited."
+  ],
+  "review_sha256": "sha256:1e6f12d9b6955498e3b87fe9cd939a8f77489b7561b2f99af83a1ec6e32e2fea"
+}

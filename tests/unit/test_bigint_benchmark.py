@@ -51,6 +51,7 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
     recipe = defaults()
     report = dict(
         status="PASS",
+        source_sha256="sha256:" + "f" * 64,
         fitting=dict(complete=True),
         image="sha256:" + "a" * 64,
         neural=dict(
@@ -119,7 +120,7 @@ def test_cost_admission_rechecks_forecast_and_rejects_cpu_or_incomplete_dataset(
             data["native_admitted"] = False
         with pytest.raises(ValueError):
             module.admit_cost_recipe(bad, recipe, data, tmp_path)
-        assert not (tmp_path / "measured-recipe.yaml").exists()
+        assert not list(tmp_path.glob("measured-*-recipe.yaml"))
     result = module.admit_cost_recipe(report, recipe, shapes, tmp_path)
     import yaml
 

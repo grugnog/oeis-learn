@@ -1,0 +1,100 @@
+{
+  "version": "phase5-first-byte-review/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "archive": "008-first-byte-20261022T163512Z.zip",
+  "archive_sha256": "sha256:6ff77f76974720c65a8f1fbec87539b833088c64538b18cf7d922bc0f4782f46",
+  "manifest_files_verified": 7,
+  "manifest_omissions": [],
+  "report_sha256": "sha256:563589dcdb4cbab959a2da4bae5bfbe4b6f4a2f66fa892c3a2c6c82634e0e3d9",
+  "source_sha256": "sha256:3f22888b0dbd86b438a87b855a1d40d8c5516baf8aec58605a044329673c9b29",
+  "image": "sha256:914a84a5a1303b49393e737e4635d61345421e9624412e244a9088d37aba992c",
+  "measurement_binary_sha256": "sha256:34b5bffb524ac7e2f5663df1b115f49ccb8d4efa7efea051e7c4f35c1136820f",
+  "configurations": 75,
+  "paired_samples": 225,
+  "all_results_match": true,
+  "independent_expected_value_hashes_verified": true,
+  "parent_and_nested_summaries_recomputed": true,
+  "outcomes": {
+    "ok": 213,
+    "aggregate_fuel": 3,
+    "integer_limit": 9
+  },
+  "observed_first_calls": 8670,
+  "initial_memory_bytes": 1114112,
+  "first_call_growth_bytes_per_term": 65536,
+  "growth_requests_per_first_call": 1,
+  "denied_requests": 0,
+  "grow_failed_callbacks": 0,
+  "post_first_growth_during_input": 0,
+  "sampled_growth_transition": {
+    "current_bytes": 1114112,
+    "desired_bytes": 1179648
+  },
+  "trace_caveat": "All request counters checked; detailed event samples are bounded to four/store and16/evaluation with exact omissions. Failed terms are included in8670 observed calls; they are not successful throughput.",
+  "selected_rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "first_us_per_term": 160.925325,
+      "remaining_transfer_us_per_term": 0.24163499999963964,
+      "first_fraction_of_byte_transfer": 0.9985007162758442,
+      "first_fraction_of_detailed_execution": 0.729956243764568,
+      "ordinary_execution_seconds": 0.0219373095,
+      "observer_ratio": 1.0049494218969743
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "first_us_per_term": 161.50311499999998,
+      "remaining_transfer_us_per_term": 0.2416699999996906,
+      "first_fraction_of_byte_transfer": 0.9985058560002433,
+      "first_fraction_of_detailed_execution": 0.7258374497035809,
+      "ordinary_execution_seconds": 0.022075135500000002,
+      "observer_ratio": 1.0079480599337656
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 100,
+      "first_us_per_term": 157.92043,
+      "remaining_transfer_us_per_term": 13.978464999999957,
+      "first_fraction_of_byte_transfer": 0.9186820543552654,
+      "first_fraction_of_detailed_execution": 0.5378250342636048,
+      "ordinary_execution_seconds": 0.029220395,
+      "observer_ratio": 1.0048731031870035
+    }
+  ],
+  "cleanup": {
+    "seconds": 0.04036714183166623,
+    "allowance_seconds": 5,
+    "within_bound": true
+  },
+  "isolation": {
+    "network": "none",
+    "readonly_root": true,
+    "privileged": false,
+    "GPU_devices": [],
+    "binds": [
+      {
+        "destination": "/work/output",
+        "writable": true
+      }
+    ]
+  },
+  "inference": "Fixed first-use cost is localized to first byte and coincides with guest linear-memory growth. Empty transfer Vec allocates on first push. Host Config uses dynamic memory with zero spare growth reservation; pinned Wasmtime20.0.2 MmapMemory::grow_to allocates and copies prior accessible bytes when reservation is exceeded. Relocation/copy is a strong explanation, but no allocator/copy time is measured directly and there is no counterfactual yet.",
+  "primary_source": {
+    "url": "https://github.com/bytecodealliance/wasmtime/blob/v20.0.2/crates/runtime/src/memory.rs",
+    "path": "MmapMemory::new/grow_to",
+    "reviewed_ref": "v20.0.2"
+  },
+  "next_step": "A separately identified qualification-only A/B of zero versus a small bounded dynamic growth reservation, preserving guest bytes/calls, fresh state, visible linear-memory caps, fuel and failure semantics. Compare ordinary timings plus total lifecycle/RSS/cleanup; reserve any production adoption and gate changes until the comparison passes.",
+  "limitations": [
+    "Only two warm samples per row; batch1 has material order/scheduler/observer variation",
+    "This archive proves source-bound native profiling execution, not a standalone native regression suite",
+    "Removing all first-call time could at most suggest roughly3.6-3.7x small-case speedup; other lifecycle costs remain",
+    "No neural/HIP/end-to-end speedup or training qualification claimed"
+  ],
+  "T094": "OPEN: bounded memory-growth comparison and remaining measurements",
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED"
+}

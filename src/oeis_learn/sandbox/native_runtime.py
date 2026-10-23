@@ -18,6 +18,7 @@ def source_bytes(root):
         "Dockerfile", "rustfmt.toml", "docker/dev/build-native.sh",
         "docker/dev/build-native-wheel.sh", "docker/dev/build-synthesis.sh",
         "docker/dev/install.sh", "src/oeis_learn/synthesis/records.schema.json",
+        "src/oeis_learn/synthesis/engine-policy.json",
         "src/oeis_learn/sandbox/preamble.wat",
     ))
     return b"".join(

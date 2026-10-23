@@ -484,6 +484,10 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                     {r["id"]: dict(selections={}, complete=True) for r in rows},
                 )
                 write(out / "archive-manifest.json", dict(fixture=True))
+                write(
+                    out / "evidence/chunk-0000.json",
+                    {r["id"]: dict(stage="generation") for r in rows},
+                )
                 return dict(
                     files={
                         "selections/chunk-0000.json": inventory(out)["selections/chunk-0000.json"]
@@ -503,7 +507,12 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                 out / "outcomes.json",
                 {
                     key: {
-                        mode: dict(success=False, complete=True)
+                        mode: dict(
+                            success=False,
+                            complete=True,
+                            reason="fixture_no_selection",
+                            upstream=dict(complete=True, reason="fixture_no_selection"),
+                        )
                         for mode in (
                             "raw",
                             "rescue",
@@ -516,6 +525,7 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                     for key in truth
                 },
             )
+            write(out / "evidence/chunk-0000.json", {key: dict(stage="scoring") for key in truth})
             return dict(
                 metric="continuation_accuracy_100",
                 portfolio="exact_equal_budget",
@@ -537,3 +547,8 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
     assert len(launches) == 4 and (run.root / "budget.json").read_bytes() == before
     assert read(tmp_path / "child/status.json")["status"] == "completed"
     assert read(tmp_path / "child/analysis.json")["parent"] == run.contract.sha256
+    assert len(list((tmp_path / "child/details").glob("000-evidence-*.json"))) == 4
+    comparison = read(tmp_path / "child/comparison.json")
+    for rows in comparison["observations"].values():
+        for row in rows.values():
+            assert set(row["outcomes"]["rescue"]) == {"success", "complete", "reason"}

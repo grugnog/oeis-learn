@@ -1,0 +1,57 @@
+{
+  "version": "phase5-first-byte-local/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "source_sha256": "sha256:3f22888b0dbd86b438a87b855a1d40d8c5516baf8aec58605a044329673c9b29",
+  "files": {
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:c171c21d9a3e694042cbd965077b4537eea110d44dcbe3373c1f7ce992ffb6c3",
+    "crates/oeis_synthesis_core/src/runtime/host_lookup_tests.rs": "sha256:afa46fd4a3158716340e50444b5c2ff528734fd0dd3a992381cdd205a66fb522",
+    "crates/oeis_synthesis_core/tests/runtime_profiling.rs": "sha256:1155d3b929800387a040d0b4b5b12147237c02108bcb49c28cf3ae41d2e5fe8c",
+    "scripts/benchmark_bigint.py": "sha256:4145bf93a6668fb9fdfd60e6806b0a6cdce2b24702517032a962a9bc776b0a7d",
+    "scripts/qualify_bigint_phase2.py": "sha256:94cbf121011c13aed6e6cd663328c1f48184297ff9a5487ae4d8d024e35a32e4",
+    "scripts/qualify_bigint_phase5.py": "sha256:648b131614fdfdf6f742db2451f0554e690717a597f3a6cdf941977f05782155",
+    "tests/unit/test_bigint_first_byte.py": "sha256:5ef78c32191d0e7263c7c78e39a4a68dc9112137141d77da78130eb911bca69a",
+    "tests/contract/test_bigint_performance.py": "sha256:241c43293706d67c55bd76ac194c435bc62281ec274c3d9777b52493cf1dd91d"
+  },
+  "python": "3.12.14",
+  "red_test": "Before implementation, the new first-byte fixture was rejected as unknown/incomplete input-load profile; focused pytest failed as expected.",
+  "tests": {
+    "passed": 160,
+    "failure": 0,
+    "error": 0,
+    "skipped": 5,
+    "junit_sha256": "sha256:5fa96163fb242fd40110213f5adec5b1e76e4b9e2bc619b6e67148c73413c5f9",
+    "skipped_reason": "Five packaged-native modes require the pinned qualification image; mandatory in shared CI."
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "formatting": "PASS",
+    "whitespace": "PASS",
+    "stdlib_only_host_help": "PASS",
+    "GPU_scope_rejected_before_engine": "PASS (exit 2)",
+    "spec_kit_prerequisites": "PASS",
+    "extension_hooks": "none",
+    "checklists": "16/16",
+    "workflow_yaml": "PASS",
+    "bash_run_blocks": 9,
+    "embedded_python": "PASS",
+    "documented_command": "PASS"
+  },
+  "actual_execution": {
+    "Rust_compile": false,
+    "native_regressions": false,
+    "new_first_byte_profile": false,
+    "Docker": false,
+    "Podman": false,
+    "HIP": false
+  },
+  "pending": [
+    "New-image native compilation and first-call/growth/fuel regression cases",
+    "Actual first-byte costs, request locations and observer distortion",
+    "T093 genuine retained matched-run weights and T097 remaining operations",
+    "T094/T098 remain open; original negative T096 and promotion block unchanged"
+  ],
+  "performance_claim": "NONE for new observation source; synthetic tests validate accounting only",
+  "reviewed_input_archive": "phase-5-input-load-review.json",
+  "new_CI": "not polled or awaited"
+}
