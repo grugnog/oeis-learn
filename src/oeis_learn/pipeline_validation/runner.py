@@ -23,13 +23,20 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
     mandatory=['contract.json','invocation.json','summary.json']
     for stage in stages:
         root=output/'stages'/stage.id
-        ledger=Ledger(root,stage.id,binding)
         prerequisites={p:receipts[p].get('reused_from',receipts[p]['identity']) for p in stage.prerequisites}
         blocked=[p for p in stage.prerequisites if receipts[p]['state'] not in {'PASS','REUSED'}]
         reason=global_stop or ('failed/missing prerequisites: '+','.join(blocked) if blocked else '')
-        from .reuse import find_stage
-        imported=find_stage(reuse_roots,stage.id,binding,prerequisites) if stage.adapter=='host' and not reason else None
+        stage_binding=binding
+        if not reason and stage.available and hasattr(adapter,'stage_binding'):
+            try:stage_binding=adapter.stage_binding(stage,binding)
+            except (CapabilityError,OSError,ValueError) as exc:reason='current stage binding unavailable: '+str(exc)
+        ledger=Ledger(root,stage.id,stage_binding)
+        from .reuse import find_stage,dependency_key
+        equivalence={p:dependency_key(receipts[p]) for p in stage.prerequisites}
+        reusable=stage.adapter=='host' or stage.adapter=='cpu' and stage_binding!=binding
+        imported=find_stage(reuse_roots,stage.id,stage_binding,prerequisites,equivalence) if reusable and not reason else None
         if imported is not None:
+            print(f'REUSE {stage.id}; verified producer {imported[1]["identity"]}; output {root}',flush=True)
             import shutil
             producer, previous=imported
             files={}
@@ -38,7 +45,9 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
                 target=root/'imported'/name;target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copyfile(confined(producer,name),target)
                 files[str(target.relative_to(root))]=sha
-            ledger.transition('REUSED',reason='complete compatible PASS; original producer retained',files=files,
+            write(root/'imported/producer-receipt.json',previous)
+            files['imported/producer-receipt.json']=file_hash(root/'imported/producer-receipt.json')
+            ledger.transition('REUSED',observations=previous.get('observations',{}),prerequisite_equivalence=equivalence,reason='complete compatible PASS; original producer retained',files=files,
                 reused_from=previous['identity'],prerequisites=prerequisites)
         elif not stage.available:
             ledger.transition('UNAVAILABLE',reason=stage.reason)
@@ -49,7 +58,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         elif time.monotonic()-start+stage.seconds+reserve>cap:
             ledger.transition('BLOCKED',reason='insufficient remaining global reservation',prerequisites=prerequisites)
         else:
-            ledger.transition('READY');ledger.transition('RUNNING',prerequisites=prerequisites)
+            ledger.transition('READY');ledger.transition('RUNNING',prerequisites=prerequisites,prerequisite_equivalence=equivalence)
             begin=time.monotonic()
             print(f'START {stage.id}; log: {root}; remaining {cap-(begin-start):.1f}s',flush=True)
             try:
@@ -120,7 +129,7 @@ def public_files(root):
     files={}
     for path in root.rglob('*'):
         if (path.is_file() and not path.is_symlink() and public(path.relative_to(root))
-                and path.suffix in {'.json','.xml','.jsonl'} and path.name not in {'receipt.json','transitions.jsonl'}):
+                and path.suffix in {'.json','.xml','.jsonl'} and not (path.parent==root and path.name in {'receipt.json','transitions.jsonl'})):
             try:files[str(path.relative_to(root))]=file_hash(path)
             except OSError:
                 # The failed stage remains failed; stderr names any inaccessible

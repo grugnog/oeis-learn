@@ -55,6 +55,7 @@ def main(args, root, host_factory):
     from .reuse import validate_import
     reuse_roots=[confined(root,path) for path in args.reuse]
     reuse_roots.extend(reference(root,ref).parent for ref in contract['reuse_refs'])
+    if len(reuse_roots)>16:raise ValueError('at most sixteen prior invocations may be referenced')
     for producer in reuse_roots:
         validate_import(producer)
     from .closures import dependency_closure

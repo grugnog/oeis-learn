@@ -24,7 +24,7 @@ def parse(record):
         if set(record['source'])!={'sha256'}:raise ValueError('closed source snapshot hash required')
         require_hash(record['source']['sha256'])
     for refs in [record['input_refs'],record['reuse_refs']]:
-        if not isinstance(refs,list):raise ValueError('content-addressed reference list required')
+        if not isinstance(refs,list) or len(refs)>16:raise ValueError('at most sixteen content-addressed references required')
         for ref in refs:
             if not isinstance(ref,dict) or set(ref)!={'path','sha256'} or not isinstance(ref['path'],str):raise ValueError('closed content reference required')
             require_hash(ref['sha256'])

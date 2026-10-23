@@ -26,3 +26,32 @@ class Reuse(unittest.TestCase):
         for current in [dict(old,**{'src/a.py':'new'}),dict(old,**{'uv.lock':'new'}),dict(old,**{'unmapped/new.data':'new'})]:
             self.assertFalse(compatible_closure(a,dependency_closure(current,prerequisites={'p':'producer'})))
         self.assertFalse(compatible_closure(a,dependency_closure(old,prerequisites={'p':'different'})))
+
+    def test_current_image_inspection_can_support_prior_pure_test_evidence(self):
+        import json
+        from oeis_learn.pipeline_validation.runner import execute
+        from oeis_learn.pipeline_validation.registry import Stage
+        from oeis_learn.pipeline_validation.identity import digest
+        calls=[]
+        class Adapter:
+            def stage_binding(self,stage,base):
+                return dict(base,image='immutable-image',hardware='same-host',resources='same-limits') if stage.adapter=='cpu' else base
+            def __call__(self,stage,output):
+                calls.append(stage.id)
+                if stage.adapter=='image':
+                    write(output/'image.json',{'image':'immutable-image'})
+                    return {'image':'immutable-image'}
+                (output/'results.xml').write_text('<testsuite><testcase name="semantic"/></testsuite>')
+                return {'tests':1}
+        stages=[Stage('image.docker.qualification',1,adapter='image'),Stage('cpu.docker.semantic',1,('image.docker.qualification',),adapter='cpu')]
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);binding={'source':digest('source')}
+            self.assertEqual(execute(stages,root/'old',adapter=Adapter(),binding=binding,cap=60,reserve=1),0)
+            calls.clear()
+            self.assertEqual(execute(stages,root/'new',adapter=Adapter(),binding=binding,cap=60,reserve=1,reuse_roots=[root/'old']),0)
+            summary=json.loads((root/'new/summary.json').read_text())
+            self.assertEqual(calls,['image.docker.qualification'])
+            cpu=summary['stages']['cpu.docker.semantic']
+            self.assertEqual(cpu['state'],'REUSED')
+            self.assertEqual(cpu['observations']['result']['tests'],1)
+            self.assertIn('imported/producer-receipt.json',cpu['files'])

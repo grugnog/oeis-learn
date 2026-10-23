@@ -39,6 +39,20 @@ class Adapters:
                 raise CapabilityError(f'{name}: {exc}') from exc
         return self.hosts[name]
 
+    def stage_binding(self,stage,base):
+        if stage.adapter!='cpu':return base
+        import os
+        from .identity import seal,digest
+        name=stage.id.split('.')[1];host=self.host(name)
+        policy={k:v for k,v in host.policy['pipeline_resources'].items() if k not in {'identity','available_bytes'}}
+        try:
+            cpu='\n'.join(line for line in Path('/proc/cpuinfo').read_text().splitlines()
+                if not line.startswith(('cpu MHz','bogomips')))
+        except OSError:cpu='unavailable'
+        hardware=dict(system=list(os.uname()),cpu_inventory=digest(cpu))
+        return dict(base,stage_version='pipeline-pure-tests/v1',image=self.images.images[(name,'qualification')],
+            engine=host.policy['runtime'],security=host.policy['engine_info'],resources=seal(policy),hardware=hardware)
+
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.

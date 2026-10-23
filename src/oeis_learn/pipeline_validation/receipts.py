@@ -29,7 +29,7 @@ class Ledger:
     def transition(self, state, **details):
         if state not in EDGES.get(self.payload['state'], set()):
             raise ValueError('illegal or immutable terminal transition')
-        if set(details) - {'reason','files','observations','reused_from','prerequisites','command','counts','cleanup'}:
+        if set(details) - {'reason','files','observations','reused_from','prerequisites','command','counts','cleanup','prerequisite_equivalence'}:
             raise ValueError('unknown receipt details')
         self.payload.update(state=state, **details)
         self._append()
