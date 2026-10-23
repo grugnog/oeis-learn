@@ -11,13 +11,13 @@ import time
 from oeis_learn.fresh.pipeline_jobs import NativeRequest,JobLedger
 
 
-def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None):
+def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None,ledger=None):
     if workers not in (1,2,4) or lookahead not in (1,2) or batch_size not in (1,8,16,32):
         raise ValueError('unregistered scheduler capacity')
     if sample is None:
         from oeis_learn.decoder.bigint_generation import sample_batch
         sample=sample_batch
-    ready={};active={};results=[None]*len(generators);ledger=JobLedger()
+    ready={};active={};results=[None]*len(generators);ledger=ledger if ledger is not None else JobLedger()
     done=set();completed=queue.Queue(maxsize=workers)
     def advance(i,value=None):
         try:

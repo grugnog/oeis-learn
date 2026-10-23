@@ -83,7 +83,7 @@ class Adapters:
             from oeis_learn.experiments.source_snapshot import collect_snapshot
             source=output/'input';source.mkdir()
             mode='contracts' if stage.adapter=='policy' else 'native'
-            write(source/'expected.json',dict(version='pipeline-role/v1',source=digest(collect_snapshot(self.root)),contract=self.contract['identity'],mode=mode,options={}))
+            write(source/'expected.json',dict(version='pipeline-role/v1',source=digest(collect_snapshot(self.root)),contract=self.contract['identity'],mode=mode,options={'seconds':stage.seconds,'memory_ceiling':host.policy['memory_bytes']}))
             image=self.images.images[(name,target)]
             container_stage(host,image,source,output/'role',mode=mode,seconds=stage.seconds,gpu=False,
                 argv=['python','-m','oeis_learn.pipeline_validation.role',mode])

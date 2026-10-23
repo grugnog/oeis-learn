@@ -38,9 +38,12 @@ def native_trial(output,*,workers,corpus,contract,cap):
     from oeis_learn.synthesis.admission import VisiblePrompt
     from oeis_learn.fresh.pipeline_jobs import NativeRequest,logical_job
     from oeis_learn.fresh.pipeline_scheduler import drive
+    from oeis_learn.fresh.pipeline_jobs import JobLedger
+    ledger=JobLedger();committed={}
+    output.mkdir(parents=True,exist_ok=True)
     limits=ServiceLimits(max_inflight_batches=workers)
     start=time.monotonic();deadline=start+cap
-    with SynthesisClient(contract,service_limits=limits,cache_root=output/'native-cache') as client:
+    with SynthesisClient(contract,service_limits=limits,cache_root=output/'private/native-cache') as client:
         def job(i,row):
             logical=logical_job(contract=contract,snapshot='fixed-native-corpus',mode='native',arm='fit',
                 prompt_id=row['id'],attempt_ordinal=0,method='fixture',seed=20261016)
@@ -55,29 +58,64 @@ def native_trial(output,*,workers,corpus,contract,cap):
                     return dict(id=row['id'],stratum=row['stratum'],seconds=time.monotonic()-began,
                         complete=result.get('complete',False),outcome=result['outcome'],
                         admitted=[dict(source_sha256=a['source_sha256'],assignment=a['assignment'],verification=a['verification']) for a in result['admitted']])
-            value=yield NativeRequest(logical,i,service_deadline,operation)
+            value=yield NativeRequest(logical,i,service_deadline,operation,cancel=client.worker.cancel_all)
+            committed[row['id']]=value
+            write(output/'jobs'/(row['id']+'.json'),value)
             return value
-        results,boundary=drive(None,[job(i,row) for i,row in enumerate(corpus['rows'])],workers=workers,
-            policies={'selection':'visible-only/v2','corpus':corpus['identity']})
+        policies={'selection':'visible-only/v2','corpus':corpus['identity']}
+        failure=None
+        try:
+            results,boundary=drive(None,[job(i,row) for i,row in enumerate(corpus['rows'])],workers=workers,
+                policies=policies,ledger=ledger)
+        except TimeoutError as exc:
+            failure=str(exc)
+            for key in ledger.records:ledger.cancel(key)
+            boundary=ledger.boundary(policies)
+            results=[committed.get(row['id'],dict(id=row['id'],stratum=row['stratum'],complete=False,
+                outcome='unstarted_or_cancelled',admitted=[],seconds=None)) for row in corpus['rows']]
         result=seal(dict(version='pipeline-native-trial/v1',workers=workers,corpus=corpus['identity'],
             seconds=time.monotonic()-start,results=results,complete=all(r['complete'] for r in results),
-            boundary=boundary,metrics=client.worker.stats))
+            boundary=boundary,metrics=client.worker.stats,failure=failure))
         write(output/'trial.json',result)
         return result
 
 
 def native_compare(inputs,output,config):
     corpus=native_corpus();write(output/'workload.json',corpus)
+    from .comparisons import calibrate
+    cap=config['options'].get('seconds',3000)
+    began=time.monotonic()
+    cold=native_trial(output/'cold',workers=1,corpus=corpus,contract=config['contract'],cap=min(180,cap/10))
+    complete={r['id'] for r in cold['results'] if r['complete']}
+    subset=seal(dict(version='pipeline-native-corpus/v1',rows=[r for r in corpus['rows'] if r['id'] in complete],
+        exclusions=[r['id'] for r in corpus['rows'] if r['id'] not in complete]))
+    write(output/'complete-subset.json',subset)
+    if not complete:
+        return dict(status='INCONCLUSIVE',selected_workers=1,reason='cold baseline has no complete work; candidates unstarted')
+    native_trial(output/'warmup',workers=1,corpus=subset,contract=config['contract'],cap=min(180,cap/10))
+    calibrations=[]
+    for ordinal in range(3):
+        trial=native_trial(output/f'calibration-{ordinal}',workers=1,corpus=subset,contract=config['contract'],cap=min(180,cap/10))
+        calibrations.append(dict(complete=trial['complete'],seconds=trial['seconds'],identity=trial['identity']))
+    try:
+        calibration=calibrate(calibrations,minimum=30,cap=300,parent=config['contract'],workload=subset['identity'])
+    except ValueError as exc:
+        return dict(status='INCONCLUSIVE',selected_workers=1,reason=str(exc),candidate_runs=0)
+    reservation=calibration['reservation_seconds']
+    write(output/'comparison-contract.json',seal(dict(version='pipeline-native-comparison-contract/v1',
+        calibration=calibration,subset=subset['identity'],candidates=[2,4],orders=['AB','BA'],
+        selection='fastest eligible median; fewer workers within five percent',remaining_reservation=10*reservation)))
+    if 10*reservation>cap-(time.monotonic()-began):
+        return dict(status='INCONCLUSIVE',selected_workers=1,reason='finite native candidate reservations cannot fit',candidate_runs=0)
     records=[]
-    # One unscored warmup, then exactly two exploratory paired runs per named candidate.
-    native_trial(output/'warmup',workers=1,corpus=corpus,contract=config['contract'],cap=300)
     for workers in (2,4):
+        native_trial(output/f'w{workers}-warmup',workers=workers,corpus=subset,contract=config['contract'],cap=reservation)
         for pair,order in enumerate(('AB','BA')):
             row={}
             for arm in order:
                 count=1 if arm=='A' else workers
                 row[arm]=native_trial(output/f'w{workers}-pair{pair}-{arm}',workers=count,
-                    corpus=corpus,contract=config['contract'],cap=300)
+                    corpus=subset,contract=config['contract'],cap=reservation)
             parity=[r['admitted'] for r in row['A']['results']]==[r['admitted'] for r in row['B']['results']]
             records.append(dict(workers=workers,pair=pair,order=order,arms=row,parity=parity))
     eligible={}
