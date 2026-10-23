@@ -1,0 +1,156 @@
+{
+  "version": "pipeline-policy-fixtures/v1",
+  "fixtures_only": true,
+  "records": [
+    {
+      "version": "pipeline-policy-comparison/v1",
+      "selections": {
+        "v1": {
+          "cost": 1,
+          "source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "verified": true,
+          "visible_count": 20,
+          "source": "(program (return $index))",
+          "seal_sha256": "sha256:113c659b6bd0cbdc98c3f68e1503f479e2dda05500a62c9e2e8ab085bac6bba4",
+          "selection": "visible-only/v1"
+        },
+        "v2": {
+          "source": "(program (return $index))",
+          "source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "verified": true,
+          "visible_count": 20,
+          "attempt_ordinal": 0,
+          "job_id": "sha256:5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+          "provenance": {
+            "prompt": "fixture",
+            "snapshot": "fixture",
+            "policies": {
+              "selection": "v2"
+            },
+            "original_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "transformed_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "assignment": {},
+            "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5"
+          },
+          "selection": "visible-only/v2",
+          "seal_sha256": "sha256:61d6b2d00fdb1f0ce5e8cd3aaddaa3712c31e413286d3a0108e2f4ff09536656"
+        }
+      },
+      "selected_provenance": {
+        "v1": {
+          "source": "(program (return $index))",
+          "source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "verified": true,
+          "visible_count": 20,
+          "cost": 1,
+          "attempt_ordinal": 1,
+          "job_id": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+          "provenance": {
+            "prompt": "fixture",
+            "snapshot": "fixture",
+            "policies": {
+              "selection": "v2"
+            },
+            "original_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "transformed_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "assignment": {},
+            "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5"
+          }
+        },
+        "v2": {
+          "source": "(program (return $index))",
+          "source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "verified": true,
+          "visible_count": 20,
+          "attempt_ordinal": 0,
+          "job_id": "sha256:5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+          "provenance": {
+            "prompt": "fixture",
+            "snapshot": "fixture",
+            "policies": {
+              "selection": "v2"
+            },
+            "original_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "transformed_source_sha256": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+            "assignment": {},
+            "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5"
+          },
+          "selection": "visible-only/v2",
+          "seal_sha256": "sha256:61d6b2d00fdb1f0ce5e8cd3aaddaa3712c31e413286d3a0108e2f4ff09536656"
+        }
+      },
+      "archives": {
+        "v1": {
+          "policy": "structure-pareto/v1",
+          "retained": [
+            {
+              "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5",
+              "id": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+              "source": "(program (return $index))",
+              "verified": true,
+              "profile": "bigint-body/v1",
+              "track": "generic_only",
+              "cost": 1,
+              "structure": "fixture",
+              "assignment": {}
+            }
+          ],
+          "omitted": []
+        },
+        "v2": {
+          "policy": "structure-pareto/v2",
+          "retained": [
+            {
+              "id": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+              "source": "(program (return $index))",
+              "structure": "fixture",
+              "cost": 9,
+              "verified": true,
+              "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5",
+              "track": "generic_only",
+              "profile": "bigint-body/v1",
+              "assignment": {},
+              "attempt_ordinal": 0,
+              "job_id": "sha256:5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+            }
+          ],
+          "omitted": []
+        }
+      },
+      "training_representatives": {
+        "v1": {
+          "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5",
+          "id": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "source": "(program (return $index))",
+          "verified": true,
+          "profile": "bigint-body/v1",
+          "track": "generic_only",
+          "cost": 1,
+          "structure": "fixture",
+          "assignment": {}
+        },
+        "v2": {
+          "id": "sha256:a409df26663a846d92d6c00f015b31997f892acaa5d61ed4a117d18bb85f5850",
+          "source": "(program (return $index))",
+          "structure": "fixture",
+          "cost": 9,
+          "verified": true,
+          "verification": "sha256:c6ac1be6e703883b8691caab2f3b968a039b91e60a6ed763d3e09c9425a9eea5",
+          "track": "generic_only",
+          "profile": "bigint-body/v1",
+          "assignment": {},
+          "attempt_ordinal": 0,
+          "job_id": "sha256:5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+        }
+      },
+      "differences": {
+        "selection": true,
+        "archive": true,
+        "training_representative": true
+      },
+      "authority": "policy effects on supplied independently admitted visible records only; no hidden-score selection or performance adoption",
+      "identity": "sha256:ccb167f788d4f83170faf91ded3e72b4b8dd591db0e2afe758237dba96255a00"
+    }
+  ],
+  "identity": "sha256:bd2331e367bca75520271a99b5d37b07f1376a0b72e74d82ab6a8af62c85fe11"
+}
