@@ -47,6 +47,7 @@ class Benchmarks:
         os.link(prepared/'input/weights.pt',inputs/'weights.pt')
         work=json.loads((prepared/'input/work.json').read_text());write(inputs/'work.json',work)
         options=dict(policy=policy,assessment=assessment,bookkeeping=bookkeeping,prompt_ids=prompt_ids,
+                     memory_ceiling=a.host(a.args.engine).policy['memory_bytes'],render_node=a.host(a.args.engine).policy['render_node'],
                      seconds=seconds,telemetry=telemetry,cache_state=cache_state,prewarm=self.prewarm if cache_state=='warm' else [])
         config=dict(version='pipeline-role/v1',source=manifest['source_sha256'],contract=a.contract['identity'],mode='neural',options=options)
         write(inputs/'expected.json',config)
@@ -62,8 +63,8 @@ class Benchmarks:
         truth={key:truth[key] for key in selections}
         score_input=output/'private/scorer-input';score_input.mkdir(parents=True)
         write(score_input/'truth.json',truth);write(score_input/'selections.json',selections)
-        write(score_input/'score.json',dict(truth=digest(truth),selections=digest(selections)))
-        write(score_input/'expected.json',dict(config,mode='score',options={'seconds':seconds}))
+        write(score_input/'score.json',dict(truth=digest(truth),selections=digest(selections),resources=work['recipe']['execution']['resources']))
+        write(score_input/'expected.json',dict(config,mode='score',options={'seconds':seconds,'memory_ceiling':host.policy['memory_bytes']}))
         module.container_stage(host,image,score_input,output/'scorer',mode='score',seconds=seconds,gpu=False,
             argv=['python','-m','oeis_learn.pipeline_validation.role','score'])
         scored=json.loads((output/'scorer/summary.json').read_text())

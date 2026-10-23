@@ -124,7 +124,15 @@ def main(argv=None):
         view=device_view();write(output/'devices.json',view)
         audit_device_view([],view,json.loads(os.environ['OEIS_EXPECTED_PIPELINE_DEVICES']))
         from .neural import gpu,score
-        result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score}[args.mode](inputs,output,config)
+        from .memory import MemoryWatchdog
+        ceiling=config['options'].get('memory_ceiling')
+        if ceiling is None:
+            from .resources import observe,resolve
+            ceiling=resolve(**observe())['ceiling_bytes']
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode=='neural',
+                render_node=config['options'].get('render_node')) as guard:
+            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score}[args.mode](inputs,output,config)
+        result['resources']=guard.report()
     except BaseException as exc:
         result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}')
     finally:

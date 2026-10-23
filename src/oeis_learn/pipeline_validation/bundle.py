@@ -6,7 +6,7 @@ import stat
 import zipfile
 from .identity import seal, file_hash, confined, write, validate
 
-EXCLUDED = {'input','inputs','private','cache','caches','.runtime','pytest','__pycache__'}
+EXCLUDED = {'input','inputs','private','cache','caches','.runtime','pytest','__pycache__','native-cache','checkpoints'}
 
 
 def public(path):

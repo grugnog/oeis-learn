@@ -32,6 +32,7 @@ class Adapters:
                 options.pipeline_resource_policy=policy
                 host=self.host_factory(options)
                 host.policy['pipeline_resources']=policy
+                host.policy['cpu_memory_bytes']=policy['ceiling_bytes']
                 self.hosts[name]=host
             except (RuntimeError,OSError,ValueError) as exc:
                 raise CapabilityError(f'{name}: {exc}') from exc
@@ -40,7 +41,7 @@ class Adapters:
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
-            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision']
+            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision','benchmarks','memory']
             code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
             return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds)
         if stage.adapter=='qualification':

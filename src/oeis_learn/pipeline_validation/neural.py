@@ -149,6 +149,7 @@ def score(inputs,output,config):
     selections=json.loads((inputs/'selections.json').read_text())
     if digest(truth)!=work['truth'] or digest(selections)!=work['selections'] or set(truth)!=set(selections):
         raise ValueError('scorer truth/selections identity mismatch')
-    with SynthesisClient(config['contract'],cache_root=output/'private/cache') as client:
+    from oeis_learn.synthesis.contracts import ResourceProfile
+    with SynthesisClient(config['contract'],limits=ResourceProfile(**work['resources']),cache_root=output/'private/cache') as client:
         result=score_visible(selections,truth,client,deadline=time.monotonic()+config['options']['seconds'])
     return dict(status='COMPLETE' if all(v['complete']==v['denominator'] for v in result['splits'].values()) else 'PARTIAL',result=result)
