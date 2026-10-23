@@ -49,7 +49,7 @@ def parse(record):
     total = 2 * budgets['build_per_engine_seconds'] + sum(budgets['phase_seconds'].values()) + budgets['archive_seconds'] + budgets['cleanup_seconds']
     if total > budgets['global_seconds'] or budgets['global_seconds'] > 86400:
         raise ValueError('reservations must fit the parent')
-    if budgets['mandatory_reserve_bytes'] < 16 << 20 or budgets['zip_bytes'] < budgets['mandatory_reserve_bytes']:
+    if budgets['mandatory_reserve_bytes'] < 16 << 20 or min(budgets['zip_bytes'],budgets['transient_bytes']) < budgets['mandatory_reserve_bytes']:
         raise ValueError('mandatory archive reserve required')
     if record['engines'] not in ['available', 'selected', 'both'] or record['resource_policy'] not in ['workstation90','capacity64','historical16']:
         raise ValueError('unknown engine/resource policy')

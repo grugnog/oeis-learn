@@ -67,4 +67,4 @@ class DiskWatchdog:
         except OSError:
             # Earlier ledgers remain usable; resource exhaustion must still propagate.
             if exc[0] is None:raise ResourceBreach('disk report could not be persisted')
-        if self.breach and exc[0] is None:raise ResourceBreach(self.breach)
+        if self.breach and exc[0] is not KeyboardInterrupt:raise ResourceBreach(self.breach) from exc[1]

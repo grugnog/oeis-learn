@@ -44,3 +44,17 @@ class Validation(unittest.TestCase):
             'validate','--suite','pipeline','--scope-report'],cwd=ROOT,capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('selected',result.stdout)
+
+    def test_export_failure_retains_a_verified_nonadmitting_archive(self):
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.bundle import verify
+        with tempfile.TemporaryDirectory() as folder:
+            out=Path(folder)/'out'
+            with patch('oeis_learn.pipeline_validation.runner.pack',side_effect=OSError('injected export failure')):
+                code=execute([Stage('safe',1)],out,adapter=lambda *_:{},binding={'source':digest('source')},cap=60,reserve=1)
+            self.assertEqual(code,1)
+            self.assertTrue(out.with_suffix('.zip').is_file())
+            manifest=verify(out.with_suffix('.zip'))
+            self.assertEqual(manifest['summary_state'],'FAIL')
+            self.assertTrue((out/'export-failure.json').is_file())
+            self.assertFalse((out/'private/emergency.reserve').exists())

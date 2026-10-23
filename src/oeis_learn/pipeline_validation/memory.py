@@ -88,4 +88,4 @@ class MemoryWatchdog:
         signal.signal(signal.SIGTERM,self.previous)
         self.sample(terminate=False)
         write(self.output/'memory.json',self.report())
-        if self.breach and exc[0] is None:raise MemoryError(self.breach['reason'])
+        if self.breach and exc[0] is not KeyboardInterrupt:raise MemoryError(self.breach['reason']) from exc[1]

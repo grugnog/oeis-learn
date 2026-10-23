@@ -19,6 +19,9 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
     start=time.monotonic()
     write(output/'invocation.json',seal(dict(version='pipeline-invocation/v1',binding=binding,
         started=time.time(),monotonic_origin=start,cap=cap,reserve=reserve,selected=[s.id for s in stages])))
+    from .recovery import reserve_space
+    budgets=(contract or {}).get('budgets',{})
+    emergency=reserve_space(output,min(budgets.get('mandatory_reserve_bytes',16<<20),budgets.get('disk_bytes',16<<20)))
     receipts={};interrupted=False;global_stop='';phase_costs={}
     mandatory=['contract.json','invocation.json','summary.json']
     for stage in stages:
@@ -73,12 +76,15 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
                 files=public_files(root)
                 ledger.transition(result.get('stage_state','PASS'),files=files,observations=dict(elapsed_seconds=time.monotonic()-begin,result=result))
             except KeyboardInterrupt:
+                emergency.unlink(missing_ok=True)
                 interrupted=True;global_stop='interrupted'
                 ledger.transition('PARTIAL',reason='user interruption',files=public_files(root))
             except CapabilityError as exc:
                 ledger.transition('PARTIAL',reason=str(exc),files=public_files(root))
             except BaseException as exc:
-                if isinstance(exc,(MemoryError,ResourceBreach)):
+                import errno
+                if isinstance(exc,(MemoryError,ResourceBreach)) or isinstance(exc,OSError) and exc.errno in {errno.ENOSPC,errno.EDQUOT}:
+                    emergency.unlink(missing_ok=True)
                     global_stop='global resource/audit breach: '+str(exc)
                 ledger.transition('FAIL',reason=f'{type(exc).__name__}: {exc}',files=public_files(root))
             if stage.adapter != 'image':
@@ -100,6 +106,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         receipts['study.report']=report_ledger.read()
         mandatory.extend(['stages/study.report/receipt.json','stages/study.report/transitions.jsonl'])
         mandatory.extend('stages/study.report/'+name for name in report_ledger.read()['files'])
+    emergency.unlink(missing_ok=True)
     summary=summarize(receipts,interrupted=interrupted,registry_unavailable=unavailable)
     summary.update(phase_consumed_seconds=phase_costs,elapsed_seconds=time.monotonic()-start,cap_seconds=cap,cleanup_archive_reserve_seconds=reserve)
     write(output/'summary.json',summary)
@@ -113,7 +120,14 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
             write(output/'export-failure.json',dict(error=str(exc),surviving=str(output/'summary.json')))
         except OSError:
             pass
-        code=code or 1
+        try:
+            from .recovery import minimal_archive
+            archive,recovery_summary=minimal_archive(output,contract=contract,binding=binding,receipts=receipts,error=exc,
+                cap=(contract or {}).get('budgets',{}).get('zip_bytes',512<<20))
+            print(f'FAILED RECOVERY SUMMARY {recovery_summary}; ARCHIVE {archive}; full details remain under {output}',flush=True)
+        except (OSError,ValueError) as recovery_error:
+            print(f'RECOVERY ARCHIVE FAILED: {recovery_error}; retain the original output tree {output}',flush=True)
+        code=130 if interrupted else 1
     return code
 
 
