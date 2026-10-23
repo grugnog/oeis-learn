@@ -109,7 +109,7 @@ def compact_attempts(details):
     ]
 
 
-def _seal(items, prompt, *, cost):
+def _seal(items, prompt, *, cost, selection='visible-only/v1', snapshot=None, policies=None):
     chosen = select_visible(
         [
             dict(
@@ -118,13 +118,20 @@ def _seal(items, prompt, *, cost):
                 verified=True,
                 visible_count=20,
                 cost=r.get("_cost", cost),
+                **(dict(attempt_ordinal=r['_attempt_ordinal'], job_id=r['_job_id'],
+                    provenance=dict(prompt=prompt.sha256,snapshot=snapshot,policies=policies,
+                        original_source_sha256=r['original_source_sha256'],
+                        transformed_source_sha256=source_identity(r['transformed_source']),
+                        assignment=r['assignment'],verification=identity(r['verification'])))
+                    if selection == 'visible-only/v2' else {}),
             )
             for r in items
-        ]
+        ], policy=selection
     )
     if chosen is None:
         return None
-    record = next(r for r in items if r["source_sha256"] == chosen["source_sha256"])
+    record = next(r for r in items if r['source_sha256'] == chosen['source_sha256']
+        and (selection == 'visible-only/v1' or r['_job_id'] == chosen['job_id']))
     return dict(
         selected=chosen,
         verification=record["verification"],
@@ -155,6 +162,9 @@ def _portfolio(
     attempt_count=8,
     template=False,
     compare_cache=False,
+    mode='correct',
+    prompt_ordinal=0,
+    snapshot=None,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
 
@@ -168,6 +178,10 @@ def _portfolio(
         beam=recipe["search"]["beam"],
     )
     deadline = min(deadline, policy.deadline)
+    pipeline = recipe.get('pipeline')
+    selection = 'visible-only/v2' if pipeline else 'visible-only/v1'
+    if pipeline and snapshot is None:
+        snapshot = model_snapshot(None, decoder)
     fitted = []
     raw = []
     rescued = []
@@ -244,30 +258,41 @@ def _portfolio(
         if not complete:
             incomplete = True
             continue
-        if position == 0 and not template:
-            found, detail["raw"] = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
-            if found:
-                raw.append(found)
+        from .pipeline_jobs import logical_job, NativeRequest
+        job = logical_job(contract=recipe.get('identity', identity(recipe)),snapshot=snapshot,
+            mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
+            method=attempt['method'],seed=attempt['seed'])
+        def native_work():
+            from contextlib import nullcontext
+            affinity = getattr(getattr(client,'worker',None),'affinity',None)
+            with affinity(prompt_ordinal) if affinity else nullcontext():
+                raw_found, raw_status = (None, detail['raw'])
+                if position == 0 and not template:
+                    raw_found, raw_status = _raw(client, source, prompt, service_deadline if pipeline else min(deadline,time.monotonic()+4))
+                fit_started = time.monotonic()
+                if recipe['fitting']['disabled']:
+                    found, status = _raw(client,source,prompt,service_deadline if pipeline else min(deadline,time.monotonic()+4))
+                    fit_result = dict(outcome='raw_only',admitted=[found] if found else [],complete=status['complete'],reason=status['reason'])
+                else:
+                    fit_result = client.fit(source,prompt,
+                        policy='none' if '(param.get ' in source else 'eligible-literals/v1',
+                        deadline=service_deadline if pipeline else min(deadline,time.monotonic()+4),seed=attempt['seed']%2**32)
+                return raw_found, raw_status, fit_result, time.monotonic()-fit_started
         fitting_start = time.monotonic()
-        if recipe["fitting"]["disabled"]:
-            found, raw_status = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
-            fit = dict(
-                outcome="raw_only",
-                admitted=[found] if found else [],
-                complete=raw_status["complete"],
-                reason=raw_status["reason"],
-            )
+        service_deadline = min(deadline,fitting_start+4)
+        if pipeline:
+            found, detail['raw'], fit, fit_elapsed = yield NativeRequest(job,prompt_ordinal,
+                min(deadline,fitting_start+4),native_work)
         else:
-            fit = client.fit(
-                source,
-                prompt,
-                policy="none" if "(param.get " in source else "eligible-literals/v1",
-                deadline=min(deadline, time.monotonic() + 4),
-                seed=attempt["seed"] % 2**32,
-            )
+            found, detail['raw'], fit, fit_elapsed = native_work()
+        if found:
+            found.update(_attempt_ordinal=position,_job_id=job['job_id'])
+            raw.append(found)
         for admitted in fit["admitted"]:
-            admitted["_cost"] = generated + time.monotonic() - fitting_start
+            admitted["_cost"] = generated + (time.monotonic() - fitting_start if pipeline else fit_elapsed)
             admitted["_original_source"] = source
+            admitted['_attempt_ordinal'] = position
+            admitted['_job_id'] = job['job_id']
         detail.update(
             outcome=fit["outcome"], native=fit.get("native"), fit_cache=fit.get("metrics")
         )
@@ -296,7 +321,7 @@ def _portfolio(
         detail["fitting"]["admission"] = fit.get("admission", [])
         if fit["outcome"] == "verification_failure":
             raise RuntimeError("independent admission disagreement")
-        if fit["outcome"] in {"unknown", "resource_exhausted"}:
+        if fit["outcome"] in {"unknown", "resource_exhausted"} or not detail['fitting']['complete']:
             incomplete = True
         fitted.extend(fit["admitted"])
         if position == 0 and not template:
@@ -306,7 +331,9 @@ def _portfolio(
     cost = time.monotonic() - start
     distinct = {}
     for r in fitted:
-        if r["source_sha256"] not in distinct or r["_cost"] < distinct[r["source_sha256"]]["_cost"]:
+        previous = distinct.get(r['source_sha256'])
+        if previous is None or ((r['_attempt_ordinal'], r['_job_id']) < (previous['_attempt_ordinal'], previous['_job_id'])
+            if pipeline else r['_cost'] < previous['_cost']):
             distinct[r["source_sha256"]] = r
     archive = (
         retain_alternatives(
@@ -321,17 +348,18 @@ def _portfolio(
                     track=recipe["track"]["kind"],
                     profile="bigint-body/v1",
                     assignment=r["assignment"],
+                    **(dict(attempt_ordinal=r['_attempt_ordinal'],job_id=r['_job_id']) if pipeline else {}),
                 )
                 for r in distinct.values()
-            ]
+            ], policy='structure-pareto/v2' if pipeline else 'structure-pareto/v1'
         )
         if fitted
         else dict(retained=[], omitted=[])
     )
     return dict(
-        raw=_seal(raw, prompt, cost=cost),
-        rescue=_seal(rescued, prompt, cost=cost),
-        equal_budget=_seal(fitted, prompt, cost=cost),
+        raw=_seal(raw, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
+        rescue=_seal(rescued, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
+        equal_budget=_seal(fitted, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         complete=not incomplete and len(details) == attempt_count,
         elapsed_seconds=cost,
         details=details,
@@ -345,7 +373,7 @@ def _portfolio(
     )
 
 
-def _drive_portfolios(decoder, generators):
+def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None):
     """Interleave decoding only. Fitting/admission remain serial and prompt-local."""
     from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE, sample_batch
 
@@ -362,16 +390,30 @@ def _drive_portfolios(decoder, generators):
         advance(index, generator, first=True)
     while pending:
         # Greedy and stochastic distributions never share a sampling call.
+        from .pipeline_jobs import NativeRequest
+        native = next((p for p in pending if isinstance(p[2], NativeRequest)), None)
+        if native is not None:
+            pending.remove(native)
+            index, generator, request = native
+            if ledger is not None:
+                ledger.reserve(request.job,deadline=request.deadline,work=1)
+            value = request.operation()
+            if ledger is not None:
+                ledger.publish(request.job['job_id'],value,observed=time.monotonic())
+            if time.monotonic() >= request.deadline:
+                raise TimeoutError('sequential native job expired')
+            advance(index, generator, value)
+            continue
         first = pending[0][2]
         group = [
             p
             for p in pending
             if p[2].temperature == first.temperature
             and p[2].memory.shape[1:] == first.memory.shape[1:]
-        ][:GENERATION_BATCH_SIZE]
+        ][:batch_size]
         selected = {p[0] for p in group}
         pending[:] = [p for p in pending if p[0] not in selected]
-        sampled = sample_batch(decoder, [p[2] for p in group])
+        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size) if batch_size != 8 else {}))
         for (index, generator, _), value in zip(group, sampled):
             advance(index, generator, value)
     return results
@@ -397,6 +439,7 @@ def generate(
 ):
     import torch
 
+    scope_start = time.monotonic()
     if diagnostic_attempts is not None and (
         periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
     ):
@@ -418,7 +461,14 @@ def generate(
     mapping = derangement(ids, recipe["model"]["seed"]) if not periodic else {}
     order = [ids.index(mapping[k]) for k in ids] if mapping else None
     modes = ["correct"] if periodic else ["correct", "shuffled", "absent", "template"]
+    pipeline = recipe.get('pipeline')
+    snapshot = model_snapshot(encoder,decoder) if pipeline else None
+    if pipeline:
+        decoder.cache_bookkeeping = pipeline['bookkeeping']
     records = {r["id"]: dict(selections={}, arm_evidence={}, complete=True) for r in rows}
+    allocation = max(0,deadline-scope_start)/max(1,len(modes)*len(rows))
+    group_cursor = 0
+    boundaries = []
     for mode in modes:
         controlled = (
             None
@@ -431,13 +481,17 @@ def generate(
 
         # A group spends one shared slice of the remaining global budget. Every
         # prompt also retains Portfolio's original sixty-second ceiling.
-        size = 1 if mode == "template" else GENERATION_BATCH_SIZE
+        size = (min(8,pipeline['workers']) if mode == 'template' else pipeline['batch_size']) if pipeline else 1 if mode == "template" else GENERATION_BATCH_SIZE
         for offset in range(0, len(rows), size):
             group = rows[offset : offset + size]
             remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - offset
             now = time.monotonic()
             allowance = max(0, (deadline - now) * len(group) / max(1, remaining))
-            until = min(deadline, now + allowance, now + 60)
+            if pipeline:
+                group_cursor += len(group)
+                until = min(deadline,scope_start+group_cursor*allocation,now+60)
+            else:
+                until = min(deadline, now + allowance, now + 60)
             generators = [
                 _portfolio(
                     decoder,
@@ -451,10 +505,31 @@ def generate(
                     ),
                     template=mode == "template",
                     compare_cache=compare_cache and mode == "correct" and i < 3,
+                    **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else {}),
                 )
                 for i, row in enumerate(group, offset)
             ]
-            for row, result in zip(group, _drive_portfolios(decoder, generators)):
+            if pipeline and pipeline['overlap']:
+                from .pipeline_scheduler import drive
+                from functools import partial
+                from oeis_learn.decoder.bigint_generation import sample_batch
+                outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
+                    lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],
+                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],bookkeeping=pipeline['bookkeeping']))
+                # drive returns only after every native task has positively quiesced.
+                for value in outcomes:
+                    value['pipeline_boundary'] = boundary
+            else:
+                if pipeline:
+                    from .pipeline_jobs import JobLedger
+                    ledger = JobLedger()
+                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger)
+                    boundary = ledger.boundary(pipeline)
+                else:
+                    outcomes = _drive_portfolios(decoder,generators)
+            if pipeline:
+                boundaries.append(boundary)
+            for row, result in zip(group, outcomes):
                 record = records[row["id"]]
                 record["complete"] &= result["complete"]
                 if mode == "correct":
@@ -470,6 +545,9 @@ def generate(
                 record["strata"] = row.get("strata", strata(row))
     return dict(
         records=records,
+        **(dict(pipeline_boundary=__import__('oeis_learn.pipeline_validation.identity',fromlist=['seal']).seal(dict(
+            version='pipeline-boundary/v1',policies=pipeline,frontier=sorted({j for b in boundaries for j in b['frontier']}),
+            consumed=sum(b['consumed'] for b in boundaries),active=0,reserved=0))) if pipeline else {}),
         controls=dict(
             derangement=mapping,
             sha256=identity(mapping),
@@ -645,3 +723,18 @@ def strata(row):
         ),
         complexity="loop" if "(loop " in source else "branch" if "(if " in source else "expression",
     )
+
+
+
+def model_snapshot(encoder,decoder):
+    import hashlib
+    h=hashlib.sha256()
+    for label,model in [('encoder',encoder),('decoder',decoder)]:
+        if model is None:
+            continue
+        for name,tensor in sorted(model.state_dict().items()):
+            raw=tensor.detach().cpu().contiguous().numpy().tobytes()
+            header=(label+'\0'+name+'\0'+str(tensor.dtype)+'\0'+str(tuple(tensor.shape))).encode()
+            h.update(len(header).to_bytes(8,'big'));h.update(header)
+            h.update(len(raw).to_bytes(8,'big'));h.update(raw)
+    return 'sha256:'+h.hexdigest()

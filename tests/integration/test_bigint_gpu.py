@@ -144,3 +144,23 @@ def test_actual_hip_parameter_decoder_cache_and_position_growth():
                 generated.append(sampler.sample_trajectories(prompt, [17, 19]))
             assert [r.tokens for r in generated[0]] == [r.tokens for r in generated[1]]
             assert [r.complete for r in generated[0]] == [r.complete for r in generated[1]]
+
+
+@pytest.mark.gpu
+def test_hoisted_bookkeeping_actual_hip_replay():
+    from tests.integration.test_bigint_decoding import model
+    from oeis_learn.decoder import bigint_codec as codec
+    assert torch.version.hip and torch.cuda.is_available(), 'actual HIP required'
+    decoder=model().to('cuda')
+    memory=torch.randn(8,3,16,device='cuda')
+    token=torch.full((8,),codec.BOS_ID,device='cuda',dtype=torch.long)
+    with torch.no_grad():
+        decoder.cache_bookkeeping='baseline'
+        _,a=decoder.prefill(token[:,None],memory,capacity=1024)
+        decoder.cache_bookkeeping='hoisted/v1'
+        _,b=decoder.prefill(token[:,None],memory,capacity=1024)
+        for position in range(1,1024):
+            expected=decoder.decode_step(token,a)
+            actual=decoder.decode_step(token,b)
+            if position+1 in (32,128,513,1024):
+                torch.testing.assert_close(actual,expected,atol=2e-5,rtol=2e-4)

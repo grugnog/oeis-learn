@@ -128,3 +128,60 @@ class BoundedCache:
         self.clock += 1; self.hits += 1
         self.entries[key] = (size, self.clock, value)
         return value
+
+
+class PipelineCapacity:
+    """One role-wide ledger. Output is reserved before dispatch, held until commit."""
+    def __init__(self, *, workers=1, pending=8, pending_bytes=32<<20,
+                 active_bytes=16<<20, results=8, result_bytes=32<<20):
+        if workers not in (1,2,4):
+            raise ValueError('workers must be 1/2/4')
+        for n in (pending,pending_bytes,active_bytes,results,result_bytes):
+            positive(n)
+        self.workers=workers;self.max_pending=pending;self.max_pending_bytes=pending_bytes
+        self.max_active_bytes=active_bytes;self.max_results=results;self.max_result_bytes=result_bytes
+        self.pending=OrderedDict();self.active={};self.results={};self.seen=set()
+
+    @property
+    def pending_bytes(self):
+        return sum(r['input'] for r in self.pending.values())
+
+    def enqueue(self,key,size,output,*,prompt,deadline,now):
+        positive(size);positive(output)
+        if key in self.seen or type(prompt) is not int or prompt<0:
+            raise ValueError('duplicate job or invalid stable affinity')
+        if not math.isfinite(deadline) or not math.isfinite(now) or now>=deadline:
+            return False
+        held=[*self.pending.values(),*self.active.values(),*self.results.values()]
+        if (len(self.pending)>=self.max_pending or self.pending_bytes+size>self.max_pending_bytes
+            or size>self.max_active_bytes or len(held)>=self.max_results
+            or sum(r['output'] for r in held)+output>self.max_result_bytes):
+            return False
+        self.pending[key]=dict(input=size,output=output,slot=prompt%self.workers,deadline=deadline,enqueued=now)
+        self.seen.add(key);return True
+
+    def dispatch(self,slot,*,now):
+        if any(r['slot']==slot for r in self.active.values()):
+            return None
+        for key,row in self.pending.items():
+            if row['slot']!=slot:
+                continue
+            if now>=row['deadline']:
+                return None  # Owner must terminally cancel/charge the expired head.
+            if sum(r['input'] for r in self.active.values())+row['input']>self.max_active_bytes:
+                return None
+            self.active[key]=self.pending.pop(key)
+            self.active[key]['dispatched']=now
+            return key
+        return None
+
+    def finish(self,key,*,acknowledged):
+        if acknowledged is not True:
+            raise ValueError('release requires positive termination acknowledgement')
+        self.results[key]=self.active.pop(key)
+
+    def commit(self,key):
+        self.results.pop(key)
+
+    def cancel_pending(self,key):
+        self.pending.pop(key,None)

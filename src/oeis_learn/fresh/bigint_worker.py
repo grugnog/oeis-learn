@@ -75,10 +75,15 @@ def models(recipe, device):
 
 
 def client(settings, output):
+    from dataclasses import replace
+    limits = ServiceLimits(**settings['recipe']['fitting']['service_limits'])
+    pipeline = settings['recipe'].get('pipeline')
+    if pipeline:
+        limits = replace(limits, max_inflight_batches=pipeline['workers'])
     return SynthesisClient(
         settings["contract_sha256"],
         limits=ResourceProfile(**settings["recipe"]["execution"]["resources"]),
-        service_limits=ServiceLimits(**settings["recipe"]["fitting"]["service_limits"]),
+        service_limits=limits,
         cache_root=Path(output) / "native-cache",
     )
 
@@ -234,7 +239,10 @@ def train(inputs, output):
         decoder.load_state_dict(restored["states"]["weights"]["decoder"])
         # Warm initialization only: optimizer, RNG, data order and budget are this branch's.
     deadline = time.monotonic() + settings["seconds"]
-    store = CheckpointStore(output / "checkpoints", contract)
+    store = CheckpointStore(output / "checkpoints", contract, policies=recipe.get('pipeline'))
+    if recipe.get('pipeline') and 'pipeline_boundary' not in selection:
+        from .pipeline_jobs import JobLedger
+        selection['pipeline_boundary'] = JobLedger().boundary(recipe['pipeline'])
     metrics = []
     pointer = None
     early = False
@@ -359,6 +367,8 @@ def train(inputs, output):
                     diagnostic = generate(
                         encoder, decoder, panel, recipe, synthesis, deadline=deadline, periodic=True
                     )
+                    if recipe.get('pipeline'):
+                        selection['pipeline_boundary'] = diagnostic['pipeline_boundary']
                     visible = score_panel(
                         tuple(r["id"] for r in panel),
                         {
@@ -543,17 +553,18 @@ def generate(inputs, output):
     )
     for row in rows:
         record = result["records"][row["id"]]
-        from .candidate_archive import retain_alternatives
+        from .candidate_archive import retain_alternatives, v2_key
 
         merged = {}
         for value in record["details"].values():
             for alternative in value["archive"]["retained"]:
                 if (
                     alternative["id"] not in merged
-                    or alternative["cost"] < merged[alternative["id"]]["cost"]
+                    or (v2_key(alternative) < v2_key(merged[alternative['id']]) if settings['recipe'].get('pipeline')
+                        else alternative["cost"] < merged[alternative["id"]]["cost"])
                 ):
                     merged[alternative["id"]] = alternative
-        body = retain_alternatives(list(merged.values()))
+        body = retain_alternatives(list(merged.values()),policy='structure-pareto/v2' if settings['recipe'].get('pipeline') else 'structure-pareto/v1')
         body["portfolio_omissions"] = {
             mode: value["archive"]["omitted"] for mode, value in record["details"].items()
         }

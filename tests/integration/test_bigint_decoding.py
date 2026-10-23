@@ -184,3 +184,49 @@ def test_explicit_codec_decoder_can_be_copied_for_frozen_reference(codec_name):
         torch.testing.assert_close(reference(tokens, memory), expected)
         decoder.lm_head.bias.add_(1)
         torch.testing.assert_close(reference(tokens, memory), expected)
+
+
+@pytest.mark.parametrize('batch', [1, 8])
+@pytest.mark.parametrize('backend', ['eager', 'sdpa'])
+def test_hoisted_metadata_long_replay_and_reorder(batch, backend):
+    decoder = model()
+    memory = torch.randn(batch, 3, 16)
+    tokens = torch.full((batch, 1024), codec.BOS_ID, dtype=torch.long)
+    with torch.no_grad():
+        decoder.cache_bookkeeping = 'baseline'
+        _, baseline = decoder.prefill(tokens[:, :1], memory, capacity=1024, backend=backend)
+        decoder.cache_bookkeeping = 'hoisted/v1'
+        _, candidate = decoder.prefill(tokens[:, :1], memory, capacity=1024, backend=backend)
+        for position in range(1, 1024):
+            # Both caches preserve independent implementation choice after creation.
+            a = decoder.decode_step(tokens[:, position], baseline)
+            b = decoder.decode_step(tokens[:, position], candidate)
+            if position + 1 in [32, 128, 513, 1024]:
+                torch.testing.assert_close(a, b, atol=1e-5, rtol=1e-4)
+        order = [batch - 1, 0, 0]
+        candidate.reorder(order)
+        saved = candidate.tokens.clone()
+        result = decoder.decode_step(torch.full((3,), codec.BOS_ID), candidate, active=[False]*3)
+        assert torch.count_nonzero(result) == 0
+        assert torch.equal(candidate.tokens, saved)
+        assert candidate.lengths == [1024]*3
+        with pytest.raises(ValueError, match='capacity'):
+            decoder.decode_step(torch.full((3,), codec.BOS_ID), candidate)
+
+
+def test_hoisted_metadata_heterogeneous_rows_and_invalidation():
+    decoder = model(); decoder.cache_bookkeeping = 'hoisted/v1'
+    memory = torch.randn(2, 3, 16)
+    tokens = torch.tensor([[codec.BOS_ID, codec.BOS_ID], [codec.BOS_ID, codec.PAD_ID]])
+    with torch.no_grad():
+        _, cache = decoder.prefill(tokens, memory, lengths=[2,1])
+        decoder.decode_step(torch.tensor([codec.BOS_ID]*2), cache, active=[False,True])
+        assert cache.lengths == [2,2]
+        cache.finished = [True,False]
+        before = cache.layers[0].keys[0].clone()
+        decoder.decode_step(torch.tensor([codec.BOS_ID]*2),cache)
+        assert torch.equal(before,cache.layers[0].keys[0])
+        assert cache.lengths == [2,3]
+        decoder.lm_head.bias.add_(1)
+        with pytest.raises(ValueError,match='stale'):
+            decoder.decode_step(torch.tensor([codec.BOS_ID]*2),cache)

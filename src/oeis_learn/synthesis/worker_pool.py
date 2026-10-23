@@ -17,7 +17,7 @@ from .service_policy import ServiceLimits, RoleCapacity, BoundedCache
 from .state import require_hash
 
 
-class WorkerPool:
+class _SerialWorker:
     def __init__(
         self,
         *,
@@ -91,6 +91,9 @@ class WorkerPool:
             OEIS_REFERENCE_SHA256=reference_identity(),
             OEIS_SYNTHESIS_RESOURCES=json.dumps(asdict(self.resources)),
         )
+        allocator = getattr(self, 'generation_allocator', None)
+        if allocator is not None:
+            self.generation = allocator()
         self.process = subprocess.Popen(
             self.command,
             stdin=subprocess.PIPE,
@@ -180,6 +183,9 @@ class WorkerPool:
                     if self.closed or key in self.cancelled:
                         reason = "cancelled"
                         break
+                    guard = getattr(self, 'resource_guard', None)
+                    if guard is not None:
+                        guard()
                     rss = self._rss()
                     if rss is not None:
                         self.stats["rss_peak_bytes"] = max(rss, self.stats["rss_peak_bytes"] or 0)
@@ -299,6 +305,133 @@ class WorkerPool:
                 else "process RSS unavailable on this host",
             ),
         )
+
+
+class WorkerPool(_SerialWorker):
+    """Retained serial implementation; explicit 2/4-slot policies opt into shared ownership."""
+    def __new__(cls, *args, **kwargs):
+        limits = kwargs.get('limits', ServiceLimits())
+        if limits.max_inflight_batches != 1:
+            return NativeSlots(*args, **kwargs)
+        return super().__new__(cls)
+
+
+class NativeSlots:
+    def __init__(self, *, command=None, contract_sha256, resources=ResourceProfile(),
+                 limits=ServiceLimits(), rss_bytes=1 << 30):
+        from dataclasses import replace
+        from .service_policy import PipelineCapacity
+        self.command=command or [os.environ.get('OEIS_SYNTHESIS_WORKER','/opt/oeis-build-info/synthesis-worker')]
+        self.contract=contract_sha256;self.limits=limits;self.resources=resources
+        self.capacity=PipelineCapacity(workers=limits.max_inflight_batches,
+            pending=limits.max_pending_batches,pending_bytes=limits.max_pending_bytes)
+        self.condition=threading.Condition(threading.RLock())
+        self.local=threading.local();self.generation=0;self.closed=False;self.cancelled=set()
+        self.slots=[_SerialWorker(command=self.command,contract_sha256=contract_sha256,
+            resources=resources,limits=replace(limits,max_inflight_batches=1),rss_bytes=rss_bytes)
+            for _ in range(limits.max_inflight_batches)]
+        for slot in self.slots:
+            slot.generation_allocator=self._generation
+            slot.resource_guard=self._watch
+
+    def _generation(self):
+        with self.condition:
+            self.generation+=1
+            return self.generation
+
+    @property
+    def stats(self):
+        return dict(slots=[dict(s.stats) for s in self.slots],workers=len(self.slots),
+            queue_wait_seconds=sum(s.stats['queue_wait_seconds'] for s in self.slots),
+            batches=sum(s.stats['batches'] for s in self.slots),
+            restarts=sum(s.stats['restarts'] for s in self.slots))
+
+    def _watch(self):
+        observations=[s._rss() for s in self.slots if s.process is not None]
+        if sum(v for v in observations if v is not None)>4 << 30:
+            self._signal_all()
+            raise MemoryError('aggregate native RSS watchdog')
+
+    def _signal_all(self):
+        for slot in self.slots:
+            process=slot.process
+            if process is not None and process.poll() is None:
+                try:
+                    os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def affinity(self, ordinal):
+        from contextlib import contextmanager
+        @contextmanager
+        def bound():
+            previous=getattr(self.local,'prompt',0)
+            self.local.prompt=ordinal
+            try:
+                yield
+            finally:
+                self.local.prompt=previous
+        return bound()
+
+    def call(self,request,*,deadline):
+        key=request['request_id'];size=len(frame(request));prompt=getattr(self.local,'prompt',0)
+        slot_id=prompt%len(self.slots);queued=False;active=False
+        ids=[c['candidate_id'] for c in request['candidates']]
+        def incomplete(reason):
+            return dict(results=[],unstarted=ids,complete=False,outcome='resource_exhausted',reason=reason,generation=self.generation,metrics=self.stats)
+        try:
+            with self.condition:
+                while not self.closed and key not in self.cancelled and time.monotonic()<deadline:
+                    now=time.monotonic()
+                    if not queued:
+                        queued=self.capacity.enqueue(key,size,4<<20,prompt=prompt,deadline=deadline,now=now)
+                    if queued:
+                        # Slot FIFO is explicit; never dispatch a different caller's request.
+                        head=next((k for k,r in self.capacity.pending.items() if r['slot']==slot_id),None)
+                        if head==key and self.capacity.dispatch(slot_id,now=now)==key:
+                            active=True;break
+                    self.condition.wait(timeout=min(.02,max(0,deadline-now)))
+                if not active:
+                    return incomplete('cancelled' if self.closed or key in self.cancelled else 'queue_deadline')
+            result=self.slots[slot_id].call(request,deadline=deadline)
+            if time.monotonic()>=deadline:
+                return incomplete('owner_deadline')
+            return result
+        finally:
+            with self.condition:
+                if active:
+                    self.capacity.finish(key,acknowledged=True)
+                    # Response transferred synchronously to its one caller; staging no longer owns it.
+                    self.capacity.commit(key)
+                elif queued:
+                    self.capacity.cancel_pending(key)
+                self.cancelled.discard(key);self.condition.notify_all()
+
+    def cancel(self,key):
+        with self.condition:
+            self.cancelled.add(key)
+            for slot in self.slots:
+                slot.cancel(key)
+            self.condition.notify_all()
+
+    def close(self):
+        started=time.monotonic()
+        with self.condition:
+            self.closed=True
+            for slot in self.slots:
+                slot.closed=True
+            self.condition.notify_all()
+        self._signal_all()  # Signal concurrently before waiting for any one process.
+        for slot in self.slots:
+            slot._retire()
+        if time.monotonic()-started>5:
+            raise TimeoutError('aggregate cleanup exceeded five seconds; external role watchdog required')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,*_):
+        self.close()
 
 
 class RoleCaches:
