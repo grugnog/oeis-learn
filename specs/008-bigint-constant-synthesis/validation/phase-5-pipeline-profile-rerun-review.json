@@ -295,7 +295,27 @@
     "memory_event_deltas_zero": true,
     "memory_note": "raw allocator/cgroup peaks include analysis snapshots and alternate idle cache; not production baseline memory",
     "thermal_limit_exclusion_proved": false,
-    "hidden_ancestor_quota_exclusion_proved": false
+    "hidden_ancestor_quota_exclusion_proved": false,
+    "torch_update_peak_allocated_bytes": 474185216,
+    "torch_portfolio_peak_allocated_bytes": 422908416,
+    "torch_portfolio_max_reserved_bytes": 597688320,
+    "memory_counters_overlap": true,
+    "worker_end_stats": {
+      "ordinary": {
+        "batches": 607,
+        "queue_wait_seconds": 0.010309017263352871,
+        "restarts": 2,
+        "rss_peak_bytes": 133804032,
+        "stderr_bytes": 0
+      },
+      "telemetry": {
+        "batches": 603,
+        "queue_wait_seconds": 0.010225631529465318,
+        "restarts": 1,
+        "rss_peak_bytes": 132988928,
+        "stderr_bytes": 0
+      }
+    }
   },
   "scoring": {
     "arms": {
@@ -649,7 +669,10 @@
     ],
     "median_descriptive_ratio": 1.0013354139757942,
     "review_required": true,
-    "reason": "16 changed attempt records and capped/unequal emitted work prevent claiming a matched-work observer speedup or full parity; update loss/parameter hashes are identical."
+    "reason": "16 changed attempt records and capped/unequal emitted work prevent claiming a matched-work observer speedup or full parity; update loss/parameter hashes are identical.",
+    "all_token_hash_differences_are_deadline_truncations": true,
+    "completed_generation_token_hashes_equal": true,
+    "queue_interpretation": "Native worker aggregate queue waits are about0.01s per arm; backpressure_timeout at expired shared deadlines is not evidence of sustained queue congestion."
   },
   "schedule_weighted": {
     "amdahl_bound": null,
@@ -693,5 +716,18 @@
     "Source/input/image and role receipts verify archive-internal identities; excluded weights/truth cannot be independently rehashed or rescored from this ZIP.",
     "About244s outside the first container lifetime is localized to preflight launch/inspect/cleanup, not attributed to a specific engine cause.",
     "Sampled counters show no observed OOM/throttle; hidden quotas, firmware cadence and full thermal limits remain unknown."
-  ]
+  ],
+  "validation": {
+    "method": "Read-only standard-library archive review; canonical manifest/source fingerprint checks,280 sizes/hashes and CRCs, role isolation/device/cleanup identities, recomputed nested exclusive walls and paired work, selection seals/source hashes and successful100-index production/reference coverage, all five raw trace hashes and kernel interval unions.",
+    "documentation_checks": [
+      "relative file links",
+      "whitespace",
+      "Spec Kit prerequisites and16/16 requirements checklist",
+      "W005 closed while T093/T094/T097/T098 task dispositions preserved",
+      "no pre/post extension hooks"
+    ],
+    "new_production_code": false,
+    "additional_model_or_container_runs": false,
+    "CI_monitored": false
+  }
 }

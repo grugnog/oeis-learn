@@ -460,3 +460,85 @@ passing tests, including37 profile cases. This does not verify actual containers
 or HIP traces; W005 and T094/T097/T098 remain open. T093 is deferred and the
 original negative T096 is unchanged. After pulling, rerun the quickstart command
 with a fresh output timestamp and leave `--image` unset for the current source.
+
+## Reviewed corrected HIP collection — 2026-10-23
+
+W005 is complete. The [rerun receipt](phase-5-pipeline-profile-rerun-review.json)
+verifies280 manifest entries with no omissions/CRC errors, the canonical
+diagnostic identity and exact current source snapshot, identical role artifact
+identities, actual accelerator nodes and all five trace hashes/kernel unions.
+Preflight and main GPU roles see only the selected kfd/render nodes; the CPU
+scorer sees none. All roles are offline/read-only with exactly the input/output
+bind permissions; cleanup is0.031–0.049s against5s. No original evidence is
+overwritten or retroactively passed.
+
+The overall result remains PARTIAL because each arm starts560/576 attempts and
+completes545 generations. Group3 leaves correct-conditioning positions6/7
+unstarted for eight prompts at the fixed deadline. The15 incomplete started
+generations comprise five token caps, two grammar dead ends and eight deadlines.
+Both arms complete500 disposable updates and256 validation rows, with identical
+block loss/parameter hashes and validation loss1.785941880196333. All32 sealed
+prompt selections per arm reach CPU scoring. Rescue/equal-budget succeed32/32,
+raw30/32, shuffled4/32, absent/template0/32; shuffled coverage is28/32. These
+diagnostic results are not a T096 retry or corrected qualification assessment.
+
+| Measured observed portfolio component | Exclusive seconds | Portfolio wall share |
+| --- | ---: | ---: |
+| Decoding | 162.63 | 50.51% |
+| Native request/response | 148.08 | 45.99% |
+| Encoder, Python fitting/admission, reference and residual | 11.28 | 3.50% |
+| Total observed portfolio | 321.99 | 100% |
+
+Ordinary portfolio wall is322.11s. Ordinary500-update measurement is32.99s,
+validation1.33s, and separate CPU scoring18.37s. These categories have different
+intentional diagnostic counts. Do not combine them into a whole-training share.
+The schedule-weighted update/validation projection remains partial, with full
+controls, changing weights/output lengths, checkpoint/export and periodic cache
+effects unmeasured. Native time includes fitting/compilation/checks/transport;
+there is no pure-WASM claim.
+
+The observed portfolio consumes168.77 role CPU-seconds plus147.65 native-child
+CPU-seconds, about0.98 aggregate core-equivalents against16 allowed. Native
+child CPU time is close to native wall. Sampled GPU busy is31.44% during decode
+(165 samples) and5.26% during native requests (145). The397 samples have no
+misses, collector errors or event overflow and consume0.95 collector CPU-seconds.
+Peak cgroup memory is1,799,204,864 bytes (1.68GiB) under16GiB, including analysis
+copies and alternate idle caches. No observed CPU throttle or memory-event
+deltas; sampled maximum temperature44C. Missing ancestor quotas/firmware cadence
+and full thermal limits remain unresolved, not assumed absent.
+Torch peak allocated is474,185,216 bytes for updates and422,908,416 for portfolio
+work, including analysis copies. These counters overlap shared-memory/RSS/cgroup
+views and must not be added to them. Native queue waits total about0.01s per arm;
+deadline-related backpressure statuses do not establish queue congestion.
+
+All five trace exports contain kernels and fit the existing caps. The later-token
+probe records7168 kernel events and224 `nonzero` CPU operations over eight active
+steps, with140.32ms host step wall versus18.06ms kernel interval union. Cached
+decoder ranges occupy120.27ms. The short probe includes encoder/prefill and is
+not a steady-token comparator. The later probe starts after65 steps and cannot
+claim a complete1024-token trace; its replay is capped at256. These perturbed
+windows explain launch/bookkeeping costs, not ordinary utilization percentages.
+ROCTracer duplicate-flow warnings remain recorded; no reliable per-op causal
+CPU/GPU mapping is inferred from those flow IDs.
+
+544 paired attempt records match and16 differ: eight deadline-truncated token
+prefixes and eight fitting dispositions. Completed-generation token hashes match.
+Aggregate portfolio times differ by less than0.1%,
+but this is not matched-work overhead or full parity. Keep the differences and
+deadline-limited work visible. The cold-role gap is now localized:244.21s outside
+the preflight container lifetime versus0.26s GPU/0.21s scorer. The specific
+engine launch cause remains unknown and is not charged to model inference.
+
+**Next focused experiment:** reduce cached-decoder bookkeeping before changing
+the scheduler. Repeated boolean GPU indexing in `decoder/inference_cache.py`
+is a concrete candidate given the trace's many `nonzero`/small launches. Freeze
+weights, eager attention, grammar, seeds, batch8, active/finished behavior and
+deadlines. Reuse cached/full, mixed-length, reordering and invalidation cases;
+then compare fixed completed work under ordinary HIP execution plus a bounded
+trace. Any changed output/selection requires investigation before adoption.
+No training or full-profile rerun is needed to complete this review.
+
+A later1-versus4 native-worker/overlap pilot is realistic given the native share
+and spare cores, but needs a separate explicit order/selection/deadline/aggregate
+memory design. This review neither implements that pool nor assumes16x scaling.
+T094/T097/T098 stay open, T093 deferred, original negative T096 unchanged.

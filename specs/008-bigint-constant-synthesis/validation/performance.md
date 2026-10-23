@@ -1,5 +1,27 @@
 # Measurement-only performance screen — T094
 
+Latest2026-10-23: [the corrected HIP pipeline profile](phase-5-pipeline-profile-rerun-review.json)
+is reviewed; W005 is complete and T094 remains open. All280 archived file hashes,
+five actual-GPU trace exports and three role audits verify. The partial observed
+portfolio spends162.63s decoding (50.51%) and148.08s on native requests (45.99%).
+Native spans include solver/compilation/checks/IPC, not pure WASM. The average
+aggregate CPU use is0.98 of16 allowed core-equivalents; sampled GPU busy is31.44%
+during decoding and5.26% during native work. Ordinary500-update/256-validation-row
+measurements take32.99s/1.33s and separate CPU scoring18.37s. This diagnostic mix
+does not establish the whole-training fractions or a complete cost projection.
+
+The later-token probe records7168 small GPU kernel events and224 `nonzero`
+operations over eight steps;140.32ms host wall contains18.06ms kernel union.
+Repeated boolean indexing in cached decoding is a concrete candidate for a
+focused fixed-input HIP comparison before scheduler changes. Trace perturbation
+and duplicate-flow warnings preclude a baseline or per-op causal speedup claim.
+A later bounded native-worker/overlap pilot is plausible but requires explicit
+ordering/deadline/memory design. See the
+[full review and proposed next step](phase-5-pipeline-profile-plan.md#reviewed-corrected-hip-collection--2026-10-23).
+No production optimization, training admission or T096 reassessment is made.
+
+The following receipts retain their original source and historical scope.
+
 Status: current-source native/HIP measurements are reviewed in
 [the scoped HIP receipt](phase-5-scoped-hip-review.json); the earlier
 [batching review](phase-5-batched-hip-review.json) remains historical evidence. All12 frozen-state

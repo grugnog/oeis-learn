@@ -120,3 +120,20 @@ failed archive remains unchanged. The [profile correction tasks](phase-5-pipelin
 record the exact CPU cap reproduction and unchanged isolation/runtime bounds.
 Actual corrected container/HIP execution remains pending W005. The quickstart
 now gives a fresh full-run command; a PARTIAL portfolio is retained honestly.
+
+### Corrected actual HIP profile reviewed — 2026-10-23
+
+The [280-entry verified rerun](phase-5-pipeline-profile-rerun-review.json)
+supersedes the W005 pending state above. Preflight/main GPU and CPU scorer audits
+pass actual device-node, offline/read-only and exact input/output-bind checks.
+CPU scoring completes and all five kernel traces export within existing caps.
+Cleanup is0.031–0.049s against5s; weights/private truth/runtime caches are absent
+from the report ZIP, with no archive omissions. The overall PARTIAL status
+faithfully retains16 unstarted/15 incomplete started generations per arm at the
+unchanged limits. No further identical full run is needed.
+
+The host's first-role gap is localized to244.21s outside the preflight container
+lifetime; subsequent GPU/scorer gaps are0.26s/0.21s. The specific engine cause is
+unresolved. T097 gains this command/audit/export evidence but its broader
+current-scope interruption/bundle coverage remains open. T093 stays deferred,
+T094/T098 remain open and no qualification/training admission follows.

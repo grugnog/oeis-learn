@@ -45,7 +45,7 @@ Third-party manifests/locks and long Docker dependency layers are unchanged.
 | T091 | [Containment](containment.md): COMPLETE for the recorded implementation;64 cases per engine, earlier29 host/3 public tests per engine, verified offline/read-only inspect and cleanup0.015571s Docker /0.048828s Podman against5s. |
 | T092 | [GPU](gpu.md): PASS,9 actual HIP tests with zero failures/errors/skips; reviewed source/image-bound evidence closes this task. |
 | T093 | [Checkpoint rescue](checkpoint-rescue.md): USER-DEFERRED2026-10-22; historical model comparison is outside the current completion gate. No result claimed. |
-| T094 | [Performance](performance.md): [current Podman CPU adoption](phase-5-engine-adoption-review.json) passes334 arithmetic/37 fitting/64 containment tests and75 comparison rows. Small batch100 improves5.18–5.45x versus zero, but remains13.29–13.40x retained; timer lifecycle and single-term uncertainty remain open. No new whole-workload HIP/cost receipt. |
+| T094 | OPEN. [CPU adoption](phase-5-engine-adoption-review.json) passes435 tests and75 comparison rows; retained gap/single-term uncertainty remain. [Reviewed HIP pipeline profile](phase-5-pipeline-profile-rerun-review.json) closes W005: five traces/audits/scoring verify; partial portfolio is50.51% decode/45.99% native request wall, about one core of16 used. Next proposed comparison targets cached-decoder bookkeeping. No complete-training cost receipt or speedup is claimed. |
 | T095 | [Data and cost](screen-preflight.md): COMPLETE. Checked512/128/128 plus tiny32; diverse32 PASS at7,926.648s versus11,520s allowed,10,082s reserved within14,400s. Independently scoped transfer-screen remains BLOCKED at29,637.220s versus5,760s allowed. |
 | T096 | [Learnability](learnability.md): COMPLETE, NEGATIVE. One seed20261016 run,1800 updates; rescue31/32 correct and31/32 complete, termination32/32. The full-coverage gate fails; no retry/resume or promotion follows. |
 | T097 | [Operations](operations.md): both-engine public validate/rerun and arbitrary-UID installed retirement PASS; complete current-scope command/export coverage remains open; T093-dependent historical diagnosis is deferred. |
@@ -73,20 +73,20 @@ its unchanged worker allowance. This does not retroactively change T096 or
 satisfy32/32 qualification. No same-case replay or further training is needed
 to assess that defect.
 
-Remaining work, in dependency order (updated2026-10-22):
+Remaining work, in dependency order (updated2026-10-23):
 
 1. Current [Podman CPU adoption evidence](phase-5-engine-adoption-review.json)
    passes435 tests without skips, verifies450 detailed/ordinary pairs and225
    cross-setting groups, and confirms the64KiB policy optimization. That exact
    source/image now has CPU regression/comparison evidence. The earlier failed
    fixture-identity run remains FAIL in its separate review.
-2. T094 stays open: small batch100 execution remains13.29–13.40x retained;
-   three batch1 rows regress and only two warm samples exist. Timer start/stop
-   is roughly half of profiled small-case execution. The user now requests the
-   [whole-pipeline HIP plan](phase-5-pipeline-profile-plan.md) before choosing
-   further timer/WASM optimization. Any change must preserve deadline,
-   fuel, store isolation and cleanup semantics. A new design has no measured
-   speedup yet. Eventual-image HIP and whole-workload cost evidence are separate.
+2. T094 stays open: the [HIP pipeline review](phase-5-pipeline-profile-rerun-review.json)
+   completes W005 while retaining partial work. Cached-decoder bookkeeping is
+   the next proposed fixed-input HIP comparison; spare cores also justify a later
+   bounded native-worker pilot after explicit ordering/deadline/memory design.
+   The small-value retained gap and single-term uncertainty remain. Preserve
+   deadline, fuel, store isolation and cleanup semantics. No optimization has a
+   measured end-to-end gain yet; complete-training cost admission is separate.
 3. T093 historical-model comparison is user-deferred and missing historical
    weights no longer block current Phase5. Complete the supported current-scope
    command/export checklist for T097. Current Podman adoption adds operation evidence;
@@ -405,5 +405,9 @@ Before further timer/WASM optimization, use the
 HIP generation, scratch update cost, CPU fitting/execution/reference work and
 resource/waiting timelines. The paired harness is now implemented as
 `scripts/profile_bigint_pipeline.py`; see the plan/quickstart for the bounded
-Podman/Docker command. Actual HIP collection/review (W005) is pending. No new
-qualification attempt or training experiment is authorized by this diagnostic.
+Podman/Docker command. The [corrected2026-10-23 HIP review](phase-5-pipeline-profile-rerun-review.json)
+now completes W005: device/trace/CPU-scoring evidence verifies and the bounded
+portfolio remains PARTIAL. The [profile plan](phase-5-pipeline-profile-plan.md#reviewed-corrected-hip-collection--2026-10-23)
+records phase/resource results and the proposed cached-decoder comparison.
+No new qualification attempt or training experiment is authorized. T094/T097/
+T098 and original negative T096/promotion remain unchanged.

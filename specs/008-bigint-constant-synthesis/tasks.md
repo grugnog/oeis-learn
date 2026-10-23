@@ -308,6 +308,19 @@ tests pass, including existing YAML-backed run-manager behavior. The
 claims no new GPU measurements. Actual corrected HIP collection/review remains
 pending W005, with all global task dispositions unchanged.
 
+**T094 corrected HIP pipeline review (2026-10-23)**: W005 in the
+[profile plan](validation/phase-5-pipeline-profile-plan.md#reviewed-corrected-hip-collection--2026-10-23)
+is complete. The [source-bound review](validation/phase-5-pipeline-profile-rerun-review.json)
+verifies280 manifest files, five actual-GPU trace exports, all three role
+isolation/cleanup audits and complete CPU scoring. Work remains PARTIAL at the
+original deadlines:560/576 attempts started per arm,545 generations complete.
+Observed portfolio decoding/native request wall shares are50.51%/45.99%, with
+about one of16 allowed CPU-equivalents active. Proposed next work targets cached
+decoder bookkeeping under a bounded HIP comparison; production code/scheduling
+are unchanged. Partial work,16 differing paired attempts and projection/trace
+limits are disclosed. T094/T097/T098 remain unchecked; diagnostic32/32 rescue
+success cannot replace negative T096 or admit another learning attempt.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

@@ -7,39 +7,55 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: rerun the corrected HIP profile
+## Corrected HIP profile reviewed — next focused experiment
 
-The first [HIP profile review](validation/phase-5-pipeline-profile-review.json)
-contains useful measurements but stopped on the Podman device audit and trace
-export. Both harness defects are corrected; actual validation of the corrections
-still needs this rerun. The user approved repeating the bounded diagnostic rather
-than adding recovery machinery. Preserve the original output and ZIP.
+The [2026-10-23 rerun review](validation/phase-5-pipeline-profile-rerun-review.json)
+verifies all280 manifest file hashes, source/image/manifest identities, five
+actual-GPU trace exports and all three Podman isolation/cleanup audits. Preflight
+and isolated CPU scoring complete. W005 is complete as an evidence review; no
+identical full rerun is needed. Earlier
+[device/trace failures](validation/phase-5-pipeline-profile-review.json) and
+[host import failure](validation/phase-5-pipeline-profile-stdlib-review.json)
+remain preserved separately.
 
-The2026-10-23 rerun stopped on the host in0.016s, before any container stage:
-importing device-audit helpers eagerly imported the legacy YAML run manager.
-The package now loads that manager only when its classes are requested. No host
-PyYAML installation is needed. A regression executes the complete host path,
-including actual audit/report/archive code with a fake engine, under `python -S`.
-See the [rerun failure and local validation receipt](validation/phase-5-pipeline-profile-stdlib-review.json).
-Pull the latest branch before rerunning; actual corrected HIP evidence remains
-pending and this failed archive supplies no new device measurements.
+The diagnostic remains PARTIAL: each arm requests576 attempts, starts560 and
+completes545 generations. The original deadline leaves16 attempts unstarted;
+15 started generations stop on token cap, grammar dead end or deadline. The
+500 disposable updates and256-row validation complete in each arm with matching
+block parameter/loss hashes. Scoring reports32/32 rescue and equal-budget success,
+30/32 raw,4/32 shuffled,0/32 absent/template in both arms; shuffled evidence is
+complete for28/32. These are diagnostic synthetic-training results. They do not
+replace the original negative T096 or admit another learning attempt.
 
-The rerun first checks actual role-visible device nodes against the host's
-major/minor identities, then requires a tiny HIP trace and a representative model
-update trace before the paired benchmark. Rootless Podman's empty device metadata
-is accepted only with matching actual device evidence. Network, mounts, read-only
-root and privileged/device-request checks remain strict. The five-update replay
-records one steady update; decoder probes record eight steps instead of the
-entire256-token replay. The40MiB trace-file cap is unchanged. A failed cap retains
-bounded partial evidence and an explicit reason.
+Within the observed321.99s portfolio, decoding takes162.63s (50.51%), native
+request/response148.08s (45.99%), and other work11.28s. CPU consumption averages
+0.98 core-equivalents out of16 allowed. Sampled GPU busy averages31.44% during
+decoding and5.26% during native requests. Cgroup memory peaks at1.68GiB under a
+16GiB role limit, with no observed OOM/throttling events. These are diagnostic
+phase shares, not whole-training percentages; native spans include fitting,
+compilation, production execution and IPC, not just WASM.
 
-T093 historical-model comparison is user-deferred. The
-[reviewed profiling plan and implementation](validation/phase-5-pipeline-profile-plan.md)
-now provide a separate weights-only child diagnostic: paired ordinary/telemetry
-arms,500 scratch updates per arm,32 training prompts, CPU/GPU/memory sampling,
-bounded operator traces, isolated CPU scoring and a result ZIP. No run has been
-started here. This command preserves the original negative T096 and cannot
-resume training, admit a new experiment or access final scoring.
+**Recommended next experiment:** compare one cached-decoder bookkeeping change
+under fixed-input HIP execution. The later-token trace records224 `nonzero`
+operations and7168 GPU kernels in eight steps; its host steps span140ms while
+kernel interval union is18ms. Repeated boolean GPU indexing in the cache is a
+concrete candidate for reducing small launches and transfers. Trace overhead and
+duplicate ROCTracer flow warnings prevent treating these numbers as baseline
+utilization or a proven speedup. Preserve attention math, weights, grammar,
+seeds, batch8, active/finished-row semantics and deadlines. Reuse cache parity,
+invalidation/reordering and mixed-length tests, then compare completed ordinary
+HIP work and selection hashes with one bounded explanatory trace. This experiment
+is proposed, not implemented by this evidence review.
+
+The idle CPU capacity also justifies a later1-versus4 native-worker/overlap pilot.
+That needs an explicit deterministic selection/order, deadline and aggregate
+memory design before scheduling changes. Neither16 free cores nor46% native wall
+proves a particular parallel speedup. T094/T097/T098 remain open; T093 is deferred.
+
+### Optional full-profile reproduction
+
+The existing harness remains available for reproduction or another engine. No
+new full run is needed to review the attached archive. Use fresh output paths:
 
 ```bash
 python3 scripts/profile_bigint_pipeline.py --engine podman \
@@ -48,22 +64,11 @@ python3 scripts/profile_bigint_pipeline.py --engine podman \
   --output "tmp-validation/008-pipeline-hip-rerun-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
-Adjust existing parent/data paths if moved. Leave `--image` unset to build the
-current source; image build time is separate. The first GPU collection took about16minutes including host overhead;
-allow up to45–60minutes for this run including preflight/scoring, with
-finite role/stage caps and room for cleanup/export inside90minutes. A slow or
-capped run retains PARTIAL/FAIL evidence; it does not extend its budget. A
-PARTIAL status can mean the original60s portfolio ceiling left attempts unstarted,
-even with successful device/trace collection. Share
-the sibling ZIP even after failure. Rerun with a fresh timestamp; do not delete
-or reuse the original output. `--engine docker` uses Docker.
-
-The diagnostic requests16 CPU-equivalents but keeps current serial native work,
-batch8 generation and two PyTorch threads. Missing sensors stay unavailable.
-Runtime proportions from this oversampled diagnostic are separate from the
-partially measured, schedule-weighted projection. Whole-run WASM microprofiling
-is disabled; detailed tools remain available. Current-source HIP evidence and
-its review remain pending.
+Adjust parent/data paths if moved; leave `--image` unset for the current source.
+`--engine docker` uses Docker. Build time is separate from the90minute bound.
+Keep the32 prompts, batch8, serial native requests, two PyTorch threads,16-CPU
+allowance and finite portfolio limits. Share the sibling ZIP even for PARTIAL or
+FAIL. Never overwrite the prior output or treat reproduction as qualification.
 
 ## Completed CPU adoption and reproduction
 
@@ -73,9 +78,9 @@ plus75 comparison rows. Source/image/policy, all27 archive entries and all450
 paired observations/225 cross-setting groups verify. CPU adoption does not need
 another identical Podman run. The command below remains for reproduction or
 Docker evidence. T094 stays open for the13–14x retained gap, uncertain batch1
-behavior and eventual-image whole-workload costs. Timer start/stop is roughly
-half of profiled small-case execution, making deadline lifecycle the next
-focused investigation without changing safeguards or launching training.
+behavior and eventual-image whole-workload costs. Timer start/stop remains an identified native cost. The reviewed whole-pipeline
+result above now prioritizes cached-decoder bookkeeping before further isolated
+WASM/timer work; no safeguards or training admission change.
 
 The [reviewed comparison](validation/phase-5-growth-reservation-review.json)
 verified450 paired observations and225 cross-setting groups. At batch100,
