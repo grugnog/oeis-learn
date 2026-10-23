@@ -5,8 +5,41 @@ import json
 import os
 from pathlib import Path
 import resource
+import stat
 import threading
 import time
+
+
+def character_device(path):
+    info = Path(path).stat()
+    if not stat.S_ISCHR(info.st_mode):
+        raise ValueError(f"character device required: {path}")
+    return dict(major=os.major(info.st_rdev), minor=os.minor(info.st_rdev))
+
+
+def device_view(root=Path("/dev")):
+    """Attest the actual role-visible accelerator nodes, independent of inspect."""
+    paths = [root / "kfd", *sorted((root / "dri").glob("*")), *sorted(root.glob("nvidia*"))]
+    found = {}
+    for path in paths:
+        if path.is_dir() or not path.exists():
+            continue
+        found["/dev/" + str(path.relative_to(root))] = character_device(path)
+    return dict(version="pipeline-device-view/v1", devices=found)
+
+
+def audit_device_view(reported, view, expected):
+    if (
+        not isinstance(view, dict)
+        or view.get("version") != "pipeline-device-view/v1"
+        or view.get("devices") != expected
+    ):
+        raise ValueError("actual role device nodes differ from expected devices")
+    # Rootless Podman can omit Devices entirely. Never accept missing metadata
+    # without the independently captured role view and host major/minor match.
+    if reported and {d.get("PathOnHost") for d in reported} != set(expected):
+        raise ValueError("reported device paths differ from expected devices")
+    return "inspect-and-role-character-devices" if reported else "role-character-devices"
 
 
 def interval_union(intervals):

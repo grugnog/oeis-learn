@@ -4,6 +4,8 @@ from contextlib import contextmanager, ExitStack
 from copy import deepcopy
 from functools import wraps
 from pathlib import Path
+import json
+import os
 import random
 import resource
 import signal
@@ -90,7 +92,7 @@ def snapshot_bytes(*states):
 
 
 @contextmanager
-def instrument(recorder, encoder=None, decoder=None, *, trace=False):
+def instrument(recorder, encoder=None, decoder=None, *, trace=False, profiler_step=None):
     """Scope-local hooks restored even on exceptions; production defaults untouched."""
     from unittest.mock import patch
     from oeis_learn.decoder import bigint_generation, sampler
@@ -125,6 +127,24 @@ def instrument(recorder, encoder=None, decoder=None, *, trace=False):
 
     with ExitStack() as stack:
         if recorder.instrumented or trace:
+            if trace and profiler_step is not None:
+                original_sample = sampler.WatProgramSampler.sample_trajectories
+
+                def sample_with_steps(*a, **kw):
+                    original_hook = kw.get("budget_hook")
+
+                    def hook(active):
+                        profiler_step()
+                        if original_hook is not None:
+                            original_hook(active)
+
+                    return original_sample(*a, **dict(kw, budget_hook=hook))
+
+                stack.enter_context(
+                    patch.object(
+                        sampler.WatProgramSampler, "sample_trajectories", sample_with_steps
+                    )
+                )
             hooks = [
                 (bigint_generation, "sample_batch", "decode"),
                 (client.SynthesisClient, "fit", "fit_and_admit"),
@@ -196,14 +216,23 @@ def compact_group(result):
     return selections, attempts
 
 
-def trace_probe(output, label, function):
+def trace_probe(output, label, function, *, wait_steps=0, warmup_steps=0, active_steps=None):
     """Short bounded explanatory trace, never a main throughput measurement."""
     import torch
 
     folder = output / "traces"
     folder.mkdir(exist_ok=True)
     path = folder / (label + ".json")
-    summary = dict(label=label, status="UNAVAILABLE", gpu_kernels=False)
+    summary = dict(
+        label=label,
+        status="UNAVAILABLE",
+        gpu_kernels=False,
+        schedule=dict(wait_steps=wait_steps, warmup_steps=warmup_steps, active_steps=active_steps),
+    )
+    if active_steps is not None and (
+        not 1 <= active_steps <= 8 or not 0 <= wait_steps <= 256 or not 0 <= warmup_steps <= 2
+    ):
+        raise ValueError("bounded trace schedule required")
     before = resource.getrlimit(resource.RLIMIT_FSIZE)
     before_signal = signal.getsignal(signal.SIGXFSZ)
     try:
@@ -212,8 +241,15 @@ def trace_probe(output, label, function):
             record_shapes=False,
             with_stack=False,
             profile_memory=False,
+            schedule=(
+                torch.profiler.schedule(
+                    wait=wait_steps, warmup=warmup_steps, active=active_steps, repeat=1
+                )
+                if active_steps is not None
+                else None
+            ),
         ) as p:
-            function()
+            function(p.step if active_steps is not None else lambda: None)
         signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
         resource.setrlimit(
             resource.RLIMIT_FSIZE,
@@ -236,8 +272,22 @@ def trace_probe(output, label, function):
             reason=None if kernels else "no actual HIP kernel events captured",
         )
     except Exception as exc:
-        path.unlink(missing_ok=True)
         summary["reason"] = f"{type(exc).__name__}: {exc}"
+        # Kineto can swallow EFBIG and leave only its .tmp file. Preserve bounded
+        # failure evidence and classify it rather than reporting a missing JSON.
+        for partial in (path, Path(str(path) + ".tmp")):
+            if partial.is_file():
+                size = partial.stat().st_size
+                if size >= 40 << 20:
+                    summary["reason"] = (
+                        "trace export byte cap40MiB reached; reduce active recording window"
+                    )
+                retained = path.with_suffix(".partial.json")
+                partial.replace(retained)
+                summary["partial"] = dict(
+                    path=str(retained.relative_to(output)), bytes=size, sha256=file_hash(retained)
+                )
+                break
     finally:
         resource.setrlimit(resource.RLIMIT_FSIZE, before)
         signal.signal(signal.SIGXFSZ, before_signal)
@@ -456,8 +506,14 @@ def gpu_work(inputs, output, work, summary):
         trace_deadline = time.monotonic() + 30
         with Recorder(output / "trace-events" / label, instrumented=False, render_node=render) as r:
 
-            def probe(label=label, trace_deadline=trace_deadline):
-                with instrument(r, encoder, decoder, trace=True):
+            def probe(step, label=label, trace_deadline=trace_deadline):
+                with instrument(
+                    r,
+                    encoder,
+                    decoder,
+                    trace=True,
+                    profiler_step=None if label == "updates" else step,
+                ):
                     if label == "updates":
                         encoder.train()
                         decoder.train()
@@ -467,6 +523,7 @@ def gpu_work(inputs, output, work, summary):
                             _batch_loss(
                                 encoder, decoder, work["training"][:8], "cuda", optimizer=optimizer
                             )
+                            step()
                     else:
                         encoder.eval()
                         decoder.eval()
@@ -512,7 +569,18 @@ def gpu_work(inputs, output, work, summary):
                             ],
                         )
 
-            summary["traces"].append(trace_probe(output, label, probe))
+            # Keep the five-update/256-token replay, but record only one steady
+            # update or eight token steps. Operator-dense full windows exceed40MiB.
+            summary["traces"].append(
+                trace_probe(
+                    output,
+                    label,
+                    probe,
+                    wait_steps=1 if label == "updates" else (64 if label == "long-decode" else 0),
+                    warmup_steps=1 if label != "short-decode" else 0,
+                    active_steps=1 if label == "updates" else 8,
+                )
+            )
     summary["trace_coverage_complete"] = all(x["status"] == "COMPLETE" for x in summary["traces"])
     summary["seconds"] = time.monotonic() - started
     summary["checkpoint_export"] = dict(
@@ -572,6 +640,68 @@ def scorer_work(inputs, output, work, summary):
     summary["status"] = "COMPLETE"
 
 
+def preflight_work(inputs, output, work, summary):
+    """Actual HIP plus a tiny bounded trace; no model, fitting or hidden data."""
+    import torch
+
+    if not torch.version.hip or not torch.cuda.is_available() or torch.cuda.device_count() != 1:
+        raise RuntimeError("preflight requires one actual HIP device; no CPU fallback")
+    started = time.monotonic()
+
+    def operation(step):
+        matrix = torch.ones(32, 32, device="cuda")
+        result = matrix @ matrix
+        torch.cuda.synchronize()
+        if not bool(torch.isfinite(result).all()) or float(result[0, 0]) != 32:
+            raise RuntimeError("HIP preflight matrix result invalid")
+
+    summary["trace"] = trace_probe(output, "capability", operation)
+    if summary["trace"]["status"] != "COMPLETE":
+        raise RuntimeError(
+            "HIP trace preflight failed; model workload unstarted: "
+            + str(summary["trace"].get("reason"))
+        )
+    from .bigint_worker import models, _batch_loss
+
+    if file_hash(inputs / "weights.pt") != work["manifest"]["weights_sha256"]:
+        raise ValueError("preflight weights differ from frozen checkpoint")
+    encoder, decoder, _ = models(work["recipe"], "cuda")
+    weights = torch.load(inputs / "weights.pt", map_location="cpu", weights_only=True)
+    encoder.load_state_dict(weights["encoder"])
+    decoder.load_state_dict(weights["decoder"])
+    del weights
+    optimizer = torch.optim.AdamW(
+        [*encoder.parameters(), *decoder.parameters()],
+        lr=work["recipe"]["learning"]["learning_rate"],
+    )
+
+    def updates(step):
+        encoder.train()
+        decoder.train()
+        for _ in range(5):
+            if time.monotonic() - started >= 120:
+                raise TimeoutError("representative trace preflight120s cap")
+            _batch_loss(encoder, decoder, work["training"][:8], "cuda", optimizer=optimizer)
+            step()
+
+    summary["model_trace"] = trace_probe(
+        output, "representative-update", updates, wait_steps=1, warmup_steps=1, active_steps=1
+    )
+    summary["disposable_updates"] = 5
+    if summary["model_trace"]["status"] != "COMPLETE":
+        raise RuntimeError(
+            "representative update trace preflight failed; paired benchmark unstarted: "
+            + str(summary["model_trace"].get("reason"))
+        )
+    summary["device"] = dict(
+        name=torch.cuda.get_device_name(), torch=torch.__version__, hip=torch.version.hip
+    )
+    summary["seconds"] = time.monotonic() - started
+    if summary["seconds"] > 120:
+        raise TimeoutError("HIP preflight exceeded120s device allowance")
+    summary["status"] = "COMPLETE"
+
+
 def inside(inputs, output, mode):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .bigint_config import packaged_artifacts
@@ -590,7 +720,7 @@ def inside(inputs, output, mode):
         if manifest["plan"] != workload():
             raise ValueError("unknown or modified profiling workload")
         if (
-            mode == "gpu"
+            mode in {"gpu", "preflight"}
             and digest({k: work[k] for k in ("prompts", "training", "validation")})
             != manifest["payload_sha256"]
         ):
@@ -600,7 +730,17 @@ def inside(inputs, output, mode):
             raise ValueError("image/source differs from frozen checkout; rebuild image")
         summary["source_sha256"] = source
         summary["artifacts"] = packaged_artifacts()
-        (gpu_work if mode == "gpu" else scorer_work)(inputs, output, work, summary)
+        from oeis_learn.tracking.pipeline_profile import device_view, audit_device_view
+
+        view = device_view()
+        write(output / "devices.json", view)
+        expected = os.environ.get("OEIS_EXPECTED_PIPELINE_DEVICES")
+        if expected is None:
+            raise ValueError("host-provided expected device identities required")
+        audit_device_view([], view, json.loads(expected))
+        {"gpu": gpu_work, "scorer": scorer_work, "preflight": preflight_work}[mode](
+            inputs, output, work, summary
+        )
     except BaseException as exc:
         summary["error"] = f"{type(exc).__name__}: {exc}"
     finally:

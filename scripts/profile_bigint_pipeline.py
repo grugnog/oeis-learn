@@ -205,10 +205,17 @@ def archive(output, *, cap=256 << 20):
 
 def container_stage(host, image, source, output, *, mode, seconds, gpu):
     from oeis_learn.container_runtime import private_runtime_environment
+    from oeis_learn.tracking.pipeline_profile import character_device
 
     output.mkdir(parents=True, exist_ok=True)
     name = "oeis-pipeline-" + uuid.uuid4().hex
     mounts = [(source, "/work/input", False), (output, "/work/output", True)]
+    expected_devices = (
+        {node: character_device(node) for node in ("/dev/kfd", host.policy["render_node"])}
+        if gpu
+        else {}
+    )
+    started = time.monotonic()
     command = host.engine.command(
         image=image,
         name=name,
@@ -232,6 +239,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             **private_runtime_environment(output),
             "PYTHONPATH": "/opt/oeis-build/src:/opt/oeis-build",
             "OMP_NUM_THREADS": "2",
+            "OEIS_EXPECTED_PIPELINE_DEVICES": json.dumps(expected_devices, sort_keys=True),
         },
     )
     try:
@@ -247,17 +255,28 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
                 for m in inspection[0].get("Mounts", [])
                 if m["Type"] == "bind"
             }
-            devices = {d.get("PathOnHost") for d in config.get("Devices") or []}
-            expected_devices = {"/dev/kfd", host.policy["render_node"]} if gpu else set()
+            from oeis_learn.tracking.pipeline_profile import audit_device_view
+
+            method = audit_device_view(
+                config.get("Devices") or [], read(output / "devices.json"), expected_devices
+            )
             if (
                 config.get("NetworkMode") != "none"
                 or not config.get("ReadonlyRootfs")
                 or config.get("Privileged")
                 or binds != {"/work/input": False, "/work/output": True}
-                or devices != expected_devices
                 or config.get("DeviceRequests")
             ):
                 raise RuntimeError("actual role isolation audit failed")
+            write(
+                output / "isolation-audit.json",
+                dict(
+                    status="PASS",
+                    device_evidence=method,
+                    expected_devices=expected_devices,
+                    version="pipeline-isolation-audit/v1",
+                ),
+            )
         finally:
             start = time.monotonic()
             host.engine.remove(name)
@@ -265,6 +284,14 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             write(
                 output / "cleanup.json",
                 dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
+            )
+            write(
+                output / "host-timing.json",
+                dict(
+                    seconds_through_cleanup=time.monotonic() - started,
+                    allowance_seconds=seconds,
+                    reason="includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+                ),
             )
             if elapsed > 5:
                 raise RuntimeError("role cleanup exceeded5seconds")
@@ -331,7 +358,7 @@ def main():
     p.add_argument("--run", help="completed original diverse32 run directory")
     p.add_argument("--inputs", help="original prepared bigint data directory")
     p.add_argument("--output", required=True)
-    p.add_argument("--inside", choices=("gpu", "scorer"), help=argparse.SUPPRESS)
+    p.add_argument("--inside", choices=("gpu", "scorer", "preflight"), help=argparse.SUPPRESS)
     args = p.parse_args()
     if args.inside:
         from oeis_learn.fresh.pipeline_profile import inside
@@ -384,8 +411,28 @@ def main():
         start = time.monotonic()
         write(output / "launch-policy.json", host.policy)
         with host.gpu_lock():
+            # Same engine/image/device/mount isolation, before the expensive model
+            # workload.420s includes cold engine startup; tiny device work is120s.
             container_stage(
-                host, image, output / "input", output / "gpu", mode="gpu", seconds=3100, gpu=True
+                host,
+                image,
+                output / "input",
+                output / "preflight",
+                mode="preflight",
+                seconds=420,
+                gpu=True,
+            )
+            summary["stages"]["preflight"] = read(output / "preflight/summary.json")
+            if summary["stages"]["preflight"].get("status") != "COMPLETE":
+                raise RuntimeError("device/trace preflight did not complete; benchmark unstarted")
+            container_stage(
+                host,
+                image,
+                output / "input",
+                output / "gpu",
+                mode="gpu",
+                seconds=min(3100, 4800 - (time.monotonic() - start)),
+                gpu=True,
             )
         summary["stages"]["gpu"] = read(output / "gpu/summary.json")
         score_input = output / "private/scorer-input"

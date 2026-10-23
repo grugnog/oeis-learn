@@ -414,7 +414,13 @@ def test_role_isolation_audit_and_cleanup_run_even_after_failure(tmp_path, monke
             calls.append("removed")
 
     (tmp_path / "input").mkdir()
-    monkeypatch.setattr(module, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(
+        module,
+        "launch",
+        lambda *a, **kw: (tmp_path / "out/devices.json").write_text(
+            json.dumps(dict(version="pipeline-device-view/v1", devices={}))
+        ),
+    )
     host = SimpleNamespace(engine=Engine(), policy=dict(memory_bytes=1 << 30, cpus=16))
     if bad_audit:
         with pytest.raises(RuntimeError, match="isolation"):
@@ -462,7 +468,7 @@ def test_report_exports_timeline_without_inventing_missing_gpu_counters(tmp_path
     assert result["schedule_weighted"]["total_seconds"] is None
 
 
-@pytest.mark.parametrize("role_failure", [False, True])
+@pytest.mark.parametrize("role_failure", [None, "preflight", "gpu", "scorer"])
 def test_host_exports_success_or_partial_failure_without_parent_writes(
     tmp_path, monkeypatch, role_failure
 ):
@@ -499,15 +505,18 @@ def test_host_exports_success_or_partial_failure_without_parent_writes(
     def stage(host, image, source, destination, *, mode, **kw):
         destination.mkdir()
         calls.append(mode)
-        if mode == "gpu":
+        if mode in {"gpu", "preflight"}:
             assert not (source / "truth.json").exists()
-            if role_failure:
+            if role_failure == mode:
                 raise RuntimeError("injected role failure")
-            write(destination / "selections.json", {})
+            if mode == "gpu":
+                write(destination / "selections.json", {})
         else:
             assert not (source / "weights.pt").exists()
             work = read(source / "work.json")
             assert work["selections_sha256"] == file_hash(source / "selections.json")
+            if role_failure == mode:
+                raise RuntimeError("injected scorer failure")
         write(destination / "summary.json", dict(status="COMPLETE"))
 
     monkeypatch.setattr(module, "container_stage", stage)
@@ -517,7 +526,10 @@ def test_host_exports_success_or_partial_failure_without_parent_writes(
         [module.__file__, "--run", str(run), "--inputs", str(inputs), "--output", str(output)],
     )
     assert module.main() == (1 if role_failure else 0)
-    assert calls == (["gpu"] if role_failure else ["gpu", "scorer"])
+    expected_calls = ["preflight", "gpu", "scorer"]
+    if role_failure:
+        expected_calls = expected_calls[: expected_calls.index(role_failure) + 1]
+    assert calls == expected_calls
     assert {str(p): file_hash(p) for p in run.rglob("*") if p.is_file()} == parent_hashes
     import zipfile
 
@@ -527,3 +539,69 @@ def test_host_exports_success_or_partial_failure_without_parent_writes(
             "/private/" in "/" + n or "/input/" in "/" + n or n.endswith(".pt")
             for n in z.namelist()
         )
+
+
+def test_podman_empty_devices_requires_matching_actual_device_attestation():
+    from oeis_learn.tracking.pipeline_profile import audit_device_view
+
+    expected = {
+        "/dev/kfd": {"major": 235, "minor": 0},
+        "/dev/dri/renderD128": {"major": 226, "minor": 128},
+    }
+    view = dict(version="pipeline-device-view/v1", devices=expected)
+    assert audit_device_view([], view, expected) == "role-character-devices"
+    with pytest.raises(ValueError, match="device"):
+        audit_device_view([], dict(view, devices={}), expected)
+    with pytest.raises(ValueError, match="device"):
+        audit_device_view(
+            [],
+            dict(
+                view,
+                devices=dict(expected, **{"/dev/dri/renderD129": {"major": 226, "minor": 129}}),
+            ),
+            expected,
+        )
+    with pytest.raises(ValueError, match="device"):
+        audit_device_view([dict(PathOnHost="/dev/kfd")], view, expected)
+    with pytest.raises(ValueError, match="device"):
+        audit_device_view([], view, {})
+
+
+def test_trace_cap_failure_preserves_explicit_partial_evidence(tmp_path, monkeypatch):
+    import torch
+    from oeis_learn.fresh.pipeline_profile import trace_probe
+
+    class Profiler:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+        def export_chrome_trace(self, path):
+            with open(path + ".tmp", "wb") as f:
+                f.truncate(40 << 20)
+
+    monkeypatch.setattr(torch.profiler, "profile", lambda **kw: Profiler())
+    result = trace_probe(tmp_path, "capped", lambda step: None)
+    assert result["status"] == "UNAVAILABLE"
+    assert "byte cap" in result["reason"]
+    assert result["partial"]["bytes"] == 40 << 20
+    assert (tmp_path / "traces/capped.partial.json").stat().st_size == 40 << 20
+
+
+def test_scheduled_trace_exports_real_cpu_operators_but_never_claims_hip(tmp_path):
+    import torch
+    from oeis_learn.fresh.pipeline_profile import trace_probe
+
+    def operation(step):
+        for i in range(5):
+            torch.ones(16) @ torch.ones(16)
+            step()
+
+    result = trace_probe(
+        tmp_path, "scheduled", operation, wait_steps=1, warmup_steps=1, active_steps=1
+    )
+    assert result["status"] == "INCOMPLETE" and not result["gpu_kernels"]
+    assert result["schedule"]["active_steps"] == 1
+    assert result["bytes"] < 40 << 20
