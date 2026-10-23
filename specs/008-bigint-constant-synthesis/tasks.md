@@ -1,5 +1,13 @@
 # Tasks: Exact Bigint and Parameterized Sequence Synthesis
 
+> **Forward ownership — 2026-10-23:** [Spec 009](../009-pipeline-throughput/spec.md)
+> carries the remaining performance, operations, qualification and gated research
+> work. Its [carryover register](../009-pipeline-throughput/carryover.md) accounts
+> for every unchecked task and the explicit sequencing revisions. Transfer does
+> not complete these tasks or rewrite their historical evidence: T093 stays
+> deferred, T096 stays negative, and current-source research admission stays gated.
+
+
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [algorithm-phase.md](algorithm-phase.md), [contracts/](contracts/), [quickstart.md](quickstart.md).
 
 **Prerequisites**: Read those documents, repository `AGENTS.md` and `.specify/memory/constitution.md` before implementation. Tests are required by the specification and constitution. This document creates work; unchecked tasks are not implementation or qualification evidence.
