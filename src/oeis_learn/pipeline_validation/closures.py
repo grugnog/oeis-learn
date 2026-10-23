@@ -1,26 +1,45 @@
-"""Explicit content closure with conservative fallback for unmapped changes."""
+"""Versioned conservative dependency closure; unmapped changes invalidate reuse."""
 from pathlib import Path
-from .identity import seal, file_hash
+from .identity import seal, file_hash, confined, validate
 
-RULE = 'pipeline-closure/v1'
+RULE='pipeline-closure/v1'
 
 
-def closure(root, paths, prerequisites=()):
-    root=Path(root)
+def presentation(path):
+    path=Path(path)
+    return str(path)=='README.md' or (path.parts[0]=='docs' and path.suffix=='.md')
+
+
+def dependency_closure(snapshot, *, prerequisites):
+    # Start with every mapped source/build/config/test/adapter byte. Narrower
+    # closures require a separately reviewed rule, not inferred file extensions.
+    files={str(p):h for p,h in sorted(snapshot.items()) if not presentation(p)}
+    return seal(dict(version=RULE,files=files,prerequisites=prerequisites,
+        exclusions={'README.md':'presentation only','docs/*.md':'presentation only'},
+        unmapped='invalidate',whole_package_inspection='mandatory current image'))
+
+
+def closure(root,paths,prerequisites=()):
     files={}
     for name in sorted(set(paths)):
-        path=root/name
-        if not path.is_file() or path.is_symlink():
-            raise ValueError('missing/unsafe closure input: '+name)
+        path=confined(root,name)
+        if not path.is_file():raise ValueError('regular closure input required: '+name)
         files[name]=file_hash(path)
-    return seal(dict(version=RULE,files=files,prerequisites=list(prerequisites),
-                     exclusions={'docs':'presentation only; source/package inspection still mandatory'}))
+    return dependency_closure(files,prerequisites=list(prerequisites))
 
 
-def compatible_changes(old, current, changed):
+def compatible_closure(old,current):
+    fields={'version','files','prerequisites','exclusions','unmapped','whole_package_inspection'}
+    try:
+        validate(old,fields,RULE);validate(current,fields,RULE)
+        return old==current
+    except (ValueError,TypeError):
+        return False
+
+
+def compatible_changes(old,current,changed):
     for path in changed:
-        if path.startswith(('docs/','specs/')) and '/contracts/' not in path:
-            continue
-        if path not in old['files'] or old['files'].get(path) != current['files'].get(path):
+        if presentation(path):continue
+        if path not in old['files'] or old['files'].get(path)!=current['files'].get(path):
             return False
-    return old['files'] == current['files'] and old['prerequisites'] == current['prerequisites']
+    return compatible_closure(old,current)

@@ -46,7 +46,10 @@ def main(args, root, host_factory):
     for producer in reuse_roots:
         validate_import(producer)
     from oeis_learn.experiments.source_snapshot import collect_snapshot
-    binding=dict(source=digest(collect_snapshot(root)),contract=contract['identity'])
+    snapshot=collect_snapshot(root)
+    from .closures import dependency_closure
+    binding=dict(source=digest(snapshot),contract=contract['identity'],
+        dependency_closure=dependency_closure(snapshot,prerequisites={}))
     return execute(stages,output,adapter=Adapters(args,root,host_factory,contract),binding=binding,
         cap=maximum,reserve=contract['budgets']['archive_seconds']+contract['budgets']['cleanup_seconds'],
         contract=contract,unavailable=unavailable,reuse_roots=reuse_roots)

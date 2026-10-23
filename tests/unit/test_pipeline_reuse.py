@@ -16,3 +16,13 @@ class Reuse(unittest.TestCase):
                 self.assertFalse(compatible(bad,root,binding,{'p':'hash'}))
             (root/'a').write_text('b')
             self.assertFalse(compatible(row,root,binding,{'p':'hash'}))
+
+    def test_dependency_closure_exclusions_and_unknown_changes(self):
+        from oeis_learn.pipeline_validation.closures import dependency_closure, compatible_closure
+        old={'src/a.py':'old','uv.lock':'lock','README.md':'old-doc'}
+        a=dependency_closure(old,prerequisites={'p':'producer'})
+        b=dependency_closure(dict(old,**{'README.md':'new-doc'}),prerequisites={'p':'producer'})
+        self.assertTrue(compatible_closure(a,b))
+        for current in [dict(old,**{'src/a.py':'new'}),dict(old,**{'uv.lock':'new'}),dict(old,**{'unmapped/new.data':'new'})]:
+            self.assertFalse(compatible_closure(a,dependency_closure(current,prerequisites={'p':'producer'})))
+        self.assertFalse(compatible_closure(a,dependency_closure(old,prerequisites={'p':'different'})))

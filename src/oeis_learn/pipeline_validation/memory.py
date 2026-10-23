@@ -55,8 +55,10 @@ class MemoryWatchdog:
         if machine>row['physical']*9//10 or role>self.ceiling or row['limit']>self.ceiling:
             if self.breach is None:
                 self.breach=dict(reason='aggregate memory upper bound or enforcement exceeds authorized envelope',observation=row)
-                write(self.output/'memory-breach.json',self.breach)
-                if terminate:self.killer()
+                try:
+                    write(self.output/'memory-breach.json',self.breach)
+                finally:
+                    if terminate:self.killer()
 
     def report(self):
         return dict(version='pipeline-memory-observation/v1',qualified=bool(self.samples and self.known and not self.breach),

@@ -28,7 +28,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         blocked=[p for p in stage.prerequisites if receipts[p]['state'] not in {'PASS','REUSED'}]
         reason=global_stop or ('failed/missing prerequisites: '+','.join(blocked) if blocked else '')
         from .reuse import find_stage
-        imported=find_stage(reuse_roots,stage.id,binding,prerequisites) if stage.adapter not in {'image','engine'} and not reason else None
+        imported=find_stage(reuse_roots,stage.id,binding,prerequisites) if stage.adapter=='host' and not reason else None
         if imported is not None:
             import shutil
             producer, previous=imported
