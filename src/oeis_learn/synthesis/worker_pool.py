@@ -17,6 +17,10 @@ from .service_policy import ServiceLimits, RoleCapacity, BoundedCache
 from .state import require_hash
 
 
+class NonQuiescentWorker(RuntimeError):
+    """Work remains charged until the external role supervisor confirms exit."""
+
+
 class _SerialWorker:
     def __init__(
         self,
@@ -60,6 +64,8 @@ class _SerialWorker:
             self.condition.notify_all()
 
     def cancel_all(self):
+        self.cleanup_deadline = min(getattr(self, 'cleanup_deadline', float('inf')),
+                                    time.monotonic() + 5)
         process = self.process
         if process is not None and process.poll() is None:
             try:
@@ -68,19 +74,30 @@ class _SerialWorker:
                 pass
 
     def _retire(self):
-        process = self.process
-        self.process = None
-        if process is not None:
+        with self.condition:
+            process = self.process
+            if process is None:
+                return
+            self.cleanup_deadline = min(getattr(self, 'cleanup_deadline', float('inf')),
+                                        time.monotonic() + 5)
             if process.poll() is None:
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-            process.wait(timeout=5)
+            try:
+                process.wait(timeout=max(0, self.cleanup_deadline - time.monotonic()))
+            except subprocess.TimeoutExpired as exc:
+                self.closed = True
+                raise NonQuiescentWorker('native exit unacknowledged; external role termination required') from exc
+            # Keep both handle and capacity until termination is positively acknowledged.
             for stream in (process.stdin, process.stdout, process.stderr):
                 stream.close()
+            self.process = None
             self.generation += 1
             self.stats["restarts"] += 1
+            if not self.closed:
+                del self.cleanup_deadline
 
     def close(self):
         with self.condition:
@@ -361,6 +378,9 @@ class NativeSlots:
             raise MemoryError('aggregate native RSS watchdog')
 
     def cancel_all(self):
+        deadline = time.monotonic() + 5
+        for slot in self.slots:
+            slot.cleanup_deadline = min(getattr(slot, 'cleanup_deadline', float('inf')), deadline)
         self._signal_all()
 
     def _signal_all(self):
@@ -386,7 +406,7 @@ class NativeSlots:
 
     def call(self,request,*,deadline):
         key=request['request_id'];size=len(frame(request));prompt=getattr(self.local,'prompt',0)
-        slot_id=prompt%len(self.slots);queued=False;active=False
+        slot_id=prompt%len(self.slots);queued=False;active=False;result=None
         ids=[c['candidate_id'] for c in request['candidates']]
         def incomplete(reason):
             return dict(results=[],unstarted=ids,complete=False,outcome='resource_exhausted',reason=reason,generation=self.generation,metrics=self.stats)
@@ -411,9 +431,15 @@ class NativeSlots:
         finally:
             with self.condition:
                 if active:
-                    self.capacity.finish(key,acknowledged=True)
-                    # Response transferred synchronously to its one caller; staging no longer owns it.
-                    self.capacity.commit(key)
+                    acknowledged = bool(result and result.get('complete')) or self.slots[slot_id].process is None
+                    if acknowledged:
+                        self.capacity.finish(key,acknowledged=True)
+                        self.capacity.commit(key)
+                    else:
+                        self.closed = True
+                        self.cancel_all()
+                        self.condition.notify_all()
+                        raise NonQuiescentWorker('native reservation retained until role exit is acknowledged')
                 elif queued:
                     self.capacity.cancel_pending(key)
                 self.cancelled.discard(key);self.condition.notify_all()
@@ -426,17 +452,14 @@ class NativeSlots:
             self.condition.notify_all()
 
     def close(self):
-        started=time.monotonic()
         with self.condition:
             self.closed=True
             for slot in self.slots:
                 slot.closed=True
             self.condition.notify_all()
-        self._signal_all()  # Signal concurrently before waiting for any one process.
+        self.cancel_all()  # Signal concurrently and share one deadline across every wait.
         for slot in self.slots:
             slot._retire()
-        if time.monotonic()-started>5:
-            raise TimeoutError('aggregate cleanup exceeded five seconds; external role watchdog required')
 
     def __enter__(self):
         return self

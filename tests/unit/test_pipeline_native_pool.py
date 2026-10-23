@@ -29,6 +29,47 @@ class NativePool(unittest.TestCase):
 
 
 class ProcessSlots(unittest.TestCase):
+    def test_unacknowledged_termination_keeps_handle_and_charge(self):
+        from unittest.mock import Mock, patch
+        import subprocess
+        from oeis_learn.synthesis.worker_pool import WorkerPool
+        from oeis_learn.synthesis.service_policy import ServiceLimits
+        pool = WorkerPool(contract_sha256='sha256:'+'a'*64,
+            limits=ServiceLimits(max_inflight_batches=2))
+        process = Mock(pid=1234)
+        process.poll.return_value = None
+        process.wait.side_effect = subprocess.TimeoutExpired('worker', 5)
+        pool.slots[0].process = process
+        request = dict(request_id='job', candidates=[dict(candidate_id='a')])
+        def fail(*args, **kwargs):
+            pool.slots[0]._retire()
+        with patch('oeis_learn.synthesis.worker_pool.os.killpg'), patch.object(pool.slots[0], 'call', side_effect=fail):
+            with self.assertRaises(RuntimeError):
+                pool.call(request, deadline=10**20)
+        self.assertIs(pool.slots[0].process, process)
+        self.assertIn('job', pool.capacity.active)
+        self.assertTrue(pool.closed)
+        process.stdin.close.assert_not_called()
+
+    def test_cleanup_has_one_deadline_for_all_slots(self):
+        from unittest.mock import Mock, patch
+        from oeis_learn.synthesis.worker_pool import WorkerPool
+        from oeis_learn.synthesis.service_policy import ServiceLimits
+        pool = WorkerPool(contract_sha256='sha256:'+'a'*64,
+            limits=ServiceLimits(max_inflight_batches=2))
+        clock = [100.0]
+        waits = []
+        def wait(timeout):
+            waits.append(timeout)
+            clock[0] += min(3, timeout)
+        for slot in pool.slots:
+            slot.process = Mock(pid=1234)
+            slot.process.poll.return_value = None
+            slot.process.wait.side_effect = wait
+        with patch('oeis_learn.synthesis.worker_pool.time.monotonic', side_effect=lambda: clock[0]), patch('oeis_learn.synthesis.worker_pool.os.killpg'):
+            pool.close()
+        self.assertEqual(waits, [5, 2])
+
     def test_two_process_generations_and_recovery(self):
         import json
         from pathlib import Path

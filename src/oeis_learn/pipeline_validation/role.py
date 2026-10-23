@@ -178,8 +178,9 @@ def main(argv=None):
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach
+        from oeis_learn.synthesis.worker_pool import NonQuiescentWorker
         result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}',
-            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,ResourceBreach)) else None)
+            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,ResourceBreach,NonQuiescentWorker)) else None)
     finally:
         result['seconds_through_role']=time.monotonic()-role_started
         result.setdefault('version','pipeline-role-result/v1')

@@ -100,5 +100,6 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
             ledger.cancel(request.job['job_id'])
             thread.join(timeout=max(0,deadline-time.monotonic()))
         if any(thread.is_alive() for thread,_ in active.values()):
-            raise RuntimeError('nonquiescent reference/native task; terminate role via external watchdog')
+            from oeis_learn.synthesis.worker_pool import NonQuiescentWorker
+            raise NonQuiescentWorker('nonquiescent reference/native task; terminate role via external watchdog')
     return results,ledger.boundary(policies or {})
