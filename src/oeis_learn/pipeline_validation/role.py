@@ -144,7 +144,10 @@ def cpu_contracts(inputs,output,config):
         'tests/integration/test_bigint_decoding.py','--junitxml='+str(output/'results.xml')]
     subprocess.run(command,check=True,timeout=600)
     from .engines import junit
-    return dict(status='COMPLETE',counts=junit(output/'results.xml'))
+    from .policies import fixture_report
+    comparison=fixture_report()
+    write(output/'policy-comparison.json',comparison)
+    return dict(status='COMPLETE',counts=junit(output/'results.xml'),comparison=comparison)
 
 
 def main(argv=None):

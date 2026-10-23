@@ -7,6 +7,16 @@ from oeis_learn.synthesis.admission import source_identity
 
 
 class Policy(unittest.TestCase):
+    def test_serial_policy_report_retains_both_provenance_decisions(self):
+        from oeis_learn.pipeline_validation.policies import fixture_report
+        report=fixture_report()
+        self.assertTrue(report['fixtures_only'])
+        comparison=report['records'][0]
+        self.assertEqual(comparison['selections']['v1']['attempt_ordinal'],1)
+        self.assertEqual(comparison['selections']['v2']['attempt_ordinal'],0)
+        self.assertTrue(comparison['differences']['selection'])
+        self.assertEqual(comparison['archives']['v2']['retained'][0]['attempt_ordinal'],0)
+
     def visible(self, ordinal, cost):
         return dict(source='x',source_sha256=source_identity('x'),verified=True,visible_count=20,
             cost=cost,attempt_ordinal=ordinal,job_id=source_identity(str(ordinal)),

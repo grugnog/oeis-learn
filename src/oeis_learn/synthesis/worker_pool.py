@@ -483,7 +483,12 @@ class RoleCaches:
 
             self.root.mkdir(parents=True, exist_ok=True)
             self.lock = (self.root / ".owner.lock").open("a+b")
-            fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BaseException:
+                self.lock.close()
+                self.lock = None
+                raise
             # Cache entries are expendable; reconstruct byte/count accounting from actual files.
             for p in sorted(self.root.glob("*.json")):
                 try:
