@@ -95,7 +95,10 @@ class _SerialWorker:
             for stream in (process.stdin, process.stdout, process.stderr):
                 stream.close()
             self.process = None
-            self.generation += 1
+            # A pooled process keeps its actual generation in terminal evidence.
+            # Only the global start allocator may mint the next process ID.
+            if getattr(self, 'generation_allocator', None) is None:
+                self.generation += 1
             self.stats["restarts"] += 1
             if not self.closed:
                 del self.cleanup_deadline

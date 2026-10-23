@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec008 Phase5 engine policy and pipeline profiling with stdlib host imports; traceability only, full acceptance remains pending",
+  "code_revision": "Spec009 pipeline orchestration and bounded scheduling; current implementation traceability only, runtime/HIP and full acceptance remain pending",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:9a5aedc3f2dffa52d6f66f528e799ebfcd0f9a8ea5662109e7c78ff433d394bf",
+  "implementation_sha256": "sha256:eae725b68d512b8dfa92c2f473c741e5c6f9b6a171fc5c3059a401afb4d722a3",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

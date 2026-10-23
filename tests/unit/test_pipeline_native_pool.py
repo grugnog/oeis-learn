@@ -29,6 +29,19 @@ class NativePool(unittest.TestCase):
 
 
 class ProcessSlots(unittest.TestCase):
+    def test_retirement_does_not_mint_a_global_process_generation(self):
+        from unittest.mock import Mock
+        from oeis_learn.synthesis.worker_pool import WorkerPool
+        from oeis_learn.synthesis.service_policy import ServiceLimits
+        pool=WorkerPool(contract_sha256='sha256:'+'a'*64,limits=ServiceLimits(max_inflight_batches=2))
+        pool.slots[1].generation=pool._generation()
+        slot=pool.slots[0];slot.generation=pool._generation()
+        retired_generation=slot.generation
+        slot.process=Mock();slot.process.poll.return_value=0
+        slot._retire()
+        self.assertEqual(slot.generation,retired_generation)
+        self.assertGreater(pool._generation(),slot.generation)
+
     def test_unacknowledged_termination_keeps_handle_and_charge(self):
         from unittest.mock import Mock, patch
         import subprocess
