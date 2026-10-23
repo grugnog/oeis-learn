@@ -7,6 +7,19 @@ from oeis_learn.synthesis.admission import source_identity
 
 
 class Policy(unittest.TestCase):
+    def test_v2_archive_capacity_omissions_and_conflicting_duplicates(self):
+        rows=[dict(id=source_identity(str(i)),source=str(i),structure=str(i),cost=i,
+            verified=True,verification=source_identity('verification'),track='generic_only',
+            profile='bigint-body/v1',assignment={},attempt_ordinal=0,job_id=source_identity(str(i))) for i in range(10)]
+        result=retain_alternatives(rows,policy='structure-pareto/v2')
+        self.assertEqual(len(result['retained']),8)
+        self.assertEqual(len(result['omitted']),2)
+        self.assertTrue(all(r['reason']=='frozen_capacity' for r in result['omitted']))
+        self.assertEqual(result,retain_alternatives(rows[::-1],policy='structure-pareto/v2'))
+        for field,value in [('verification',source_identity('different')),('track','assisted')]:
+            with self.assertRaises(ValueError):
+                retain_alternatives([rows[0],dict(rows[0],**{field:value})],policy='structure-pareto/v2')
+
     def test_serial_policy_report_retains_both_provenance_decisions(self):
         from oeis_learn.pipeline_validation.policies import fixture_report
         report=fixture_report()

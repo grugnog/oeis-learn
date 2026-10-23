@@ -86,6 +86,7 @@ while True:
     n=struct.unpack('<I',head)[0]
     r=json.loads(sys.stdin.buffer.read(n))
     out={k:r[k] for k in ['protocol','request_id','worker_generation','contract_sha256']}
+    if r['request_id']=='bad':out['worker_generation']+=1
     out.update(results=[dict(candidate_id=c['candidate_id'],outcome='ok',values=[os.environ.get('OMP_NUM_THREADS')]) for c in r['candidates']],unstarted=[],complete=True)
     raw=json.dumps(out).encode();sys.stdout.buffer.write(struct.pack('<I',len(raw))+raw);sys.stdout.buffer.flush()
 '''
@@ -108,5 +109,13 @@ while True:
                 self.assertEqual(len({s.generation for s in pool.slots}),2)
                 self.assertFalse(pool.capacity.active)
                 self.assertFalse(pool.capacity.pending)
+                request=dict(protocol='synthesis-worker/v1',request_id='bad',contract_sha256=pool.contract,
+                    candidates=[{'candidate_id':'bad'}],remaining_budget={'wall_time_ms':1000},worker_generation=0)
+                failed=pool.call(request,deadline=time.monotonic()+3)
+                self.assertEqual(failed['outcome'],'verification_failure')
+                self.assertFalse(pool.capacity.active)
+                recovered=pool.call(dict(request,request_id='healthy'),deadline=time.monotonic()+3)
+                self.assertTrue(recovered['complete'])
+                self.assertGreater(recovered['generation'],failed['generation'])
             finally:
                 pool.close()
