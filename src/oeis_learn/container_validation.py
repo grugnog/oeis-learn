@@ -46,9 +46,10 @@ GPU_NODES = [
 ]
 
 
-def _stages(host, suite, output):
+def _stages(host, suite, output, *, external_seconds=None):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
+    invocation_started = time.monotonic()
     image = host.ensure()
     root = Path(host.policy["workspace"])
     code = digest(
@@ -113,6 +114,7 @@ def _stages(host, suite, output):
             for p in sorted((ROOT / "tests" / area).glob("test_bigint*.py"))
             if p.name != "test_bigint_gpu.py"
         ]
+        bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
         bigint_cpu += [
             "tests/contract/test_native_fitting.py",
             "tests/integration/test_synthesis_worker.py",
@@ -236,7 +238,8 @@ def _stages(host, suite, output):
             environment={
                 **private_runtime_environment(out),
                 "PYTHONPATH": "/opt/oeis-build/src",
-                "OMP_NUM_THREADS": str(host.policy["cpus"]),
+                "OMP_NUM_THREADS": "2" if external_seconds is not None else str(host.policy["cpus"]),
+                **({'MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','RAYON_NUM_THREADS':'1'} if external_seconds is not None else {}),
                 "OEIS_TEST_OUTPUT": "/work/output/gpu",
                 **(
                     {
@@ -262,6 +265,8 @@ def _stages(host, suite, output):
                     process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
                     started = time.monotonic()
                     cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
+                    if external_seconds is not None:
+                        cap = min(cap, max(0, external_seconds-(time.monotonic()-invocation_started)))
                     try:
                         while True:
                             left = cap - (time.monotonic() - started)

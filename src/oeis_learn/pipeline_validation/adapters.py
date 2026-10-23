@@ -14,6 +14,9 @@ from .supervision import launch
 class Adapters:
     def __init__(self, args, root, host_factory, contract):
         self.args=args;self.root=Path(root);self.host_factory=host_factory;self.contract=contract
+        self.receipts={}
+        from .benchmarks import Benchmarks
+        self.benchmarks=Benchmarks(self)
         self.hosts={};self.images=Images(contract['budgets']['build_per_engine_seconds'])
 
     def host(self,name):
@@ -37,8 +40,23 @@ class Adapters:
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
-            names=['contracts','resources','bundle','reuse','validation']
-            return launch([sys.executable,'-S','-m','unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]],output,seconds=stage.seconds)
+            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision']
+            code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
+            return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds)
+        if stage.adapter=='qualification':
+            from .qualification import qualification
+            from oeis_learn.experiments.source_snapshot import collect_snapshot
+            from .identity import digest
+            report=qualification({k:v for k,v in self.receipts.items() if k!='qualification'},source=digest(collect_snapshot(self.root)))
+            write(output/'qualification.json',report)
+            return report
+        if stage.adapter=='cost':
+            from oeis_learn.fresh.cost_policy import pipeline_forecast
+            report=pipeline_forecast({},'diverse32' if stage.id=='cost.diverse32' else 'transfer-screen',updates=3000,cadence=500,budget=7200)
+            write(output/'forecast.json',report)
+            return dict(report,reason='No measured exact-scope cost receipt yet; historical allowance is shown only as a labelled nonadmitting forecast')
+        if stage.adapter in {'baseline','inference','joint'}:
+            return getattr(self.benchmarks,stage.adapter)(output,cap=stage.seconds)
         parts=stage.id.split('.')
         name=parts[1] if parts[0] in {'engine','image','cpu','operations'} else self.args.engine
         host=self.host(name)
@@ -47,6 +65,7 @@ class Adapters:
             return facts
         if stage.adapter=='image':
             target=parts[2]
+            if target=='gpu':host.select_gpu()
             image=self.images.ensure(host,target,output/'build')
             # Whole installed package inspection is mandatory for pinned and built images.
             from oeis_learn.container_validation import inspect_current_image
@@ -54,12 +73,31 @@ class Adapters:
             write(output/'image.json',dict(image=image,target=target,engine=name))
             return dict(image=image)
         target='gpu' if stage.adapter=='hip' else 'qualification'
+        if stage.adapter in {'policy','native'}:
+            from .benchmarks import legacy
+            container_stage=legacy(self.root).container_stage
+            from .identity import digest
+            from oeis_learn.experiments.source_snapshot import collect_snapshot
+            source=output/'input';source.mkdir()
+            mode='contracts' if stage.adapter=='policy' else 'native'
+            write(source/'expected.json',dict(version='pipeline-role/v1',source=digest(collect_snapshot(self.root)),contract=self.contract['identity'],mode=mode,options={}))
+            image=self.images.images[(name,target)]
+            container_stage(host,image,source,output/'role',mode=mode,seconds=stage.seconds,gpu=False,
+                argv=['python','-m','oeis_learn.pipeline_validation.role',mode])
+            result=json.loads((output/'role/summary.json').read_text())
+            if result.get('status')=='FAIL':
+                raise RuntimeError(result.get('error','internal role failure'))
+            if stage.adapter=='native':
+                self.benchmarks.selected_workers=result.get('selected_workers',1)
+            if result.get('status')=='INCONCLUSIVE':
+                result['stage_state']='INCONCLUSIVE'
+            return result
         image=self.images.images[(name,target)]
         host.image=image
         if stage.adapter=='hip':
             from oeis_learn.container_validation import _stages
             host.select_gpu()
             with host.gpu_lock():
-                return _stages(host,'bigint-gpu',output)[1]
+                return _stages(host,'bigint-gpu',output,external_seconds=stage.seconds)[1]
         from oeis_learn.container_validation import _stages
-        return _stages(host,'bigint-retirement' if stage.adapter=='retirement' else 'bigint-cpu',output)[1]
+        return _stages(host,'bigint-retirement' if stage.adapter=='retirement' else 'cpu' if stage.adapter=='operations' else 'bigint-cpu',output,external_seconds=stage.seconds)[1]

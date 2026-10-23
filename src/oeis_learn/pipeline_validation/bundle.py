@@ -4,13 +4,13 @@ import os
 from pathlib import Path
 import stat
 import zipfile
-from .identity import seal, file_hash, confined, write
+from .identity import seal, file_hash, confined, write, validate
 
 EXCLUDED = {'input','inputs','private','cache','caches','.runtime','pytest','__pycache__'}
 
 
 def public(path):
-    return not (set(path.parts)&EXCLUDED or path.suffix in {'.pt','.pth','.bin','.ckpt','.zip','.lock'} or 'truth' in path.name or 'weights' in path.name)
+    return path.suffix in {'.json','.jsonl','.xml','.log','.md','.txt','.csv','.html'} and not (set(path.parts)&EXCLUDED or path.suffix in {'.pt','.pth','.bin','.ckpt','.zip','.lock'} or 'truth' in path.name or 'weights' in path.name)
 
 
 def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20):
@@ -68,12 +68,13 @@ def verify(archive):
         if len(names)!=len(set(names)):
             raise ValueError('duplicate archive members')
         manifest=json.loads(z.read('manifest.json'))
-        if seal(manifest)!=manifest:
-            raise ValueError('bundle manifest identity mismatch')
+        validate(manifest,{'version','members','omissions','summary_state','excluded'},'pipeline-bundle/v1')
         expected={row['path'] for row in manifest['members']}|{'manifest.json'}
         if set(names)!=expected:
             raise ValueError('archive inventory mismatch')
         for row in manifest['members']:
+            if set(row)!={'path','bytes','sha256','mandatory'}:
+                raise ValueError('unknown bundle member fields')
             path=Path(row['path'])
             info=z.getinfo(row['path'])
             if path.is_absolute() or '..' in path.parts or not public(path) or stat.S_ISLNK(info.external_attr>>16):
@@ -87,6 +88,11 @@ def verify(archive):
             if 'sha256:'+h.hexdigest()!=row['sha256']:
                 raise ValueError('archive member hash mismatch')
         summary=json.loads(z.read('summary.json'))
+        if summary.get('stages'):
+            from .report import summarize
+            verdict=summarize(summary['stages'],interrupted=summary['selected_scope']=='INTERRUPTED')['selected_scope']
+            if verdict!=summary['selected_scope']:
+                raise ValueError('summary contradicts stage outcomes')
         if summary['selected_scope']!=manifest['summary_state']:
             raise ValueError('contradictory summary')
     return manifest

@@ -5,12 +5,14 @@ from oeis_learn.synthesis.contracts import identity, canonical_integer
 
 
 class Portfolio:
-    def __init__(self, *, start, seed, beam=None):
+    def __init__(self, *, start, seed, beam=None, seconds=60):
         if not math.isfinite(start) or type(seed) is not int:
             raise ValueError("invalid portfolio clock/seed")
+        if seconds not in (60,180):
+            raise ValueError('registered production60/fixed-work180 portfolio required')
         self.start = start
         self.last_now = start
-        self.deadline = start + 60
+        self.deadline = start + seconds
         self.seed = seed
         self.records = {}
         self.beam = beam

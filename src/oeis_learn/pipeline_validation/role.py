@@ -1,0 +1,136 @@
+"""Internal isolated engineering adapters; no study/training execution authority."""
+import argparse
+from dataclasses import asdict,replace
+import json
+import os
+from pathlib import Path
+import statistics
+import time
+
+from .identity import digest,seal,write,number
+
+
+def native_corpus():
+    """Independent exact values. Large intermediates cancel to bounded zero outputs."""
+    from oeis_learn.synthesis.contracts import decimal_integer
+    rows=[]
+    for bits in (64,256,512,1024,4096):
+        indices=[decimal_integer((1<<(bits-1))+i) for i in range(20)]
+        rows.append(dict(id=f'identity-{bits}',stratum=f'bits{bits}',
+            source='(program (return (param.get p0)))',indices=[str(i) for i in range(20)],
+            values=[indices[0]]*20))
+        for degree in (2,4):
+            term='$index'
+            for _ in range(degree.bit_length()-1):term=f'(mul {term} {term})'
+            rows.append(dict(id=f'cancel-{bits}-{degree}',stratum=f'bits{bits}-degree{degree}',
+                source=f'(program (return (sub {term} {term})))',indices=indices,values=['0']*20))
+    rows.extend([
+        dict(id='affine',stratum='small-affine',source='(program (return (add (mul (param.get p0) $index) (param.get p1))))',indices=[str(i) for i in range(20)],values=[str(3*i+7) for i in range(20)]),
+        dict(id='nonlinear',stratum='nonlinear',source='(program (return (mul (param.get p0) (param.get p1))))',indices=[str(i) for i in range(20)],values=['15']*20),
+        dict(id='no-fit',stratum='negative',source='(program (return (param.get p0)))',indices=[str(i) for i in range(20)],values=[str(i) for i in range(20)]),
+    ])
+    return seal(dict(version='pipeline-native-corpus/v1',rows=rows,exclusions=[]))
+
+
+def native_trial(output,*,workers,corpus,contract,cap):
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.service_policy import ServiceLimits
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    from oeis_learn.fresh.pipeline_jobs import NativeRequest,logical_job
+    from oeis_learn.fresh.pipeline_scheduler import drive
+    limits=ServiceLimits(max_inflight_batches=workers)
+    start=time.monotonic();deadline=start+cap
+    with SynthesisClient(contract,service_limits=limits,cache_root=output/'native-cache') as client:
+        def job(i,row):
+            logical=logical_job(contract=contract,snapshot='fixed-native-corpus',mode='native',arm='fit',
+                prompt_id=row['id'],attempt_ordinal=0,method='fixture',seed=20261016)
+            service_deadline=min(deadline,time.monotonic()+4)
+            def operation():
+                from contextlib import nullcontext
+                affinity=getattr(client.worker,'affinity',None)
+                with affinity(i) if affinity else nullcontext():
+                    began=time.monotonic()
+                    result=client.fit(row['source'],VisiblePrompt(tuple(row['indices']),tuple(row['values'])),
+                        deadline=min(service_deadline,time.monotonic()+4))
+                    return dict(id=row['id'],stratum=row['stratum'],seconds=time.monotonic()-began,
+                        complete=result.get('complete',False),outcome=result['outcome'],
+                        admitted=[dict(source_sha256=a['source_sha256'],assignment=a['assignment'],verification=a['verification']) for a in result['admitted']])
+            value=yield NativeRequest(logical,i,service_deadline,operation)
+            return value
+        results,boundary=drive(None,[job(i,row) for i,row in enumerate(corpus['rows'])],workers=workers,
+            policies={'selection':'visible-only/v2','corpus':corpus['identity']})
+        result=seal(dict(version='pipeline-native-trial/v1',workers=workers,corpus=corpus['identity'],
+            seconds=time.monotonic()-start,results=results,complete=all(r['complete'] for r in results),
+            boundary=boundary,metrics=client.worker.stats))
+        write(output/'trial.json',result)
+        return result
+
+
+def native_compare(inputs,output,config):
+    corpus=native_corpus();write(output/'workload.json',corpus)
+    records=[]
+    # One unscored warmup, then exactly two exploratory paired runs per named candidate.
+    native_trial(output/'warmup',workers=1,corpus=corpus,contract=config['contract'],cap=300)
+    for workers in (2,4):
+        for pair,order in enumerate(('AB','BA')):
+            row={}
+            for arm in order:
+                count=1 if arm=='A' else workers
+                row[arm]=native_trial(output/f'w{workers}-pair{pair}-{arm}',workers=count,
+                    corpus=corpus,contract=config['contract'],cap=300)
+            parity=[r['admitted'] for r in row['A']['results']]==[r['admitted'] for r in row['B']['results']]
+            records.append(dict(workers=workers,pair=pair,order=order,arms=row,parity=parity))
+    eligible={}
+    for workers in (2,4):
+        pairs=[r for r in records if r['workers']==workers]
+        if all(r['parity'] and all(a['complete'] for a in r['arms'].values()) for r in pairs):
+            eligible[workers]=statistics.median(r['arms']['B']['seconds'] for r in pairs)
+    if eligible:
+        eligible[1]=statistics.median(r['arms']['A']['seconds'] for r in records if all(a['complete'] for a in r['arms'].values()))
+        fastest=min(eligible.values())
+        selected=min(w for w,t in eligible.items() if t<=fastest*1.05)
+    else:
+        selected=1
+    report=seal(dict(version='pipeline-native-comparison/v1',records=records,selected_workers=selected,
+        status='COMPLETE' if eligible else 'INCONCLUSIVE',adoption='EXPERIMENTAL_ONLY',
+        reason='joint end-to-end confirmation required; no worker expansion'))
+    write(output/'comparison.json',report)
+    return report
+
+
+def cpu_contracts(inputs,output,config):
+    import subprocess
+    import sys
+    command=[sys.executable,'-m','pytest','-q','tests/unit/test_pipeline_policy.py',
+        'tests/unit/test_pipeline_native_pool.py','tests/unit/test_pipeline_overlap.py',
+        'tests/integration/test_bigint_decoding.py','--junitxml='+str(output/'results.xml')]
+    subprocess.run(command,check=True,timeout=600)
+    from .engines import junit
+    return dict(status='COMPLETE',counts=junit(output/'results.xml'))
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
+    result={'status':'FAIL'}
+    try:
+        config=json.loads((inputs/'expected.json').read_text())
+        if set(config)!={'version','source','contract','mode','options'} or config['version']!='pipeline-role/v1' or config['mode']!=args.mode:
+            raise ValueError('unknown internal role contract')
+        from oeis_learn.experiments.source_snapshot import source_snapshot
+        if digest(source_snapshot())!=config['source']:
+            raise ValueError('current installed source mismatch')
+        from oeis_learn.tracking.pipeline_profile import device_view,audit_device_view
+        view=device_view();write(output/'devices.json',view)
+        audit_device_view([],view,json.loads(os.environ['OEIS_EXPECTED_PIPELINE_DEVICES']))
+        from .neural import gpu,score
+        result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score}[args.mode](inputs,output,config)
+    except BaseException as exc:
+        result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}')
+    finally:
+        write(output/'summary.json',result)
+    return 1 if result['status']=='FAIL' else 0
+
+
+if __name__=='__main__':
+    raise SystemExit(main())

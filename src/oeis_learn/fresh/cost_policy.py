@@ -308,3 +308,38 @@ def generation_seconds(prompts, costs):
         return prompts * generation_p95
     full, tail = divmod(prompts, generation_batch_size)
     return full * generation_batch_p95 + tail * generation_p95
+
+
+def pipeline_forecast(costs,scope,*,updates,cadence,budget):
+    """New exact-scope receipt. Old v1 readers/identities are deliberately unchanged.
+
+    Missing startup/export/cleanup and material workload observations are unknown,
+    never zero. Observations use conservative calibrated envelopes, not an invented
+    population p95 from three repetitions.
+    """
+    from oeis_learn.pipeline_validation.identity import seal, number
+    workload(scope)
+    required={'training_p95','teacher_forcing_p95','generation_p95','fit_p95',
+              'reference_p95','hidden_scoring_p95','checkpoint_p95','startup','export','cleanup'}
+    missing=sorted(k for k in required if costs.get(k) is None)
+    if missing:
+        return seal(dict(version='pipeline-scoped-cost/v1',scope=scope,missing=missing,
+            projected_seconds=None,within_budget=False,budget=budget,reason='unknown complete-schedule components'))
+    if set(costs)-required-{'generation_batch_p95','generation_batch_size'}:
+        raise ValueError('unknown forecast component')
+    for key,value in costs.items():
+        if value is not None:
+            number(value)
+    base={k:v for k,v in costs.items() if k not in {'startup','export','cleanup'}}
+    base.setdefault('generation_batch_p95',None);base.setdefault('generation_batch_size',1)
+    result=screen_cost(**base,scope=scope,updates=updates,cadence=cadence,budget=budget)
+    # Startup applies to every bounded learning/generation/scoring role, not once
+    # for an entire many-role study. Export/cleanup likewise charge each role.
+    roles=len(result['role_reservations'])
+    overhead=roles*sum(costs[k] for k in ('startup','export','cleanup'))
+    total=result['projected_seconds']+overhead
+    return seal(dict(version='pipeline-scoped-cost/v1',scope=scope,workload=result['workload'],
+        schedule=dict(updates=updates,cadence=cadence),components=result['phases'],role_count=roles,
+        overhead_seconds=overhead,projected_seconds=total,budget=budget,missing=[],
+        within_budget=total<=.8*budget and result['reserved_seconds']+overhead<=budget,
+        interpretation='calibrated conservative component envelopes; no population p95 claim'))

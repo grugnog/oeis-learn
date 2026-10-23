@@ -165,6 +165,7 @@ def _portfolio(
     mode='correct',
     prompt_ordinal=0,
     snapshot=None,
+    portfolio_seconds=60,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
 
@@ -175,7 +176,7 @@ def _portfolio(
     policy = Portfolio(
         start=start,
         seed=recipe["model"]["seed"] + int(identity(row["id"])[7:14], 16),
-        beam=recipe["search"]["beam"],
+        beam=recipe["search"]["beam"],seconds=portfolio_seconds,
     )
     deadline = min(deadline, policy.deadline)
     pipeline = recipe.get('pipeline')
@@ -373,7 +374,7 @@ def _portfolio(
     )
 
 
-def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None):
+def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadline_policy='production60/v1'):
     """Interleave decoding only. Fitting/admission remain serial and prompt-local."""
     from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE, sample_batch
 
@@ -413,7 +414,7 @@ def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None):
         ][:batch_size]
         selected = {p[0] for p in group}
         pending[:] = [p for p in pending if p[0] not in selected]
-        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size) if batch_size != 8 else {}))
+        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size,deadline_policy=deadline_policy) if batch_size != 8 or deadline_policy!='production60/v1' else {}))
         for (index, generator, _), value in zip(group, sampled):
             advance(index, generator, value)
     return results
@@ -436,9 +437,12 @@ def generate(
     periodic=False,
     compare_cache=False,
     diagnostic_attempts=None,
+    portfolio_seconds=60,
 ):
     import torch
 
+    if portfolio_seconds not in (60,180):
+        raise ValueError('registered diagnostic portfolio ceiling required')
     scope_start = time.monotonic()
     if diagnostic_attempts is not None and (
         periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
@@ -489,9 +493,9 @@ def generate(
             allowance = max(0, (deadline - now) * len(group) / max(1, remaining))
             if pipeline:
                 group_cursor += len(group)
-                until = min(deadline,scope_start+group_cursor*allocation,now+60)
+                until = min(deadline,scope_start+group_cursor*allocation,now+portfolio_seconds)
             else:
-                until = min(deadline, now + allowance, now + 60)
+                until = min(deadline, now + allowance, now + portfolio_seconds)
             generators = [
                 _portfolio(
                     decoder,
@@ -506,6 +510,7 @@ def generate(
                     template=mode == "template",
                     compare_cache=compare_cache and mode == "correct" and i < 3,
                     **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else {}),
+                    **(dict(portfolio_seconds=portfolio_seconds) if portfolio_seconds != 60 else {}),
                 )
                 for i, row in enumerate(group, offset)
             ]
@@ -515,7 +520,7 @@ def generate(
                 from oeis_learn.decoder.bigint_generation import sample_batch
                 outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
                     lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],
-                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],bookkeeping=pipeline['bookkeeping']))
+                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
                 # drive returns only after every native task has positively quiesced.
                 for value in outcomes:
                     value['pipeline_boundary'] = boundary
@@ -523,10 +528,10 @@ def generate(
                 if pipeline:
                     from .pipeline_jobs import JobLedger
                     ledger = JobLedger()
-                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger)
+                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger,deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1')
                     boundary = ledger.boundary(pipeline)
                 else:
-                    outcomes = _drive_portfolios(decoder,generators)
+                    outcomes = _drive_portfolios(decoder,generators,**(dict(deadline_policy='fixed-work180/v1') if portfolio_seconds==180 else {}))
             if pipeline:
                 boundaries.append(boundary)
             for row, result in zip(group, outcomes):

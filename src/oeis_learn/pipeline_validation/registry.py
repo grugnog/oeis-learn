@@ -51,13 +51,22 @@ def registry(engines=('docker',), primary='docker'):
         stages.extend([
             Stage('engine.'+engine,1,seconds=30,adapter='engine',capability=engine),
             Stage('image.'+engine+'.qualification',1,('engine.'+engine,),seconds=7200,adapter='image'),
-            Stage('cpu.'+engine+'.semantic',1,('image.'+engine+'.qualification',),seconds=1800,adapter='cpu'),
+            Stage('cpu.'+engine+'.semantic',1,('image.'+engine+'.qualification',),seconds=600,adapter='cpu'),
             Stage('operations.'+engine+'.retirement',5,('image.'+engine+'.qualification',),seconds=1800,adapter='retirement'),
+            Stage('operations.'+engine+'.workflow',5,('image.'+engine+'.qualification',),seconds=3600,adapter='operations'),
         ])
     stages += [
         Stage('image.'+primary+'.gpu',2,('engine.'+primary,),seconds=7200,adapter='image'),
         Stage('hip.preflight',2,('image.'+primary+'.gpu',),seconds=600,adapter='hip'),
     ]
-    for name, phase in [('baseline.calibration',1),('inference.compare',2),('policy.compare',3),('native.compare',3),('overlap.compare',4),('qualification',5),('cost.diverse32',5),('cost.transfer',5)]:
-        stages.append(Stage(name,phase,available=False,reason='adapter not yet implemented',adapter=name))
+    stages += [Stage('policy.compare',3,('cpu.'+primary+'.semantic',),seconds=600,adapter='policy'),
+               Stage('native.compare',3,('policy.compare',),seconds=3000,adapter='native')]
+    stages += [
+        Stage('baseline.calibration',1,('cpu.'+primary+'.semantic','hip.preflight'),seconds=2200,adapter='baseline'),
+        Stage('inference.compare',2,('baseline.calibration',),seconds=9000,adapter='inference'),
+        Stage('overlap.compare',4,('baseline.calibration','policy.compare','native.compare'),seconds=18000,adapter='joint'),
+        Stage('qualification',5,seconds=30,adapter='qualification'),
+        Stage('cost.diverse32',5,seconds=30,adapter='cost'),
+        Stage('cost.transfer',5,seconds=30,adapter='cost'),
+    ]
     return stages

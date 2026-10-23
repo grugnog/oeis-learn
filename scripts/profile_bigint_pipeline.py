@@ -203,7 +203,7 @@ def archive(output, *, cap=256 << 20):
     return target
 
 
-def container_stage(host, image, source, output, *, mode, seconds, gpu):
+def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=None):
     from oeis_learn.container_runtime import private_runtime_environment
     from oeis_learn.tracking.pipeline_profile import character_device
 
@@ -221,7 +221,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
         name=name,
         mounts=mounts,
         auto_remove=False,
-        argv=[
+        argv=argv or [
             "python",
             "/opt/oeis-build/scripts/profile_bigint_pipeline.py",
             "--inside",

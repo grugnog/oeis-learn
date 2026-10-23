@@ -28,13 +28,15 @@ def collect_snapshot(root):
         "scripts",
         "specs/007-experiment-foundation/contracts",
         "specs/005-trustworthy-synthesis-readiness/contracts",
+        "specs/008-bigint-constant-synthesis/contracts",
+        "specs/009-pipeline-throughput/contracts",
     ):
         files.update(
             p
             for p in (root / directory).rglob("*")
             if p.is_file()
-            and p.suffix
-            in (".py", ".rs", ".wat", ".json", ".toml", ".lock", ".yaml", ".yml", ".sh")
+            and (p.suffix in (".py", ".rs", ".wat", ".json", ".toml", ".lock", ".yaml", ".yml", ".sh")
+                 or p.suffix == '.md' and 'specs' in p.relative_to(root).parts)
             and "__pycache__" not in p.parts
             and "target" not in p.parts
             and p.name != "qualification-sources.json"
