@@ -175,3 +175,27 @@ def _select_v2(rows):
     import copy
     semantic = copy.deepcopy({k:v for k,v in selected.items() if k != 'cost'})
     return dict(semantic, selection='visible-only/v2', seal_sha256=identity(semantic))
+
+
+def validate_selection_envelope(envelope):
+    """Bind v2 scoring provenance to the visible-only seal before hidden execution."""
+    from oeis_learn.synthesis.admission import source_identity
+    selected=envelope['selected']
+    record={k:v for k,v in selected.items() if k not in {'seal_sha256','selection'}}
+    if selected.get('selection') not in {'visible-only/v1','visible-only/v2'} or selected.get('seal_sha256')!=identity(record):
+        raise ValueError('changed sealed candidate')
+    if selected['selection']=='visible-only/v1':
+        return selected
+    if set(envelope)!={'selected','verification','assignment','original_source','transformed_source','original_source_sha256','prompt_sha256'}:
+        raise ValueError('closed selected provenance envelope required')
+    provenance=selected['provenance']
+    expected=dict(prompt=envelope['prompt_sha256'],assignment=envelope['assignment'],
+        original_source_sha256=envelope['original_source_sha256'],
+        transformed_source_sha256=source_identity(envelope['transformed_source']),
+        verification=identity(envelope['verification']))
+    if (any(provenance[key]!=value for key,value in expected.items())
+            or source_identity(envelope['original_source'])!=envelope['original_source_sha256']
+            or source_identity(selected['source'])!=selected['source_sha256']
+            or envelope['verification']['prompt_sha256']!=envelope['prompt_sha256']):
+        raise ValueError('changed sealed candidate provenance')
+    return selected

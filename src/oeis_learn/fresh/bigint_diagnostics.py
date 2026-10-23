@@ -577,6 +577,8 @@ def score(selections, truth, client, *, deadline):
             scoring = _status(False, "not_attempted")
             reason = "selection_record_missing" if record is None else "legacy_arm_evidence_missing"
             if chosen is not None and time.monotonic() < deadline:
+                from .synthesis_policy import validate_selection_envelope
+                validate_selection_envelope(chosen)
                 expected_prompt = identity(
                     dict(indices=target["indices"][:20], values=target["values"][:20])
                 )

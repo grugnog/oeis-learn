@@ -58,3 +58,24 @@ class Policy(unittest.TestCase):
             result = retain_alternatives(rows, policy='structure-pareto/v2')
             self.assertEqual(len(result['retained']), 1)
             self.assertEqual(result['retained'][0]['attempt_ordinal'], 0)
+
+    def test_v2_envelope_provenance_cannot_be_changed_after_selection(self):
+        from oeis_learn.fresh.synthesis_policy import validate_selection_envelope
+        from oeis_learn.synthesis.contracts import identity
+        row=self.visible(0,1)
+        verification={'prompt_sha256':source_identity('p')}
+        row['provenance'].update(prompt=source_identity('p'),snapshot=source_identity('s'),
+            original_source_sha256=source_identity('original'),transformed_source_sha256=source_identity('transformed'),
+            verification=identity(verification))
+        selected=select_visible([row],policy='visible-only/v2')
+        envelope=dict(selected=selected,verification=verification,assignment={},original_source='original',
+            transformed_source='transformed',original_source_sha256=source_identity('original'),prompt_sha256=source_identity('p'))
+        validate_selection_envelope(envelope)
+        for change in [dict(assignment={'p0':'1'}),dict(original_source='changed'),dict(transformed_source='changed'),dict(prompt_sha256=source_identity('q'))]:
+            with self.assertRaises(ValueError):validate_selection_envelope(dict(envelope,**change))
+
+    def test_v1_cost_selection_and_seal_are_preserved(self):
+        from oeis_learn.synthesis.contracts import identity
+        rows=[dict(source='x',source_sha256=source_identity('x'),verified=True,visible_count=20,cost=c) for c in (9,1)]
+        selected=select_visible(rows)
+        self.assertEqual(selected,dict(rows[1],selection='visible-only/v1',seal_sha256=identity(rows[1])))
