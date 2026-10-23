@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 16530)
-Total output lines: 432
-
 # Tasks: Bounded Pipeline Throughput and Research Completion
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
@@ -15,9 +12,9 @@ Total output lines: 432
 
 ## Shared setup
 
-- [X] T001 Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.
+- [ ] T001 Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.
 - [ ] T002 Create the stdlib-only host package boundary in `src/oeis_learn/pipeline_validation/__init__.py` and establish the static module layout from `specs/009-pipeline-throughput/plan.md`; do not add a scheduler service, host dependency or second trainer.
-- [X] T003 [P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
+- [ ] T003 [P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
 
 ## Shared foundations — required before story integration
 
@@ -204,7 +201,69 @@ Total output lines: 432
   >
   > Fields: contract hash; model snapshot hash; group/mode/arm; stable prompt ID and ordinal; attempt ordinal/method/seed; candidate original/final source hash when available; numerical/fit/selection/archive policy hashes; logical work reservation; expected outcomes/outputs; parent group/prompt identity.
   >
-  > `job_id = hash(contract, snapshot, mode, arm, prompt_id, attempt_ordinal, method, seed)`. Absolute clocks, process IDs and arrival order are not inputs. Retain the old timestamp-derived attempt ID only as a legacy cross-reference. Duplicate logical IDs within one manifest are invalid. A retry cannot create a fresh attempt allowance by changing its present…2530 tokens truncated…ing group/mode/frozen snapshot, fixed round-robin eligible prompts, one active attempt each, stable publication and maximum two reserved decoder batches subject to tighter native/result caps.
+  > `job_id = hash(contract, snapshot, mode, arm, prompt_id, attempt_ordinal, method, seed)`. Absolute clocks, process IDs and arrival order are not inputs. Retain the old timestamp-derived attempt ID only as a legacy cross-reference. Duplicate logical IDs within one manifest are invalid. A retry cannot create a fresh attempt allowance by changing its presentation name.
+
+  </details>
+
+  <details>
+  <summary>Required JobExecution constraints (verbatim from data-model.md)</summary>
+
+  > JobExecution — `pipeline-job-execution/v1`
+  >
+  > Fields: logical job ID; invocation/stage ID; queue/slot/global generation; enqueue/dispatch/finish/owner-observed times; original absolute parent and service deadlines; reserved/consumed work; generation/raw/fit/reference dispositions; worker/resource failures; source/assignment/verification refs; cache provenance; publication ordinal; late/duplicate/stale flags.
+  >
+  > Normal state path: `PLANNED → RESERVED → GENERATING → NATIVE_QUEUED → NATIVE_RUNNING → REFERENCE → READY_TO_PUBLISH → COMMITTED`. Skip inapplicable stages explicitly, for example templates do not use neural generation. Any nonterminal state can end as `UNSTARTED`, `INCOMPLETE`, `CANCELLED`, `RESOURCE_EXHAUSTED`, `INVALID` or `FAILED` with a stage/reason. A conclusive unsupported or visible mismatch is a completed operation but not an accepted solution. A terminal disposition is committed exactly once; late duplicates append a rejection observation without changing it.
+  >
+  > Record distinct notions of scheduled work completion, generation completeness and scientific scoring coverage. A fully consumed token budget can have a recorded terminal operation while generation remains incomplete. That does not make it verified or automatically suitable for fixed-work equivalence; comparisons must verify matching actual work and classify deadline/unknown cases separately.
+
+  </details>
+
+- [ ] T048 [US3] Implement visible-only/v2 selection/seals in `src/oeis_learn/fresh/synthesis_policy.py` and `src/oeis_learn/fresh/bigint_diagnostics.py`: canonical final-source bytes/hash/attempt ordinal/job ID ordering, timing-free semantic identity, selected exact assignment/provenance/verification and explicit v1/v2 validation; preserve raw/rescue/control evidence isolation.
+  <details>
+  <summary>Required ArmEvidence and SelectionSeal constraints (verbatim from data-model.md)</summary>
+
+  > ArmEvidence and SelectionSeal
+  >
+  > Arm evidence records scheduled/started/completed attempts, required stage dispositions, all failure reasons, selected candidate ref or absence reason, visible fit and independently completed100-index production/reference scoring. Compact records exist for every prompt/arm before verbose examples.
+  >
+  > `visible-only/v2` semantic seal binds prompt/snapshot/policies, selected source, stable attempt provenance, original/transformed hashes, exact assignment and independent verification hash. Measured duration is in a separate evidence record so it cannot change the semantic identity. v1 seals remain validated by their original schema. No selection plus unknown/resource-exhausted generation/fit is incomplete; conclusive no-fit can be a complete negative. Scoring a sealed selection requires both production/reference to complete before its scoring deadline.
+
+  </details>
+
+- [ ] T049 [US3] Implement structure-pareto/v2 in `src/oeis_learn/fresh/candidate_archive.py`: source bytes versus sum(max(1, abs(value).bit_length())), empty assignment zero, one representative per structure then deterministic frontier fill capped at eight; use the same stable key for training representatives and report omissions/conflicts.
+- [ ] T050 [US3] Replace timing-based duplicate/representative paths in `src/oeis_learn/fresh/bigint_worker.py`, `src/oeis_learn/fresh/bigint_diagnostics.py` and `src/oeis_learn/fresh/replay.py`; bind generation/selection/archive/scheduling/measurement hashes in `src/oeis_learn/fresh/bigint_config.py`, preserving old signed-256 and v1 readers without changing Rust shortlist ranking.
+- [ ] T051 [US3] Register and execute serial v1/v2 policy-only fixtures in `src/oeis_learn/pipeline_validation/adapters.py`; record every selected-source/provenance/archive/training-representative difference in `specs/009-pipeline-throughput/validation/phase-3-policy.json` before treating v2 as the common concurrency baseline.
+- [ ] T052 [US3] Factor native process/pipes/selector/stderr/RSS lifecycle into bounded slots in `src/oeis_learn/synthesis/worker_pool.py`, keeping one request per process, existing 32-candidate/4 MiB framing and globally unique worker generations across starts/restarts; do not change the wire schema.
+- [ ] T053 [US3] Implement one owning-role capacity ledger in `src/oeis_learn/synthesis/service_policy.py`: workers1/2/4, global pending8/32 MiB, active16 MiB, result8/32 MiB, reserve output before dispatch, prompt_ordinal modulo N FIFO affinity and no work stealing; account inflight/temporary/cache bytes rather than multiplying per-slot limits.
+- [ ] T054 [US3] Implement single-owner cache publication and completeness-aware `CacheEntry`/`Reservation` handling in `src/oeis_learn/synthesis/client.py` and `src/oeis_learn/synthesis/service_policy.py`; start with result4096/64 MiB, metadata32/64 MiB, disk256/512 MiB; "Only complete qualified payloads may be reusable complete fit results" and "A hit still undergoes current-deadline independent admission".
+  <details>
+  <summary>Required CacheEntry and Reservation constraints (verbatim from data-model.md)</summary>
+
+  > CacheEntry and Reservation
+  >
+  > Fields: semantic key, namespace/arm, producer contract and job, payload hash/byte charge, exact completion/discovery status, resource and solver/reference policies, admitted assignment provenance, timestamps as observations, reservation/publication state. Only complete qualified payloads may be reusable complete fit results; partial discoveries are diagnostics. A hit still undergoes current-deadline independent admission. Cache publication is atomic under one owner and cannot exceed aggregate reserved bytes.
+
+  </details>
+
+- [ ] T055 [US3] Implement bounded native/reference job dispatch in `src/oeis_learn/fresh/pipeline_jobs.py` and `src/oeis_learn/synthesis/client.py` using at most N host task threads and immutable returns; owner alone publishes evidence, no fork after Torch, queue residence consumes original parent/service deadlines and strict owner-observed-before-deadline eligibility applies.
+- [ ] T056 [US3] Implement aggregate watchdog/cancellation/recovery in `src/oeis_learn/synthesis/worker_pool.py` and `src/oeis_learn/fresh/pipeline_jobs.py`: 1 GiB/slot and 4 GiB aggregate native RSS, simultaneous process-group cancellation with five-second total cleanup, conservative unreported-work debits and no implicit retries; escalate nonquiescent reference tasks to the external role watchdog without indefinite executor shutdown.
+- [ ] T057 [US3] Enforce effective CPU/thread settings through `src/oeis_learn/pipeline_validation/resources.py` and `src/oeis_learn/pipeline_validation/adapters.py`: sixteen CPU equivalents maximum, Torch two intraop/one interop, native one thread where configurable, actual process/thread reporting and unchanged candidate ResourceProfile limits.
+- [ ] T058 [US3] Integrate typed native jobs into `src/oeis_learn/fresh/bigint_diagnostics.py` while retaining a sequential driver and separate raw/fit/reference/scoring dispositions; compact evidence must include every prompt/arm, including unknown, unsupported, unstarted, cancelled, invalid, timeout and independent verification failure.
+- [ ] T059 [US3] Run CPU exactness/false-fit/cache/policy/containment regressions and frozen 1/2/4 candidate comparisons under both-arm v2; register phase-3 stages in `configs/foundation/pipeline_validation.json` and record local results in `specs/009-pipeline-throughput/validation/phase-3-local.md`.
+- [ ] T060 [US3] Collect/review target CPU/native scaling and fault/cleanup receipts using one phase-3 or all-ready invocation; save `specs/009-pipeline-throughput/validation/phase-3-native.json`, including queue/occupancy/transport/reference costs and current engine identity; do not require HIP for fixed-candidate work.
+- [ ] T061 [US3] Apply the preregistered fastest-eligible-median/fewer-workers-within-5% rule and record selected concurrency or sequential retention in `specs/009-pipeline-throughput/validation/phase-3-decision.md`; disclose incomplete discovery sets and prohibit an automatic eight/sixteen-worker expansion.
+- [ ] T062 [US3] Review all policy/scheduler/admission/cache counterexamples against `specs/009-pipeline-throughput/contracts/scheduling.md` and close the source-bound phase-3 acceptance matrix in `specs/009-pipeline-throughput/validation/task-evidence.json`; keep arithmetic changes, if any, behind reopened semantic qualification.
+
+## Phase 4 — US3: GPU/native overlap and joint confirmation (P1)
+
+**Goal**: Overlap independent candidate work within one frozen snapshot and resource envelope, then choose at most one qualified combined configuration.
+
+**Independent test**: Simulated overlap preserves stable rows/jobs/selections under completion permutations, drains before updates and recovers without unaccounted work. Actual-HIP paired runs determine adoption; high utilization alone does not.
+
+- [ ] T063 [P] [US3] Add overlap/backpressure tests in `tests/unit/test_pipeline_overlap.py` for one active attempt per prompt/arm, fixed round-robin readiness, earliest deadlines, reserved decoder lookahead, saturated result queues, blocked-producer cancellation, mode/group changes and late duplicate results.
+- [ ] T064 [P] [US3] Add complete-state barrier/resume tests in `tests/integration/test_bigint_workflow.py` for changed-policy rejection, pending-work cancellation, optimizer/RNG/data/curriculum/replay/selection preservation, conservative budget recovery and explicitly nonresumable weights-only clones.
+- [ ] T065 [P] [US3] Add telemetry/decision tests in `tests/unit/test_pipeline_overlap_metrics.py` for interval unions, shared-memory non-double-counting, unknown charging, observation overhead fallback, confirmation reset and prohibition of partial-work speedup claims.
+- [ ] T066 [US3] Implement one GPU-owner coordinator in `src/oeis_learn/fresh/pipeline_scheduler.py` and integrate it with `src/oeis_learn/fresh/bigint_diagnostics.py`; overlap only within the existing group/mode/frozen snapshot, fixed round-robin eligible prompts, one active attempt each, stable publication and maximum two reserved decoder batches subject to tighter native/result caps.
 - [ ] T067 [US3] Implement versioned batch1/8/16 and conditional batch32 policies in `src/oeis_learn/decoder/bigint_generation.py`, preserving prompt-specific RNG/cache/length/EOS mapping and earliest absolute deadlines; keep training batch8 unchanged and report changed candidate sets as policy evidence rather than transparent equivalence.
 - [ ] T068 [US3] Integrate `CheckpointBoundary` drain/cancel receipts with `src/oeis_learn/fresh/bigint_worker.py` and existing `src/oeis_learn/fresh/bigint_state.py`: "A resumable boundary has zero unaccounted active/reserved candidate work"; persist effective policy hashes, stable frontier and cumulative debits with complete learning state before updates/save/selection/mode/group transitions.
   <details>
