@@ -63,3 +63,5 @@ The carryover audit finds exactly thirteen unchecked Spec 008 tasks; every one h
 | FR-029–030 | US5.2–4 | SC-009/010 |
 
 Static checks cover relative link existence, unique sequential requirement/outcome IDs, template sections, absence of unresolved placeholders, all thirteen task mappings, unchanged historical task markers, local feature resolution and whitespace. No production code changed; no device tests or experiments were run. Implementation planning must still freeze comparison methods, finite budgets, dependency invalidation and scheduler semantics before implementation and performance evaluation.
+
+Planning clarification2026-10-23: the user confirmed128 GB physical RAM with90% available. The specification assumption now authorizes that aggregate shared CPU/GPU budget, retains16 GiB as historical evidence only and requires identified measured capacity policies. This changes no historical receipt or mathematical/research gate.
