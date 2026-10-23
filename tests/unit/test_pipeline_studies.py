@@ -26,3 +26,24 @@ class Studies(unittest.TestCase):
         self.assertEqual(result['status'],'BLOCKED')
         self.assertIn('authority',result['missing'])
         with self.assertRaises(ValueError):parse_study(seal(dict(row,unknown=True)))
+
+    def test_durable_study_debits_survive_new_output_and_interruption(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.pipeline_validation.studies import StudyLedger
+        with tempfile.TemporaryDirectory() as folder:
+            row={'decision_id':'decision', 'identity':'sha256:'+'a'*64,
+                 'arms':[{'id':'A','wall_seconds':10,'work':2,'disk_bytes':100}]}
+            first=StudyLedger(Path(folder), row)
+            first.reserve(row['arms'][0])
+            with self.assertRaises(ValueError):StudyLedger(Path(folder),row).reserve(row['arms'][0])
+            with self.assertRaises(ValueError):StudyLedger(Path(folder),dict(row,identity='sha256:'+'b'*64))
+            first.finish('A','INTERRUPTED')
+            with self.assertRaises(ValueError):first.finish('A','COMPLETE')
+
+    def test_decision_payload_has_no_reference_hash_cycle(self):
+        from oeis_learn.pipeline_validation.studies import decision_payload
+        row=dict(identity='self',state='FROZEN',authority=None,gates={},cost=None,hypothesis='same')
+        admitted=dict(row,identity='other',state='ADMITTED',authority={'path':'review'},gates={'runtime':'receipt'},cost={'path':'cost'})
+        self.assertEqual(decision_payload(row),decision_payload(admitted))
+        self.assertNotEqual(decision_payload(row),decision_payload(dict(row,hypothesis='changed')))

@@ -73,14 +73,20 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
         # All authority is read and checked before reading any input/checkpoint ref.
         for name,ref in record['gates'].items():
             gate=json.loads(reference(root,ref).read_text())
+            validate(gate,{'version','scope','state','source','image','resources','producer','engine'},'pipeline-study-gate/v1')
             if gate.get('state')!='PASS' or gate.get('scope')!=name or (source is not None and gate.get('source')!=source):
                 missing.append('gate:'+name)
         if record['authority'] is not None:
             authority=json.loads(reference(root,record['authority']).read_text())
-            if authority.get('decision_payload')!=digest({k:v for k,v in record.items() if k not in {'identity','authority','state'}}) or authority.get('approved') is not True:
+            validate(authority,{'version','decision_payload','approved','reviewed_by'},'pipeline-study-authority/v1')
+            if not authority['reviewed_by'] or authority.get('decision_payload')!=decision_payload(record) or authority.get('approved') is not True:
                 missing.append('reviewed_decision')
         if record['cost'] is not None:
             cost=json.loads(reference(root,record['cost']).read_text())
+            validate(cost,{'version','scope','within_budget','source','decision_payload','projected_seconds','budget_seconds'},'pipeline-study-cost/v1')
+            number(cost['projected_seconds'],positive=True);number(cost['budget_seconds'],positive=True)
+            if cost['source']!=source or cost['decision_payload']!=decision_payload(record) or cost['projected_seconds']>.8*cost['budget_seconds'] or cost['budget_seconds']!=record['budgets']['wall_seconds']:
+                missing.append('exact_scope_cost')
             if cost.get('scope')!=('diverse32' if record['kind']=='learnability' else 'transfer-screen' if record['kind']=='representation' else record['kind']) or cost.get('within_budget') is not True:
                 missing.append('exact_scope_cost')
         if record['kind']=='final':
@@ -88,3 +94,52 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
                 missing.append('explicit_final_plan')
     if record['kind']=='final' and record['final_plan'] is None:missing.append('final_plan')
     return dict(status='BLOCKED' if missing else 'ADMITTED',missing=sorted(set(missing)),contract=record)
+
+
+def decision_payload(record):
+    """Review the prospective work; subsequent receipts cannot form a hash cycle."""
+    return digest({k:v for k,v in record.items() if k not in {'identity','authority','state','gates','cost'}})
+
+
+class StudyLedger:
+    """Durable debit-before-dispatch; a new output directory cannot refund work."""
+    def __init__(self, root, contract):
+        from pathlib import Path
+        from .identity import write
+        from oeis_learn.fresh.common import lock
+        self.root=Path(root)/digest(contract['decision_id']).split(':')[1]
+        self.root.mkdir(parents=True,exist_ok=True)
+        self.contract=contract
+        with lock(self.root/'study.lock'):
+            path=self.root/'contract.json'
+            if path.exists():
+                if json.loads(path.read_text()) != contract:
+                    raise ValueError('reviewed study decision changed; debits cannot be reset')
+            else:
+                write(path,contract)
+
+    def reserve(self, arm):
+        from .identity import write
+        from oeis_learn.fresh.common import lock
+        if arm not in self.contract['arms']:
+            raise ValueError('unregistered study arm')
+        with lock(self.root/'study.lock'):
+            path=self.root/(arm['id']+'.reservation.json')
+            if path.exists():
+                raise ValueError('arm already debited; interrupted allowances are not refunded')
+            write(path,dict(study=self.contract['identity'],arm=arm['id'],
+                wall_seconds=arm['wall_seconds'],work=arm['work'],disk_bytes=arm['disk_bytes']))
+
+    def finish(self, arm, outcome):
+        from .identity import write
+        from oeis_learn.fresh.common import lock
+        if outcome not in {'COMPLETE','NEGATIVE','INCONCLUSIVE','INTERRUPTED'}:
+            raise ValueError('explicit terminal study outcome required')
+        with lock(self.root/'study.lock'):
+            if not (self.root/(arm+'.reservation.json')).exists():
+                raise ValueError('study arm was not debited')
+            path=self.root/(arm+'.terminal.json')
+            if path.exists():
+                raise ValueError('terminal study outcome is immutable')
+            write(path,dict(study=self.contract['identity'],arm=arm,outcome=outcome,
+                charging='full original reservation retained'))

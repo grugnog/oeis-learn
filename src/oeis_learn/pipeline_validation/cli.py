@@ -78,16 +78,25 @@ def study_main(args,root,host_factory):
         for field in ('inputs','config','run','checkpoint'):
             if arm[field] is not None:
                 reference(root,arm[field])
+    runtime=json.loads(reference(root,contract['gates']['runtime']).read_text())
+    if args.engine not in ('auto',runtime['engine']):
+        raise ValueError('study engine differs from qualified runtime')
+    if args.image and args.image != runtime['image']:
+        raise ValueError('study image differs from qualified runtime')
     host_options=__import__('copy').copy(args)
+    host_options.engine=runtime['engine'];host_options.image=runtime['image']
     policy=resolve(**observe(),lower=int(args.memory_gib*(1<<30)) if args.memory_gib else None)
     host_options.memory_gib=policy['ceiling_bytes']/(1<<30)
     host_options.cpus=min(args.cpus or 16,policy['cpus'])
     host=host_factory(host_options)
+    from .studies import StudyLedger
+    study_ledger=StudyLedger(root/'run-state/pipeline-studies',contract)
     stages=[Stage(arm['id'],6,seconds=arm['wall_seconds'],adapter='study') for arm in contract['arms']]
     def run_arm(stage,destination):
         from argparse import Namespace
         from foundation_bigint import execute as execute_bigint,resolve_recipe
         arm=next(a for a in contract['arms'] if a['id']==stage.id)
+        study_ledger.reserve(arm)
         run=reference(root,arm['run']).parent if arm['run'] else destination/'run'
         config=reference(root,arm['config']) if arm['config'] else None
         inputs=reference(root,arm['inputs']).parent if arm['inputs'] else None
@@ -103,13 +112,25 @@ def study_main(args,root,host_factory):
         options.split='final' if contract['kind']=='final' else 'development';options.final_plan=str(final_plan) if final_plan else None
         options.fitting='paired';options.explicit_options=set()
         options.max_updates=None;options.budget_seconds=None
+        options.explicit_options=[]
         if config:
             recipe=resolve_recipe(host,options,destination/'resolve')
-            if recipe['model']['seed']!=arm['seed'] or recipe['budgets']['training_seconds']>arm['wall_seconds']:
+            if recipe['model']['seed']!=arm['seed'] or recipe['budgets']['training_seconds']+recipe['budgets'].get('preparation_seconds',0)+300>arm['wall_seconds']:
                 raise ValueError('recipe seed/budget differs from admitted arm')
         write(destination/'admission.json',dict(study=contract['identity'],arm=arm['id'],work_debit=arm['work'],disk_reservation=arm['disk_bytes']))
-        execute_bigint(host,options,archive=False)
-        return dict(study=contract['identity'],arm=arm['id'],result='executed; scientific review required')
+        from .supervision import launch
+        import sys
+        descriptor=destination/'private/arm.json'
+        write(descriptor,vars(options))
+        try:
+            observations=launch([sys.executable,str(root/'scripts/pipeline_study_arm.py'),str(descriptor)],
+                destination/'supervision',seconds=arm['wall_seconds']-5,cleanup_seconds=5)
+        except BaseException:
+            study_ledger.finish(arm['id'],'INTERRUPTED')
+            raise
+        study_ledger.finish(arm['id'],'INCONCLUSIVE')
+        return dict(study=contract['identity'],arm=arm['id'],observations=observations,
+            result='execution ended; scientific outcome requires reviewed report',stage_state='INCONCLUSIVE')
     maximum=contract['budgets']['wall_seconds']
     if args.max_seconds is not None:
         if not 0<number(args.max_seconds)<=maximum:raise ValueError('study ceiling can only be lowered')

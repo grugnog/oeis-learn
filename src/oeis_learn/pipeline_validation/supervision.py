@@ -12,6 +12,9 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
     streams={}
+    from .identity import write
+    write(output/'command.json',dict(argv=list(argv),seconds=seconds,stream_cap=stream_cap,cleanup_seconds=cleanup_seconds))
+    interrupted=False
     try:
         process=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
         with selectors.DefaultSelector() as selector:
@@ -34,14 +37,26 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                     stream.write(block[:keep]);omitted[key.data]+=max(0,len(block)-keep)
             if process.returncode:
                 raise RuntimeError(f'exit {process.returncode}: {output}/stderr.log')
+    except KeyboardInterrupt:
+        interrupted=True
+        raise
     finally:
         if process is not None:
-            # Children may retain pipes after the immediate engine process exits.
+            # Give the controller one shared grace envelope to persist debits and
+            # remove its containers before escalating to the entire host group.
+            cleanup_end=time.monotonic()+cleanup_seconds
+            if process.poll() is None:
+                try:
+                    os.killpg(process.pid,signal.SIGINT if interrupted else signal.SIGTERM)
+                    process.wait(timeout=max(0,cleanup_end-time.monotonic()))
+                except (ProcessLookupError,subprocess.TimeoutExpired):
+                    pass
+            # Descendants may retain pipes even after the controller exits.
             try:
                 os.killpg(process.pid,signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            process.wait(timeout=cleanup_seconds)
+            process.wait(timeout=max(.01,cleanup_end-time.monotonic()))
             process.stdout.close();process.stderr.close()
         for stream in streams.values():
             stream.close()
