@@ -166,6 +166,7 @@ def _portfolio(
     prompt_ordinal=0,
     snapshot=None,
     portfolio_seconds=60,
+    evidence=None,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
 
@@ -194,6 +195,8 @@ def _portfolio(
             incomplete = True
             break
         attempt = policy.begin(now=time.monotonic())
+        if evidence:
+            evidence(row['id'],mode,position,'STARTED',{'seed':attempt['seed']})
         source = ""
         complete = False
         tokens = []
@@ -256,7 +259,10 @@ def _portfolio(
             fitting=_status(False, "not_attempted"),
         )
         details.append(detail)
+        if evidence:
+            evidence(row['id'],mode,position,'GENERATED',dict(tokens=len(tokens),source_sha256=detail['source_sha256'],generation_seconds=generated,complete=complete))
         if not complete:
+            if evidence:evidence(row['id'],mode,position,'INCOMPLETE',{'reason':'generation incomplete'})
             incomplete = True
             continue
         from .pipeline_jobs import logical_job, NativeRequest
@@ -325,6 +331,9 @@ def _portfolio(
             raise RuntimeError("independent admission disagreement")
         if fit["outcome"] in {"unknown", "resource_exhausted"} or not detail['fitting']['complete']:
             incomplete = True
+        if evidence:
+            evidence(row['id'],mode,position,'COMMITTED' if detail['fitting']['complete'] else 'INCOMPLETE',
+                dict(raw=detail['raw'],fitting=detail['fitting'],fit_seconds=fit_elapsed))
         fitted.extend(fit["admitted"])
         if position == 0 and not template:
             for record in fit["admitted"]:
@@ -439,6 +448,7 @@ def generate(
     compare_cache=False,
     diagnostic_attempts=None,
     portfolio_seconds=60,
+    evidence=None,
 ):
     import torch
 
@@ -510,7 +520,8 @@ def generate(
                     ),
                     template=mode == "template",
                     compare_cache=compare_cache and mode == "correct" and i < 3,
-                    **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else {}),
+                    **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else dict(mode=mode) if evidence else {}),
+                    **(dict(evidence=evidence) if evidence else {}),
                     **(dict(portfolio_seconds=portfolio_seconds) if portfolio_seconds != 60 else {}),
                 )
                 for i, row in enumerate(group, offset)

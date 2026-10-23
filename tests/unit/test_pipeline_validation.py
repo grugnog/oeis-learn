@@ -26,6 +26,7 @@ class Validation(unittest.TestCase):
             def run(stage, output):
                 calls.append(stage.id)
                 if stage.id == 'bad':
+                    (output/'attempts.jsonl').write_text('{"state":"INCOMPLETE"}\n')
                     raise RuntimeError('intentional')
                 return {}
             out = Path(folder) / 'out'
@@ -35,6 +36,7 @@ class Validation(unittest.TestCase):
             self.assertEqual(calls, ['bad','safe'])
             summary = json.loads((out/'summary.json').read_text())
             self.assertEqual(summary['stages']['child']['state'],'BLOCKED')
+            self.assertIn('attempts.jsonl',summary['stages']['bad']['files'])
             self.assertTrue(out.with_suffix('.zip').is_file())
 
     def test_scope_report_requires_only_stdlib(self):

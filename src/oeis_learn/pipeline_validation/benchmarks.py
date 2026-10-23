@@ -15,6 +15,10 @@ BASE_POLICY=dict(version='pipeline-policy/v1',selection='visible-only/v2',archiv
     workers=1,overlap=False,lookahead=1,batch_size=8,bookkeeping='baseline',measurement='ordinary')
 
 
+def baseline_for(policy):
+    return dict(BASE_POLICY,**({'memory_profile':policy['memory_profile']} if 'memory_profile' in policy else {}))
+
+
 def legacy(root):
     spec=importlib.util.spec_from_file_location('pipeline_profile_adapter',Path(root)/'scripts/profile_bigint_pipeline.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -172,7 +176,7 @@ class Benchmarks:
                 for i,order in enumerate(['AB','BA']):
                     arms={}
                     for arm in order:
-                        arms[arm]=self.trial(output/f'candidate{n}-pair{i}-{arm}',policy=BASE_POLICY if arm=='A' else candidate,prompt_ids=self.subset,seconds=reservation/2,bookkeeping=(BASE_POLICY if arm=='A' else candidate)['bookkeeping'])
+                        arms[arm]=self.trial(output/f'candidate{n}-pair{i}-{arm}',policy=baseline_for(candidate) if arm=='A' else candidate,prompt_ids=self.subset,seconds=reservation/2,bookkeeping=(baseline_for(candidate) if arm=='A' else candidate)['bookkeeping'])
                     pairs.append(arms)
             except CapabilityError as exc:
                 exploratory.append(dict(candidate=candidate,eligible=False,state='UNAVAILABLE',reason=str(exc)))
@@ -197,14 +201,14 @@ class Benchmarks:
         write(output/'selected-candidate.json',seal(dict(version='pipeline-selected/v1',parent=contract['identity'],policy=selected)))
         confirmations={}
         for scope in ('cold','warm'):
-            for arm,policy in [('A',BASE_POLICY),('B',selected)]:
+            for arm,policy in [('A',baseline_for(selected)),('B',selected)]:
                 self.trial(output/f'confirm-{scope}-warmup-{arm}',policy=policy,prompt_ids=self.subset,
                     seconds=reservation/2,bookkeeping=policy['bookkeeping'],cache_state=scope)
             pairs=[]
             for i,order in enumerate(ORDER):
                 arms={};budget={}
                 for arm in order:
-                    policy=BASE_POLICY if arm=='A' else selected
+                    policy=baseline_for(selected) if arm=='A' else selected
                     arms[arm]=self.trial(output/f'confirm-{scope}-{i}-{arm}',policy=policy,
                         prompt_ids=self.subset,seconds=reservation/2,bookkeeping=policy['bookkeeping'],cache_state=scope)
                     budget[arm]=self.trial(output/f'budget-{scope}-{i}-{arm}',policy=policy,

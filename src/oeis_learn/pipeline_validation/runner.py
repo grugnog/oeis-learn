@@ -61,17 +61,17 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
                         trace_cap=budgets.get('trace_bytes',128<<20),
                         free_reserve=budgets.get('mandatory_reserve_bytes',16<<20)):
                     result=adapter(stage,root) or {}
-                files={str(p.relative_to(root)):file_hash(p) for p in root.rglob('*') if p.is_file() and not p.is_symlink() and public(p.relative_to(root)) and p.suffix in {'.json','.xml','.jsonl'} and p.name not in {'receipt.json','transitions.jsonl'}}
+                files=public_files(root)
                 ledger.transition(result.get('stage_state','PASS'),files=files,observations=dict(elapsed_seconds=time.monotonic()-begin,result=result))
             except KeyboardInterrupt:
                 interrupted=True;global_stop='interrupted'
-                ledger.transition('PARTIAL',reason='user interruption')
+                ledger.transition('PARTIAL',reason='user interruption',files=public_files(root))
             except CapabilityError as exc:
-                ledger.transition('PARTIAL',reason=str(exc))
+                ledger.transition('PARTIAL',reason=str(exc),files=public_files(root))
             except BaseException as exc:
                 if isinstance(exc,(MemoryError,ResourceBreach)):
                     global_stop='global resource/audit breach: '+str(exc)
-                ledger.transition('FAIL',reason=f'{type(exc).__name__}: {exc}')
+                ledger.transition('FAIL',reason=f'{type(exc).__name__}: {exc}',files=public_files(root))
             if stage.adapter != 'image':
                 phase_costs[stage.phase]=phase_costs.get(stage.phase,0)+time.monotonic()-begin
             print(f"END {stage.id}: {ledger.read()['state']}; elapsed {time.monotonic()-begin:.1f}s",flush=True)
@@ -101,3 +101,16 @@ class CapabilityError(RuntimeError):
 
 class ResourceBreach(RuntimeError):
     pass
+
+
+def public_files(root):
+    files={}
+    for path in root.rglob('*'):
+        if (path.is_file() and not path.is_symlink() and public(path.relative_to(root))
+                and path.suffix in {'.json','.xml','.jsonl'} and path.name not in {'receipt.json','transitions.jsonl'}):
+            try:files[str(path.relative_to(root))]=file_hash(path)
+            except OSError:
+                # The failed stage remains failed; stderr names any inaccessible
+                # record. Export cannot invent missing bytes or terminal outcomes.
+                print('UNREADABLE EVIDENCE: '+str(path),flush=True)
+    return files

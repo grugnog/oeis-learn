@@ -11,6 +11,12 @@ from .identity import seal,write,digest,file_hash
 
 
 def gpu(inputs,output,config):
+    from .attempts import AttemptEvidence
+    with AttemptEvidence(output/'attempt-ledger.jsonl') as evidence:
+        return _gpu(inputs,output,config,evidence)
+
+
+def _gpu(inputs,output,config,evidence):
     import torch
     from oeis_learn.fresh.bigint_worker import models,_batch_loss,validation_loss,client
     from oeis_learn.fresh.bigint_diagnostics import generate
@@ -37,6 +43,7 @@ def gpu(inputs,output,config):
         raise ValueError('frozen prompt subset required')
     if options['assessment'] not in ('fixed-work','fixed-budget') or options['bookkeeping'] not in ('baseline','hoisted/v1'):
         raise ValueError('unknown benchmark assessment/decoder')
+    evidence.plan(ids,dict(correct=8,shuffled=1,absent=1,template=8),parent=digest(dict(contract=config['contract'],weights=manifest['weights_sha256'])))
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     started=time.monotonic();deadline=started+options['seconds']
     encoder,decoder,counts=models(recipe,'cuda')
@@ -79,7 +86,7 @@ def gpu(inputs,output,config):
                 begin=time.monotonic()
             result=generate(encoder,decoder,[rows[k] for k in ids],recipe,synthesis,deadline=deadline,
                 diagnostic_attempts=dict(correct=8,shuffled=1,absent=1,template=8),
-                portfolio_seconds=180 if options['assessment']=='fixed-work' else 60)
+                portfolio_seconds=180 if options['assessment']=='fixed-work' else 60,evidence=evidence.event)
             native_stats=synthesis.worker.stats
         torch.cuda.synchronize();timings['generation_native']=time.monotonic()-begin
         prewarm=[dict(prompt=key,source=item['source'],seed=item['seed']) for key,row in result['records'].items() for mode,portfolio in row['details'].items() if mode!='template' for item in portfolio['details'] if item['complete'] and item['source']]
@@ -99,7 +106,8 @@ def gpu(inputs,output,config):
         # Semantic source/job seals are compared, never cost-bearing v1 seals.
         semantic={key:{mode:None if selected is None else dict(
             source=selected['selected']['source_sha256'],assignment=selected['assignment'],
-            original=selected['original_source_sha256'],transformed=digest(selected['transformed_source']))
+            original=selected['original_source_sha256'],transformed=digest(selected['transformed_source']),
+            attempt=selected['selected'].get('attempt_ordinal'),snapshot=selected['selected'].get('provenance',{}).get('snapshot'))
             for mode,selected in row['selections'].items()} for key,row in result['records'].items()}
         write(output/'selections-public.json',semantic)
         begin=time.monotonic()
