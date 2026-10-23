@@ -11,7 +11,9 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
-    streams={}
+    streams={};tails={'stdout':b'','stderr':b''};received={'stdout':0,'stderr':0}
+    tail_cap=min(8192,stream_cap//4);prefix_cap=stream_cap-tail_cap
+    outcome='COMPLETE';failure=None
     from .identity import write
     write(output/'command.json',dict(argv=list(argv),seconds=seconds,stream_cap=stream_cap,cleanup_seconds=cleanup_seconds))
     interrupted=False
@@ -33,12 +35,19 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                     if not block:
                         selector.unregister(key.fileobj);continue
                     stream=streams[key.data]
-                    keep=max(0,stream_cap-stream.tell())
-                    stream.write(block[:keep]);omitted[key.data]+=max(0,len(block)-keep)
+                    keep=max(0,prefix_cap-stream.tell())
+                    stream.write(block[:keep])
+                    received[key.data]+=len(block)
+                    rest=block[keep:]
+                    if rest and tail_cap:tails[key.data]=(tails[key.data]+rest)[-tail_cap:]
+                    omitted[key.data]=received[key.data]-stream.tell()-len(tails[key.data])
             if process.returncode:
                 raise RuntimeError(f'exit {process.returncode}: {output}/stderr.log')
     except KeyboardInterrupt:
-        interrupted=True
+        interrupted=True;outcome='INTERRUPTED';failure='KeyboardInterrupt'
+        raise
+    except BaseException as exc:
+        outcome='FAIL';failure=f'{type(exc).__name__}: {exc}'
         raise
     finally:
         if process is not None:
@@ -58,6 +67,14 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 pass
             process.wait(timeout=max(.01,cleanup_end-time.monotonic()))
             process.stdout.close();process.stderr.close()
-        for stream in streams.values():
-            stream.close()
+        for name,stream in streams.items():
+            try:stream.write(tails[name])
+            finally:stream.close()
+        try:
+            write(output/'process.json',dict(outcome=outcome,failure=failure,
+                elapsed_seconds=time.monotonic()-start,omitted_bytes=omitted,
+                returncode=process.returncode if process is not None else None,
+                logging='opening prefix plus final tail within one per-stream cap'))
+        except OSError:
+            if outcome=='COMPLETE':raise
     return dict(elapsed_seconds=time.monotonic()-start,omitted_bytes=omitted,command=list(argv))

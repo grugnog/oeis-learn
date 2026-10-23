@@ -16,3 +16,15 @@ class Supervision(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(OSError):launch(['/no-such-executable'],Path(folder)/'a',seconds=1)
             with self.assertRaises(TimeoutError):launch([sys.executable,'-c','import time;time.sleep(30)'],Path(folder)/'b',seconds=.05)
+
+    def test_failure_records_command_and_preserves_bounded_tail(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            with self.assertRaises(RuntimeError):
+                launch([sys.executable,'-c',"import sys;sys.stderr.write('x'*100000+'LAST');sys.exit(1)"],root,seconds=3,stream_cap=4096)
+            self.assertEqual((root/'stderr.log').stat().st_size,4096)
+            self.assertTrue((root/'stderr.log').read_text().endswith('LAST'))
+            result=json.loads((root/'process.json').read_text())
+            self.assertEqual(result['omitted_bytes']['stderr'],100004-4096)
+            self.assertEqual(result['outcome'],'FAIL')

@@ -67,3 +67,32 @@ class Studies(unittest.TestCase):
             with self.assertRaises(ValueError):ledger.reserve(arm)
             changed=dict(contract,identity='sha256:'+'b'*64)
             with self.assertRaises(ValueError):StudyLedger(Path(folder),changed)
+
+    def test_existing_final_exposure_persists_debit_and_same_plan_remaining_budget(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.fresh.bigint_state import expose_final,finish_final
+        from oeis_learn.synthesis.contracts import identity
+        from oeis_learn.synthesis.state import FinalPlan
+        from oeis_learn.fresh.common import read
+        h='sha256:'+'a'*64
+        decisions={name:{'status':'not_planned','reason':'explicit fixture-only deferral'} for name in FinalPlan.DECISIONS}
+        plan=dict(version='final-evaluation/v1',cohort=h,
+            decisions=[[name,identity(row)] for name,row in decisions.items()],decision_manifest=decisions,
+            arms=[['A',17,h,h,h,h,100]],denominator=1,
+            controls=['correct','shuffled','absent','template'],budget=100)
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            kwargs=dict(cohort=h,checkpoint=h,recipe=h,portfolio=h,runtime=h,seed=17,debit=40)
+            arm,state=expose_final(root,plan,**kwargs)
+            persisted=read(root/'state.json')
+            self.assertEqual(persisted['state'],'exposed')
+            self.assertEqual(persisted['arm_spent'],{'A':40})
+            self.assertEqual(persisted,state)
+            finish_final(root,plan,arm,'interrupted')
+            arm,state=expose_final(root,plan,**kwargs)
+            self.assertEqual(state['arm_spent'],{'A':80})
+            finish_final(root,plan,arm,'interrupted')
+            with self.assertRaises(ValueError):expose_final(root,plan,**kwargs)
+            with self.assertRaises(ValueError):expose_final(root,dict(plan,budget=200),**kwargs)
+            self.assertEqual(read(root/'state.json')['state'],'exposed')

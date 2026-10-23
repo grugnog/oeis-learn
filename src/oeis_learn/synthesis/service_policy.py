@@ -148,6 +148,8 @@ class PipelineCapacity:
 
     def enqueue(self,key,size,output,*,prompt,deadline,now):
         positive(size);positive(output)
+        if len(self.seen)>=65536:
+            raise ValueError('role logical job evidence capacity exhausted')
         if key in self.seen or type(prompt) is not int or prompt<0:
             raise ValueError('duplicate job or invalid stable affinity')
         if not math.isfinite(deadline) or not math.isfinite(now) or now>=deadline:
