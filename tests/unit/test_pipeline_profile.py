@@ -68,6 +68,103 @@ def test_host_help_and_scope_rejection_without_site_packages():
     assert p.returncode != 0
 
 
+def test_complete_host_path_without_site_packages(tmp_path):
+    """Exercise preparation, real role audits/report/archive with a fake engine."""
+    from oeis_learn.fresh.common import read, write, file_hash
+
+    run, inputs, output = parent_fixture(tmp_path)
+    output.rmdir()
+    parent = read(run / "run.json")
+    parent["recipe"]["learning"].update(max_updates=3000, validation_every=100)
+    write(run / "run.json", parent)
+    before = {str(p): file_hash(p) for p in run.rglob("*") if p.is_file()}
+    code = r"""
+from contextlib import nullcontext
+import importlib.util
+import json
+from pathlib import Path
+import sys
+from types import SimpleNamespace
+from unittest.mock import patch
+
+script, root = Path(sys.argv[1]), Path(sys.argv[2])
+sys.path[:0] = [str(script.parents[1] / "src"), str(script.parent)]
+spec = importlib.util.spec_from_file_location("pipeline_runner", script)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+import foundation_local
+from oeis_learn.tracking import pipeline_profile
+from oeis_learn.fresh.common import read, write
+
+commands, removed = [], []
+class Engine:
+    def command(self, **kw):
+        commands.append(kw)
+        return kw
+    def call(self, argv, **kw):
+        assert argv == ["inspect", commands[-1]["name"]]
+        inspection = [dict(
+            HostConfig=dict(NetworkMode="none", ReadonlyRootfs=True,
+                            Privileged=False, Devices=[]),
+            Mounts=[dict(Type="bind", Destination=dst, RW=rw)
+                    for _, dst, rw in commands[-1]["mounts"]],
+        )]
+        return SimpleNamespace(stdout=json.dumps(inspection))
+    def remove(self, name):
+        removed.append(name)
+class Host:
+    def __init__(self, args):
+        self.policy = dict(render_node="/dev/dri/renderD128", cpus=16, memory_bytes=1 << 30)
+        self.engine = Engine()
+    def ensure(self):
+        return "sha256:" + "a" * 64
+    def select_gpu(self):
+        pass
+    def gpu_lock(self):
+        return nullcontext()
+def launch(command, output, **kw):
+    mode = command["argv"][3]
+    devices = json.loads(command["environment"]["OEIS_EXPECTED_PIPELINE_DEVICES"])
+    assert bool(devices) == (mode != "scorer")
+    write(output / "devices.json", dict(version="pipeline-device-view/v1", devices=devices))
+    write(output / "summary.json", dict(status="COMPLETE", updates={}, work={}, validation={}))
+    if mode == "gpu":
+        write(output / "selections.json", {})
+        write(output / "attempts.json", dict(ordinary=[], telemetry=[]))
+sys.argv = [str(script), "--run", str(root / "parent"), "--inputs", str(root / "data"),
+            "--output", str(root / "child")]
+with patch.object(foundation_local, "Host", Host), \
+     patch.object(foundation_local, "relative", str), \
+     patch.object(pipeline_profile, "character_device", return_value=dict(major=1, minor=3)), \
+     patch.object(module, "launch", launch):
+    assert module.main() == 0, read(root / "child/summary.json")
+assert [x["argv"][3] for x in commands] == ["preflight", "gpu", "scorer"]
+assert len(removed) == 3
+assert read(root / "child/summary.json")["status"] == "COMPLETE"
+assert (root / "child/timeline.html").is_file()
+assert (root / "child.zip").is_file()
+assert not {"yaml", "torch", "numpy"}.intersection(sys.modules)
+"""
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", code, runner().__file__, str(tmp_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert {str(p): file_hash(p) for p in run.rglob("*") if p.is_file()} == before
+
+
+def test_tracking_public_exports_remain_compatible():
+    from oeis_learn import tracking
+    from oeis_learn.tracking.run_manager import RunContext, RunManager
+
+    assert tracking.RunManager is RunManager
+    assert tracking.RunContext is RunContext
+    with pytest.raises(AttributeError, match="no_such_export"):
+        tracking.no_such_export
+
+
 def test_archive_allows_reports_only_and_reserves_core(tmp_path):
     module = runner()
     (tmp_path / "summary.json").write_text("{}")
