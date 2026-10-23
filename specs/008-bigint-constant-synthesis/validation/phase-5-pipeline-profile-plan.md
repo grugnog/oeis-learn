@@ -1,10 +1,12 @@
 # Whole-pipeline resource and performance profile — proposed2026-10-22
 
-Status: IMPLEMENTED, actual HIP collection/review pending (W005). The user
-approved implementation after the focused plan review. No profiling run, new
-training experiment, qualification attempt or parallel scheduler has been
-launched here. This is a focused T094/T097 diagnostic within Spec008; production
-scheduling changes still require their own reviewed scope after the results.
+Status: REVIEWED diagnostic evidence, W005 complete on2026-10-23. The
+[corrected HIP rerun](phase-5-pipeline-profile-rerun-review.json) verifies actual
+device traces, isolation, CPU scoring and resource collection; its workload
+remains PARTIAL at the original deadlines. No new training experiment,
+qualification attempt or parallel scheduler was launched. This is a focused
+T094/T097 diagnostic within Spec008; production scheduling changes still require
+their own reviewed scope. Earlier pending statements below describe prior stages.
 
 ## Decision and questions
 
@@ -260,9 +262,15 @@ must be exportable. Old negative T096 and historical receipts stay unchanged.
   bounds, per-arm counts and schedule-weighted reporting before actual HIP execution. Separate mocks/CPU tests from device evidence.
 - [X] W004 Push incrementally and provide one copy-pastable Podman/Docker command
   for capability check plus bounded collection/rerun/archive. The command below is implemented. Do not launch it automatically or wait for PR CI.
-- [ ] W005 Review actual HIP evidence, publish phase/resource/overhead results and
+- [X] W005 Review actual HIP evidence, publish phase/resource/overhead results and
   recommend one measured next step. This does not itself close T094/T098, admit
   transfer-screen training, retry T096 or require deferred T093.
+  Completed by the2026-10-23 [corrected rerun review](phase-5-pipeline-profile-rerun-review.json):
+  all280 manifest entries and five actual-GPU trace exports verify, all three
+  isolation/cleanup audits pass, and CPU scoring completes. Partial portfolio
+  work, differing attempts and trace/projection limits are retained. The next
+  proposed experiment targets cached-decoder bookkeeping; no optimization is
+  implemented or throughput gain claimed by closing this review task.
 
 Prefer the existing pinned PyTorch profiler. Verify capabilities of the installed
 PyTorch2.9.1/ROCm7.2.1 image rather than assuming a newer ROCm tool is available.

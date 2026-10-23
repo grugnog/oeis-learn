@@ -1,0 +1,697 @@
+{
+  "version": "bigint-pipeline-hip-rerun-review/v1",
+  "review_date": "2026-10-23",
+  "qualified": false,
+  "status": "REVIEWED_DIAGNOSTIC_PARTIAL_WORKLOAD",
+  "archive": {
+    "name": "008-pipeline-hip-rerun-20261023T033146Z.zip",
+    "sha256": "sha256:2c8756c78479c9fc66aa45b952fb1f9a4cf8c867997b6436ef3504e39ae02e1f",
+    "members": 281,
+    "entries_verified": 280,
+    "omissions": 0,
+    "crc_errors": 0,
+    "private_artifacts_excluded": true
+  },
+  "source_sha256": "sha256:1f0b32ff10f0faedcfcca632991760a15481bb4083b039fc5d1924b3412402dc",
+  "source_snapshot_matches_reviewed_code": true,
+  "image": "sha256:24ab04e556a575da8134ecc9c91045e0d3f856114907b0eeff5edb8a37e50fdd",
+  "analysis_identity": "sha256:df933283deffebbc1212828525d3846db4382c53c7ebe5808c4345097a39499f",
+  "manifest_identity_verified": true,
+  "parent": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+  "weights_sha256": "sha256:1e1da28dc15d17454dad9949e799a15bce3104b279c00b6c9fe0dc6ebfc83c78",
+  "data_sha256": "sha256:346c41e735789cc6e42886503052c86f1b6654a07cb8c466ada5d34b01ef8b92",
+  "hip": {
+    "hip": "7.2.53211-e1a6bc5663",
+    "name": "AMD Radeon Graphics",
+    "properties": "_CudaDeviceProperties(name='AMD Radeon Graphics', major=11, minor=5, gcnArchName='gfx1151', total_memory=114688MB, multi_processor_count=20, uuid=58580000-0000-0000-0000-000000000000, pci_bus_id=102, pci_device_id=0, pci_domain_id=0, L2_cache_size=2MB)",
+    "sensors_mapped_to": "/dev/dri/renderD128",
+    "torch": "2.9.1+rocm7.2.1.gitff65f5bc"
+  },
+  "gates": {
+    "W005": "COMPLETE: evidence reviewed, partial work and trace limitations disclosed",
+    "T093": "DEFERRED",
+    "T094": "OPEN",
+    "T096": "original consumed negative unchanged",
+    "T097": "OPEN",
+    "T098": "OPEN"
+  },
+  "collection": {
+    "status": "PARTIAL",
+    "host_seconds_excluding_build": 1028.5309041568544,
+    "role_statuses": {
+      "preflight": "COMPLETE",
+      "gpu": "PARTIAL",
+      "scorer": "COMPLETE"
+    },
+    "host_timings": {
+      "gpu": {
+        "allowance_seconds": 3100,
+        "container_lifetime_seconds": 734.832699,
+        "host_minus_container_seconds": 0.2613715300308286,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 735.0940705300309
+      },
+      "preflight": {
+        "allowance_seconds": 420,
+        "container_lifetime_seconds": 4.610924,
+        "host_minus_container_seconds": 244.20510807509032,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 248.81603207509033
+      },
+      "scorer": {
+        "allowance_seconds": 1600,
+        "container_lifetime_seconds": 38.923782,
+        "host_minus_container_seconds": 0.20649653611856422,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 39.13027853611857
+      }
+    },
+    "gpu_worker_seconds": 733.2161046320107,
+    "no_new_training_or_qualification": true
+  },
+  "role_audits": {
+    "preflight": {
+      "isolation": "PASS",
+      "devices": {
+        "/dev/dri/renderD128": {
+          "major": 226,
+          "minor": 128
+        },
+        "/dev/kfd": {
+          "major": 240,
+          "minor": 0
+        }
+      },
+      "cleanup_seconds": 0.0484178108163178,
+      "cpus": 16,
+      "memory_bytes": 17179869184
+    },
+    "gpu": {
+      "isolation": "PASS",
+      "devices": {
+        "/dev/dri/renderD128": {
+          "major": 226,
+          "minor": 128
+        },
+        "/dev/kfd": {
+          "major": 240,
+          "minor": 0
+        }
+      },
+      "cleanup_seconds": 0.030524327186867595,
+      "cpus": 16,
+      "memory_bytes": 17179869184
+    },
+    "scorer": {
+      "isolation": "PASS",
+      "devices": {},
+      "cleanup_seconds": 0.040620710933580995,
+      "cpus": 16,
+      "memory_bytes": 17179869184
+    }
+  },
+  "workload": {
+    "per_arm": {
+      "ordinary": {
+        "emitted_tokens": 34676,
+        "generation_completed": 545,
+        "requested": 576,
+        "started": 560,
+        "unstarted": 16,
+        "updates": 500,
+        "validation_rows": 256
+      },
+      "telemetry": {
+        "emitted_tokens": 35018,
+        "generation_completed": 545,
+        "requested": 576,
+        "started": 560,
+        "unstarted": 16,
+        "updates": 500,
+        "validation_rows": 256
+      }
+    },
+    "parameter_and_loss_hashes_equal": true,
+    "validation": {
+      "ordinary": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 1.785941880196333
+      },
+      "telemetry": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 1.785941880196333
+      }
+    },
+    "paired_matching": 544,
+    "paired_changed": 16,
+    "unpaired": 0,
+    "changes_by_field": {
+      "fitting": 8,
+      "tokens_sha256": 8
+    },
+    "unstarted_scope": "Group3 correct-conditioning positions6 and7 for eight prompts in each arm; original deadlines unchanged",
+    "attempt_failure_reasons": {
+      "ordinary": {
+        "token_cap_without_eos": 5,
+        "grammar_dead_end": 2,
+        "deadline": 8
+      },
+      "telemetry": {
+        "token_cap_without_eos": 5,
+        "grammar_dead_end": 2,
+        "deadline": 8
+      }
+    },
+    "templates_unsupported_per_arm": {
+      "ordinary": 256,
+      "telemetry": 256
+    }
+  },
+  "measured_phases": {
+    "ordinary": {
+      "portfolio": {
+        "wall_seconds": 322.1142685811501,
+        "exclusive_seconds": {
+          "portfolio": 322.1142685811501
+        },
+        "role_cpu_seconds": 167.13717199999996,
+        "child_cpu_seconds": 148.51873300000005,
+        "weighted_core_equivalents": 0.9799500853855437
+      },
+      "updates": {
+        "wall_seconds": 32.987310892902315,
+        "exclusive_seconds": {
+          "updates": 32.987310892902315
+        },
+        "role_cpu_seconds": 36.791004999999984,
+        "child_cpu_seconds": 0.0,
+        "weighted_core_equivalents": 1.115307795759614
+      },
+      "validation": {
+        "wall_seconds": 1.3287269400898367,
+        "exclusive_seconds": {
+          "validation": 1.3287269400898367
+        },
+        "role_cpu_seconds": 1.348774000000006,
+        "child_cpu_seconds": 0.0,
+        "weighted_core_equivalents": 1.0150874188708885
+      },
+      "scoring": {
+        "wall_seconds": 18.36611086083576,
+        "exclusive_seconds": {
+          "scoring": 18.36611086083576
+        },
+        "role_cpu_seconds": 0.9796489999999997,
+        "child_cpu_seconds": 17.550000000000004,
+        "weighted_core_equivalents": 1.0089043423729394
+      }
+    },
+    "telemetry": {
+      "portfolio": {
+        "wall_seconds": 321.9894305858761,
+        "exclusive_seconds": {
+          "encoder_features_forward": 0.14714526082389057,
+          "decode": 162.63288413058035,
+          "native_ipc": 148.07842161902227,
+          "reference": 0.07128524966537952,
+          "raw_admission": 0.025273208739235997,
+          "independent_admission": 0.5587082353886217,
+          "fit_and_admit": 7.917392791016027,
+          "portfolio": 2.5583200906403363
+        },
+        "role_cpu_seconds": 168.76999000000006,
+        "child_cpu_seconds": 147.64714199999997,
+        "weighted_core_equivalents": 0.9826941568369589
+      },
+      "updates": {
+        "wall_seconds": 33.8394515782129,
+        "exclusive_seconds": {
+          "encoder_features_forward": 18.452721503330395,
+          "synchronized_encoder": 0.1295420303940773,
+          "synchronized_decoder_forward": 3.656268094200641,
+          "synchronized_objective": 0.09172080992721021,
+          "synchronized_backward_optimizer": 7.216463780961931,
+          "updates": 4.292735359398648
+        },
+        "role_cpu_seconds": 37.81367999999999,
+        "child_cpu_seconds": 0.0,
+        "weighted_core_equivalents": 1.1174436415614326
+      },
+      "validation": {
+        "wall_seconds": 1.344562814105302,
+        "exclusive_seconds": {
+          "encoder_features_forward": 1.0970677072182298,
+          "synchronized_encoder": 0.0057379864156246185,
+          "synchronized_decoder_forward": 0.2205318440683186,
+          "validation": 0.0212252764031291
+        },
+        "role_cpu_seconds": 1.366847000000007,
+        "child_cpu_seconds": 0.0,
+        "weighted_core_equivalents": 1.0165735551072288
+      },
+      "scoring": {
+        "wall_seconds": 18.431020899908617,
+        "exclusive_seconds": {
+          "native_ipc": 17.55309694306925,
+          "reference": 0.808602849021554,
+          "scoring": 0.06932110781781375
+        },
+        "role_cpu_seconds": 1.0191119999999998,
+        "child_cpu_seconds": 17.6,
+        "weighted_core_equivalents": 1.0102051373666618
+      }
+    }
+  },
+  "resources": {
+    "sample_count": 397,
+    "collector_cpu_seconds": 0.9486921070000001,
+    "missed_samples": 0,
+    "collector_errors": 0,
+    "event_overflow": 0,
+    "gpu_busy": {
+      "decode": {
+        "mean": 31.44242424242424,
+        "samples": 165,
+        "maximum": 38.0
+      },
+      "native_ipc": {
+        "mean": 5.255172413793104,
+        "samples": 145,
+        "maximum": 31.0
+      }
+    },
+    "cgroup_memory_peak_bytes": 1799204864,
+    "memory_limit_bytes": 17179869184,
+    "snapshot_storage_bytes": {
+      "cpu": 10868,
+      "cuda:0": 132252336
+    },
+    "sampled_max_temperature_C": 44.0,
+    "cpu_quota_throttle_deltas_zero": true,
+    "memory_event_deltas_zero": true,
+    "memory_note": "raw allocator/cgroup peaks include analysis snapshots and alternate idle cache; not production baseline memory",
+    "thermal_limit_exclusion_proved": false,
+    "hidden_ancestor_quota_exclusion_proved": false
+  },
+  "scoring": {
+    "arms": {
+      "ordinary": {
+        "absent": {
+          "success": 0,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "unsat_in_scope": 32
+          }
+        },
+        "equal_budget": {
+          "success": 32,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 32
+          }
+        },
+        "raw": {
+          "success": 30,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 30,
+            "visible_mismatch": 2
+          }
+        },
+        "rescue": {
+          "success": 32,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 32
+          }
+        },
+        "shuffled": {
+          "success": 4,
+          "complete": 28,
+          "denominator": 32,
+          "reasons": {
+            "resource_exhausted:timeout": 4,
+            "unsat_in_scope": 24,
+            "success": 4
+          }
+        },
+        "template": {
+          "success": 0,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "unsupported": 32
+          }
+        }
+      },
+      "telemetry": {
+        "absent": {
+          "success": 0,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "unsat_in_scope": 32
+          }
+        },
+        "equal_budget": {
+          "success": 32,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 32
+          }
+        },
+        "raw": {
+          "success": 30,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 30,
+            "visible_mismatch": 2
+          }
+        },
+        "rescue": {
+          "success": 32,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "success": 32
+          }
+        },
+        "shuffled": {
+          "success": 4,
+          "complete": 28,
+          "denominator": 32,
+          "reasons": {
+            "resource_exhausted:timeout": 4,
+            "unsat_in_scope": 24,
+            "success": 4
+          }
+        },
+        "template": {
+          "success": 0,
+          "complete": 32,
+          "denominator": 32,
+          "reasons": {
+            "unsupported": 32
+          }
+        }
+      }
+    },
+    "selection_seals_and_source_hashes_verified": true,
+    "successful_production_and_reference_coverage": 100,
+    "interpretation": "Diagnostic synthetic-training continuations only; partial/control work is retained and original T096 is not reassessed."
+  },
+  "traces": {
+    "all_five_exports_verified": true,
+    "records": [
+      {
+        "path": "gpu/traces/long-decode.json",
+        "bytes": 20397578,
+        "clock": "profiler-correlated host/device timestamps",
+        "gpu_interval_union_seconds": 0.0180555166015625,
+        "gpu_kernels": true,
+        "label": "long-decode",
+        "reason": null,
+        "schedule": {
+          "active_steps": 8,
+          "wait_steps": 64,
+          "warmup_steps": 1
+        },
+        "sha256": "sha256:c729ad3af502768327e434d77254b87fa60fff87e18f4909fc30f3000050e418",
+        "status": "COMPLETE",
+        "kernel_events": 7168,
+        "profiled_host_step_seconds": 0.14032161962890624,
+        "kernel_union_over_profiled_step_wall": 0.12867237884876198,
+        "host_range_seconds": {
+          "grammar_support": 0.005291501,
+          "grammar_mask_transfer": 0.001035998,
+          "sampling_distribution": 0.00268621,
+          "decoder_cached_step": 0.120268721
+        },
+        "selected_cpu_op_counts": {
+          "aten::linear": 264,
+          "aten::nonzero": 224,
+          "aten::index": 232,
+          "aten::index_put_": 80,
+          "aten::fill_": 2416,
+          "aten::item": 40,
+          "aten::_local_scalar_dense": 40
+        },
+        "selected_HIP_API_counts": {
+          "hipLaunchKernel": 6776,
+          "hipExtModuleLaunchKernel": 392,
+          "hipMemcpyWithStream": 352,
+          "hipMemcpyAsync": 96,
+          "hipDeviceSynchronize": 1
+        }
+      },
+      {
+        "path": "gpu/traces/short-decode.json",
+        "bytes": 27576203,
+        "clock": "profiler-correlated host/device timestamps",
+        "gpu_interval_union_seconds": 0.018236495849609374,
+        "gpu_kernels": true,
+        "label": "short-decode",
+        "reason": null,
+        "schedule": {
+          "active_steps": 8,
+          "wait_steps": 0,
+          "warmup_steps": 0
+        },
+        "sha256": "sha256:98c06d3688e7e1373c7c9adc409f45d7af4cc4b6a34e18c2473773c227b652f4",
+        "status": "COMPLETE",
+        "kernel_events": 7091,
+        "profiled_host_step_seconds": 0.17687063134765624,
+        "kernel_union_over_profiled_step_wall": 0.10310641009565792,
+        "host_range_seconds": {
+          "encoder_features_forward": 0.046927944000000006,
+          "decoder_prefill": 0.018485157,
+          "grammar_support": 0.0006585400000000001,
+          "grammar_mask_transfer": 0.0009587770000000001,
+          "sampling_distribution": 0.002336255,
+          "decoder_cached_step": 0.104306136
+        },
+        "selected_cpu_op_counts": {
+          "aten::linear": 281,
+          "aten::nonzero": 223,
+          "aten::index": 231,
+          "aten::index_put_": 82,
+          "aten::fill_": 3567,
+          "aten::item": 55,
+          "aten::_local_scalar_dense": 55
+        },
+        "selected_HIP_API_counts": {
+          "hipLaunchKernel": 6646,
+          "hipExtModuleLaunchKernel": 445,
+          "hipMemcpyWithStream": 2503,
+          "hipMemcpyAsync": 778,
+          "hipDeviceSynchronize": 1
+        }
+      },
+      {
+        "path": "gpu/traces/updates.json",
+        "bytes": 18430983,
+        "clock": "profiler-correlated host/device timestamps",
+        "gpu_interval_union_seconds": 0.020400748779296873,
+        "gpu_kernels": true,
+        "label": "updates",
+        "reason": null,
+        "schedule": {
+          "active_steps": 1,
+          "wait_steps": 1,
+          "warmup_steps": 1
+        },
+        "sha256": "sha256:6dcb59ce78468d4c3fe9486b0fcd8d8421c658bd92a7dc5fc437436e6b034a4c",
+        "status": "COMPLETE",
+        "kernel_events": 4052,
+        "profiled_host_step_seconds": 0.08395725610351562,
+        "kernel_union_over_profiled_step_wall": 0.24298970364328776,
+        "host_range_seconds": {
+          "Optimizer.zero_grad#AdamW.zero_grad": 0.000121441,
+          "encoder_features_forward": 0.047387992,
+          "Optimizer.step#AdamW.step": 0.0024767689999999998
+        },
+        "selected_cpu_op_counts": {
+          "aten::linear": 62,
+          "aten::nonzero": 0,
+          "aten::index": 1,
+          "aten::index_put_": 2,
+          "aten::fill_": 2889,
+          "aten::item": 552,
+          "aten::_local_scalar_dense": 552
+        },
+        "selected_HIP_API_counts": {
+          "hipLaunchKernel": 3784,
+          "hipExtModuleLaunchKernel": 268,
+          "hipMemcpyWithStream": 2276,
+          "hipMemcpyAsync": 683,
+          "hipDeviceSynchronize": 9
+        }
+      },
+      {
+        "path": "preflight/traces/capability.json",
+        "bytes": 36730,
+        "clock": "profiler-correlated host/device timestamps",
+        "gpu_interval_union_seconds": 8.3124755859375e-05,
+        "gpu_kernels": true,
+        "label": "capability",
+        "reason": null,
+        "schedule": {
+          "active_steps": null,
+          "wait_steps": 0,
+          "warmup_steps": 0
+        },
+        "sha256": "sha256:a008de5cb8bc7277e63136936b053ff153ac61352f38176acc2ae4edbd34cdef",
+        "status": "COMPLETE",
+        "kernel_events": 7,
+        "profiled_host_step_seconds": null,
+        "kernel_union_over_profiled_step_wall": null,
+        "host_range_seconds": {},
+        "selected_cpu_op_counts": {
+          "aten::linear": 0,
+          "aten::nonzero": 0,
+          "aten::index": 0,
+          "aten::index_put_": 0,
+          "aten::fill_": 1,
+          "aten::item": 2,
+          "aten::_local_scalar_dense": 2
+        },
+        "selected_HIP_API_counts": {
+          "hipLaunchKernel": 6,
+          "hipExtModuleLaunchKernel": 1,
+          "hipMemcpyWithStream": 2,
+          "hipMemcpyAsync": 0,
+          "hipDeviceSynchronize": 2
+        }
+      },
+      {
+        "path": "preflight/traces/representative-update.json",
+        "bytes": 18391501,
+        "clock": "profiler-correlated host/device timestamps",
+        "gpu_interval_union_seconds": 0.0202645693359375,
+        "gpu_kernels": true,
+        "label": "representative-update",
+        "reason": null,
+        "schedule": {
+          "active_steps": 1,
+          "wait_steps": 1,
+          "warmup_steps": 1
+        },
+        "sha256": "sha256:6e46e6216d0155ff8fdea7bb8c765199d42e85edac72d94140e82201701d6491",
+        "status": "COMPLETE",
+        "kernel_events": 4052,
+        "profiled_host_step_seconds": 0.0828126708984375,
+        "kernel_union_over_profiled_step_wall": 0.2447037285005603,
+        "host_range_seconds": {
+          "Optimizer.zero_grad#AdamW.zero_grad": 0.000118275,
+          "Optimizer.step#AdamW.step": 0.002290851
+        },
+        "selected_cpu_op_counts": {
+          "aten::linear": 62,
+          "aten::nonzero": 0,
+          "aten::index": 1,
+          "aten::index_put_": 2,
+          "aten::fill_": 2889,
+          "aten::item": 552,
+          "aten::_local_scalar_dense": 552
+        },
+        "selected_HIP_API_counts": {
+          "hipLaunchKernel": 3784,
+          "hipExtModuleLaunchKernel": 268,
+          "hipMemcpyWithStream": 2276,
+          "hipMemcpyAsync": 683,
+          "hipDeviceSynchronize": 9
+        }
+      }
+    ],
+    "probe_only_not_baseline_utilization": true,
+    "duplicate_flow_warnings_present": true,
+    "warning_interpretation": "GPU kernels, step ranges and interval unions are present; do not infer reliable per-operation CPU/GPU causal links from duplicate ROCTracer flow IDs.",
+    "long_probe": {
+      "original_max_tokens": 1024,
+      "active_offset": 65,
+      "active_steps": 8,
+      "replay_cap": 256,
+      "complete_1024_token_trace": false
+    }
+  },
+  "observer": {
+    "group_wall_ratios": [
+      {
+        "group": 0,
+        "interpretation": "descriptive only until work/dispositions match",
+        "ratio": 1.0017255899339088
+      },
+      {
+        "group": 1,
+        "interpretation": "descriptive only until work/dispositions match",
+        "ratio": 0.9935145892244547
+      },
+      {
+        "group": 2,
+        "interpretation": "descriptive only until work/dispositions match",
+        "ratio": 1.0009452380176793
+      },
+      {
+        "group": 3,
+        "interpretation": "descriptive only until work/dispositions match",
+        "ratio": 1.0019987855917682
+      }
+    ],
+    "median_descriptive_ratio": 1.0013354139757942,
+    "review_required": true,
+    "reason": "16 changed attempt records and capped/unequal emitted work prevent claiming a matched-work observer speedup or full parity; update loss/parameter hashes are identical."
+  },
+  "schedule_weighted": {
+    "amdahl_bound": null,
+    "cadence": 100,
+    "intended_scope": "parent diverse32 schedule; not new cost admission",
+    "max_updates": 3000,
+    "measured_weighted_seconds": {
+      "training": 197.9238653574139,
+      "validation": 39.8618082026951
+    },
+    "reason": "reduced controls and frozen weights cannot establish complete training critical-path shares; do not normalize known subtotal to100%",
+    "status": "PARTIAL_PROJECTION",
+    "total_fraction": null,
+    "total_seconds": null,
+    "unknown_categories": [
+      "full eight-attempt shuffled/absent portfolios",
+      "periodic greedy-only scheduling and cache history",
+      "real checkpoint/export and production logging",
+      "early-stop trajectory and changing output-length distribution"
+    ],
+    "validations": 30
+  },
+  "recommendation": {
+    "next_focused_experiment": "Reduce cached-decoder bookkeeping/launch overhead under a separate bounded fixed-input HIP comparison before changing pipeline scheduling.",
+    "evidence": "Later-token trace spends about120ms in cached-step host ranges for only18ms of kernel interval union across eight steps;224 nonzero operations and7168 kernel launches are recorded. Current cache code repeatedly uses boolean GPU indexing inside each layer; this is a concrete candidate, not proven unique cause.",
+    "requirements": [
+      "Keep eager attention, weights, grammar, seeds, batch8, active/finished-row behavior and deadlines fixed.",
+      "Reuse mixed-length cached/full and cache-invalidation counterexamples before any fast path.",
+      "Compare completed fixed candidate/token work and raw/fitted selection hashes; report deadline-limited work separately.",
+      "Measure ordinary HIP latency plus one bounded explanatory trace; do not rerun training or qualification."
+    ],
+    "parallelism": "CPU native work consumes roughly half the portfolio wall with about one active core and low GPU busy. A later1-vs4-worker/overlap pilot is justified, but needs an explicit deterministic ordering/deadline and aggregate-memory design; spare16 cores do not prove16x throughput.",
+    "no_full_profile_rerun_needed_to_review_this_archive": true,
+    "no_automatic_optimization_or_training": true
+  },
+  "limitations": [
+    "Diagnostic mix oversamples updates and reduces controls; no measured full-training percentage or total/Amdahl speedup.",
+    "CPU native request spans include solving/compilation/production execution/IPC, not pure WASM.",
+    "One paired run,16 differing attempts,15 incomplete generations and16 unstarted attempts per arm.",
+    "Trace windows perturb timing; short includes encoder/prefill and later-token probe covers only8 active steps after offset65, not full1024-token output.",
+    "Source/input/image and role receipts verify archive-internal identities; excluded weights/truth cannot be independently rehashed or rescored from this ZIP.",
+    "About244s outside the first container lifetime is localized to preflight launch/inspect/cleanup, not attributed to a specific engine cause.",
+    "Sampled counters show no observed OOM/throttle; hidden quotas, firmware cadence and full thermal limits remain unknown."
+  ]
+}
