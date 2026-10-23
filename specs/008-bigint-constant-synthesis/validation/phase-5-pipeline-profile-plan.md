@@ -346,3 +346,40 @@ Local validation:78 focused tests pass, including25 new profile cases; lint,
 formatting, stdlib help/scope rejection, documentation links and Spec Kit gates
 pass. [Local receipt](phase-5-pipeline-profile-local.json) is explicitly CPU/mock
 evidence; no container or actual HIP execution is claimed.
+
+## First HIP collection review — blocked harness, useful partial evidence
+
+The [207-file verified archive review](phase-5-pipeline-profile-review.json)
+records actual HIP500-update/256-validation-row measurements in both arms, with
+matching block loss/parameter hashes. The GPU role spent740.8s; the host failed
+afterward because Podman reports an empty `HostConfig.Devices`, so the current
+audit rejected the GPU role before CPU scoring. Requested device arguments and
+successful HIP computation do not by themselves replace actual device-node
+attestation. Network/read-only/mount inspection and0.064s cleanup are recorded,
+but the full device/isolation audit remains unqualified. All three operator
+trace exports also failed and have no trace JSON; the cause is not established.
+
+In the observed321.8s portfolio workload, exclusive decoding takes162.4s and
+native request/response148.5s. Native child CPU time is148.1s; aggregate usage
+averages about one core despite a16-CPU quota. Sampled GPU busy averages30.8%
+during decode versus5.4% during native requests. No cgroup CPU throttling or
+OOM events were observed. These measurements justify investigating bounded
+native concurrency/overlap; they do not establish a whole-training speedup or
+that the native time is entirely WASM. The prior forecast used a different
+work/output-length mix. About242s outside container lifetime also needs explicit
+launch/startup attribution.
+
+Both arms start560/576 attempts and complete545 generations. Group3 leaves two
+correct-conditioning attempts per prompt unstarted at the frozen ceiling.
+540 paired attempt records match;20 differ, including six token-prefix hashes
+and14 fitting dispositions. Therefore near-equal aggregate timings are not full
+parity or an observer speedup claim. All256 template fits per arm are unsupported.
+No completeness threshold or original negative T096 assessment changes.
+
+Next work is harness reliability: audit actual device exposure before expensive
+work, fix/prove bounded trace export, then recover CPU scoring and short traces
+under a fresh linked analysis identity. Preserve this archive and original local
+output, including its excluded inputs/truth needed for recovery. Avoid rerunning
+the1000 updates or portfolios merely to repair reporting. Do not repeat the
+quickstart command unchanged while those known harness failures remain. W005
+and T094/T097/T098 stay open; T093 remains deferred.

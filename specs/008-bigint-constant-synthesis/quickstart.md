@@ -7,7 +7,16 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: collect the whole-pipeline HIP profile
+## Current next step: repair and recover the first HIP profile
+
+The first [HIP profile review](validation/phase-5-pipeline-profile-review.json)
+contains useful measurements but is blocked by the Podman device audit and
+failed operator-trace exports; CPU scoring was not launched. Preserve
+`tmp-validation/008-pipeline-hip-20261022T223657Z` and its ZIP. Do not rerun the
+command below unchanged while those harness defects remain. Recovery should
+reuse existing GPU evidence under a new identity; W005 remains open.
+
+### Original collection command
 
 T093 historical-model comparison is user-deferred. The
 [reviewed profiling plan and implementation](validation/phase-5-pipeline-profile-plan.md)

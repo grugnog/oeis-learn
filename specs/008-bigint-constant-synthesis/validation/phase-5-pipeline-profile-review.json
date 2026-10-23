@@ -1,0 +1,135 @@
+{
+  "version": "bigint-pipeline-hip-review/v1",
+  "review_date": "2026-10-22",
+  "status": "PARTIAL_EVIDENCE_HARNESS_BLOCKED",
+  "qualified": false,
+  "archive": {
+    "name": "008-pipeline-hip-20261022T223657Z.zip",
+    "sha256": "sha256:77c89ee94af3d6708fc9d19b79a837f43e69d70c8e32c60861ca839a9aeefe0a",
+    "entries_verified": 207,
+    "omissions": 0,
+    "crc_errors": 0
+  },
+  "source_sha256": "sha256:3d8ec53eb837fe574985c0ee179cb6032073cc710169a4990ae93d7a8a802ce1",
+  "image": "sha256:8b0fe873ba4cd442d71e32d5f8597479e26fa4fc4dcedf21961ba8dd0546e06c",
+  "manifest_sha256": "sha256:551647e3992d98ee776216097ceac58b04b159143f0764f366773dc87ed96ccf",
+  "manifest_identity_verified": true,
+  "hip": {
+    "device": "AMD Radeon Graphics gfx1151",
+    "torch": "2.9.1+rocm7.2.1.gitff65f5bc",
+    "hip": "7.2.53211-e1a6bc5663",
+    "parameter_updates_per_arm": 500,
+    "block_loss_and_parameter_hashes_equal": true,
+    "validation_rows_per_arm": 256,
+    "validation_loss": 1.785941880196333
+  },
+  "collection": {
+    "host_seconds_excluding_build": 985.9299987209961,
+    "container_wall_seconds": 743.693643,
+    "gpu_worker_seconds": 740.8193789550569,
+    "outside_container_unattributed_seconds": 242.23635572099613,
+    "cpu_scoring_started": false
+  },
+  "workload": {
+    "per_arm": {
+      "requested": 576,
+      "started": 560,
+      "generation_complete": 545,
+      "unstarted": 16
+    },
+    "unstarted_scope": "two correct-conditioning attempts for each of eight prompts in group3; original60second ceilings preserved",
+    "paired_matching": 540,
+    "paired_changed": 20,
+    "paired_token_hash_changes": 6,
+    "paired_fitting_changes": 14,
+    "unpaired": 0,
+    "templates_unsupported_per_arm": 256
+  },
+  "ordinary": {
+    "updates_seconds": 33.08246953506023,
+    "validation_seconds": 1.3335465278942138,
+    "portfolio_seconds": 323.231956013944,
+    "portfolio_role_cpu_seconds": 167.60772799999995,
+    "portfolio_native_child_cpu_seconds": 147.18994600000002
+  },
+  "telemetry": {
+    "updates_seconds": 33.42217451124452,
+    "portfolio_seconds": 321.7965137218125,
+    "portfolio_exclusive_seconds": {
+      "decode": 162.36509237252176,
+      "native_ipc": 148.51909155165777,
+      "encoder_features_forward": 0.147971,
+      "fit_wrapper_residual": 7.649069213075563,
+      "independent_admission": 0.5597583416383713,
+      "reference": 0.07262505404651165
+    },
+    "portfolio_role_cpu_seconds": 168.50069599999992,
+    "portfolio_native_child_cpu_seconds": 148.078034,
+    "gpu_busy": {
+      "decode": {
+        "mean": 30.832335329341316,
+        "samples": 167
+      },
+      "native_ipc": {
+        "mean": 5.408450704225352,
+        "samples": 142
+      }
+    },
+    "samples": 375,
+    "collector_cpu_seconds": 0.9227023979999999,
+    "collector_errors": 0
+  },
+  "resource": {
+    "effective_cpus": 16,
+    "observed_portfolio_cpu_core_equivalents": 0.9837854560278944,
+    "cgroup_throttled_usec": 0,
+    "memory_oom_events": 0,
+    "cgroup_peak_observed_bytes": 1555877888,
+    "training_torch_peak_allocated_bytes": 474185216,
+    "analysis_snapshot_cuda_bytes": 132252336,
+    "memory_note": "RSS/cgroup/GPU counters overlap; snapshots and alternate idle cache are diagnostic overhead"
+  },
+  "blockers": [
+    {
+      "kind": "host_device_audit",
+      "reason": "Podman HostConfig.Devices is empty; strict equality to requested /dev/kfd and renderD128 rejected after GPU success",
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "mounts": "only readonly input and writable output",
+      "cleanup_seconds": 0.06390275293961167,
+      "interpretation": "requested devices appear in CreateCommand and actual HIP ran, but these do not replace actual device-node attestation; audit remains unqualified"
+    },
+    {
+      "kind": "trace_export",
+      "reason": "all3 Kineto exports log Failed to write to log file and leave no JSON; all3 trace summaries UNAVAILABLE",
+      "root_cause": "not established; no kernel attribution claim"
+    },
+    {
+      "kind": "incomplete_work",
+      "reason": "frozen portfolios hit their existing limits; no extension or qualification reinterpretation"
+    }
+  ],
+  "conclusions": [
+    "Measured native request work is about46% of these diagnostic portfolios, versus decode about50%; these are not complete training-run shares.",
+    "Native child CPU time nearly equals native request wall time, with one core-equivalent used and16 allowed; bounded CPU parallelism/overlap is worth investigating after harness recovery.",
+    "Sampled GPU busy near31% during decoding does not establish compute saturation, kernel occupancy or a specific synchronization defect; traces are missing.",
+    "No evidence of quota throttling or OOM pressure; no complete thermal/bandwidth bottleneck exclusion.",
+    "Paired update states match; portfolio outputs and fitting dispositions differ under deadlines, so aggregate observer timings are descriptive, not a speedup or full parity claim.",
+    "About242s outside the container needs launch/startup attribution; do not hide it in runtime shares."
+  ],
+  "next_steps": [
+    "Correct Podman device evidence handling without relaxing mount/network/device isolation; audit capability before expensive workload.",
+    "Reproduce/fix bounded trace export, verify actual HIP kernel events and preserve useful failure diagnostics.",
+    "Recover separate CPU scoring and short trace probes under a new linked diagnostic identity; preserve this failure and existing GPU evidence; avoid repeating the1000 update benchmark unnecessarily.",
+    "Then consider a bounded4-worker native/overlap experiment with deterministic selection, original request/deadline semantics and aggregate memory caps; do not jump directly to16."
+  ],
+  "remaining": {
+    "W005": "incomplete collection/review pending recovery",
+    "T093": "DEFERRED",
+    "T094": "OPEN",
+    "T096": "original consumed negative unchanged",
+    "T097": "OPEN",
+    "T098": "OPEN"
+  }
+}
