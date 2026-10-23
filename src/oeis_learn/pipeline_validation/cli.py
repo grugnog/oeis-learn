@@ -30,6 +30,7 @@ def main(args, root, host_factory):
     other='podman' if primary=='docker' else 'docker'
     if mode=='both' or mode=='available' and shutil.which(other):
         engines.append(other)
+    args.pipeline_engines=engines
     all_stages=registry(engines,primary)
     stages=resolve(all_stages,args.phase)
     unavailable=[asdict(s) for s in all_stages if not s.available]

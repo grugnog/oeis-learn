@@ -34,3 +34,13 @@ class Qualification(unittest.TestCase):
         for changed in ([dict(rows[0],complete=False),*rows[1:]],rows[:2]):
             self.assertFalse(forecast_trials(changed,'diverse32',updates=3000,cadence=500,budget=7200)['forecast']['within_budget'])
         self.assertFalse(forecast_trials(rows,'transfer-screen',updates=3000,cadence=500,budget=7200)['forecast']['within_budget'])
+
+    def test_missing_or_changed_source_gate_cannot_qualify(self):
+        from oeis_learn.pipeline_validation.identity import seal
+        cpu=seal(dict(state='PASS',binding={'source':'current'},files={'test.xml':'hash'}))
+        good=qualification({'cpu':cpu},source='current',required={'cpu'})
+        self.assertEqual(good['engineering'],'PASS')
+        self.assertEqual(qualification({'cpu':cpu},source='new',required={'cpu'})['engineering'],'BLOCKED')
+        self.assertEqual(qualification({'cpu':cpu},source='current',required={'cpu','hip'})['engineering'],'BLOCKED')
+        broken=dict(cpu,identity='changed')
+        self.assertEqual(qualification({'cpu':broken},source='current',required={'cpu'})['engineering'],'BLOCKED')

@@ -18,10 +18,19 @@ CARRYOVERS={
 }
 
 
-def qualification(gates,*,source):
-    complete=bool(gates) and all(g.get('state') in {'PASS','REUSED'} for g in gates.values())
+def qualification(gates,*,source,required=None):
+    required=set(required if required is not None else {'cpu','hip','operations','resources','provenance'})
+    failures={}
+    for name in sorted(required):
+        gate=gates.get(name)
+        if gate is None:
+            failures[name]='mandatory current gate missing'
+        elif (seal(gate)!=gate or gate.get('state') not in {'PASS','REUSED'}
+                or gate.get('binding',{}).get('source')!=source or not gate.get('files')):
+            failures[name]='non-PASS, changed source/receipt or missing artifacts'
+    complete=bool(required) and not failures
     return seal(dict(version='pipeline-qualification/v1',source=source,gates=gates,
-        engineering='PASS' if complete else 'BLOCKED',learning='HISTORICAL_NEGATIVE',
+        engineering='PASS' if complete else 'BLOCKED',required=sorted(required),failures=failures,learning='HISTORICAL_NEGATIVE',
         research='NOT_EXECUTED',long_run_authorized=False,
         historical={'008:T093':dict(disposition='DEFERRED'),
                     '008:T096':dict(disposition='NEGATIVE',consumed_seconds=7730,budget_seconds=14400)},

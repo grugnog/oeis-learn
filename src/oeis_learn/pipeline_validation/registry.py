@@ -49,7 +49,7 @@ def registry(engines=('docker',), primary='docker'):
     stages = [Stage('host.contracts',1,seconds=120,adapter='host')]
     for engine in engines:
         stages.extend([
-            Stage('engine.'+engine,1,seconds=30,adapter='engine',capability=engine),
+            Stage('engine.'+engine,1,('host.contracts',),seconds=30,adapter='engine',capability=engine),
             Stage('image.'+engine+'.qualification',1,('engine.'+engine,),seconds=7200,adapter='image'),
             Stage('cpu.'+engine+'.semantic',1,('image.'+engine+'.qualification',),seconds=600,adapter='cpu'),
             Stage('operations.'+engine+'.retirement',5,('image.'+engine+'.qualification',),seconds=1800,adapter='retirement'),

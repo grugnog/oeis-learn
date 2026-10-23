@@ -48,7 +48,11 @@ class Adapters:
             from .qualification import qualification
             from oeis_learn.experiments.source_snapshot import collect_snapshot
             from .identity import digest
-            report=qualification({k:v for k,v in self.receipts.items() if k!='qualification'},source=digest(collect_snapshot(self.root)))
+            required={'host.contracts','hip.preflight','policy.compare','image.'+self.args.engine+'.gpu'}
+            for engine in self.args.pipeline_engines:
+                required.update({'engine.'+engine,'image.'+engine+'.qualification','cpu.'+engine+'.semantic',
+                    'operations.'+engine+'.retirement','operations.'+engine+'.workflow'})
+            report=qualification({k:v for k,v in self.receipts.items() if k!='qualification'},source=digest(collect_snapshot(self.root)),required=required)
             write(output/'qualification.json',report)
             return report
         if stage.adapter=='cost':
