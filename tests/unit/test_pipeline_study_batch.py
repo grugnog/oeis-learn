@@ -60,4 +60,6 @@ class StudyBatches(unittest.TestCase):
             self.assertEqual(len(list(root.rglob('*.zip'))),1)
             verify(root/'out.zip')
             result=json.loads((root/'out/summary.json').read_text())
+            self.assertEqual(result['research'],'NOT_EXECUTED')
+            self.assertEqual(result['engineering'],'NOT_SELECTED')
             self.assertEqual(set(result['stages']),{'s00.study.admission','s01.study.admission','study.report'})

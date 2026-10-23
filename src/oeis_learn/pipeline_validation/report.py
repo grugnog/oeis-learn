@@ -9,7 +9,8 @@ def summarize(receipts, *, interrupted=False, registry_unavailable=()):
     portability='PASS' if {'cpu.docker.semantic','cpu.podman.semantic'}<=covered else 'PENDING'
     qualified=receipts.get('qualification',{}).get('observations',{}).get('result',{}).get('engineering')
     research=receipts.get('study.report',{}).get('observations',{}).get('result',{}).get('research','NOT_EXECUTED')
+    is_study='study.report' in receipts or any(set(row.get('binding',{}))&{'study','batch'} for row in receipts.values())
     return dict(version='pipeline-summary/v1',selected_scope=verdict,stages=receipts,
-        engineering=qualified or verdict,learning='NOT_ADMITTED',research=research,portability=portability,
+        engineering=qualified or ('NOT_SELECTED' if is_study else verdict),learning='REVIEW_REQUIRED' if research!='NOT_EXECUTED' else 'NOT_ADMITTED',research=research,portability=portability,
         long_run_admission='NOT_ADMITTED',feature_complete=False,
         unavailable=list(registry_unavailable),historical={'008:T093':'DEFERRED','008:T096':'NEGATIVE 7730/14400 seconds'})

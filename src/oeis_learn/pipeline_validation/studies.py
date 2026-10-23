@@ -32,7 +32,8 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
     required=gate_requirements(record['kind'])
     if record['state'] not in EDGES and record['state'] not in {'COMPLETE','NEGATIVE','INCONCLUSIVE','INTERRUPTED','BLOCKED'}:
         raise ValueError('unknown study state')
-    if not record['decision_id'] or not record['hypothesis'] or record['track'] not in {'generic_only','assisted'}:
+    if (not isinstance(record['decision_id'],str) or not 1<=len(record['decision_id'])<=128
+            or not isinstance(record['hypothesis'],str) or not 1<=len(record['hypothesis'])<=8192) or record['track'] not in {'generic_only','assisted'}:
         raise ValueError('prospective hypothesis and provenance required')
     if not isinstance(record['seeds'],list) or not record['seeds'] or len(set(record['seeds']))!=len(record['seeds']) or any(type(s) is not int for s in record['seeds']):
         raise ValueError('frozen unique seeds required')
@@ -90,6 +91,9 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
         for name,ref in record['gates'].items():
             gate=json.loads(reference(root,ref).read_text())
             validate(gate,{'version','scope','state','source','image','resources','producer','engine'},'pipeline-study-gate/v1')
+            from oeis_learn.synthesis.state import require_hash
+            for key in ('source','image','resources','producer'):require_hash(gate[key])
+            if gate['engine'] not in ('docker','podman'):raise ValueError('qualified engine identity required')
             if gate.get('state')!='PASS' or gate.get('scope')!=name or (source is not None and gate.get('source')!=source):
                 missing.append('gate:'+name)
         if record['authority'] is not None:

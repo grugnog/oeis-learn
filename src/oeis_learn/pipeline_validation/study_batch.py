@@ -79,9 +79,20 @@ def main(args,root,host_factory,record,source,final_plan):
         reports={}
         for prefix,plan in plans:
             adapter=plan['adapter']
+            destination=report_root/prefix.rstrip('.')
+            write(destination/'contract.json',plan['decision']['contract'])
             if hasattr(adapter,'finalize'):
-                reports[prefix]=adapter.finalize(report_root/prefix.rstrip('.'),invocation,receipts,prefix=prefix)
-        outcome='COMPLETE' if reports and all(r['research']=='COMPLETE' for r in reports.values()) else 'NEGATIVE' if any(r['research']=='NEGATIVE' for r in reports.values()) else 'INCONCLUSIVE' if reports else 'NOT_EXECUTED'
+                reports[prefix]=adapter.finalize(destination,invocation,receipts,prefix=prefix)
+            else:
+                # Do not resolve input/checkpoint references when authority or
+                # runtime capability is missing, even while assembling reports.
+                reports[prefix]=seal(dict(version='pipeline-study-blocked-report/v1',
+                    study=plan['decision']['contract']['identity'],research='NOT_EXECUTED',
+                    arms=[dict(id=a['id'],seed=a['seed'],state='UNSTARTED') for a in plan['decision']['contract']['arms']],
+                    reasons=[s.reason for s in plan['stages']],automatic_run_authorized=False))
+                write(destination/'report.json',reports[prefix])
+        outcomes={r['research'] for r in reports.values()}
+        outcome='COMPLETE' if outcomes=={'COMPLETE'} else 'NEGATIVE' if 'NEGATIVE' in outcomes else 'NOT_EXECUTED' if outcomes<={'NOT_EXECUTED'} else 'INCONCLUSIVE'
         result=seal(dict(version='pipeline-study-batch-report/v1',research=outcome,studies=reports,automatic_run_authorized=False))
         write(report_root/'report.json',result)
         return result
