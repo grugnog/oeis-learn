@@ -24,11 +24,11 @@ No separate build, native test, HIP test, profiler or packaging command is requi
 
 The hard global ceiling is 86,400 seconds, including build/report/cleanup, with at most 84,000 seconds declared reservations. Phase caps remain 3,600/10,800/7,200/18,000/14,400 seconds; export 900 and invocation cleanup 300 seconds are reserved. These are ceilings, not expected duration. **No current-source target calibration exists yet, so a defensible expected range is unavailable.** Calibration either freezes a bounded complete subset and reservations before candidates, or records an inconclusive/blocked scope. It never trims failed attempts to create a speedup or extends another phase's cap.
 
-The workstation policy resolves before Host's older16 GiB default. CPU/GPU/native work shares `min(floor(0.90 * physical RAM), effective engine/ancestor limit)`, rounded down to MiB, with at most 16 CPU equivalents. Expected active peak plus `max(1 GiB,10% peak)` headroom must fit known current capacity. Historical 16/capacity64 are named comparisons. Missing device/shared-memory accounting prevents resource qualification. Native configurable numerical threads are one; Torch uses two intraop/one interop threads.
+The workstation policy resolves before Host's older 16 GiB default. CPU/GPU/native work shares `min(floor(0.90 * physical RAM), effective engine/ancestor limit)`, rounded down to MiB, with at most 16 CPU equivalents. Expected active peak plus `max(1 GiB,10% peak)` headroom must fit known current capacity. Historical 16/capacity64 are named comparisons. Missing device/shared-memory accounting prevents resource qualification. Native configurable numerical threads are one; Torch uses two intraop/one interop threads.
 
 ## Results and reruns
 
-Return the single sibling `OUTPUT.zip` printed by the command. It includes the resolved public contract, immutable stage receipts, compact attempt/job evidence, outcomes, source/policy hashes, bounded logs, omissions and a size/hash-verified manifest. Weights, private truth, full inputs and caches are excluded. Limits are 8 MiB per stream,8 GiB transient,128 MiB optional traces and 512 MiB ZIP. A physical reporting reserve protects minimal failure export; if the full export fails, a verified compact **FAIL** archive records omitted details and surviving paths. A recovery archive cannot qualify omitted stages.
+Return the single sibling `OUTPUT.zip` printed by the command. It includes the resolved public contract, immutable stage receipts, compact attempt/job evidence, outcomes, source/policy hashes, bounded logs, omissions and a size/hash-verified manifest. Weights, private truth, full inputs and caches are excluded. Limits are 8 MiB per stream, 8 GiB transient, 128 MiB optional traces and 512 MiB ZIP. A physical reporting reserve protects minimal failure export; if the full export fails, a verified compact **FAIL** archive records omitted details and surviving paths. A recovery archive cannot qualify omitted stages.
 
 The summary separates selected scope, engineering, learning, research, portability and longer-run admission. Exit codes: 0 selected-scope PASS; 1 FAIL; 2 invalid invocation; 3 BLOCKED/PARTIAL/INCONCLUSIVE; 130 interruption. `feature_complete` remains false while feature gates are pending. A valid no-adoption report is distinct from performance adoption or learning success. Baseline serial/v1 defaults remain supported; hoisted metadata, v2, native slots, overlap and batch/cache candidates remain experimental opt-ins until current evidence is reviewed.
 
@@ -53,7 +53,7 @@ python3 -S scripts/foundation_run.py --engine podman --cpus 16 validate \
 
 ## Research manifests and one batch command
 
-There is no admitted research manifest in this branch. Tasks093–107 remain blocked on actual qualification, exact-scope cost and prospective scientific decisions. Original008:T096 stays negative at 7,730/14,400 seconds and008:T093 stays deferred. No synthetic authority or assistance data has been created to clear these gates.
+There is no admitted research manifest in this branch. Tasks 093–107 remain blocked on actual qualification, exact-scope cost and prospective scientific decisions. Original008:T096 stays negative at 7,730/14,400 seconds and008:T093 stays deferred. No synthetic authority or assistance data has been created to clear these gates.
 
 After an independently reviewed study or batch exists, the same entry point runs it:
 

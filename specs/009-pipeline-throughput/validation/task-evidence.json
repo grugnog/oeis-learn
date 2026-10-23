@@ -1,675 +1,1454 @@
 {
   "version": "pipeline-task-evidence/v1",
+  "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
+  "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
+  "counts": {
+    "complete": 67,
+    "pending_runtime": 29,
+    "blocked_research": 15
+  },
+  "layout_variations": {
+    "measurement_execution": [
+      "src/oeis_learn/pipeline_validation/benchmarks.py",
+      "src/oeis_learn/pipeline_validation/neural.py",
+      "src/oeis_learn/pipeline_validation/role.py"
+    ],
+    "cost_and_adoption_reporting": [
+      "src/oeis_learn/pipeline_validation/comparisons.py",
+      "src/oeis_learn/pipeline_validation/costs.py"
+    ],
+    "policy_fixtures": [
+      "src/oeis_learn/pipeline_validation/policies.py",
+      "tests/unit/test_pipeline_policy.py"
+    ],
+    "study_batches": [
+      "src/oeis_learn/pipeline_validation/study_batch.py",
+      "tests/unit/test_pipeline_study_batch.py"
+    ],
+    "checkpoint_and_final_fixtures": [
+      "tests/unit/test_pipeline_overlap_metrics.py",
+      "tests/unit/test_pipeline_studies.py",
+      "tests/integration/test_bigint_workflow.py"
+    ],
+    "workload_roster": "Static versioned adapters implement the finite default roster. Arbitrary manifest workload/comparison overrides fail closed."
+  },
   "tasks": [
     {
       "task": "T001",
       "description": "Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/implementation-baseline.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md"
+      ]
     },
     {
       "task": "T002",
       "description": "Create the stdlib-only host package boundary in `src/oeis_learn/pipeline_validation/__init__.py` and establish the static module layout from `specs/009-pipeline-throughput/plan.md`; do not add a scheduler service, host dependency or second trainer.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/plan.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/__init__.py"
+      ]
     },
     {
       "task": "T003",
       "description": "[P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json"
+      ]
     },
     {
       "task": "T004",
       "description": "[P] Add schema/identity rejection tests in `tests/unit/test_pipeline_contracts.py` for unknown keys, nonfinite/negative timing, path-only identities, changed policies, duplicate logical IDs and immutable terminal records; use independent expected payloads and known old v1 fixtures.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_pipeline_contracts.py"
+      ]
     },
     {
       "task": "T005",
       "description": "Implement shared canonical identity and confined-reference helpers in `src/oeis_learn/pipeline_validation/identity.py`, reusing existing hashes: \"Unknown keys fail closed for versioned authority-bearing records\", \"Timing values are finite, nonnegative observations and never substitute for identities\", and \"a path string alone is never an input identity\"; preserve old v1 identity/seal validators.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/identity.py"
+      ]
     },
     {
       "task": "T006",
       "description": "[P] Add resource-resolution tests in `tests/unit/test_pipeline_resources.py` for measured physical/ancestor limits, quota/cpuset, current availability, unknown sensors, shared CPU/GPU charging and reservation-versus-ceiling distinctions; prove the old Host 16 GiB default cannot override workstation90.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_pipeline_resources.py"
+      ]
     },
     {
       "task": "T007",
       "description": "Implement `ResourcePolicy` resolution/reservations in `src/oeis_learn/pipeline_validation/resources.py`: ceiling `min(floor(0.90 * physical_bytes), effective_engine_or_ancestor_limit)` rounded down to MiB, profiles historical16/capacity64/workstation90, expected peak plus `max(1 GiB, 10% peak)` headroom, one full-envelope compute role, and explicit unavailable accounting; \"Resource policy changes acquire a new hash\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/resources.py"
+      ]
     },
     {
       "task": "T008",
       "description": "Bind new manifests, adapters, tests and policy dependencies into `src/oeis_learn/experiments/source_snapshot.py` and `src/oeis_learn/pipeline_validation/closures.py`; implement `DependencyClosure` with explicit path/content hashes and conservative unmapped-change invalidation, while retaining mandatory current-image whole-package inspection.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/experiments/source_snapshot.py",
+        "src/oeis_learn/pipeline_validation/closures.py"
+      ]
     },
     {
       "task": "T009",
       "description": "[P] [US1] Add full-host CLI/DAG tests in `tests/unit/test_pipeline_validation.py` for phase/all-ready selection, explicit unavailable phases, capability failures, build deduplication, continued independent stages, exit codes and engineering-authority rejection before engine access.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_pipeline_validation.py"
+      ]
     },
     {
       "task": "T010",
       "description": "[P] [US1] Add receipt/reuse tests in `tests/unit/test_pipeline_reuse.py` covering source/image/lock/adapter/workload/hardware/resource mutations, broken hashes, missing mandatory files, prior failures, unknown closure changes and compatible documentation-only changes with preserved producer identity.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_pipeline_reuse.py"
+      ]
     },
     {
       "task": "T011",
       "description": "[P] [US1] Add archive/failure tests in `tests/unit/test_pipeline_bundle.py` for arbitrary UID, unreadable mandatory files, symlinks/traversal, full disk, capped optional details, contradictory summaries, interrupted builds/startup and surviving minimal failure records.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_pipeline_bundle.py"
+      ]
     },
     {
       "task": "T012",
       "description": "[US1] Implement `ValidationContract` parsing in `src/oeis_learn/pipeline_validation/contracts.py` and finite defaults in `configs/foundation/pipeline_validation.json`; engineering authority rejects learning/resume/final access, unknown stages/cycles/duplicate IDs fail closed, and \"reservations must fit the parent\"; encode all operator-contract caps without borrowing phase time.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/contracts.py"
+      ]
     },
     {
       "task": "T013",
       "description": "[US1] Implement `Invocation` and `StageReceipt` ledgers in `src/oeis_learn/pipeline_validation/receipts.py`: fresh output roots, append-only transitions, separate scope/engineering/learning/research/portability/long-run results and original producer links; \"All terminal states are immutable\" and \"A missing terminal record is interrupted/partial, never inferred complete\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/receipts.py"
+      ]
     },
     {
       "task": "T014",
       "description": "[US1] Implement the static stage registry in `src/oeis_learn/pipeline_validation/registry.py` with declared availability, prerequisites, capabilities, input closures, reservations and adapters; distinguish NOT_SELECTED/UNAVAILABLE/BLOCKED from executed success and keep phase 6 outside all-ready.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/registry.py"
+      ]
     },
     {
       "task": "T015",
       "description": "[US1] Implement topological execution in `src/oeis_learn/pipeline_validation/runner.py`, serializing measurements/builds, continuing independent safe stages after failure, stopping globally on interruption/resource/role-audit breach, and reserving cleanup/archive time before dispatch; report every selected stage's terminal outcome.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/runner.py"
+      ]
     },
     {
       "task": "T016",
       "description": "[US1] Factor existing qualification/profile operations into `src/oeis_learn/pipeline_validation/adapters.py`, `src/oeis_learn/container_validation.py`, `scripts/qualify_bigint_phase5.py` and `scripts/profile_bigint_pipeline.py`; retain legacy entry points while sharing Host/image checks and suppressing nested archives.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "scripts/profile_bigint_pipeline.py",
+        "scripts/qualify_bigint_phase5.py",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/container_validation.py",
+        "src/oeis_learn/pipeline_validation/adapters.py"
+      ]
     },
     {
       "task": "T017",
       "description": "[US1] Wire public options and early memory-policy resolution into `scripts/foundation_local.py` through `scripts/foundation_run.py`: phases 1\u20135/all-ready, manifest, read-only run/inputs, fresh output, repeated reuse, engines available/selected/both, lower-only max-seconds and scope-report; preserve existing suites and primary-image pinning semantics.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "scripts/foundation_local.py",
+        "scripts/foundation_run.py",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md"
+      ]
     },
     {
       "task": "T018",
       "description": "[US1] Implement capability/image adapters in `src/oeis_learn/pipeline_validation/engines.py`: ensure each engine/target once, share each engine's 14,400-second build allowance, inspect current package/native/guest identities, require nonempty mandatory JUnit with no mandatory skips, and separate CPU-only readiness from real HIP updates.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/engines.py"
+      ]
     },
     {
       "task": "T019",
       "description": "[US1] Implement dependency-bound PASS imports in `src/oeis_learn/pipeline_validation/reuse.py`; verify all mandatory artifacts and prerequisite hashes, bind timing to exact hardware/resource/measurement conditions, link old failures/costs, restart interrupted confirmation blocks and never refund research budgets.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/reuse.py"
+      ]
     },
     {
       "task": "T020",
       "description": "[US1] Implement build/startup/stage supervision in `src/oeis_learn/pipeline_validation/supervision.py`: 30-second heartbeat, prompt SIGINT forwarding, external deadlines, bounded process output and cleanup; preserve terminal evidence even when startup fails before a container ID exists.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/supervision.py"
+      ]
     },
     {
       "task": "T021",
       "description": "[US1] Implement `BundleManifest` and mandatory-first export in `src/oeis_learn/pipeline_validation/bundle.py`: 8 MiB/stream, 8 GiB transient, 128 MiB traces, 512 MiB ZIP, computed mandatory reserve at least 16 MiB, regular readable confined files and per-member size/hash checks; exclude weights/private truth/input payloads/caches/sockets and export one top-level ZIP.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/bundle.py"
+      ]
     },
     {
       "task": "T022",
       "description": "[US1] Implement scope/verdict rendering in `src/oeis_learn/pipeline_validation/report.py`, including exact failed paths, source/image identities, omissions, consumed/reserved budgets and exits 0/1/2/3/130; a failed report must not erase an earlier failure or confuse selected-scope PASS with feature completion.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "src/oeis_learn/pipeline_validation/report.py"
+      ]
     },
     {
       "task": "T023",
       "description": "[US1] Verify the complete host entry point in a stdlib-only subprocess and legacy-wrapper regression suites through `tests/unit/test_foundation_local.py` and `tests/unit/test_pipeline_validation.py`; record command/results in `specs/009-pipeline-throughput/validation/phase-1-local.md`.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "tests/unit/test_foundation_local.py",
+        "tests/unit/test_pipeline_validation.py"
+      ]
     },
     {
       "task": "T024",
       "description": "[US1] Register implemented phase-1 CPU/engine checks in `configs/foundation/pipeline_validation.json` and update `specs/009-pipeline-throughput/quickstart.md` with one usable all-ready command, input requirements, scope-report and fresh-output reuse; do not advertise unimplemented later stages as ready.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-local.md"
+      ]
     },
     {
       "task": "T025",
       "description": "[US1] Run/review real-engine phase-1 orchestration, permission-safe export, deliberate failed-prerequisite and interruption fixtures via the combined entry point; retain the receipt index in `specs/009-pipeline-throughput/validation/phase-1-operator.json`, with missing second-engine/HIP evidence explicitly pending.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-local.md"
+      ]
     },
     {
       "task": "T026",
       "description": "[US1] Close the US1 acceptance matrix in `specs/009-pipeline-throughput/validation/phase-1-operator-review.md`, confirming no separate manual build/test/profile/archive command, no dependent expensive work after failed prerequisites and no research authority inferred from validation.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-local.md",
+        "specs/009-pipeline-throughput/validation/phase-1-operator-review.md"
+      ]
     },
     {
       "task": "T027",
       "description": "[P] [US2] Add comparison/adoption tests in `tests/unit/test_pipeline_comparisons.py` for complete versus partial work, full fixed-budget denominators, frozen exclusions, five-pair order, stratum regressions, reset/cold/warm mismatches and prohibition of favorable-pair reuse or adaptive extra samples.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "tests/unit/test_pipeline_comparisons.py"
+      ]
     },
     {
       "task": "T028",
       "description": "[US2] Implement `ComparisonContract` and calibration sealing in `src/oeis_learn/pipeline_validation/comparisons.py`: one cold baseline, one warmup, three baseline-only calibrations; derive `ceil(max(2 * max_elapsed, declared_minimum))` reservations within parent caps before candidates; \"A candidate run cannot mutate its parent's expectations\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/pipeline_validation/comparisons.py"
+      ]
     },
     {
       "task": "T029",
       "description": "[US2] Freeze representative workloads/strata in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/pipeline_profile.py`: cache positions 1/32/128/513/1024, generation32's 576 attempts, native legal 64\u20134096-bit inputs/16,384-bit intermediates, 500 disposable updates/256 validation rows, checkpoint/export/startup and separate 1,024-attempt complete-control cost; retain historical small-value/batch-one controls and declared gaps.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/fresh/pipeline_profile.py"
+      ]
     },
     {
       "task": "T030",
       "description": "[US2] Implement finite comparison execution/reset in `src/oeis_learn/pipeline_validation/measurements.py`: fixed-complete frozen subset with separate 180-second diagnostic ceilings, full32 fixed-budget 60-second coverage, isolated arm caches and identical prewarm, one warmup/two exploratory pairs and fresh five-pair AB/BA/AB/BA/AB confirmation; keep service/reference caps unchanged.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/pipeline_validation/measurements.py"
+      ]
     },
     {
       "task": "T031",
       "description": "[US2] Implement observation modes and overhead calibration in `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/tracking/foundation_metrics.py`: ordinary 1 Hz sampling, unavailable sensors, host/device boundary attribution, interval unions, separate synchronized mode, optional one-update/eight-token traces capped at 40 MiB each, and ordinary-primary fallback if overhead exceeds 5%.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/tracking/foundation_metrics.py",
+        "src/oeis_learn/tracking/pipeline_profile.py"
+      ]
     },
     {
       "task": "T032",
       "description": "[US2] Extend `src/oeis_learn/fresh/pipeline_report.py` with fixed-work versus fixed-budget reports, full denominator/stratum coverage, actual completed work equivalence, five-pair \u226510% gains and \u22641.05 stratum ratios, median/range and explicit NO_ADOPTION/INCONCLUSIVE; native request time is not labelled pure WASM and diagnostic fractions are not whole-training forecasts.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/fresh/pipeline_report.py"
+      ]
     },
     {
       "task": "T033",
       "description": "[US2] Run baseline/comparison fixture tests and register the bounded baseline stages in `src/oeis_learn/pipeline_validation/registry.py`; record verified reservations, task accounting and test results in `specs/009-pipeline-throughput/validation/phase-1-measurement-local.md`.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 1,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
+        "src/oeis_learn/pipeline_validation/registry.py"
+      ]
     },
     {
       "task": "T034",
       "description": "[US2] Collect/review target HIP baseline and resource calibration through the same all-ready command; freeze child comparison identities and mandatory workload gaps in `specs/009-pipeline-throughput/validation/phase-1-baseline.json` before candidate timing, keeping the completed parent run read-only and diagnostic clones nonresumable as research.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 1,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md"
+      ]
     },
     {
       "task": "T035",
       "description": "[P] [US2] Extend `tests/integration/test_bigint_decoding.py` for batch1/8 positions through 1,024, mixed/reordered/repeated/finished/all-inactive rows, EOS at capacity and weight/prompt/codec/dtype/mode invalidation; require CPU logits atol1e-5/rtol1e-4 and exact completed tokens/sources.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 2,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-2-local.md",
+        "tests/integration/test_bigint_decoding.py"
+      ]
     },
     {
       "task": "T036",
       "description": "[P] [US2] Extend actual-HIP parity/update regressions in `tests/integration/test_bigint_gpu.py` with atol2e-5/rtol2e-4, finite forward/backward parameter changes, supported positional/backend modes and seeded prompt identity; CPU fallback cannot pass these cases.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 2,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-2-local.md",
+        "tests/integration/test_bigint_gpu.py"
+      ]
     },
     {
       "task": "T037",
       "description": "[US2] Hoist per-step position/row/active-index/length/mask bookkeeping out of layer loops in `src/oeis_learn/decoder/inference_cache.py`, using bounded cache-owned scratch with correct invalidation; preserve mathematics, FP32, backend, inactive state and baseline batch8.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 2,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-2-local.md",
+        "src/oeis_learn/decoder/inference_cache.py"
+      ]
     },
     {
       "task": "T038",
       "description": "[US2] Remove only redundant greedy log-probability transfers in `src/oeis_learn/decoder/sampler.py` where the existing trajectory contract returns no value; preserve CPU grammar token needs, finite-logit checks, stochastic draws and prompt-specific RNG streams.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 2,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-2-local.md",
+        "src/oeis_learn/decoder/sampler.py"
+      ]
     },
     {
       "task": "T039",
       "description": "[US2] Expose explicit baseline/candidate decoder choices and source-bound receipts in `src/oeis_learn/decoder/bigint_generation.py` and `src/oeis_learn/pipeline_validation/adapters.py`; retain sequential rollback and label timing-sensitive v1 whole-pipeline observations diagnostic only.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 2,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-2-local.md",
+        "src/oeis_learn/decoder/bigint_generation.py",
+        "src/oeis_learn/pipeline_validation/adapters.py"
+      ]
     },
     {
       "task": "T040",
       "description": "[US2] Run focused CPU decoder/generation/cache tests and register phase-2 checks in `configs/foundation/pipeline_validation.json`; document results and remaining HIP gates in `specs/009-pipeline-throughput/validation/phase-2-local.md`.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 2,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/phase-2-local.md"
+      ]
     },
     {
       "task": "T041",
       "description": "[US2] Collect/review actual-HIP parity and frozen isolated inference comparisons with all ready checks in one invocation; store source-bound results in `specs/009-pipeline-throughput/validation/phase-2-inference.json`, rejecting unexplained completed-candidate differences regardless of tolerant logits.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 2,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-2-local.md"
+      ]
     },
     {
       "task": "T042",
       "description": "[US2] Record retain-experimental/rollback/no-adoption and resource conclusions in `specs/009-pipeline-throughput/validation/phase-2-decision.md`; do not adopt a production optimization from cache microtimings or infer whole-pipeline gains before phase 4.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 2,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-2-local.md"
+      ]
     },
     {
       "task": "T043",
       "description": "[P] [US3] Add policy-only regression fixtures in `tests/unit/test_bigint_search_policy.py` for changed arrival/cost, identical-source provenance ties, deadline equality, absent selections, unrelated unfinished controls and v1/v2 seal dispatch; expected v2 ranking must not use hidden scores.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "tests/unit/test_bigint_search_policy.py"
+      ]
     },
     {
       "task": "T044",
       "description": "[P] [US3] Add retention/representative fixtures in `tests/unit/test_synthesis_archive.py` for deterministic structure frontiers, assignment-bit complexity, cap-eight omissions, duplicate/conflicting evidence, cross-control merge and preserved v1 readers.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "tests/unit/test_synthesis_archive.py"
+      ]
     },
     {
       "task": "T045",
       "description": "[P] [US3] Add fake-clock/out-of-order/fault supervisor tests in `tests/unit/test_pipeline_native_pool.py` for aggregate pending/active/result bounds, FIFO affinity, unique generations, stale/duplicate replies, deadline charging, crashes, cancellation and healthy-after-failure.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "tests/unit/test_pipeline_native_pool.py"
+      ]
     },
     {
       "task": "T046",
       "description": "[P] [US3] Add shared-cache tests in `tests/unit/test_pipeline_cache.py` covering exclusive disk ownership, aggregate reservations/eviction, arm isolation/cold/prewarm, stale policy keys, partial shortlist rejection and current-deadline independent admission on hits.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "tests/unit/test_pipeline_cache.py"
+      ]
     },
     {
       "task": "T047",
       "description": "[US3] Implement `LogicalJob`, `JobExecution` and arm-stage accounting in `src/oeis_learn/fresh/pipeline_jobs.py`: `job_id = hash(contract, snapshot, mode, arm, prompt_id, attempt_ordinal, method, seed)`, legacy timestamp IDs as cross-references, exactly-once terminal publication and distinct operation/generation/scoring completeness; \"Absolute clocks, process IDs and arrival order are not inputs\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/pipeline_jobs.py"
+      ]
     },
     {
       "task": "T048",
       "description": "[US3] Implement visible-only/v2 selection/seals in `src/oeis_learn/fresh/synthesis_policy.py` and `src/oeis_learn/fresh/bigint_diagnostics.py`: canonical final-source bytes/hash/attempt ordinal/job ID ordering, timing-free semantic identity, selected exact assignment/provenance/verification and explicit v1/v2 validation; preserve raw/rescue/control evidence isolation.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/bigint_diagnostics.py",
+        "src/oeis_learn/fresh/synthesis_policy.py"
+      ]
     },
     {
       "task": "T049",
       "description": "[US3] Implement structure-pareto/v2 in `src/oeis_learn/fresh/candidate_archive.py`: source bytes versus sum(max(1, abs(value).bit_length())), empty assignment zero, one representative per structure then deterministic frontier fill capped at eight; use the same stable key for training representatives and report omissions/conflicts.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/candidate_archive.py"
+      ]
     },
     {
       "task": "T050",
       "description": "[US3] Replace timing-based duplicate/representative paths in `src/oeis_learn/fresh/bigint_worker.py`, `src/oeis_learn/fresh/bigint_diagnostics.py` and `src/oeis_learn/fresh/replay.py`; bind generation/selection/archive/scheduling/measurement hashes in `src/oeis_learn/fresh/bigint_config.py`, preserving old signed-256 and v1 readers without changing Rust shortlist ranking.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/bigint_config.py",
+        "src/oeis_learn/fresh/bigint_diagnostics.py",
+        "src/oeis_learn/fresh/bigint_worker.py",
+        "src/oeis_learn/fresh/replay.py"
+      ]
     },
     {
       "task": "T051",
       "description": "[US3] Register and execute serial v1/v2 policy-only fixtures in `src/oeis_learn/pipeline_validation/adapters.py`; record every selected-source/provenance/archive/training-representative difference in `specs/009-pipeline-throughput/validation/phase-3-policy.json` before treating v2 as the common concurrency baseline.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "specs/009-pipeline-throughput/validation/phase-3-policy.json",
+        "src/oeis_learn/pipeline_validation/adapters.py"
+      ]
     },
     {
       "task": "T052",
       "description": "[US3] Factor native process/pipes/selector/stderr/RSS lifecycle into bounded slots in `src/oeis_learn/synthesis/worker_pool.py`, keeping one request per process, existing 32-candidate/4 MiB framing and globally unique worker generations across starts/restarts; do not change the wire schema.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/synthesis/worker_pool.py"
+      ]
     },
     {
       "task": "T053",
       "description": "[US3] Implement one owning-role capacity ledger in `src/oeis_learn/synthesis/service_policy.py`: workers1/2/4, global pending8/32 MiB, active16 MiB, result8/32 MiB, reserve output before dispatch, prompt_ordinal modulo N FIFO affinity and no work stealing; account inflight/temporary/cache bytes rather than multiplying per-slot limits.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/synthesis/service_policy.py"
+      ]
     },
     {
       "task": "T054",
       "description": "[US3] Implement single-owner cache publication and completeness-aware `CacheEntry`/`Reservation` handling in `src/oeis_learn/synthesis/client.py` and `src/oeis_learn/synthesis/service_policy.py`; start with result4096/64 MiB, metadata32/64 MiB, disk256/512 MiB; \"Only complete qualified payloads may be reusable complete fit results\" and \"A hit still undergoes current-deadline independent admission\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/synthesis/client.py",
+        "src/oeis_learn/synthesis/service_policy.py"
+      ]
     },
     {
       "task": "T055",
       "description": "[US3] Implement bounded native/reference job dispatch in `src/oeis_learn/fresh/pipeline_jobs.py` and `src/oeis_learn/synthesis/client.py` using at most N host task threads and immutable returns; owner alone publishes evidence, no fork after Torch, queue residence consumes original parent/service deadlines and strict owner-observed-before-deadline eligibility applies.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/pipeline_jobs.py",
+        "src/oeis_learn/synthesis/client.py"
+      ]
     },
     {
       "task": "T056",
       "description": "[US3] Implement aggregate watchdog/cancellation/recovery in `src/oeis_learn/synthesis/worker_pool.py` and `src/oeis_learn/fresh/pipeline_jobs.py`: 1 GiB/slot and 4 GiB aggregate native RSS, simultaneous process-group cancellation with five-second total cleanup, conservative unreported-work debits and no implicit retries; escalate nonquiescent reference tasks to the external role watchdog without indefinite executor shutdown.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/pipeline_jobs.py",
+        "src/oeis_learn/synthesis/worker_pool.py"
+      ]
     },
     {
       "task": "T057",
       "description": "[US3] Enforce effective CPU/thread settings through `src/oeis_learn/pipeline_validation/resources.py` and `src/oeis_learn/pipeline_validation/adapters.py`: sixteen CPU equivalents maximum, Torch two intraop/one interop, native one thread where configurable, actual process/thread reporting and unchanged candidate ResourceProfile limits.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/pipeline_validation/adapters.py",
+        "src/oeis_learn/pipeline_validation/resources.py"
+      ]
     },
     {
       "task": "T058",
       "description": "[US3] Integrate typed native jobs into `src/oeis_learn/fresh/bigint_diagnostics.py` while retaining a sequential driver and separate raw/fit/reference/scoring dispositions; compact evidence must include every prompt/arm, including unknown, unsupported, unstarted, cancelled, invalid, timeout and independent verification failure.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 3,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "src/oeis_learn/fresh/bigint_diagnostics.py"
+      ]
     },
     {
       "task": "T059",
       "description": "[US3] Run CPU exactness/false-fit/cache/policy/containment regressions and frozen 1/2/4 candidate comparisons under both-arm v2; register phase-3 stages in `configs/foundation/pipeline_validation.json` and record local results in `specs/009-pipeline-throughput/validation/phase-3-local.md`.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 3,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md"
+      ]
     },
     {
       "task": "T060",
       "description": "[US3] Collect/review target CPU/native scaling and fault/cleanup receipts using one phase-3 or all-ready invocation; save `specs/009-pipeline-throughput/validation/phase-3-native.json`, including queue/occupancy/transport/reference costs and current engine identity; do not require HIP for fixed-candidate work.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 3,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-3-local.md"
+      ]
     },
     {
       "task": "T061",
       "description": "[US3] Apply the preregistered fastest-eligible-median/fewer-workers-within-5% rule and record selected concurrency or sequential retention in `specs/009-pipeline-throughput/validation/phase-3-decision.md`; disclose incomplete discovery sets and prohibit an automatic eight/sixteen-worker expansion.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 3,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-3-local.md"
+      ]
     },
     {
       "task": "T062",
       "description": "[US3] Review all policy/scheduler/admission/cache counterexamples against `specs/009-pipeline-throughput/contracts/scheduling.md` and close the source-bound phase-3 acceptance matrix in `specs/009-pipeline-throughput/validation/task-evidence.json`; keep arithmetic changes, if any, behind reopened semantic qualification.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 3,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/contracts/scheduling.md",
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json"
+      ]
     },
     {
       "task": "T063",
       "description": "[P] [US3] Add overlap/backpressure tests in `tests/unit/test_pipeline_overlap.py` for one active attempt per prompt/arm, fixed round-robin readiness, earliest deadlines, reserved decoder lookahead, saturated result queues, blocked-producer cancellation, mode/group changes and late duplicate results.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "tests/unit/test_pipeline_overlap.py"
+      ]
     },
     {
       "task": "T064",
       "description": "[P] [US3] Add complete-state barrier/resume tests in `tests/integration/test_bigint_workflow.py` for changed-policy rejection, pending-work cancellation, optimizer/RNG/data/curriculum/replay/selection preservation, conservative budget recovery and explicitly nonresumable weights-only clones.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "tests/integration/test_bigint_workflow.py"
+      ]
     },
     {
       "task": "T065",
       "description": "[P] [US3] Add telemetry/decision tests in `tests/unit/test_pipeline_overlap_metrics.py` for interval unions, shared-memory non-double-counting, unknown charging, observation overhead fallback, confirmation reset and prohibition of partial-work speedup claims.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "tests/unit/test_pipeline_overlap_metrics.py"
+      ]
     },
     {
       "task": "T066",
       "description": "[US3] Implement one GPU-owner coordinator in `src/oeis_learn/fresh/pipeline_scheduler.py` and integrate it with `src/oeis_learn/fresh/bigint_diagnostics.py`; overlap only within the existing group/mode/frozen snapshot, fixed round-robin eligible prompts, one active attempt each, stable publication and maximum two reserved decoder batches subject to tighter native/result caps.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/fresh/bigint_diagnostics.py",
+        "src/oeis_learn/fresh/pipeline_scheduler.py"
+      ]
     },
     {
       "task": "T067",
       "description": "[US3] Implement versioned batch1/8/16 and conditional batch32 policies in `src/oeis_learn/decoder/bigint_generation.py`, preserving prompt-specific RNG/cache/length/EOS mapping and earliest absolute deadlines; keep training batch8 unchanged and report changed candidate sets as policy evidence rather than transparent equivalence.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/decoder/bigint_generation.py"
+      ]
     },
     {
       "task": "T068",
       "description": "[US3] Integrate `CheckpointBoundary` drain/cancel receipts with `src/oeis_learn/fresh/bigint_worker.py` and existing `src/oeis_learn/fresh/bigint_state.py`: \"A resumable boundary has zero unaccounted active/reserved candidate work\"; persist effective policy hashes, stable frontier and cumulative debits with complete learning state before updates/save/selection/mode/group transitions.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/fresh/bigint_state.py",
+        "src/oeis_learn/fresh/bigint_worker.py"
+      ]
     },
     {
       "task": "T069",
       "description": "[US3] Add bounded overlap/resource observations to `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/fresh/pipeline_report.py`, keeping ordinary timing free of per-stage GPU synchronization, bounded device events at drain boundaries, source-bound measurement mode and CPU scorer startup after GPU-role drain.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/fresh/pipeline_report.py",
+        "src/oeis_learn/tracking/pipeline_profile.py"
+      ]
     },
     {
       "task": "T070",
       "description": "[US3] Encode the finite phase-4 candidate sequence in `configs/foundation/pipeline_validation.json`: overlap lookahead1 then2, batch8 versus16 plus batch1 regression, same-envelope historical16/capacity64/workstation90 pressure trials and separate result32768/512 MiB + disk2048/4 GiB cache candidate; allow batch32 only after batch16 improvement and calibrated \u226510% unreserved envelope, with every branch reserved prospectively.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md"
+      ]
     },
     {
       "task": "T071",
       "description": "[US3] Extend `src/oeis_learn/pipeline_validation/measurements.py` to select/freeze at most one combined candidate before fresh five-pair cold/warm confirmation against serial v2, accepting explicitly declared baseline component substitutes; keep fixed-budget full32 coverage separate and preserve all failed/inconclusive exploratory results.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/pipeline_validation/measurements.py"
+      ]
     },
     {
       "task": "T072",
       "description": "[US3] Run overlap/barrier/metrics CPU fixtures and register phase-4 stage dependencies in `src/oeis_learn/pipeline_validation/registry.py`; record local results and real-device pending gates in `specs/009-pipeline-throughput/validation/phase-4-local.md`.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 4,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/pipeline_validation/registry.py"
+      ]
     },
     {
       "task": "T073",
       "description": "[US3] Collect/review actual-HIP joint parity, aggregate stress/cancellation, representative update/validation and complete pipeline comparisons via one all-ready command; save immutable indexes in `specs/009-pipeline-throughput/validation/phase-4-joint.json`, including every failed/unstarted job and excluded stress case.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-4-local.md"
+      ]
     },
     {
       "task": "T074",
       "description": "[US3] Publish adoption/NO_ADOPTION/INCONCLUSIVE in `specs/009-pipeline-throughput/validation/phase-4-decision.md` using all five \u226510% gains, every mandatory stratum \u22645% regression, exact work/admission parity, bounded resources and no unexplained fixed-budget coverage loss; forbid extra favorable sampling and report subset scope explicitly.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-4-local.md"
+      ]
     },
     {
       "task": "T075",
       "description": "[US3] Set the supported default only after T074 qualifies it and retain serial rollback in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/bigint_config.py`; if adoption fails, retain the baseline and record investigation completion without claiming a speedup.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "src/oeis_learn/fresh/bigint_config.py"
+      ]
     },
     {
       "task": "T076",
       "description": "[US3] Review implementation/target evidence and update `specs/009-pipeline-throughput/quickstart.md` and `specs/009-pipeline-throughput/validation/task-evidence.json` with the chosen envelope, rollback and one consolidated next validation command; no separate profiler/repackaging handoff.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 4,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json"
+      ]
     },
     {
       "task": "T077",
       "description": "[P] [US4] Add gate/carryover/cost rejection tests in `tests/unit/test_pipeline_qualification.py` for all thirteen 008 carryovers, source-sensitive requalification, T093 deferral, unchanged T096 7,730/14,400-second negative ledger, missing forecast components and diverse32-versus-full-transfer scope mismatch.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 5,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "tests/unit/test_pipeline_qualification.py"
+      ]
     },
     {
       "task": "T078",
       "description": "[P] [US4] Extend `tests/unit/test_container_validation.py` and `tests/unit/test_foundation_roles.py` with supported-command inventory, retired-command disposition, clean installed readers/no retired solver reachability, arbitrary-UID/rootless export, isolated CPU scorer and normal/interrupted complete-state operations coverage.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 5,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "tests/unit/test_container_validation.py",
+        "tests/unit/test_foundation_roles.py"
+      ]
     },
     {
       "task": "T079",
       "description": "[US4] Implement `QualificationReport` in `src/oeis_learn/pipeline_validation/qualification.py`, binding current gates to dependency-aware evidence, separating engineering/learning/research/long-run dispositions and recording every carryover closure; \"A no-go is a completed report, not a promotion\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 5,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "src/oeis_learn/pipeline_validation/qualification.py"
+      ]
     },
     {
       "task": "T080",
       "description": "[US4] Complete reusable operations/retirement/resume/export adapters in `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/container_validation.py`, covering each supported command or explicit retirement with bounded fixtures; preserve historical numerical/read-only compatibility without acquiring/converting T093 weights.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 5,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "src/oeis_learn/container_validation.py",
+        "src/oeis_learn/pipeline_validation/adapters.py"
+      ]
     },
     {
       "task": "T081",
       "description": "[US4] Implement exact-scope forecasts in `src/oeis_learn/fresh/pipeline_report.py` and `src/oeis_learn/fresh/cost_policy.py` for diverse32 and full128+128 transfer separately, including all periodic/end controls, updates/validation/native/reference/startup/checkpoint/export/cleanup and conservative variability; unknown components block the inherited \u226480%-of-budget admission gate.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 5,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "src/oeis_learn/fresh/cost_policy.py",
+        "src/oeis_learn/fresh/pipeline_report.py"
+      ]
     },
     {
       "task": "T082",
       "description": "[US4] Integrate current-source qualification and cost stages in `src/oeis_learn/pipeline_validation/registry.py`, packaging/source checks in `Dockerfile` and existing CI only where needed; preserve early cached dependency/native/guest layers and register affected checks without adding manual operator commands.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 5,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "Dockerfile",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "src/oeis_learn/pipeline_validation/registry.py"
+      ]
     },
     {
       "task": "T083",
       "description": "[US4] Run gate/forecast/operations fixture suites and record results in `specs/009-pipeline-throughput/validation/phase-5-local.md`; verify engineering execution cannot train/resume T096, expose final data or treat a positive cost estimate as a study decision.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 5,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-5-local.md"
+      ]
     },
     {
       "task": "T084",
       "description": "[US4] Collect/review one combined current-source arithmetic/fitting/containment/HIP/operations run with Docker and Podman coverage, importing only compatible receipts where necessary; retain `specs/009-pipeline-throughput/validation/phase-5-qualification.json` and explicit missing-capability blockers rather than treating one engine as both.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 5,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-5-local.md"
+      ]
     },
     {
       "task": "T085",
       "description": "[US4] Publish source-bound engineering/cost decisions and the retained small-value 13.29\u201313.40x gap/>5x review-trigger disposition in `specs/009-pipeline-throughput/validation/phase-5-report.md`; review 008:T089\u2013092 dependencies, close only evidenced T094/T097/T098 portions and retain T095's old scoped decision and T096's original negative result.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 5,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-5-local.md"
+      ]
     },
     {
       "task": "T086",
       "description": "[US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 5,
+      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/carryover.md",
+        "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/phase-5-local.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json"
+      ]
     },
     {
       "task": "T087",
       "description": "[P] [US5] Add study-kind/authority/provenance/stop tests in `tests/unit/test_pipeline_studies.py`, including the noncircular new-learnability gate, representation's prior-learning requirement, unknown kinds, missing amounts, seed substitution, unreviewed assistance and independent study decisions within a combined batch.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 6,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "tests/unit/test_pipeline_studies.py"
+      ]
     },
     {
       "task": "T088",
       "description": "[P] [US5] Add final exposure/budget fixtures in `tests/integration/test_foundation_finalization.py` for explicit final-plan authority, exposure before prompt access, interrupted/unstarted arms, same-plan remaining-budget resume and changed-plan/freshness rejection.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 6,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "tests/integration/test_foundation_finalization.py"
+      ]
     },
     {
       "task": "T089",
       "description": "[US5] Implement `StudyDecision` parsing, typed gates and immutable lifecycle in `src/oeis_learn/pipeline_validation/studies.py` with finite per-arm/shared work/wall/disk limits and exact-scope receipts; \"Missing gates yield BLOCKED, not a successful scientific result\" and \"A manifest may document an explicit prospective deferral; it cannot mark the unexecuted study complete\".",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 6,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "src/oeis_learn/pipeline_validation/studies.py"
+      ]
     },
     {
       "task": "T090",
       "description": "[US5] Wire phase6/study-manifest/final-plan routing in `scripts/foundation_local.py` and internal study adapters in `src/oeis_learn/pipeline_validation/adapters.py`, reusing existing learning/evaluation paths, one archive and all mandatory subordinate controls; reject engineering-manifest mixing and stop before undecided arms, final access or unauthorized long training.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 6,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "scripts/foundation_local.py",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "src/oeis_learn/pipeline_validation/adapters.py"
+      ]
     },
     {
       "task": "T091",
       "description": "[US5] Implement matched-study reports in `src/oeis_learn/pipeline_validation/study_reports.py` using existing `src/oeis_learn/fresh/comparison.py`: full128+128 denominators, raw/rescue/equal-budget/correct/shuffled/absent/template, visible20/continuation100, seed spread/predeclared structure-family bootstrap (2,000 fixed-seed resamples; descriptive 95% intervals), stopped/unstarted costs and inherited one-endpoint transfer gate; no hidden result selects checkpoints/candidates.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 6,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "src/oeis_learn/fresh/comparison.py",
+        "src/oeis_learn/pipeline_validation/study_reports.py"
+      ]
     },
     {
       "task": "T092",
       "description": "[US5] Run fixture-only research/finalization tests, register phase6 availability and document concrete manifest-driven batch examples in `specs/009-pipeline-throughput/quickstart.md`; record `specs/009-pipeline-throughput/validation/phase-6-local.md` without marking any actual study executed.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 6,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T093",
       "description": "[US5] Prepare a separately identified new-learnability decision, only if proposed after phase5, in `configs/foundation/pipeline_studies/learnability.json`; require explicit authority/current runtime/device/resource/provenance and exact-scope cost without demanding an earlier learning PASS, retain \u226532 prompts/four structures/16 non-affine/\u22648 offset-only, 31/32 correct and32/32 complete, and preserve historical **008:T096** unchanged.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T094",
       "description": "[US5] Execute/review only the admitted new-learnability batch through one study command and record `specs/009-pipeline-throughput/validation/phase-6-learnability.json`; report every raw/rescue/control outcome and budget, stopping dependent learning on negative/inconclusive results without automatic retries.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T095",
       "description": "[US5] Prepare matched representation contracts and a fresh sealed final-cohort reference in `configs/foundation/pipeline_studies/representation.json` using existing `src/oeis_learn/fresh/input_sealing.py`; freeze generic data/initialization/vocabulary differences, exposed diagnostics, controls/cadence and paired seeds20261016/17/18 (or prospective documented replacement), completing **008:T099** preparation without final access.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "src/oeis_learn/fresh/input_sealing.py"
+      ]
     },
     {
       "task": "T096",
       "description": "[US5] After explicit representation admission, execute all six literal/parameterized arms and full transfer controls with one study command; record `specs/009-pipeline-throughput/validation/phase-6-representation.json` for **008:T100**, preserving negative/interrupted/unstarted arms, all costs and strict lineage without seed substitution.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T097",
       "description": "[US5] Review **008:T101** in `specs/009-pipeline-throughput/validation/phase-6-transfer-decision.md`: \u226595% coverage per split/seed, every admission independently verified, structural advantage \u22658/128 against each shuffled/absent/template in \u22652/3 seeds and mean\u22656.25pp, parameter loss\u22644/128 mean, frozen family uncertainty/seed spread and full strata; explicitly stop or promote once at the registered endpoint.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T098",
       "description": "[US5] Prepare and, only if admitted after a supported recipe decision, execute the curriculum-only batch in `configs/foundation/pipeline_studies/curriculum.json`; retain earlier-stage practice and publish `specs/009-pipeline-throughput/validation/phase-6-curriculum.json` with all arms/costs before deciding replay (**008:T102**, first intervention).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T099",
       "description": "[US5] Prepare and, only after its separate decision/admission, execute replay in `configs/foundation/pipeline_studies/replay.json`; preserve training-only independent admission, complete checkpoint/cumulative budgets and publish `specs/009-pipeline-throughput/validation/phase-6-replay.json` (**008:T102**, second intervention).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T100",
       "description": "[US5] Resolve assistance inputs/decision in `configs/foundation/pipeline_studies/assistance.json`: reviewed demonstrations, compatible generic foundation, overlap/ancestry/descendant audit, matched generic-only control and shared/branch cost; missing inputs produce BLOCKED or an explicit prospective deferral before final planning, never invented examples or a completed **008:T103** comparison.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T101",
       "description": "[US5] If assistance is admitted, execute/review its full matched batch with one command and retain `specs/009-pipeline-throughput/validation/phase-6-assistance.json`; preserve strict/assisted lineage and all arms, or leave this execution task unchecked with the explicit T100 deferral.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T102",
       "description": "[US5] Freeze/admit and execute the four post-training encoder component sensitivity ablations in `configs/foundation/pipeline_studies/encoder-sensitivity.json`; publish `specs/009-pipeline-throughput/validation/phase-6-encoder-sensitivity.json` with active/total parameters, throughput, size/length/complexity strata and interactions, explicitly not retrained utility (**008:T104**).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T103",
       "description": "[US5] Freeze only prospectively selected matched encoder retrainings in `configs/foundation/pipeline_studies/encoder-retraining.json`, obtain their separate cost/decision admission, execute their combined batch and publish `specs/009-pipeline-throughput/validation/phase-6-encoder-retraining.json`; no automatic architecture sweep or unregistered combinations (**008:T104**).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T104",
       "description": "[US5] Prepare immutable final arm/checkpoint/cohort/shared-and-per-arm-budget plan in `configs/foundation/pipeline_studies/final.json` only after all recipe/assistance/encoder decisions including deferrals are frozen; require the existing authorized final-plan reference and explicit invocation before access (**008:T105**).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T105",
       "description": "[US5] Execute/review the explicitly authorized final batch and store `specs/009-pipeline-throughput/validation/phase-6-final.json`; record exposure before the first prompt, preserve all failed/unstarted arms and consumed budgets, and reject changed-plan retuning or freshness reset (**008:T105**).",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T106",
       "description": "[US5] Publish discovery review in `specs/009-pipeline-throughput/validation/phase-6-discovery.md`, linking alternatives/omissions and separating finite match, structural alternative, conjecture, bounded verification, proof and novelty; a limited archive audit while final evaluation is blocked does not close **008:T106**.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T107",
       "description": "[US5] Publish evidence-backed longer-run go/no-go in `specs/009-pipeline-throughput/validation/phase-6-readiness.md`, including qualified settings, measured cost and all pending gates; a negative report may close **008:T107** reporting but never grants learning promotion or automatically launches12-hour-plus training.",
-      "status": "pending",
-      "evidence": []
+      "status": "blocked_research",
+      "phase": 6,
+      "implementation_disposition": "Not proposed/admitted/executed; gated preparation and execution remain pending.",
+      "blocking_reason": "Actual qualification, exact-scope measured cost and separately reviewed scientific/input/final authority are absent. No execution or decision is invented.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/phase-6-local.md"
+      ]
     },
     {
       "task": "T108",
       "description": "[US5] Reconcile executed versus deferred/blocked research and immutable evidence links in `specs/009-pipeline-throughput/carryover.md` and `specs/009-pipeline-throughput/validation/task-evidence.json`; close only actually evidenced carryovers, keeping engineering, learning, research completion and longer-run admission separate.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 6,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/carryover.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json",
+        "specs/009-pipeline-throughput/validation/phase-6-local.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json"
+      ]
     },
     {
       "task": "T109",
       "description": "[P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 0,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "README.md",
+        "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/implementation-closeout.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json"
+      ]
     },
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending",
-      "evidence": []
+      "status": "pending_runtime",
+      "phase": 0,
+      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
+      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/implementation-closeout.md",
+        "specs/009-pipeline-throughput/validation/task-evidence.json",
+        "src/oeis_learn/pipeline_validation/registry.py"
+      ]
     },
     {
       "task": "T111",
       "description": "Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.",
-      "status": "pending",
-      "evidence": []
+      "status": "complete",
+      "phase": 0,
+      "implementation_disposition": "Code/documentation or stated host fixture task completed; see scoped evidence.",
+      "blocking_reason": null,
+      "evidence": [
+        "specs/009-pipeline-throughput/validation/implementation-closeout.md",
+        "specs/009-pipeline-throughput/validation/local-evidence.json"
+      ]
     }
   ],
   "carryovers": {
-    "008:T093": "deferred",
-    "008:T096": "historical negative; 7730/14400 seconds"
-  }
+    "008:T093": "user deferred; unchanged",
+    "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
+  },
+  "target_validation": "Not run: pinned-image Torch/native/packaging, Docker/Podman operations and actual HIP. Use the single all-ready command in quickstart.md; return its sibling ZIP.",
+  "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented."
 }

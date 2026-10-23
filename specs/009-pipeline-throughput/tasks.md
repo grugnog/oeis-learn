@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: Prospective implementation checklist. No implementation, hardware qualification, study admission or scientific result is claimed here.
+**Status**: Implementation and available host work reconciled in PR #60. Checked items are completed code/documentation or the stated host fixture task, not target qualification. The actual stdlib CLI passed 80 tests and verified its non-PASS archive. Unchecked runtime/engine/HIP and unadmitted research tasks remain visible; see [implementation closeout](validation/implementation-closeout.md) and [task evidence](validation/task-evidence.json). No performance adoption or scientific result is claimed.
 
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
 
@@ -12,21 +12,21 @@
 
 ## Shared setup
 
-- [ ] T001 Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.
-- [ ] T002 Create the stdlib-only host package boundary in `src/oeis_learn/pipeline_validation/__init__.py` and establish the static module layout from `specs/009-pipeline-throughput/plan.md`; do not add a scheduler service, host dependency or second trainer.
-- [ ] T003 [P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
+- [X] T001 Record the implementation baseline, supported command inventory and existing adapter ownership in `specs/009-pipeline-throughput/validation/implementation-baseline.md`; verify the PR #59 dependency and preserve existing behavior before refactoring.
+- [X] T002 Create the stdlib-only host package boundary in `src/oeis_learn/pipeline_validation/__init__.py` and establish the static module layout from `specs/009-pipeline-throughput/plan.md`; do not add a scheduler service, host dependency or second trainer.
+- [X] T003 [P] Add a machine-readable task-to-gate/carryover index in `specs/009-pipeline-throughput/validation/task-evidence.json`, initially pending, distinguishing code/local/HIP/engine/research dispositions and the explicitly deferred 008:T093.
 
 ## Shared foundations — required before story integration
 
-- [ ] T004 [P] Add schema/identity rejection tests in `tests/unit/test_pipeline_contracts.py` for unknown keys, nonfinite/negative timing, path-only identities, changed policies, duplicate logical IDs and immutable terminal records; use independent expected payloads and known old v1 fixtures.
-- [ ] T005 Implement shared canonical identity and confined-reference helpers in `src/oeis_learn/pipeline_validation/identity.py`, reusing existing hashes: "Unknown keys fail closed for versioned authority-bearing records", "Timing values are finite, nonnegative observations and never substitute for identities", and "a path string alone is never an input identity"; preserve old v1 identity/seal validators.
+- [X] T004 [P] Add schema/identity rejection tests in `tests/unit/test_pipeline_contracts.py` for unknown keys, nonfinite/negative timing, path-only identities, changed policies, duplicate logical IDs and immutable terminal records; use independent expected payloads and known old v1 fixtures.
+- [X] T005 Implement shared canonical identity and confined-reference helpers in `src/oeis_learn/pipeline_validation/identity.py`, reusing existing hashes: "Unknown keys fail closed for versioned authority-bearing records", "Timing values are finite, nonnegative observations and never substitute for identities", and "a path string alone is never an input identity"; preserve old v1 identity/seal validators.
 
   > Every authority-bearing document has `version`, `identity` and an immutable canonical payload. Compute identity over the payload excluding its own identity and mutable presentation fields. Paths are workspace-confined references plus content hash; a path string alone is never an input identity. Large/private payloads are not embedded in public bundles.
   >
   > Record both full source snapshot and the explicitly versioned dependency closure used for a stage. Bind image digest, installed package inventory, native binary, guest, numerical/engine/fit/reference policies and workload hashes as relevant. Code paths that ignore an effective policy in contract identity must be corrected before reusing their artifacts. Old v1 identity and seal validators stay available; never rewrite an old record to look like v2.
 
-- [ ] T006 [P] Add resource-resolution tests in `tests/unit/test_pipeline_resources.py` for measured physical/ancestor limits, quota/cpuset, current availability, unknown sensors, shared CPU/GPU charging and reservation-versus-ceiling distinctions; prove the old Host 16 GiB default cannot override workstation90.
-- [ ] T007 Implement `ResourcePolicy` resolution/reservations in `src/oeis_learn/pipeline_validation/resources.py`: ceiling `min(floor(0.90 * physical_bytes), effective_engine_or_ancestor_limit)` rounded down to MiB, profiles historical16/capacity64/workstation90, expected peak plus `max(1 GiB, 10% peak)` headroom, one full-envelope compute role, and explicit unavailable accounting; "Resource policy changes acquire a new hash".
+- [X] T006 [P] Add resource-resolution tests in `tests/unit/test_pipeline_resources.py` for measured physical/ancestor limits, quota/cpuset, current availability, unknown sensors, shared CPU/GPU charging and reservation-versus-ceiling distinctions; prove the old Host 16 GiB default cannot override workstation90.
+- [X] T007 Implement `ResourcePolicy` resolution/reservations in `src/oeis_learn/pipeline_validation/resources.py`: ceiling `min(floor(0.90 * physical_bytes), effective_engine_or_ancestor_limit)` rounded down to MiB, profiles historical16/capacity64/workstation90, expected peak plus `max(1 GiB, 10% peak)` headroom, one full-envelope compute role, and explicit unavailable accounting; "Resource policy changes acquire a new hash".
   <details>
   <summary>Required ResourcePolicy constraints (verbatim from data-model.md)</summary>
 
@@ -38,7 +38,7 @@
 
   </details>
 
-- [ ] T008 Bind new manifests, adapters, tests and policy dependencies into `src/oeis_learn/experiments/source_snapshot.py` and `src/oeis_learn/pipeline_validation/closures.py`; implement `DependencyClosure` with explicit path/content hashes and conservative unmapped-change invalidation, while retaining mandatory current-image whole-package inspection.
+- [X] T008 Bind new manifests, adapters, tests and policy dependencies into `src/oeis_learn/experiments/source_snapshot.py` and `src/oeis_learn/pipeline_validation/closures.py`; implement `DependencyClosure` with explicit path/content hashes and conservative unmapped-change invalidation, while retaining mandatory current-image whole-package inspection.
   <details>
   <summary>Required DependencyClosure constraints (verbatim from data-model.md)</summary>
 
@@ -59,13 +59,13 @@
 
 ### Tests first
 
-- [ ] T009 [P] [US1] Add full-host CLI/DAG tests in `tests/unit/test_pipeline_validation.py` for phase/all-ready selection, explicit unavailable phases, capability failures, build deduplication, continued independent stages, exit codes and engineering-authority rejection before engine access.
-- [ ] T010 [P] [US1] Add receipt/reuse tests in `tests/unit/test_pipeline_reuse.py` covering source/image/lock/adapter/workload/hardware/resource mutations, broken hashes, missing mandatory files, prior failures, unknown closure changes and compatible documentation-only changes with preserved producer identity.
+- [X] T009 [P] [US1] Add full-host CLI/DAG tests in `tests/unit/test_pipeline_validation.py` for phase/all-ready selection, explicit unavailable phases, capability failures, build deduplication, continued independent stages, exit codes and engineering-authority rejection before engine access.
+- [X] T010 [P] [US1] Add receipt/reuse tests in `tests/unit/test_pipeline_reuse.py` covering source/image/lock/adapter/workload/hardware/resource mutations, broken hashes, missing mandatory files, prior failures, unknown closure changes and compatible documentation-only changes with preserved producer identity.
 - [ ] T011 [P] [US1] Add archive/failure tests in `tests/unit/test_pipeline_bundle.py` for arbitrary UID, unreadable mandatory files, symlinks/traversal, full disk, capped optional details, contradictory summaries, interrupted builds/startup and surviving minimal failure records.
 
 ### Implementation
 
-- [ ] T012 [US1] Implement `ValidationContract` parsing in `src/oeis_learn/pipeline_validation/contracts.py` and finite defaults in `configs/foundation/pipeline_validation.json`; engineering authority rejects learning/resume/final access, unknown stages/cycles/duplicate IDs fail closed, and "reservations must fit the parent"; encode all operator-contract caps without borrowing phase time.
+- [X] T012 [US1] Implement `ValidationContract` parsing in `src/oeis_learn/pipeline_validation/contracts.py` and finite defaults in `configs/foundation/pipeline_validation.json`; engineering authority rejects learning/resume/final access, unknown stages/cycles/duplicate IDs fail closed, and "reservations must fit the parent"; encode all operator-contract caps without borrowing phase time.
   <details>
   <summary>Required ValidationContract constraints (verbatim from data-model.md)</summary>
 
@@ -84,7 +84,7 @@
 
   </details>
 
-- [ ] T013 [US1] Implement `Invocation` and `StageReceipt` ledgers in `src/oeis_learn/pipeline_validation/receipts.py`: fresh output roots, append-only transitions, separate scope/engineering/learning/research/portability/long-run results and original producer links; "All terminal states are immutable" and "A missing terminal record is interrupted/partial, never inferred complete".
+- [X] T013 [US1] Implement `Invocation` and `StageReceipt` ledgers in `src/oeis_learn/pipeline_validation/receipts.py`: fresh output roots, append-only transitions, separate scope/engineering/learning/research/portability/long-run results and original producer links; "All terminal states are immutable" and "A missing terminal record is interrupted/partial, never inferred complete".
   <details>
   <summary>Required Invocation constraints (verbatim from data-model.md)</summary>
 
@@ -114,14 +114,14 @@
 
   </details>
 
-- [ ] T014 [US1] Implement the static stage registry in `src/oeis_learn/pipeline_validation/registry.py` with declared availability, prerequisites, capabilities, input closures, reservations and adapters; distinguish NOT_SELECTED/UNAVAILABLE/BLOCKED from executed success and keep phase 6 outside all-ready.
-- [ ] T015 [US1] Implement topological execution in `src/oeis_learn/pipeline_validation/runner.py`, serializing measurements/builds, continuing independent safe stages after failure, stopping globally on interruption/resource/role-audit breach, and reserving cleanup/archive time before dispatch; report every selected stage's terminal outcome.
-- [ ] T016 [US1] Factor existing qualification/profile operations into `src/oeis_learn/pipeline_validation/adapters.py`, `src/oeis_learn/container_validation.py`, `scripts/qualify_bigint_phase5.py` and `scripts/profile_bigint_pipeline.py`; retain legacy entry points while sharing Host/image checks and suppressing nested archives.
-- [ ] T017 [US1] Wire public options and early memory-policy resolution into `scripts/foundation_local.py` through `scripts/foundation_run.py`: phases 1–5/all-ready, manifest, read-only run/inputs, fresh output, repeated reuse, engines available/selected/both, lower-only max-seconds and scope-report; preserve existing suites and primary-image pinning semantics.
-- [ ] T018 [US1] Implement capability/image adapters in `src/oeis_learn/pipeline_validation/engines.py`: ensure each engine/target once, share each engine's 14,400-second build allowance, inspect current package/native/guest identities, require nonempty mandatory JUnit with no mandatory skips, and separate CPU-only readiness from real HIP updates.
-- [ ] T019 [US1] Implement dependency-bound PASS imports in `src/oeis_learn/pipeline_validation/reuse.py`; verify all mandatory artifacts and prerequisite hashes, bind timing to exact hardware/resource/measurement conditions, link old failures/costs, restart interrupted confirmation blocks and never refund research budgets.
-- [ ] T020 [US1] Implement build/startup/stage supervision in `src/oeis_learn/pipeline_validation/supervision.py`: 30-second heartbeat, prompt SIGINT forwarding, external deadlines, bounded process output and cleanup; preserve terminal evidence even when startup fails before a container ID exists.
-- [ ] T021 [US1] Implement `BundleManifest` and mandatory-first export in `src/oeis_learn/pipeline_validation/bundle.py`: 8 MiB/stream, 8 GiB transient, 128 MiB traces, 512 MiB ZIP, computed mandatory reserve at least 16 MiB, regular readable confined files and per-member size/hash checks; exclude weights/private truth/input payloads/caches/sockets and export one top-level ZIP.
+- [X] T014 [US1] Implement the static stage registry in `src/oeis_learn/pipeline_validation/registry.py` with declared availability, prerequisites, capabilities, input closures, reservations and adapters; distinguish NOT_SELECTED/UNAVAILABLE/BLOCKED from executed success and keep phase 6 outside all-ready.
+- [X] T015 [US1] Implement topological execution in `src/oeis_learn/pipeline_validation/runner.py`, serializing measurements/builds, continuing independent safe stages after failure, stopping globally on interruption/resource/role-audit breach, and reserving cleanup/archive time before dispatch; report every selected stage's terminal outcome.
+- [X] T016 [US1] Factor existing qualification/profile operations into `src/oeis_learn/pipeline_validation/adapters.py`, `src/oeis_learn/container_validation.py`, `scripts/qualify_bigint_phase5.py` and `scripts/profile_bigint_pipeline.py`; retain legacy entry points while sharing Host/image checks and suppressing nested archives.
+- [X] T017 [US1] Wire public options and early memory-policy resolution into `scripts/foundation_local.py` through `scripts/foundation_run.py`: phases 1–5/all-ready, manifest, read-only run/inputs, fresh output, repeated reuse, engines available/selected/both, lower-only max-seconds and scope-report; preserve existing suites and primary-image pinning semantics.
+- [X] T018 [US1] Implement capability/image adapters in `src/oeis_learn/pipeline_validation/engines.py`: ensure each engine/target once, share each engine's 14,400-second build allowance, inspect current package/native/guest identities, require nonempty mandatory JUnit with no mandatory skips, and separate CPU-only readiness from real HIP updates.
+- [X] T019 [US1] Implement dependency-bound PASS imports in `src/oeis_learn/pipeline_validation/reuse.py`; verify all mandatory artifacts and prerequisite hashes, bind timing to exact hardware/resource/measurement conditions, link old failures/costs, restart interrupted confirmation blocks and never refund research budgets.
+- [X] T020 [US1] Implement build/startup/stage supervision in `src/oeis_learn/pipeline_validation/supervision.py`: 30-second heartbeat, prompt SIGINT forwarding, external deadlines, bounded process output and cleanup; preserve terminal evidence even when startup fails before a container ID exists.
+- [X] T021 [US1] Implement `BundleManifest` and mandatory-first export in `src/oeis_learn/pipeline_validation/bundle.py`: 8 MiB/stream, 8 GiB transient, 128 MiB traces, 512 MiB ZIP, computed mandatory reserve at least 16 MiB, regular readable confined files and per-member size/hash checks; exclude weights/private truth/input payloads/caches/sockets and export one top-level ZIP.
   <details>
   <summary>Required BundleManifest constraints (verbatim from data-model.md)</summary>
 
@@ -131,9 +131,9 @@
 
   </details>
 
-- [ ] T022 [US1] Implement scope/verdict rendering in `src/oeis_learn/pipeline_validation/report.py`, including exact failed paths, source/image identities, omissions, consumed/reserved budgets and exits 0/1/2/3/130; a failed report must not erase an earlier failure or confuse selected-scope PASS with feature completion.
+- [X] T022 [US1] Implement scope/verdict rendering in `src/oeis_learn/pipeline_validation/report.py`, including exact failed paths, source/image identities, omissions, consumed/reserved budgets and exits 0/1/2/3/130; a failed report must not erase an earlier failure or confuse selected-scope PASS with feature completion.
 - [ ] T023 [US1] Verify the complete host entry point in a stdlib-only subprocess and legacy-wrapper regression suites through `tests/unit/test_foundation_local.py` and `tests/unit/test_pipeline_validation.py`; record command/results in `specs/009-pipeline-throughput/validation/phase-1-local.md`.
-- [ ] T024 [US1] Register implemented phase-1 CPU/engine checks in `configs/foundation/pipeline_validation.json` and update `specs/009-pipeline-throughput/quickstart.md` with one usable all-ready command, input requirements, scope-report and fresh-output reuse; do not advertise unimplemented later stages as ready.
+- [X] T024 [US1] Register implemented phase-1 CPU/engine checks in `configs/foundation/pipeline_validation.json` and update `specs/009-pipeline-throughput/quickstart.md` with one usable all-ready command, input requirements, scope-report and fresh-output reuse; do not advertise unimplemented later stages as ready.
 - [ ] T025 [US1] Run/review real-engine phase-1 orchestration, permission-safe export, deliberate failed-prerequisite and interruption fixtures via the combined entry point; retain the receipt index in `specs/009-pipeline-throughput/validation/phase-1-operator.json`, with missing second-engine/HIP evidence explicitly pending.
 - [ ] T026 [US1] Close the US1 acceptance matrix in `specs/009-pipeline-throughput/validation/phase-1-operator-review.md`, confirming no separate manual build/test/profile/archive command, no dependent expensive work after failed prerequisites and no research authority inferred from validation.
 
@@ -143,8 +143,8 @@
 
 **Independent test**: Frozen complete/partial fixture pairs produce correct denominators, exclusions and no-adoption decisions; actual baseline observations establish only the scopes they measured.
 
-- [ ] T027 [P] [US2] Add comparison/adoption tests in `tests/unit/test_pipeline_comparisons.py` for complete versus partial work, full fixed-budget denominators, frozen exclusions, five-pair order, stratum regressions, reset/cold/warm mismatches and prohibition of favorable-pair reuse or adaptive extra samples.
-- [ ] T028 [US2] Implement `ComparisonContract` and calibration sealing in `src/oeis_learn/pipeline_validation/comparisons.py`: one cold baseline, one warmup, three baseline-only calibrations; derive `ceil(max(2 * max_elapsed, declared_minimum))` reservations within parent caps before candidates; "A candidate run cannot mutate its parent's expectations".
+- [X] T027 [P] [US2] Add comparison/adoption tests in `tests/unit/test_pipeline_comparisons.py` for complete versus partial work, full fixed-budget denominators, frozen exclusions, five-pair order, stratum regressions, reset/cold/warm mismatches and prohibition of favorable-pair reuse or adaptive extra samples.
+- [X] T028 [US2] Implement `ComparisonContract` and calibration sealing in `src/oeis_learn/pipeline_validation/comparisons.py`: one cold baseline, one warmup, three baseline-only calibrations; derive `ceil(max(2 * max_elapsed, declared_minimum))` reservations within parent caps before candidates; "A candidate run cannot mutate its parent's expectations".
   <details>
   <summary>Required ComparisonContract constraints (verbatim from data-model.md)</summary>
 
@@ -156,11 +156,11 @@
 
   </details>
 
-- [ ] T029 [US2] Freeze representative workloads/strata in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/pipeline_profile.py`: cache positions 1/32/128/513/1024, generation32's 576 attempts, native legal 64–4096-bit inputs/16,384-bit intermediates, 500 disposable updates/256 validation rows, checkpoint/export/startup and separate 1,024-attempt complete-control cost; retain historical small-value/batch-one controls and declared gaps.
-- [ ] T030 [US2] Implement finite comparison execution/reset in `src/oeis_learn/pipeline_validation/measurements.py`: fixed-complete frozen subset with separate 180-second diagnostic ceilings, full32 fixed-budget 60-second coverage, isolated arm caches and identical prewarm, one warmup/two exploratory pairs and fresh five-pair AB/BA/AB/BA/AB confirmation; keep service/reference caps unchanged.
+- [X] T029 [US2] Freeze representative workloads/strata in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/pipeline_profile.py`: cache positions 1/32/128/513/1024, generation32's 576 attempts, native legal 64–4096-bit inputs/16,384-bit intermediates, 500 disposable updates/256 validation rows, checkpoint/export/startup and separate 1,024-attempt complete-control cost; retain historical small-value/batch-one controls and declared gaps.
+- [X] T030 [US2] Implement finite comparison execution/reset in `src/oeis_learn/pipeline_validation/measurements.py`: fixed-complete frozen subset with separate 180-second diagnostic ceilings, full32 fixed-budget 60-second coverage, isolated arm caches and identical prewarm, one warmup/two exploratory pairs and fresh five-pair AB/BA/AB/BA/AB confirmation; keep service/reference caps unchanged.
 - [ ] T031 [US2] Implement observation modes and overhead calibration in `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/tracking/foundation_metrics.py`: ordinary 1 Hz sampling, unavailable sensors, host/device boundary attribution, interval unions, separate synchronized mode, optional one-update/eight-token traces capped at 40 MiB each, and ordinary-primary fallback if overhead exceeds 5%.
-- [ ] T032 [US2] Extend `src/oeis_learn/fresh/pipeline_report.py` with fixed-work versus fixed-budget reports, full denominator/stratum coverage, actual completed work equivalence, five-pair ≥10% gains and ≤1.05 stratum ratios, median/range and explicit NO_ADOPTION/INCONCLUSIVE; native request time is not labelled pure WASM and diagnostic fractions are not whole-training forecasts.
-- [ ] T033 [US2] Run baseline/comparison fixture tests and register the bounded baseline stages in `src/oeis_learn/pipeline_validation/registry.py`; record verified reservations, task accounting and test results in `specs/009-pipeline-throughput/validation/phase-1-measurement-local.md`.
+- [X] T032 [US2] Extend `src/oeis_learn/fresh/pipeline_report.py` with fixed-work versus fixed-budget reports, full denominator/stratum coverage, actual completed work equivalence, five-pair ≥10% gains and ≤1.05 stratum ratios, median/range and explicit NO_ADOPTION/INCONCLUSIVE; native request time is not labelled pure WASM and diagnostic fractions are not whole-training forecasts.
+- [X] T033 [US2] Run baseline/comparison fixture tests and register the bounded baseline stages in `src/oeis_learn/pipeline_validation/registry.py`; record verified reservations, task accounting and test results in `specs/009-pipeline-throughput/validation/phase-1-measurement-local.md`.
 - [ ] T034 [US2] Collect/review target HIP baseline and resource calibration through the same all-ready command; freeze child comparison identities and mandatory workload gaps in `specs/009-pipeline-throughput/validation/phase-1-baseline.json` before candidate timing, keeping the completed parent run read-only and diagnostic clones nonresumable as research.
 
 ## Phase 2 — US2: Inference efficiency (P1)
@@ -171,9 +171,9 @@
 
 - [ ] T035 [P] [US2] Extend `tests/integration/test_bigint_decoding.py` for batch1/8 positions through 1,024, mixed/reordered/repeated/finished/all-inactive rows, EOS at capacity and weight/prompt/codec/dtype/mode invalidation; require CPU logits atol1e-5/rtol1e-4 and exact completed tokens/sources.
 - [ ] T036 [P] [US2] Extend actual-HIP parity/update regressions in `tests/integration/test_bigint_gpu.py` with atol2e-5/rtol2e-4, finite forward/backward parameter changes, supported positional/backend modes and seeded prompt identity; CPU fallback cannot pass these cases.
-- [ ] T037 [US2] Hoist per-step position/row/active-index/length/mask bookkeeping out of layer loops in `src/oeis_learn/decoder/inference_cache.py`, using bounded cache-owned scratch with correct invalidation; preserve mathematics, FP32, backend, inactive state and baseline batch8.
-- [ ] T038 [US2] Remove only redundant greedy log-probability transfers in `src/oeis_learn/decoder/sampler.py` where the existing trajectory contract returns no value; preserve CPU grammar token needs, finite-logit checks, stochastic draws and prompt-specific RNG streams.
-- [ ] T039 [US2] Expose explicit baseline/candidate decoder choices and source-bound receipts in `src/oeis_learn/decoder/bigint_generation.py` and `src/oeis_learn/pipeline_validation/adapters.py`; retain sequential rollback and label timing-sensitive v1 whole-pipeline observations diagnostic only.
+- [X] T037 [US2] Hoist per-step position/row/active-index/length/mask bookkeeping out of layer loops in `src/oeis_learn/decoder/inference_cache.py`, using bounded cache-owned scratch with correct invalidation; preserve mathematics, FP32, backend, inactive state and baseline batch8.
+- [X] T038 [US2] Remove only redundant greedy log-probability transfers in `src/oeis_learn/decoder/sampler.py` where the existing trajectory contract returns no value; preserve CPU grammar token needs, finite-logit checks, stochastic draws and prompt-specific RNG streams.
+- [X] T039 [US2] Expose explicit baseline/candidate decoder choices and source-bound receipts in `src/oeis_learn/decoder/bigint_generation.py` and `src/oeis_learn/pipeline_validation/adapters.py`; retain sequential rollback and label timing-sensitive v1 whole-pipeline observations diagnostic only.
 - [ ] T040 [US2] Run focused CPU decoder/generation/cache tests and register phase-2 checks in `configs/foundation/pipeline_validation.json`; document results and remaining HIP gates in `specs/009-pipeline-throughput/validation/phase-2-local.md`.
 - [ ] T041 [US2] Collect/review actual-HIP parity and frozen isolated inference comparisons with all ready checks in one invocation; store source-bound results in `specs/009-pipeline-throughput/validation/phase-2-inference.json`, rejecting unexplained completed-candidate differences regardless of tolerant logits.
 - [ ] T042 [US2] Record retain-experimental/rollback/no-adoption and resource conclusions in `specs/009-pipeline-throughput/validation/phase-2-decision.md`; do not adopt a production optimization from cache microtimings or infer whole-pipeline gains before phase 4.
@@ -186,14 +186,14 @@
 
 ### Tests first
 
-- [ ] T043 [P] [US3] Add policy-only regression fixtures in `tests/unit/test_bigint_search_policy.py` for changed arrival/cost, identical-source provenance ties, deadline equality, absent selections, unrelated unfinished controls and v1/v2 seal dispatch; expected v2 ranking must not use hidden scores.
-- [ ] T044 [P] [US3] Add retention/representative fixtures in `tests/unit/test_synthesis_archive.py` for deterministic structure frontiers, assignment-bit complexity, cap-eight omissions, duplicate/conflicting evidence, cross-control merge and preserved v1 readers.
-- [ ] T045 [P] [US3] Add fake-clock/out-of-order/fault supervisor tests in `tests/unit/test_pipeline_native_pool.py` for aggregate pending/active/result bounds, FIFO affinity, unique generations, stale/duplicate replies, deadline charging, crashes, cancellation and healthy-after-failure.
-- [ ] T046 [P] [US3] Add shared-cache tests in `tests/unit/test_pipeline_cache.py` covering exclusive disk ownership, aggregate reservations/eviction, arm isolation/cold/prewarm, stale policy keys, partial shortlist rejection and current-deadline independent admission on hits.
+- [X] T043 [P] [US3] Add policy-only regression fixtures in `tests/unit/test_bigint_search_policy.py` for changed arrival/cost, identical-source provenance ties, deadline equality, absent selections, unrelated unfinished controls and v1/v2 seal dispatch; expected v2 ranking must not use hidden scores.
+- [X] T044 [P] [US3] Add retention/representative fixtures in `tests/unit/test_synthesis_archive.py` for deterministic structure frontiers, assignment-bit complexity, cap-eight omissions, duplicate/conflicting evidence, cross-control merge and preserved v1 readers.
+- [X] T045 [P] [US3] Add fake-clock/out-of-order/fault supervisor tests in `tests/unit/test_pipeline_native_pool.py` for aggregate pending/active/result bounds, FIFO affinity, unique generations, stale/duplicate replies, deadline charging, crashes, cancellation and healthy-after-failure.
+- [X] T046 [P] [US3] Add shared-cache tests in `tests/unit/test_pipeline_cache.py` covering exclusive disk ownership, aggregate reservations/eviction, arm isolation/cold/prewarm, stale policy keys, partial shortlist rejection and current-deadline independent admission on hits.
 
 ### Implementation
 
-- [ ] T047 [US3] Implement `LogicalJob`, `JobExecution` and arm-stage accounting in `src/oeis_learn/fresh/pipeline_jobs.py`: `job_id = hash(contract, snapshot, mode, arm, prompt_id, attempt_ordinal, method, seed)`, legacy timestamp IDs as cross-references, exactly-once terminal publication and distinct operation/generation/scoring completeness; "Absolute clocks, process IDs and arrival order are not inputs".
+- [X] T047 [US3] Implement `LogicalJob`, `JobExecution` and arm-stage accounting in `src/oeis_learn/fresh/pipeline_jobs.py`: `job_id = hash(contract, snapshot, mode, arm, prompt_id, attempt_ordinal, method, seed)`, legacy timestamp IDs as cross-references, exactly-once terminal publication and distinct operation/generation/scoring completeness; "Absolute clocks, process IDs and arrival order are not inputs".
   <details>
   <summary>Required LogicalJob constraints (verbatim from data-model.md)</summary>
 
@@ -218,7 +218,7 @@
 
   </details>
 
-- [ ] T048 [US3] Implement visible-only/v2 selection/seals in `src/oeis_learn/fresh/synthesis_policy.py` and `src/oeis_learn/fresh/bigint_diagnostics.py`: canonical final-source bytes/hash/attempt ordinal/job ID ordering, timing-free semantic identity, selected exact assignment/provenance/verification and explicit v1/v2 validation; preserve raw/rescue/control evidence isolation.
+- [X] T048 [US3] Implement visible-only/v2 selection/seals in `src/oeis_learn/fresh/synthesis_policy.py` and `src/oeis_learn/fresh/bigint_diagnostics.py`: canonical final-source bytes/hash/attempt ordinal/job ID ordering, timing-free semantic identity, selected exact assignment/provenance/verification and explicit v1/v2 validation; preserve raw/rescue/control evidence isolation.
   <details>
   <summary>Required ArmEvidence and SelectionSeal constraints (verbatim from data-model.md)</summary>
 
@@ -230,12 +230,12 @@
 
   </details>
 
-- [ ] T049 [US3] Implement structure-pareto/v2 in `src/oeis_learn/fresh/candidate_archive.py`: source bytes versus sum(max(1, abs(value).bit_length())), empty assignment zero, one representative per structure then deterministic frontier fill capped at eight; use the same stable key for training representatives and report omissions/conflicts.
-- [ ] T050 [US3] Replace timing-based duplicate/representative paths in `src/oeis_learn/fresh/bigint_worker.py`, `src/oeis_learn/fresh/bigint_diagnostics.py` and `src/oeis_learn/fresh/replay.py`; bind generation/selection/archive/scheduling/measurement hashes in `src/oeis_learn/fresh/bigint_config.py`, preserving old signed-256 and v1 readers without changing Rust shortlist ranking.
-- [ ] T051 [US3] Register and execute serial v1/v2 policy-only fixtures in `src/oeis_learn/pipeline_validation/adapters.py`; record every selected-source/provenance/archive/training-representative difference in `specs/009-pipeline-throughput/validation/phase-3-policy.json` before treating v2 as the common concurrency baseline.
-- [ ] T052 [US3] Factor native process/pipes/selector/stderr/RSS lifecycle into bounded slots in `src/oeis_learn/synthesis/worker_pool.py`, keeping one request per process, existing 32-candidate/4 MiB framing and globally unique worker generations across starts/restarts; do not change the wire schema.
-- [ ] T053 [US3] Implement one owning-role capacity ledger in `src/oeis_learn/synthesis/service_policy.py`: workers1/2/4, global pending8/32 MiB, active16 MiB, result8/32 MiB, reserve output before dispatch, prompt_ordinal modulo N FIFO affinity and no work stealing; account inflight/temporary/cache bytes rather than multiplying per-slot limits.
-- [ ] T054 [US3] Implement single-owner cache publication and completeness-aware `CacheEntry`/`Reservation` handling in `src/oeis_learn/synthesis/client.py` and `src/oeis_learn/synthesis/service_policy.py`; start with result4096/64 MiB, metadata32/64 MiB, disk256/512 MiB; "Only complete qualified payloads may be reusable complete fit results" and "A hit still undergoes current-deadline independent admission".
+- [X] T049 [US3] Implement structure-pareto/v2 in `src/oeis_learn/fresh/candidate_archive.py`: source bytes versus sum(max(1, abs(value).bit_length())), empty assignment zero, one representative per structure then deterministic frontier fill capped at eight; use the same stable key for training representatives and report omissions/conflicts.
+- [X] T050 [US3] Replace timing-based duplicate/representative paths in `src/oeis_learn/fresh/bigint_worker.py`, `src/oeis_learn/fresh/bigint_diagnostics.py` and `src/oeis_learn/fresh/replay.py`; bind generation/selection/archive/scheduling/measurement hashes in `src/oeis_learn/fresh/bigint_config.py`, preserving old signed-256 and v1 readers without changing Rust shortlist ranking.
+- [X] T051 [US3] Register and execute serial v1/v2 policy-only fixtures in `src/oeis_learn/pipeline_validation/adapters.py`; record every selected-source/provenance/archive/training-representative difference in `specs/009-pipeline-throughput/validation/phase-3-policy.json` before treating v2 as the common concurrency baseline.
+- [X] T052 [US3] Factor native process/pipes/selector/stderr/RSS lifecycle into bounded slots in `src/oeis_learn/synthesis/worker_pool.py`, keeping one request per process, existing 32-candidate/4 MiB framing and globally unique worker generations across starts/restarts; do not change the wire schema.
+- [X] T053 [US3] Implement one owning-role capacity ledger in `src/oeis_learn/synthesis/service_policy.py`: workers1/2/4, global pending8/32 MiB, active16 MiB, result8/32 MiB, reserve output before dispatch, prompt_ordinal modulo N FIFO affinity and no work stealing; account inflight/temporary/cache bytes rather than multiplying per-slot limits.
+- [X] T054 [US3] Implement single-owner cache publication and completeness-aware `CacheEntry`/`Reservation` handling in `src/oeis_learn/synthesis/client.py` and `src/oeis_learn/synthesis/service_policy.py`; start with result4096/64 MiB, metadata32/64 MiB, disk256/512 MiB; "Only complete qualified payloads may be reusable complete fit results" and "A hit still undergoes current-deadline independent admission".
   <details>
   <summary>Required CacheEntry and Reservation constraints (verbatim from data-model.md)</summary>
 
@@ -245,10 +245,10 @@
 
   </details>
 
-- [ ] T055 [US3] Implement bounded native/reference job dispatch in `src/oeis_learn/fresh/pipeline_jobs.py` and `src/oeis_learn/synthesis/client.py` using at most N host task threads and immutable returns; owner alone publishes evidence, no fork after Torch, queue residence consumes original parent/service deadlines and strict owner-observed-before-deadline eligibility applies.
-- [ ] T056 [US3] Implement aggregate watchdog/cancellation/recovery in `src/oeis_learn/synthesis/worker_pool.py` and `src/oeis_learn/fresh/pipeline_jobs.py`: 1 GiB/slot and 4 GiB aggregate native RSS, simultaneous process-group cancellation with five-second total cleanup, conservative unreported-work debits and no implicit retries; escalate nonquiescent reference tasks to the external role watchdog without indefinite executor shutdown.
-- [ ] T057 [US3] Enforce effective CPU/thread settings through `src/oeis_learn/pipeline_validation/resources.py` and `src/oeis_learn/pipeline_validation/adapters.py`: sixteen CPU equivalents maximum, Torch two intraop/one interop, native one thread where configurable, actual process/thread reporting and unchanged candidate ResourceProfile limits.
-- [ ] T058 [US3] Integrate typed native jobs into `src/oeis_learn/fresh/bigint_diagnostics.py` while retaining a sequential driver and separate raw/fit/reference/scoring dispositions; compact evidence must include every prompt/arm, including unknown, unsupported, unstarted, cancelled, invalid, timeout and independent verification failure.
+- [X] T055 [US3] Implement bounded native/reference job dispatch in `src/oeis_learn/fresh/pipeline_jobs.py` and `src/oeis_learn/synthesis/client.py` using at most N host task threads and immutable returns; owner alone publishes evidence, no fork after Torch, queue residence consumes original parent/service deadlines and strict owner-observed-before-deadline eligibility applies.
+- [X] T056 [US3] Implement aggregate watchdog/cancellation/recovery in `src/oeis_learn/synthesis/worker_pool.py` and `src/oeis_learn/fresh/pipeline_jobs.py`: 1 GiB/slot and 4 GiB aggregate native RSS, simultaneous process-group cancellation with five-second total cleanup, conservative unreported-work debits and no implicit retries; escalate nonquiescent reference tasks to the external role watchdog without indefinite executor shutdown.
+- [X] T057 [US3] Enforce effective CPU/thread settings through `src/oeis_learn/pipeline_validation/resources.py` and `src/oeis_learn/pipeline_validation/adapters.py`: sixteen CPU equivalents maximum, Torch two intraop/one interop, native one thread where configurable, actual process/thread reporting and unchanged candidate ResourceProfile limits.
+- [X] T058 [US3] Integrate typed native jobs into `src/oeis_learn/fresh/bigint_diagnostics.py` while retaining a sequential driver and separate raw/fit/reference/scoring dispositions; compact evidence must include every prompt/arm, including unknown, unsupported, unstarted, cancelled, invalid, timeout and independent verification failure.
 - [ ] T059 [US3] Run CPU exactness/false-fit/cache/policy/containment regressions and frozen 1/2/4 candidate comparisons under both-arm v2; register phase-3 stages in `configs/foundation/pipeline_validation.json` and record local results in `specs/009-pipeline-throughput/validation/phase-3-local.md`.
 - [ ] T060 [US3] Collect/review target CPU/native scaling and fault/cleanup receipts using one phase-3 or all-ready invocation; save `specs/009-pipeline-throughput/validation/phase-3-native.json`, including queue/occupancy/transport/reference costs and current engine identity; do not require HIP for fixed-candidate work.
 - [ ] T061 [US3] Apply the preregistered fastest-eligible-median/fewer-workers-within-5% rule and record selected concurrency or sequential retention in `specs/009-pipeline-throughput/validation/phase-3-decision.md`; disclose incomplete discovery sets and prohibit an automatic eight/sixteen-worker expansion.
@@ -260,12 +260,12 @@
 
 **Independent test**: Simulated overlap preserves stable rows/jobs/selections under completion permutations, drains before updates and recovers without unaccounted work. Actual-HIP paired runs determine adoption; high utilization alone does not.
 
-- [ ] T063 [P] [US3] Add overlap/backpressure tests in `tests/unit/test_pipeline_overlap.py` for one active attempt per prompt/arm, fixed round-robin readiness, earliest deadlines, reserved decoder lookahead, saturated result queues, blocked-producer cancellation, mode/group changes and late duplicate results.
+- [X] T063 [P] [US3] Add overlap/backpressure tests in `tests/unit/test_pipeline_overlap.py` for one active attempt per prompt/arm, fixed round-robin readiness, earliest deadlines, reserved decoder lookahead, saturated result queues, blocked-producer cancellation, mode/group changes and late duplicate results.
 - [ ] T064 [P] [US3] Add complete-state barrier/resume tests in `tests/integration/test_bigint_workflow.py` for changed-policy rejection, pending-work cancellation, optimizer/RNG/data/curriculum/replay/selection preservation, conservative budget recovery and explicitly nonresumable weights-only clones.
-- [ ] T065 [P] [US3] Add telemetry/decision tests in `tests/unit/test_pipeline_overlap_metrics.py` for interval unions, shared-memory non-double-counting, unknown charging, observation overhead fallback, confirmation reset and prohibition of partial-work speedup claims.
-- [ ] T066 [US3] Implement one GPU-owner coordinator in `src/oeis_learn/fresh/pipeline_scheduler.py` and integrate it with `src/oeis_learn/fresh/bigint_diagnostics.py`; overlap only within the existing group/mode/frozen snapshot, fixed round-robin eligible prompts, one active attempt each, stable publication and maximum two reserved decoder batches subject to tighter native/result caps.
-- [ ] T067 [US3] Implement versioned batch1/8/16 and conditional batch32 policies in `src/oeis_learn/decoder/bigint_generation.py`, preserving prompt-specific RNG/cache/length/EOS mapping and earliest absolute deadlines; keep training batch8 unchanged and report changed candidate sets as policy evidence rather than transparent equivalence.
-- [ ] T068 [US3] Integrate `CheckpointBoundary` drain/cancel receipts with `src/oeis_learn/fresh/bigint_worker.py` and existing `src/oeis_learn/fresh/bigint_state.py`: "A resumable boundary has zero unaccounted active/reserved candidate work"; persist effective policy hashes, stable frontier and cumulative debits with complete learning state before updates/save/selection/mode/group transitions.
+- [X] T065 [P] [US3] Add telemetry/decision tests in `tests/unit/test_pipeline_overlap_metrics.py` for interval unions, shared-memory non-double-counting, unknown charging, observation overhead fallback, confirmation reset and prohibition of partial-work speedup claims.
+- [X] T066 [US3] Implement one GPU-owner coordinator in `src/oeis_learn/fresh/pipeline_scheduler.py` and integrate it with `src/oeis_learn/fresh/bigint_diagnostics.py`; overlap only within the existing group/mode/frozen snapshot, fixed round-robin eligible prompts, one active attempt each, stable publication and maximum two reserved decoder batches subject to tighter native/result caps.
+- [X] T067 [US3] Implement versioned batch1/8/16 and conditional batch32 policies in `src/oeis_learn/decoder/bigint_generation.py`, preserving prompt-specific RNG/cache/length/EOS mapping and earliest absolute deadlines; keep training batch8 unchanged and report changed candidate sets as policy evidence rather than transparent equivalence.
+- [X] T068 [US3] Integrate `CheckpointBoundary` drain/cancel receipts with `src/oeis_learn/fresh/bigint_worker.py` and existing `src/oeis_learn/fresh/bigint_state.py`: "A resumable boundary has zero unaccounted active/reserved candidate work"; persist effective policy hashes, stable frontier and cumulative debits with complete learning state before updates/save/selection/mode/group transitions.
   <details>
   <summary>Required CheckpointBoundary constraints (verbatim from data-model.md)</summary>
 
@@ -276,9 +276,9 @@
   </details>
 
 - [ ] T069 [US3] Add bounded overlap/resource observations to `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/fresh/pipeline_report.py`, keeping ordinary timing free of per-stage GPU synchronization, bounded device events at drain boundaries, source-bound measurement mode and CPU scorer startup after GPU-role drain.
-- [ ] T070 [US3] Encode the finite phase-4 candidate sequence in `configs/foundation/pipeline_validation.json`: overlap lookahead1 then2, batch8 versus16 plus batch1 regression, same-envelope historical16/capacity64/workstation90 pressure trials and separate result32768/512 MiB + disk2048/4 GiB cache candidate; allow batch32 only after batch16 improvement and calibrated ≥10% unreserved envelope, with every branch reserved prospectively.
-- [ ] T071 [US3] Extend `src/oeis_learn/pipeline_validation/measurements.py` to select/freeze at most one combined candidate before fresh five-pair cold/warm confirmation against serial v2, accepting explicitly declared baseline component substitutes; keep fixed-budget full32 coverage separate and preserve all failed/inconclusive exploratory results.
-- [ ] T072 [US3] Run overlap/barrier/metrics CPU fixtures and register phase-4 stage dependencies in `src/oeis_learn/pipeline_validation/registry.py`; record local results and real-device pending gates in `specs/009-pipeline-throughput/validation/phase-4-local.md`.
+- [X] T070 [US3] Encode the finite phase-4 candidate sequence in `configs/foundation/pipeline_validation.json`: overlap lookahead1 then2, batch8 versus16 plus batch1 regression, same-envelope historical16/capacity64/workstation90 pressure trials and separate result32768/512 MiB + disk2048/4 GiB cache candidate; allow batch32 only after batch16 improvement and calibrated ≥10% unreserved envelope, with every branch reserved prospectively.
+- [X] T071 [US3] Extend `src/oeis_learn/pipeline_validation/measurements.py` to select/freeze at most one combined candidate before fresh five-pair cold/warm confirmation against serial v2, accepting explicitly declared baseline component substitutes; keep fixed-budget full32 coverage separate and preserve all failed/inconclusive exploratory results.
+- [X] T072 [US3] Run overlap/barrier/metrics CPU fixtures and register phase-4 stage dependencies in `src/oeis_learn/pipeline_validation/registry.py`; record local results and real-device pending gates in `specs/009-pipeline-throughput/validation/phase-4-local.md`.
 - [ ] T073 [US3] Collect/review actual-HIP joint parity, aggregate stress/cancellation, representative update/validation and complete pipeline comparisons via one all-ready command; save immutable indexes in `specs/009-pipeline-throughput/validation/phase-4-joint.json`, including every failed/unstarted job and excluded stress case.
 - [ ] T074 [US3] Publish adoption/NO_ADOPTION/INCONCLUSIVE in `specs/009-pipeline-throughput/validation/phase-4-decision.md` using all five ≥10% gains, every mandatory stratum ≤5% regression, exact work/admission parity, bounded resources and no unexplained fixed-budget coverage loss; forbid extra favorable sampling and report subset scope explicitly.
 - [ ] T075 [US3] Set the supported default only after T074 qualifies it and retain serial rollback in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/bigint_config.py`; if adoption fails, retain the baseline and record investigation completion without claiming a speedup.
@@ -290,9 +290,9 @@
 
 **Independent test**: Gate fixtures distinguish compatible/stale/missing receipts, deferred 008:T093, negative 008:T096 and complete versus incomplete forecasts. Current-source engine/device bundles qualify only their demonstrated closures.
 
-- [ ] T077 [P] [US4] Add gate/carryover/cost rejection tests in `tests/unit/test_pipeline_qualification.py` for all thirteen 008 carryovers, source-sensitive requalification, T093 deferral, unchanged T096 7,730/14,400-second negative ledger, missing forecast components and diverse32-versus-full-transfer scope mismatch.
+- [X] T077 [P] [US4] Add gate/carryover/cost rejection tests in `tests/unit/test_pipeline_qualification.py` for all thirteen 008 carryovers, source-sensitive requalification, T093 deferral, unchanged T096 7,730/14,400-second negative ledger, missing forecast components and diverse32-versus-full-transfer scope mismatch.
 - [ ] T078 [P] [US4] Extend `tests/unit/test_container_validation.py` and `tests/unit/test_foundation_roles.py` with supported-command inventory, retired-command disposition, clean installed readers/no retired solver reachability, arbitrary-UID/rootless export, isolated CPU scorer and normal/interrupted complete-state operations coverage.
-- [ ] T079 [US4] Implement `QualificationReport` in `src/oeis_learn/pipeline_validation/qualification.py`, binding current gates to dependency-aware evidence, separating engineering/learning/research/long-run dispositions and recording every carryover closure; "A no-go is a completed report, not a promotion".
+- [X] T079 [US4] Implement `QualificationReport` in `src/oeis_learn/pipeline_validation/qualification.py`, binding current gates to dependency-aware evidence, separating engineering/learning/research/long-run dispositions and recording every carryover closure; "A no-go is a completed report, not a promotion".
   <details>
   <summary>Required QualificationReport constraints (verbatim from data-model.md)</summary>
 
@@ -302,9 +302,9 @@
 
   </details>
 
-- [ ] T080 [US4] Complete reusable operations/retirement/resume/export adapters in `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/container_validation.py`, covering each supported command or explicit retirement with bounded fixtures; preserve historical numerical/read-only compatibility without acquiring/converting T093 weights.
-- [ ] T081 [US4] Implement exact-scope forecasts in `src/oeis_learn/fresh/pipeline_report.py` and `src/oeis_learn/fresh/cost_policy.py` for diverse32 and full128+128 transfer separately, including all periodic/end controls, updates/validation/native/reference/startup/checkpoint/export/cleanup and conservative variability; unknown components block the inherited ≤80%-of-budget admission gate.
-- [ ] T082 [US4] Integrate current-source qualification and cost stages in `src/oeis_learn/pipeline_validation/registry.py`, packaging/source checks in `Dockerfile` and existing CI only where needed; preserve early cached dependency/native/guest layers and register affected checks without adding manual operator commands.
+- [X] T080 [US4] Complete reusable operations/retirement/resume/export adapters in `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/container_validation.py`, covering each supported command or explicit retirement with bounded fixtures; preserve historical numerical/read-only compatibility without acquiring/converting T093 weights.
+- [X] T081 [US4] Implement exact-scope forecasts in `src/oeis_learn/fresh/pipeline_report.py` and `src/oeis_learn/fresh/cost_policy.py` for diverse32 and full128+128 transfer separately, including all periodic/end controls, updates/validation/native/reference/startup/checkpoint/export/cleanup and conservative variability; unknown components block the inherited ≤80%-of-budget admission gate.
+- [X] T082 [US4] Integrate current-source qualification and cost stages in `src/oeis_learn/pipeline_validation/registry.py`, packaging/source checks in `Dockerfile` and existing CI only where needed; preserve early cached dependency/native/guest layers and register affected checks without adding manual operator commands.
 - [ ] T083 [US4] Run gate/forecast/operations fixture suites and record results in `specs/009-pipeline-throughput/validation/phase-5-local.md`; verify engineering execution cannot train/resume T096, expose final data or treat a positive cost estimate as a study decision.
 - [ ] T084 [US4] Collect/review one combined current-source arithmetic/fitting/containment/HIP/operations run with Docker and Podman coverage, importing only compatible receipts where necessary; retain `specs/009-pipeline-throughput/validation/phase-5-qualification.json` and explicit missing-capability blockers rather than treating one engine as both.
 - [ ] T085 [US4] Publish source-bound engineering/cost decisions and the retained small-value 13.29–13.40x gap/>5x review-trigger disposition in `specs/009-pipeline-throughput/validation/phase-5-report.md`; review 008:T089–092 dependencies, close only evidenced T094/T097/T098 portions and retain T095's old scoped decision and T096's original negative result.
@@ -318,9 +318,9 @@
 
 ### Tests and orchestration code — do not run research here
 
-- [ ] T087 [P] [US5] Add study-kind/authority/provenance/stop tests in `tests/unit/test_pipeline_studies.py`, including the noncircular new-learnability gate, representation's prior-learning requirement, unknown kinds, missing amounts, seed substitution, unreviewed assistance and independent study decisions within a combined batch.
+- [X] T087 [P] [US5] Add study-kind/authority/provenance/stop tests in `tests/unit/test_pipeline_studies.py`, including the noncircular new-learnability gate, representation's prior-learning requirement, unknown kinds, missing amounts, seed substitution, unreviewed assistance and independent study decisions within a combined batch.
 - [ ] T088 [P] [US5] Add final exposure/budget fixtures in `tests/integration/test_foundation_finalization.py` for explicit final-plan authority, exposure before prompt access, interrupted/unstarted arms, same-plan remaining-budget resume and changed-plan/freshness rejection.
-- [ ] T089 [US5] Implement `StudyDecision` parsing, typed gates and immutable lifecycle in `src/oeis_learn/pipeline_validation/studies.py` with finite per-arm/shared work/wall/disk limits and exact-scope receipts; "Missing gates yield BLOCKED, not a successful scientific result" and "A manifest may document an explicit prospective deferral; it cannot mark the unexecuted study complete".
+- [X] T089 [US5] Implement `StudyDecision` parsing, typed gates and immutable lifecycle in `src/oeis_learn/pipeline_validation/studies.py` with finite per-arm/shared work/wall/disk limits and exact-scope receipts; "Missing gates yield BLOCKED, not a successful scientific result" and "A manifest may document an explicit prospective deferral; it cannot mark the unexecuted study complete".
   <details>
   <summary>Required StudyDecision constraints (verbatim from data-model.md)</summary>
 
@@ -332,8 +332,8 @@
 
   </details>
 
-- [ ] T090 [US5] Wire phase6/study-manifest/final-plan routing in `scripts/foundation_local.py` and internal study adapters in `src/oeis_learn/pipeline_validation/adapters.py`, reusing existing learning/evaluation paths, one archive and all mandatory subordinate controls; reject engineering-manifest mixing and stop before undecided arms, final access or unauthorized long training.
-- [ ] T091 [US5] Implement matched-study reports in `src/oeis_learn/pipeline_validation/study_reports.py` using existing `src/oeis_learn/fresh/comparison.py`: full128+128 denominators, raw/rescue/equal-budget/correct/shuffled/absent/template, visible20/continuation100, seed spread/predeclared structure-family bootstrap (2,000 fixed-seed resamples; descriptive 95% intervals), stopped/unstarted costs and inherited one-endpoint transfer gate; no hidden result selects checkpoints/candidates.
+- [X] T090 [US5] Wire phase6/study-manifest/final-plan routing in `scripts/foundation_local.py` and internal study adapters in `src/oeis_learn/pipeline_validation/adapters.py`, reusing existing learning/evaluation paths, one archive and all mandatory subordinate controls; reject engineering-manifest mixing and stop before undecided arms, final access or unauthorized long training.
+- [X] T091 [US5] Implement matched-study reports in `src/oeis_learn/pipeline_validation/study_reports.py` using existing `src/oeis_learn/fresh/comparison.py`: full128+128 denominators, raw/rescue/equal-budget/correct/shuffled/absent/template, visible20/continuation100, seed spread/predeclared structure-family bootstrap (2,000 fixed-seed resamples; descriptive 95% intervals), stopped/unstarted costs and inherited one-endpoint transfer gate; no hidden result selects checkpoints/candidates.
 - [ ] T092 [US5] Run fixture-only research/finalization tests, register phase6 availability and document concrete manifest-driven batch examples in `specs/009-pipeline-throughput/quickstart.md`; record `specs/009-pipeline-throughput/validation/phase-6-local.md` without marking any actual study executed.
 
 ### Prospective decisions and gated execution — separate from code/local checks
@@ -353,13 +353,13 @@
 - [ ] T105 [US5] Execute/review the explicitly authorized final batch and store `specs/009-pipeline-throughput/validation/phase-6-final.json`; record exposure before the first prompt, preserve all failed/unstarted arms and consumed budgets, and reject changed-plan retuning or freshness reset (**008:T105**).
 - [ ] T106 [US5] Publish discovery review in `specs/009-pipeline-throughput/validation/phase-6-discovery.md`, linking alternatives/omissions and separating finite match, structural alternative, conjecture, bounded verification, proof and novelty; a limited archive audit while final evaluation is blocked does not close **008:T106**.
 - [ ] T107 [US5] Publish evidence-backed longer-run go/no-go in `specs/009-pipeline-throughput/validation/phase-6-readiness.md`, including qualified settings, measured cost and all pending gates; a negative report may close **008:T107** reporting but never grants learning promotion or automatically launches12-hour-plus training.
-- [ ] T108 [US5] Reconcile executed versus deferred/blocked research and immutable evidence links in `specs/009-pipeline-throughput/carryover.md` and `specs/009-pipeline-throughput/validation/task-evidence.json`; close only actually evidenced carryovers, keeping engineering, learning, research completion and longer-run admission separate.
+- [X] T108 [US5] Reconcile executed versus deferred/blocked research and immutable evidence links in `specs/009-pipeline-throughput/carryover.md` and `specs/009-pipeline-throughput/validation/task-evidence.json`; close only actually evidenced carryovers, keeping engineering, learning, research completion and longer-run admission separate.
 
 ## Cross-cutting closeout
 
-- [ ] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
+- [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
 - [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
-- [ ] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
+- [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
 

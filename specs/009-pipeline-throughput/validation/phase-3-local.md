@@ -6,4 +6,4 @@ Passing host fixtures cover v1 preservation, timing-free v2 source/provenance se
 
 Fake Python workers exercise the transport/supervisor; they do not qualify Rust arithmetic/fitting. Pinned-image native corpus, fault/RSS and 1/2/4 scaling evidence remain pending. No native worker default was changed.
 
-Evidence: [actual CLI record](local-evidence.json), [retained host receipt](local-host-receipt.json), [80-test output](local-host-tests.txt), [task evidence](task-evidence.json). The common host suite is one 80-test run, not80 tests per phase. Python compilation and git diff whitespace checks passed. No CI result is claimed.
+Evidence: [actual CLI record](local-evidence.json), [retained host receipt](local-host-receipt.json), [80-test output](local-host-tests.txt), [task evidence](task-evidence.json). The common host suite is one 80-test run, not 80 tests per phase. Python compilation and git diff whitespace checks passed. No CI result is claimed.

@@ -44,3 +44,9 @@ Resume in this order:
 6. Only after unblocked code work is finished, provide one consolidated HIP/ROCm run/rerun and archive handoff. Do not substitute operator validation for unfinished code work.
 
 No CI checks were queried or awaited. Historical 008:T093 remains deferred; 008:T096 remains negative at 7,730/14,400 seconds. No new authority documents were invented and no research or final prompts were exposed.
+
+## Recovered implementation handoff
+
+The second unavailable workspace was recovered from the existing GitHub branch. Lost local cleanup commit 66966c8 was rebuilt with failing acknowledgment/shared-deadline tests and pushed as 68c762c48a3de592d5f819291a51fac15e1fc606. Cost/profile policy binding, aggregate client/container cleanup, cache ownership/admission, full-state fixtures, material-cost gates and qualified study resource matching were completed in subsequent incremental commits. The approved 111-task document was restored from fa49a5e after detecting an earlier truncated task-file upload.
+
+The current checkpoint supersedes the remaining-work list above: [implementation-closeout.md](implementation-closeout.md) and [task-evidence.json](task-evidence.json) contain the completed code/host work and precise pending runtime/research gates. The public stdlib CLI passed 80 tests and produced a verified 54-member non-PASS archive with unavailable engines; retained evidence is linked there. Target runtime/HIP evidence and admitted research remain pending. CI was not queried or awaited.

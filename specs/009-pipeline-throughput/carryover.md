@@ -52,3 +52,25 @@ The [latest pipeline review](../008-bigint-constant-synthesis/validation/phase-5
 The implementation plan and subsequent tasks must trace every row above and every Spec 009 requirement to a phase gate or explicit deferral. They must define finite run/repetition budgets, numerical adoption/regression thresholds, scheduler/deadline semantics, aggregate resources, evidence invalidation and the consolidated operator interface before implementation. The plan should reuse existing public entry points and evidence machinery where sufficient; this specification does not require a new profiler or a new standalone command for every comparison.
 
 Research execution tasks must be distinct from implementation and local verification tasks, so unavailable HIP hardware or blocked research does not hide completed code work. A handoff must include exactly what one command the operator can run next, its expected cost and limits, its output archive, and the specific decision it can resolve. The user explicitly accepts long runs: combine all ready validation phases when possible, with finite limits, regular progress, shared prerequisites and one archive. Do not split commands merely to shorten an invocation or because a document has separate phase headings. If more than one invocation is unavoidable, explain the capability or decision boundary; do not offload routine orchestration to the operator.
+
+## Implementation checkpoint (PR #60)
+
+Code for phases 1–6 is wired to the combined entry point; current local evidence is 80 passing stdlib tests and a verified non-PASS public CLI archive. This does not close any remaining008 runtime/research carryover. See [implementation closeout](validation/implementation-closeout.md), [local evidence](validation/local-evidence.json) and the reconciled [009 task index](validation/task-evidence.json).
+
+| Carryover | Current disposition | Required next evidence |
+| --- | --- | --- |
+| 008:T093 | User-deferred | No acquisition/conversion requested |
+| 008:T094 | Open | Current-source whole-pipeline confirmation and retained 13.29–13.40x gap review; no speedup claimed |
+| 008:T097 | Open | Target supported-command/operations, permission, interruption/resume and both-engine evidence |
+| 008:T098 | Open | Review current-source runtime/device/resource/operations qualification |
+| 008:T099 | Blocked preparation | Reviewed matched contracts and fresh sealed cohort; no final authority implied |
+| 008:T100 | Not executed | Learning PASS, exact full-transfer cost and separately admitted six-arm batch |
+| 008:T101 | Blocked | One registered transfer endpoint from the complete batch |
+| 008:T102 | Not executed | Supported recipe, curriculum decision, then separate replay decision |
+| 008:T103 | Blocked; no reviewed assistance inputs | Reviewed lineage and matched comparison or explicit prospective deferral; neither fabricated here |
+| 008:T104 | Not executed | Four component sensitivities, then separately selected retraining decisions |
+| 008:T105 | No final exposure | Immutable post-decision plan and explicit invocation |
+| 008:T106 | Blocked | Actual final results and honest discovery review |
+| 008:T107 | No longer-run authority | Evidence-backed readiness decision after the required gates |
+
+Original008:T096 remains NEGATIVE with 7,730/14,400 seconds consumed. No new learning attempt was proposed/admitted, no assistance deferral was silently adopted, and no historical result was rewritten.
