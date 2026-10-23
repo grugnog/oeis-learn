@@ -17,7 +17,7 @@ class FiniteBenchmarks(unittest.TestCase):
             calls.append((str(output),options))
             # Independent fake measurements. These stand for no real qualification.
             candidate=options['policy'].get('overlap') is True
-            return dict(complete=True,seconds=1 if candidate else 2,work='same-work',
+            return dict(strata={name:1 for name in ['updates','validation','generation_native','checkpoint','decode.short','decode.long','decode.mixed','native.large','native.nonlinear','scoring_export']},complete=True,seconds=1 if candidate else 2,work='same-work',
                 gpu=dict(semantic='same-selections',tokens='same-tokens',
                     resources={'qualified':True},timings=dict(updates=1,validation=1,generation_native=1,checkpoint=1)),
                 score=dict(resources={'qualified':True},result={'splits':{'equal_budget':{'success':3,'complete':32}}}))

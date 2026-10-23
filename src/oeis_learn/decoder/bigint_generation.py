@@ -91,12 +91,15 @@ def sample_batch(decoder, requests, *, batch_size=8, deadline_policy="production
             for i in range(len(requests))
         ]
     elapsed = time.monotonic() - start
+    from oeis_learn.synthesis.contracts import identity
+    batch_id=identity(dict(seeds=[r.seed for r in requests],temperature=first.temperature,tokens=first.max_length))
     return [
         dict(
             source=r.source if r.complete else "",
             complete=r.complete,
             tokens=list(r.tokens[1:]),
             generation_seconds=elapsed,
+            generation_batch_id=batch_id,
             generation_batch_size=len(requests),
             failure=getattr(r, "failure", None),
         )

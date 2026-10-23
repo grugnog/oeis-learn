@@ -41,7 +41,7 @@ class Adapters:
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
-            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch']
+            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads']
             code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
             return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds)
         if stage.adapter=='qualification':

@@ -95,6 +95,8 @@ def _gpu(inputs,output,config,evidence):
         prewarm=[dict(prompt=key,source=item['source'],seed=item['seed']) for key,row in result['records'].items() for mode,portfolio in row['details'].items() if mode!='template' for item in portfolio['details'] if item['complete'] and item['source']]
         write(output/'prewarm.json',prewarm)
         selections,attempts=compact_group(result)
+        from .workloads import material_strata
+        timings.update(material_strata(attempts,rows))
         started_attempts=len(attempts)
         seen={(a['prompt'],a['mode'],a['position']) for a in attempts}
         for key in ids:

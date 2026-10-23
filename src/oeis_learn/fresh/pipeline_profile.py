@@ -208,6 +208,7 @@ def compact_group(result):
                         generation_seconds=item["generation_seconds"],
                         native_seconds=item.get("native_seconds"),
                         batch_size=item["generation_batch_size"],
+                        batch_id=item.get("generation_batch_id"),native_kind=item.get("native_kind"),
                         generation=item["generation"],
                         fitting=item["fitting"],
                         raw=item["raw"],

@@ -103,9 +103,11 @@ class Benchmarks:
                 overheads.append(max(0,duration-summary['seconds_through_role']-cleanup))
             scores=[mode['scoring']['elapsed_seconds'] for row in scored['result']['outcomes'].values() for mode in row.values()]
             cost_components.update(hidden_scoring_p95=max(scores,default=0),startup=max(overheads),cleanup=max(cleanups),export=export_seconds)
+        strata=dict(gpu['timings'])
+        strata['scoring_export']=scored['seconds_through_role']+export_seconds
         complete=gpu['status']=='COMPLETE' and scored['status']=='COMPLETE'
         result=seal(dict(version='pipeline-complete-trial/v1',complete=complete,
-            seconds=time.monotonic()-started-gpu.get('prewarm_seconds',0),host_seconds=time.monotonic()-started,gpu=gpu,score=scored,options=options,cost_components=cost_components,
+            seconds=time.monotonic()-started-gpu.get('prewarm_seconds',0),host_seconds=time.monotonic()-started,gpu=gpu,score=scored,options=options,cost_components=cost_components,strata=strata,
             work=digest(dict(prompts=gpu['prompt_ids'],attempts=gpu['scheduled_attempts'],updates=500,validation=256)),
             timing_interpretation='GPU and isolated independent scorer startup/work/cleanup plus compact diagnostic export; image build excluded'))
         write(output/'trial.json',result)
@@ -228,13 +230,15 @@ class Benchmarks:
                 a,b=arms['A'],arms['B']
                 fixed_a=budget['A']['score']['result']['splits']['equal_budget']
                 fixed_b=budget['B']['score']['result']['splits']['equal_budget']
-                strata={key:b['gpu']['timings'][key]/max(1e-9,a['gpu']['timings'][key]) for key in a['gpu']['timings']}
+                from .workloads import MANDATORY_STRATA
+                strata={key:b['strata'][key]/a['strata'][key] for key in MANDATORY_STRATA
+                    if key in a['strata'] and key in b['strata'] and a['strata'][key]>0 and b['strata'][key]>0}
                 pairs.append(dict(order=order,baseline=a['seconds'],candidate=b['seconds'],
                     complete=a['complete'] and b['complete'],work=a['work'],candidate_work=b['work'],
                     strata=strata,correct=a['gpu']['semantic']==b['gpu']['semantic'] and a['gpu']['tokens']==b['gpu']['tokens'],
                     resources=all(t['gpu'].get('resources',{}).get('qualified') is True and t['score'].get('resources',{}).get('qualified') is True for t in [a,b,*budget.values()]),baseline_success=fixed_a['success'],candidate_success=fixed_b['success'],
                     baseline_complete=fixed_a['complete'],candidate_complete=fixed_b['complete'],reset=True,scope=scope,kind='confirmation'))
-            confirmations[scope]=decide(pairs,required_strata={'updates','validation','generation_native','checkpoint'})
+            confirmations[scope]=decide(pairs,required_strata=MANDATORY_STRATA)
             write(output/f'confirmation-{scope}.json',dict(pairs=pairs,decision=confirmations[scope]))
         result=seal(dict(version='pipeline-joint-result/v1',selected=selected,confirmations=confirmations,
             adoption='ADOPT' if all(r['adoption']=='ADOPT' for r in confirmations.values()) else 'NO_ADOPTION' if any(r['adoption']=='NO_ADOPTION' for r in confirmations.values()) else 'INCONCLUSIVE',

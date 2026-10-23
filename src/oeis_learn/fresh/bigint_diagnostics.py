@@ -247,6 +247,7 @@ def _portfolio(
             source=source if complete else "",
             outcome="incomplete",
             generation_batch_size=1 if template else result["generation_batch_size"],
+            generation_batch_id=None if template else result.get("generation_batch_id"),
             position=position,
             seed=attempt["seed"] % 2**32,
             source_sha256=source_identity(source) if complete else None,
@@ -302,6 +303,8 @@ def _portfolio(
             admitted['_attempt_ordinal'] = position
             admitted['_job_id'] = job['job_id']
         detail["native_seconds"]=time.monotonic()-fitting_start
+        import re
+        detail['native_kind']='nonlinear' if any(re.search(r'\(mul\s+\(param.get[^)]*\)\s+\(param.get',r.get('transformed_source','')) for r in fit['admitted']) else 'other'
         detail.update(
             outcome=fit["outcome"], native=fit.get("native"), fit_cache=fit.get("metrics")
         )
