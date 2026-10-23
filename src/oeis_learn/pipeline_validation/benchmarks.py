@@ -41,6 +41,8 @@ class Benchmarks:
         from oeis_learn.experiments.source_snapshot import collect_snapshot
         manifest=module.prepare(a.root/a.args.run,a.root/a.args.inputs,root,
             image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'],scope=scope)
+        if a.contract['weights_ref'] and a.contract['weights_ref']['sha256']!=manifest['weights_sha256']:
+            raise ValueError('manifest weights differ from selected completed run')
         self.prepared[scope]=(root,manifest)
         return self.prepared[scope]
 

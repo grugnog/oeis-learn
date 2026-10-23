@@ -32,6 +32,7 @@ class Adapters:
                 options.pipeline_resource_policy=policy
                 host=self.host_factory(options)
                 host.policy['pipeline_resources']=policy
+                host.policy['pipeline_budgets']=self.contract['budgets']
                 host.policy['cpu_memory_bytes']=policy['ceiling_bytes']
                 self.hosts[name]=host
             except (RuntimeError,OSError,ValueError) as exc:
@@ -43,7 +44,7 @@ class Adapters:
             # Run only stdlib cases here; native/Torch suites belong inside the image.
             names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','overlap','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads']
             code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
-            return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds)
+            return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds,stream_cap=self.contract['budgets']['stream_bytes'])
         if stage.adapter=='qualification':
             from .qualification import qualification
             from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -73,7 +74,13 @@ class Adapters:
             image=self.images.ensure(host,target,output/'build',seconds=stage.seconds)
             # Whole installed package inspection is mandatory for pinned and built images.
             from oeis_learn.container_validation import inspect_current_image
-            inspect_current_image(host,image,output/'inspection',seconds=min(600,max(1,stage.seconds-(time.monotonic()-started))))
+            remaining=min(stage.seconds-(time.monotonic()-started),self.images.cap-self.images.used.get(name,0))
+            if remaining<=0:raise TimeoutError('shared build/inspection reservation exhausted')
+            inspection_started=time.monotonic()
+            try:
+                inspect_current_image(host,image,output/'inspection',seconds=min(600,remaining))
+            finally:
+                self.images.used[name]=self.images.used.get(name,0)+time.monotonic()-inspection_started
             write(output/'image.json',dict(image=image,target=target,engine=name))
             return dict(image=image)
         target='gpu' if stage.adapter=='hip' else 'qualification'

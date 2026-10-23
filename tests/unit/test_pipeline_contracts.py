@@ -61,3 +61,12 @@ class Contracts(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ledger.transition('FAIL')
             self.assertEqual(ledger.read()['state'], 'PASS')
+
+    def test_manifest_rejects_ignored_overrides_and_raised_resource_caps(self):
+        cfg=json.loads((ROOT/'configs/foundation/pipeline_validation.json').read_text())
+        for field in ['workloads','comparisons']:
+            with self.assertRaises(ValueError):parse(seal(dict(cfg,**{field:[{'unregistered':'override'}]})))
+        for name,value in [('stream_bytes',9<<20),('transient_bytes',9<<30),('trace_bytes',129<<20),('zip_bytes',513<<20)]:
+            changed=copy.deepcopy(cfg);changed['budgets'][name]=value
+            with self.assertRaises(ValueError):parse(seal(changed))
+        with self.assertRaises(ValueError):parse(seal(dict(cfg,source={'ignored':'source'})))

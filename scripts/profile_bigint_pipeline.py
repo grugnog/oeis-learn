@@ -251,7 +251,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             launch(command, output, seconds=seconds)
         else:
             from oeis_learn.pipeline_validation.supervision import launch as supervised
-            supervised(command,output,seconds=seconds)
+            supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
     finally:
         try:
             result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else 2)

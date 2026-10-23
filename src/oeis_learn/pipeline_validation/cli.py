@@ -3,7 +3,7 @@ import json
 import shutil
 from dataclasses import asdict
 from .contracts import parse
-from .identity import confined, digest, number
+from .identity import confined, digest, number, reference
 from .registry import registry, resolve
 from .runner import execute
 from .adapters import Adapters
@@ -37,6 +37,16 @@ def main(args, root, host_factory):
     for value in [args.run,args.inputs,*args.reuse]:
         if value:
             confined(root,value)
+    for value in (args.run,args.inputs):
+        if value and not confined(root,value).is_dir():raise ValueError('--run/--inputs must identify directories')
+    for ref in [*contract['input_refs'],*([contract['weights_ref']] if contract['weights_ref'] else [])]:
+        path=reference(root,ref)
+        if set(path.relative_to(root).parts)&{'private','final'}:raise ValueError('engineering manifest cannot reference private/final payloads')
+        bases=[confined(root,v) for v in (args.run,args.inputs) if v]
+        if not any(base in path.parents for base in bases):raise ValueError('manifest input identity differs from selected run/inputs')
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    snapshot=collect_snapshot(root)
+    if contract['source'] and contract['source']['sha256']!=digest(snapshot):raise ValueError('manifest source differs from current runtime snapshot')
     output=confined(root,args.output,exists=False)
     if args.scope_report:
         print(json.dumps(dict(selected=[asdict(s) for s in stages],unavailable=unavailable,
@@ -44,10 +54,9 @@ def main(args, root, host_factory):
         return 0
     from .reuse import validate_import
     reuse_roots=[confined(root,path) for path in args.reuse]
+    reuse_roots.extend(reference(root,ref).parent for ref in contract['reuse_refs'])
     for producer in reuse_roots:
         validate_import(producer)
-    from oeis_learn.experiments.source_snapshot import collect_snapshot
-    snapshot=collect_snapshot(root)
     from .closures import dependency_closure
     binding=dict(source=digest(snapshot),contract=contract['identity'],
         dependency_closure=dependency_closure(snapshot,prerequisites={}))

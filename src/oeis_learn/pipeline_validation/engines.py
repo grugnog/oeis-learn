@@ -24,7 +24,7 @@ class Images:
                 argv=[host.engine.executable,'build','--target',target,'--tag',tag]
                 if host.args.gpu_base_image:
                     argv+=['--build-arg','GPU_BASE_IMAGE='+host.args.gpu_base_image]
-                launch([*argv,host.policy['workspace']],output,seconds=remaining)
+                launch([*argv,host.policy['workspace']],output,seconds=remaining,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
                 image=host.engine.image(tag)
             self.images[key]=image
             return image

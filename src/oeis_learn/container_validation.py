@@ -263,7 +263,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     cap=external_seconds-(time.monotonic()-invocation_started)
                     if cap<=0:raise TimeoutError('owning pipeline stage allowance exhausted')
                     try:
-                        launch(command,out,seconds=cap)
+                        launch(command,out,seconds=cap,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
                     finally:
                         host.engine.remove(container,timeout=5)
                 else:
@@ -424,6 +424,6 @@ def inspect_current_image(host, image, output, *, seconds=600):
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
     try:
-        launch(command, output / 'logs', seconds=seconds)
+        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
     finally:
         host.engine.remove(name,timeout=5)
