@@ -259,13 +259,14 @@ def _stages(host, suite, output, *, external_seconds=None):
         try:
             try:
                 if external_seconds is not None:
-                    from .pipeline_validation.supervision import launch
+                    from .pipeline_validation.supervision import launch, reclaim
+                    cleanup_state={}
                     cap=external_seconds-(time.monotonic()-invocation_started)
                     if cap<=0:raise TimeoutError('owning pipeline stage allowance exhausted')
                     try:
-                        launch(command,out,seconds=cap,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
+                        launch(command,out,seconds=cap,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
                     finally:
-                        host.engine.remove(container,timeout=5)
+                        reclaim(host.engine,container,out,cleanup_state)
                 else:
                     with (
                         (out / "stdout.log").open("wb") as stdout,
@@ -398,7 +399,7 @@ def validate(host, suite, output):
 
 def inspect_current_image(host, image, output, *, seconds=600):
     """Compare every installed package byte and packaged build snapshot before reuse."""
-    from .pipeline_validation.supervision import launch
+    from .pipeline_validation.supervision import launch, reclaim
     from .pipeline_validation.identity import write as public_write
     from .experiments.source_snapshot import collect_snapshot
     output = Path(output)
@@ -423,7 +424,8 @@ def inspect_current_image(host, image, output, *, seconds=600):
         argv=['python','-c',code], auto_remove=False, gpu=False,
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
+    cleanup_state={}
     try:
-        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
+        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     finally:
-        host.engine.remove(name,timeout=5)
+        reclaim(host.engine,name,output,cleanup_state)

@@ -7,7 +7,8 @@ import subprocess
 import time
 
 
-def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30):
+def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
+           cleanup_state=None, grace_seconds=None):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
@@ -50,14 +51,19 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
         outcome='FAIL';failure=f'{type(exc).__name__}: {exc}'
         raise
     finally:
+        cleanup_end=time.monotonic()+cleanup_seconds
+        if cleanup_state is not None:
+            cleanup_state.setdefault('deadline',cleanup_end)
+            cleanup_end=cleanup_state['deadline']
+        cleanup_failure=None
         if process is not None:
             # Give the controller one shared grace envelope to persist debits and
             # remove its containers before escalating to the entire host group.
-            cleanup_end=time.monotonic()+cleanup_seconds
             if process.poll() is None:
                 try:
                     os.killpg(process.pid,signal.SIGINT if interrupted else signal.SIGTERM)
-                    process.wait(timeout=max(0,cleanup_end-time.monotonic()))
+                    grace=max(0,cleanup_end-time.monotonic())
+                    process.wait(timeout=grace if grace_seconds is None else min(grace,grace_seconds))
                 except (ProcessLookupError,subprocess.TimeoutExpired):
                     pass
             # Descendants may retain pipes even after the controller exits.
@@ -65,7 +71,11 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 os.killpg(process.pid,signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            process.wait(timeout=max(.01,cleanup_end-time.monotonic()))
+            try:
+                process.wait(timeout=max(0,cleanup_end-time.monotonic()))
+            except subprocess.TimeoutExpired:
+                cleanup_failure='process-group termination unacknowledged within cleanup deadline'
+                outcome='FAIL' if not interrupted else 'INTERRUPTED'
             process.stdout.close();process.stderr.close()
         for name,stream in streams.items():
             try:stream.write(tails[name])
@@ -74,7 +84,34 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
             write(output/'process.json',dict(outcome=outcome,failure=failure,
                 elapsed_seconds=time.monotonic()-start,omitted_bytes=omitted,
                 returncode=process.returncode if process is not None else None,
+                cleanup_failure=cleanup_failure,
                 logging='opening prefix plus final tail within one per-stream cap'))
         except OSError:
             if outcome=='COMPLETE':raise
+        if cleanup_failure and not interrupted:
+            from .runner import ResourceBreach
+            raise ResourceBreach(cleanup_failure)
     return dict(elapsed_seconds=time.monotonic()-start,omitted_bytes=omitted,command=list(argv))
+
+
+def reclaim(engine, name, output, cleanup_state):
+    """Finish engine-owned work within the same deadline as its client process."""
+    from .identity import write
+    from .runner import ResourceBreach
+    started=time.monotonic()
+    deadline=cleanup_state.setdefault('deadline',started+5)
+    failure=None
+    try:
+        left=deadline-time.monotonic()
+        if left<=0:
+            raise TimeoutError('cleanup deadline exhausted before container reclamation')
+        engine.remove(name,timeout=left)
+        if time.monotonic()>deadline:
+            raise TimeoutError('container reclamation exceeded cleanup deadline')
+    except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+        failure=f'{type(exc).__name__}: {exc}'
+        raise ResourceBreach('container termination unacknowledged: '+failure) from exc
+    finally:
+        write(Path(output)/'cleanup.json',dict(seconds=time.monotonic()-started,
+            allowance_seconds=5,within_bound=failure is None and time.monotonic()<=deadline,
+            acknowledged=failure is None,failure=failure))

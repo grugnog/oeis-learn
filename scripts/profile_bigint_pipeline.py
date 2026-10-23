@@ -246,12 +246,13 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             "OEIS_EXPECTED_PIPELINE_DEVICES": json.dumps(expected_devices, sort_keys=True),
         },
     )
+    cleanup_state={}
     try:
         if argv is None:
             launch(command, output, seconds=seconds)
         else:
             from oeis_learn.pipeline_validation.supervision import launch as supervised
-            supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
+            supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     except BaseException as exc:
         if argv is not None and not isinstance(exc,KeyboardInterrupt):
             try:
@@ -263,8 +264,10 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
         raise
     finally:
         cleanup_started=time.monotonic()
+        if argv is not None:
+            cleanup_state.setdefault('deadline',cleanup_started+5)
         try:
-            result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else 2)
+            result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else max(.001,min(2,cleanup_state['deadline']-time.monotonic())))
             inspection = json.loads(result.stdout)
             write(output / "container-inspect.json", inspection)
             if argv is not None and inspection[0].get('State',{}).get('OOMKilled'):
@@ -306,7 +309,8 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             if argv is None:
                 host.engine.remove(name)
             else:
-                host.engine.remove(name,timeout=max(.01,5-(time.monotonic()-cleanup_started)))
+                from oeis_learn.pipeline_validation.supervision import reclaim
+                reclaim(host.engine,name,output,cleanup_state)
             elapsed = time.monotonic() - (start if argv is None else cleanup_started)
             write(
                 output / "cleanup.json",
