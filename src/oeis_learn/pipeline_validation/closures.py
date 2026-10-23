@@ -15,7 +15,8 @@ def dependency_closure(snapshot, *, prerequisites):
     # closures require a separately reviewed rule, not inferred file extensions.
     files={str(p):h for p,h in sorted(snapshot.items()) if not presentation(p)}
     return seal(dict(version=RULE,files=files,prerequisites=prerequisites,
-        exclusions={'README.md':'presentation only','docs/*.md':'presentation only'},
+        exclusions={'README.md':'presentation only','docs/*.md':'presentation only',
+            'configs/foundation/pipeline_studies/*.json':'prospective authority inputs independently hashed by study admission, not compiled runtime code'},
         unmapped='invalidate',whole_package_inspection='mandatory current image'))
 
 

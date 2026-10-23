@@ -96,3 +96,22 @@ class Studies(unittest.TestCase):
             with self.assertRaises(ValueError):expose_final(root,plan,**kwargs)
             with self.assertRaises(ValueError):expose_final(root,dict(plan,budget=200),**kwargs)
             self.assertEqual(read(root/'state.json')['state'],'exposed')
+
+    def test_authority_inputs_do_not_form_a_compiled_source_hash_cycle(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.experiments.source_snapshot import collect_snapshot
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for name in ['.specify/memory/constitution.md','specs/007-experiment-foundation/validation/adoption.md',
+                         'specs/007-experiment-foundation/validation/review-inputs.json','specs/007-experiment-foundation/tasks.md',
+                         'configs/foundation/pipeline_validation.json']:
+                path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('fixture')
+            before=collect_snapshot(root)
+            path=root/'configs/foundation/pipeline_studies/study.json'
+            path.parent.mkdir();path.write_text('{"gates":{}}')
+            self.assertEqual(collect_snapshot(root),before)
+            path.write_text('{"gates":{"runtime":"content-bound receipt"}}')
+            self.assertEqual(collect_snapshot(root),before)
+            (root/'configs/foundation/pipeline_validation.json').write_text('changed runtime policy')
+            self.assertNotEqual(collect_snapshot(root),before)

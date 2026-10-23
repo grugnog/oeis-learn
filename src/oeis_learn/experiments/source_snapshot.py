@@ -40,6 +40,11 @@ def collect_snapshot(root):
             and "__pycache__" not in p.parts
             and "target" not in p.parts
             and p.name != "qualification-sources.json"
+            # Prospective host authority inputs are independently content-addressed.
+            # Including receipt references here would make their source identity
+            # recursively depend on their own hashes. Runtime policy/schema/code
+            # remain in this snapshot, including this versioned exclusion rule.
+            and not (p.suffix=='.json' and 'configs/foundation/pipeline_studies' in str(p.relative_to(root).parent))
         )
     files.update(
         root / name
