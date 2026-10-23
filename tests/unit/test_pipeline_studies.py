@@ -115,3 +115,29 @@ class Studies(unittest.TestCase):
             self.assertEqual(collect_snapshot(root),before)
             (root/'configs/foundation/pipeline_validation.json').write_text('changed runtime policy')
             self.assertNotEqual(collect_snapshot(root),before)
+
+    def test_incomplete_matched_batch_preserves_missing_arms_without_promotion(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.pipeline_validation.study_reports import study_report
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);out=root/'report'
+            contract=dict(kind='representation',identity='study',arms=[dict(id='A',operation='train',run=None,seed=20261016)])
+            report=study_report(contract,root,out,{'A':{'state':'FAIL','reason':'injected interruption'}},workspace=root)
+            self.assertEqual(report['research'],'INCONCLUSIVE')
+            self.assertFalse(report['automatic_run_authorized'])
+            self.assertEqual(report['arms'][0]['state'],'FAIL')
+            self.assertTrue((out/'report.json').is_file())
+
+    def test_recipe_work_and_intervention_cannot_exceed_reviewed_arm(self):
+        from oeis_learn.pipeline_validation.studies import validate_recipe
+        recipe={'model':{'seed':17},'track':{'kind':'generic_only'},
+                'learning':{'max_updates':1000,'validation_every':500,'target_view':'literal','curriculum':True,'replay':False},
+                'search':{'attempts':8,'tokens':1024,'seconds':60,'beam':None}}
+        contract={'kind':'curriculum','track':'generic_only'}
+        arm={'seed':17,'operation':'train','work':100000}
+        required=validate_recipe(contract,arm,recipe)
+        self.assertGreater(required,1000)
+        with self.assertRaises(ValueError):validate_recipe(contract,dict(arm,work=1),recipe)
+        recipe['learning']['replay']=True
+        with self.assertRaises(ValueError):validate_recipe(contract,arm,recipe)

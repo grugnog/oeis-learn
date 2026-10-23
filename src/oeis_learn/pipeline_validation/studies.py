@@ -58,7 +58,7 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
     ids=set();totals={'wall_seconds':budgets['cleanup_seconds']+budgets['archive_seconds'],'work':0,'disk_bytes':0}
     for arm in record['arms']:
         fields={'id','operation','inputs','config','run','seed','checkpoint','wall_seconds','work','disk_bytes'}
-        if not fields<=set(arm) or set(arm)-fields-{'attempt'}:
+        if not fields<=set(arm) or set(arm)-fields-{'attempt','view'}:
             raise ValueError('closed arm specification required')
         if arm['id'] in ids or not isinstance(arm['id'],str) or not arm['id'].isalnum():
             raise ValueError('unique alphanumeric arm IDs required')
@@ -77,6 +77,12 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
                 if number(value,positive=True)>arm[key]:raise ValueError('attempt exceeds cumulative arm allowance')
             attempts=min(int(arm[k]//arm['attempt'][k]) for k in arm['attempt'])
             totals['wall_seconds']+=(attempts-1)*(budgets['cleanup_seconds']+budgets['archive_seconds'])
+    if record['kind']=='representation' and record['arms']:
+        expected={(seed,view) for seed in record['seeds'] for view in ('literal','parameterized')}
+        if len(record['arms'])!=6 or {(a['seed'],a.get('view')) for a in record['arms']}!=expected or any(a['operation']!='train' for a in record['arms']):
+            raise ValueError('six literal/parameterized train arms with all paired seeds required')
+    elif any('view' in a for a in record['arms']):
+        raise ValueError('representation view only belongs to matched representation arms')
     if any(totals[k]>budgets[k] for k in totals):
         raise ValueError('arm reservations must fit shared study budget')
     if root is not None:
@@ -189,3 +195,33 @@ class StudyLedger:
                 raise ValueError('terminal study outcome is immutable')
             write(path,dict(study=self.contract['identity'],arm=arm,attempt=ordinal,outcome=outcome,
                 charging='full original attempt reservation retained'))
+
+
+def validate_recipe(contract,arm,recipe,*,final_denominator=None):
+    """Versioned mixed-work ceiling: updates, teacher rows, candidate services and scoring arms."""
+    if recipe['model']['seed']!=arm['seed'] or recipe['track']['kind']!=contract['track']:
+        raise ValueError('recipe seed/provenance differs from reviewed arm')
+    learning=recipe['learning'];kind=contract['kind'];operation=arm['operation']
+    if kind=='curriculum' and (learning['curriculum'] is not True or learning['replay'] is not False):
+        raise ValueError('curriculum-only decision cannot enable replay')
+    if kind=='replay' and learning['replay'] is not True:
+        raise ValueError('replay intervention must match its separate decision')
+    if kind=='representation' and (learning['target_view']!=arm['view'] or learning['curriculum'] or learning['replay']):
+        raise ValueError('representation changed its frozen targets/interventions')
+    search=recipe['search']
+    if search['attempts']!=8 or search['tokens']!=1024 or search['seconds']!=60 or search.get('beam') is not None:
+        raise ValueError('registered eight-attempt sixty-second study portfolio required')
+    if kind=='assistance' and contract['track']!='assisted':
+        raise ValueError('assistance decision requires reviewed assisted provenance')
+    updates=learning['max_updates'] if operation in {'train','learnability'} else 0
+    scheduled=updates//learning['validation_every']
+    prompts=32 if kind=='learnability' else final_denominator if kind=='final' else 256
+    if type(prompts) is not int or prompts<=0:raise ValueError('fixed complete workload denominator required')
+    periodic=32 if kind=='learnability' else 96
+    masks=5 if kind=='encoder' and operation=='diagnose' else 1
+    # Each source service includes fit/reference admission; three raw checks and
+    # six independent hidden scoring arms are additional bounded work events.
+    work=updates+(scheduled+1)*256+scheduled*periodic*3+masks*prompts*(32+3+6)
+    if number(arm['work'],positive=True)<work:
+        raise ValueError('reviewed arm work reservation cannot cover its complete registered controls')
+    return work

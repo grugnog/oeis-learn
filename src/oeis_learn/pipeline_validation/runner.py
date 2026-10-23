@@ -78,6 +78,19 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         receipts[stage.id]=ledger.read()
         mandatory.extend([f'stages/{stage.id}/receipt.json',f'stages/{stage.id}/transitions.jsonl'])
         mandatory.extend(f'stages/{stage.id}/'+name for name in ledger.read()['files'])
+    if hasattr(adapter,'finalize'):
+        root=output/'stages/study.report'
+        report_ledger=Ledger(root,'study.report',binding)
+        report_ledger.transition('READY');report_ledger.transition('RUNNING')
+        try:
+            result=adapter.finalize(root,output,receipts)
+            report_ledger.transition('PASS',files=public_files(root),observations={'result':result})
+        except BaseException as exc:
+            if isinstance(exc,KeyboardInterrupt):interrupted=True
+            report_ledger.transition('FAIL',reason=f'{type(exc).__name__}: {exc}',files=public_files(root))
+        receipts['study.report']=report_ledger.read()
+        mandatory.extend(['stages/study.report/receipt.json','stages/study.report/transitions.jsonl'])
+        mandatory.extend('stages/study.report/'+name for name in report_ledger.read()['files'])
     summary=summarize(receipts,interrupted=interrupted,registry_unavailable=unavailable)
     summary.update(phase_consumed_seconds=phase_costs,elapsed_seconds=time.monotonic()-start,cap_seconds=cap,cleanup_archive_reserve_seconds=reserve)
     write(output/'summary.json',summary)

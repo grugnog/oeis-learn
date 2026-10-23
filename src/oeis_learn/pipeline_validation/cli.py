@@ -122,17 +122,28 @@ def study_main(args,root,host_factory,*,collect=False):
                 raise ValueError('selected checkpoint differs from admitted arm')
         options=Namespace(**vars(host_options))
         options.command=arm['operation'];options.run=str(run);options.inputs=str(inputs) if inputs else None
-        options.config=str(config) if config else None;options.seed=arm['seed'];options.output=str(destination/'analysis')
+        options.config=str(config) if config else None;options.seed=arm['seed'];options.output=str(destination/'analysis') if arm['operation'] in {'diagnose','evaluate'} else None
         options.encoder=None;options.view='diverse';options.ablate_inputs='all' if contract['kind']=='encoder' else None
         options.split='final' if contract['kind']=='final' else 'development';options.final_plan=str(final_plan) if final_plan else None
         options.fitting='paired';options.explicit_options=set()
         options.max_updates=None;options.budget_seconds=None
         options.explicit_options=[]
+        required_work=None
         if config:
             recipe=resolve_recipe(host,options,destination/'resolve')
+            if contract['kind']=='representation' and (recipe['learning']['target_view']!=arm['view'] or recipe['learning']['curriculum'] or recipe['learning']['replay']):
+                raise ValueError('representation arm changed its frozen target/control policy')
             if recipe['model']['seed']!=arm['seed'] or recipe['budgets']['training_seconds']+recipe['budgets'].get('preparation_seconds',0)+300>reservation['wall_seconds']:
                 raise ValueError('recipe seed/budget differs from admitted arm')
-        write(destination/'admission.json',dict(study=contract['identity'],arm=arm['id'],reservation=reservation))
+        elif run.exists() and (run/'run.json').is_file():
+            recipe=json.loads((run/'run.json').read_text())['recipe']
+        else:
+            raise ValueError('arm needs a reviewed recipe or a hash-bound completed run')
+        from .studies import validate_recipe
+        effective_arm=dict(arm,work=reservation['work'])
+        denominator=json.loads(final_plan.read_text())['denominator'] if contract['kind']=='final' else None
+        required_work=validate_recipe(contract,effective_arm,recipe,final_denominator=denominator)
+        write(destination/'admission.json',dict(study=contract['identity'],arm=arm['id'],reservation=reservation,required_work=required_work))
         from .supervision import launch
         import sys
         descriptor=destination/'private/arm.json'
@@ -148,7 +159,11 @@ def study_main(args,root,host_factory,*,collect=False):
             raise
         study_ledger.finish(arm['id'],'COMPLETE' if contract['kind']=='final' else 'INCONCLUSIVE',attempt=reservation['attempt'])
         return dict(study=contract['identity'],arm=arm['id'],observations=observations,
-            result='execution ended; scientific outcome requires reviewed report',stage_state='INCONCLUSIVE')
+            result='execution ended; scientific outcome assembled separately',stage_state='PASS')
+    def finalize(report_root,invocation,receipts,*,prefix=''):
+        from .study_reports import study_report
+        return study_report(contract,invocation,report_root,receipts,workspace=root,prefix=prefix,debits=study_ledger.reservations())
+    run_arm.finalize=finalize
     if collect:return dict(stages=stages,adapter=run_arm,ledger=study_ledger,decision=decision)
     maximum=contract['budgets']['wall_seconds']
     if args.max_seconds is not None:

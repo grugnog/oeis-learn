@@ -74,6 +74,18 @@ def main(args,root,host_factory,record,source,final_plan):
     def run(stage,destination):
         adapter,original=dispatch[stage.id]
         return adapter(original,destination)
+    def finalize(report_root,invocation,receipts):
+        from .identity import seal,write
+        reports={}
+        for prefix,plan in plans:
+            adapter=plan['adapter']
+            if hasattr(adapter,'finalize'):
+                reports[prefix]=adapter.finalize(report_root/prefix.rstrip('.'),invocation,receipts,prefix=prefix)
+        outcome='COMPLETE' if reports and all(r['research']=='COMPLETE' for r in reports.values()) else 'NEGATIVE' if any(r['research']=='NEGATIVE' for r in reports.values()) else 'INCONCLUSIVE' if reports else 'NOT_EXECUTED'
+        result=seal(dict(version='pipeline-study-batch-report/v1',research=outcome,studies=reports,automatic_run_authorized=False))
+        write(report_root/'report.json',result)
+        return result
+    run.finalize=finalize
     from oeis_learn.fresh.common import lock
     with ExitStack() as stack:
         ledgers={str(plan['ledger'].root):plan['ledger'] for _,plan in plans if plan.get('ledger') is not None}
