@@ -50,7 +50,7 @@ pub fn dispatch(raw:&[u8],retained:&mut dyn ExecutionBackend)->Result<serde_json
         "fit"=>{
             let mut runtime=BigintRuntime::new(&bytes)?;
             fit::fit(source,indices,values,&envelope.limits,&candidate.abstraction_policy,envelope.request.seed,deadline,&runtime_id,&envelope.reference_sha256,language_profile,|source,indices,limits|{
-                let result=runtime.evaluate(source,indices,limits);if result.outcome=="ok"{Ok(result.values)}else{Err(result.reason.unwrap_or("runtime_failure".into()))}
+                let result=runtime.evaluate_after_setup(source,indices,limits);if result.outcome=="ok"{Ok(result.values)}else{Err(result.reason.unwrap_or("runtime_failure".into()))}
             })
         },
         "replay_unsat"=>{match evidence::replay(source,indices,values,&envelope.limits,envelope.evidence.as_ref().ok_or("missing_evidence")?,deadline){Ok(outcome)=>json!({"outcome":outcome}),Err(reason)=>json!({"outcome":if reason=="verification_failure"{"verification_failure"}else{"resource_exhausted"},"reason":reason})}},
