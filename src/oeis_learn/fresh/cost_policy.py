@@ -207,19 +207,30 @@ def scoped_cost(costs, scope, *, updates, cadence, budget):
     )
 
 
+def profile_identity(recipe):
+    """Keep v1 hashes unchanged; opt-in policies are part of measured behavior."""
+    from .common import digest
+
+    payload = {k: recipe[k] for k in ('execution', 'inputs', 'model', 'fitting', 'search')}
+    if 'pipeline' in recipe:
+        payload['pipeline'] = recipe['pipeline']
+    return digest(payload)
+
+
 def schedule_identity(recipe, scope):
     from .common import digest
 
     workload(scope)
-    return digest(
-        dict(
+    payload = dict(
             scope=scope,
             data=recipe["data"],
             evaluation=recipe["evaluation"],
             budgets=recipe["budgets"],
             learning={k: v for k, v in recipe["learning"].items() if k != "cost_preflight"},
         )
-    )
+    if 'pipeline' in recipe:
+        payload['pipeline'] = recipe['pipeline']
+    return digest(payload)
 
 
 def validate_preflight(recipe, *, scope, image, source_sha256, shape_sha256):
@@ -235,7 +246,7 @@ def validate_preflight(recipe, *, scope, image, source_sha256, shape_sha256):
         or receipt["shape_sha256"] != shape_sha256
         or receipt["schedule_sha256"] != schedule_identity(recipe, scope)
         or receipt["profile_sha256"]
-        != digest({k: recipe[k] for k in ("execution", "inputs", "model", "fitting", "search")})
+        != profile_identity(recipe)
         or receipt["scoring_data"] is not False
     ):
         raise ValueError("cost preflight source/image/shape/profile/schedule mismatch")

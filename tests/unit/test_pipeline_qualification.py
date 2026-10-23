@@ -4,6 +4,32 @@ from oeis_learn.fresh.cost_policy import pipeline_forecast
 
 
 class Qualification(unittest.TestCase):
+    def test_cost_profile_binds_opt_in_policy_and_preserves_legacy_identity(self):
+        from copy import deepcopy
+        from oeis_learn.fresh.bigint_config import defaults
+        from oeis_learn.fresh.common import digest
+        from oeis_learn.fresh.cost_policy import profile_identity, schedule_identity, validate_preflight
+        recipe = defaults()
+        original_profile = digest({k:recipe[k] for k in ('execution','inputs','model','fitting','search')})
+        original_schedule = digest(dict(scope='diverse32',data=recipe['data'],evaluation=recipe['evaluation'],
+            budgets=recipe['budgets'],learning={k:v for k,v in recipe['learning'].items() if k!='cost_preflight'}))
+        self.assertEqual(profile_identity(recipe), original_profile)
+        self.assertEqual(schedule_identity(recipe, 'diverse32'), original_schedule)
+        recipe['pipeline'] = {'workers':1, 'cache':'baseline'}
+        bound = profile_identity(recipe)
+        schedule = schedule_identity(recipe, 'diverse32')
+        self.assertNotEqual(bound, original_profile)
+        self.assertNotEqual(schedule, original_schedule)
+        for changed in ({'workers':2,'cache':'baseline'}, {'workers':1,'cache':'larger'}):
+            other = deepcopy(recipe);other['pipeline'] = changed
+            self.assertNotEqual(profile_identity(other), bound)
+            self.assertNotEqual(schedule_identity(other, 'diverse32'), schedule)
+        # A previously admitted legacy receipt cannot authorize opt-in execution.
+        recipe['learning']['cost_preflight'] = dict(scope='diverse32',image='i',source_sha256='s',
+            shape_sha256='h',schedule_sha256=original_schedule,profile_sha256=original_profile,scoring_data=False)
+        with self.assertRaisesRegex(ValueError, 'mismatch'):
+            validate_preflight(recipe, scope='diverse32',image='i',source_sha256='s',shape_sha256='h')
+
     def test_history_and_gates_do_not_promote_learning(self):
         result=qualification({'cpu':{'state':'PASS'},'hip':{'state':'BLOCKED'}},source='source')
         self.assertEqual(result['engineering'],'BLOCKED')
