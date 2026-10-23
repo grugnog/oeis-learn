@@ -239,12 +239,12 @@ class Engine:
             )
         return nodes[0]
 
-    def remove(self, name):
+    def remove(self, name, *, timeout=30):
         args = ["rm", "--force"]
         if self.name == "podman":
             args += ["--time=0", "--ignore"]
         try:
-            self.call([*args, name], capture_output=True, timeout=30)
+            self.call([*args, name], capture_output=True, timeout=timeout)
         except subprocess.CalledProcessError as exc:
             error = (exc.stderr or b"").decode(errors="replace").lower()
             if not any(v in error for v in ("no such container", "does not exist")):

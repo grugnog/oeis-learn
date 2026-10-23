@@ -250,7 +250,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             supervised(command,output,seconds=seconds)
     finally:
         try:
-            result = host.engine.call(["inspect", name], capture_output=True, timeout=10)
+            result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else 2)
             inspection = json.loads(result.stdout)
             write(output / "container-inspect.json", inspection)
             config = inspection[0]["HostConfig"]
@@ -283,12 +283,17 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             )
         finally:
             start = time.monotonic()
-            host.engine.remove(name)
+            if argv is None:
+                host.engine.remove(name)
+            else:
+                host.engine.remove(name,timeout=5)
             elapsed = time.monotonic() - start
             write(
                 output / "cleanup.json",
                 dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
             )
+            if argv is not None and elapsed>5:
+                raise RuntimeError("pipeline container reclamation exceeded five-second envelope")
             write(
                 output / "host-timing.json",
                 dict(

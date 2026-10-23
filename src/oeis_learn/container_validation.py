@@ -398,7 +398,11 @@ def inspect_current_image(host, image, output, *, seconds=600):
         "from oeis_learn.experiments.source_snapshot import source_snapshot; "
         "expected=json.loads(Path('/work/input/expected.json').read_text()); "
         "actual=source_snapshot(); assert actual==expected, 'current installed package/source mismatch'; "
-        "print(json.dumps(actual,sort_keys=True))"
+        "from oeis_learn.fresh.bigint_config import packaged_artifacts; "
+        "from oeis_learn.fresh.common import file_hash; "
+        "artifacts=packaged_artifacts(); "
+        "assert file_hash('/opt/oeis-build-info/bigint-dependency-smoke.wasm')==artifacts['guest_sha256'], 'changed packaged guest'; "
+        "print(json.dumps(dict(source=actual,artifacts=artifacts),sort_keys=True))"
     )
     command = host.engine.command(image=image, name=name,
         mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
@@ -408,4 +412,4 @@ def inspect_current_image(host, image, output, *, seconds=600):
     try:
         launch(command, output / 'logs', seconds=seconds)
     finally:
-        host.engine.remove(name)
+        host.engine.remove(name,timeout=5)

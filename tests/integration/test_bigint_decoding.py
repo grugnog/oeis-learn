@@ -230,3 +230,60 @@ def test_hoisted_metadata_heterogeneous_rows_and_invalidation():
         decoder.lm_head.bias.add_(1)
         with pytest.raises(ValueError,match='stale'):
             decoder.decode_step(torch.tensor([codec.BOS_ID]*2),cache)
+
+
+def check_hoisted_cache_parity(device, batch, backend):
+    """Independent full-prefix oracle at the declared long-context boundaries."""
+    decoder=model().to(device)
+    torch.manual_seed(20261018)
+    memory=torch.randn(batch,3,16,device=device)
+    tokens=torch.full((batch,1024),codec.BOS_ID,device=device,dtype=torch.long)
+    tolerance=dict(atol=2e-5,rtol=2e-4) if device=='cuda' else dict(atol=1e-5,rtol=1e-4)
+    with torch.no_grad():
+        decoder.cache_bookkeeping='baseline'
+        a,baseline=decoder.prefill(tokens[:,:1],memory,capacity=1024,backend=backend)
+        decoder.cache_bookkeeping='hoisted/v1'
+        b,hoisted=decoder.prefill(tokens[:,:1],memory,capacity=1024,backend=backend)
+        for position in range(1,1025):
+            if position>1:
+                a=decoder.decode_step(tokens[:,position-1],baseline)
+                b=decoder.decode_step(tokens[:,position-1],hoisted)
+            if position in (1,32,128,513,1024):
+                torch.testing.assert_close(a,b,**tolerance)
+                oracle=decoder(tokens[:,:position],memory)[:,-1:]
+                torch.testing.assert_close(b,oracle,**tolerance)
+                assert torch.equal(a.argmax(-1),b.argmax(-1))
+        with pytest.raises(ValueError,match='capacity'):
+            decoder.decode_step(tokens[:,0],hoisted)
+        zero=decoder.decode_step(tokens[:,0],hoisted,active=[False]*batch)
+        assert torch.count_nonzero(zero)==0
+
+
+@pytest.mark.parametrize('batch',[1,8])
+@pytest.mark.parametrize('backend',['eager','sdpa'])
+def test_hoisted_long_context_cpu_parity(batch,backend):
+    check_hoisted_cache_parity('cpu',batch,backend)
+
+
+def test_hoisted_mixed_rows_reorder_eos_and_invalidation():
+    decoder=model()
+    decoder.cache_bookkeeping='hoisted/v1'
+    memory=torch.randn(8,3,16)
+    tokens=torch.full((8,),codec.BOS_ID,dtype=torch.long)
+    with torch.no_grad():
+        _,cache=decoder.prefill(tokens[:,None],memory,capacity=128)
+        for _ in range(31):
+            decoder.decode_step(tokens,cache,active=[True,False]*4)
+        assert cache.lengths==[32,1]*4
+        cache.reorder([6,1,6])
+        assert cache.lengths==[32,1,32]
+        cache.finished[1]=True
+        before=cache.layers[0].keys[1].clone()
+        out=decoder.decode_step(tokens[:3],cache)
+        assert torch.count_nonzero(out[1])==0
+        assert torch.equal(before,cache.layers[0].keys[1])
+        assert cache.lengths==[33,1,33]
+        next(decoder.parameters()).add_(.01)
+        with pytest.raises(ValueError,match='stale'):
+            decoder.decode_step(tokens[:3],cache)
+        assert not cache.valid and not cache.layers
