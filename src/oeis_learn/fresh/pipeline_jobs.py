@@ -64,16 +64,34 @@ class NativeRequest:
 
 def validate_policy(policy):
     fields={'version','selection','archive','workers','overlap','lookahead','batch_size','bookkeeping','measurement'}
-    if not isinstance(policy,dict) or set(policy)!=fields or policy['version']!='pipeline-policy/v1':
+    optional={'cache_capacity','memory_profile','capacity_qualification'}
+    if not isinstance(policy,dict) or not fields<=set(policy) or set(policy)-fields-optional or policy['version']!='pipeline-policy/v1':
         raise ValueError('closed pipeline-policy/v1 required')
     if policy['selection']!='visible-only/v2' or policy['archive']!='structure-pareto/v2':
         raise ValueError('concurrency requires common v2 policy')
     if policy['workers'] not in (1,2,4) or type(policy['workers']) is not int or type(policy['overlap']) is not bool:
         raise ValueError('registered worker/overlap policy required')
-    if policy['lookahead'] not in (1,2) or policy['batch_size'] not in (1,8,16):
+    if type(policy['lookahead']) is not int or type(policy['batch_size']) is not int:
+        raise ValueError('integer batch/lookahead required')
+    if policy['lookahead'] not in (1,2) or policy['batch_size'] not in (1,8,16,32):
         raise ValueError('unqualified batch/lookahead; batch32 requires separate capacity admission')
     if policy['bookkeeping'] not in ('baseline','hoisted/v1') or policy['measurement'] not in ('ordinary','synchronized'):
         raise ValueError('unknown decoder/measurement policy')
+    if policy.get('cache_capacity','baseline') not in ('baseline','expanded/v1'):
+        raise ValueError('unknown finite cache policy')
+    if policy.get('memory_profile','workstation90') not in ('historical16','capacity64','workstation90'):
+        raise ValueError('unknown resource profile')
+    if policy['batch_size']==32:
+        proof=policy.get('capacity_qualification')
+        from oeis_learn.pipeline_validation.identity import validate
+        if not isinstance(proof,dict) or proof.get('batch16_positive') is not True:
+            raise ValueError('batch32 requires positive batch16 and measured capacity admission')
+        validate(proof,{'version','batch16_positive','predicted_peak_bytes','ceiling_bytes','observations'},'pipeline-capacity/v1')
+        if (number(proof.get('predicted_peak_bytes'),positive=True) >
+                .9*number(proof.get('ceiling_bytes'),positive=True)):
+            raise ValueError('batch32 requires ten percent unreserved capacity')
+        if proof.get('identity')!=seal(proof)['identity']:
+            raise ValueError('changed batch32 capacity proof')
     return copy.deepcopy(policy)
 
 

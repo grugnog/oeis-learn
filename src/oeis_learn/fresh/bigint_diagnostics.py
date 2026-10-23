@@ -375,7 +375,7 @@ def _portfolio(
     )
 
 
-def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadline_policy='production60/v1'):
+def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadline_policy='production60/v1',capacity_qualified=False):
     """Interleave decoding only. Fitting/admission remain serial and prompt-local."""
     from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE, sample_batch
 
@@ -415,7 +415,7 @@ def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadlin
         ][:batch_size]
         selected = {p[0] for p in group}
         pending[:] = [p for p in pending if p[0] not in selected]
-        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size,deadline_policy=deadline_policy) if batch_size != 8 or deadline_policy!='production60/v1' else {}))
+        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size,deadline_policy=deadline_policy,**({'capacity_qualified':True} if capacity_qualified else {})) if batch_size != 8 or deadline_policy!='production60/v1' else {}))
         for (index, generator, _), value in zip(group, sampled):
             advance(index, generator, value)
     return results
@@ -521,7 +521,7 @@ def generate(
                 from oeis_learn.decoder.bigint_generation import sample_batch
                 outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
                     lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],
-                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
+                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],capacity_qualified=bool(pipeline.get('capacity_qualification')),bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
                 # drive returns only after every native task has positively quiesced.
                 for value in outcomes:
                     value['pipeline_boundary'] = boundary
@@ -529,7 +529,7 @@ def generate(
                 if pipeline:
                     from .pipeline_jobs import JobLedger
                     ledger = JobLedger()
-                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger,deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1')
+                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger,capacity_qualified=bool(pipeline.get('capacity_qualification')),deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1')
                     boundary = ledger.boundary(pipeline)
                 else:
                     outcomes = _drive_portfolios(decoder,generators,**(dict(deadline_policy='fixed-work180/v1') if portfolio_seconds==180 else {}))

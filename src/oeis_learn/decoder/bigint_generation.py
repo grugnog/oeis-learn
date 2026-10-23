@@ -17,13 +17,15 @@ class GenerationRequest:
     max_length: int = 1024
 
 
-def sample_batch(decoder, requests, *, batch_size=8, deadline_policy="production60/v1", bookkeeping=None):
+def sample_batch(decoder, requests, *, batch_size=8, deadline_policy="production60/v1", bookkeeping=None, capacity_qualified=False):
     """Decode at most eight compatible requests; no deadline or seed is renewed."""
     import torch
     from .sampler import WatProgramSampler
 
-    if batch_size not in (1,8,16) or not 1 <= len(requests) <= batch_size:
+    if batch_size not in (1,8,16,32) or not 1 <= len(requests) <= batch_size:
         raise ValueError("registered generation batch1/8/16 required")
+    if batch_size==32 and capacity_qualified is not True:
+        raise ValueError('batch32 requires measured capacity admission')
     if deadline_policy not in ('production60/v1','fixed-work180/v1'):
         raise ValueError('unknown deadline policy')
     if bookkeeping is not None:

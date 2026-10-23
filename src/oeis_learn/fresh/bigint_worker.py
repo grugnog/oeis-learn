@@ -80,6 +80,9 @@ def client(settings, output):
     pipeline = settings['recipe'].get('pipeline')
     if pipeline:
         limits = replace(limits, max_inflight_batches=pipeline['workers'])
+        if pipeline.get('cache_capacity')=='expanded/v1':
+            limits=replace(limits,result_cache_max_entries=32768,result_cache_max_bytes=512<<20,
+                disk_cache_max_entries=2048,disk_cache_max_bytes=4<<30)
     return SynthesisClient(
         settings["contract_sha256"],
         limits=ResourceProfile(**settings["recipe"]["execution"]["resources"]),
