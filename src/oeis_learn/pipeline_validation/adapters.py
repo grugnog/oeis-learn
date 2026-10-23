@@ -52,10 +52,7 @@ class Adapters:
             write(output/'qualification.json',report)
             return report
         if stage.adapter=='cost':
-            from oeis_learn.fresh.cost_policy import pipeline_forecast
-            report=pipeline_forecast({},'diverse32' if stage.id=='cost.diverse32' else 'transfer-screen',updates=3000,cadence=500,budget=7200)
-            write(output/'forecast.json',report)
-            return dict(report,reason='No measured exact-scope cost receipt yet; historical allowance is shown only as a labelled nonadmitting forecast')
+            return self.benchmarks.cost(output,cap=stage.seconds,scope='diverse32' if stage.id=='cost.diverse32' else 'transfer-screen')
         if stage.adapter in {'baseline','inference','joint'}:
             return getattr(self.benchmarks,stage.adapter)(output,cap=stage.seconds)
         parts=stage.id.split('.')

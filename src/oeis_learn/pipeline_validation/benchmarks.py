@@ -27,25 +27,25 @@ def legacy(root):
 
 class Benchmarks:
     def __init__(self,adapters):
-        self.adapters=adapters;self.prepared=None;self.calibration=None;self.subset=None
+        self.adapters=adapters;self.prepared={};self.calibration=None;self.subset=None
         self.inference_eligible=False;self.selected_workers=1;self.prewarm=[];self.baseline_peak=0
 
-    def prepare(self,output):
-        if self.prepared is not None:return self.prepared
+    def prepare(self,output,scope='diverse32'):
+        if scope in self.prepared:return self.prepared[scope]
         a=self.adapters
         if not a.args.run or not a.args.inputs:
             raise CapabilityError('neural diagnostics require a completed --run and compatible --inputs; CPU checks remain independent')
         host=a.host(a.args.engine);host.select_gpu()
         module=legacy(a.root)
-        root=output/'prepared';root.mkdir()
+        root=output/('prepared-'+scope);root.mkdir()
         from oeis_learn.experiments.source_snapshot import collect_snapshot
         manifest=module.prepare(a.root/a.args.run,a.root/a.args.inputs,root,
-            image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'])
-        self.prepared=(root,manifest)
-        return self.prepared
+            image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'],scope=scope)
+        self.prepared[scope]=(root,manifest)
+        return self.prepared[scope]
 
-    def trial(self,output,*,policy,assessment='fixed-work',bookkeeping='baseline',prompt_ids=None,seconds=600,telemetry=False,cache_state='cold'):
-        a=self.adapters;prepared,manifest=self.prepare(output.parent)
+    def trial(self,output,*,policy,assessment='fixed-work',bookkeeping='baseline',prompt_ids=None,seconds=600,telemetry=False,cache_state='cold',scope='diverse32'):
+        a=self.adapters;prepared,manifest=self.prepare(output.parent,scope)
         host=a.host(a.args.engine)
         from .resources import observe,resolve,reserve
         observations=observe();observations['limits'].append(host.policy['memory_bytes'])
@@ -63,7 +63,7 @@ class Benchmarks:
         inputs=output/'input';inputs.mkdir()
         os.link(prepared/'input/weights.pt',inputs/'weights.pt')
         work=json.loads((prepared/'input/work.json').read_text());write(inputs/'work.json',work)
-        options=dict(policy=policy,assessment=assessment,bookkeeping=bookkeeping,prompt_ids=prompt_ids,
+        options=dict(policy=policy,assessment=assessment,scope=scope,bookkeeping=bookkeeping,prompt_ids=prompt_ids,
                      memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node'],
                      seconds=seconds,telemetry=telemetry,cache_state=cache_state,prewarm=self.prewarm if cache_state=='warm' else [])
         config=dict(version='pipeline-role/v1',source=manifest['source_sha256'],contract=a.contract['identity'],mode='neural',options=options)
@@ -89,11 +89,23 @@ class Benchmarks:
         if scored['status']=='FAIL':raise RuntimeError(scored.get('error','independent scorer failed'))
         # Include required compact export serialization, compression and disk write
         # in the repeated interval; no nested archive is retained in the bundle.
+        export_started=time.monotonic()
         export=output/'private/export.zlib'
         export.write_bytes(zlib.compress(json.dumps({'gpu':gpu,'score':scored},sort_keys=True).encode()))
+        export_seconds=time.monotonic()-export_started
+        cost_components=dict(gpu.get('cost_components',{}))
+        if cost_components:
+            overheads=[];cleanups=[]
+            for directory,summary in [('gpu',gpu),('scorer',scored)]:
+                cleanup=json.loads((output/directory/'cleanup.json').read_text())['seconds']
+                duration=json.loads((output/directory/'host-timing.json').read_text())['seconds_through_cleanup']
+                cleanups.append(cleanup)
+                overheads.append(max(0,duration-summary['seconds_through_role']-cleanup))
+            scores=[mode['scoring']['elapsed_seconds'] for row in scored['result']['outcomes'].values() for mode in row.values()]
+            cost_components.update(hidden_scoring_p95=max(scores,default=0),startup=max(overheads),cleanup=max(cleanups),export=export_seconds)
         complete=gpu['status']=='COMPLETE' and scored['status']=='COMPLETE'
         result=seal(dict(version='pipeline-complete-trial/v1',complete=complete,
-            seconds=time.monotonic()-started-gpu.get('prewarm_seconds',0),host_seconds=time.monotonic()-started,gpu=gpu,score=scored,options=options,
+            seconds=time.monotonic()-started-gpu.get('prewarm_seconds',0),host_seconds=time.monotonic()-started,gpu=gpu,score=scored,options=options,cost_components=cost_components,
             work=digest(dict(prompts=gpu['prompt_ids'],attempts=gpu['scheduled_attempts'],updates=500,validation=256)),
             timing_interpretation='GPU and isolated independent scorer startup/work/cleanup plus compact diagnostic export; image build excluded'))
         write(output/'trial.json',result)
@@ -229,3 +241,22 @@ class Benchmarks:
             default='serial baseline retained',coverage_scope=dict(subset=self.subset,original_denominator=32)))
         write(output/'comparison.json',result)
         return dict(result,stage_state='INCONCLUSIVE' if result['adoption']=='INCONCLUSIVE' else 'PASS')
+
+
+    def cost(self,output,*,cap,scope):
+        from .costs import forecast_trials
+        rows=[];failures=[]
+        # Three independent full-roster observations; no reduced diagnostic can
+        # substitute for the full controls. Each role receives half a trial cap.
+        seconds=max(1,(cap-30)/6)
+        for ordinal in range(3):
+            try:
+                row=self.trial(output/f'cost-{ordinal}',policy=BASE_POLICY,assessment='cost-full',
+                    seconds=seconds,scope=scope)
+            except (CapabilityError,TimeoutError) as exc:
+                failures.append(str(exc));break
+            rows.append(row)
+            if not row['complete']:break
+        report=forecast_trials(rows,scope,updates=3000,cadence=500,budget=7200)
+        write(output/'forecast.json',seal(dict(version='pipeline-cost-stage/v1',receipt=report,failures=failures)))
+        return dict(report,stage_state='INCONCLUSIVE' if report['missing'] else 'PASS')

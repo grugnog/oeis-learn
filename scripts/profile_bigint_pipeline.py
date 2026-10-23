@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32'):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -92,9 +92,12 @@ def prepare(run, inputs, output, *, image, source, render_node):
     examples = read(example_file)
     view = "concrete" if recipe["learning"]["target_view"] == "literal" else "parameterized"
     learner = examples["views"][view]
-    ids = examples["tiny_ids"]
-    byid = {r["id"]: r for r in learner["training"]}
-    if len(ids) != 32 or len(set(ids)) != 32 or any(k not in byid for k in ids):
+    if scope not in ('diverse32','transfer-screen'):raise ValueError('unknown pipeline cost scope')
+    selected_rows=learner['training'] if scope=='diverse32' else learner['parameter_development']+learner['structural_development']
+    ids=examples['tiny_ids'] if scope=='diverse32' else [r['id'] for r in selected_rows]
+    byid={r['id']:r for r in selected_rows}
+    expected=32 if scope=='diverse32' else 256
+    if len(ids) != expected or len(set(ids)) != expected or any(k not in byid for k in ids):
         raise ValueError("complete diverse32 training panel required")
     prompts = [
         {k: byid[key][k] for k in ("id", "indices", "values", "horizon_indices", "family")}
@@ -141,6 +144,7 @@ def prepare(run, inputs, output, *, image, source, render_node):
         validation_ids=[r["id"] for r in validation],
         seed=recipe["model"]["seed"],
         analysis_nonce=uuid.uuid4().hex,
+        scope=scope,
         authority="weights-only diagnostic; final sealed; no resume/training admission",
     )
     manifest["identity"] = digest(manifest)

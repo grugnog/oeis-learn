@@ -206,6 +206,7 @@ def compact_group(result):
                         tokens_sha256=digest(item["tokens"]),
                         source_sha256=item["source_sha256"],
                         generation_seconds=item["generation_seconds"],
+                        native_seconds=item.get("native_seconds"),
                         batch_size=item["generation_batch_size"],
                         generation=item["generation"],
                         fitting=item["fitting"],

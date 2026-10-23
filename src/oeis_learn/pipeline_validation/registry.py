@@ -66,7 +66,7 @@ def registry(engines=('docker',), primary='docker'):
         Stage('inference.compare',2,('baseline.calibration',),seconds=9000,adapter='inference'),
         Stage('overlap.compare',4,('baseline.calibration','policy.compare','native.compare'),seconds=18000,adapter='joint'),
         Stage('qualification',5,seconds=30,adapter='qualification'),
-        Stage('cost.diverse32',5,seconds=30,adapter='cost'),
-        Stage('cost.transfer',5,seconds=30,adapter='cost'),
+        Stage('cost.diverse32',5,('cpu.'+primary+'.semantic','hip.preflight'),seconds=1500,adapter='cost'),
+        Stage('cost.transfer',5,('cpu.'+primary+'.semantic','hip.preflight'),seconds=1500,adapter='cost'),
     ]
     return stages

@@ -151,6 +151,7 @@ def main(argv=None):
     p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
+    role_started=time.monotonic()
     try:
         config=json.loads((inputs/'expected.json').read_text())
         if set(config)!={'version','source','contract','mode','options'} or config['version']!='pipeline-role/v1' or config['mode']!=args.mode:
@@ -174,6 +175,9 @@ def main(argv=None):
     except BaseException as exc:
         result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}')
     finally:
+        result['seconds_through_role']=time.monotonic()-role_started
+        result.setdefault('version','pipeline-role-result/v1')
+        result=seal(result)
         write(output/'summary.json',result)
     return 1 if result['status']=='FAIL' else 0
 

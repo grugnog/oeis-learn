@@ -121,7 +121,7 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
     return float(value)
 
 
-def validation_loss(encoder, decoder, rows, device, *, deadline):
+def validation_loss(encoder, decoder, rows, device, *, deadline, measure=None):
     encoder.eval()
     decoder.eval()
     total = 0.0
@@ -130,7 +130,9 @@ def validation_loss(encoder, decoder, rows, device, *, deadline):
         if time.monotonic() >= deadline:
             break
         batch = rows[i : i + 8]
+        began=time.monotonic()
         total += _batch_loss(encoder, decoder, batch, device) * len(batch)
+        if measure is not None:measure(time.monotonic()-began,len(batch))
         done += len(batch)
     return dict(
         loss=total / done if done else None,

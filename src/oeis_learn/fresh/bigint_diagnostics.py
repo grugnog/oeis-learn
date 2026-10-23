@@ -301,6 +301,7 @@ def _portfolio(
             admitted["_original_source"] = source
             admitted['_attempt_ordinal'] = position
             admitted['_job_id'] = job['job_id']
+        detail["native_seconds"]=time.monotonic()-fitting_start
         detail.update(
             outcome=fit["outcome"], native=fit.get("native"), fit_cache=fit.get("metrics")
         )
@@ -581,6 +582,7 @@ def score(selections, truth, client, *, deadline):
         record = selections.get(key)
         outcomes[key] = {}
         for mode in ("raw", "rescue", "equal_budget", "shuffled", "absent", "template"):
+            scoring_start=time.monotonic()
             chosen = record.get("selections", {}).get(mode) if record else None
             evidence = record.get("arm_evidence", {}).get(mode) if record else None
             success = False
@@ -657,6 +659,7 @@ def score(selections, truth, client, *, deadline):
                 complete = evidence["complete"] is True
                 reason = evidence["reason"]
                 scoring = _status(complete, "no_selected_candidate", reason)
+            scoring["elapsed_seconds"]=time.monotonic()-scoring_start
             counts[mode]["success"] += success
             counts[mode]["complete"] += complete
             outcomes[key][mode] = dict(

@@ -41,9 +41,10 @@ def _gpu(inputs,output,config,evidence):
     ids=options['prompt_ids'] or manifest['prompt_ids']
     if len(set(ids))!=len(ids) or not ids or set(ids)-set(rows):
         raise ValueError('frozen prompt subset required')
-    if options['assessment'] not in ('fixed-work','fixed-budget') or options['bookkeeping'] not in ('baseline','hoisted/v1'):
+    if options['assessment'] not in ('fixed-work','fixed-budget','cost-full') or options['bookkeeping'] not in ('baseline','hoisted/v1'):
         raise ValueError('unknown benchmark assessment/decoder')
-    evidence.plan(ids,dict(correct=8,shuffled=1,absent=1,template=8),parent=digest(dict(contract=config['contract'],weights=manifest['weights_sha256'])))
+    counts_per_mode=dict(correct=8,shuffled=8 if options['assessment']=='cost-full' else 1,absent=8 if options['assessment']=='cost-full' else 1,template=8)
+    evidence.plan(ids,counts_per_mode,parent=digest(dict(contract=config['contract'],weights=manifest['weights_sha256'])))
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     started=time.monotonic();deadline=started+options['seconds']
     encoder,decoder,counts=models(recipe,'cuda')
@@ -53,19 +54,21 @@ def _gpu(inputs,output,config,evidence):
     optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()],lr=recipe['learning']['learning_rate'])
     initial=snapshot(encoder,decoder,optimizer)
     initial_hash=parameter_digest(encoder,decoder)
-    timings={};result={}
+    timings={};result={};update_times=[];validation_times=[]
     with Recorder(output/'observations',instrumented=options['telemetry'],render_node=manifest['render_node']) as recorder:
         encoder.train();decoder.train()
         begin=time.monotonic()
         for update in range(500):
             if time.monotonic()>=deadline:raise TimeoutError('disposable update workload deadline')
             offset=(update*8)%128
+            step_start=time.monotonic()
             _batch_loss(encoder,decoder,work['training'][offset:offset+8],'cuda',optimizer=optimizer)
+            update_times.append(time.monotonic()-step_start)
         torch.cuda.synchronize()
         timings['updates']=time.monotonic()-begin
         if parameter_digest(encoder,decoder)==initial_hash:
             raise RuntimeError('actual finite updates did not change parameters')
-        begin=time.monotonic();validation=validation_loss(encoder,decoder,work['validation'],'cuda',deadline=deadline)
+        begin=time.monotonic();validation=validation_loss(encoder,decoder,work['validation'],'cuda',deadline=deadline,measure=lambda seconds,n:validation_times.append(seconds/n))
         torch.cuda.synchronize();timings['validation']=time.monotonic()-begin
         trained=snapshot(encoder,decoder,optimizer)
         restore(initial,encoder,decoder,optimizer)
@@ -85,7 +88,7 @@ def _gpu(inputs,output,config,evidence):
                 prewarm_seconds=time.monotonic()-warm_start
                 begin=time.monotonic()
             result=generate(encoder,decoder,[rows[k] for k in ids],recipe,synthesis,deadline=deadline,
-                diagnostic_attempts=dict(correct=8,shuffled=1,absent=1,template=8),
+                diagnostic_attempts=None if options['assessment']=='cost-full' else dict(correct=8,shuffled=1,absent=1,template=8),
                 portfolio_seconds=180 if options['assessment']=='fixed-work' else 60,evidence=evidence.event)
             native_stats=synthesis.worker.stats
         torch.cuda.synchronize();timings['generation_native']=time.monotonic()-begin
@@ -95,7 +98,7 @@ def _gpu(inputs,output,config,evidence):
         started_attempts=len(attempts)
         seen={(a['prompt'],a['mode'],a['position']) for a in attempts}
         for key in ids:
-            for mode,count in [('correct',8),('shuffled',1),('absent',1),('template',8)]:
+            for mode,count in counts_per_mode.items():
                 for position in range(count):
                     if (key,mode,position) not in seen:
                         attempts.append(dict(prompt=key,mode=mode,position=position,seed=None,tokens=0,tokens_sha256=digest([]),source_sha256=None,generation_seconds=0,batch_size=0,generation=dict(complete=False,outcome='unstarted',reason='parent deadline'),fitting=dict(complete=False,outcome='unstarted',reason='parent deadline'),raw=dict(complete=False,outcome='unstarted',reason='parent deadline')))
@@ -116,9 +119,13 @@ def _gpu(inputs,output,config,evidence):
     summary=seal(dict(version='pipeline-neural-trial/v1',status='COMPLETE' if len(complete_ids)==len(ids) and validation['complete'] else 'PARTIAL',
         source=config['source'],contract=config['contract'],weights=manifest['weights_sha256'],
         options={k:v for k,v in options.items() if k!='prewarm'},prewarm_identity=digest(options.get('prewarm',[])),prewarm_seconds=prewarm_seconds,counts=counts,updates=500,validation=validation,
-        scheduled_attempts=len(ids)*18,attempted=started_attempts,complete_ids=complete_ids,prompt_ids=ids,
-        original_denominator=32,tokens=digest([(r['prompt'],r['mode'],r['position'],r['tokens_sha256']) for r in attempts]),
+        scheduled_attempts=len(ids)*sum(counts_per_mode.values()),attempted=started_attempts,complete_ids=complete_ids,prompt_ids=ids,
+        original_denominator=len(manifest['prompt_ids']),tokens=digest([(r['prompt'],r['mode'],r['position'],r['tokens_sha256']) for r in attempts]),
         semantic=digest(semantic),timings=timings,checkpoint=checkpoint,native=native_stats,
+        cost_components=dict(training_p95=max(update_times),teacher_forcing_p95=max(validation_times,default=0),
+            generation_p95=max((a['generation_seconds'] for a in attempts if a['mode']!='template'),default=0),
+            fit_p95=max((a.get('native_seconds') or 0 for a in attempts),default=0),
+            reference_p95=max((a.get('native_seconds') or 0 for a in attempts),default=0),checkpoint_p95=timings['checkpoint']),
         seconds=time.monotonic()-started,device=dict(torch=torch.__version__,hip=torch.version.hip,name=torch.cuda.get_device_name()),
         authority='disposable diagnostic; weights-only parent; no research resume'))
     return summary
