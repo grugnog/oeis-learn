@@ -57,7 +57,7 @@ def main(args, root, host_factory):
 
 
 
-def study_main(args,root,host_factory):
+def study_main(args,root,host_factory,*,collect=False):
     from pathlib import Path
     from .studies import parse_study
     from .identity import reference,write
@@ -69,12 +69,17 @@ def study_main(args,root,host_factory):
     source=digest(collect_snapshot(root))
     contract=json.loads(confined(root,args.study_manifest).read_text())
     final_plan=confined(root,args.final_plan) if args.final_plan else None
+    if contract.get('version')=='pipeline-study-batch/v1':
+        if collect:raise ValueError('nested study batches are not allowed')
+        from .study_batch import main as batch_main
+        return batch_main(args,root,host_factory,contract,source,final_plan)
     decision=parse_study(contract,root=root,source=source,final_plan=final_plan)
     if args.scope_report:
         print(json.dumps(decision,indent=2));return 0
     output=confined(root,args.output,exists=False)
     if decision['status']!='ADMITTED':
         stages=[Stage('study.admission',6,available=False,reason='missing gates: '+', '.join(decision['missing']))]
+        if collect:return dict(stages=stages,adapter=lambda *_:None,ledger=None,decision=decision)
         return execute(stages,output,adapter=lambda *_: None,binding={'source':source,'study':contract['identity']},
             cap=contract['budgets']['wall_seconds'],reserve=contract['budgets']['cleanup_seconds']+contract['budgets']['archive_seconds'],contract=contract)
     # References are only resolved after every authority gate has passed.
@@ -92,7 +97,13 @@ def study_main(args,root,host_factory):
     policy=resolve(**observe(),lower=int(args.memory_gib*(1<<30)) if args.memory_gib else None)
     host_options.memory_gib=policy['ceiling_bytes']/(1<<30)
     host_options.cpus=min(args.cpus or 16,policy['cpus'])
-    host=host_factory(host_options)
+    try:
+        host=host_factory(host_options)
+    except (RuntimeError,OSError,ValueError) as exc:
+        stages=[Stage('study.runtime',6,available=False,reason=str(exc))]
+        if collect:return dict(stages=stages,adapter=lambda *_:None,ledger=None,decision=decision)
+        return execute(stages,output,adapter=lambda *_:None,binding={'source':source,'study':contract['identity']},
+            cap=contract['budgets']['wall_seconds'],reserve=contract['budgets']['cleanup_seconds']+contract['budgets']['archive_seconds'],contract=contract)
     from .studies import StudyLedger
     study_ledger=StudyLedger(root/'run-state/pipeline-studies',contract)
     stages=[Stage(arm['id'],6,seconds=arm.get('attempt',arm)['wall_seconds'],adapter='study') for arm in contract['arms']]
@@ -138,6 +149,7 @@ def study_main(args,root,host_factory):
         study_ledger.finish(arm['id'],'COMPLETE' if contract['kind']=='final' else 'INCONCLUSIVE',attempt=reservation['attempt'])
         return dict(study=contract['identity'],arm=arm['id'],observations=observations,
             result='execution ended; scientific outcome requires reviewed report',stage_state='INCONCLUSIVE')
+    if collect:return dict(stages=stages,adapter=run_arm,ledger=study_ledger,decision=decision)
     maximum=contract['budgets']['wall_seconds']
     if args.max_seconds is not None:
         if not 0<number(args.max_seconds)<=maximum:raise ValueError('study ceiling can only be lowered')

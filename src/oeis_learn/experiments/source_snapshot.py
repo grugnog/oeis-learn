@@ -44,7 +44,7 @@ def collect_snapshot(root):
             # Including receipt references here would make their source identity
             # recursively depend on their own hashes. Runtime policy/schema/code
             # remain in this snapshot, including this versioned exclusion rule.
-            and not (p.suffix=='.json' and 'configs/foundation/pipeline_studies' in str(p.relative_to(root).parent))
+            and not (p.suffix=='.json' and Path('configs/foundation/pipeline_studies') in p.relative_to(root).parents)
         )
     files.update(
         root / name
