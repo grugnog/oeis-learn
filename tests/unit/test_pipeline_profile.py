@@ -605,3 +605,79 @@ def test_scheduled_trace_exports_real_cpu_operators_but_never_claims_hip(tmp_pat
     assert result["status"] == "INCOMPLETE" and not result["gpu_kernels"]
     assert result["schedule"]["active_steps"] == 1
     assert result["bytes"] < 40 << 20
+
+
+def test_trace_sampler_step_hooks_preserve_budget_and_restore_method(tmp_path, monkeypatch):
+    from oeis_learn.decoder.sampler import WatProgramSampler
+    from oeis_learn.fresh.pipeline_profile import instrument
+
+    calls = []
+
+    def sample(self, memory, seeds, *, budget_hook):
+        for i in range(3):
+            budget_hook(i)
+        return seeds
+
+    monkeypatch.setattr(WatProgramSampler, "sample_trajectories", sample)
+    obj = object.__new__(WatProgramSampler)
+    with Recorder(tmp_path, instrumented=False) as r:
+        with instrument(r, trace=True, profiler_step=lambda: calls.append("step")):
+            assert obj.sample_trajectories(None, [37], budget_hook=lambda i: calls.append(i)) == [
+                37
+            ]
+    assert calls == ["step", 0, "step", 1, "step", 2]
+    assert WatProgramSampler.sample_trajectories is sample
+
+
+def test_ordinary_sampler_never_receives_profiler_step_hook(tmp_path, monkeypatch):
+    from oeis_learn.decoder.sampler import WatProgramSampler
+    from oeis_learn.fresh.pipeline_profile import instrument
+
+    before = WatProgramSampler.sample_trajectories
+    with Recorder(tmp_path, instrumented=False) as r:
+        with instrument(r, profiler_step=lambda: pytest.fail("ordinary trace hook invoked")):
+            assert WatProgramSampler.sample_trajectories is before
+
+
+def test_device_view_rejects_noncharacter_and_wrong_major_minor(tmp_path):
+    from oeis_learn.tracking.pipeline_profile import character_device, audit_device_view
+
+    file = tmp_path / "regular"
+    file.touch()
+    with pytest.raises(ValueError, match="character device"):
+        character_device(file)
+    with pytest.raises(ValueError, match="device"):
+        audit_device_view(
+            [],
+            dict(version="pipeline-device-view/v1", devices={"/dev/kfd": dict(major=1, minor=3)}),
+            {"/dev/kfd": dict(major=235, minor=0)},
+        )
+
+
+def test_preflight_rejects_cpu_before_model_or_update_work(tmp_path, monkeypatch):
+    import torch
+    from oeis_learn.fresh.pipeline_profile import preflight_work
+
+    monkeypatch.setattr(torch.version, "hip", None)
+    with pytest.raises(RuntimeError, match="actual HIP"):
+        preflight_work(tmp_path, tmp_path, {}, {})
+
+
+def test_host_startup_gap_is_separate_from_container_work(tmp_path):
+    from oeis_learn.fresh.common import write
+    from oeis_learn.fresh.pipeline_report import host_timings
+
+    write(tmp_path / "gpu/host-timing.json", dict(seconds_through_cleanup=985.93))
+    write(
+        tmp_path / "gpu/container-inspect.json",
+        [
+            dict(
+                State=dict(
+                    StartedAt="2026-10-22T22:41:39+00:00", FinishedAt="2026-10-22T22:54:03+00:00"
+                )
+            )
+        ],
+    )
+    r = host_timings(tmp_path)["gpu"]
+    assert r["container_lifetime_seconds"] == 744
+    assert r["host_minus_container_seconds"] == pytest.approx(241.93)

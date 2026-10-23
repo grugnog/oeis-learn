@@ -288,6 +288,16 @@ standalone timeline and capped archives. The quickstart supplies one portable
 Podman/Docker command. Actual HIP collection/review W005 remains pending;
 T094/T097/T098 stay open. T093 is deferred; original negative T096 is preserved.
 
+**T094 first-profile harness correction (2026-10-22)**: R001–R003 in the
+[profile plan](validation/phase-5-pipeline-profile-plan.md#harness-correction-and-approved-rerun--2026-10-22)
+are implemented. The exact40MiB Kineto export failure is reproduced on CPU;
+scheduled recording narrows active data while preserving replay caps and partial
+files. Actual role-visible device identities supplement rootless Podman inspect
+metadata. An audited HIP/representative-trace preflight stops before the paired
+benchmark on either failure. The user approved a fresh full diagnostic rerun;
+no recovery/resume mechanism or parallel scheduler was added. Actual corrected
+Podman/HIP evidence remains pending W005; T094/T097/T098 stay open.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

@@ -106,3 +106,17 @@ this diagnostic. Unit tests exercise restoration, identity rejection, missing
 sensors, partial work, collector/hook cleanup, audit rejection, watchdog expiry
 and archive exclusions. Actual container/HIP execution is still pending W005;
 these tests are not device or T097 execution evidence.
+
+
+### First-profile harness corrections and rerun
+
+The user permits repeating the bounded profile. Trace export now records a
+scheduled steady update/eight decode steps, retains capped partial files and
+requires actual GPU kernel events. Rootless Podman device metadata is checked
+against actual role-visible character devices and host major/minor identities;
+CPU roles must expose no accelerator nodes. A preflight validates both audit
+and representative model trace export before the paired benchmark. The original
+failed archive remains unchanged. The [profile correction tasks](phase-5-pipeline-profile-plan.md#harness-correction-and-approved-rerun--2026-10-22)
+record the exact CPU cap reproduction and unchanged isolation/runtime bounds.
+Actual corrected container/HIP execution remains pending W005. The quickstart
+now gives a fresh full-run command; a PARTIAL portfolio is retained honestly.

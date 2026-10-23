@@ -468,6 +468,10 @@ def main():
     except BaseException as exc:
         summary["error"] = f"{type(exc).__name__}: {exc}"
     finally:
+        for name in ("preflight", "gpu", "scorer"):
+            path = output / name / "summary.json"
+            if path.is_file() and name not in summary["stages"]:
+                summary["stages"][name] = read(path)
         summary["seconds_excluding_build"] = time.monotonic() - start
         write(output / "summary.json", summary)
         target = archive(output)

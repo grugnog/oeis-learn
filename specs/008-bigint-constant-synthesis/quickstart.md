@@ -7,16 +7,22 @@ with a negative result:31/32 rescue correctness and31/32 complete evidence,
 versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
 [the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
 
-## Current next step: repair and recover the first HIP profile
+## Current next step: rerun the corrected HIP profile
 
 The first [HIP profile review](validation/phase-5-pipeline-profile-review.json)
-contains useful measurements but is blocked by the Podman device audit and
-failed operator-trace exports; CPU scoring was not launched. Preserve
-`tmp-validation/008-pipeline-hip-20261022T223657Z` and its ZIP. Do not rerun the
-command below unchanged while those harness defects remain. Recovery should
-reuse existing GPU evidence under a new identity; W005 remains open.
+contains useful measurements but stopped on the Podman device audit and trace
+export. Both harness defects are corrected; actual validation of the corrections
+still needs this rerun. The user approved repeating the bounded diagnostic rather
+than adding recovery machinery. Preserve the original output and ZIP.
 
-### Original collection command
+The rerun first checks actual role-visible device nodes against the host's
+major/minor identities, then requires a tiny HIP trace and a representative model
+update trace before the paired benchmark. Rootless Podman's empty device metadata
+is accepted only with matching actual device evidence. Network, mounts, read-only
+root and privileged/device-request checks remain strict. The five-update replay
+records one steady update; decoder probes record eight steps instead of the
+entire256-token replay. The40MiB trace-file cap is unchanged. A failed cap retains
+bounded partial evidence and an explicit reason.
 
 T093 historical-model comparison is user-deferred. The
 [reviewed profiling plan and implementation](validation/phase-5-pipeline-profile-plan.md)
@@ -30,13 +36,16 @@ resume training, admit a new experiment or access final scoring.
 python3 scripts/profile_bigint_pipeline.py --engine podman \
   --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run \
   --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
-  --output "tmp-validation/008-pipeline-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+  --output "tmp-validation/008-pipeline-hip-rerun-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
 Adjust existing parent/data paths if moved. Leave `--image` unset to build the
-current source; image build time is separate. Expect roughly45–60minutes, with
+current source; image build time is separate. The first GPU collection took about16minutes including host overhead;
+allow up to45–60minutes for this run including preflight/scoring, with
 finite role/stage caps and room for cleanup/export inside90minutes. A slow or
-capped run retains PARTIAL/FAIL evidence; it does not extend its budget. Share
+capped run retains PARTIAL/FAIL evidence; it does not extend its budget. A
+PARTIAL status can mean the original60s portfolio ceiling left attempts unstarted,
+even with successful device/trace collection. Share
 the sibling ZIP even after failure. Rerun with a fresh timestamp; do not delete
 or reuse the original output. `--engine docker` uses Docker.
 

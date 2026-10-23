@@ -5,6 +5,7 @@ import html
 import json
 from pathlib import Path
 import statistics
+from datetime import datetime
 
 from .common import read, write
 from oeis_learn.tracking.pipeline_profile import exclusive_seconds
@@ -170,6 +171,14 @@ def report(output):
     result = dict(
         version="bigint-pipeline-analysis/v1",
         qualified=False,
+        host_role_timings=host_timings(output),
+        device_audits={
+            str(p.relative_to(output)): read(p) for p in output.rglob("isolation-audit.json")
+        },
+        operator_trace_coverage=dict(
+            complete=gpu_summary.get("trace_coverage_complete", False),
+            traces=gpu_summary.get("traces", []),
+        ),
         diagnostic_exclusive_seconds=groups,
         cpu_core_equivalents={k: statistics.mean(v) for k, v in cpu.items()},
         cpu_fraction_effective_quota={
@@ -201,6 +210,30 @@ def report(output):
     )
     write(output / "analysis.json", result)
     timeline(output, rows, result)
+    return result
+
+
+def host_timings(output):
+    """Keep engine startup/inspect/cleanup outside candidate/GPU phase shares."""
+    result = {}
+    for path in Path(output).rglob("host-timing.json"):
+        row = read(path)
+        inspect = path.parent / "container-inspect.json"
+        if inspect.is_file():
+            state = read(inspect)[0].get("State", {})
+            try:
+                seconds = (
+                    datetime.fromisoformat(state["FinishedAt"].replace("Z", "+00:00"))
+                    - datetime.fromisoformat(state["StartedAt"].replace("Z", "+00:00"))
+                ).total_seconds()
+                if seconds < 0:
+                    raise ValueError("container has no completed lifetime")
+                row["container_lifetime_seconds"] = seconds
+                row["host_minus_container_seconds"] = row["seconds_through_cleanup"] - seconds
+            except (ValueError, KeyError, TypeError) as exc:
+                row["container_lifetime_seconds"] = None
+                row["reason"] = f"container timestamps unavailable: {type(exc).__name__}"
+        result[str(path.parent.relative_to(output))] = row
     return result
 
 

@@ -383,3 +383,51 @@ output, including its excluded inputs/truth needed for recovery. Avoid rerunning
 the1000 updates or portfolios merely to repair reporting. Do not repeat the
 quickstart command unchanged while those known harness failures remain. W005
 and T094/T097/T098 stay open; T093 remains deferred.
+
+
+## Harness correction and approved rerun — 2026-10-22
+
+The user explicitly permits a fresh full run; recovery/resume machinery is not
+needed. Keep the reviewed original archive unchanged. R001–R003 below are
+implementation tasks, not hardware evidence; W005 remains open until the rerun.
+
+- [X] R001 Reproduce and fix trace-export failure with bounded scheduling and
+  partial evidence. Five CPU model updates on the pinned PyTorch2.9.1 reproduce
+  the same Kineto failure and leave an exact40MiB `.json.tmp`. Recording one
+  steady update within the same five-update replay exports10,445,980 bytes in
+  the local reproduction. CPU-only capture explicitly lacks HIP kernels and
+  cannot pass device attribution. The sampler's existing budget hook advances
+  a scheduled trace only inside explanatory probes: eight active token steps,
+  short-prefix prefill included, and a later64-step offset for the long probe.
+  Ordinary and observed workload calls get no token profiler hook. Caps stay
+  unchanged; a capped/invalid file is retained as `.partial.json` with bytes/hash
+  and an explicit reason. Kernel-event presence is still mandatory for COMPLETE.
+- [X] R002 Fix rootless Podman device evidence without allowing arbitrary devices.
+  Every role records actual accelerator character-device nodes. The host compares
+  their paths and major/minor numbers to its selected nodes; CPU roles must see
+  none. Nonempty contradictory inspect metadata is rejected. Empty inspect
+  metadata alone never grants a pass. Existing mount/network/read-only/root/
+  device-request restrictions remain enforced. Each audit and host-role timing
+  is retained; host time outside container lifetime is reported separately.
+- [X] R003 Add an audited preflight using the same current image/devices/mount
+  boundary before the paired workload, regression tests and the quickstart rerun
+  command. Preflight requires actual HIP, a tiny kernel trace and one representative
+  steady-update trace within a five-disposable-update replay from copied selected
+  weights. It cannot mutate or select parent weights. Its420s external ceiling
+  allows cold engine startup plus120s of device work. The main GPU role retains
+  its3100s maximum, reduced by elapsed allowance; scorer ceilings are reduced by
+  the remaining5100s collection allowance. Cleanup/export remain within90minutes;
+  image build stays separate. Failure archives retain available role summaries.
+
+The original500 timed updates per arm,32 prompt IDs, seeds/order, batch8, serial
+native calls, per-request/60s portfolio ceilings, limits, scoring isolation and
+negative T096 remain unchanged. Preflight adds only five disposable diagnostic
+updates outside headline timing. A bounded portfolio may still yield PARTIAL;
+that work coverage must not be relabelled complete or extended to make a report
+pass. Rerun the quickstart with a fresh output suffix and share the ZIP, including
+failed/partial cases. No native backend/runtime policy, model architecture,
+training admission or worker-pool optimization is changed.
+
+Local correction validation:88 focused regressions pass, including35 profile
+cases; the [local fix receipt](phase-5-pipeline-profile-fix-local.json) records the
+exact CPU reproduction, checks and explicit pending actual container/HIP gate.
