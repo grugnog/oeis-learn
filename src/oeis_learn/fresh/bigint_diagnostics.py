@@ -283,7 +283,8 @@ def _portfolio(
         service_deadline = min(deadline,fitting_start+4)
         if pipeline:
             found, detail['raw'], fit, fit_elapsed = yield NativeRequest(job,prompt_ordinal,
-                min(deadline,fitting_start+4),native_work)
+                min(deadline,fitting_start+4),native_work,
+                cancel=getattr(getattr(client,'worker',None),'cancel_all',None))
         else:
             found, detail['raw'], fit, fit_elapsed = native_work()
         if found:

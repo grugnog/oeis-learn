@@ -368,7 +368,8 @@ def train(inputs, output):
                         encoder, decoder, panel, recipe, synthesis, deadline=deadline, periodic=True
                     )
                     if recipe.get('pipeline'):
-                        selection['pipeline_boundary'] = diagnostic['pipeline_boundary']
+                        from .pipeline_jobs import merge_boundary
+                        selection['pipeline_boundary'] = merge_boundary(selection['pipeline_boundary'],diagnostic['pipeline_boundary'])
                     visible = score_panel(
                         tuple(r["id"] for r in panel),
                         {

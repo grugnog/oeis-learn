@@ -59,6 +59,14 @@ class _SerialWorker:
             self.cancelled.add(key)
             self.condition.notify_all()
 
+    def cancel_all(self):
+        process = self.process
+        if process is not None and process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
     def _retire(self):
         process = self.process
         self.process = None
@@ -351,6 +359,9 @@ class NativeSlots:
         if sum(v for v in observations if v is not None)>4 << 30:
             self._signal_all()
             raise MemoryError('aggregate native RSS watchdog')
+
+    def cancel_all(self):
+        self._signal_all()
 
     def _signal_all(self):
         for slot in self.slots:

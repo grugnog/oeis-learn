@@ -18,3 +18,30 @@ class Overlap(unittest.TestCase):
         self.assertEqual(set(calls),{(0,0),(0,1),(1,0),(1,1)})
         self.assertEqual(boundary['active'],0)
         self.assertEqual(len(boundary['frontier']),4)
+
+    def test_checkpoint_merge_never_refunds_or_repeats_work(self):
+        from oeis_learn.fresh.pipeline_jobs import JobLedger, merge_boundary
+        def boundary(i):
+            ledger=JobLedger()
+            job=logical_job(contract='c',snapshot=str(i),mode='m',arm='a',prompt_id='p',attempt_ordinal=0,method='x',seed=0)
+            ledger.reserve(job,deadline=10,work=3)
+            ledger.cancel(job['job_id'])
+            return ledger.boundary({'workers':1})
+        a,b=boundary(0),boundary(1)
+        merged=merge_boundary(a,b)
+        self.assertEqual(merged['consumed'],6)
+        self.assertEqual(len(merged['frontier']),2)
+        with self.assertRaises(ValueError):merge_boundary(merged,a)
+        altered=dict(b, policies={'workers':2})
+        with self.assertRaises(ValueError):merge_boundary(a,altered)
+
+    def test_cancellation_signalled_before_join(self):
+        import threading
+        stopped=threading.Event()
+        def program():
+            job=logical_job(contract='c',snapshot='s',mode='m',arm='a',prompt_id='p',attempt_ordinal=0,method='x',seed=0)
+            yield NativeRequest(job,0,time.monotonic()+.03,lambda:stopped.wait(2),cancel=stopped.set)
+        start=time.monotonic()
+        with self.assertRaises(TimeoutError):drive(None,[program()],workers=1)
+        self.assertTrue(stopped.is_set())
+        self.assertLess(time.monotonic()-start,1)

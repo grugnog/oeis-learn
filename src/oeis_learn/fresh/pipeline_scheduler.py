@@ -22,6 +22,8 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
     def advance(i,value=None):
         try:
             ready[i]=generators[i].send(value)
+            if isinstance(ready[i], NativeRequest):
+                ledger.reserve(ready[i].job,deadline=ready[i].deadline,work=1)
         except StopIteration as stop:
             results[i]=stop.value;done.add(i);ready.pop(i,None)
     def run_native(i,request):
@@ -56,17 +58,16 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
                     continue
                 if time.monotonic()>=request.deadline:
                     raise TimeoutError('queued native request expired')
-                ledger.reserve(request.job,deadline=request.deadline,work=1)
                 thread=threading.Thread(target=run_native,args=(i,request),daemon=True)
                 active[i]=(thread,request);ready.pop(i)
                 thread.start();cursor=(i+1)%len(generators)
             # At most two batches of staged candidate records, tighter native bound wins.
             pending_native=sum(isinstance(r,NativeRequest) for r in ready.values())
-            if pending_native<min(8,lookahead*batch_size):
+            if pending_native<lookahead*batch_size:
                 decode=[i for i in order if i in ready and not isinstance(ready[i],NativeRequest)]
                 if decode:
                     first=ready[decode[0]]
-                    group=[i for i in decode if ready[i].temperature==first.temperature and ready[i].memory.shape[1:]==first.memory.shape[1:]][:min(batch_size,8-pending_native)]
+                    group=[i for i in decode if ready[i].temperature==first.temperature and ready[i].memory.shape[1:]==first.memory.shape[1:]][:min(batch_size,lookahead*batch_size-pending_native)]
                     requests=[ready.pop(i) for i in group]
                     values=sample(decoder,requests)
                     if len(values)!=len(group):
@@ -83,6 +84,12 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
         # Drain/cancel within one total five-second envelope. Daemon threads cannot
         # confer clean checkpoint authority if they fail to acknowledge completion.
         deadline=time.monotonic()+5
+        for request in ready.values():
+            if isinstance(request,NativeRequest):
+                ledger.cancel(request.job['job_id'],'cancelled before dispatch',started=False)
+        for thread,request in active.values():
+            if request.cancel is not None:
+                request.cancel()
         for i,(thread,request) in list(active.items()):
             ledger.cancel(request.job['job_id'])
             thread.join(timeout=max(0,deadline-time.monotonic()))
