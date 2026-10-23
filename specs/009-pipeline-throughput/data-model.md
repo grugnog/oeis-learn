@@ -29,7 +29,7 @@ If calibration derives finite reservations, store the derivation-rule hash, comp
 
 ### ResourcePolicy — `pipeline-resource/v1`
 
-Fields: effective CPU count/quota/cpuset; physical/currently available/engine/ancestor memory; user-authorized fraction0.90; selected historical16/capacity64/workstation90 profile and resolved total role memory; device identity; native slot count and affinity; Torch/native thread limits; active/pending/result/lookahead counts and byte charges; per-slot and aggregate RSS watchdogs; role-wide cache caps; candidate ResourceProfile hash; stream/artifact/archive limits; external/cleanup deadlines. Missing sensors use explicit unavailable reasons. Distinguish observed RSS/shared-memory counters from enforced container limits.
+Fields: effective CPU count/quota/cpuset; physical/currently available/engine/ancestor memory; user-authorized fraction0.90; selected historical16/capacity64/workstation90 profile, resolved enforcement ceiling, separate expected active peak reservation and safety headroom; device identity; native slot count and affinity; Torch/native thread limits; active/pending/result/lookahead counts and byte charges; per-slot and aggregate RSS watchdogs; role-wide cache caps; candidate ResourceProfile hash; stream/artifact/archive limits; external/cleanup deadlines. Missing sensors use explicit unavailable reasons. Distinguish observed RSS/shared-memory counters from enforced container limits.
 
 Resource policy changes acquire a new hash. A validation command may lower an invocation ceiling, but it cannot silently reinterpret a hardware comparison performed under different limits. At most one active compute role receives the full envelope.
 
@@ -37,7 +37,7 @@ Resource policy changes acquire a new hash. A validation command may lower an in
 
 ### Invocation — `pipeline-invocation/v1`
 
-Fields: unique invocation ID; resolved contract hash; started/ended wall timestamps; monotonic origin/durations; selected scope; unavailable/unrequested registry stages; parent reuse links; phase/gate status; actual build/startup/compute/archive costs; consumed/reserved budgets; interrupted flag; output/ZIP paths and integrity; explicit historical T093/T096 dispositions.
+Fields: unique invocation ID; resolved contract hash; started/ended wall timestamps; monotonic origin/durations; selected scope; unavailable/unrequested registry stages; parent reuse links; phase/gate status; actual build/startup/compute/archive costs; consumed/reserved budgets including conservative charges for unacknowledged work; interrupted flag; output/ZIP paths and integrity; explicit historical T093/T096 dispositions.
 
 An invocation owns a fresh output root. Old invocation records are immutable. Repeating a failed test uses a new invocation, not an edit to a terminal status. A missing terminal record is interrupted/partial, never inferred complete.
 

@@ -64,7 +64,7 @@ The eligibility boundary is strict: a result is usable only if all required stag
 
 ### Work and charging
 
-Maintain both elapsed parent allowance and actual child CPU/work counters. Parallel child wall durations may overlap and therefore must not be summed as elapsed time. Native instruction/fuel/attempt limits still apply to each declared operation and the scope's aggregate work ledger. Reserve aggregate work before dispatch and debit actual consumption exactly once on completion/cancellation; release only unused reservations, never consumed allowance. A job cannot be resubmitted under a new ID to evade its attempt cap.
+Maintain both elapsed parent allowance and actual child CPU/work counters. Parallel child wall durations may overlap and therefore must not be summed as elapsed time. Native instruction/fuel/attempt limits still apply to each declared operation and the scope's aggregate work ledger. Reserve aggregate work before dispatch and debit confirmed consumption exactly once. After a kill/crash, actual unreported work may be unknowable: conservatively charge the unaccounted remainder of its reservation, alongside already confirmed debits without double counting, and mark the accounting bound. Release only positively acknowledged unused reservations; never refund consumed or unknown work. A job cannot be resubmitted under a new ID to evade its attempt cap.
 
 ## Cache contract
 

@@ -26,9 +26,11 @@ A final study additionally requires the existing immutable final-plan reference 
 | Current operation/device | Requested actual-HIP updates, relevant cache/decoder equivalence, isolation/containment, full checkpoint/resume and mandatory artifact export | Block affected execution; CPU development may continue |
 | Resource policy | Qualified aggregate memory/CPU/thread/queue/cache/cancellation settings and selected pipeline identities | No use of unqualified optimized policy in research |
 | Scope-specific cost | All scheduled components estimated for the exact proposed scope, projection at most80% of its frozen finite budget | Block that scope; do not borrow a diverse32 receipt for transfer |
-| Learning gate | Independently reviewed diverse32 qualification with inherited success/completeness rules, from a prospectively admitted attempt | Preserve negative T096; no automatic retry or promotion |
+| Learning gate (representation and later learning studies; not the attempt establishing this gate) | Independently reviewed diverse32 qualification with inherited success/completeness rules, from a prospectively admitted attempt | Preserve negative T096; no automatic retry or promotion |
 | Study decision/provenance | Frozen hypothesis, arms, seeds, initialization, data, controls, selection/stopping and strict/assisted lineage | Block; no invented demonstration or results-driven seed substitution |
 | Final exposure | Immutable post-decision plan with fresh sealed cohort, fixed checkpoints/roster and shared/per-arm budgets | Reject final access; exposed cohorts remain diagnostic for later tuning |
+
+Gate applicability is keyed by study kind. A new `kind=learnability` attempt requires current runtime/admission, operations/device, resource, exact-scope cost, strict provenance and an explicit prospective new-attempt decision; it does not require an earlier learnability PASS. Representation and dependent learning studies additionally require that PASS. Final access always requires its separate final-plan authority. Read-only preparation/report fixtures do not need a trained-model learning gate but cannot execute a study by calling themselves preparation.
 
 A stage can complete the gate report while its scientific gate remains blocked. Record both statuses. Current-source evidence reuse follows the dependency contract; old PASS receipts are not universal certificates.
 
