@@ -88,6 +88,7 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
         raise ValueError('arm reservations must fit shared study budget')
     if root is not None:
         # All authority is read and checked before reading any input/checkpoint ref.
+        bindings={}
         for name,ref in record['gates'].items():
             gate=json.loads(reference(root,ref).read_text())
             validate(gate,{'version','scope','state','source','image','resources','producer','engine'},'pipeline-study-gate/v1')
@@ -96,6 +97,9 @@ def parse_study(record,*,root=None,source=None,final_plan=None):
             if gate['engine'] not in ('docker','podman'):raise ValueError('qualified engine identity required')
             if gate.get('state')!='PASS' or gate.get('scope')!=name or (source is not None and gate.get('source')!=source):
                 missing.append('gate:'+name)
+            bindings[name]={key:gate[key] for key in ('image','resources','engine')}
+        if 'runtime' in bindings:
+            missing.extend('gate_binding:'+name for name,binding in bindings.items() if binding!=bindings['runtime'])
         if record['authority'] is not None:
             authority=json.loads(reference(root,record['authority']).read_text())
             validate(authority,{'version','decision_payload','approved','reviewed_by'},'pipeline-study-authority/v1')

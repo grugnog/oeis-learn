@@ -104,10 +104,17 @@ def study_main(args,root,host_factory,*,collect=False):
         raise ValueError('study image differs from qualified runtime')
     host_options=__import__('copy').copy(args)
     host_options.engine=runtime['engine'];host_options.image=runtime['image']
-    policy=resolve(**observe(),lower=int(args.memory_gib*(1<<30)) if args.memory_gib else None)
-    host_options.memory_gib=policy['ceiling_bytes']/(1<<30)
-    host_options.cpus=min(args.cpus or 16,policy['cpus'])
+    from oeis_learn.container_runtime import Engine
+    from .resources import execution_identity
     try:
+        observations=observe()
+        observations['limits'].append(Engine(runtime['engine']).facts()['memory_bytes'])
+        observations['cpus']=min(observations['cpus'],args.cpus or 16)
+        policy=resolve(**observations,lower=int(args.memory_gib*(1<<30)) if args.memory_gib else None)
+        if execution_identity(policy)!=runtime['resources']:
+            raise ValueError('study execution resources differ from the reviewed qualification envelope')
+        host_options.memory_gib=policy['ceiling_bytes']/(1<<30)
+        host_options.cpus=min(args.cpus or 16,policy['cpus'])
         host=host_factory(host_options)
     except (RuntimeError,OSError,ValueError) as exc:
         stages=[Stage('study.runtime',6,available=False,reason=str(exc))]

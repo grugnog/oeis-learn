@@ -5,6 +5,26 @@ from oeis_learn.pipeline_validation.studies import parse_study, gate_requirement
 
 
 class Studies(unittest.TestCase):
+    def test_gate_set_cannot_mix_qualified_images_or_resource_envelopes(self):
+        import tempfile
+        from pathlib import Path
+        from oeis_learn.pipeline_validation.identity import write,file_hash
+        h='sha256:'+'a'*64
+        row=dict(version='pipeline-study/v1',kind='learnability',decision_id='fixture',hypothesis='fixture',
+            state='FROZEN',arms=[],seeds=[20261016],track='generic_only',prior_decisions=[],cost=None,
+            budgets={'wall_seconds':100,'work':100,'disk_bytes':100,'cleanup_seconds':5,'archive_seconds':5},
+            denominators={'visible':20,'horizon':100},rules={'stop':'negative-or-inconclusive','promote':'review'},authority=None,final_plan=None)
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);gates={}
+            for name in gate_requirements('learnability'):
+                record=seal(dict(version='pipeline-study-gate/v1',scope=name,state='PASS',source=h,
+                    image=h,resources=h,producer=h,engine='docker'))
+                if name=='device':record=seal(dict(record,resources='sha256:'+'b'*64))
+                write(root/(name+'.json'),record)
+                gates[name]={'path':name+'.json','sha256':file_hash(root/(name+'.json'))}
+            result=parse_study(seal(dict(row,gates=gates)),root=root,source=h)
+            self.assertIn('gate_binding:device',result['missing'])
+
     def test_non_circular_learnability_and_final_authority(self):
         self.assertNotIn('learning',gate_requirements('learnability'))
         self.assertIn('learning',gate_requirements('representation'))

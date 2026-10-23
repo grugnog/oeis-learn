@@ -3,6 +3,13 @@ from oeis_learn.pipeline_validation.resources import resolve, reserve
 
 
 class Resources(unittest.TestCase):
+    def test_study_resource_identity_binds_envelope_but_not_free_memory(self):
+        from oeis_learn.pipeline_validation.resources import execution_identity
+        policy=resolve(physical=128<<30,available=100<<30,cpus=16)
+        self.assertEqual(execution_identity(policy),execution_identity(dict(policy,available_bytes=90<<30)))
+        self.assertNotEqual(execution_identity(policy),execution_identity(dict(policy,ceiling_bytes=16<<30)))
+        self.assertNotEqual(execution_identity(policy),execution_identity(dict(policy,cpus=8)))
+
     def test_workstation_ancestor_and_available(self):
         result = resolve(physical=128 << 30, available=100 << 30, limits=[120 << 30, 96 << 30], cpus=32, quota=12, cpuset=8)
         self.assertEqual(result['ceiling_bytes'], 96 << 30)

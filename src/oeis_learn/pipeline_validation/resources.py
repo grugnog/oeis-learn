@@ -39,6 +39,11 @@ def reserve(policy, peak):
     return dict(peak_bytes=peak, headroom_bytes=headroom, reserved_bytes=required)
 
 
+def execution_identity(policy):
+    """Availability is rechecked for admission; it does not rename an envelope."""
+    return seal({k:v for k,v in policy.items() if k not in {'identity','available_bytes'}})['identity']
+
+
 def observe():
     memory = {}
     try:
