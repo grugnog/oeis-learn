@@ -553,14 +553,14 @@ def generate(inputs, output):
     )
     for row in rows:
         record = result["records"][row["id"]]
-        from .candidate_archive import retain_alternatives, v2_key
+        from .candidate_archive import retain_alternatives, duplicate_key
 
         merged = {}
         for value in record["details"].values():
             for alternative in value["archive"]["retained"]:
                 if (
                     alternative["id"] not in merged
-                    or (v2_key(alternative) < v2_key(merged[alternative['id']]) if settings['recipe'].get('pipeline')
+                    or (duplicate_key(alternative) < duplicate_key(merged[alternative['id']]) if settings['recipe'].get('pipeline')
                         else alternative["cost"] < merged[alternative["id"]]["cost"])
                 ):
                     merged[alternative["id"]] = alternative

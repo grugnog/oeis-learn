@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def digest(value):
-    return 'sha256:' + hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+    return 'sha256:' + hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()).hexdigest()
 
 
 def file_hash(path):
@@ -18,7 +18,7 @@ def file_hash(path):
 
 
 def seal(payload):
-    payload = {k: v for k, v in payload.items() if k != 'identity'}
+    payload = json.loads(json.dumps({k: v for k, v in payload.items() if k != 'identity'}, allow_nan=False))
     return dict(payload, identity=digest(payload))
 
 

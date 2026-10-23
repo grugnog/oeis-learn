@@ -172,5 +172,6 @@ def _select_v2(rows):
     if not admitted:
         return None
     selected = min(admitted, key=lambda r: (len(r['source'].encode()),r['source_sha256'],r['attempt_ordinal'],r['job_id']))
-    semantic = {k:v for k,v in selected.items() if k != 'cost'}
+    import copy
+    semantic = copy.deepcopy({k:v for k,v in selected.items() if k != 'cost'})
     return dict(semantic, selection='visible-only/v2', seal_sha256=identity(semantic))

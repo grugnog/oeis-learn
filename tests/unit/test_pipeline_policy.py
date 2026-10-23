@@ -41,3 +41,20 @@ class Policy(unittest.TestCase):
         b=retain_alternatives(rows[::-1],policy='structure-pareto/v2')
         self.assertEqual([r['id'] for r in a['retained']],[r['id'] for r in b['retained']])
         self.assertEqual(selected['id'],training_representative(b)['id'])
+
+    def test_selected_provenance_is_detached(self):
+        row = self.visible(0, 1)
+        selected = select_visible([row], policy='visible-only/v2')
+        row['provenance']['assignment']['p0'] = '2'
+        self.assertEqual(selected['provenance']['assignment'], {})
+
+    def test_equal_source_retains_earliest_provenance_before_assignment_size(self):
+        base = dict(id=source_identity('x'), source='x', structure='s', cost=10,
+            verified=True, verification='sha256:'+'1'*64, track='generic_only',
+            profile='bigint-body/v1', assignment={'p0':'1024'}, attempt_ordinal=0,
+            job_id=source_identity('0'))
+        later = dict(base, assignment={}, attempt_ordinal=1, job_id=source_identity('1'))
+        for rows in ([base, later], [later, base]):
+            result = retain_alternatives(rows, policy='structure-pareto/v2')
+            self.assertEqual(len(result['retained']), 1)
+            self.assertEqual(result['retained'][0]['attempt_ordinal'], 0)

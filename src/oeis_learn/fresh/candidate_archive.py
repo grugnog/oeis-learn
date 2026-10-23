@@ -113,6 +113,11 @@ def v2_key(row):
     return (len(row['source'].encode()),assignment_bits(row['assignment']),source_identity(row['source']),row['attempt_ordinal'],row['job_id'])
 
 
+def duplicate_key(row):
+    """Equal-source evidence follows first eligible logical provenance."""
+    return (row['attempt_ordinal'], row['job_id'])
+
+
 def _retain_v2(rows, cap):
     import copy
     if type(cap) is not int or not 1<=cap<=8:
@@ -129,10 +134,10 @@ def _retain_v2(rows, cap):
         key=v2_key(row)[2]
         if key in seen:
             previous=seen[key]
-            for field in ['structure','verification','track','profile','assignment']:
+            for field in ['verification','track','profile']:
                 if previous[field]!=row[field]:
                     raise ValueError('conflicting equal-source archive evidence')
-            if v2_key(row)<v2_key(previous):
+            if duplicate_key(row)<duplicate_key(previous):
                 seen[key]=row
         else:
             seen[key]=row

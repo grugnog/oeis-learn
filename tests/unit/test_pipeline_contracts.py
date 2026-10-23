@@ -21,6 +21,15 @@ class Contracts(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate(dict(row, **change), {'version', 'policy'}, 'test/v1')
 
+    def test_seal_detaches_nested_payload_and_matches_existing_hashes(self):
+        from oeis_learn.fresh.common import digest as existing_digest
+        payload = {'version': 'test/v1', 'roster': [{'source': 'λ'}]}
+        sealed = seal(payload)
+        self.assertEqual(sealed['identity'], existing_digest(payload))
+        payload['roster'][0]['source'] = 'changed'
+        self.assertEqual(sealed['roster'][0]['source'], 'λ')
+        validate(sealed, {'version', 'roster'}, 'test/v1')
+
     def test_observations(self):
         for value in [-1, float('inf'), float('nan'), True]:
             with self.assertRaises(ValueError):
