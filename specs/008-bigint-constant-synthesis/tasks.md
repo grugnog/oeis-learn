@@ -298,6 +298,16 @@ benchmark on either failure. The user approved a fresh full diagnostic rerun;
 no recovery/resume mechanism or parallel scheduler was added. Actual corrected
 Podman/HIP evidence remains pending W005; T094/T097/T098 stay open.
 
+**T094 host portability correction (2026-10-23)**: R004 in the profile plan
+fixes the next rerun's pre-container YAML import failure. The legacy run manager
+is loaded only on demand; no host dependency is added. A complete host path with
+fake execution and real auditing/reporting/archive passes under `python -S`;
+the regression reproduced the original error before the fix. All100 focused
+tests pass, including existing YAML-backed run-manager behavior. The
+[archive/local review](validation/phase-5-pipeline-profile-stdlib-review.json)
+claims no new GPU measurements. Actual corrected HIP collection/review remains
+pending W005, with all global task dispositions unchanged.
+
 ## Phase 6: Controlled research and longer-run readiness
 
 **Goal**: Collect interpretable evidence, including negative results. T098 is mandatory. A reviewed assisted manifest, access to checkpoints and GPU capacity are explicit execution prerequisites. No long run is launched simply to complete a task list.

@@ -1,0 +1,77 @@
+{
+  "version": "bigint-pipeline-profile-stdlib-review/v1",
+  "review_date": "2026-10-23",
+  "qualified": false,
+  "status": "HOST_FIX_LOCAL_PASS_HIP_PENDING",
+  "archive": {
+    "name": "008-pipeline-hip-rerun-20261023T023948Z.zip",
+    "sha256": "sha256:235c4d5f9b02e9bb527730433b42191a84eb755e5fac49ab196ef7511fba0e4e",
+    "members": 4,
+    "manifest_entries_verified": 3,
+    "omissions": [],
+    "crc": "PASS",
+    "all_file_sizes_and_hashes": "PASS",
+    "analysis_identity": "sha256:ecda0fe5a420f082b82282d2094e418e54e106af5312e766bad85957ef5ea946",
+    "source_sha256": "sha256:758e7e2d8fc4872cbcfd43a8c6cc404287a9a526ac7672119d08b10fe3fdd11d",
+    "image": "sha256:fa2d9c887be58d112c4e55828fb512b0df94727d31f7131c3d9e110691fb6c29"
+  },
+  "observed": {
+    "status": "FAIL",
+    "seconds_excluding_build": 0.015719368122518063,
+    "error": "ModuleNotFoundError: No module named 'yaml'",
+    "stages": {},
+    "new_GPU_measurements": false
+  },
+  "root_cause": "Importing tracking.pipeline_profile initializes tracking and eagerly imports run_manager, which imports yaml on the host before launching preflight.",
+  "correction": "Lazy public RunManager/RunContext exports keep stdlib telemetry and report imports independent of the legacy YAML dependency; public class identities and YAML configuration behavior are preserved.",
+  "regression": {
+    "before": "Full-host subprocess with site packages disabled fails at the same eager yaml import.",
+    "after": "Complete host path under python -S passes, including actual preparation/source hashing, all three role device/isolation audits, cleanup records, report/timeline and ZIP; only engine/device execution is faked.",
+    "assertions": [
+      "no yaml/torch/numpy import",
+      "all roles visited in order",
+      "parent file hashes unchanged",
+      "public tracking exports preserve class identity",
+      "unknown tracking attributes raise AttributeError"
+    ]
+  },
+  "validation": {
+    "source_sha256": "sha256:1f0b32ff10f0faedcfcca632991760a15481bb4083b039fc5d1924b3412402dc",
+    "passed": 100,
+    "profile_cases": 37,
+    "failures": 0,
+    "skips": 0,
+    "warning": "One CPU-only profiler CUDA-unavailable warning; no HIP evidence.",
+    "suites": [
+      "tests/unit/test_pipeline_profile.py",
+      "tests/unit/test_bigint_diagnostic_evidence.py",
+      "tests/unit/test_bigint_generation.py",
+      "tests/unit/test_bigint_scoped_runner.py",
+      "tests/unit/test_foundation_config_metrics.py",
+      "tests/integration/test_bigint_decoding.py",
+      "tests/unit/test_run_manager.py",
+      "tests/unit/test_foundation_legacy_wrappers.py"
+    ],
+    "checks": [
+      "Ruff F/E9",
+      "touched formatting",
+      "stdlib imports and complete mocked host subprocess",
+      "whitespace",
+      "relative documentation links",
+      "Spec Kit prerequisites and requirements16/16",
+      "no pre/post extension hooks"
+    ]
+  },
+  "actual_container_validation": false,
+  "actual_HIP_validation": false,
+  "CI_monitored": false,
+  "next_step": "Pull latest branch, rerun documented bounded HIP profile with a fresh output timestamp and current-source image, and share the sibling ZIP.",
+  "pending": [
+    "W005 corrected actual Podman/HIP collection and review",
+    "T094",
+    "T097",
+    "T098"
+  ],
+  "T093": "DEFERRED",
+  "T096": "original consumed negative unchanged"
+}

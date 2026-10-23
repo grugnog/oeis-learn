@@ -431,3 +431,24 @@ training admission or worker-pool optimization is changed.
 Local correction validation:88 focused regressions pass, including35 profile
 cases; the [local fix receipt](phase-5-pipeline-profile-fix-local.json) records the
 exact CPU reproduction, checks and explicit pending actual container/HIP gate.
+
+## Host dependency correction — 2026-10-23
+
+- [X] R004 Review the rerun archive and restore the stdlib-only host boundary.
+  All three manifest entries in the four-member ZIP verify; no container stage
+  started. Importing the device helpers triggered `tracking/__init__.py`'s eager
+  legacy run-manager import, which requires YAML. Lazily exporting its two public
+  classes preserves their identity and keeps telemetry/report imports independent
+  of that dependency. The new full-host regression fails with the reported error
+  before this change and passes with site packages disabled afterward. It uses
+  fake engine/device execution but real preparation, source hashing, role audits,
+  cleanup records, reporting and archive code; it asserts YAML/torch/numpy were
+  not imported and parent files are unchanged. Existing run-manager YAML behavior
+  is covered separately. No host package installation or device work is required
+  for this correction.
+
+The [review receipt](phase-5-pipeline-profile-stdlib-review.json) records100 local
+passing tests, including37 profile cases. This does not verify actual containers
+or HIP traces; W005 and T094/T097/T098 remain open. T093 is deferred and the
+original negative T096 is unchanged. After pulling, rerun the quickstart command
+with a fresh output timestamp and leave `--image` unset for the current source.

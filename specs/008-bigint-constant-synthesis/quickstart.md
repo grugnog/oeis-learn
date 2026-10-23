@@ -15,6 +15,15 @@ export. Both harness defects are corrected; actual validation of the corrections
 still needs this rerun. The user approved repeating the bounded diagnostic rather
 than adding recovery machinery. Preserve the original output and ZIP.
 
+The2026-10-23 rerun stopped on the host in0.016s, before any container stage:
+importing device-audit helpers eagerly imported the legacy YAML run manager.
+The package now loads that manager only when its classes are requested. No host
+PyYAML installation is needed. A regression executes the complete host path,
+including actual audit/report/archive code with a fake engine, under `python -S`.
+See the [rerun failure and local validation receipt](validation/phase-5-pipeline-profile-stdlib-review.json).
+Pull the latest branch before rerunning; actual corrected HIP evidence remains
+pending and this failed archive supplies no new device measurements.
+
 The rerun first checks actual role-visible device nodes against the host's
 major/minor identities, then requires a tiny HIP trace and a representative model
 update trace before the paired benchmark. Rootless Podman's empty device metadata
