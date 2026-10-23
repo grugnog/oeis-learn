@@ -161,7 +161,11 @@ def main(argv=None):
             raise ValueError('current installed source mismatch')
         from oeis_learn.tracking.pipeline_profile import device_view,audit_device_view
         view=device_view();write(output/'devices.json',view)
-        audit_device_view([],view,json.loads(os.environ['OEIS_EXPECTED_PIPELINE_DEVICES']))
+        try:
+            audit_device_view([],view,json.loads(os.environ['OEIS_EXPECTED_PIPELINE_DEVICES']))
+        except (ValueError,RuntimeError) as exc:
+            from .runner import ResourceBreach
+            raise ResourceBreach('role device isolation audit failed: '+str(exc)) from exc
         from .neural import gpu,score
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
@@ -173,7 +177,9 @@ def main(argv=None):
             result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
-        result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}')
+        from .runner import ResourceBreach
+        result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}',
+            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,ResourceBreach)) else None)
     finally:
         result['seconds_through_role']=time.monotonic()-role_started
         result.setdefault('version','pipeline-role-result/v1')

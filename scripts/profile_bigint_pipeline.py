@@ -252,11 +252,24 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
         else:
             from oeis_learn.pipeline_validation.supervision import launch as supervised
             supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20))
+    except BaseException as exc:
+        if argv is not None and not isinstance(exc,KeyboardInterrupt):
+            try:
+                failed=json.loads((output/'summary.json').read_text())
+            except (OSError,ValueError):failed={}
+            if failed.get('fatal')=='RESOURCE_BREACH':
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach(failed.get('error','role resource breach')) from exc
+        raise
     finally:
+        cleanup_started=time.monotonic()
         try:
             result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else 2)
             inspection = json.loads(result.stdout)
             write(output / "container-inspect.json", inspection)
+            if argv is not None and inspection[0].get('State',{}).get('OOMKilled'):
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('compute container exceeded its memory envelope')
             config = inspection[0]["HostConfig"]
             binds = {
                 m["Destination"]: m["RW"]
@@ -275,6 +288,9 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
                 or binds != {"/work/input": False, "/work/output": True}
                 or config.get("DeviceRequests")
             ):
+                if argv is not None:
+                    from oeis_learn.pipeline_validation.runner import ResourceBreach
+                    raise ResourceBreach('actual role isolation audit failed')
                 raise RuntimeError("actual role isolation audit failed")
             write(
                 output / "isolation-audit.json",
@@ -290,14 +306,15 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             if argv is None:
                 host.engine.remove(name)
             else:
-                host.engine.remove(name,timeout=5)
-            elapsed = time.monotonic() - start
+                host.engine.remove(name,timeout=max(.01,5-(time.monotonic()-cleanup_started)))
+            elapsed = time.monotonic() - (start if argv is None else cleanup_started)
             write(
                 output / "cleanup.json",
                 dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
             )
             if argv is not None and elapsed>5:
-                raise RuntimeError("pipeline container reclamation exceeded five-second envelope")
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('pipeline container reclamation exceeded five-second envelope')
             write(
                 output / "host-timing.json",
                 dict(
