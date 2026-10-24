@@ -154,8 +154,12 @@ def checkpoint_roundtrip(root,recipe,state,parent,boundary):
     loaded=store.load(pointer)
     import torch
     for model in ('encoder','decoder'):
-        if not all(torch.equal(value,loaded['states']['weights'][model][key]) for key,value in states['weights'][model].items()):
-            raise RuntimeError('diagnostic full checkpoint roundtrip mismatch')
+        for key,value in states['weights'][model].items():
+            restored=loaded['states']['weights'][model][key]
+            # CheckpointStore deliberately loads on CPU. Compare exact values
+            # there without changing the frozen source snapshot's device.
+            if value.dtype!=restored.dtype or value.shape!=restored.shape or not torch.equal(value.detach().cpu(),restored.detach().cpu()):
+                raise RuntimeError('diagnostic full checkpoint roundtrip mismatch')
     return dict(pointer=pointer,authority='diagnostic only; no DurableRun; not research resumable')
 
 

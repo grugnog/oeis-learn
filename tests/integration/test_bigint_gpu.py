@@ -1,4 +1,13 @@
 import pytest
+
+
+def test_actual_hip_diagnostic_checkpoint_roundtrip(tmp_path):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':
+            pytest.fail('actual HIP device required; CPU is not evidence')
+        pytest.skip('actual HIP device required')
+    from tests.unit.test_pipeline_profile import check_diagnostic_checkpoint_device_roundtrip
+    check_diagnostic_checkpoint_device_roundtrip('cuda',tmp_path)
 import os
 import torch
 from tests.integration.test_bigint_decoding import check_generation_batch_parity

@@ -25,6 +25,29 @@ def runner():
     return module
 
 
+def check_diagnostic_checkpoint_device_roundtrip(device, tmp_path):
+    import torch
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.pipeline_profile import snapshot
+    from oeis_learn.pipeline_validation.neural import checkpoint_roundtrip
+
+    encoder=torch.nn.Linear(2,2).to(device)
+    decoder=torch.nn.Linear(2,2).to(device)
+    optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()])
+    decoder(encoder(torch.ones(1,2,device=device))).sum().backward()
+    optimizer.step()
+    state=snapshot(encoder,decoder,optimizer)
+    recipe=resolve({'version':'bigint-bootstrap/v1'})
+    report=checkpoint_roundtrip(tmp_path/'diagnostic',recipe,state,'fixture',None)
+    assert 'not research resumable' in report['authority']
+    assert state['encoder']['weight'].device.type==device
+    assert encoder.weight.device.type==device
+
+
+def test_diagnostic_checkpoint_cpu_roundtrip(tmp_path):
+    check_diagnostic_checkpoint_device_roundtrip('cpu',tmp_path)
+
+
 def test_nested_wall_accounting_does_not_double_count():
     rows = [
         dict(start=0, end=10, name="generation", depth=0),
