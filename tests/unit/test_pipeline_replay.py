@@ -122,15 +122,25 @@ class Replay(unittest.TestCase):
                 (inputs/'weights.pt').write_bytes(b'weights')
                 m=seal({'binding':{'source':'current'}});write(inputs/'work.json',{'manifest':m});return m
             def container(h,image,inputs,output,**kw):
-                calls.append(kw);output.mkdir();self.assertEqual(kw['seconds'],600)
-                expected=json.loads((inputs/'expected.json').read_text());self.assertEqual(expected['options']['seconds'],570)
+                calls.append(kw);output.mkdir()
+                expected=json.loads((inputs/'expected.json').read_text())
+                child=json.loads((inputs/'comparison-contract.json').read_text()) if kw['mode']=='replay-compare' else None
+                self.assertEqual(kw['seconds'],child['limits']['external_seconds'] if child else 600)
+                self.assertEqual(expected['options']['seconds'],child['limits']['internal_seconds'] if child else 570)
                 if kw['mode']=='replay-reference':
                     (output/'private').mkdir();(output/'private/reference.pt').write_bytes(b'frozen')
-                    ref=seal({'workload':'work'});write(output/'reference.json',ref)
+                    ref=seal(dict(workload='work',source='current',contract='contract',weights='weights'));write(output/'reference.json',ref)
                 else:
                     self.assertEqual((inputs/'reference.pt').read_bytes(),b'frozen')
                     ref=json.loads((inputs/'reference.json').read_text())
-                write(output/'summary.json',dict(status='COMPLETE',reference=ref['identity'],workload='work',identity=kw['mode'],verified_seconds=1,resources={'qualified':True,'ceiling_bytes':16<<30},device={'hip':'test','name':'gpu'}))
+                result=dict(status='COMPLETE',reference=ref['identity'],workload='work',verified_seconds=1,decode_seconds=0.5,
+                    boundaries=12,resources={'qualified':True,'ceiling_bytes':16<<30},device={'hip':'test','name':'gpu'},torch_threads={'intraop':2,'interop':1})
+                if child:
+                    slot=json.loads((inputs/'comparison-slot.json').read_text())
+                    self.assertEqual(expected['options']['comparison'],child['identity'])
+                    self.assertEqual(expected['options']['slot'],slot['id'])
+                    result.update(comparison=child['identity'],slot=slot['id'],bookkeeping=slot['bookkeeping'])
+                write(output/'summary.json',seal(result))
             module=SimpleNamespace(prepare=prepare,container_stage=container)
             observations=dict(physical=32<<30,available=24<<30,cpus=16,limits=[],quota=None,cpuset=None)
             stages=ReplayStages(a)
@@ -141,11 +151,25 @@ class Replay(unittest.TestCase):
                     a.receipts['replay.'+name]={'state':'PASS','identity':name,'observations':{'result':result}}
                 out=root/'report';out.mkdir();report=stages(Stage('replay.report',2,adapter='replay-report'),out)
                 self.assertEqual(report['status'],'COMPLETE')
+                from oeis_learn.pipeline_validation.replay_comparison import ComparisonStages,SLOTS
+                comparison=ComparisonStages(stages)
+                out=root/'freeze';out.mkdir()
+                child=comparison(Stage('replay.compare.freeze',2,adapter='replay-comparison-freeze'),out)
+                for slot in SLOTS:
+                    out=root/slot['id'];out.mkdir()
+                    result=comparison(Stage(slot['id'],2,seconds=600,adapter='replay-comparison-trial'),out)
+                    a.receipts[slot['id']]={'state':'PASS','identity':slot['id'],'observations':{'result':result}}
+                out=root/'comparison-report';out.mkdir()
+                self.assertEqual(comparison(Stage('replay.compare.report',2,adapter='replay-comparison-report'),out)['status'],'COMPLETE')
+                (root/'freeze/comparison-contract.json').write_text(json.dumps(dict(child,identity='changed')))
+                out=root/'changed-child';out.mkdir()
+                with self.assertRaisesRegex(ValueError,'comparison changed'):
+                    comparison(Stage(SLOTS[0]['id'],2,seconds=600,adapter='replay-comparison-trial'),out)
                 (ref/'role/reference.json').write_text(json.dumps(seal({'workload':'changed'})))
                 out=root/'mutated';out.mkdir()
                 with self.assertRaisesRegex(ValueError,'reference changed'):
                     stages(Stage('replay.cold',2,seconds=600,adapter='replay-trial'),out)
-            self.assertEqual([c['gpu'] for c in calls],[False,True,True,True,True,True])
+            self.assertEqual([c['gpu'] for c in calls],[False]+[True]*10)
             self.assertTrue(all('oeis_learn.pipeline_validation.role' in c['argv'] for c in calls))
 
     def test_replay_preparation_rejects_changed_visible_denominator(self):

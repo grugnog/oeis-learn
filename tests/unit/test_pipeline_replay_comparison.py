@@ -36,7 +36,8 @@ class ReplayComparison(unittest.TestCase):
             (root/'comparison-contract.json').write_text(json.dumps(child))
             slot=SLOTS[2];(root/'comparison-slot.json').write_text(json.dumps(slot))
             cfg=dict(source=child['source'],contract=child['validation'],options=dict(
-                seconds=child['limits']['internal_seconds'],memory_ceiling=16<<30))
+                seconds=child['limits']['internal_seconds'],memory_ceiling=16<<30,render_node=None,
+                comparison=child['identity'],slot=slot['id']))
             value=dict(device=child['resource_device']['device'],torch_threads=child['threads'])
             with patch('oeis_learn.pipeline_validation.replay.replay_role',return_value=value) as run:
                 result=comparison_role(root,root,cfg)
@@ -57,7 +58,10 @@ class ReplayComparison(unittest.TestCase):
         ref,rows,_=baseline_fixture()
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);(root/'reference.json').write_text(json.dumps(ref))
+            (root/'private').mkdir();(root/'private/reference.pt').write_bytes(b'reference fixture')
+            from oeis_learn.pipeline_validation.identity import file_hash
             replay=Mock();replay.a=SimpleNamespace(receipts=rows);replay.reference=root
+            replay.reference_hash=file_hash(root/'reference.json');replay.payload_hash=file_hash(root/'private/reference.pt')
             stages=ComparisonStages(replay)
             trial=Stage(SLOTS[0]['id'],2,seconds=600,adapter='replay-comparison-trial')
             with self.assertRaisesRegex(ValueError,'freeze'):stages(trial,root)

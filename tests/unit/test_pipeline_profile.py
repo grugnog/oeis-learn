@@ -865,8 +865,9 @@ def check_baseline_replay_role(device,tmp_path):
                 resources={'qualified':True,'ceiling_bytes':1<<30}))}) for key in TRIALS}
             child=freeze_comparison(replay_report(baseline,ref['identity'],ref['workload']),baseline,ref)
             (inputs/'comparison-contract.json').write_text(json.dumps(child))
-            comparison_config=dict(cfg,options=dict(cfg['options'],seconds=child['limits']['internal_seconds']))
+            comparison_config=dict(cfg,options=dict(cfg['options'],seconds=child['limits']['internal_seconds'],comparison=child['identity']))
             for slot in SLOTS[1:3]:
+                comparison_config['options']['slot']=slot['id']
                 (inputs/'comparison-slot.json').write_text(json.dumps(slot))
                 output=tmp_path/slot['arm'];output.mkdir()
                 compared=comparison_role(inputs,output,comparison_config)

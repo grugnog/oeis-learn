@@ -54,6 +54,7 @@ def validate_comparison(child):
 def freeze_comparison(report,receipts,reference):
     # Recompute from all five immutable receipts; a supplied favorable summary
     # cannot substitute for missing/changed baseline work.
+    if seal(reference)!=reference:raise ValueError('immutable reference required before comparison freeze')
     expected=replay_report(receipts,reference['identity'],reference['workload'])
     if report!=expected or report['status']!='COMPLETE':raise ValueError('complete baseline replay required before candidates')
     values=[]
@@ -109,6 +110,10 @@ def comparison_role(inputs,output,config):
     from .replay import replay_role
     child=json.loads((inputs/'comparison-contract.json').read_text());validate_comparison(child)
     slot=json.loads((inputs/'comparison-slot.json').read_text())
+    options=config['options']
+    if (set(options)!={'seconds','memory_ceiling','render_node','comparison','slot'}
+            or options['comparison']!=child['identity'] or options['slot']!=slot.get('id')):
+        raise ValueError('expected comparison/slot identity mismatch')
     if (slot not in SLOTS or config['source']!=child['source'] or config['contract']!=child['validation']
             or config['options']['seconds']!=child['limits']['internal_seconds']):
         raise ValueError('frozen comparison slot/source/validation/deadline mismatch')
@@ -116,7 +121,8 @@ def comparison_role(inputs,output,config):
     if (ref['identity']!=child['reference'] or ref['workload']!=child['workload'] or ref['weights']!=child['weights']
             or config['options']['memory_ceiling']!=child['resource_device']['ceiling_bytes']):
         raise ValueError('frozen comparison reference/resource mismatch')
-    result=replay_role(inputs,output,config,bookkeeping=slot['bookkeeping'])
+    replay_config=dict(config,options={k:v for k,v in options.items() if k not in {'comparison','slot'}})
+    result=replay_role(inputs,output,replay_config,bookkeeping=slot['bookkeeping'])
     if result['device']!=child['resource_device']['device'] or result['torch_threads']!=child['threads']:
         raise ValueError('frozen comparison device/threads mismatch')
     return dict(result,comparison=child['identity'],slot=slot['id'],bookkeeping=slot['bookkeeping'])
@@ -135,6 +141,9 @@ class ComparisonStages:
     def __call__(self,stage,output):
         a=self.replay.a
         if stage.adapter=='replay-comparison-freeze':
+            if (file_hash(self.replay.reference/'reference.json')!=self.replay.reference_hash
+                    or file_hash(self.replay.reference/'private/reference.pt')!=self.replay.payload_hash):
+                raise ValueError('frozen replay reference changed before comparison freeze')
             ref=json.loads((self.replay.reference/'reference.json').read_text())
             baseline=replay_report(a.receipts,ref['identity'],ref['workload'])
             child=freeze_comparison(baseline,a.receipts,ref)

@@ -337,6 +337,7 @@ class ReplayStages:
         m=json.loads((inputs/'work.json').read_text())['manifest']
         config=dict(version='pipeline-role/v1',source=m['binding']['source'],
             contract=a.contract['identity'],mode=mode,options=dict(seconds=internal,memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node']))
+        if comparison is not None:config['options'].update(comparison=child['identity'],slot=slot['id'])
         write(inputs/'expected.json',config)
         from contextlib import nullcontext
         with host.gpu_lock() if gpu else nullcontext():
