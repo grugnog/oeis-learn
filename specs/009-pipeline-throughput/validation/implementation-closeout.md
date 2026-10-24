@@ -1,3 +1,5 @@
+Current increment: [combined hardware experiments](hardware-ladder-implementation.md) share preparation/reference/archive and serialize timing.123 host tests pass; source-bound CPU/HIP128-row/mode/capacity collection remains pending. Accepted009:B004 remains complete at d74d30e. Counts77 complete/19 runtime pending/15 research held after reopening affected-sourceT110. No learning run admitted.
+
 Latest accepted scope: [batch8/16 hardware replay PASS](replay-batching-operator-20261024T203537Z.md).629 CPU/17 HIP tests and all roles pass;48.98% median interval reduction. Counts78 complete/18 runtime pending/15 research held. Hardware-first, combined-experiment preference remains; no learning run admitted.
 
 Current hardware increment: [equal-work batch8/16 replay](replay-batching-implementation.md).112 host tests and verified local export pass; new affected-source CPU/HIP collection is pending. Original counts77 complete/19 runtime pending/15 research held or blocked. Accepted bookkeeping evidence remains complete at its source. No learning or multi-day run is admitted.

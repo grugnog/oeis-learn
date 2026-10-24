@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -470,3 +470,12 @@ The user's hardware-first instruction follows the accepted bookkeeping compariso
 ### Accepted batch8/16 screen
 
 [Target evidence](validation/replay-batching-operator-20261024T203537Z.md) closes009:B004 and affected-sourceT110 at d74d30e:629 CPU/17 HIP tests, all rows/roles complete,48.98% median component interval reduction. Counts78 complete/18 runtime pending/15 research held. Further hardware experiments should be combined under finite prospective contracts to minimize operator handoffs; isolated timing measurements stay serial.
+
+## Supplemental combined hardware experiments — finite capacity ladder v1
+
+Per the user's request to minimize handoffs, [contract](contracts/hardware-ladder.md) and [handoff](validation/hardware-ladder-implementation.md) combine ordinary/telemetry overhead and conditional32/64/128 comparisons against16. Inputs are32 visible rows cyclically mapped into128 physical cache rows, clearly labelled as capacity diagnostics. Original manifest identities/results and learning hold remain. Counts77 complete/19 runtime pending/15 research held reflect reopening current-sourceT110.
+
+- [X] 009:H001 Freeze the separate manifest, prior batch16 evidence basis,128-row/131072-token/640-boundary work, mode/progression/selection rules, finite candidate roster and unchanged phase/global/resource bounds.
+- [X] 009:H002 Implement shared reference/preparation, ordinary/telemetry mode calibration, complete baseline-only duration/capacity admission and per-branch five-role ledgers with strict source/mode/weight/child custody, no retries and explicit stopped/unstarted work.
+- [X] 009:H003 Run host authority/DAG/negative/failure/receipt/global-stop checks and actual public stdlib export; author/register real CPU/HIP128-row/all-size/ordinary-mode oracle fixtures; retain local evidence and one combined command.
+- [ ] 009:H004 Collect/review the combined target archive, including current CPU/HIP kernels, frozen mode, every admitted/stopped/blocked branch, CPU/GPU/memory observations and package/source/audit/cleanup identities. No production or learning admission inferred.

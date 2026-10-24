@@ -1,3 +1,5 @@
+Current hardware handoff: [one combined overhead/capacity run](validation/hardware-ladder-implementation.md), covering ordinary-versus-telemetry and conditional batch32/64/128 comparisons in one archive.123 host tests pass; new CPU/HIP collection is pending. Accepted batch8/16 evidence stays complete; no learning-quality work is launched.
+
 Latest batching result: [registered target PASS](validation/replay-batching-operator-20261024T203537Z.md),629 CPU/17 HIP tests and all roles complete. Batch16 cuts equal-work interval48.98% median, with GPU busy about44% and1.71GiB sampled role memory. No duplicate run requested.
 
 Current hardware handoff: [equal-work batch8 versus batch16](validation/replay-batching-implementation.md). The accepted bookkeeping comparison showed10.54–11.28% component improvement. New batching code and112 host tests pass; target CPU/HIP batching validation is pending. Learning-quality/curriculum work remains held.
