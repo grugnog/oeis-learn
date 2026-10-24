@@ -12,7 +12,7 @@ TRIALS=['replay.cold','replay.warmup',*[f'replay.calibration-{i}' for i in range
 def replay_plan(bos):
     return seal(dict(version='pipeline-replay-workload/v1',positions=[1,32,128,513,1024],
         batches=[1,8],tokens=[[bos]*1024 for _ in range(8)],mixed_order=[6,1,6],
-        mixed_steps=32,bookkeeping='baseline',backend='eager',precision='float32',
+        mixed_steps=32,bookkeeping='baseline',backend='eager',precision='float32',measurement='aggregate1Hz/v1',
         meaning='forced BOS replay, including mixed/finished/reordered/inactive rows; not generated programs'))
 
 
@@ -50,8 +50,10 @@ def replay_report(receipts,reference,workload):
 def prepare_inputs(recipe,prompts,weights,output,**binding):
     """Reuse the existing parent's selection checks, without reading hidden truth."""
     from oeis_learn.decoder.bigint_codec import BOS_ID
-    output=Path(output);inputs=output/'input';inputs.mkdir()
     prompts=[{k:row[k] for k in ('id','values')} for row in prompts[:8]]
+    if len(prompts)!=8 or len({r['id'] for r in prompts})!=8 or any(len(r['values'])!=20 for r in prompts):
+        raise ValueError('eight distinct frozen twenty-visible-term replay prompts required')
+    output=Path(output);inputs=output/'input';inputs.mkdir()
     plan=replay_plan(BOS_ID)
     manifest=seal(dict(version='pipeline-replay-input/v1',binding=binding,
         weights=file_hash(weights),recipe=digest(recipe),prompts=digest(prompts),plan=plan))
@@ -174,6 +176,8 @@ def reference_role(inputs,output,config):
     with torch.inference_mode():
         memory=encoder.forward_from_sequences([[canonical_integer(v) for v in row['values']] for row in work['prompts']],device='cpu')
         expected=full_reference(decoder,memory,m['plan'],deadline)
+    if not torch.isfinite(memory).all() or any(not torch.isfinite(v).all() for v in expected.values()):
+        raise RuntimeError('nonfinite frozen replay reference')
     check_deadline(deadline)
     path=output/'private/reference.pt';path.parent.mkdir()
     torch.save(dict(memory=memory,expected=expected),path)
@@ -199,15 +203,18 @@ def replay_role(inputs,output,config):
     if ref['memory']!=tensor_record(payload['memory']) or ref['expected']!={k:tensor_record(v) for k,v in payload['expected'].items()}:
         raise ValueError('reference tensor hashes differ')
     memory=payload['memory'].to('cuda');check_deadline(deadline)
-    torch.cuda.synchronize();started=time.monotonic()
-    outputs=cached_replay(decoder,memory,work['manifest']['plan'],deadline)
-    torch.cuda.synchronize();decode_seconds=time.monotonic()-started
-    records=verify_outputs(outputs,payload['expected'])
-    write(output/'boundaries.json',records)
+    from oeis_learn.tracking.pipeline_profile import Recorder
+    with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node']):
+        torch.cuda.synchronize();started=time.monotonic()
+        outputs=cached_replay(decoder,memory,work['manifest']['plan'],deadline)
+        torch.cuda.synchronize();decode_seconds=time.monotonic()-started
+        records=verify_outputs(outputs,payload['expected'])
+        write(output/'boundaries.json',records)
     check_deadline(deadline)
     return dict(status='COMPLETE',reference=ref['identity'],workload=ref['workload'],
         decode_seconds=decode_seconds,verified_seconds=time.monotonic()-started,boundaries=len(records),
         device=dict(name=torch.cuda.get_device_name(),hip=torch.version.hip),
+        torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
         measurement='fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed',
         authority='forced replay viability only; not generated-program, optimization or research admission')
 

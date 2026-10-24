@@ -52,6 +52,9 @@ class Replay(unittest.TestCase):
         self.assertEqual(len(good['calibration']['baseline_receipts']),3)
         self.assertFalse(good['optimization_adoption'])
         self.assertFalse(good['research_cost_admission'])
+        from oeis_learn.pipeline_validation.costs import forecast_trials
+        forecast=forecast_trials([good]*3,'diverse32',updates=3000,cadence=500,budget=7200)
+        self.assertFalse(forecast['forecast']['within_budget'])
         for key in ids:
             for field,value in [('status','PARTIAL'),('reference','other'),('workload','other')]:
                 changed=copy.deepcopy(rows);changed[key]['observations']['result'][field]=value
@@ -144,3 +147,15 @@ class Replay(unittest.TestCase):
                     stages(Stage('replay.cold',2,seconds=600,adapter='replay-trial'),out)
             self.assertEqual([c['gpu'] for c in calls],[False,True,True,True,True,True])
             self.assertTrue(all('oeis_learn.pipeline_validation.role' in c['argv'] for c in calls))
+
+    def test_replay_preparation_rejects_changed_visible_denominator(self):
+        import tempfile
+        from oeis_learn.pipeline_validation.replay import prepare_inputs
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);weights=root/'weights.pt';weights.write_bytes(b'frozen')
+            rows=[{'id':str(i),'values':['0']*20} for i in range(8)]
+            for number,changed in enumerate([rows[:7],[*rows[:7],rows[0]],[*rows[:7],dict(rows[7],values=['0']*21)]]):
+                output=root/str(number);output.mkdir()
+                with self.assertRaisesRegex(ValueError,'twenty-visible-term'):
+                    prepare_inputs({},changed,weights,output,source='source')
+                self.assertFalse((output/'input').exists())
