@@ -1,0 +1,814 @@
+{
+  "version": "pipeline-replay-operator-review/v1",
+  "archive": "009-replay-20261024T172754Z.zip",
+  "archive_sha256": "sha256:4c2b90fae6abdc538f930393213b9e73a488f7b34679333044367db7a8de19bb",
+  "archive_bytes": 3031092,
+  "archive_members": 202,
+  "manifest_identity": "sha256:0d0ecf7b76a922ff599f31dda061ee783680e403dabdad8f4c39d33491f1d8e0",
+  "integrity": "PASS",
+  "producer_commit": "c9be16aee46e06b8993af7133dc2826fe7e2936c",
+  "source": "sha256:69807d38ae62e91406f1d02e9afa284302156ba89cf3d26ebf27ff9f5808a20f",
+  "source_match": "exact clean producer checkout, all dependency-closure entries",
+  "source_files": 693,
+  "scope": "engineering-replay",
+  "elapsed_seconds": 921.2689821880776,
+  "selected_scope": "PASS",
+  "engineering": "PASS",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "learning": "NOT_ADMITTED",
+  "research": "NOT_EXECUTED",
+  "long_run_admission": "NOT_ADMITTED",
+  "stages": {
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:2a28a4c61aff38b1b8a32ca166c72c0590d89ec5c8a1b523d9cceff6acbec40c"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:0194a48d70ad033a1ac36da3ae1c64cc0ffb31404d69b51a1ba0e70ad61b5669"
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:887832541d0541a6613ff70f6213565f37a5d0b939fd4819bd61f1f8b17aa7ae"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:9afd6a02bb5888c6e71e1339370e372ef2a4a477f472b367e86ddc31e63d7598"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:592e49c87169e023313ba7f1fa8b4bc4a5b49ecbdb1ff108a0c688c28c65b0c2"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:d2acee8c7b91bbe77276753185a57a3a86a70fff85692a63b732c9e3bc22c8e8"
+    },
+    "replay.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:9d8fac9e67eed67539509ff41ef655bf7f97bbd05e6076379f9703271476c3a7"
+    },
+    "replay.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:6e0d743941c350cc418558c95275d9c1662a95c0dbbfd33c7b73e4ae4dbed57e"
+    },
+    "replay.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:80d6e8dd8ac1e1f4a773ac97386675188f63aac515d05872c44c7c67f7a733f0"
+    },
+    "replay.cold": {
+      "state": "PASS",
+      "identity": "sha256:f193978f4a0c42460fca726fe50ab1e26a4106833b42bc192abcf96a22360c41"
+    },
+    "replay.reference": {
+      "state": "PASS",
+      "identity": "sha256:264b345b9abe71b6f9f15719801314be08fa9c50b08b83abe0b244c40e8dc44b"
+    },
+    "replay.report": {
+      "state": "PASS",
+      "identity": "sha256:fea42e4b0d8fd9128a61080aa2fdd80b293f977957b07bba2b109b4e1efd5d53"
+    },
+    "replay.warmup": {
+      "state": "PASS",
+      "identity": "sha256:086abffbea17aea7e633e9cda01acc2cc97c56ef493c62d5d726f670a78d3099"
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 613,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  },
+  "reference": {
+    "contract": "sha256:f926e07ce9c9d9220bdca8f8fde268708804383c163855d0c6ef476355ffa914",
+    "expected": {
+      "b1.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6d82582387edbecc74724de60bfc5708ce53a14bbf6d61039b2f4343fc549243",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "b1.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:124a9087495eebd7e6f12d0609f07ff445bb28796b4bd8381184240d8332aac0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "b1.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:0a49bb608f2eb3f4e9a37b4a9d773fea37912bf31fe5174443e2334720ba58f5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "b1.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:65a286eb7ffde9181c6269474ac9dc001acfe3842bd28503c7025636b4940f23",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "b1.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7dd039ef59dc84a91d925e95605b96bb95840ae1d020c5c67fc3d49add1c9c56",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "b8.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6a9931e465fa54fa2a229d8539617ddd8e8107a67bf97a06ea38f019701b024c",
+        "shape": [
+          8,
+          1,
+          86
+        ]
+      },
+      "b8.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:de41d59483bca09596e03a01e392eeced5894efc99cb3f5b090e01cc92e882ed",
+        "shape": [
+          8,
+          1,
+          86
+        ]
+      },
+      "b8.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:af891eb7b23955358b8f168b668a006a8babebbcd8df093ada060c12c7614750",
+        "shape": [
+          8,
+          1,
+          86
+        ]
+      },
+      "b8.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e873a8a6d437ed3d44f076d3e4a8621b9c75deebf5f877ea69cde09f2569d419",
+        "shape": [
+          8,
+          1,
+          86
+        ]
+      },
+      "b8.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:35929af67c5bae0e94fe98200163300308d17b65e880c9f1911d96fec9b48e71",
+        "shape": [
+          8,
+          1,
+          86
+        ]
+      },
+      "mixed.inactive": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:934ee56ad6539fb9e5c276ecee2f3985f2d252d22acd690108bda80313c6bd58",
+        "shape": [
+          3,
+          1,
+          86
+        ]
+      },
+      "mixed.reordered": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:bbf87a08bcbc637b9ebb176ae9a590c87f65d407e00e9854b0c65b6e6d5373d0",
+        "shape": [
+          3,
+          1,
+          86
+        ]
+      }
+    },
+    "identity": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+    "memory": {
+      "dtype": "torch.float32",
+      "sha256": "sha256:499812889f538614606e202c9dd9dd8dc3abec77808518df1bcf4d17a6d43c37",
+      "shape": [
+        8,
+        20,
+        256
+      ]
+    },
+    "oracle": "CPU full-prefix dense logits; CPU baseline mixed-cache invariants",
+    "payload": "sha256:8c83ecf8a992d533d1bc34c7da0391ed430f30180d3aee7a2858bc52241a92c3",
+    "source": "sha256:69807d38ae62e91406f1d02e9afa284302156ba89cf3d26ebf27ff9f5808a20f",
+    "version": "pipeline-replay-reference/v1",
+    "weights": "sha256:1e1da28dc15d17454dad9949e799a15bce3104b279c00b6c9fe0dc6ebfc83c78",
+    "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+  },
+  "roles": {
+    "reference": {
+      "summary": {
+        "authority": "frozen visible-only replay reference; no hidden truth",
+        "identity": "sha256:7f850dc01ff4d1fa9fda1f9f32ccd91634b3bb5b8fca22dc796b2bc66d491270",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 127254446080,
+            "current": 396709888,
+            "driver": 173633536,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 6934368256,
+          "qualified": true,
+          "role_peak_upper_bytes": 417476608,
+          "samples": 3,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 1.8002114549744874,
+        "status": "COMPLETE",
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.10239758086390793,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {},
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 2.399849358946085
+    },
+    "cold": {
+      "summary": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "boundaries": 12,
+        "decode_seconds": 29.671518782852218,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:1c6d8deaf9fe3c93a5dc1f582e8b07abd2cdf387a4f2cfe18323ce26a3d492e6",
+        "measurement": "fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126359883776,
+            "current": 1037430784,
+            "driver": 738660352,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8848162816,
+          "qualified": true,
+          "role_peak_upper_bytes": 1776103424,
+          "samples": 32,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 30.671760097146034,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 29.673425283050165,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.16581527912057936,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 31.37689234293066
+    },
+    "warmup": {
+      "summary": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "boundaries": 12,
+        "decode_seconds": 29.6824796278961,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:6b6a7c49b4a82f6524dc076b1588d86e0ba291371cfbb96933119d279f104055",
+        "measurement": "fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125961760768,
+            "current": 1048670208,
+            "driver": 738664448,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9056624640,
+          "qualified": true,
+          "role_peak_upper_bytes": 1787334656,
+          "samples": 32,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 30.759393064072356,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 29.684464380843565,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.12244609091430902,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 31.391590411076322
+    },
+    "calibration-0": {
+      "summary": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "boundaries": 12,
+        "decode_seconds": 29.667401700047776,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:2d69c29a0337d9cc0a75378272a1a27a35aee9c41c94aed73bbede4173666ddf",
+        "measurement": "fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126147796992,
+            "current": 1045188608,
+            "driver": 738664448,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8798707712,
+          "qualified": true,
+          "role_peak_upper_bytes": 1783865344,
+          "samples": 32,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 30.68147835205309,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 29.66955546895042,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.16195949399843812,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 31.5614103670232
+    },
+    "calibration-1": {
+      "summary": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "boundaries": 12,
+        "decode_seconds": 29.774506920948625,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:4907dcb0c831883e596f1be6e8ff70d5f40a878c8162018b4ec5df61e6caf34b",
+        "measurement": "fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125967077376,
+            "current": 1047334912,
+            "driver": 738664448,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8975802368,
+          "qualified": true,
+          "role_peak_upper_bytes": 1785999360,
+          "samples": 32,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 30.88992871902883,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 29.776423859177157,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.10701594199053943,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 31.523398735094815
+    },
+    "calibration-2": {
+      "summary": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "boundaries": 12,
+        "decode_seconds": 29.602999408962205,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:a7ccf6ce8b64a1f6ababeddddc3885060b7122f545861e2d0e896076549c9e08",
+        "measurement": "fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126052847616,
+            "current": 1043505152,
+            "driver": 738668544,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9007915008,
+          "qualified": true,
+          "role_peak_upper_bytes": 1782173696,
+          "samples": 32,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 30.614791788859293,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 29.60490654804744,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+      },
+      "boundaries": {
+        "error": null,
+        "expected": 12,
+        "states": {
+          "b1.p1": "COMPLETE",
+          "b1.p1024": "COMPLETE",
+          "b1.p128": "COMPLETE",
+          "b1.p32": "COMPLETE",
+          "b1.p513": "COMPLETE",
+          "b8.p1": "COMPLETE",
+          "b8.p1024": "COMPLETE",
+          "b8.p128": "COMPLETE",
+          "b8.p32": "COMPLETE",
+          "b8.p513": "COMPLETE",
+          "mixed.inactive": "COMPLETE",
+          "mixed.reordered": "COMPLETE"
+        },
+        "status": "COMPLETE"
+      },
+      "progress_events": 25,
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.13443745183758438,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "host_seconds": 31.314888063119724
+    }
+  },
+  "report": {
+    "authority": "baseline replay viability only; not full-pipeline, generated-program or research admission",
+    "calibration": {
+      "baseline_receipts": [
+        "sha256:2d69c29a0337d9cc0a75378272a1a27a35aee9c41c94aed73bbede4173666ddf",
+        "sha256:4907dcb0c831883e596f1be6e8ff70d5f40a878c8162018b4ec5df61e6caf34b",
+        "sha256:a7ccf6ce8b64a1f6ababeddddc3885060b7122f545861e2d0e896076549c9e08"
+      ],
+      "calibration_count": 3,
+      "cold_runs": 1,
+      "confirmation_order": [
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ],
+      "identity": "sha256:9644f9d639dc25af6fd404fb5a68f44c0d5cc4fdb618f56fe8b9ab8f4b6899cc",
+      "parent": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+      "reservation_seconds": 60,
+      "rule": "sha256:6513a75fbadb66c8bdfeaa14dacc4991b34dbe8ec0673d93bc35e2f7ff4cdcfa",
+      "version": "pipeline-calibration/v1",
+      "warmups": 1,
+      "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+    },
+    "identity": "sha256:7330fbd8b29b34749518b360183c033b5550322033a971484b25b57e3cfd4e8f",
+    "missing": [],
+    "optimization_adoption": false,
+    "reference": "sha256:e73ab1300f36df26d0c375dd851819b7ef85c5a89d1a7f95b243f4dd0aa53c50",
+    "research_cost_admission": false,
+    "status": "COMPLETE",
+    "trials": {
+      "replay.calibration-0": "sha256:9d8fac9e67eed67539509ff41ef655bf7f97bbd05e6076379f9703271476c3a7",
+      "replay.calibration-1": "sha256:6e0d743941c350cc418558c95275d9c1662a95c0dbbfd33c7b73e4ae4dbed57e",
+      "replay.calibration-2": "sha256:80d6e8dd8ac1e1f4a773ac97386675188f63aac515d05872c44c7c67f7a733f0",
+      "replay.cold": "sha256:f193978f4a0c42460fca726fe50ab1e26a4106833b42bc192abcf96a22360c41",
+      "replay.warmup": "sha256:086abffbea17aea7e633e9cda01acc2cc97c56ef493c62d5d726f670a78d3099"
+    },
+    "version": "pipeline-replay-report/v1",
+    "workload": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0"
+  },
+  "calibration_statistics": {
+    "count": 3,
+    "minimum_seconds": 29.60490654804744,
+    "median_seconds": 29.66955546895042,
+    "maximum_seconds": 29.776423859177157,
+    "reservation_seconds": 60,
+    "meaning": "observed replay decode through verification/export only; not population uncertainty or whole-role/pipeline duration"
+  },
+  "producer_ci": {
+    "foundation": {
+      "run_id": 40114981190,
+      "conclusion": "success"
+    },
+    "container_native": {
+      "run_id": 40114981189,
+      "conclusion": "success"
+    }
+  },
+  "interpretation": "Baseline-only replay viability passes; 60 GPU boundary checks across five single-arm roles, plus 12 CPU reference boundaries. These are not paired confirmation runs. No optimization or research-cost admission; original full-generation/native/cost/portability gates remain separate.",
+  "workload_summary": {
+    "producer_identity": "sha256:9c8507b8f08a8af89b371f9fdf0f241bf38b88b657a029f9a13c2c79e0ec21a0",
+    "binding": {
+      "data": "sha256:346c41e735789cc6e42886503052c86f1b6654a07cb8c466ada5d34b01ef8b92",
+      "image": "sha256:42251a94147b6c3913e9420b1263caa1e16dc67362efe9f858087c1f35ba190e",
+      "parent": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+      "parent_checkpoint": {
+        "path": "state-89584496de3042908b30727696e5585d/checkpoint.json",
+        "sha256": "sha256:b1c3213b3db3610630194a0076f67e075383d4aa7e03efa825a7648135797b62"
+      },
+      "render_node": "/dev/dri/renderD128",
+      "source": "sha256:69807d38ae62e91406f1d02e9afa284302156ba89cf3d26ebf27ff9f5808a20f"
+    },
+    "weights": "sha256:1e1da28dc15d17454dad9949e799a15bce3104b279c00b6c9fe0dc6ebfc83c78",
+    "recipe": "sha256:051c0a859d73fa9560c1981aebd6ad4dd6c123d15f09e18b16c7c1ae5082fa8c",
+    "prompts": "sha256:5158838739058a1655ef83ffce95c52239cd67371e4d44a4eb3a0331849ae4fc",
+    "plan_summary": {
+      "backend": "eager",
+      "batches": [
+        1,
+        8
+      ],
+      "bookkeeping": "baseline",
+      "identity": "sha256:5322c773ea4e856d73a12a559ed4570796adec87936e42ab1afb0c8b3e008164",
+      "meaning": "forced BOS replay, including mixed/finished/reordered/inactive rows; not generated programs",
+      "measurement": "aggregate1Hz/v1",
+      "mixed_order": [
+        6,
+        1,
+        6
+      ],
+      "mixed_steps": 32,
+      "positions": [
+        1,
+        32,
+        128,
+        513,
+        1024
+      ],
+      "precision": "float32",
+      "version": "pipeline-replay-workload/v1"
+    },
+    "forced_streams": {
+      "rows": 8,
+      "lengths": [
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024
+      ],
+      "row_hashes": [
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2",
+        "sha256:a2950d95f4ff597057583cfd52e7736427ad3cbc981005436182dda7e1314bd2"
+      ],
+      "pattern": "1024 BOS tokens per row"
+    },
+    "meaning": "Compact review of original sealed workload retained in ZIP; producer/plan identities refer to the original records, not these summaries."
+  }
+}
