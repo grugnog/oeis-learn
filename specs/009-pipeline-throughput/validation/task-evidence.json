@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 67,
-    "pending_runtime": 29,
+    "complete": 77,
+    "pending_runtime": 19,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -328,11 +328,13 @@
     {
       "task": "T023",
       "description": "[US1] Verify the complete host entry point in a stdlib-only subprocess and legacy-wrapper regression suites through `tests/unit/test_foundation_local.py` and `tests/unit/test_pipeline_validation.py`; record command/results in `specs/009-pipeline-throughput/validation/phase-1-local.md`.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 1,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "tests/unit/test_foundation_local.py",
         "tests/unit/test_pipeline_validation.py"
@@ -481,11 +483,13 @@
     {
       "task": "T035",
       "description": "[P] [US2] Extend `tests/integration/test_bigint_decoding.py` for batch1/8 positions through 1,024, mixed/reordered/repeated/finished/all-inactive rows, EOS at capacity and weight/prompt/codec/dtype/mode invalidation; require CPU logits atol1e-5/rtol1e-4 and exact completed tokens/sources.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 2,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-2-local.md",
         "tests/integration/test_bigint_decoding.py"
       ]
@@ -493,11 +497,13 @@
     {
       "task": "T036",
       "description": "[P] [US2] Extend actual-HIP parity/update regressions in `tests/integration/test_bigint_gpu.py` with atol2e-5/rtol2e-4, finite forward/backward parameter changes, supported positional/backend modes and seeded prompt identity; CPU fallback cannot pass these cases.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 2,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-2-local.md",
         "tests/integration/test_bigint_gpu.py"
       ]
@@ -545,12 +551,14 @@
     {
       "task": "T040",
       "description": "[US2] Run focused CPU decoder/generation/cache tests and register phase-2 checks in `configs/foundation/pipeline_validation.json`; document results and remaining HIP gates in `specs/009-pipeline-throughput/validation/phase-2-local.md`.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 2,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
         "configs/foundation/pipeline_validation.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-2-local.md"
       ]
     },
@@ -568,11 +576,14 @@
     {
       "task": "T042",
       "description": "[US2] Record retain-experimental/rollback/no-adoption and resource conclusions in `specs/009-pipeline-throughput/validation/phase-2-decision.md`; do not adopt a production optimization from cache microtimings or infer whole-pipeline gains before phase 4.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 2,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Decision report completed: no adoption / INCONCLUSIVE. Missing collection and performance evidence remain separate pending tasks.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
+        "specs/009-pipeline-throughput/validation/phase-2-decision.md",
         "specs/009-pipeline-throughput/validation/phase-2-local.md"
       ]
     },
@@ -819,11 +830,14 @@
     {
       "task": "T061",
       "description": "[US3] Apply the preregistered fastest-eligible-median/fewer-workers-within-5% rule and record selected concurrency or sequential retention in `specs/009-pipeline-throughput/validation/phase-3-decision.md`; disclose incomplete discovery sets and prohibit an automatic eight/sixteen-worker expansion.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 3,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Decision report completed: no adoption / INCONCLUSIVE. Missing collection and performance evidence remain separate pending tasks.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
+        "specs/009-pipeline-throughput/validation/phase-3-decision.md",
         "specs/009-pipeline-throughput/validation/phase-3-local.md"
       ]
     },
@@ -985,11 +999,14 @@
     {
       "task": "T074",
       "description": "[US3] Publish adoption/NO_ADOPTION/INCONCLUSIVE in `specs/009-pipeline-throughput/validation/phase-4-decision.md` using all five \u226510% gains, every mandatory stratum \u22645% regression, exact work/admission parity, bounded resources and no unexplained fixed-budget coverage loss; forbid extra favorable sampling and report subset scope explicitly.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 4,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Decision report completed: no adoption / INCONCLUSIVE. Missing collection and performance evidence remain separate pending tasks.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
+        "specs/009-pipeline-throughput/validation/phase-4-decision.md",
         "specs/009-pipeline-throughput/validation/phase-4-local.md"
       ]
     },
@@ -1103,11 +1120,13 @@
     {
       "task": "T083",
       "description": "[US4] Run gate/forecast/operations fixture suites and record results in `specs/009-pipeline-throughput/validation/phase-5-local.md`; verify engineering execution cannot train/resume T096, expose final data or treat a positive cost estimate as a study decision.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 5,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-5-local.md"
       ]
     },
@@ -1163,11 +1182,13 @@
     {
       "task": "T088",
       "description": "[P] [US5] Add final exposure/budget fixtures in `tests/integration/test_foundation_finalization.py` for explicit final-plan authority, exposure before prompt access, interrupted/unstarted arms, same-plan remaining-budget resume and changed-plan/freshness rejection.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 6,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-6-local.md",
         "tests/integration/test_foundation_finalization.py"
       ]
@@ -1216,12 +1237,14 @@
     {
       "task": "T092",
       "description": "[US5] Run fixture-only research/finalization tests, register phase6 availability and document concrete manifest-driven batch examples in `specs/009-pipeline-throughput/quickstart.md`; record `specs/009-pipeline-throughput/validation/phase-6-local.md` without marking any actual study executed.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 6,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Executed current-source pinned-runtime/actual-HIP fixture task; no comparison, adoption or scientific execution implied.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/quickstart.md",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+        "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.md",
         "specs/009-pipeline-throughput/validation/phase-6-local.md"
       ]
     },
@@ -1449,7 +1472,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Third archive reviewed: CPU semantics 600 tests, retirement 123 tests, workflow 1115 tests/9 skips all have zero failures/errors. GPU package inspection stopped on filesystem free-space reserve, globally blocking remaining work. Disk reporting now retains exact first-breach observations; 89 host tests pass. Free workstation disk space before current-source rerun; engineering/portability/adoption/research gates remain pending.",
+  "target_validation": "Fourth archive matches current source exactly. 602 semantic/15 actual-HIP/123 retirement/1115 workflow (9 skips)/45 policy-role cases have zero failures/errors. Scoped Podman prerequisite engineering PASS, overall PARTIAL. No complete cold prompt or admitted native candidate timing; inference/joint unstarted; costs inconclusive. See operator-20261024T141450Z-review.md for no-adoption and next authority. No repeat of unchanged command requested.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1486,5 +1509,29 @@
     "failures": 0,
     "blocking_cause": "Filesystem free-space reserve exhausted during GPU package inspection; exact historical free bytes absent. Precise disk reporting repaired; workstation storage action needed.",
     "disposition": "CPU producer gates pass; current-source combined engineering, HIP, calibration/comparison/cost/operator gates remain pending. Counts unchanged."
+  },
+  "operator_measurement_followup": {
+    "evidence": "specs/009-pipeline-throughput/validation/operator-20261024T141450Z-review.json",
+    "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+    "integrity": "PASS",
+    "selected_scope": "PARTIAL",
+    "engineering": "PASS for selected Podman prerequisites only",
+    "portability": "PENDING",
+    "decision": "No adoption; empty fixed-work baseline subset, incomplete native calibration, incomplete diverse32/transfer forecasts. No unchanged-scope retry or automatic expansion.",
+    "closed_fixture_tasks": [
+      "T023",
+      "T035",
+      "T036",
+      "T040",
+      "T083",
+      "T088",
+      "T092"
+    ],
+    "closed_decision_report_tasks": [
+      "T042",
+      "T061",
+      "T074"
+    ],
+    "remaining": "Complete fixed-work and native comparison/confirmation, complete costs, Docker portability, other runtime acceptance and separately admitted research remain pending."
   }
 }

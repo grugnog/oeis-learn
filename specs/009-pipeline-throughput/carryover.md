@@ -74,3 +74,7 @@ Code for phases 1–6 is wired to the combined entry point; current local eviden
 | 008:T107 | No longer-run authority | Evidence-backed readiness decision after the required gates |
 
 Original008:T096 remains NEGATIVE with 7,730/14,400 seconds consumed. No new learning attempt was proposed/admitted, no assistance deferral was silently adopted, and no historical result was rewritten.
+
+## Fourth operator review
+
+The [source-matching fourth archive](validation/operator-20261024T141450Z-review.md) passes selected Podman CPU/HIP/operations prerequisites and ends with overall PARTIAL, no optimization adoption, incomplete costs and missing Docker portability. This supplies scoped evidence toward008:T094/T097/T098, but closes none of those full carryovers. T093 remains deferred and T096 retains its original negative ledger. No study/final authority is inferred.

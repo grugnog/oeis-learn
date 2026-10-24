@@ -1,3 +1,5 @@
+Current measurement decision: see the [fourth operator review](validation/operator-20261024T141450Z-review.md). The unchanged finite scope has no-adoption/inconclusive comparisons and incomplete costs; do not repeat it merely to seek a favorable completion. Any future measurement revision requires a new prospective identity under FR-011. Commands below remain the supported interface, not a request to retry the same scope.
+
 # Operator guide: Spec 009
 
 The pipeline CLI is implemented on `009-pipeline-throughput` in PR #60, stacked on PR #59. The current local evidence is **80 passing stdlib tests**, an actual stdlib CLI invocation, and a verified failure/capability archive. Pinned-image CPU/Torch/native, actual HIP and both-engine evidence are pending. No throughput gain, optimized default, study admission or scientific result is claimed. See [implementation closeout](validation/implementation-closeout.md) and the [task evidence index](validation/task-evidence.json).

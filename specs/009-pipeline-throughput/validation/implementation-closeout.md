@@ -1,3 +1,5 @@
+Latest collection: the [fourth operator review](operator-20261024T141450Z-review.md) supersedes the earlier storage/rerun handoff. The source matches exactly, selected Podman prerequisites pass, and the finite measurement scope ends with no adoption. Seven fixture tasks and three decision-report tasks now close; 19 runtime/evidence tasks and 15 research tasks remain. No unchanged-scope rerun is requested.
+
 Latest collection: the [third operator review](operator-20261024T035922Z-review.md) records passing CPU suites and a filesystem free-space stop during GPU inspection. Resolve workstation storage before rerunning; precise disk reporting is implemented and passes 89 host tests.
 
 Latest operator collection: see the [second archive review and rerun](operator-20261024-review.md). Its 15 HIP tests pass; CPU/workflow failures are the Docker fixture issue already repaired by `5f0c568`. Combined current-source validation remains pending.
