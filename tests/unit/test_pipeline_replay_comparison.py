@@ -25,6 +25,51 @@ def baseline_fixture():
 
 
 class ReplayComparison(unittest.TestCase):
+    def test_isolated_parser_requires_frozen_slot_reference_and_setup_deadline(self):
+        import tempfile
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.replay_comparison import comparison_role
+        ref,rows,report=baseline_fixture();child=freeze_comparison(report,rows,ref)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'reference.json').write_text(json.dumps(ref))
+            (root/'comparison-contract.json').write_text(json.dumps(child))
+            slot=SLOTS[2];(root/'comparison-slot.json').write_text(json.dumps(slot))
+            cfg=dict(source=child['source'],contract=child['validation'],options=dict(
+                seconds=child['limits']['internal_seconds'],memory_ceiling=16<<30))
+            value=dict(device=child['resource_device']['device'],torch_threads=child['threads'])
+            with patch('oeis_learn.pipeline_validation.replay.replay_role',return_value=value) as run:
+                result=comparison_role(root,root,cfg)
+                self.assertEqual(result['comparison'],child['identity'])
+                self.assertEqual(run.call_args.kwargs,{'bookkeeping':'hoisted/v1'})
+                for bad in [dict(cfg,source='changed'),dict(cfg,options=dict(cfg['options'],seconds=570))]:
+                    with self.assertRaises(ValueError):comparison_role(root,root,bad)
+                (root/'comparison-slot.json').write_text(json.dumps(dict(slot,bookkeeping='baseline')))
+                with self.assertRaises(ValueError):comparison_role(root,root,cfg)
+                self.assertEqual(run.call_count,1)
+
+    def test_host_child_is_immutable_and_no_candidate_runs_before_freeze(self):
+        import tempfile
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from oeis_learn.pipeline_validation.replay_comparison import ComparisonStages
+        from oeis_learn.pipeline_validation.registry import Stage
+        ref,rows,_=baseline_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'reference.json').write_text(json.dumps(ref))
+            replay=Mock();replay.a=SimpleNamespace(receipts=rows);replay.reference=root
+            stages=ComparisonStages(replay)
+            trial=Stage(SLOTS[0]['id'],2,seconds=600,adapter='replay-comparison-trial')
+            with self.assertRaisesRegex(ValueError,'freeze'):stages(trial,root)
+            frozen=root/'frozen';frozen.mkdir()
+            child=stages(Stage('replay.compare.freeze',2,adapter='replay-comparison-freeze'),frozen)
+            stages(trial,root)
+            self.assertEqual(replay.call_args.kwargs['comparison'],(child,SLOTS[0]))
+            changed=dict(child,slots=list(reversed(SLOTS)))
+            (frozen/'comparison-contract.json').write_text(json.dumps(seal(changed)))
+            with self.assertRaisesRegex(ValueError,'changed before dispatch'):stages(trial,root)
+            self.assertEqual(replay.call_count,1)
+
     def test_closed_manifest_and_public_graph(self):
         from oeis_learn.pipeline_validation.contracts import parse
         from oeis_learn.pipeline_validation.registry import replay_comparison_registry, resolve

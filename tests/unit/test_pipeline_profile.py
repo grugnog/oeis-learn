@@ -840,6 +840,9 @@ def check_baseline_replay_role(device,tmp_path):
         plan=json.loads((inputs/'work.json').read_text())['manifest']['plan']
         out=cached_replay(decoder,payload['memory'],plan,time.monotonic()+570)
         assert len(verify_outputs(out,payload['expected']))==12
+        decoder.cache_bookkeeping='hoisted/v1'
+        hoisted=cached_replay(decoder,payload['memory'],plan,time.monotonic()+570)
+        assert len(verify_outputs(hoisted,payload['expected']))==12
         missing=dict(out);missing.pop(next(iter(missing)))
         with pytest.raises(ValueError):verify_outputs(missing,payload['expected'])
         bad={k:v.clone() for k,v in out.items()};bad['b1.p1'].fill_(float('nan'))
@@ -854,6 +857,26 @@ def check_baseline_replay_role(device,tmp_path):
             result=replay_role(inputs,output,cfg)
             assert result['status']=='COMPLETE' and result['boundaries']==12
             assert result['reference']==ref['identity'] and result['device']['hip']
+            # Same public child/slot parser and actual role used by the operator;
+            # tiny fixture weights are correctness evidence, not performance.
+            from oeis_learn.pipeline_validation.replay import TRIALS,replay_report
+            from oeis_learn.pipeline_validation.replay_comparison import freeze_comparison,comparison_role,SLOTS
+            baseline={key:dict(state='PASS',identity=key,observations={'result':seal(dict(result,
+                resources={'qualified':True,'ceiling_bytes':1<<30}))}) for key in TRIALS}
+            child=freeze_comparison(replay_report(baseline,ref['identity'],ref['workload']),baseline,ref)
+            (inputs/'comparison-contract.json').write_text(json.dumps(child))
+            comparison_config=dict(cfg,options=dict(cfg['options'],seconds=child['limits']['internal_seconds']))
+            for slot in SLOTS[1:3]:
+                (inputs/'comparison-slot.json').write_text(json.dumps(slot))
+                output=tmp_path/slot['arm'];output.mkdir()
+                compared=comparison_role(inputs,output,comparison_config)
+                assert compared['bookkeeping']==slot['bookkeeping']
+                assert compared['comparison']==child['identity'] and compared['boundaries']==12
+            bad_slot=dict(SLOTS[2],bookkeeping='baseline')
+            (inputs/'comparison-slot.json').write_text(json.dumps(bad_slot))
+            output=tmp_path/'bad-slot';output.mkdir()
+            with pytest.raises(ValueError,match='slot/source/validation/deadline'):
+                comparison_role(inputs,output,comparison_config)
             changed=seal(dict(ref,contract='changed'))
             (inputs/'reference.json').write_text(json.dumps(changed))
             output=tmp_path/'changed';output.mkdir()

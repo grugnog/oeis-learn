@@ -4,7 +4,7 @@ import shutil
 from dataclasses import asdict
 from .contracts import parse
 from .identity import confined, digest, number, reference
-from .registry import registry, replay_registry, resolve
+from .registry import registry, replay_registry, replay_comparison_registry, resolve
 from .runner import execute
 from .adapters import Adapters
 
@@ -31,9 +31,11 @@ def main(args, root, host_factory):
     if mode=='both' or mode=='available' and shutil.which(other):
         engines.append(other)
     args.pipeline_engines=engines
-    if contract['scope']=='engineering-replay' and args.phase not in {'all-ready','1','2'}:
+    if contract['scope'].startswith('engineering-replay') and args.phase not in {'all-ready','1','2'}:
         raise ValueError('replay scope registers only phases 1 and 2')
-    all_stages=(replay_registry if contract['scope']=='engineering-replay' else registry)(engines,primary)
+    select_registry={'engineering':registry,'engineering-replay':replay_registry,
+        'engineering-replay-comparison':replay_comparison_registry}
+    all_stages=select_registry[contract['scope']](engines,primary)
     stages=resolve(all_stages,args.phase)
     unavailable=[asdict(s) for s in all_stages if not s.available]
     for value in [args.run,args.inputs,*args.reuse]:

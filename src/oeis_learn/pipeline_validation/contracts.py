@@ -7,9 +7,17 @@ DENIED = ['training', 'resume', 'T096_retry', 'assisted_data', 'final']
 
 
 def parse(record):
-    replay=isinstance(record,dict) and record.get('version')=='pipeline-replay-validation/v1'
-    validate(record, FIELDS, 'pipeline-replay-validation/v1' if replay else 'pipeline-validation/v1')
-    if record['scope'] != ('engineering-replay' if replay else 'engineering') or record['stage_registry_version'] != ('pipeline-replay-registry/v1' if replay else 'pipeline-registry/v1'):
+    version=record.get('version') if isinstance(record,dict) else None
+    variants={
+        'pipeline-validation/v1':('engineering','pipeline-registry/v1',[],[]),
+        'pipeline-replay-validation/v1':('engineering-replay','pipeline-replay-registry/v1',['cache-replay/v1'],[]),
+        'pipeline-replay-comparison-validation/v1':('engineering-replay-comparison','pipeline-replay-comparison-registry/v1',['cache-replay/v1'],['cache-bookkeeping/v1']),
+    }
+    if version not in variants:raise ValueError('registered engineering version required')
+    scope,registry,workloads,comparisons=variants[version]
+    replay=version!='pipeline-validation/v1'
+    validate(record, FIELDS, version)
+    if record['scope'] != scope or record['stage_registry_version'] != registry:
         raise ValueError('engineering scope/registered version required')
     if record['authority'] != dict(training=False, resume=False, final=False, disposable_updates=True, operations_fixtures=True):
         raise ValueError('engineering authority cannot grant learning/resume/final access')
@@ -17,7 +25,7 @@ def parse(record):
         raise ValueError('excluded authorities must remain explicit')
     if record['phases'] != ([1,2] if replay else [1, 2, 3, 4, 5]):
         raise ValueError('registered engineering phases required')
-    if record['workloads']!=(['cache-replay/v1'] if replay else []) or record['comparisons']!=[]:
+    if record['workloads']!=workloads or record['comparisons']!=comparisons:
         raise ValueError('custom workload/comparison overrides are not registered; the static versioned adapters freeze these records')
     from oeis_learn.synthesis.state import require_hash
     if not isinstance(record['source'],dict):raise ValueError('closed source binding required')

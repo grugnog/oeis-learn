@@ -28,7 +28,7 @@ reference is rejected both by host dispatch and the isolated role.
 
 ## Single intervention and fixed finite schedule
 
-A is `baseline`; B is `hoisted` decoder cache bookkeeping. Eager FP32, frozen
+A is `baseline`; B is `hoisted/v1` decoder cache bookkeeping. Eager FP32, frozen
 weights, CPU-produced encoder memories, BOS streams, batch1/8, offsets through1024,
 mixed/finished/reordered/inactive rows and all numerical tolerances stay identical.
 Fresh roles reload the same weights/reference and create fresh KV caches. There

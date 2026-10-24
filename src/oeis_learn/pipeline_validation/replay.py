@@ -241,21 +241,23 @@ def _reference_role(inputs,output,config,evidence):
     return dict(status='COMPLETE',reference=ref['identity'],workload=m['identity'],authority='frozen visible-only replay reference; no hidden truth')
 
 
-def replay_role(inputs,output,config):
+def replay_role(inputs,output,config,*,bookkeeping='baseline'):
+    if bookkeeping not in {'baseline','hoisted/v1'}:raise ValueError('registered cache bookkeeping required')
     with BoundaryLedger(output) as evidence:
-        result,deadline=_replay_role(inputs,output,config,evidence)
+        result,deadline=_replay_role(inputs,output,config,evidence,bookkeeping=bookkeeping)
         finished=time.monotonic()
     result['verified_seconds']+=time.monotonic()-finished
     check_deadline(deadline)
     return result
 
 
-def _replay_role(inputs,output,config,evidence):
+def _replay_role(inputs,output,config,evidence,*,bookkeeping):
     import torch
     if not torch.version.hip or not torch.cuda.is_available() or torch.cuda.device_count()!=1:
         raise RuntimeError('one actual HIP device required for replay; no CPU fallback')
     deadline=role_deadline(config)
     work,encoder,decoder=load_models(inputs,config,'cuda');del encoder
+    decoder.cache_bookkeeping=bookkeeping
     ref=json.loads((inputs/'reference.json').read_text())
     validate(ref,{'version','source','contract','workload','weights','payload','memory','expected','oracle'},'pipeline-replay-reference/v1')
     if (ref['source']!=config['source'] or ref['contract']!=config['contract']
@@ -277,7 +279,7 @@ def _replay_role(inputs,output,config,evidence):
         decode_seconds=decode_seconds,verified_seconds=time.monotonic()-started,boundaries=len(records),
         device=dict(name=torch.cuda.get_device_name(),hip=torch.version.hip),
         torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
-        measurement='fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed',
+        measurement=f'fresh role and fresh {bookkeeping} KV caches; decode through verification/export; setup/startup separately observed',
         authority='forced replay viability only; not generated-program, optimization or research admission'),deadline
 
 
@@ -286,7 +288,7 @@ class ReplayStages:
     def __init__(self,adapters):
         self.a=adapters;self.prepared=None;self.reference=None;self.reference_hash=None;self.payload_hash=None
 
-    def __call__(self,stage,output):
+    def __call__(self,stage,output,*,comparison=None):
         a=self.a
         if stage.adapter=='replay-report':
             ref=json.loads((self.reference/'reference.json').read_text()) if self.reference else {}
@@ -307,7 +309,7 @@ class ReplayStages:
         inputs=output/'input';inputs.mkdir()
         source=self.prepared/'input'
         for name in ['weights.pt','work.json']:os.link(source/name,inputs/name)
-        gpu=stage.adapter=='replay-trial'
+        gpu=stage.adapter in {'replay-trial','replay-comparison-trial'}
         if gpu:
             if self.reference is None:raise ValueError('frozen replay reference required')
             if (file_hash(self.reference/'reference.json')!=self.reference_hash
@@ -324,14 +326,22 @@ class ReplayStages:
         import copy
         host=copy.copy(host);host.policy=dict(host.policy,memory_bytes=resource['ceiling_bytes'],cpu_memory_bytes=resource['ceiling_bytes'])
         mode='replay' if gpu else 'replay-reference'
+        seconds=stage.seconds;internal=seconds-30
+        if comparison is not None:
+            child,slot=comparison
+            if resource['ceiling_bytes']!=child['resource_device']['ceiling_bytes']:
+                raise CapabilityError('comparison resource ceiling changed')
+            write(inputs/'comparison-contract.json',child);write(inputs/'comparison-slot.json',slot)
+            seconds=child['limits']['external_seconds'];internal=child['limits']['internal_seconds']
+            mode='replay-compare'
         m=json.loads((inputs/'work.json').read_text())['manifest']
         config=dict(version='pipeline-role/v1',source=m['binding']['source'],
-            contract=a.contract['identity'],mode=mode,options=dict(seconds=stage.seconds-30,memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node']))
+            contract=a.contract['identity'],mode=mode,options=dict(seconds=internal,memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node']))
         write(inputs/'expected.json',config)
         from contextlib import nullcontext
         with host.gpu_lock() if gpu else nullcontext():
             module.container_stage(host,a.images.images[(a.args.engine,'gpu')],inputs,output/'role',mode=mode,
-                seconds=stage.seconds,gpu=gpu,argv=['python','-m','oeis_learn.pipeline_validation.role',mode])
+                seconds=seconds,gpu=gpu,argv=['python','-m','oeis_learn.pipeline_validation.role',mode])
         result=json.loads((output/'role/summary.json').read_text())
         if result['status']!='COMPLETE':raise RuntimeError('replay role incomplete: '+str(result.get('error')))
         if not gpu:

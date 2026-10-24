@@ -83,3 +83,15 @@ def replay_registry(engines=('docker',),primary='docker'):
     # Reporting remains independent so a failed/unstarted trial is retained.
     stages.append(Stage('replay.report',2,seconds=30,adapter='replay-report'))
     return stages
+
+
+def replay_comparison_registry(engines=('docker',),primary='docker'):
+    from .replay_comparison import SLOTS
+    stages=replay_registry(engines,primary)
+    previous='replay.compare.freeze'
+    stages.append(Stage(previous,2,('replay.report',),seconds=30,adapter='replay-comparison-freeze'))
+    for slot in SLOTS:
+        stages.append(Stage(slot['id'],2,(previous,),seconds=600,adapter='replay-comparison-trial'))
+        previous=slot['id']
+    stages.append(Stage('replay.compare.report',2,seconds=30,adapter='replay-comparison-report'))
+    return stages
