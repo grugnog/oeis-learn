@@ -1,0 +1,11 @@
+# Prospective scope proposal: replay viability only
+
+Status: **DRAFT, NOT ADMITTED, NOT EXECUTED**. This is a concrete narrowed follow-up to the [fourth archive](operator-20261024T141450Z-review.md), not a change to that completed comparison and not an executable study manifest.
+
+Proposed name: `pipeline-replay-viability/v1`. Investigate only whether complete fixed-input cache-replay measurements can be collected for the plan's `cache-replay` component. Use batch 1/8 and offsets 1/32/128/513/1024, existing eager FP32 production semantics and the already qualified mixed/finished/reordered-row handling. Keep the parent generic checkpoint read-only and bind its exact weight/input identities and existing numerical policy. Freeze every supplied replay stream, row mapping, RNG state and expected output hash before timing. Forced replay remains labelled forced replay, not successful generated programs.
+
+Use one cold baseline, one excluded warmup and exactly three baseline-only repetitions. Proposed external allowance is at most 600 seconds per trial (3000 seconds total), inside the existing phase-2 10800-second ceiling. These are new diagnostic replay reservations, not enlarged production portfolios or renewed native services. Image/CPU/HIP prerequisites and one combined archive stay under the existing 86400-second invocation cap. If complete replay cannot fit, stop; no automatic retry, extra sample or budget increase. This proposal admits no hoisted candidate timing, confirmation, native worker sweep, overlap, research training or final access.
+
+The original 32-prompt/576-attempt generation, native and full-control costs remain separately reported incomplete/stress coverage with unchanged denominators and limits. Replay timings cannot supply their missing components, create a whole-pipeline speedup or admit a study. Any subsequent candidate or complete-work scope needs its own frozen identity and original adoption criteria.
+
+Before execution, resolve the exact replay payload/weight/input hashes and implement/register a separately versioned narrow adapter/manifest. The current static validator rejects arbitrary workload overrides; do not edit its ordinary manifest to pretend this proposal is supported. Review the resulting concrete contract before launching hardware work. No new target command is requested by the current handoff.
