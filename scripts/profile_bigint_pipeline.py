@@ -107,7 +107,11 @@ def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32
         raise ValueError("diverse panel requires at least four structures")
     if replay:
         if scope!='diverse32':raise ValueError('replay uses only the frozen visible training panel')
-        from oeis_learn.pipeline_validation.replay import prepare_inputs
+        if replay=='batching/v1':
+            from oeis_learn.pipeline_validation.replay_batching import prepare_inputs
+        elif replay is True:
+            from oeis_learn.pipeline_validation.replay import prepare_inputs
+        else:raise ValueError('registered replay preparation mode required')
         return prepare_inputs(recipe,prompts,weights,output,image=image,source=source,render_node=render_node,
             parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
     training = [

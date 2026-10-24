@@ -151,7 +151,7 @@ def cpu_contracts(inputs,output,config):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
     role_started=time.monotonic()
@@ -172,14 +172,15 @@ def main(argv=None):
         from .neural import gpu,score
         from .replay import reference_role,replay_role
         from .replay_comparison import comparison_role
+        from .replay_batching import reference_role as batching_reference,batch_role,comparison_role as batching_compare
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
         if ceiling is None:
             from .resources import observe,resolve
             ceiling=resolve(**observe())['ceiling_bytes']
-        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare'},
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare'},
                 render_node=config['options'].get('render_node')) as guard:
-            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role}[args.mode](inputs,output,config)
+            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach

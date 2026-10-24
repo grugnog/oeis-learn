@@ -21,6 +21,8 @@ class Adapters:
         self.replay=ReplayStages(self)
         from .replay_comparison import ComparisonStages
         self.replay_comparison=ComparisonStages(self.replay)
+        from .replay_batching import BatchingStages
+        self.replay_batching=BatchingStages(self)
         self.hosts={};self.images=Images(contract['budgets']['build_per_engine_seconds'])
 
     def host(self,name):
@@ -60,9 +62,11 @@ class Adapters:
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
-            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','cache','overlap','overlap_metrics','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads','role_failures','replay','replay_comparison']
+            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','cache','overlap','overlap_metrics','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads','role_failures','replay','replay_comparison','replay_batching']
             code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
             return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds,stream_cap=self.contract['budgets']['stream_bytes'])
+        if stage.adapter.startswith('replay-batching-'):
+            return self.replay_batching(stage,output)
         if stage.adapter.startswith('replay-comparison-'):
             return self.replay_comparison(stage,output)
         if stage.adapter.startswith('replay-'):

@@ -803,7 +803,7 @@ def test_host_startup_gap_is_separate_from_container_work(tmp_path):
     assert r["host_minus_container_seconds"] == pytest.approx(241.93)
 
 
-def check_baseline_replay_role(device,tmp_path):
+def check_baseline_replay_role(device,tmp_path,*,batching=False):
     """Start with real frozen threads, without changing pytest's global pools."""
     import subprocess
     import sys
@@ -813,13 +813,13 @@ def check_baseline_replay_role(device,tmp_path):
     code=('import sys; from pathlib import Path; import torch; '
         'torch.set_num_interop_threads(1); '
         'from tests.unit.test_pipeline_profile import _check_baseline_replay_role; '
-        '_check_baseline_replay_role(sys.argv[1],Path(sys.argv[2]))')
-    subprocess.run([sys.executable,'-c',code,device,str(tmp_path)],
+        '_check_baseline_replay_role(sys.argv[1],Path(sys.argv[2]),batching=sys.argv[3]=="batching")')
+    subprocess.run([sys.executable,'-c',code,device,str(tmp_path),'batching' if batching else 'bookkeeping'],
         cwd=Path(__file__).resolve().parents[2],check=True,timeout=180)
     assert (torch.get_num_threads(),torch.get_num_interop_threads())==before
 
 
-def _check_baseline_replay_role(device,tmp_path):
+def _check_baseline_replay_role(device,tmp_path,*,batching=False):
     """Actual tensor/reference files and role functions; tiny frozen fixture weights."""
     import time
     import torch
@@ -827,6 +827,15 @@ def _check_baseline_replay_role(device,tmp_path):
     from tests.integration.test_bigint_decoding import model
     from oeis_learn.pipeline_validation.replay import prepare_inputs,reference_role,replay_role,cached_replay,verify_outputs,tensor_record
     from oeis_learn.pipeline_validation.identity import file_hash,seal
+    candidate_cached=cached_replay
+    if batching:
+        from oeis_learn.pipeline_validation.replay_batching import prepare_inputs,reference_role,batch_role as replay_role,batch_cached
+        def cached_replay(decoder,memory,plan,deadline):
+            decoder.cache_bookkeeping='hoisted/v1'
+            return batch_cached(decoder,memory,plan,deadline,batch_size=8)
+        def candidate_cached(decoder,memory,plan,deadline):
+            decoder.cache_bookkeeping='hoisted/v1'
+            return batch_cached(decoder,memory,plan,deadline,batch_size=16)
 
     assert torch.get_num_interop_threads()==1
     def already_configured(count):
@@ -849,9 +858,10 @@ def _check_baseline_replay_role(device,tmp_path):
     torch.save({'encoder':Encoder().state_dict(),'decoder':model().state_dict()},weights)
     before=file_hash(weights)
     prepared=tmp_path/'prepared';prepared.mkdir()
-    prepare_inputs({'fixture':'frozen'},[{'id':str(i),'values':[str(n) for n in range(20)]} for i in range(8)],weights,prepared,source='fixture-source')
+    prepare_inputs({'fixture':'frozen'},[{'id':str(i),'values':[str(n+i if batching else n) for n in range(20)]} for i in range(32 if batching else 8)],weights,prepared,source='fixture-source')
     inputs=prepared/'input';reference=tmp_path/'reference';reference.mkdir()
     cfg=dict(source='fixture-source',contract='fixture-contract',options=dict(seconds=570,memory_ceiling=1<<30,render_node=None))
+    if batching:cfg['options'].update(batch_size=8,memory_ceiling=32<<30)
     with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads',side_effect=already_configured):
         result=reference_role(inputs,reference,cfg)
         ref=json.loads((reference/'reference.json').read_text())
@@ -862,13 +872,14 @@ def _check_baseline_replay_role(device,tmp_path):
         decoder.load_state_dict(torch.load(weights,weights_only=True)['decoder'])
         plan=json.loads((inputs/'work.json').read_text())['manifest']['plan']
         out=cached_replay(decoder,payload['memory'],plan,time.monotonic()+570)
-        assert len(verify_outputs(out,payload['expected']))==12
+        count=160 if batching else 12
+        assert len(verify_outputs(out,payload['expected']))==count
         decoder.cache_bookkeeping='hoisted/v1'
-        hoisted=cached_replay(decoder,payload['memory'],plan,time.monotonic()+570)
-        assert len(verify_outputs(hoisted,payload['expected']))==12
+        hoisted=candidate_cached(decoder,payload['memory'],plan,time.monotonic()+570)
+        assert len(verify_outputs(hoisted,payload['expected']))==count
         missing=dict(out);missing.pop(next(iter(missing)))
         with pytest.raises(ValueError):verify_outputs(missing,payload['expected'])
-        bad={k:v.clone() for k,v in out.items()};bad['b1.p1'].fill_(float('nan'))
+        bad={k:v.clone() for k,v in out.items()};bad[next(iter(bad))].fill_(float('nan'))
         with pytest.raises(RuntimeError,match='nonfinite'):verify_outputs(bad,payload['expected'])
         with pytest.raises(TimeoutError):cached_replay(decoder,payload['memory'],plan,time.monotonic()-1)
         with pytest.raises(TimeoutError):verify_outputs(out,payload['expected'],deadline=time.monotonic()-1)
@@ -878,25 +889,28 @@ def _check_baseline_replay_role(device,tmp_path):
             shutil.copyfile(reference/'private/reference.pt',inputs/'reference.pt')
             output=tmp_path/'gpu';output.mkdir()
             result=replay_role(inputs,output,cfg)
-            assert result['status']=='COMPLETE' and result['boundaries']==12
+            assert result['status']=='COMPLETE' and result['boundaries']==count
             assert result['torch_threads']=={'intraop':2,'interop':1}
             assert result['reference']==ref['identity'] and result['device']['hip']
             # Same public child/slot parser and actual role used by the operator;
             # tiny fixture weights are correctness evidence, not performance.
             from oeis_learn.pipeline_validation.replay import TRIALS,replay_report
             from oeis_learn.pipeline_validation.replay_comparison import freeze_comparison,comparison_role,SLOTS
+            if batching:
+                from oeis_learn.pipeline_validation.replay_batching import freeze_batching as freeze_comparison,comparison_role,BATCH_SLOTS as SLOTS
             baseline={key:dict(state='PASS',identity=key,observations={'result':seal(dict(result,
-                resources={'qualified':True,'ceiling_bytes':1<<30}))}) for key in TRIALS}
+                resources={'qualified':True,'ceiling_bytes':cfg['options']['memory_ceiling'],'role_peak_upper_bytes':1<<30}))}) for key in TRIALS}
             child=freeze_comparison(replay_report(baseline,ref['identity'],ref['workload']),baseline,ref)
             (inputs/'comparison-contract.json').write_text(json.dumps(child))
             comparison_config=dict(cfg,options=dict(cfg['options'],seconds=child['limits']['internal_seconds'],comparison=child['identity']))
             for slot in SLOTS[1:3]:
                 comparison_config['options']['slot']=slot['id']
+                if batching:comparison_config['options']['batch_size']=slot['batch_size']
                 (inputs/'comparison-slot.json').write_text(json.dumps(slot))
                 output=tmp_path/slot['arm'];output.mkdir()
                 compared=comparison_role(inputs,output,comparison_config)
                 assert compared['bookkeeping']==slot['bookkeeping']
-                assert compared['comparison']==child['identity'] and compared['boundaries']==12
+                assert compared['comparison']==child['identity'] and compared['boundaries']==count
             bad_slot=dict(SLOTS[2],bookkeeping='baseline')
             (inputs/'comparison-slot.json').write_text(json.dumps(bad_slot))
             output=tmp_path/'bad-slot';output.mkdir()
@@ -909,5 +923,6 @@ def _check_baseline_replay_role(device,tmp_path):
     assert file_hash(weights)==before
 
 
-def test_baseline_replay_cpu_reference_and_completed_work(tmp_path):
-    check_baseline_replay_role('cpu',tmp_path)
+@pytest.mark.parametrize('batching',[False,True])
+def test_baseline_replay_cpu_reference_and_completed_work(tmp_path,batching):
+    check_baseline_replay_role('cpu',tmp_path,batching=batching)

@@ -73,10 +73,11 @@ def freeze_comparison(report,receipts,reference):
     return validate_comparison(child)
 
 
-def comparison_report(child,receipts):
+def comparison_report(child,receipts,*,planned_slots=SLOTS,boundaries=12,validator=validate_comparison,
+        version='pipeline-replay-comparison-report/v1',interpretation=INTERPRETATION):
     slots=[];pairs=[];missing=[]
-    if child is not None:validate_comparison(child)
-    for slot in SLOTS:
+    if child is not None:validator(child)
+    for slot in planned_slots:
         receipt=receipts.get(slot['id'],{})
         result=receipt.get('observations',{}).get('result',{})
         reason=None
@@ -84,8 +85,10 @@ def comparison_report(child,receipts):
             if child is None:raise ValueError('comparison contract never frozen')
             if receipt.get('state')!='PASS' or result.get('status')!='COMPLETE':raise ValueError('arm incomplete or unstarted')
             if seal(result)!=result:raise ValueError('changed arm result')
-            for field,expected in dict(comparison=child['identity'],slot=slot['id'],bookkeeping=slot['bookkeeping'],
-                    reference=child['reference'],workload=child['workload'],boundaries=12,torch_threads=child['threads']).items():
+            expected_fields=dict(comparison=child['identity'],slot=slot['id'],bookkeeping=slot['bookkeeping'],
+                    reference=child['reference'],workload=child['workload'],boundaries=boundaries,torch_threads=child['threads'])
+            if 'batch_size' in slot:expected_fields['batch_size']=slot['batch_size']
+            for field,expected in expected_fields.items():
                 if result.get(field)!=expected:raise ValueError('arm '+field+' mismatch')
             if envelope(result)!=child['resource_device']:raise ValueError('arm resource/device mismatch')
             number(result['verified_seconds'],positive=True);number(result['decode_seconds'])
@@ -99,10 +102,10 @@ def comparison_report(child,receipts):
             arms={s['slot']['arm']:s['verified_seconds'] for s in slots if s['slot']['pair']==pair}
             pairs.append(dict(pair=pair,order=order,baseline_seconds=arms['A'],candidate_seconds=arms['B'],gain=1-arms['B']/arms['A']))
     gains=[p['gain'] for p in pairs]
-    return seal(dict(version='pipeline-replay-comparison-report/v1',status='INCONCLUSIVE' if missing else 'COMPLETE',
+    return seal(dict(version=version,status='INCONCLUSIVE' if missing else 'COMPLETE',
         comparison=child['identity'] if child else None,slots=slots,missing=missing,pairs=pairs,
         paired_gain=dict(median=statistics.median(gains),minimum=min(gains),maximum=max(gains)) if gains else None,
-        optimization_adoption=False,research_cost_admission=False,interpretation=INTERPRETATION))
+        optimization_adoption=False,research_cost_admission=False,interpretation=interpretation))
 
 
 def comparison_role(inputs,output,config):

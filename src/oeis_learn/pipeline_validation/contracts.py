@@ -12,6 +12,7 @@ def parse(record):
         'pipeline-validation/v1':('engineering','pipeline-registry/v1',[],[]),
         'pipeline-replay-validation/v1':('engineering-replay','pipeline-replay-registry/v1',['cache-replay/v1'],[]),
         'pipeline-replay-comparison-validation/v1':('engineering-replay-comparison','pipeline-replay-comparison-registry/v1',['cache-replay/v1'],['cache-bookkeeping/v1']),
+        'pipeline-replay-batching-validation/v1':('engineering-replay-batching','pipeline-replay-batching-registry/v1',['cache-replay-batching/v1'],['batch8-16/v1']),
     }
     if version not in variants:raise ValueError('registered engineering version required')
     scope,registry,workloads,comparisons=variants[version]

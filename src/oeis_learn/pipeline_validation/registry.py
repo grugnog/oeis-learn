@@ -95,3 +95,11 @@ def replay_comparison_registry(engines=('docker',),primary='docker'):
         previous=slot['id']
     stages.append(Stage('replay.compare.report',2,seconds=30,adapter='replay-comparison-report'))
     return stages
+
+
+def replay_batching_registry(engines=('docker',),primary='docker'):
+    from dataclasses import replace
+    adapters={'replay-reference':'replay-batching-reference','replay-trial':'replay-batching-trial',
+        'replay-report':'replay-batching-report','replay-comparison-freeze':'replay-batching-freeze',
+        'replay-comparison-trial':'replay-batching-trial','replay-comparison-report':'replay-batching-report'}
+    return [replace(s,adapter=adapters.get(s.adapter,s.adapter)) for s in replay_comparison_registry(engines,primary)]
