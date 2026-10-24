@@ -94,6 +94,12 @@ class Engine:
 
     def facts(self):
         info = self.info()
+        if self.name=='docker':
+            if isinstance(info,dict) and {'host','store','version'}<=set(info):
+                raise RuntimeError('docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence')
+            memory=info.get('MemTotal') if isinstance(info,dict) else None
+            if type(memory) is not int or memory<=0:
+                raise RuntimeError('Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable')
         if self.name == "podman":
             host = info.get("host", {})
             security = host.get("security", {})

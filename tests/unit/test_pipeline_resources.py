@@ -3,6 +3,18 @@ from oeis_learn.pipeline_validation.resources import resolve, reserve
 
 
 class Resources(unittest.TestCase):
+    def test_docker_shim_or_missing_memory_is_an_explicit_capability_gap(self):
+        from oeis_learn.container_runtime import Engine
+        engine=Engine.__new__(Engine);engine.name='docker'
+        engine.details={'host':{'memTotal':128<<30},'store':{},'version':{'Version':'5.8'}}
+        with self.assertRaisesRegex(RuntimeError,'Podman'):
+            engine.facts()
+        engine.details={'NCPU':16,'ServerVersion':'test'}
+        with self.assertRaisesRegex(RuntimeError,'MemTotal'):
+            engine.facts()
+        engine.details={'MemTotal':128<<30,'NCPU':16}
+        self.assertEqual(engine.facts()['memory_bytes'],128<<30)
+
     def test_study_resource_identity_binds_envelope_but_not_free_memory(self):
         from oeis_learn.pipeline_validation.resources import execution_identity
         policy=resolve(physical=128<<30,available=100<<30,cpus=16)

@@ -113,7 +113,11 @@ class Adapters:
             if result.get('status')=='FAIL':
                 raise RuntimeError(result.get('error','internal role failure'))
             if stage.adapter=='native':
-                self.benchmarks.selected_workers=result.get('selected_workers',1)
+                from .benchmarks import native_component
+                component=native_component(result)
+                self.benchmarks.selected_workers=component['workers']
+                write(output/'component.json',component)
+                return dict(comparison=result,component=component)
             if result.get('status')=='INCONCLUSIVE':
                 result['stage_state']='INCONCLUSIVE'
             return result

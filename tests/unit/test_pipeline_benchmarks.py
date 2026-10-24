@@ -9,6 +9,19 @@ from oeis_learn.pipeline_validation.runner import CapabilityError
 
 
 class FiniteBenchmarks(unittest.TestCase):
+    def test_inconclusive_native_exploration_retains_an_explicit_serial_substitute(self):
+        from oeis_learn.pipeline_validation.benchmarks import native_component
+        for result in [dict(status='INCONCLUSIVE',selected_workers=1,identity='report'),
+                       dict(status='COMPLETE',selected_workers=4,resources={'qualified':False},identity='report')]:
+            selected=native_component(result)
+            self.assertEqual(selected['workers'],1)
+            self.assertEqual(selected['disposition'],'RETAIN_SERIAL_BASELINE')
+            self.assertFalse(selected['production_adoption'])
+        selected=native_component(dict(status='COMPLETE',selected_workers=2,resources={'qualified':True},identity='report'))
+        self.assertEqual(selected['workers'],2)
+        self.assertFalse(selected['production_adoption'])
+        with self.assertRaises(ValueError):native_component(dict(status='FAIL',selected_workers=1))
+
     def fixture(self):
         bench=Benchmarks(SimpleNamespace(contract={'identity':digest('contract')}))
         bench.calibration={'reservation_seconds':1,'identity':digest('calibration')}

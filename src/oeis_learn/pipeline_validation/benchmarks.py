@@ -15,6 +15,18 @@ BASE_POLICY=dict(version='pipeline-policy/v1',selection='visible-only/v2',archiv
     workers=1,overlap=False,lookahead=1,batch_size=8,bookkeeping='baseline',measurement='ordinary')
 
 
+def native_component(result):
+    """A completed report may retain the existing serial component without a gain."""
+    if result.get('status') not in {'COMPLETE','INCONCLUSIVE'} or result.get('selected_workers') not in (1,2,4):
+        raise ValueError('valid completed native investigation required; failures cannot be baseline substitutes')
+    experimental=result['status']=='COMPLETE' and result.get('resources',{}).get('qualified') is True
+    workers=result['selected_workers'] if experimental else 1
+    return seal(dict(version='pipeline-native-component/v1',workers=workers,
+        disposition='EXPERIMENTAL_COMPONENT' if experimental and workers>1 else 'RETAIN_SERIAL_BASELINE',
+        comparison=result.get('identity'),production_adoption=False,
+        reason='native report retained in full; joint correctness, resource and five-pair confirmation remain independently mandatory'))
+
+
 def baseline_for(policy):
     return dict(BASE_POLICY,**({'memory_profile':policy['memory_profile']} if 'memory_profile' in policy else {}))
 
