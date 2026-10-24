@@ -801,3 +801,64 @@ def test_host_startup_gap_is_separate_from_container_work(tmp_path):
     r = host_timings(tmp_path)["gpu"]
     assert r["container_lifetime_seconds"] == 744
     assert r["host_minus_container_seconds"] == pytest.approx(241.93)
+
+
+def check_baseline_replay_role(device,tmp_path):
+    """Actual tensor/reference files and role functions; tiny frozen fixture weights."""
+    import time
+    import torch
+    from unittest.mock import patch
+    from tests.integration.test_bigint_decoding import model
+    from oeis_learn.pipeline_validation.replay import prepare_inputs,reference_role,replay_role,cached_replay,verify_outputs,tensor_record
+    from oeis_learn.pipeline_validation.identity import file_hash,seal
+
+    class Encoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.linear=torch.nn.Linear(1,16)
+        def forward_from_sequences(self,values,device):
+            return self.linear(torch.tensor(values,dtype=torch.float32,device=device)[:,:,None])
+
+    def models(recipe,selected):
+        return Encoder().to(selected),model().to(selected),{}
+
+    torch.manual_seed(20261024)
+    weights=tmp_path/'weights.pt'
+    torch.save({'encoder':Encoder().state_dict(),'decoder':model().state_dict()},weights)
+    before=file_hash(weights)
+    prepared=tmp_path/'prepared';prepared.mkdir()
+    prepare_inputs({'fixture':'frozen'},[{'id':str(i),'values':[str(n) for n in range(20)]} for i in range(8)],weights,prepared,source='fixture-source')
+    inputs=prepared/'input';reference=tmp_path/'reference';reference.mkdir()
+    cfg=dict(source='fixture-source',contract='fixture-contract',options=dict(seconds=570,memory_ceiling=1<<30,render_node=None))
+    with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads'):
+        result=reference_role(inputs,reference,cfg)
+        ref=json.loads((reference/'reference.json').read_text())
+        assert result['reference']==ref['identity']
+        payload=torch.load(reference/'private/reference.pt',weights_only=True)
+        assert ref['memory']==tensor_record(payload['memory'])
+        decoder=model()
+        decoder.load_state_dict(torch.load(weights,weights_only=True)['decoder'])
+        plan=json.loads((inputs/'work.json').read_text())['manifest']['plan']
+        out=cached_replay(decoder,payload['memory'],plan,time.monotonic()+570)
+        assert len(verify_outputs(out,payload['expected']))==12
+        missing=dict(out);missing.pop(next(iter(missing)))
+        with pytest.raises(ValueError):verify_outputs(missing,payload['expected'])
+        bad={k:v.clone() for k,v in out.items()};bad['b1.p1'].fill_(float('nan'))
+        with pytest.raises(RuntimeError,match='nonfinite'):verify_outputs(bad,payload['expected'])
+        with pytest.raises(TimeoutError):cached_replay(decoder,payload['memory'],plan,time.monotonic()-1)
+        if device=='cuda':
+            import shutil
+            shutil.copyfile(reference/'reference.json',inputs/'reference.json')
+            shutil.copyfile(reference/'private/reference.pt',inputs/'reference.pt')
+            output=tmp_path/'gpu';output.mkdir()
+            result=replay_role(inputs,output,cfg)
+            assert result['status']=='COMPLETE' and result['boundaries']==12
+            assert result['reference']==ref['identity'] and result['device']['hip']
+            changed=seal(dict(ref,contract='changed'))
+            (inputs/'reference.json').write_text(json.dumps(changed))
+            output=tmp_path/'changed';output.mkdir()
+            with pytest.raises(ValueError,match='changed replay reference'):replay_role(inputs,output,cfg)
+    assert file_hash(weights)==before
+
+
+def test_baseline_replay_cpu_reference_and_completed_work(tmp_path):
+    check_baseline_replay_role('cpu',tmp_path)

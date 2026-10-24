@@ -184,3 +184,12 @@ def test_actual_hip_hoisted_long_context_parity(batch,backend):
         pytest.skip('actual HIP device required')
     from tests.integration.test_bigint_decoding import check_hoisted_cache_parity
     check_hoisted_cache_parity('cuda',batch,backend)
+
+
+def test_actual_hip_baseline_replay_reference_and_frozen_roles(tmp_path):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':
+            pytest.fail('actual HIP device required; CPU is not replay evidence')
+        pytest.skip('actual HIP device required')
+    from tests.unit.test_pipeline_profile import check_baseline_replay_role
+    check_baseline_replay_role('cuda',tmp_path)

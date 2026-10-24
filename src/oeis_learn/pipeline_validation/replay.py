@@ -30,7 +30,8 @@ def replay_report(receipts,reference,workload):
         try:
             ceiling=number(trial['resources']['ceiling_bytes'],positive=True)
             device=trial['device']
-            if not device['hip'] or not device['name']:raise ValueError('device identity required')
+            if not all(isinstance(device[k],str) and device[k] for k in ('hip','name')):
+                raise ValueError('device identity required')
             envelopes.add((ceiling,device['hip'],device['name']))
         except (KeyError,TypeError,ValueError):missing.append(key+': resource/device identity unavailable')
     if len(envelopes)!=1:missing.append('one consistent resource/device envelope required')
@@ -116,6 +117,7 @@ def full_reference(decoder,memory,plan,deadline):
 
 def mixed_replay(decoder,memory,plan,deadline):
     import torch
+    check_deadline(deadline)
     tokens=torch.tensor(plan['tokens'],device=memory.device,dtype=torch.long)
     _,cache=decoder.prefill(tokens[:,:1],memory,capacity=1024,backend='eager')
     for step in range(1,plan['mixed_steps']):
@@ -137,6 +139,7 @@ def cached_replay(decoder,memory,plan,deadline):
     outputs={}
     with torch.inference_mode():
         for batch in plan['batches']:
+            check_deadline(deadline)
             tokens=torch.tensor(plan['tokens'][:batch],device=memory.device,dtype=torch.long)
             value,cache=decoder.prefill(tokens[:,:1],memory[:batch],capacity=1024,backend='eager')
             outputs[f'b{batch}.p1']=value
@@ -156,7 +159,8 @@ def verify_outputs(outputs,expected):
     for key,value in outputs.items():
         actual=value.detach().cpu();oracle=expected[key]
         if not torch.isfinite(actual).all() or not torch.isfinite(oracle).all():raise RuntimeError('nonfinite replay output')
-        torch.testing.assert_close(actual,oracle,atol=2e-5,rtol=2e-4)
+        tolerance=dict(atol=2e-5,rtol=2e-4) if value.is_cuda else dict(atol=1e-5,rtol=1e-4)
+        torch.testing.assert_close(actual,oracle,**tolerance)
         if not torch.equal(actual.argmax(-1),oracle.argmax(-1)):raise RuntimeError('replay token mismatch')
         records[key]=tensor_record(actual)
     return records
