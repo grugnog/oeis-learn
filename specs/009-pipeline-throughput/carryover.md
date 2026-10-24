@@ -78,3 +78,7 @@ Original008:T096 remains NEGATIVE with 7,730/14,400 seconds consumed. No new lea
 ## Fourth operator review
 
 The [source-matching fourth archive](validation/operator-20261024T141450Z-review.md) passes selected Podman CPU/HIP/operations prerequisites and ends with overall PARTIAL, no optimization adoption, incomplete costs and missing Docker portability. This supplies scoped evidence toward008:T094/T097/T098, but closes none of those full carryovers. T093 remains deferred and T096 retains its original negative ledger. No study/final authority is inferred.
+
+## Replay viability closure
+
+The [registered baseline replay scope](validation/replay-operator-20261024T172754Z.md) now passes with exact-source CPU/HIP and five complete baseline trials. It adds component viability and affected-source checks, closing009:T110 and supplemental009:R005 only. It closes none of the thirteen full008 carryovers or missing full-pipeline/cost/research gates; original008:T093/T096 remain unchanged.

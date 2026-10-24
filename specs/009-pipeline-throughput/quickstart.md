@@ -1,4 +1,6 @@
-Latest narrowed follow-up: [replay viability command and limits](validation/replay-implementation.md). The user requested continuing this separately versioned baseline-only scope; its target execution is pending. The original full-pipeline comparison retains its no-adoption result.
+Latest status: [baseline replay accepted](validation/replay-operator-20261024T172754Z.md) at its exact producer source. No duplicate baseline run is requested. Future candidate timing requires a separate registered comparison; full-pipeline and research gates remain separate.
+
+Latest narrowed follow-up: [replay viability command and limits](validation/replay-implementation.md). The user requested continuing this separately versioned baseline-only scope; its registered target collection is now PASS as reviewed above. The original full-pipeline comparison retains its no-adoption result.
 
 Current measurement decision: see the [fourth operator review](validation/operator-20261024T141450Z-review.md). The unchanged finite scope has no-adoption/inconclusive comparisons and incomplete costs; do not repeat it merely to seek a favorable completion. Any future measurement revision requires a new prospective identity under FR-011. Commands below remain the supported interface, not a request to retry the same scope.
 

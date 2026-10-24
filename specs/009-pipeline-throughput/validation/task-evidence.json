@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1445,12 +1445,14 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Affected-source contract/packaging checks reviewed at c9be16a: exact-source replay target CPU/HIP and installed-image gates pass, and both producer CI workflows succeed. This closes final checks for these code changes, not full-pipeline comparison/cost or scientific gates.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
+        "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
+        "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.md",
         "specs/009-pipeline-throughput/validation/task-evidence.json",
         "src/oeis_learn/pipeline_validation/registry.py"
       ]
@@ -1472,7 +1474,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "New separately versioned baseline replay scope implemented after the user requested continuing. 99 host tests pass; actual new CPU/HIP fixture/reference/five-role execution remains pending. Use one combined command in replay-implementation.md. Historical fourth archive stays exact for its producer; its incomplete full-generation/native/cost gates are not closed by replay.",
+  "target_validation": "Registered baseline replay scope passes at c9be16a/source69807d38: 99 host, 613 CPU and 16 actual-HIP tests; reference and all five trials verify 12/12 boundaries. Three baseline intervals29.6049\u201329.7764s derive a60s replay-only bound. Both producer CI workflows pass. No duplicate run needed; full-generation/native/comparison/cost, Docker portability and separately admitted research remain outside this accepted scope.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1546,9 +1548,11 @@
       "009:R001": "complete",
       "009:R002": "complete",
       "009:R003": "complete",
-      "009:R004": "complete available host work; pinned runtime execution pending",
-      "009:R005": "pending actual CPU/HIP prerequisite and five-trial collection"
+      "009:R004": "complete fixture/host implementation; CPU/HIP runtime fixtures now pass under R005",
+      "009:R005": "complete: source-matching actual CPU/HIP/reference/five-trial target collection and review PASS"
     },
-    "meaning": "Separate baseline-only forced replay, no candidate or research admission; original no-adoption/partial result and all missing original gates retained."
+    "meaning": "Separate baseline-only forced replay, no candidate or research admission; original no-adoption/partial result and all missing original gates retained.",
+    "target_evidence": "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
+    "target_disposition": "PASS for registered engineering-replay scope at exact producer source 69807d38; all five baseline trials and reference complete. No optimization or research-cost admission."
   }
 }

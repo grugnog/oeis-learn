@@ -1,3 +1,5 @@
+Latest closeout: [baseline replay scope accepted](replay-operator-20261024T172754Z.md). The archive and full source match; 613 CPU/16 HIP tests and all five replay trials pass, with a 60-second component reservation. T110 and R005 close; original task counts are 78 complete / 18 runtime-evidence pending / 15 research blocked. No duplicate run or new code change is requested; complete pipeline/cost/research remain pending.
+
 Current handoff: [baseline replay viability implementation](replay-implementation.md). This is the separately versioned narrowed scope requested after the fourth archive, with 99 passing host tests and new pinned CPU/HIP execution pending. The original full-pipeline no-adoption decision and missing costs remain unchanged.
 
 Latest collection: the [fourth operator review](operator-20261024T141450Z-review.md) supersedes the earlier storage/rerun handoff. The source matches exactly, selected Podman prerequisites pass, and the finite measurement scope ends with no adoption. Seven fixture tasks and three decision-report tasks now close; 19 runtime/evidence tasks and 15 research tasks remain. No unchanged-scope rerun is requested.

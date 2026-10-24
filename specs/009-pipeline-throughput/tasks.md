@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -438,5 +438,5 @@ These items track the accepted narrowed follow-up separately from the original 1
 - [X] 009:R001 Register a separate closed replay manifest, scope and static graph; preserve original validator/research authority and all existing ceilings.
 - [X] 009:R002 Reuse visible parent/weight preparation and freeze CPU full-prefix/mixed-cache reference tensors before GPU timing, without reading hidden truth.
 - [X] 009:R003 Execute one cold, one excluded warmup and three bounded baseline roles, with immutable reference/resource checks, complete missing-slot reporting and no candidate/research admission.
-- [X] 009:R004 Add stdlib host contract/orchestration/privacy regressions and pinned CPU/actual-HIP role fixtures; verify the available host CLI and archive locally. Authored runtime fixtures are not claimed executed locally.
-- [ ] 009:R005 Execute/review the single combined replay command on the target; retain actual CPU/HIP fixture and five-trial results, including non-PASS/partial records. No automatic retry or promotion.
+- [X] 009:R004 Add stdlib host contract/orchestration/privacy regressions and pinned CPU/actual-HIP role fixtures; verify the available host CLI and archive locally. Authored runtime fixtures are not claimed executed locally; their target execution is now reviewed under R005.
+- [X] 009:R005 Execute/review the single combined replay command on the target; retain actual CPU/HIP fixture and five-trial results, including non-PASS/partial records. No automatic retry or promotion.

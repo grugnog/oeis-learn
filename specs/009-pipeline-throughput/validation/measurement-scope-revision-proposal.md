@@ -1,8 +1,8 @@
 # Prospective scope proposal: replay viability only
 
-Status: **IMPLEMENTED; TARGET EXECUTION PENDING** after the user requested continuing this narrowed follow-up. The separately versioned engineering manifest is `configs/foundation/pipeline_replay_validation.json`; the [registered contract](../contracts/replay.md) and [implementation handoff](replay-implementation.md) govern its exact behavior. This does not change the completed comparison and is not research/study admission.
+Status: **IMPLEMENTED; REGISTERED TARGET REPLAY PASS** after the user requested continuing this narrowed follow-up. The separately versioned engineering manifest is `configs/foundation/pipeline_replay_validation.json`; the [registered contract](../contracts/replay.md) and [implementation handoff](replay-implementation.md) govern its exact behavior. This does not change the completed comparison and is not research/study admission.
 
-The proposal below records the scope rationale; the registered contract resolves the exact payload, CPU reference, fresh-role timing and startup allowances.
+The [accepted target review](replay-operator-20261024T172754Z.md) closes the baseline-only scope; no duplicate run or candidate timing is requested. The proposal below records the scope rationale; the registered contract resolves the exact payload, CPU reference, fresh-role timing and startup allowances.
 
 Proposed name: `pipeline-replay-viability/v1`. Investigate only whether complete fixed-input cache-replay measurements can be collected for the plan's `cache-replay` component. Use batch 1/8 and offsets 1/32/128/513/1024, existing eager FP32 production semantics and the already qualified mixed/finished/reordered-row handling. Keep the parent generic checkpoint read-only and bind its exact weight/input identities and existing numerical policy. Freeze every supplied replay stream, row mapping, RNG state and expected output hash before timing. Forced replay remains labelled forced replay, not successful generated programs.
 
