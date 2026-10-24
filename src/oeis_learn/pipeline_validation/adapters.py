@@ -17,6 +17,8 @@ class Adapters:
         self.receipts={}
         from .benchmarks import Benchmarks
         self.benchmarks=Benchmarks(self)
+        from .replay import ReplayStages
+        self.replay=ReplayStages(self)
         self.hosts={};self.images=Images(contract['budgets']['build_per_engine_seconds'])
 
     def host(self,name):
@@ -56,9 +58,11 @@ class Adapters:
     def __call__(self,stage,output):
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
-            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','cache','overlap','overlap_metrics','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads','role_failures']
+            names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','cache','overlap','overlap_metrics','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads','role_failures','replay']
             code = 'import sys,unittest;sys.path[:0]='+repr([str(self.root/'src'),str(self.root)])+';unittest.main(module=None,argv='+repr(['unittest',*[f'tests.unit.test_pipeline_{n}' for n in names]])+')'
             return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds,stream_cap=self.contract['budgets']['stream_bytes'])
+        if stage.adapter.startswith('replay-'):
+            return self.replay(stage,output)
         if stage.adapter=='qualification':
             from .qualification import qualification
             from oeis_learn.experiments.source_snapshot import collect_snapshot

@@ -70,3 +70,16 @@ def registry(engines=('docker',), primary='docker'):
         Stage('cost.transfer',5,('cpu.'+primary+'.semantic','hip.preflight'),seconds=1500,adapter='cost'),
     ]
     return stages
+
+
+def replay_registry(engines=('docker',),primary='docker'):
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip'}]
+    stages.append(Stage('replay.reference',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=600,adapter='replay-reference'))
+    previous=None
+    for name in ['cold','warmup','calibration-0','calibration-1','calibration-2']:
+        key='replay.'+name
+        parents=(previous,) if previous else ('replay.reference','hip.preflight')
+        stages.append(Stage(key,2,parents,seconds=600,adapter='replay-trial'));previous=key
+    # Reporting remains independent so a failed/unstarted trial is retained.
+    stages.append(Stage('replay.report',2,seconds=30,adapter='replay-report'))
+    return stages

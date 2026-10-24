@@ -7,16 +7,17 @@ DENIED = ['training', 'resume', 'T096_retry', 'assisted_data', 'final']
 
 
 def parse(record):
-    validate(record, FIELDS, 'pipeline-validation/v1')
-    if record['scope'] != 'engineering' or record['stage_registry_version'] != 'pipeline-registry/v1':
+    replay=isinstance(record,dict) and record.get('version')=='pipeline-replay-validation/v1'
+    validate(record, FIELDS, 'pipeline-replay-validation/v1' if replay else 'pipeline-validation/v1')
+    if record['scope'] != ('engineering-replay' if replay else 'engineering') or record['stage_registry_version'] != ('pipeline-replay-registry/v1' if replay else 'pipeline-registry/v1'):
         raise ValueError('engineering scope/registered version required')
     if record['authority'] != dict(training=False, resume=False, final=False, disposable_updates=True, operations_fixtures=True):
         raise ValueError('engineering authority cannot grant learning/resume/final access')
     if record['excluded_authorities'] != DENIED:
         raise ValueError('excluded authorities must remain explicit')
-    if record['phases'] != [1, 2, 3, 4, 5]:
+    if record['phases'] != ([1,2] if replay else [1, 2, 3, 4, 5]):
         raise ValueError('registered engineering phases required')
-    if record['workloads']!=[] or record['comparisons']!=[]:
+    if record['workloads']!=(['cache-replay/v1'] if replay else []) or record['comparisons']!=[]:
         raise ValueError('custom workload/comparison overrides are not registered; the static versioned adapters freeze these records')
     from oeis_learn.synthesis.state import require_hash
     if not isinstance(record['source'],dict):raise ValueError('closed source binding required')

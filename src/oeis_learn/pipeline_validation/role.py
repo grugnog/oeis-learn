@@ -151,7 +151,7 @@ def cpu_contracts(inputs,output,config):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
     role_started=time.monotonic()
@@ -170,14 +170,15 @@ def main(argv=None):
             from .runner import ResourceBreach
             raise ResourceBreach('role device isolation audit failed: '+str(exc)) from exc
         from .neural import gpu,score
+        from .replay import reference_role,replay_role
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
         if ceiling is None:
             from .resources import observe,resolve
             ceiling=resolve(**observe())['ceiling_bytes']
-        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode=='neural',
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay'},
                 render_node=config['options'].get('render_node')) as guard:
-            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score}[args.mode](inputs,output,config)
+            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach

@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32'):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -105,6 +105,11 @@ def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32
     ]
     if len({byid[k]["family"] for k in ids}) < 4:
         raise ValueError("diverse panel requires at least four structures")
+    if replay:
+        if scope!='diverse32':raise ValueError('replay uses only the frozen visible training panel')
+        from oeis_learn.pipeline_validation.replay import prepare_inputs
+        return prepare_inputs(recipe,prompts,weights,output,image=image,source=source,render_node=render_node,
+            parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
     training = [
         {k: r[k] for k in ("id", "indices", "values", "tokens")} for r in learner["training"][:128]
     ]

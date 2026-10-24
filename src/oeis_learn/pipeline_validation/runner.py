@@ -108,6 +108,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         mandatory.extend('stages/study.report/'+name for name in report_ledger.read()['files'])
     emergency.unlink(missing_ok=True)
     summary=summarize(receipts,interrupted=interrupted,registry_unavailable=unavailable)
+    summary['scope']=(contract or {}).get('scope','engineering')
     summary.update(phase_consumed_seconds=phase_costs,elapsed_seconds=time.monotonic()-start,cap_seconds=cap,cleanup_archive_reserve_seconds=reserve)
     write(output/'summary.json',summary)
     code=EXIT[summary['selected_scope']]

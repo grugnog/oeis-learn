@@ -4,7 +4,7 @@ import shutil
 from dataclasses import asdict
 from .contracts import parse
 from .identity import confined, digest, number, reference
-from .registry import registry, resolve
+from .registry import registry, replay_registry, resolve
 from .runner import execute
 from .adapters import Adapters
 
@@ -31,7 +31,9 @@ def main(args, root, host_factory):
     if mode=='both' or mode=='available' and shutil.which(other):
         engines.append(other)
     args.pipeline_engines=engines
-    all_stages=registry(engines,primary)
+    if contract['scope']=='engineering-replay' and args.phase not in {'all-ready','1','2'}:
+        raise ValueError('replay scope registers only phases 1 and 2')
+    all_stages=(replay_registry if contract['scope']=='engineering-replay' else registry)(engines,primary)
     stages=resolve(all_stages,args.phase)
     unavailable=[asdict(s) for s in all_stages if not s.available]
     for value in [args.run,args.inputs,*args.reuse]:
@@ -50,7 +52,7 @@ def main(args, root, host_factory):
     output=confined(root,args.output,exists=False)
     if args.scope_report:
         print(json.dumps(dict(selected=[asdict(s) for s in stages],unavailable=unavailable,
-            ceiling_seconds=maximum,contract=contract['identity'],engines=engines,research='NOT_SELECTED'),indent=2))
+            ceiling_seconds=maximum,contract=contract['identity'],engines=engines,research='NOT_SELECTED',scope=contract['scope']),indent=2))
         return 0
     from .reuse import validate_import
     reuse_roots=[confined(root,path) for path in args.reuse]
