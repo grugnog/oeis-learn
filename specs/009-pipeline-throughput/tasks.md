@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -457,3 +457,12 @@ The [first comparison archive review](validation/replay-comparison-operator-2026
 ### Accepted component evidence and current priority
 
 The [second comparison archive](validation/replay-comparison-operator-20261024T193940Z.md) passes at exact producer ac41e4d:622 CPU/16 actual-HIP tests and all10 replay roles complete. Two exploratory component reductions are10.54/11.28%; no production adoption.009:C004 and affected-source T110 close for that source; original counts78 complete/18 runtime pending/15 research held or blocked. The user now prioritizes CPU/GPU/memory throughput and capacity. Hold learning-performance/curriculum investigations; a later separately admitted multi-day training run will inform organic/stochastic versus curriculum-driven learning after hardware qualification.
+
+## Supplemental hardware screen — equal-work batch8/16 replay v1
+
+The user's hardware-first instruction follows the accepted bookkeeping comparison. [Contract](contracts/replay-batching.md) and [handoff](validation/replay-batching-implementation.md) register a separate equal-work screen, preserving all prior evidence and training holds. Original counts77 complete/19 runtime pending/15 research held or blocked reflect reopened current-sourceT110, not revocation of its accepted older-source closure.
+
+- [X] 009:B001 Register a separate closed batch8/16 manifest, fixed32 visible rows/32768 supplied tokens/160 row boundaries and no learning/default authority.
+- [X] 009:B002 Reuse isolated source-bound reference/role/ledger/telemetry machinery; freeze complete baseline calibration, actual resource/thread envelope, candidate capacity/headroom and AB/BA schedule before timing.
+- [X] 009:B003 Run complete host orchestration/authority/privacy/capacity/partial-work tests and the public stdlib CLI; author/register actual CPU/HIP32-row oracle and both batch-role fixtures and record verified non-admitting local evidence.
+- [ ] 009:B004 Collect/review one combined target batching run, including current CPU/HIP fixtures, all fixed-work roles, memory/utilization observations and source-bound archive. Preserve missing/failed arms without retries or adoption.

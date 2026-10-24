@@ -1,3 +1,5 @@
+Current hardware handoff: [equal-work batch8 versus batch16](validation/replay-batching-implementation.md). The accepted bookkeeping comparison showed10.54–11.28% component improvement. New batching code and112 host tests pass; target CPU/HIP batching validation is pending. Learning-quality/curriculum work remains held.
+
 Latest accepted result: [comparison PASS](validation/replay-comparison-operator-20261024T193940Z.md):622 CPU/16 HIP tests and all registered roles pass; exploratory component reduction10.54–11.28%. No duplicate run is requested. Current priority is CPU/GPU/memory performance; learning-performance/curriculum work is held for a later decision.
 
 Latest target review: [comparison preflight failure and fixture repair](validation/replay-comparison-operator-20261024T190425Z.md).621 CPU tests passed; HIP qualification had15 passes and one fixture thread-setting failure. No measured baseline/candidate arms ran. The fixture now configures actual threads in a fresh bounded process;106 host tests pass and corrected CPU/HIP validation is pending. Use the existing combined comparison command with a fresh output after updating the branch.
