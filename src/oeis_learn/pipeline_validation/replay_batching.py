@@ -40,7 +40,8 @@ def batch_reference(decoder,memory,plan,deadline,observed=None):
 
 def batch_cached(decoder,memory,plan,deadline,observed=None,*,batch_size):
     import torch
-    if batch_size not in (8,16) or len(memory)!=32:raise ValueError('registered32-row batch8/16 workload required')
+    if batch_size not in plan['batches'] or len(memory)!=len(plan['tokens']) or len(memory)%batch_size:
+        raise ValueError('registered fixed-row/batch workload required')
     outputs={}
     def capture(value,start,p):
         for offset in range(batch_size):
@@ -48,7 +49,7 @@ def batch_cached(decoder,memory,plan,deadline,observed=None,*,batch_size):
             if observed:observed(key)
     with torch.no_grad():
         tokens=torch.tensor(plan['tokens'],device=memory.device,dtype=torch.long)
-        for start in range(0,32,batch_size):
+        for start in range(0,len(memory),batch_size):
             check_deadline(deadline)
             end=start+batch_size
             value,cache=decoder.prefill(tokens[start:end,:1],memory[start:end],capacity=1024,backend='eager')

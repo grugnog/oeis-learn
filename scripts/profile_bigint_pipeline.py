@@ -107,7 +107,9 @@ def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32
         raise ValueError("diverse panel requires at least four structures")
     if replay:
         if scope!='diverse32':raise ValueError('replay uses only the frozen visible training panel')
-        if replay=='batching/v1':
+        if replay=='ladder/v1':
+            from oeis_learn.pipeline_validation.hardware_ladder import prepare_inputs
+        elif replay=='batching/v1':
             from oeis_learn.pipeline_validation.replay_batching import prepare_inputs
         elif replay is True:
             from oeis_learn.pipeline_validation.replay import prepare_inputs

@@ -194,3 +194,11 @@ def test_actual_hip_baseline_replay_reference_and_frozen_roles(tmp_path,batching
         pytest.skip('actual HIP device required')
     from tests.unit.test_pipeline_profile import check_baseline_replay_role
     check_baseline_replay_role('cuda',tmp_path,batching=batching)
+
+
+def test_actual_hip_hardware_capacity128_and_all_registered_batches(tmp_path):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':pytest.fail('actual HIP required for capacity evidence')
+        pytest.skip('actual HIP required')
+    from tests.unit.test_pipeline_profile import check_hardware_capacity_role
+    check_hardware_capacity_role('cuda',tmp_path)

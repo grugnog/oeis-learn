@@ -926,3 +926,71 @@ def _check_baseline_replay_role(device,tmp_path,*,batching=False):
 @pytest.mark.parametrize('batching',[False,True])
 def test_baseline_replay_cpu_reference_and_completed_work(tmp_path,batching):
     check_baseline_replay_role('cpu',tmp_path,batching=batching)
+
+
+def check_hardware_capacity_role(device,tmp_path):
+    """Fresh real thread pools and real128-row tensors; no fixture performance claim."""
+    import torch
+    before=(torch.get_num_threads(),torch.get_num_interop_threads())
+    code=('import sys; from pathlib import Path; import torch; torch.set_num_interop_threads(1); '
+        'from tests.unit.test_pipeline_profile import _check_hardware_capacity_role; '
+        '_check_hardware_capacity_role(sys.argv[1],Path(sys.argv[2]))')
+    subprocess.run([sys.executable,'-c',code,device,str(tmp_path)],cwd=Path(__file__).resolve().parents[2],check=True,timeout=180)
+    assert (torch.get_num_threads(),torch.get_num_interop_threads())==before
+
+
+def _check_hardware_capacity_role(device,tmp_path):
+    import shutil
+    import time
+    import torch
+    from unittest.mock import patch
+    from tests.integration.test_bigint_decoding import model
+    from oeis_learn.pipeline_validation.hardware_ladder import prepare_inputs,reference_role,numeric_role
+    from oeis_learn.pipeline_validation.replay_batching import batch_cached
+    from oeis_learn.pipeline_validation.replay import verify_outputs,tensor_record
+    from oeis_learn.pipeline_validation.identity import file_hash,seal
+    assert torch.get_num_interop_threads()==1
+    class Encoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.linear=torch.nn.Linear(1,16)
+        def forward_from_sequences(self,values,device):
+            return self.linear(torch.tensor(values,dtype=torch.float32,device=device)[:,:,None])
+    def models(recipe,selected):return Encoder().to(selected),model().to(selected),{}
+    def configured(count):assert count==torch.get_num_interop_threads()==1
+    torch.manual_seed(20261024)
+    weights=tmp_path/'weights.pt';torch.save({'encoder':Encoder().state_dict(),'decoder':model().state_dict()},weights)
+    before=file_hash(weights);prepared=tmp_path/'prepared';prepared.mkdir()
+    prepare_inputs({'fixture':'frozen'},[{'id':str(i),'values':[str(n+i) for n in range(20)]} for i in range(32)],weights,prepared,source='fixture-source')
+    inputs=prepared/'input';reference=tmp_path/'reference';reference.mkdir()
+    cfg=dict(source='fixture-source',contract='fixture-contract',options=dict(seconds=570,memory_ceiling=32<<30,
+        render_node=None,batch_size=16,measurement='aggregate1Hz/v1'))
+    with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads',side_effect=configured):
+        reference_role(inputs,reference,cfg)
+        ref=json.loads((reference/'reference.json').read_text());payload=torch.load(reference/'private/reference.pt',weights_only=True)
+        memory=payload['memory'];assert len(memory)==128 and memory.is_contiguous()
+        assert memory.untyped_storage().nbytes()==memory.numel()*memory.element_size()
+        assert torch.equal(memory[:32],memory[32:64])
+        assert ref['memory']==tensor_record(memory) and len(payload['expected'])==640
+        plan=json.loads((inputs/'work.json').read_text())['manifest']['plan']
+        if device=='cpu':
+            decoder=model();decoder.load_state_dict(torch.load(weights,weights_only=True)['decoder']);decoder.cache_bookkeeping='hoisted/v1'
+            for batch in (16,32,64,128):
+                outputs=batch_cached(decoder,memory,plan,time.monotonic()+570,batch_size=batch)
+                assert len(verify_outputs(outputs,payload['expected']))==640
+            with pytest.raises(TimeoutError):batch_cached(decoder,memory,plan,time.monotonic()-1,batch_size=16)
+        else:
+            shutil.copyfile(reference/'reference.json',inputs/'reference.json');shutil.copyfile(reference/'private/reference.pt',inputs/'reference.pt')
+            for batch in (16,32,64,128):
+                output=tmp_path/str(batch);output.mkdir()
+                options=dict(cfg['options'],batch_size=batch,measurement='ordinary/v1' if batch==128 else 'aggregate1Hz/v1')
+                result=numeric_role(inputs,output,dict(cfg,options=options))
+                assert result['status']=='COMPLETE' and result['boundaries']==640 and result['device']['hip']
+                assert result['torch_threads']=={'intraop':2,'interop':1} and result['measurement_mode']==options['measurement']
+            (inputs/'reference.json').write_text(json.dumps(seal(dict(ref,contract='changed'))))
+            output=tmp_path/'changed';output.mkdir()
+            with pytest.raises(ValueError,match='changed replay reference'):numeric_role(inputs,output,cfg)
+    assert file_hash(weights)==before
+
+
+def test_hardware_capacity128_cpu_reference_and_batches(tmp_path):
+    check_hardware_capacity_role('cpu',tmp_path)

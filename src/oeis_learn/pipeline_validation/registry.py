@@ -103,3 +103,23 @@ def replay_batching_registry(engines=('docker',),primary='docker'):
         'replay-report':'replay-batching-report','replay-comparison-freeze':'replay-batching-freeze',
         'replay-comparison-trial':'replay-batching-trial','replay-comparison-report':'replay-batching-report'}
     return [replace(s,adapter=adapters.get(s.adapter,s.adapter)) for s in replay_comparison_registry(engines,primary)]
+
+
+def hardware_registry(engines=('docker',),primary='docker'):
+    from .replay import TRIALS
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip'}]
+    stages.append(Stage('hardware.reference',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=600,adapter='hardware-reference'))
+    stages.extend([
+        Stage('hardware.overhead.ordinary',2,('hardware.reference','hip.preflight'),seconds=360,adapter='hardware-role'),
+        Stage('hardware.overhead.telemetry',2,('hardware.overhead.ordinary',),seconds=360,adapter='hardware-role'),
+        Stage('hardware.measurement',2,('hardware.overhead.telemetry',),seconds=30,adapter='hardware-measurement')])
+    previous='hardware.measurement'
+    for key in TRIALS:
+        stages.append(Stage(key,2,(previous,),seconds=600,adapter='hardware-role'));previous=key
+    stages.append(Stage('hardware.baseline',2,(previous,),seconds=30,adapter='hardware-baseline'))
+    previous='hardware.baseline'
+    for batch in (32,64,128):
+        key='hardware.b'+str(batch)
+        stages.append(Stage(key,2,(previous,),seconds=1800,adapter='hardware-branch'));previous=key
+    stages.append(Stage('hardware.report',2,seconds=30,adapter='hardware-report'))
+    return stages

@@ -86,7 +86,7 @@ def replay_report(receipts,reference,workload):
 def prepare_inputs(recipe,prompts,weights,output,*,plan_factory=replay_plan,**binding):
     """Reuse the existing parent's selection checks, without reading hidden truth."""
     from oeis_learn.decoder.bigint_codec import BOS_ID
-    plan=plan_factory(BOS_ID);count=len(plan['tokens'])
+    plan=plan_factory(BOS_ID);count=plan.get('visible_rows',len(plan['tokens']))
     prompts=[{k:row[k] for k in ('id','values')} for row in prompts[:count]]
     if len(prompts)!=count or len({r['id'] for r in prompts})!=count or any(len(r['values'])!=20 for r in prompts):
         raise ValueError(f'{count} distinct frozen twenty-visible-term replay prompts required')
@@ -108,7 +108,7 @@ def load_models(inputs,config,device,*,plan_factory=replay_plan):
     m=work['manifest'];validate(m,{'version','binding','weights','recipe','prompts','plan'},'pipeline-replay-input/v1')
     if (m['plan']!=plan_factory(BOS_ID) or m['binding']['source']!=config['source']
             or m['weights']!=file_hash(inputs/'weights.pt') or m['recipe']!=digest(work['recipe'])
-            or m['prompts']!=digest(work['prompts']) or len(work['prompts'])!=len(m['plan']['tokens'])):
+            or m['prompts']!=digest(work['prompts']) or len(work['prompts'])!=m['plan'].get('visible_rows',len(m['plan']['tokens']))):
         raise ValueError('frozen replay payload/weights/source mismatch')
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     encoder,decoder,counts=models(work['recipe'],device)
@@ -216,18 +216,19 @@ def verify_outputs(outputs,expected,verified=None,deadline=None):
     return records
 
 
-def reference_role(inputs,output,config,*,plan_factory=replay_plan,execute=full_reference,keys=None,oracle='CPU full-prefix dense logits; CPU baseline mixed-cache invariants'):
+def reference_role(inputs,output,config,*,plan_factory=replay_plan,execute=full_reference,keys=None,oracle='CPU full-prefix dense logits; CPU baseline mixed-cache invariants',memory_transform=None):
     with BoundaryLedger(output,keys) as evidence:
-        return _reference_role(inputs,output,config,evidence,plan_factory=plan_factory,execute=execute,oracle=oracle)
+        return _reference_role(inputs,output,config,evidence,plan_factory=plan_factory,execute=execute,oracle=oracle,memory_transform=memory_transform)
 
 
-def _reference_role(inputs,output,config,evidence,*,plan_factory,execute,oracle):
+def _reference_role(inputs,output,config,evidence,*,plan_factory,execute,oracle,memory_transform):
     import torch
     deadline=role_deadline(config)
     work,encoder,decoder=load_models(inputs,config,'cpu',plan_factory=plan_factory);m=work['manifest']
     from oeis_learn.synthesis.contracts import canonical_integer
     with torch.no_grad():
         memory=encoder.forward_from_sequences([[canonical_integer(v) for v in row['values']] for row in work['prompts']],device='cpu')
+        if memory_transform is not None:memory=memory_transform(memory)
         expected=execute(decoder,memory,m['plan'],deadline,evidence.queued)
     if not torch.isfinite(memory).all() or any(not torch.isfinite(v).all() for v in expected.values()):
         raise RuntimeError('nonfinite frozen replay reference')
@@ -244,17 +245,17 @@ def _reference_role(inputs,output,config,evidence,*,plan_factory,execute,oracle)
     return dict(status='COMPLETE',reference=ref['identity'],workload=m['identity'],authority='frozen visible-only replay reference; no hidden truth')
 
 
-def replay_role(inputs,output,config,*,bookkeeping='baseline',plan_factory=replay_plan,execute=cached_replay,keys=None):
+def replay_role(inputs,output,config,*,bookkeeping='baseline',plan_factory=replay_plan,execute=cached_replay,keys=None,instrumented=True):
     if bookkeeping not in {'baseline','hoisted/v1'}:raise ValueError('registered cache bookkeeping required')
     with BoundaryLedger(output,keys) as evidence:
-        result,deadline=_replay_role(inputs,output,config,evidence,bookkeeping=bookkeeping,plan_factory=plan_factory,execute=execute)
+        result,deadline=_replay_role(inputs,output,config,evidence,bookkeeping=bookkeeping,plan_factory=plan_factory,execute=execute,instrumented=instrumented)
         finished=time.monotonic()
     result['verified_seconds']+=time.monotonic()-finished
     check_deadline(deadline)
     return result
 
 
-def _replay_role(inputs,output,config,evidence,*,bookkeeping,plan_factory,execute):
+def _replay_role(inputs,output,config,evidence,*,bookkeeping,plan_factory,execute,instrumented):
     import torch
     if not torch.version.hip or not torch.cuda.is_available() or torch.cuda.device_count()!=1:
         raise RuntimeError('one actual HIP device required for replay; no CPU fallback')
@@ -271,7 +272,7 @@ def _replay_role(inputs,output,config,evidence,*,bookkeeping,plan_factory,execut
         raise ValueError('reference tensor hashes differ')
     memory=payload['memory'].to('cuda');check_deadline(deadline)
     from oeis_learn.tracking.pipeline_profile import Recorder
-    with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node']):
+    with Recorder(output/'observations',instrumented=instrumented,render_node=config['options']['render_node']):
         torch.cuda.synchronize();started=time.monotonic()
         outputs=execute(decoder,memory,work['manifest']['plan'],deadline,evidence.queued)
         torch.cuda.synchronize();decode_seconds=time.monotonic()-started
@@ -292,7 +293,7 @@ class ReplayStages:
         self.a=adapters;self.prepared=None;self.reference=None;self.reference_hash=None;self.payload_hash=None
         self.batching=batching
 
-    def __call__(self,stage,output,*,comparison=None):
+    def __call__(self,stage,output,*,comparison=None,trial_options=None):
         a=self.a
         if stage.adapter=='replay-report':
             ref=json.loads((self.reference/'reference.json').read_text()) if self.reference else {}
@@ -303,17 +304,18 @@ class ReplayStages:
         from .runner import CapabilityError
         from .resources import observe,resolve,reserve
         module=legacy(a.root);host=a.host(a.args.engine)
-        if stage.adapter in {'replay-reference','replay-batching-reference'}:
+        ladder=self.batching=='ladder/v1'
+        if stage.adapter in {'replay-reference','replay-batching-reference','hardware-reference'}:
             if not a.args.run or not a.args.inputs:raise CapabilityError('replay needs --run and --inputs for frozen parent weights/visible prompts')
             self.prepared=output/'prepared';self.prepared.mkdir();host.select_gpu()
             from oeis_learn.experiments.source_snapshot import collect_snapshot
             m=module.prepare(a.root/a.args.run,a.root/a.args.inputs,self.prepared,
-                image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'],replay='batching/v1' if self.batching else True)
+                image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'],replay='ladder/v1' if ladder else 'batching/v1' if self.batching else True)
             if a.contract['weights_ref'] and a.contract['weights_ref']['sha256']!=m['weights']:raise ValueError('manifest weights differ from frozen parent')
         inputs=output/'input';inputs.mkdir()
         source=self.prepared/'input'
         for name in ['weights.pt','work.json']:os.link(source/name,inputs/name)
-        gpu=stage.adapter in {'replay-trial','replay-comparison-trial','replay-batching-trial'}
+        gpu=stage.adapter in {'replay-trial','replay-comparison-trial','replay-batching-trial','hardware-role'}
         if gpu:
             if self.reference is None:raise ValueError('frozen replay reference required')
             if (file_hash(self.reference/'reference.json')!=self.reference_hash
@@ -345,11 +347,16 @@ class ReplayStages:
             write(inputs/'comparison-contract.json',child);write(inputs/'comparison-slot.json',slot)
             seconds=child['limits']['external_seconds'];internal=child['limits']['internal_seconds']
             mode='replay-batching-compare' if self.batching else 'replay-compare'
+        if ladder:mode='hardware-replay' if gpu else 'hardware-reference'
         m=json.loads((inputs/'work.json').read_text())['manifest']
         config=dict(version='pipeline-role/v1',source=m['binding']['source'],
             contract=a.contract['identity'],mode=mode,options=dict(seconds=internal,memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node']))
         if comparison is not None:config['options'].update(comparison=child['identity'],slot=slot['id'])
         if self.batching:config['options']['batch_size']=slot['batch_size'] if comparison is not None else 8
+        if ladder:config['options'].update(batch_size=slot['batch_size'] if comparison is not None else 16,measurement='aggregate1Hz/v1')
+        if trial_options:
+            if set(trial_options)-{'batch_size','measurement'}:raise ValueError('closed internal trial options required')
+            config['options'].update(trial_options)
         write(inputs/'expected.json',config)
         from contextlib import nullcontext
         with host.gpu_lock() if gpu else nullcontext():
