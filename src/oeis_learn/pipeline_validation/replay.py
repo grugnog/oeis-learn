@@ -138,7 +138,7 @@ def full_reference(decoder,memory,plan,deadline,observed=None):
     """Independent full-prefix oracle for every dense checkpoint."""
     import torch
     outputs={}
-    with torch.inference_mode():
+    with torch.no_grad():
         for batch in plan['batches']:
             tokens=torch.tensor(plan['tokens'][:batch],device=memory.device,dtype=torch.long)
             for position in plan['positions']:
@@ -176,7 +176,7 @@ def mixed_replay(decoder,memory,plan,deadline):
 def cached_replay(decoder,memory,plan,deadline,observed=None):
     import torch
     outputs={}
-    with torch.inference_mode():
+    with torch.no_grad():
         for batch in plan['batches']:
             check_deadline(deadline)
             tokens=torch.tensor(plan['tokens'][:batch],device=memory.device,dtype=torch.long)
@@ -223,7 +223,7 @@ def _reference_role(inputs,output,config,evidence):
     deadline=role_deadline(config)
     work,encoder,decoder=load_models(inputs,config,'cpu');m=work['manifest']
     from oeis_learn.synthesis.contracts import canonical_integer
-    with torch.inference_mode():
+    with torch.no_grad():
         memory=encoder.forward_from_sequences([[canonical_integer(v) for v in row['values']] for row in work['prompts']],device='cpu')
         expected=full_reference(decoder,memory,m['plan'],deadline,evidence.queued)
     if not torch.isfinite(memory).all() or any(not torch.isfinite(v).all() for v in expected.values()):
