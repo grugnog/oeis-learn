@@ -327,6 +327,10 @@ class ReplayStages:
             peak=12*(inputs/'weights.pt').stat().st_size+((8 if self.batching else 4)<<30)
             if self.batching and comparison is not None:peak=max(peak,comparison[0]['capacity']['candidate_peak_bytes'])
             reservation=reserve(resource,peak)
+            if self.batching and comparison is not None:
+                import math
+                if peak+max(1<<30,math.ceil(.1*peak))>math.floor(.9*resource['ceiling_bytes']):
+                    raise ValueError('batching weight allocation cannot leave ten percent unreserved')
         except ValueError as exc:raise CapabilityError(str(exc)) from exc
         write(output/'resource-reservation.json',dict(policy=resource,reservation=reservation))
         import copy

@@ -80,7 +80,18 @@ class Batching(unittest.TestCase):
                 self.assertEqual(result['status'],'COMPLETE')
                 self.assertEqual(result['supplied_tokens'],32768)
                 self.assertEqual(len(result['pairs']),2)
-                child=adapter.child();(adapter.path).write_text(json.dumps(dict(child,identity='changed')))
+                child=adapter.child()
+                # The sealed measured estimate fits9/10GiB exactly, but the
+                # actual weight-derived allocation needs extra bytes. Dispatch
+                # must retain the full10% reserve rather than borrowing it.
+                smaller=seal(dict(child,resource_device=dict(child['resource_device'],ceiling_bytes=10<<30)))
+                observations['limits']=[10<<30]
+                stage=next(s for s in replay_batching_registry(('podman',),'podman') if s.id==BATCH_SLOTS[0]['id'])
+                out=root/'weight-headroom';out.mkdir()
+                from oeis_learn.pipeline_validation.runner import CapabilityError
+                with self.assertRaisesRegex(CapabilityError,'ten percent'):
+                    adapter.replay(stage,out,comparison=(smaller,BATCH_SLOTS[0]))
+                (adapter.path).write_text(json.dumps(dict(child,identity='changed')))
                 with self.assertRaisesRegex(ValueError,'child changed'):adapter.child()
             self.assertEqual([c['gpu'] for c in calls],[False]+[True]*10)
 
