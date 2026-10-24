@@ -1,3 +1,5 @@
+Latest collection: the [third operator review](operator-20261024T035922Z-review.md) records passing CPU suites and a filesystem free-space stop during GPU inspection. Resolve workstation storage before rerunning; precise disk reporting is implemented and passes 89 host tests.
+
 Latest operator collection: see the [second archive review and rerun](operator-20261024-review.md). Its 15 HIP tests pass; CPU/workflow failures are the Docker fixture issue already repaired by `5f0c568`. Combined current-source validation remains pending.
 
 # Implementation handoff: Spec 009

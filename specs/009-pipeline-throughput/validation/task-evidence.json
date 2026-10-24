@@ -1449,7 +1449,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Second operator archive reviewed: all 15 actual-HIP tests including diagnostic checkpoint roundtrip passed at 170cb10. Nine CPU/workflow failures share the already-fixed Docker user-mapping resource probe. Current source has 87 passing host tests; previously failed CI jobs pass, with separate Podman build cancelled. Combined current-source calibration/native/comparison/cost/operator gates remain pending. See operator-20261024-review.md.",
+  "target_validation": "Third archive reviewed: CPU semantics 600 tests, retirement 123 tests, workflow 1115 tests/9 skips all have zero failures/errors. GPU package inspection stopped on filesystem free-space reserve, globally blocking remaining work. Disk reporting now retains exact first-breach observations; 89 host tests pass. Free workstation disk space before current-source rerun; engineering/portability/adoption/research gates remain pending.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1473,5 +1473,18 @@
     "hip_checkpoint_fixture": "PASS",
     "blocking_cause": "Docker command fixtures missing memory facts; already repaired in 5f0c568",
     "disposition": "No new implementation defect found. Affected current-source runtime and operator gates remain pending; task counts unchanged."
+  },
+  "operator_disk_followup": {
+    "evidence": "specs/009-pipeline-throughput/validation/operator-20261024T035922Z-review.json",
+    "review": "specs/009-pipeline-throughput/validation/operator-20261024T035922Z-review.md",
+    "producer_commit": "322f8532f0c59e88bb943edb2f5c5c6a00a92ab2",
+    "integrity": "PASS",
+    "cpu_semantic_tests": 600,
+    "retirement_tests": 123,
+    "workflow_tests": 1115,
+    "workflow_skips": 9,
+    "failures": 0,
+    "blocking_cause": "Filesystem free-space reserve exhausted during GPU package inspection; exact historical free bytes absent. Precise disk reporting repaired; workstation storage action needed.",
+    "disposition": "CPU producer gates pass; current-source combined engineering, HIP, calibration/comparison/cost/operator gates remain pending. Counts unchanged."
   }
 }
