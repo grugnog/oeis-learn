@@ -845,6 +845,7 @@ def check_baseline_replay_role(device,tmp_path):
         bad={k:v.clone() for k,v in out.items()};bad['b1.p1'].fill_(float('nan'))
         with pytest.raises(RuntimeError,match='nonfinite'):verify_outputs(bad,payload['expected'])
         with pytest.raises(TimeoutError):cached_replay(decoder,payload['memory'],plan,time.monotonic()-1)
+        with pytest.raises(TimeoutError):verify_outputs(out,payload['expected'],deadline=time.monotonic()-1)
         if device=='cuda':
             import shutil
             shutil.copyfile(reference/'reference.json',inputs/'reference.json')

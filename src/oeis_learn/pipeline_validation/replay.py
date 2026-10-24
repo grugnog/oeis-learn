@@ -196,17 +196,19 @@ def cached_replay(decoder,memory,plan,deadline,observed=None):
     return outputs
 
 
-def verify_outputs(outputs,expected,verified=None):
+def verify_outputs(outputs,expected,verified=None,deadline=None):
     import torch
     if set(outputs)!=set(expected):raise ValueError('missing/extra replay boundary')
     records={}
     for key,value in outputs.items():
+        if deadline is not None:check_deadline(deadline)
         actual=value.detach().cpu();oracle=expected[key]
         if not torch.isfinite(actual).all() or not torch.isfinite(oracle).all():raise RuntimeError('nonfinite replay output')
         tolerance=dict(atol=2e-5,rtol=2e-4) if value.is_cuda else dict(atol=1e-5,rtol=1e-4)
         torch.testing.assert_close(actual,oracle,**tolerance)
         if not torch.equal(actual.argmax(-1),oracle.argmax(-1)):raise RuntimeError('replay token mismatch')
         records[key]=tensor_record(actual)
+        if deadline is not None:check_deadline(deadline)
         if verified:verified(key,records[key])
     return records
 
@@ -226,7 +228,8 @@ def _reference_role(inputs,output,config,evidence):
         expected=full_reference(decoder,memory,m['plan'],deadline,evidence.queued)
     if not torch.isfinite(memory).all() or any(not torch.isfinite(v).all() for v in expected.values()):
         raise RuntimeError('nonfinite frozen replay reference')
-    for key,value in expected.items():evidence.verified(key,tensor_record(value))
+    for key,value in expected.items():
+        check_deadline(deadline);evidence.verified(key,tensor_record(value))
     check_deadline(deadline)
     path=output/'private/reference.pt';path.parent.mkdir()
     torch.save(dict(memory=memory,expected=expected),path)
@@ -234,14 +237,16 @@ def _reference_role(inputs,output,config,evidence):
         workload=m['identity'],weights=m['weights'],payload=file_hash(path),memory=tensor_record(memory),
         expected={key:tensor_record(value) for key,value in expected.items()},oracle='CPU full-prefix dense logits; CPU baseline mixed-cache invariants'))
     write(output/'reference.json',ref)
+    check_deadline(deadline)
     return dict(status='COMPLETE',reference=ref['identity'],workload=m['identity'],authority='frozen visible-only replay reference; no hidden truth')
 
 
 def replay_role(inputs,output,config):
     with BoundaryLedger(output) as evidence:
-        result=_replay_role(inputs,output,config,evidence)
+        result,deadline=_replay_role(inputs,output,config,evidence)
         finished=time.monotonic()
     result['verified_seconds']+=time.monotonic()-finished
+    check_deadline(deadline)
     return result
 
 
@@ -265,7 +270,7 @@ def _replay_role(inputs,output,config,evidence):
         torch.cuda.synchronize();started=time.monotonic()
         outputs=cached_replay(decoder,memory,work['manifest']['plan'],deadline,evidence.queued)
         torch.cuda.synchronize();decode_seconds=time.monotonic()-started
-        records=verify_outputs(outputs,payload['expected'],evidence.verified)
+        records=verify_outputs(outputs,payload['expected'],evidence.verified,deadline)
         write(output/'boundaries.json',records)
     check_deadline(deadline)
     return dict(status='COMPLETE',reference=ref['identity'],workload=ref['workload'],
@@ -273,7 +278,7 @@ def _replay_role(inputs,output,config,evidence):
         device=dict(name=torch.cuda.get_device_name(),hip=torch.version.hip),
         torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
         measurement='fresh role and fresh baseline KV caches; decode through verification/export; setup/startup separately observed',
-        authority='forced replay viability only; not generated-program, optimization or research admission')
+        authority='forced replay viability only; not generated-program, optimization or research admission'),deadline
 
 
 class ReplayStages:
