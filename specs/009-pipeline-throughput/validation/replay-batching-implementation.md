@@ -1,3 +1,5 @@
+This scope is now accepted at producer d74d30e; [target review](replay-batching-operator-20261024T203537Z.md). The command below is historical reproduction guidance, not a request to repeat accepted work.
+
 # Equal-work batch8/16 hardware screen: implementation handoff
 
 Current priority is CPU/GPU/memory throughput and capacity, per the user's latest

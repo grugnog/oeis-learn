@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -465,4 +465,8 @@ The user's hardware-first instruction follows the accepted bookkeeping compariso
 - [X] 009:B001 Register a separate closed batch8/16 manifest, fixed32 visible rows/32768 supplied tokens/160 row boundaries and no learning/default authority.
 - [X] 009:B002 Reuse isolated source-bound reference/role/ledger/telemetry machinery; freeze complete baseline calibration, actual resource/thread envelope, candidate capacity/headroom and AB/BA schedule before timing.
 - [X] 009:B003 Run complete host orchestration/authority/privacy/capacity/partial-work tests and the public stdlib CLI; author/register actual CPU/HIP32-row oracle and both batch-role fixtures and record verified non-admitting local evidence.
-- [ ] 009:B004 Collect/review one combined target batching run, including current CPU/HIP fixtures, all fixed-work roles, memory/utilization observations and source-bound archive. Preserve missing/failed arms without retries or adoption.
+- [X] 009:B004 Collect/review one combined target batching run, including current CPU/HIP fixtures, all fixed-work roles, memory/utilization observations and source-bound archive. Preserve missing/failed arms without retries or adoption.
+
+### Accepted batch8/16 screen
+
+[Target evidence](validation/replay-batching-operator-20261024T203537Z.md) closes009:B004 and affected-sourceT110 at d74d30e:629 CPU/17 HIP tests, all rows/roles complete,48.98% median component interval reduction. Counts78 complete/18 runtime pending/15 research held. Further hardware experiments should be combined under finite prospective contracts to minimize operator handoffs; isolated timing measurements stay serial.

@@ -1,3 +1,5 @@
+Latest batching result: [registered target PASS](validation/replay-batching-operator-20261024T203537Z.md),629 CPU/17 HIP tests and all roles complete. Batch16 cuts equal-work interval48.98% median, with GPU busy about44% and1.71GiB sampled role memory. No duplicate run requested.
+
 Current hardware handoff: [equal-work batch8 versus batch16](validation/replay-batching-implementation.md). The accepted bookkeeping comparison showed10.54–11.28% component improvement. New batching code and112 host tests pass; target CPU/HIP batching validation is pending. Learning-quality/curriculum work remains held.
 
 Latest accepted result: [comparison PASS](validation/replay-comparison-operator-20261024T193940Z.md):622 CPU/16 HIP tests and all registered roles pass; exploratory component reduction10.54–11.28%. No duplicate run is requested. Current priority is CPU/GPU/memory performance; learning-performance/curriculum work is held for a later decision.

@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1445,10 +1445,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Accepted affected-source closure at ac41e4d is retained. The new equal-work batching implementation changes current code/tests and needs new affected-source review.",
-      "blocking_reason": "Current-source pinned CPU/actual-HIP batching/reference/role/package validation is pending.112 host tests and a verified local missing-engine archive do not supply it.",
+      "implementation_disposition": "Source-matching CPU/HIP equal-work batching and package/contract qualification reviewed at d74d30e; not full-feature adoption.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1461,7 +1461,8 @@
         "specs/009-pipeline-throughput/validation/replay-comparison-thread-fix-local-evidence.json",
         "specs/009-pipeline-throughput/validation/replay-comparison-operator-20261024T193940Z.md",
         "specs/009-pipeline-throughput/validation/replay-batching-implementation.md",
-        "specs/009-pipeline-throughput/validation/replay-batching-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/replay-batching-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/replay-batching-operator-20261024T203537Z.md"
       ]
     },
     {
@@ -1582,10 +1583,11 @@
     "status": "HARDWARE_PERFORMANCE_FIRST",
     "instruction": "Focus CPU/GPU/memory usage and throughput now; hold learning-performance work. A later separately admitted multi-day training decision will inform organic/stochastic versus curriculum-driven learning.",
     "authority": "User instruction accompanying 009-replay-comparison-20261024T193940Z.zip",
-    "long_run_admitted": false
+    "long_run_admitted": false,
+    "handoff_preference": "Combine multiple predeclared hardware experiments in one invocation/archive with shared preparation; serialize isolated timings and label deliberate overlap separately."
   },
   "replay_batching_refinement": {
-    "status": "IMPLEMENTED_TARGET_PENDING",
+    "status": "REGISTERED_TARGET_PASS",
     "source": "sha256:10ea8ca7c2cc459cacdd9ec886e8ae198b9032b8bf725a98600d276c4e6912e4",
     "manifest": "configs/foundation/pipeline_replay_batching.json",
     "contract": "specs/009-pipeline-throughput/contracts/replay-batching.md",
@@ -1594,8 +1596,9 @@
       "009:B001": "complete",
       "009:B002": "complete",
       "009:B003": "complete",
-      "009:B004": "pending_runtime"
+      "009:B004": "complete"
     },
-    "meaning": "Hardware-only equal-work batch8/16 screen with hoisted/v1 in both arms; no model/learning change or production adoption."
+    "meaning": "Hardware-only equal-work batch8/16 screen with hoisted/v1 in both arms; no model/learning change or production adoption.",
+    "operator_review": "specs/009-pipeline-throughput/validation/replay-batching-operator-20261024T203537Z.md"
   }
 }

@@ -1,3 +1,5 @@
+Latest accepted scope: [batch8/16 hardware replay PASS](replay-batching-operator-20261024T203537Z.md).629 CPU/17 HIP tests and all roles pass;48.98% median interval reduction. Counts78 complete/18 runtime pending/15 research held. Hardware-first, combined-experiment preference remains; no learning run admitted.
+
 Current hardware increment: [equal-work batch8/16 replay](replay-batching-implementation.md).112 host tests and verified local export pass; new affected-source CPU/HIP collection is pending. Original counts77 complete/19 runtime pending/15 research held or blocked. Accepted bookkeeping evidence remains complete at its source. No learning or multi-day run is admitted.
 
 Latest accepted result: [paired replay comparison PASS](replay-comparison-operator-20261024T193940Z.md).622 CPU/16 HIP tests and all roles pass at exact producer; component reduction10.54–11.28%. Counts78 complete/18 runtime pending/15 research held or blocked. User priority is hardware throughput/capacity; no new learning or multi-day run is admitted.
