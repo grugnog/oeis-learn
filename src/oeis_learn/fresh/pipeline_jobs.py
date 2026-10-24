@@ -59,6 +59,12 @@ class NativeRequest:
     deadline: float
     operation: object
     cancel: object = None
+    on_expired: object = None
+
+    def expired(self):
+        if self.on_expired is None:
+            raise TimeoutError('native job expired without a safe incomplete-result adapter')
+        return self.on_expired()
 
 
 

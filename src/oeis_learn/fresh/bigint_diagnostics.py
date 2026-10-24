@@ -289,9 +289,14 @@ def _portfolio(
         fitting_start = time.monotonic()
         service_deadline = min(deadline,fitting_start+4)
         if pipeline:
+            def expired_native():
+                reason='native/reference service deadline; late candidate excluded'
+                return (None,_status(False,'resource_exhausted',reason),
+                    dict(outcome='resource_exhausted',admitted=[],complete=False,reason=reason),
+                    time.monotonic()-fitting_start)
             found, detail['raw'], fit, fit_elapsed = yield NativeRequest(job,prompt_ordinal,
                 min(deadline,fitting_start+4),native_work,
-                cancel=getattr(getattr(client,'worker',None),'cancel_all',None))
+                cancel=getattr(getattr(client,'worker',None),'cancel_all',None),on_expired=expired_native)
         else:
             found, detail['raw'], fit, fit_elapsed = native_work()
         if found:
@@ -412,11 +417,14 @@ def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadlin
             index, generator, request = native
             if ledger is not None:
                 ledger.reserve(request.job,deadline=request.deadline,work=1)
-            value = request.operation()
-            if ledger is not None:
-                ledger.publish(request.job['job_id'],value,observed=time.monotonic())
-            if time.monotonic() >= request.deadline:
-                raise TimeoutError('sequential native job expired')
+            if time.monotonic()>=request.deadline:
+                if ledger is not None:ledger.cancel(request.job['job_id'],'queued native deadline',started=False)
+                value=request.expired()
+            else:
+                value=request.operation()
+                observed=time.monotonic()
+                eligible=ledger.publish(request.job['job_id'],value,observed=observed) if ledger is not None else observed<request.deadline
+                if not eligible:value=request.expired()
             advance(index, generator, value)
             continue
         first = pending[0][2]

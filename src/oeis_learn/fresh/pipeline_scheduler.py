@@ -51,7 +51,7 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
                 if error is not None:
                     ledger.cancel(request.job['job_id'],str(error));raise error
                 if not ledger.publish(request.job['job_id'],value,observed=observed):
-                    raise TimeoutError('late native result; original parent allowance exhausted')
+                    value=request.expired()
                 advance(i,value)
             now=time.monotonic()
             expired=[request for _,request in active.values() if now>=request.deadline]
@@ -63,7 +63,10 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
                 if not isinstance(request,NativeRequest) or len(active)>=workers:
                     continue
                 if time.monotonic()>=request.deadline:
-                    raise TimeoutError('queued native request expired')
+                    ledger.cancel(request.job['job_id'],'queued native deadline',started=False)
+                    ready.pop(i)
+                    advance(i,request.expired())
+                    continue
                 thread=threading.Thread(target=run_native,args=(i,request),daemon=True)
                 active[i]=(thread,request);ready.pop(i)
                 thread.start();cursor=(i+1)%len(generators)
