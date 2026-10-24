@@ -56,6 +56,8 @@ class Ladder(unittest.TestCase):
                 slot=json.loads((inputs/'comparison-slot.json').read_text()) if (inputs/'comparison-slot.json').exists() else None
                 key=slot['id'] if slot else str(output.parent.name);calls.append((key,options['batch_size'],options['measurement']))
                 if slot and fail_at==slot['id']:raise RuntimeError('injected candidate failure')
+                if slot and fail_at=='resource':raise ResourceBreach('injected shared memory breach')
+                if slot and fail_at=='interrupt':raise KeyboardInterrupt()
                 if slot and fail_at=='mutate-child' and slot['id']==slots(32)[0]['id']:
                     (output.parents[2]/'comparison-contract.json').write_text('{"identity":"changed"}')
                 if not kw['gpu']:
@@ -91,12 +93,17 @@ class Ladder(unittest.TestCase):
                     binding={'source':'source'},cap=86400,reserve=1200,contract=contract)
             verify(root/'out.zip')
             summary=json.loads((root/'out/summary.json').read_text())
-            report=json.loads((root/'out/stages/hardware.report/hardware-report.json').read_text())
+            report_path=root/'out/stages/hardware.report/hardware-report.json'
+            report=json.loads(report_path.read_text()) if report_path.exists() else {}
             nested={}
             for batch in (32,64,128):
                 for slot in slots(batch):
                     path=root/'out/stages'/f'hardware.b{batch}'/'roles'/slot['id']/'receipt.json'
-                    if path.exists():nested[slot['id']]=json.loads(path.read_text())['state']
+                    if path.exists():
+                        receipt=json.loads(path.read_text());nested[slot['id']]=receipt['state']
+                        from oeis_learn.pipeline_validation.identity import file_hash
+                        self.assertEqual(seal(receipt),receipt)
+                        for name,sha in receipt['files'].items():self.assertEqual(file_hash(path.parent/name),sha)
             return code,summary,report,nested,calls
 
     def test_combined_host_runs_all_branches_in_one_verified_archive(self):
@@ -130,6 +137,15 @@ class Ladder(unittest.TestCase):
         self.assertEqual(nested[slots(32)[0]['id']],'PASS')
         self.assertTrue(all(nested[s['id']]=='BLOCKED' for s in slots(32)[1:]))
         self.assertFalse(any(key==slots(32)[1]['id'] for key,_,_ in calls))
+
+    def test_nested_resource_breach_and_interrupt_preserve_global_stop(self):
+        for failure,expected in [('resource',1),('interrupt',130)]:
+            with self.subTest(failure=failure):
+                code,summary,report,nested,calls=self.run_host(durations={16:100,32:50,64:25,128:20},fail_at=failure)
+                self.assertEqual(code,expected)
+                self.assertEqual(summary['stages']['hardware.report']['state'],'BLOCKED')
+                self.assertTrue(all(nested[s['id']]=='BLOCKED' for s in slots(32)[1:]))
+                self.assertEqual([key for key,_,_ in calls if key.startswith('hardware.b')],[slots(32)[0]['id']])
 
     def test_role_authority_and_weights_are_checked_before_numeric_dispatch(self):
         import tempfile

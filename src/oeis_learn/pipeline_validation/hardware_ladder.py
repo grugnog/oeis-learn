@@ -176,6 +176,8 @@ def branch_report(child,receipts,*,previous_seconds):
     missing=[s['id']+': measurement mode mismatch' for s in child['slots']
         if receipts.get(s['id'],{}).get('state')=='PASS' and receipts[s['id']]['observations']['result'].get('measurement_mode')!=child['measurement']['mode']]
     if missing:report.update(status='INCONCLUSIVE',missing=report['missing']+missing,pairs=[],paired_gain=None)
+    report['pairs']=[dict(r,baseline_supplied_tokens_per_second=131072/r['baseline_seconds'],
+        candidate_supplied_tokens_per_second=131072/r['candidate_seconds']) for r in report['pairs']]
     median=statistics.median(r['candidate_seconds'] for r in report['pairs']) if report['pairs'] else None
     supported=report['status']=='COMPLETE' and min(r['gain'] for r in report['pairs'])>=.05-1e-12
     return seal(dict(report,candidate_batch=child['candidate_batch'],candidate_median=median,supported=supported,
