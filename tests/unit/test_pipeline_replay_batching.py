@@ -27,6 +27,63 @@ def fixture():
 
 
 class Batching(unittest.TestCase):
+    def test_complete_host_graph_preserves_rows_limits_and_child_custody(self):
+        import tempfile
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import Mock,patch
+        from oeis_learn.pipeline_validation.replay_batching import BatchingStages
+        from oeis_learn.pipeline_validation.registry import replay_batching_registry,resolve
+        from oeis_learn.pipeline_validation.identity import write
+        calls=[]
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            host=SimpleNamespace(policy={'render_node':'/dev/dri/renderD128','memory_bytes':16<<30,'cpus':16},select_gpu=Mock(),gpu_lock=lambda:nullcontext())
+            a=SimpleNamespace(root=root,args=SimpleNamespace(run='parent',inputs='data',engine='podman'),contract={'identity':'validation','weights_ref':None,'resource_policy':'workstation90'},images=SimpleNamespace(images={('podman','gpu'):'image'}),host=lambda _:host,receipts={})
+            def prepare(run,data,output,**kw):
+                self.assertEqual(kw['replay'],'batching/v1')
+                inputs=output/'input';inputs.mkdir();(inputs/'weights.pt').write_bytes(b'frozen')
+                m=seal(dict(binding={'source':'source'},weights='weights',plan=batch_plan(1)))
+                write(inputs/'work.json',{'manifest':m});return m
+            def container(h,image,inputs,output,**kw):
+                calls.append(kw);output.mkdir();cfg=json.loads((inputs/'expected.json').read_text())
+                child=json.loads((inputs/'comparison-contract.json').read_text()) if kw['mode']=='replay-batching-compare' else None
+                self.assertEqual(kw['seconds'],child['limits']['external_seconds'] if child else 600)
+                self.assertEqual(cfg['options']['seconds'],child['limits']['internal_seconds'] if child else 570)
+                if not kw['gpu']:
+                    self.assertEqual(kw['mode'],'replay-batching-reference')
+                    (output/'private').mkdir();(output/'private/reference.pt').write_bytes(b'reference')
+                    ref=seal(dict(workload='work',source='source',contract='validation',weights='weights'))
+                    write(output/'reference.json',ref)
+                else:
+                    self.assertEqual((inputs/'reference.pt').read_bytes(),b'reference')
+                    ref=json.loads((inputs/'reference.json').read_text())
+                result=dict(status='COMPLETE',reference=ref['identity'],workload='work',verified_seconds=30,
+                    decode_seconds=29,batch_size=8,boundaries=160,bookkeeping='hoisted/v1',
+                    resources={'qualified':True,'ceiling_bytes':16<<30,'role_peak_upper_bytes':2<<30},
+                    device={'hip':'test','name':'gpu'},torch_threads={'intraop':2,'interop':1})
+                if child:
+                    slot=json.loads((inputs/'comparison-slot.json').read_text())
+                    self.assertEqual(cfg['options']['comparison'],child['identity'])
+                    self.assertEqual(cfg['options']['slot'],slot['id'])
+                    self.assertEqual(cfg['options']['batch_size'],slot['batch_size'])
+                    result.update(comparison=child['identity'],slot=slot['id'],batch_size=slot['batch_size'])
+                write(output/'summary.json',seal(result))
+            module=SimpleNamespace(prepare=prepare,container_stage=container)
+            observations=dict(physical=32<<30,available=24<<30,cpus=16,limits=[],quota=None,cpuset=None)
+            adapter=BatchingStages(a)
+            with patch('oeis_learn.pipeline_validation.benchmarks.legacy',return_value=module),patch('oeis_learn.pipeline_validation.resources.observe',return_value=observations),patch('oeis_learn.experiments.source_snapshot.collect_snapshot',return_value={}):
+                for stage in resolve(replay_batching_registry(('podman',),'podman'),'all-ready'):
+                    if not stage.adapter.startswith('replay-batching-'):continue
+                    out=root/stage.id;out.mkdir();result=adapter(stage,out)
+                    a.receipts[stage.id]=dict(state=result.get('stage_state','PASS'),identity=stage.id,observations={'result':result})
+                self.assertEqual(result['status'],'COMPLETE')
+                self.assertEqual(result['supplied_tokens'],32768)
+                self.assertEqual(len(result['pairs']),2)
+                child=adapter.child();(adapter.path).write_text(json.dumps(dict(child,identity='changed')))
+                with self.assertRaisesRegex(ValueError,'child changed'):adapter.child()
+            self.assertEqual([c['gpu'] for c in calls],[False]+[True]*10)
+
     def test_preparation_reads_all32_visible_rows_without_hidden_payloads(self):
         import ast
         import importlib.util

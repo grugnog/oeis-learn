@@ -11,7 +11,7 @@ operational ceilings and numerical tolerances remain. Unknown overrides fail.
 
 Freeze the first32 distinct twenty-visible-term training rows in the existing
 diverse32 order, selected parent weights, source/image/data/recipe and32 forced
-1024-BOS streams. No hidden truth, training examples or model update is read/run
+1024-BOS streams. No hidden truth is read and no model update is run
 by measurement. A device-isolated CPU role freezes encoder memories and independent
 full-prefix outputs for all32 rows at positions1/32/128/513/1024. Private raw
 tensors/weights stay excluded from the archive. This is160 expected row boundaries

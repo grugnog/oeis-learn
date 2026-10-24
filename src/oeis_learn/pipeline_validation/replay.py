@@ -10,7 +10,7 @@ TRIALS=['replay.cold','replay.warmup',*[f'replay.calibration-{i}' for i in range
 
 
 class BoundaryLedger:
-    """At most 12 queued/verified boundaries; a missing terminal is partial."""
+    """Bounded prospective boundaries; a missing terminal is partial."""
     def __init__(self,output,keys=None):
         self.output=Path(output)
         self.states={**{f'b{b}.p{p}':'UNSTARTED' for b in (1,8) for p in (1,32,128,513,1024)},
