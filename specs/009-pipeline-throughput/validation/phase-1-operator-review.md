@@ -12,3 +12,7 @@
 | HIP and Docker+Podman coverage | Registered primary HIP and both-engine stages | PENDING; no target evidence |
 
 This matrix does not close real-operator tasks025/026. No separate manual build/test/profile/archive command is needed for the next workstation collection; the [quickstart](../quickstart.md) selects the combined scope. Missing capabilities remain visible and cannot become PASS. See [local-evidence.json](local-evidence.json).
+
+## First target collection and repairs
+
+The [2026-10-23 operator review](operator-20261023-review.md) records the verified producer archive, 593 passing CPU and 14 passing actual-HIP tests, the failed calibration/cost paths and missing independent Docker qualification. These results supersede the initial no-target-evidence rows above for that historical source only. Current repairs pass 85 host tests; their affected runtime gates remain pending. No full operator/engineering gate is closed.

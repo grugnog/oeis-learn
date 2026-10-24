@@ -1449,6 +1449,19 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Not run: pinned-image Torch/native/packaging, Docker/Podman operations and actual HIP. Use the single all-ready command in quickstart.md; return its sibling ZIP.",
-  "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented."
+  "target_validation": "Reviewed first operator archive: 593 CPU and 14 actual-HIP tests passed at producer f7ecc720, but calibration/cost failed, native comparison was inconclusive and Docker capability was unavailable. Repairs pass 85 host tests; current-source CPU/HIP/engine/calibration/complete-cost gates remain pending. See operator-20261023-review.md for one combined rerun.",
+  "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
+  "operator_review": {
+    "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
+    "review": "specs/009-pipeline-throughput/validation/operator-20261023-review.md",
+    "producer_commit": "f7ecc720f5cada14820add0d74d099b6d3a038e4",
+    "integrity": "PASS",
+    "cpu_tests": 593,
+    "hip_tests": 14,
+    "selected_scope": "FAIL",
+    "engineering": "BLOCKED",
+    "portability": "PENDING",
+    "current_source_followup": "specs/009-pipeline-throughput/validation/operator-repair-local.json",
+    "disposition": "Historical producer evidence retained; affected current-source runtime and operator gates remain pending after repairs."
+  }
 }

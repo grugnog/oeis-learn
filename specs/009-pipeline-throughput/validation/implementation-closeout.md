@@ -1,6 +1,8 @@
 # Implementation handoff: Spec 009
 
-Status: code and available host verification complete; target runtime/engine qualification and separately admitted research remain pending. PR [#60](https://github.com/grugnog/oeis-learn/pull/60) uses the existing `009-pipeline-throughput` branch and remains stacked on #59. The optimized options remain experimental; serial rollback/defaults are retained. This is not whole-feature completion.
+Latest follow-up: the [operator archive review and repair handoff](operator-20261023-review.md) supersedes the original evidence status and next-command guidance below. It records 593 CPU/14 actual-HIP passing tests on the producer, three repaired failure paths, 85 current host tests and the remaining current-source gates.
+
+Original implementation handoff status: code and available host verification complete; target runtime/engine qualification and separately admitted research remain pending. PR [#60](https://github.com/grugnog/oeis-learn/pull/60) uses the existing `009-pipeline-throughput` branch and remains stacked on #59. The optimized options remain experimental; serial rollback/defaults are retained. This is not whole-feature completion.
 
 ## Implementation and verification
 

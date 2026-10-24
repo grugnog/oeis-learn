@@ -1,0 +1,154 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-20261023T232536Z.zip",
+  "archive_sha256": "sha256:943df1c9432fddf0b0e5826d4a10cdf73df8dab38856258d2f8e7ccd6b4debe2",
+  "archive_bytes": 9688496,
+  "archive_members": 507,
+  "manifest_identity": "sha256:1b98675e382177372e2ac848a236816ee1554f6d56219602cfd2c652b8764b5d",
+  "integrity": "PASS",
+  "producer_commit": "f7ecc720f5cada14820add0d74d099b6d3a038e4",
+  "source": "sha256:a36ac23965bf07da59b02c3d32dd33110d1fd4c767434b2578d14d154ef5aec1",
+  "source_match": "exact full snapshot match to clean producer checkout before repairs",
+  "elapsed_seconds": 1765.04919019714,
+  "selected_scope": "FAIL",
+  "engineering": "BLOCKED",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "learning": "NOT_ADMITTED",
+  "research": "NOT_EXECUTED",
+  "long_run_admission": "NOT_ADMITTED",
+  "stages": {
+    "baseline.calibration": {
+      "state": "FAIL",
+      "identity": "sha256:7af1617b844716db6d85da3333c9f6ab64770d535d5e7c2aaaa347e193bbf6b9"
+    },
+    "cost.diverse32": {
+      "state": "FAIL",
+      "identity": "sha256:7097c22cf8df4401cd8b09f32fcbf5f071b88aedbf33042e2d28fc374041541d"
+    },
+    "cost.transfer": {
+      "state": "FAIL",
+      "identity": "sha256:302aa746600af93b52f1fea602f2b2f3ed6590d57c22418c5a2a7e475a35bd30"
+    },
+    "cpu.docker.semantic": {
+      "state": "BLOCKED",
+      "identity": "sha256:aa30ded5fbea9e41d04d4c2b6df0e62014331c98a0fca1fccbe7aa12f72e542b"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:5b86d7efbec52757749b400556d55f16bacaa97ff21f12f53872cbc65263501b"
+    },
+    "engine.docker": {
+      "state": "PARTIAL",
+      "identity": "sha256:304e18f0f09e72d6d6b6bd1e98729733d2ca38d5d6fac2574888c6b100c0ac4b"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:8c0fd86f28601ba26fbf9636619263792a8b4e4b8baa81c69647cadac1780580"
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:5ce30292acb5850a27fcc636156f69fda4203016b66bdf2dd00f796e5cbdb95b"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:e85be110398993eccde5dc78bf8808e3aacba48040f9d7915d219721db5a6f2e"
+    },
+    "image.docker.qualification": {
+      "state": "BLOCKED",
+      "identity": "sha256:a362894735afb953a752b6302fd89a2af7bfd5004da8a51e87d03ecf316d127f"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:babf029aef2949f2d2f8cdbe9253a9f72cf5b149bad82acdc8d1ff62219df9c6"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:744d3dbbd1547b23cfa25856197e6aede58435640755fde0b3aff7fe42fdb30d"
+    },
+    "inference.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:039b728f06700d1ef42597397c3bcbdfa5b260df69a8fb0961e41893868c85a1"
+    },
+    "native.compare": {
+      "state": "INCONCLUSIVE",
+      "identity": "sha256:bbe6c19895c516f039e6cd27285206426b6cf9f5a3fc68b12e72585f3bacafe2"
+    },
+    "operations.docker.retirement": {
+      "state": "BLOCKED",
+      "identity": "sha256:e5841eecccc364067c3e64e94486d47833df3bb95a6114fa7325dabcfcbbb471"
+    },
+    "operations.docker.workflow": {
+      "state": "BLOCKED",
+      "identity": "sha256:6f0904c5079b1182cad879042d9647226e5b432e596f63808d843314d9647beb"
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:891d82806598af15b5f294d967ff88c22dc0d66dd45feca024e2483768093ac3"
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "identity": "sha256:60bc5684e88566b873bbaab4e5b6a61b02b4ee0c0843c99a81d028716fde6646"
+    },
+    "overlap.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:49055d98a551c99fbd6d948473e88ce9e2b8b1b5efb0bd87f4b4f9834a85ce63"
+    },
+    "policy.compare": {
+      "state": "PASS",
+      "identity": "sha256:3c68ce47a50f56312abed1e3662805811c794368e3746d9693cce6448c802a7e"
+    },
+    "qualification": {
+      "state": "PASS",
+      "identity": "sha256:f8db90b277616e0ea1bc58ec611198922bda0827f75fb280b6fc5f4078001695"
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "tests": 593
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "tests": 123
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 9,
+      "tests": 1115
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "tests": 14
+    },
+    "stages/policy.compare/role/results.xml": {
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "tests": 43
+    }
+  },
+  "blockers": [
+    "CPU/CUDA comparison in diagnostic checkpoint roundtrip",
+    "local native expiry aborted transfer cost scope",
+    "Docker reported no usable memory resource",
+    "native exploration inconclusive; serial baseline retained"
+  ],
+  "interpretation": "Producer evidence retained. Repairs invalidate affected source closures; no speedup, study admission or final exposure claimed.",
+  "cold_baseline_attempts": {
+    "scheduled": 576,
+    "decoded": 376,
+    "generation_deadline": 32,
+    "unstarted_parent_deadline": 168,
+    "complete_prompt_count": 0,
+    "prompt_denominator": 32,
+    "interpretation": "Checkpoint repair does not establish a completed calibration subset. Keep original workload and limits; an empty subset is INCONCLUSIVE, with dependent timing comparisons unstarted."
+  }
+}
