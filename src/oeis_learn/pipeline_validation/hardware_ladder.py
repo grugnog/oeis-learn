@@ -239,7 +239,14 @@ class HardwareStages:
                 trials={k:a.receipts[k]['identity'] for k in TRIALS},measurement=self.measurement['identity']))
             write(output/'baseline.json',report);return report
         if stage.adapter=='hardware-branch':return self.branch(stage,output)
-        reports={k:a.receipts.get('hardware.b'+str(k),{}).get('observations',{}).get('result',{}) for k in (32,64,128)}
+        reports={}
+        for batch in (32,64,128):
+            receipt=a.receipts.get('hardware.b'+str(batch),{})
+            result=receipt.get('observations',{}).get('result')
+            reports[batch]=result or dict(status='UNSTARTED',stage_state=receipt.get('state','UNSTARTED'),
+                reason=receipt.get('reason','branch not dispatched'),candidate_batch=batch,
+                slots=[dict(slot=s,state='UNSTARTED',reason=receipt.get('reason','branch not dispatched')) for s in slots(batch)],
+                optimization_adoption=False,research_cost_admission=False)
         candidates={16:a.receipts.get('hardware.baseline',{}).get('observations',{}).get('result',{}).get('median')}
         candidates.update({k:r['candidate_median'] for k,r in reports.items() if r.get('status')=='COMPLETE' and r.get('supported')})
         candidates={k:v for k,v in candidates.items() if v is not None}

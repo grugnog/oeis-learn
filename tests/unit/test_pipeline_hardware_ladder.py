@@ -127,6 +127,8 @@ class Ladder(unittest.TestCase):
         code,summary,report,nested,calls=self.run_host(durations={16:100,32:50,64:25,128:20},fail_at=slots(32)[2]['id'])
         self.assertEqual(code,1)
         self.assertEqual(summary['stages']['hardware.b64']['state'],'BLOCKED')
+        self.assertEqual(report['branches']['64']['status'],'UNSTARTED')
+        self.assertEqual(len(report['branches']['64']['slots']),5)
         self.assertEqual(nested[slots(32)[2]['id']],'FAIL')
         self.assertTrue(all(nested[s['id']]=='BLOCKED' for s in slots(32)[3:]))
         self.assertIsNone(report['branches']['32']['paired_gain'])
