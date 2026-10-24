@@ -159,3 +159,24 @@ class Replay(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'twenty-visible-term'):
                     prepare_inputs({},changed,weights,output,source='source')
                 self.assertFalse((output/'input').exists())
+
+    def test_partial_boundary_ledger_keeps_every_planned_outcome(self):
+        import tempfile
+        from oeis_learn.pipeline_validation.replay import BoundaryLedger
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            with self.assertRaises(TimeoutError):
+                with BoundaryLedger(root) as ledger:
+                    ledger.queued('b1.p1');ledger.verified('b1.p1',{'hash':'fixture'})
+                    ledger.queued('b1.p32')
+                    raise TimeoutError('bounded fixture')
+            report=json.loads((root/'boundary-status.json').read_text())
+            self.assertEqual(report['status'],'PARTIAL')
+            self.assertEqual(report['expected'],12)
+            self.assertEqual(report['states']['b1.p1'],'COMPLETE')
+            self.assertEqual(report['states']['b1.p32'],'INCOMPLETE')
+            self.assertEqual(sum(v=='UNSTARTED' for v in report['states'].values()),10)
+            self.assertEqual(report['error'],'TimeoutError')
+            rows=[json.loads(s) for s in (root/'boundary-progress.jsonl').read_text().splitlines()]
+            self.assertEqual(rows[0]['event'],'PLAN')
+            self.assertEqual(len(rows[0]['boundaries']),12)

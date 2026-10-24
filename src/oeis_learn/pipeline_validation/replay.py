@@ -9,6 +9,39 @@ from .identity import digest,seal,validate,write,file_hash,number
 TRIALS=['replay.cold','replay.warmup',*[f'replay.calibration-{i}' for i in range(3)]]
 
 
+class BoundaryLedger:
+    """At most 12 queued/verified boundaries; a missing terminal is partial."""
+    def __init__(self,output):
+        self.output=Path(output)
+        self.states={**{f'b{b}.p{p}':'UNSTARTED' for b in (1,8) for p in (1,32,128,513,1024)},
+            'mixed.reordered':'UNSTARTED','mixed.inactive':'UNSTARTED'}
+
+    def __enter__(self):
+        self.handle=(self.output/'boundary-progress.jsonl').open('x')
+        self.event(dict(event='PLAN',boundaries=list(self.states)))
+        return self
+
+    def event(self,row):
+        self.handle.write(json.dumps(row,sort_keys=True)+'\n');self.handle.flush()
+
+    def queued(self,key):
+        if self.states.get(key)!='UNSTARTED':raise ValueError('unknown/duplicate replay boundary')
+        self.states[key]='INCOMPLETE'
+        self.event(dict(event='QUEUED_UNVERIFIED',boundary=key))
+
+    def verified(self,key,record):
+        if self.states.get(key)!='INCOMPLETE':raise ValueError('unqueued/duplicate verified boundary')
+        self.states[key]='COMPLETE'
+        self.event(dict(event='VERIFIED',boundary=key,output=record))
+
+    def __exit__(self,kind,value,trace):
+        self.handle.close()
+        complete=kind is None and all(v=='COMPLETE' for v in self.states.values())
+        write(self.output/'boundary-status.json',dict(status='COMPLETE' if complete else 'PARTIAL',
+            expected=len(self.states),states=self.states,error=None if kind is None else kind.__name__))
+        if kind is None and not complete:raise ValueError('incomplete replay boundary ledger')
+
+
 def replay_plan(bos):
     return seal(dict(version='pipeline-replay-workload/v1',positions=[1,32,128,513,1024],
         batches=[1,8],tokens=[[bos]*1024 for _ in range(8)],mixed_order=[6,1,6],
@@ -101,7 +134,7 @@ def check_deadline(deadline):
     if time.monotonic()>=deadline:raise TimeoutError('frozen replay deadline')
 
 
-def full_reference(decoder,memory,plan,deadline):
+def full_reference(decoder,memory,plan,deadline,observed=None):
     """Independent full-prefix oracle for every dense checkpoint."""
     import torch
     outputs={}
@@ -110,10 +143,14 @@ def full_reference(decoder,memory,plan,deadline):
             tokens=torch.tensor(plan['tokens'][:batch],device=memory.device,dtype=torch.long)
             for position in plan['positions']:
                 check_deadline(deadline)
-                outputs[f'b{batch}.p{position}']=decoder(tokens[:,:position],memory[:batch])[:,-1:].detach().cpu()
+                key=f'b{batch}.p{position}'
+                outputs[key]=decoder(tokens[:,:position],memory[:batch])[:,-1:].detach().cpu()
+                if observed:observed(key)
         # Mixed cache behavior is separately checked against the CPU baseline;
         # numerical full-prefix parity is established by the dense oracle above.
         outputs.update({k:v.detach().cpu() for k,v in mixed_replay(decoder,memory,plan,deadline).items()})
+        if observed:
+            for key in ('mixed.reordered','mixed.inactive'):observed(key)
     return outputs
 
 
@@ -136,7 +173,7 @@ def mixed_replay(decoder,memory,plan,deadline):
     return {'mixed.reordered':out,'mixed.inactive':zero}
 
 
-def cached_replay(decoder,memory,plan,deadline):
+def cached_replay(decoder,memory,plan,deadline,observed=None):
     import torch
     outputs={}
     with torch.inference_mode():
@@ -145,16 +182,21 @@ def cached_replay(decoder,memory,plan,deadline):
             tokens=torch.tensor(plan['tokens'][:batch],device=memory.device,dtype=torch.long)
             value,cache=decoder.prefill(tokens[:,:1],memory[:batch],capacity=1024,backend='eager')
             outputs[f'b{batch}.p1']=value
+            if observed:observed(f'b{batch}.p1')
             for position in range(2,1025):
                 check_deadline(deadline)
                 value=decoder.decode_step(tokens[:,position-1],cache)
-                if position in plan['positions']:outputs[f'b{batch}.p{position}']=value
+                if position in plan['positions']:
+                    key=f'b{batch}.p{position}';outputs[key]=value
+                    if observed:observed(key)
             del cache
         outputs.update(mixed_replay(decoder,memory,plan,deadline))
+        if observed:
+            for key in ('mixed.reordered','mixed.inactive'):observed(key)
     return outputs
 
 
-def verify_outputs(outputs,expected):
+def verify_outputs(outputs,expected,verified=None):
     import torch
     if set(outputs)!=set(expected):raise ValueError('missing/extra replay boundary')
     records={}
@@ -165,19 +207,26 @@ def verify_outputs(outputs,expected):
         torch.testing.assert_close(actual,oracle,**tolerance)
         if not torch.equal(actual.argmax(-1),oracle.argmax(-1)):raise RuntimeError('replay token mismatch')
         records[key]=tensor_record(actual)
+        if verified:verified(key,records[key])
     return records
 
 
 def reference_role(inputs,output,config):
+    with BoundaryLedger(output) as evidence:
+        return _reference_role(inputs,output,config,evidence)
+
+
+def _reference_role(inputs,output,config,evidence):
     import torch
     deadline=role_deadline(config)
     work,encoder,decoder=load_models(inputs,config,'cpu');m=work['manifest']
     from oeis_learn.synthesis.contracts import canonical_integer
     with torch.inference_mode():
         memory=encoder.forward_from_sequences([[canonical_integer(v) for v in row['values']] for row in work['prompts']],device='cpu')
-        expected=full_reference(decoder,memory,m['plan'],deadline)
+        expected=full_reference(decoder,memory,m['plan'],deadline,evidence.queued)
     if not torch.isfinite(memory).all() or any(not torch.isfinite(v).all() for v in expected.values()):
         raise RuntimeError('nonfinite frozen replay reference')
+    for key,value in expected.items():evidence.verified(key,tensor_record(value))
     check_deadline(deadline)
     path=output/'private/reference.pt';path.parent.mkdir()
     torch.save(dict(memory=memory,expected=expected),path)
@@ -189,6 +238,14 @@ def reference_role(inputs,output,config):
 
 
 def replay_role(inputs,output,config):
+    with BoundaryLedger(output) as evidence:
+        result=_replay_role(inputs,output,config,evidence)
+        finished=time.monotonic()
+    result['verified_seconds']+=time.monotonic()-finished
+    return result
+
+
+def _replay_role(inputs,output,config,evidence):
     import torch
     if not torch.version.hip or not torch.cuda.is_available() or torch.cuda.device_count()!=1:
         raise RuntimeError('one actual HIP device required for replay; no CPU fallback')
@@ -206,9 +263,9 @@ def replay_role(inputs,output,config):
     from oeis_learn.tracking.pipeline_profile import Recorder
     with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node']):
         torch.cuda.synchronize();started=time.monotonic()
-        outputs=cached_replay(decoder,memory,work['manifest']['plan'],deadline)
+        outputs=cached_replay(decoder,memory,work['manifest']['plan'],deadline,evidence.queued)
         torch.cuda.synchronize();decode_seconds=time.monotonic()-started
-        records=verify_outputs(outputs,payload['expected'])
+        records=verify_outputs(outputs,payload['expected'],evidence.verified)
         write(output/'boundaries.json',records)
     check_deadline(deadline)
     return dict(status='COMPLETE',reference=ref['identity'],workload=ref['workload'],
