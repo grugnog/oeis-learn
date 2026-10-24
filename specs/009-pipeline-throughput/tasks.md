@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -448,8 +448,12 @@ This separately registered component scope follows accepted replay viability; se
 - [X] 009:C001 Freeze the separate closed manifest, static graph and exploratory AB/BA contract before candidate timing; preserve existing manifests and denied authorities.
 - [X] 009:C002 Bind current source/reference/weights, complete baselines, resources/threads, immutable child/slot identities and finite setup/startup allowances; execute one candidate warmup and two pairs with independent missing-slot reporting.
 - [X] 009:C003 Run host contract/orchestration/privacy/partial-work checks and the actual public stdlib CLI; author/register real CPU/HIP comparison role fixtures and record the verified non-admitting local archive.
-- [ ] 009:C004 Execute/review the one combined target command, including current pinned CPU/actual-HIP roles, all five comparison slots, source/images/resources and archive; preserve failures without adaptive retries or adoption.
+- [X] 009:C004 Execute/review the one combined target command, including current pinned CPU/actual-HIP roles, all five comparison slots, source/images/resources and archive; preserve failures without adaptive retries or adoption.
 
 ### Comparison qualification fixture follow-up
 
 The [first comparison archive review](validation/replay-comparison-operator-20261024T190425Z.md) retains a mandatory HIP fixture failure before measured work:621 CPU tests and15 other HIP tests passed.009:C004 and T110 remain pending. The fixture now establishes real interop=1 in a fresh bounded subprocess and checks actual2/1 observations without weakening the production gate.106 available host tests pass. No schedule, budget, workload or scientific threshold changed, and no incomplete pair became a performance result.
+
+### Accepted component evidence and current priority
+
+The [second comparison archive](validation/replay-comparison-operator-20261024T193940Z.md) passes at exact producer ac41e4d:622 CPU/16 actual-HIP tests and all10 replay roles complete. Two exploratory component reductions are10.54/11.28%; no production adoption.009:C004 and affected-source T110 close for that source; original counts78 complete/18 runtime pending/15 research held or blocked. The user now prioritizes CPU/GPU/memory throughput and capacity. Hold learning-performance/curriculum investigations; a later separately admitted multi-day training run will inform organic/stochastic versus curriculum-driven learning after hardware qualification.

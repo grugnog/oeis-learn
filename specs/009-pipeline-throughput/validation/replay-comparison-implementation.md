@@ -1,3 +1,5 @@
+Target comparison now PASSES at producer ac41e4d; [accepted review](replay-comparison-operator-20261024T193940Z.md). No duplicate run is requested. The command below is historical reproduction guidance; subsequent hardware investigations require their own registered scopes.
+
 Latest collection: [source-matching preflight failure and completed fixture repair](replay-comparison-operator-20261024T190425Z.md).621 CPU tests passed; the HIP fixture rejected the shared pytest process's real interop-thread setting after its setter was mocked.15 other HIP tests passed. No performance arms ran. The fixture now uses a fresh180s-bounded process and real interop=1 before tensor work; the production2/1 gate remains unchanged.106 host tests pass; corrected runtime collection is pending. The command below remains the next combined handoff with a fresh output. Earlier implementation evidence below retains its historical source.
 
 # Cache bookkeeping replay comparison: implementation handoff
