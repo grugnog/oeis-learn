@@ -12,6 +12,7 @@ class DiskWatchdog:
         self.root=Path(root);self.extra_roots=tuple(Path(p) for p in extra_roots);self.output=Path(output);self.cap=cap;self.trace_cap=trace_cap
         self.free_reserve=free_reserve;self.stop=threading.Event();self.breach=None
         self.peak=0;self.trace_peak=0
+        self.free=None;self.minimum_free=None;self.breach_observation=None
 
     def usage(self):
         seen=set();size=traces=0
@@ -32,8 +33,20 @@ class DiskWatchdog:
         try:
             size=self.usage()
             fs=os.statvfs(self.root);free=fs.f_bavail*fs.f_frsize
-            if size>self.cap or self.trace_peak>self.trace_cap or free<self.free_reserve:
-                raise ResourceBreach('invocation transient/trace/free-space reserve exhausted')
+            self.free=free
+            self.minimum_free=free if self.minimum_free is None else min(self.minimum_free,free)
+            reason=None
+            if size>self.cap:
+                reason=f'invocation transient artifact cap exceeded: {size} > {self.cap} bytes'
+            elif self.trace_peak>self.trace_cap:
+                reason=f'invocation trace cap exceeded: {self.trace_peak} > {self.trace_cap} bytes'
+            elif free<self.free_reserve:
+                reason=f'invocation free-space reserve exhausted: {free} < {self.free_reserve} bytes at {self.root}'
+            if reason:
+                if self.breach is None:
+                    self.breach=reason
+                    self.breach_observation=dict(artifact_bytes=size,trace_bytes=self.trace_peak,free_bytes=free)
+                raise ResourceBreach(self.breach)
         except OSError as exc:
             raise ResourceBreach('invocation disk accounting unavailable: '+str(exc)) from exc
 
@@ -63,7 +76,9 @@ class DiskWatchdog:
         try:
             write(self.output/'disk.json',dict(version='pipeline-disk-observation/v1',
                 peak_bytes=self.peak,trace_peak_bytes=self.trace_peak,cap_bytes=self.cap,
-                trace_cap_bytes=self.trace_cap,free_reserve_bytes=self.free_reserve,breach=self.breach))
+                trace_cap_bytes=self.trace_cap,free_reserve_bytes=self.free_reserve,breach=self.breach,
+                filesystem_path=str(self.root),free_bytes=self.free,minimum_free_bytes=self.minimum_free,
+                breach_observation=self.breach_observation))
         except OSError:
             # Earlier ledgers remain usable; resource exhaustion must still propagate.
             if exc[0] is None:raise ResourceBreach('disk report could not be persisted')
