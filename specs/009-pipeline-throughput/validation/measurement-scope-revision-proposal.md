@@ -1,6 +1,8 @@
 # Prospective scope proposal: replay viability only
 
-Status: **DRAFT, NOT ADMITTED, NOT EXECUTED**. This is a concrete narrowed follow-up to the [fourth archive](operator-20261024T141450Z-review.md), not a change to that completed comparison and not an executable study manifest.
+Status: **IMPLEMENTED; TARGET EXECUTION PENDING** after the user requested continuing this narrowed follow-up. The separately versioned engineering manifest is `configs/foundation/pipeline_replay_validation.json`; the [registered contract](../contracts/replay.md) and [implementation handoff](replay-implementation.md) govern its exact behavior. This does not change the completed comparison and is not research/study admission.
+
+The proposal below records the scope rationale; the registered contract resolves the exact payload, CPU reference, fresh-role timing and startup allowances.
 
 Proposed name: `pipeline-replay-viability/v1`. Investigate only whether complete fixed-input cache-replay measurements can be collected for the plan's `cache-replay` component. Use batch 1/8 and offsets 1/32/128/513/1024, existing eager FP32 production semantics and the already qualified mixed/finished/reordered-row handling. Keep the parent generic checkpoint read-only and bind its exact weight/input identities and existing numerical policy. Freeze every supplied replay stream, row mapping, RNG state and expected output hash before timing. Forced replay remains labelled forced replay, not successful generated programs.
 
@@ -8,4 +10,4 @@ Use one cold baseline, one excluded warmup and exactly three baseline-only repet
 
 The original 32-prompt/576-attempt generation, native and full-control costs remain separately reported incomplete/stress coverage with unchanged denominators and limits. Replay timings cannot supply their missing components, create a whole-pipeline speedup or admit a study. Any subsequent candidate or complete-work scope needs its own frozen identity and original adoption criteria.
 
-Before execution, resolve the exact replay payload/weight/input hashes and implement/register a separately versioned narrow adapter/manifest. The current static validator rejects arbitrary workload overrides; do not edit its ordinary manifest to pretend this proposal is supported. Review the resulting concrete contract before launching hardware work. No new target command is requested by the current handoff.
+The implemented preparation now resolves and freezes exact replay/weight/input/reference hashes before timing. Arbitrary workload overrides remain rejected. The ordinary manifest is unchanged; only the separate replay manifest selects this registered baseline-only scope. One combined target command is provided in the implementation handoff after completion of available code work.

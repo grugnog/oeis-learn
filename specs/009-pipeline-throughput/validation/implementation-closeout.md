@@ -1,3 +1,5 @@
+Current handoff: [baseline replay viability implementation](replay-implementation.md). This is the separately versioned narrowed scope requested after the fourth archive, with 99 passing host tests and new pinned CPU/HIP execution pending. The original full-pipeline no-adoption decision and missing costs remain unchanged.
+
 Latest collection: the [fourth operator review](operator-20261024T141450Z-review.md) supersedes the earlier storage/rerun handoff. The source matches exactly, selected Podman prerequisites pass, and the finite measurement scope ends with no adoption. Seven fixture tasks and three decision-report tasks now close; 19 runtime/evidence tasks and 15 research tasks remain. No unchanged-scope rerun is requested.
 
 Latest collection: the [third operator review](operator-20261024T035922Z-review.md) records passing CPU suites and a filesystem free-space stop during GPU inspection. Resolve workstation storage before rerunning; precise disk reporting is implemented and passes 89 host tests.

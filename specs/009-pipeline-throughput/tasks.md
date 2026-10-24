@@ -430,3 +430,13 @@ These are development opportunities, not instructions to launch agents or concur
 **Single-command handoff**: At each implementation checkpoint, prefer the [quickstart all-ready command](quickstart.md#default-handoff-one-combined-command), including all ready CPU/native/HIP/engine checks, bounded measurements and one archive. Replace placeholder run/input paths with actual compatible paths when known. Phase-specific selection is for targeted reruns, not mandatory operator sequencing. The engineering ceiling remains 86,400 seconds, with 84,000 seconds maximum declared reservations; actual expected time comes from calibration, never from that ceiling. No separate build/profiler/packaging commands should be necessary. Phase3 fixed-candidate validation can run without HIP; GPU claims require actual HIP. Research batches use the same entry point with admitted study manifests and their own finite budgets.
 
 **Stop conditions**: Unavailable device/engine blocks only affected gates; failures block descendants and independent safe checks continue. Global interruption/resource/audit failures stop admission while preserving evidence. Negative optimization stops expansion; negative research stops unsupported promotion. Do not wait for PR CI after pushing; report the commit and remaining one-command hardware handoff.
+
+## Supplemental measurement refinement — pipeline-replay-viability/v1
+
+These items track the accepted narrowed follow-up separately from the original 111 tasks; they do not close missing original performance/portability/research evidence. Contract: [replay.md](contracts/replay.md).
+
+- [X] 009:R001 Register a separate closed replay manifest, scope and static graph; preserve original validator/research authority and all existing ceilings.
+- [X] 009:R002 Reuse visible parent/weight preparation and freeze CPU full-prefix/mixed-cache reference tensors before GPU timing, without reading hidden truth.
+- [X] 009:R003 Execute one cold, one excluded warmup and three bounded baseline roles, with immutable reference/resource checks, complete missing-slot reporting and no candidate/research admission.
+- [X] 009:R004 Add stdlib host contract/orchestration/privacy regressions and pinned CPU/actual-HIP role fixtures; verify the available host CLI and archive locally. Authored runtime fixtures are not claimed executed locally.
+- [ ] 009:R005 Execute/review the single combined replay command on the target; retain actual CPU/HIP fixture and five-trial results, including non-PASS/partial records. No automatic retry or promotion.

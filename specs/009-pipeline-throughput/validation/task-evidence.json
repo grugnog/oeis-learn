@@ -1472,7 +1472,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Fourth archive matches current source exactly. 602 semantic/15 actual-HIP/123 retirement/1115 workflow (9 skips)/45 policy-role cases have zero failures/errors. Scoped Podman prerequisite engineering PASS, overall PARTIAL. No complete cold prompt or admitted native candidate timing; inference/joint unstarted; costs inconclusive. See operator-20261024T141450Z-review.md for no-adoption and next authority. No repeat of unchanged command requested.",
+  "target_validation": "New separately versioned baseline replay scope implemented after the user requested continuing. 99 host tests pass; actual new CPU/HIP fixture/reference/five-role execution remains pending. Use one combined command in replay-implementation.md. Historical fourth archive stays exact for its producer; its incomplete full-generation/native/cost gates are not closed by replay.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1533,5 +1533,22 @@
       "T074"
     ],
     "remaining": "Complete fixed-work and native comparison/confirmation, complete costs, Docker portability, other runtime acceptance and separately admitted research remain pending."
+  },
+  "replay_refinement": {
+    "scope": "engineering-replay",
+    "contract": "specs/009-pipeline-throughput/contracts/replay.md",
+    "manifest": "configs/foundation/pipeline_replay_validation.json",
+    "manifest_identity": "sha256:f926e07ce9c9d9220bdca8f8fde268708804383c163855d0c6ef476355ffa914",
+    "source": "sha256:69807d38ae62e91406f1d02e9afa284302156ba89cf3d26ebf27ff9f5808a20f",
+    "local_evidence": "specs/009-pipeline-throughput/validation/replay-local-evidence.json",
+    "handoff": "specs/009-pipeline-throughput/validation/replay-implementation.md",
+    "supplemental_tasks": {
+      "009:R001": "complete",
+      "009:R002": "complete",
+      "009:R003": "complete",
+      "009:R004": "complete available host work; pinned runtime execution pending",
+      "009:R005": "pending actual CPU/HIP prerequisite and five-trial collection"
+    },
+    "meaning": "Separate baseline-only forced replay, no candidate or research admission; original no-adoption/partial result and all missing original gates retained."
   }
 }

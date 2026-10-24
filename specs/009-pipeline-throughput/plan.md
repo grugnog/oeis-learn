@@ -125,3 +125,7 @@ No constitutional violations are proposed. The single host coordinator, bounded 
 ## Completion of this planning step
 
 Research choices and interfaces are resolved in the linked artifacts. Numerical/runtime behavior remains unmodified. Planning checks must validate links, phase/requirement/carryover coverage, finite budgets, manifest/state consistency and Spec Kit prerequisites. Task generation is now recorded in [tasks.md](tasks.md) and [its review](validation/tasks-review.md). The next implementation increment is phase 1; actual qualification and CI execution were not performed by planning/task generation.
+
+## Registered measurement refinement after the fourth operator archive
+
+The original measurement scope retains its no-adoption/inconclusive outcome. The user requested continuing the proposed narrowed follow-up. [Baseline replay viability](contracts/replay.md) adds a separately versioned static manifest/registry for forced decoder replay only: existing prerequisites, one visible-only CPU oracle, exactly five baseline GPU roles and one archive. This executes no candidate optimization or research. Trial/phase/global caps, numerical tolerances, original default manifest, full-generation denominators and complete-cost requirements remain unchanged. New source requires pinned-runtime/actual-HIP validation; historical passes are not reassigned to it. This refinement is subordinate to the six-phase plan and does not close missing full comparisons or research gates.
