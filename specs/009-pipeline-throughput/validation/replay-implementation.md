@@ -1,3 +1,5 @@
+Subsequent increment: [cache bookkeeping replay comparison](replay-comparison-implementation.md) now has a separate registered manifest and target command. This baseline-only scope remains accepted at its recorded producer; its historical command below is not the current comparison handoff.
+
 Latest target status: **registered replay scope PASS** at exact source `69807d38` / producer `c9be16a`. CPU613/HIP16 tests and the reference plus all five baseline trials pass. See the [accepted operator review](replay-operator-20261024T172754Z.md). R005 and affected-source T110 close; no duplicate target run is requested. The command below is retained for reproducibility, not a request to repeat it.
 
 # Baseline replay viability: implementation handoff

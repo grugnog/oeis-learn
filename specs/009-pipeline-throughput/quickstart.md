@@ -1,4 +1,6 @@
-Latest status: [baseline replay accepted](validation/replay-operator-20261024T172754Z.md) at its exact producer source. No duplicate baseline run is requested. Future candidate timing requires a separate registered comparison; full-pipeline and research gates remain separate.
+Current handoff: [bounded baseline-versus-hoisted replay comparison](validation/replay-comparison-implementation.md). Its separate manifest now registers one excluded candidate warmup and two fixed AB/BA exploratory pairs after current-source baseline calibration. Code and105 host tests pass; target CPU/HIP validation is pending. Use that one combined command for this increment. Original whole-pipeline/cost/research gates remain open.
+
+Latest status: [baseline replay accepted](validation/replay-operator-20261024T172754Z.md) at its exact producer source. That baseline remains accepted. The new separately registered comparison above collects new-source baselines for its own prospective contract; full-pipeline and research gates remain separate.
 
 Latest narrowed follow-up: [replay viability command and limits](validation/replay-implementation.md). The user requested continuing this separately versioned baseline-only scope; its registered target collection is now PASS as reviewed above. The original full-pipeline comparison retains its no-adoption result.
 

@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 78,
-    "pending_runtime": 18,
+    "complete": 77,
+    "pending_runtime": 19,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1445,16 +1445,18 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Affected-source contract/packaging checks reviewed at c9be16a: exact-source replay target CPU/HIP and installed-image gates pass, and both producer CI workflows succeed. This closes final checks for these code changes, not full-pipeline comparison/cost or scientific gates.",
-      "blocking_reason": null,
+      "implementation_disposition": "Historical affected-source closure at c9be16a is preserved; replay comparison changes require new affected-source runtime/packaging review.",
+      "blocking_reason": "Current comparison CPU/HIP role fixtures and source/package inspection must execute in the pinned runtime; 105 host tests and a verified non-admitting local archive do not close the new device gate.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.md",
         "specs/009-pipeline-throughput/validation/task-evidence.json",
-        "src/oeis_learn/pipeline_validation/registry.py"
+        "src/oeis_learn/pipeline_validation/registry.py",
+        "specs/009-pipeline-throughput/validation/replay-comparison-implementation.md",
+        "specs/009-pipeline-throughput/validation/replay-comparison-local-evidence.json"
       ]
     },
     {
@@ -1554,5 +1556,19 @@
     "meaning": "Separate baseline-only forced replay, no candidate or research admission; original no-adoption/partial result and all missing original gates retained.",
     "target_evidence": "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
     "target_disposition": "PASS for registered engineering-replay scope at exact producer source 69807d38; all five baseline trials and reference complete. No optimization or research-cost admission."
+  },
+  "replay_comparison_refinement": {
+    "contract": "specs/009-pipeline-throughput/contracts/replay-comparison.md",
+    "manifest": "configs/foundation/pipeline_replay_comparison.json",
+    "handoff": "specs/009-pipeline-throughput/validation/replay-comparison-implementation.md",
+    "source": "sha256:0960ff8fe166dfa0270c4d7da67ecb40aca019f3074c7d025a7afbd75ee2c81c",
+    "status": "IMPLEMENTED_TARGET_PENDING",
+    "tasks": {
+      "009:C001": "complete",
+      "009:C002": "complete",
+      "009:C003": "complete",
+      "009:C004": "pending_runtime"
+    },
+    "meaning": "Separate observational two-pair component experiment; accepted baseline preserved; original generation/pipeline/cost/research gates remain open."
   }
 }

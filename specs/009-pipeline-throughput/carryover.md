@@ -82,3 +82,7 @@ The [source-matching fourth archive](validation/operator-20261024T141450Z-review
 ## Replay viability closure
 
 The [registered baseline replay scope](validation/replay-operator-20261024T172754Z.md) now passes with exact-source CPU/HIP and five complete baseline trials. It adds component viability and affected-source checks, closing009:T110 and supplemental009:R005 only. It closes none of the thirteen full008 carryovers or missing full-pipeline/cost/research gates; original008:T093/T096 remain unchanged.
+
+### Current comparison implementation: separate phase-2 scope
+
+The [new component comparison](validation/replay-comparison-implementation.md) implements the next isolated bookkeeping investigation with its own prospective child/order/limits. It is target-pending and closes no008 carryover. Accepted baseline source69807d38 and original negative/inconclusive measurements remain unchanged. Missing full-generation, native/joint, operations/portability, full-control costs and scientific gates remain explicit. Current111-task counts are77 complete/19 runtime pending/15 research blocked after reopening affected-source T110; no historical result is revoked or reassigned.
