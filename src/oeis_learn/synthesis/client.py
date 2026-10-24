@@ -263,10 +263,14 @@ class SynthesisClient:
                 profile=profile,
                 policy=policy,
                 solver="native-fitting/v1",
+                cache_completion="qualified-shortlist/v2",
                 seed=seed,
             )
         )
         native = self.caches.get(key)
+        complete_search = native is not None and native.get('_cache_completion') == 'qualified-shortlist/v2'
+        if not complete_search:
+            native = None
         if native is None:
             response = self.request(
                 "fit",
@@ -284,6 +288,14 @@ class SynthesisClient:
                 response["results"][0]
                 if response["results"]
                 else _incomplete(response, assignments=[])
+            )
+            complete_search = (
+                response.get('complete') is True
+                and native.get('outcome') == 'assignment_found'
+                and native.get('reason') is None
+                and native.get('uniqueness') in {'unique_in_scope', 'multiple'}
+                and all(row.get('outcome') in {'assignment_found','unsat_in_scope'} and row.get('reason') is None
+                        for row in native.get('searches', []))
             )
         if (
             not isinstance(native, dict)
@@ -330,8 +342,8 @@ class SynthesisClient:
                     reason=result.reason,
                     admission=admission,
                 )
-        if verified:
-            self.caches.put(key, native)
+        if verified and complete_search and time.monotonic() < deadline:
+            self.caches.put(key, dict(native, _cache_completion='qualified-shortlist/v2'))
         return dict(
             outcome="verified_solution"
             if verified
@@ -340,6 +352,7 @@ class SynthesisClient:
             else "resource_exhausted",
             native=native,
             admitted=verified,
+            complete=bool(complete_search and time.monotonic() < deadline) if verified else native['outcome'] in {'unsupported','unsat_in_scope','invalid_source'},
             admission=admission,
             reason=None
             if verified

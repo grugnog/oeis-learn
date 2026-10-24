@@ -75,10 +75,18 @@ def models(recipe, device):
 
 
 def client(settings, output):
+    from dataclasses import replace
+    limits = ServiceLimits(**settings['recipe']['fitting']['service_limits'])
+    pipeline = settings['recipe'].get('pipeline')
+    if pipeline:
+        limits = replace(limits, max_inflight_batches=pipeline['workers'])
+        if pipeline.get('cache_capacity')=='expanded/v1':
+            limits=replace(limits,result_cache_max_entries=32768,result_cache_max_bytes=512<<20,
+                disk_cache_max_entries=2048,disk_cache_max_bytes=4<<30)
     return SynthesisClient(
         settings["contract_sha256"],
         limits=ResourceProfile(**settings["recipe"]["execution"]["resources"]),
-        service_limits=ServiceLimits(**settings["recipe"]["fitting"]["service_limits"]),
+        service_limits=limits,
         cache_root=Path(output) / "native-cache",
     )
 
@@ -113,7 +121,7 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
     return float(value)
 
 
-def validation_loss(encoder, decoder, rows, device, *, deadline):
+def validation_loss(encoder, decoder, rows, device, *, deadline, measure=None):
     encoder.eval()
     decoder.eval()
     total = 0.0
@@ -122,7 +130,9 @@ def validation_loss(encoder, decoder, rows, device, *, deadline):
         if time.monotonic() >= deadline:
             break
         batch = rows[i : i + 8]
+        began=time.monotonic()
         total += _batch_loss(encoder, decoder, batch, device) * len(batch)
+        if measure is not None:measure(time.monotonic()-began,len(batch))
         done += len(batch)
     return dict(
         loss=total / done if done else None,
@@ -234,7 +244,10 @@ def train(inputs, output):
         decoder.load_state_dict(restored["states"]["weights"]["decoder"])
         # Warm initialization only: optimizer, RNG, data order and budget are this branch's.
     deadline = time.monotonic() + settings["seconds"]
-    store = CheckpointStore(output / "checkpoints", contract)
+    store = CheckpointStore(output / "checkpoints", contract, policies=recipe.get('pipeline'))
+    if recipe.get('pipeline') and 'pipeline_boundary' not in selection:
+        from .pipeline_jobs import JobLedger
+        selection['pipeline_boundary'] = JobLedger().boundary(recipe['pipeline'])
     metrics = []
     pointer = None
     early = False
@@ -359,6 +372,9 @@ def train(inputs, output):
                     diagnostic = generate(
                         encoder, decoder, panel, recipe, synthesis, deadline=deadline, periodic=True
                     )
+                    if recipe.get('pipeline'):
+                        from .pipeline_jobs import merge_boundary
+                        selection['pipeline_boundary'] = merge_boundary(selection['pipeline_boundary'],diagnostic['pipeline_boundary'])
                     visible = score_panel(
                         tuple(r["id"] for r in panel),
                         {
@@ -543,17 +559,18 @@ def generate(inputs, output):
     )
     for row in rows:
         record = result["records"][row["id"]]
-        from .candidate_archive import retain_alternatives
+        from .candidate_archive import retain_alternatives, duplicate_key
 
         merged = {}
         for value in record["details"].values():
             for alternative in value["archive"]["retained"]:
                 if (
                     alternative["id"] not in merged
-                    or alternative["cost"] < merged[alternative["id"]]["cost"]
+                    or (duplicate_key(alternative) < duplicate_key(merged[alternative['id']]) if settings['recipe'].get('pipeline')
+                        else alternative["cost"] < merged[alternative["id"]]["cost"])
                 ):
                     merged[alternative["id"]] = alternative
-        body = retain_alternatives(list(merged.values()))
+        body = retain_alternatives(list(merged.values()),policy='structure-pareto/v2' if settings['recipe'].get('pipeline') else 'structure-pareto/v1')
         body["portfolio_omissions"] = {
             mode: value["archive"]["omitted"] for mode, value in record["details"].items()
         }

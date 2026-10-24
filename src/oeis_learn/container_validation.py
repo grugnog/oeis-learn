@@ -46,9 +46,10 @@ GPU_NODES = [
 ]
 
 
-def _stages(host, suite, output):
+def _stages(host, suite, output, *, external_seconds=None):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
+    invocation_started = time.monotonic()
     image = host.ensure()
     root = Path(host.policy["workspace"])
     code = digest(
@@ -113,6 +114,7 @@ def _stages(host, suite, output):
             for p in sorted((ROOT / "tests" / area).glob("test_bigint*.py"))
             if p.name != "test_bigint_gpu.py"
         ]
+        bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
         bigint_cpu += [
             "tests/contract/test_native_fitting.py",
             "tests/integration/test_synthesis_worker.py",
@@ -236,7 +238,8 @@ def _stages(host, suite, output):
             environment={
                 **private_runtime_environment(out),
                 "PYTHONPATH": "/opt/oeis-build/src",
-                "OMP_NUM_THREADS": str(host.policy["cpus"]),
+                "OMP_NUM_THREADS": "2" if external_seconds is not None else str(host.policy["cpus"]),
+                **({'MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','RAYON_NUM_THREADS':'1'} if external_seconds is not None else {}),
                 "OEIS_TEST_OUTPUT": "/work/output/gpu",
                 **(
                     {
@@ -255,38 +258,50 @@ def _stages(host, suite, output):
         print(f"RUN {name}; log: {out / 'stdout.log'}", flush=True)
         try:
             try:
-                with (
-                    (out / "stdout.log").open("wb") as stdout,
-                    (out / "stderr.log").open("wb") as stderr,
-                ):
-                    process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
-                    started = time.monotonic()
-                    cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
+                if external_seconds is not None:
+                    from .pipeline_validation.supervision import launch, reclaim
+                    cleanup_state={}
+                    cap=external_seconds-(time.monotonic()-invocation_started)
+                    if cap<=0:raise TimeoutError('owning pipeline stage allowance exhausted')
                     try:
-                        while True:
-                            left = cap - (time.monotonic() - started)
-                            if left <= 0:
-                                raise subprocess.TimeoutExpired(command, cap)
-                            try:
-                                returncode = process.wait(timeout=min(30, left))
-                                if returncode:
-                                    raise subprocess.CalledProcessError(returncode, command)
-                                break
-                            except subprocess.TimeoutExpired:
-                                print(
-                                    f"  running {int(time.monotonic() - started)}s; log: {out / 'stdout.log'}",
-                                    flush=True,
-                                )
+                        launch(command,out,seconds=cap,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
                     finally:
+                        reclaim(host.engine,container,out,cleanup_state)
+                else:
+                    with (
+                        (out / "stdout.log").open("wb") as stdout,
+                        (out / "stderr.log").open("wb") as stderr,
+                    ):
+                        process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
+                        started = time.monotonic()
+                        cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
+                        if external_seconds is not None:
+                            cap = min(cap, max(0, external_seconds-(time.monotonic()-invocation_started)))
                         try:
-                            host.engine.remove(container)
+                            while True:
+                                left = cap - (time.monotonic() - started)
+                                if left <= 0:
+                                    raise subprocess.TimeoutExpired(command, cap)
+                                try:
+                                    returncode = process.wait(timeout=min(30, left))
+                                    if returncode:
+                                        raise subprocess.CalledProcessError(returncode, command)
+                                    break
+                                except subprocess.TimeoutExpired:
+                                    print(
+                                        f"  running {int(time.monotonic() - started)}s; log: {out / 'stdout.log'}",
+                                        flush=True,
+                                    )
                         finally:
-                            if process.poll() is None:
-                                process.kill()
-                                process.wait(timeout=5)
+                            try:
+                                host.engine.remove(container)
+                            finally:
+                                if process.poll() is None:
+                                    process.kill()
+                                    process.wait(timeout=5)
             except BaseException:
                 # Popen itself may fail before a process object is available.
-                if process is None:
+                if process is None and external_seconds is None:
                     host.engine.remove(container)
                 raise
             counts = {}
@@ -334,6 +349,11 @@ def _stages(host, suite, output):
                     "qualified": False,
                 },
             )
+            if isinstance(exc,(KeyboardInterrupt,MemoryError)):
+                raise
+            if external_seconds is not None:
+                from .pipeline_validation.runner import ResourceBreach
+                if isinstance(exc,ResourceBreach):raise
             raise RuntimeError(
                 f"{name} failed; inspect {out / 'stderr.log'} and {out / 'stdout.log'}"
             ) from exc
@@ -375,3 +395,37 @@ def validate(host, suite, output):
             {"suite": suite, "image": image, "results": results, "qualified": False},
         )
         print(json.dumps({"status": "PASS", "output": str(output), "qualified": False}))
+
+
+def inspect_current_image(host, image, output, *, seconds=600):
+    """Compare every installed package byte and packaged build snapshot before reuse."""
+    from .pipeline_validation.supervision import launch, reclaim
+    from .pipeline_validation.identity import write as public_write
+    from .experiments.source_snapshot import collect_snapshot
+    output = Path(output)
+    output.mkdir(parents=True)
+    inputs = output / 'inputs'
+    inputs.mkdir()
+    public_write(inputs / 'expected.json', collect_snapshot(host.policy['workspace']))
+    name = 'oeis-package-inspect-' + uuid.uuid4().hex
+    code = (
+        "import json; from pathlib import Path; "
+        "from oeis_learn.experiments.source_snapshot import source_snapshot; "
+        "expected=json.loads(Path('/work/input/expected.json').read_text()); "
+        "actual=source_snapshot(); assert actual==expected, 'current installed package/source mismatch'; "
+        "from oeis_learn.fresh.bigint_config import packaged_artifacts; "
+        "from oeis_learn.fresh.common import file_hash; "
+        "artifacts=packaged_artifacts(); "
+        "assert file_hash('/opt/oeis-build-info/bigint-dependency-smoke.wasm')==artifacts['guest_sha256'], 'changed packaged guest'; "
+        "print(json.dumps(dict(source=actual,artifacts=artifacts),sort_keys=True))"
+    )
+    command = host.engine.command(image=image, name=name,
+        mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
+        argv=['python','-c',code], auto_remove=False, gpu=False,
+        memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
+        workdir='/tmp', environment=private_runtime_environment(output))
+    cleanup_state={}
+    try:
+        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+    finally:
+        reclaim(host.engine,name,output,cleanup_state)

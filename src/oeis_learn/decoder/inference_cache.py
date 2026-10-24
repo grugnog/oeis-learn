@@ -106,10 +106,14 @@ class DecoderCache:
     tokens: torch.Tensor
     finished: list[bool]
     valid: bool = True
+    bookkeeping: str = 'baseline'
+    positions_scratch: object = None
+    cross_allowed: object = None
 
     def reset(self):
         self.valid = False
         self.layers.clear()
+        self.positions_scratch = self.cross_allowed = None
 
     def reorder(self, indices):
         if not self.valid:
@@ -121,6 +125,7 @@ class DecoderCache:
         self.memory = self.memory.index_select(0, index)
         self.memory_signature = tensor_signature(self.memory)
         self.memory_padding = self.memory_padding.index_select(0, index)
+        self.cross_allowed = (~self.memory_padding)[:, None, None, :]
         self.tokens = self.tokens.index_select(0, index)
         for layer in self.layers:
             for name in ("keys", "values", "cross_keys", "cross_values"):
@@ -139,6 +144,9 @@ def create_cache(model, memory, capacity, memory_padding=None, backend="sdpa"):
         raise ValueError("invalid encoded prompt")
     if backend not in ("sdpa", "eager"):
         raise ValueError("unknown attention backend")
+    bookkeeping = getattr(model, 'cache_bookkeeping', 'baseline')
+    if bookkeeping not in ('baseline', 'hoisted/v1'):
+        raise ValueError('unknown cache bookkeeping policy')
     batch = memory.size(0)
     padding = (
         torch.zeros(memory.shape[:2], device=memory.device, dtype=torch.bool)
@@ -159,7 +167,7 @@ def create_cache(model, memory, capacity, memory_padding=None, backend="sdpa"):
                 project(layer.multihead_attn, memory, 2),
             )
         )
-    return DecoderCache(
+    cache = DecoderCache(
         id(model),
         model_signature(model),
         memory,
@@ -172,7 +180,11 @@ def create_cache(model, memory, capacity, memory_padding=None, backend="sdpa"):
         model.position_style,
         torch.full((batch, capacity), model.pad_idx, device=memory.device, dtype=torch.long),
         [False] * batch,
+        bookkeeping=bookkeeping,
+        positions_scratch=torch.arange(capacity, device=memory.device),
+        cross_allowed=(~padding)[:, None, None, :],
     )
+    return cache
 
 
 def decode_step(model, tokens, cache, *, active=None, memory=None):
@@ -214,23 +226,26 @@ def decode_step(model, tokens, cache, *, active=None, memory=None):
     hidden = model.position_embeddings(hidden, safe_positions, cache.tokens)
     used = max([length + int(a) for length, a in zip(cache.lengths, enabled)], default=1)
     used = max(1, used)
+    if cache.bookkeeping == 'hoisted/v1':
+        active_rows = torch.tensor([i for i, a in enumerate(enabled) if a], device=tokens.device, dtype=torch.long)
+        active_positions = safe_positions[:, 0].index_select(0, active_rows)
+        lengths = torch.tensor([length + int(a) for length, a in zip(cache.lengths, enabled)], device=tokens.device)
+        allowed = cache.positions_scratch[:used][None, :] < lengths[:, None]
+        allowed[:, 0] |= lengths == 0
     for layer, state in zip(model.transformer_decoder.layers, cache.layers):
         normalized = layer.norm1(hidden)
         q, k, v = (project(layer.self_attn, normalized, i) for i in range(3))
         if model.position_style == "rope":
             q, k = rotary(q, positions), rotary(k, positions)
-        state.keys[rows[enabled_tensor], :, safe_positions[:, 0][enabled_tensor], :] = k[
-            enabled_tensor, :, 0, :
-        ]
-        state.values[rows[enabled_tensor], :, safe_positions[:, 0][enabled_tensor], :] = v[
-            enabled_tensor, :, 0, :
-        ]
-        lengths = torch.tensor(
-            [length + int(a) for length, a in zip(cache.lengths, enabled)], device=tokens.device
-        )
-        allowed = torch.arange(used, device=tokens.device)[None, :] < lengths[:, None]
-        # Inactive empty rows get a harmless zero key; their logits are masked below.
-        allowed[:, 0] |= lengths == 0
+        if cache.bookkeeping == 'hoisted/v1':
+            state.keys[active_rows, :, active_positions, :] = k.index_select(0, active_rows)[:, :, 0, :]
+            state.values[active_rows, :, active_positions, :] = v.index_select(0, active_rows)[:, :, 0, :]
+        else:
+            state.keys[rows[enabled_tensor], :, safe_positions[:, 0][enabled_tensor], :] = k[enabled_tensor, :, 0, :]
+            state.values[rows[enabled_tensor], :, safe_positions[:, 0][enabled_tensor], :] = v[enabled_tensor, :, 0, :]
+            lengths = torch.tensor([length + int(a) for length, a in zip(cache.lengths, enabled)], device=tokens.device)
+            allowed = torch.arange(used, device=tokens.device)[None, :] < lengths[:, None]
+            allowed[:, 0] |= lengths == 0
         hidden = hidden + layer.dropout1(
             attention_output(
                 layer.self_attn,
@@ -248,7 +263,7 @@ def decode_step(model, tokens, cache, *, active=None, memory=None):
                 q,
                 state.cross_keys,
                 state.cross_values,
-                (~cache.memory_padding)[:, None, None, :],
+                cache.cross_allowed if cache.bookkeeping == "hoisted/v1" else (~cache.memory_padding)[:, None, None, :],
                 cache.backend,
             )
         )

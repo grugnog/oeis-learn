@@ -303,8 +303,16 @@ impl BigintRuntime {
         serde_json::json!({"manifest":manifest,"sha256":sha})
     }
     pub fn evaluate(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
+        self.evaluate_budgeted(source,indices,r,true)
+    }
+    /// FitBudget already charged guest setup to its absolute parent deadline.
+    /// Only the diagnostic fit dispatcher may supply that remaining slice.
+    pub(crate) fn evaluate_after_setup(&mut self,source:&str,indices:&[String],r:&Resources)->Evaluation {
+        self.evaluate_budgeted(source,indices,r,false)
+    }
+    fn evaluate_budgeted(&mut self,source:&str,indices:&[String],r:&Resources,charge_setup:bool)->Evaluation {
         let mut out=Evaluation{outcome:"failure".into(),reason:None,values:Vec::new(),coverage:0,fuel:0,resource_identity:r.identity()};
-        let result=self.run(source,indices,r,&mut out,None,true);
+        let result=self.run(source,indices,r,&mut out,None,true,charge_setup);
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         out
     }
@@ -329,7 +337,7 @@ impl BigintRuntime {
         let mut measured=Measurements{stages:if profile {Some(StageMeasurements::default())}else{None},..Measurements::default()};
         if input_detail {measured.stages.as_mut().unwrap().input_load=Some(InputLoadMeasurements::default());}
         let start=Instant::now();
-        let result=self.run(source,indices,r,&mut out,Some(&mut measured),cached);
+        let result=self.run(source,indices,r,&mut out,Some(&mut measured),cached,true);
         measured.total_seconds=start.elapsed().as_secs_f64();
         measured.execution_seconds=(measured.total_seconds-measured.prepare_seconds).max(0.0);
         if let Some(stages)=measured.stages.as_mut() {
@@ -345,8 +353,9 @@ impl BigintRuntime {
         match result {Ok(())=>out.outcome="ok".into(),Err(e)=>{out.reason=Some(e);out.values.clear();}}
         (out,measured)
     }
-    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation,mut measured:Option<&mut Measurements>,cached:bool)->Result<(),String> {
+    fn run(&self,source:&str,indices:&[String],r:&Resources,out:&mut Evaluation,mut measured:Option<&mut Measurements>,cached:bool,charge_setup:bool)->Result<(),String> {
         r.validate()?;
+        let setup_seconds=if charge_setup {self.compilation_seconds}else{0.0};
         let start=Instant::now();
         if indices.is_empty()||indices.len()>100 {return Err("invalid_source".into());}
         let p=language::parse(source,r,false)?;
@@ -357,7 +366,7 @@ impl BigintRuntime {
         // Typed lookup below validates ABI signatures against the real guest.
         let literals=observer.phase("literal_decode",||lowered.literals.iter().map(|s|integer(s,r.literal_bits)).collect::<Result<Vec<_>,_>>())?;
         for index in indices {
-            let remaining=r.evaluation_seconds-self.compilation_seconds-start.elapsed().as_secs_f64();
+            let remaining=r.evaluation_seconds-setup_seconds-start.elapsed().as_secs_f64();
             if remaining<=0.0 {return Err("deadline".into());}
             let fuel=r.term_fuel.min(r.aggregate_fuel.saturating_sub(out.fuel));
             if fuel==0 {return Err("aggregate_fuel".into());}
@@ -405,7 +414,7 @@ impl BigintRuntime {
                 for at in 0..len {raw.push(calls.call1(&runtime,&mut store,"host_output_byte",at)? as u8);}
                 check(&mut calls,&runtime,&mut store)?;
                 let mut n=IBig::from(UBig::from_le_bytes(&raw));if sign<0{n=-n;}
-                if start.elapsed().as_secs_f64()+self.compilation_seconds>=r.evaluation_seconds {return Err("deadline".into());}
+                if start.elapsed().as_secs_f64()+setup_seconds>=r.evaluation_seconds {return Err("deadline".into());}
                 Ok(n.to_string())})
             })();
             let consumed=fuel-store.get_fuel().unwrap_or(0);out.fuel+=consumed;

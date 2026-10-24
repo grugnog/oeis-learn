@@ -94,6 +94,12 @@ class Engine:
 
     def facts(self):
         info = self.info()
+        if self.name=='docker':
+            if isinstance(info,dict) and {'host','store','version'}<=set(info):
+                raise RuntimeError('docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence')
+            memory=info.get('MemTotal') if isinstance(info,dict) else None
+            if type(memory) is not int or memory<=0:
+                raise RuntimeError('Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable')
         if self.name == "podman":
             host = info.get("host", {})
             security = host.get("security", {})
@@ -130,7 +136,17 @@ class Engine:
         return self.image(tag)
 
     def user_args(self):
-        facts = self.facts()
+        if self.name == "docker":
+            # User mapping needs security options, not measured memory. Keep
+            # resource qualification strict in facts(), independently of argv
+            # construction for explicitly bounded roles.
+            info = self.info()
+            facts = {
+                "rootless": any("rootless" in str(v) for v in info.get("SecurityOptions", [])),
+                "selinux": any("selinux" in str(v) for v in info.get("SecurityOptions", [])),
+            }
+        else:
+            facts = self.facts()
         args = ["--user", f"{os.getuid()}:{os.getgid()}"]
         if self.name == "docker" and facts["rootless"]:
             args = ["--user", "0:0"]  # Namespace root maps to the unprivileged engine owner.
@@ -239,12 +255,12 @@ class Engine:
             )
         return nodes[0]
 
-    def remove(self, name):
+    def remove(self, name, *, timeout=30):
         args = ["rm", "--force"]
         if self.name == "podman":
             args += ["--time=0", "--ignore"]
         try:
-            self.call([*args, name], capture_output=True, timeout=30)
+            self.call([*args, name], capture_output=True, timeout=timeout)
         except subprocess.CalledProcessError as exc:
             error = (exc.stderr or b"").decode(errors="replace").lower()
             if not any(v in error for v in ("no such container", "does not exist")):

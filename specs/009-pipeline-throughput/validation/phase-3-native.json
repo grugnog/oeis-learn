@@ -1,0 +1,155 @@
+{
+  "version": "pipeline-phase-review/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "operator_review": "operator-20261024T141450Z-review.json",
+  "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+  "stage": {
+    "state": "PASS",
+    "identity": "sha256:6579843f40a45bf06d8656cf5d61c45ae06069ffe9eb525fdc49447577cb6652",
+    "reason": ""
+  },
+  "component": {
+    "comparison": {
+      "candidate_runs": 0,
+      "identity": "sha256:16c36ca4d4803197d681f296dadb65685398c5b65cab7b9f4a630aade2968698",
+      "reason": "exactly three complete baseline-only calibration receipts required",
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 127534235648,
+          "current": 23986176,
+          "driver": null,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 6633709568,
+        "qualified": true,
+        "role_peak_upper_bytes": 69898240,
+        "samples": 22,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "seconds_through_role": 20.747412414988503,
+      "selected_workers": 1,
+      "status": "INCONCLUSIVE",
+      "version": "pipeline-role-result/v1"
+    },
+    "component": {
+      "comparison": "sha256:16c36ca4d4803197d681f296dadb65685398c5b65cab7b9f4a630aade2968698",
+      "disposition": "RETAIN_SERIAL_BASELINE",
+      "identity": "sha256:ee09dd1cbe184cd79a0b15370b558746dfa3a3773e96b83e6e48f1020dd9737c",
+      "production_adoption": false,
+      "reason": "native report retained in full; joint correctness, resource and five-pair confirmation remain independently mandatory",
+      "version": "pipeline-native-component/v1",
+      "workers": 1
+    }
+  },
+  "trials": {
+    "stages/native.compare/role/calibration-1/trial.json": {
+      "identity": "sha256:06a7d24e3bd89efd8e306f93bbc75b95a65b690b4e4a25e87051d81a667dc7c4",
+      "complete": false,
+      "seconds": 4.505599985131994,
+      "workers": 1,
+      "completed": 12,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "identity-512",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-2",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-4096-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "affine",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    },
+    "stages/native.compare/role/cold/trial.json": {
+      "identity": "sha256:9a2df12e4136f7f0b60386e783f0bc711640dff7a6142d296941cc8f4915f516",
+      "complete": true,
+      "seconds": 3.57186669902876,
+      "workers": 1,
+      "completed": 18,
+      "denominator": 18,
+      "incomplete": []
+    },
+    "stages/native.compare/role/calibration-0/trial.json": {
+      "identity": "sha256:fae32095a92823dc4443bb676305b42b776c503ba43ca825d9f78f01c360836a",
+      "complete": false,
+      "seconds": 4.638160922797397,
+      "workers": 1,
+      "completed": 12,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "identity-512",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-2",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-1024-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "affine",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    },
+    "stages/native.compare/role/calibration-2/trial.json": {
+      "identity": "sha256:6538df6013002731ae2cd97f9a33af37ff3fd199fd2b6357e651b66db5cee67f",
+      "complete": true,
+      "seconds": 3.9729329110123217,
+      "workers": 1,
+      "completed": 18,
+      "denominator": 18,
+      "incomplete": []
+    },
+    "stages/native.compare/role/warmup/trial.json": {
+      "identity": "sha256:b622fe365a3d30d272480970ea9ab42464bb73eb0793146a1703556625acb241",
+      "complete": false,
+      "seconds": 3.97840673616156,
+      "workers": 1,
+      "completed": 16,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "no-fit",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    }
+  },
+  "decision": "INCONCLUSIVE calibration; retain workers=1; no candidate run"
+}

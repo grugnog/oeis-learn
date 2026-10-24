@@ -1,0 +1,12 @@
+{
+  "version": "pipeline-phase-review/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "operator_review": "operator-20261024T141450Z-review.json",
+  "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+  "stage": {
+    "state": "BLOCKED",
+    "identity": "sha256:23c8e4a4f33a1925a0c40ca50b593c8a7ccdc798d9ddcecf5f1cf3f2e7ace533",
+    "reason": "failed/missing prerequisites: baseline.calibration"
+  },
+  "decision": "INCONCLUSIVE prerequisite; joint comparison unstarted; no five-pair evidence, no adoption"
+}

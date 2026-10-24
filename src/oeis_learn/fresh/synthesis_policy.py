@@ -5,12 +5,14 @@ from oeis_learn.synthesis.contracts import identity, canonical_integer
 
 
 class Portfolio:
-    def __init__(self, *, start, seed, beam=None):
+    def __init__(self, *, start, seed, beam=None, seconds=60):
         if not math.isfinite(start) or type(seed) is not int:
             raise ValueError("invalid portfolio clock/seed")
+        if seconds not in (60,180):
+            raise ValueError('registered production60/fixed-work180 portfolio required')
         self.start = start
         self.last_now = start
-        self.deadline = start + 60
+        self.deadline = start + seconds
         self.seed = seed
         self.records = {}
         self.beam = beam
@@ -83,7 +85,11 @@ def rescue_identity(raw_identity, fit_original_identity):
     return raw_identity
 
 
-def select_visible(rows):
+def select_visible(rows, *, policy='visible-only/v1'):
+    if policy == 'visible-only/v2':
+        return _select_v2(rows)
+    if policy != 'visible-only/v1':
+        raise ValueError('unknown selection policy')
     allowed = {"source", "source_sha256", "verified", "visible_count", "cost"}
     for row in rows:
         if (
@@ -115,9 +121,7 @@ def transfer_success(selected, indices, expected, production, reference):
     if selected is None:
         return False
     record = {k: v for k, v in selected.items() if k not in {"seal_sha256", "selection"}}
-    if selected.get("selection") != "visible-only/v1" or selected.get("seal_sha256") != identity(
-        record
-    ):
+    if selected.get("selection") not in {"visible-only/v1", "visible-only/v2"} or selected.get("seal_sha256") != identity(record):
         raise ValueError("changed sealed candidate")
     if not selected["verified"] or len(indices) != 100 or len(expected) != 100:
         return False
@@ -142,3 +146,56 @@ def transfer_success(selected, indices, expected, production, reference):
     except ValueError:
         return False
     return values[0] == values[1] == values[2]
+
+
+
+def _select_v2(rows):
+    from oeis_learn.synthesis.admission import source_identity
+    from oeis_learn.synthesis.state import require_hash
+    fields = {'source','source_sha256','verified','visible_count','cost','attempt_ordinal','job_id','provenance'}
+    admitted = []
+    for row in rows:
+        if set(row) != fields or type(row['verified']) is not bool or type(row['visible_count']) is not int:
+            raise ValueError('closed visible-only/v2 record required')
+        if not isinstance(row['source'], str) or source_identity(row['source']) != row['source_sha256']:
+            raise ValueError('candidate source identity mismatch')
+        require_hash(row['job_id'])
+        if type(row['attempt_ordinal']) is not int or not 0 <= row['attempt_ordinal'] < 8:
+            raise ValueError('stable attempt ordinal required')
+        if type(row['cost']) not in (int,float) or not math.isfinite(row['cost']) or row['cost'] < 0:
+            raise ValueError('finite nonnegative observation required')
+        provenance = row['provenance']
+        if not isinstance(provenance,dict) or set(provenance) != {'prompt','snapshot','policies','original_source_sha256','transformed_source_sha256','assignment','verification'}:
+            raise ValueError('complete selected provenance required')
+        if row['verified'] and row['visible_count'] == 20:
+            admitted.append(row)
+    if not admitted:
+        return None
+    selected = min(admitted, key=lambda r: (len(r['source'].encode()),r['source_sha256'],r['attempt_ordinal'],r['job_id']))
+    import copy
+    semantic = copy.deepcopy({k:v for k,v in selected.items() if k != 'cost'})
+    return dict(semantic, selection='visible-only/v2', seal_sha256=identity(semantic))
+
+
+def validate_selection_envelope(envelope):
+    """Bind v2 scoring provenance to the visible-only seal before hidden execution."""
+    from oeis_learn.synthesis.admission import source_identity
+    selected=envelope['selected']
+    record={k:v for k,v in selected.items() if k not in {'seal_sha256','selection'}}
+    if selected.get('selection') not in {'visible-only/v1','visible-only/v2'} or selected.get('seal_sha256')!=identity(record):
+        raise ValueError('changed sealed candidate')
+    if selected['selection']=='visible-only/v1':
+        return selected
+    if set(envelope)!={'selected','verification','assignment','original_source','transformed_source','original_source_sha256','prompt_sha256'}:
+        raise ValueError('closed selected provenance envelope required')
+    provenance=selected['provenance']
+    expected=dict(prompt=envelope['prompt_sha256'],assignment=envelope['assignment'],
+        original_source_sha256=envelope['original_source_sha256'],
+        transformed_source_sha256=source_identity(envelope['transformed_source']),
+        verification=identity(envelope['verification']))
+    if (any(provenance[key]!=value for key,value in expected.items())
+            or source_identity(envelope['original_source'])!=envelope['original_source_sha256']
+            or source_identity(selected['source'])!=selected['source_sha256']
+            or envelope['verification']['prompt_sha256']!=envelope['prompt_sha256']):
+        raise ValueError('changed sealed candidate provenance')
+    return selected

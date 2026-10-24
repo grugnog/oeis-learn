@@ -320,6 +320,7 @@ class WatProgramSampler:
                 )
                 chosen_logs = (
                     log_distribution.gather(-1, chosen[:, None]).squeeze(-1).cpu().tolist()
+                    if temp else [None] * batch
                 )
                 ids = chosen.cpu().tolist()
                 if getattr(self, "capture_diagnostics", False):

@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -92,9 +92,12 @@ def prepare(run, inputs, output, *, image, source, render_node):
     examples = read(example_file)
     view = "concrete" if recipe["learning"]["target_view"] == "literal" else "parameterized"
     learner = examples["views"][view]
-    ids = examples["tiny_ids"]
-    byid = {r["id"]: r for r in learner["training"]}
-    if len(ids) != 32 or len(set(ids)) != 32 or any(k not in byid for k in ids):
+    if scope not in ('diverse32','transfer-screen'):raise ValueError('unknown pipeline cost scope')
+    selected_rows=learner['training'] if scope=='diverse32' else learner['parameter_development']+learner['structural_development']
+    ids=examples['tiny_ids'] if scope=='diverse32' else [r['id'] for r in selected_rows]
+    byid={r['id']:r for r in selected_rows}
+    expected=32 if scope=='diverse32' else 256
+    if len(ids) != expected or len(set(ids)) != expected or any(k not in byid for k in ids):
         raise ValueError("complete diverse32 training panel required")
     prompts = [
         {k: byid[key][k] for k in ("id", "indices", "values", "horizon_indices", "family")}
@@ -102,6 +105,17 @@ def prepare(run, inputs, output, *, image, source, render_node):
     ]
     if len({byid[k]["family"] for k in ids}) < 4:
         raise ValueError("diverse panel requires at least four structures")
+    if replay:
+        if scope!='diverse32':raise ValueError('replay uses only the frozen visible training panel')
+        if replay=='ladder/v1':
+            from oeis_learn.pipeline_validation.hardware_ladder import prepare_inputs
+        elif replay=='batching/v1':
+            from oeis_learn.pipeline_validation.replay_batching import prepare_inputs
+        elif replay is True:
+            from oeis_learn.pipeline_validation.replay import prepare_inputs
+        else:raise ValueError('registered replay preparation mode required')
+        return prepare_inputs(recipe,prompts,weights,output,image=image,source=source,render_node=render_node,
+            parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
     training = [
         {k: r[k] for k in ("id", "indices", "values", "tokens")} for r in learner["training"][:128]
     ]
@@ -141,6 +155,7 @@ def prepare(run, inputs, output, *, image, source, render_node):
         validation_ids=[r["id"] for r in validation],
         seed=recipe["model"]["seed"],
         analysis_nonce=uuid.uuid4().hex,
+        scope=scope,
         authority="weights-only diagnostic; final sealed; no resume/training admission",
     )
     manifest["identity"] = digest(manifest)
@@ -203,7 +218,7 @@ def archive(output, *, cap=256 << 20):
     return target
 
 
-def container_stage(host, image, source, output, *, mode, seconds, gpu):
+def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=None):
     from oeis_learn.container_runtime import private_runtime_environment
     from oeis_learn.tracking.pipeline_profile import character_device
 
@@ -221,7 +236,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
         name=name,
         mounts=mounts,
         auto_remove=False,
-        argv=[
+        argv=argv or [
             "python",
             "/opt/oeis-build/scripts/profile_bigint_pipeline.py",
             "--inside",
@@ -242,13 +257,33 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             "OEIS_EXPECTED_PIPELINE_DEVICES": json.dumps(expected_devices, sort_keys=True),
         },
     )
+    cleanup_state={}
     try:
-        launch(command, output, seconds=seconds)
+        if argv is None:
+            launch(command, output, seconds=seconds)
+        else:
+            from oeis_learn.pipeline_validation.supervision import launch as supervised
+            supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+    except BaseException as exc:
+        if argv is not None and not isinstance(exc,KeyboardInterrupt):
+            try:
+                failed=json.loads((output/'summary.json').read_text())
+            except (OSError,ValueError):failed={}
+            if failed.get('fatal')=='RESOURCE_BREACH':
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach(failed.get('error','role resource breach')) from exc
+        raise
     finally:
+        cleanup_started=time.monotonic()
+        if argv is not None:
+            cleanup_state.setdefault('deadline',cleanup_started+5)
         try:
-            result = host.engine.call(["inspect", name], capture_output=True, timeout=10)
+            result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else max(.001,min(2,cleanup_state['deadline']-time.monotonic())))
             inspection = json.loads(result.stdout)
             write(output / "container-inspect.json", inspection)
+            if argv is not None and inspection[0].get('State',{}).get('OOMKilled'):
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('compute container exceeded its memory envelope')
             config = inspection[0]["HostConfig"]
             binds = {
                 m["Destination"]: m["RW"]
@@ -267,6 +302,9 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
                 or binds != {"/work/input": False, "/work/output": True}
                 or config.get("DeviceRequests")
             ):
+                if argv is not None:
+                    from oeis_learn.pipeline_validation.runner import ResourceBreach
+                    raise ResourceBreach('actual role isolation audit failed')
                 raise RuntimeError("actual role isolation audit failed")
             write(
                 output / "isolation-audit.json",
@@ -279,12 +317,19 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             )
         finally:
             start = time.monotonic()
-            host.engine.remove(name)
-            elapsed = time.monotonic() - start
+            if argv is None:
+                host.engine.remove(name)
+            else:
+                from oeis_learn.pipeline_validation.supervision import reclaim
+                reclaim(host.engine,name,output,cleanup_state)
+            elapsed = time.monotonic() - (start if argv is None else cleanup_started)
             write(
                 output / "cleanup.json",
                 dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
             )
+            if argv is not None and elapsed>5:
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('pipeline container reclamation exceeded five-second envelope')
             write(
                 output / "host-timing.json",
                 dict(

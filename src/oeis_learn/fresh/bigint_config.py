@@ -139,7 +139,11 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("bigint-bootstrap/v1 required")
     value = deepcopy(value)
     existing = value.pop("identity", None)
+    pipeline = value.pop('pipeline', None)
     result = _merge(defaults(), value)
+    if pipeline is not None:
+        from .pipeline_jobs import validate_policy
+        result['pipeline'] = validate_policy(pipeline)
     if seed is not None:
         if "seed" in value.get("model", {}) and value["model"]["seed"] != seed:
             raise ValueError("conflicting explicit recipe/seed")

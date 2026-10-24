@@ -371,10 +371,20 @@ def parser():
     validation = commands.add_parser("validate")
     validation.add_argument(
         "--suite",
-        choices=["cpu", "gpu", "bigint-cpu", "bigint-gpu", "bigint-retirement"],
+        choices=["cpu", "gpu", "bigint-cpu", "bigint-gpu", "bigint-retirement", "pipeline"],
         default="gpu",
     )
     validation.add_argument("--output", default="tmp-validation")
+    validation.add_argument("--phase", choices=["all-ready", "1", "2", "3", "4", "5", "6"], default="all-ready")
+    validation.add_argument("--manifest")
+    validation.add_argument("--study-manifest")
+    validation.add_argument("--final-plan")
+    validation.add_argument("--run")
+    validation.add_argument("--inputs")
+    validation.add_argument("--reuse", action="append", default=[])
+    validation.add_argument("--engines", choices=["available", "selected", "both"])
+    validation.add_argument("--max-seconds", type=float)
+    validation.add_argument("--scope-report", action="store_true")
     return p
 
 
@@ -383,6 +393,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "validate" and args.suite == "pipeline":
+            from oeis_learn.pipeline_validation.cli import main as pipeline_main
+            return pipeline_main(args, ROOT, Host)
         if args.command == "pack":
             pack_run(args.run, args.output, checkpoint=args.checkpoint)
             return 0

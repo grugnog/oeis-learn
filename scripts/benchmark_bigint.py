@@ -1405,7 +1405,7 @@ def admit_cost_recipe(report, recipe, shapes, output, *, scope="transfer-screen"
     from copy import deepcopy
     from oeis_learn.synthesis.contracts import identity
     from oeis_learn.fresh.bigint_config import resolve
-    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity
+    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity, profile_identity
     import yaml
 
     counts = {"training": 512, "parameter_development": 128, "structural_development": 128}
@@ -1459,9 +1459,7 @@ def admit_cost_recipe(report, recipe, shapes, output, *, scope="transfer-screen"
     value.pop("identity", None)
     value["learning"]["cost_preflight"] = dict(
         image=report["image"],
-        profile_sha256=identity(
-            {k: recipe[k] for k in ("execution", "inputs", "model", "fitting", "search")}
-        ),
+        profile_sha256=profile_identity(recipe),
         scoring_data=False,
         costs=report["costs"],
         fixture_sha256=identity(
@@ -1705,13 +1703,11 @@ def run(
 
 def qualify_scopes(report, recipes, shapes, output, *, primary):
     """Record each registered workload independently; one pass grants no other scope."""
-    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity
+    from oeis_learn.fresh.cost_policy import screen_cost, schedule_identity, profile_identity
     from oeis_learn.synthesis.contracts import identity
 
     receipts = {}
-    profile = lambda recipe: identity(
-        {k: recipe[k] for k in ("execution", "inputs", "model", "fitting", "search")}
-    )
+    profile = profile_identity
     for scope, recipe in recipes.items():
         forecast = screen_cost(
             **report["costs"],

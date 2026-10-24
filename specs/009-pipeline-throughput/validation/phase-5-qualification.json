@@ -1,0 +1,160 @@
+{
+  "version": "pipeline-phase-review/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "operator_review": "operator-20261024T141450Z-review.json",
+  "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+  "stage": {
+    "state": "PASS",
+    "identity": "sha256:47401ed7dc9e53a39f105542afa3a4b5c5adfe04c2b713bc146a54e8195f08b7",
+    "reason": ""
+  },
+  "producer_qualification_identity": "sha256:06703388e706d517c7c3b20ed924f97804a84ea261a0d8bb3c4224624b6ed9b8",
+  "engineering": "PASS",
+  "required": [
+    "cpu.podman.semantic",
+    "engine.podman",
+    "hip.preflight",
+    "host.contracts",
+    "image.podman.gpu",
+    "image.podman.qualification",
+    "operations.podman.retirement",
+    "operations.podman.workflow",
+    "policy.compare"
+  ],
+  "failures": {},
+  "portability": "PENDING",
+  "costs": {
+    "cost.diverse32": {
+      "authority": "scoped forecast only; separate reviewed study decision required",
+      "envelopes": {},
+      "forecast": {
+        "budget": 7200,
+        "identity": "sha256:c275a64c672a1e4f07e9cb04637ebe98676988c7cbdb93cfa7871f1714fd3d9b",
+        "missing": [
+          "checkpoint_p95",
+          "cleanup",
+          "export",
+          "fit_p95",
+          "generation_p95",
+          "hidden_scoring_p95",
+          "reference_p95",
+          "startup",
+          "teacher_forcing_p95",
+          "training_p95"
+        ],
+        "projected_seconds": null,
+        "reason": "unknown complete-schedule components",
+        "scope": "diverse32",
+        "version": "pipeline-scoped-cost/v1",
+        "within_budget": false
+      },
+      "identity": "sha256:029218cb69d23c4715e33213078c70b4c4fb09815c3c4b1e00697f0b8c743e99",
+      "missing": [
+        "complete full-denominator independent scoring",
+        "full frozen diverse32 controls",
+        "representative complete material production strata",
+        "three complete exact-scope baseline observations"
+      ],
+      "observations": [
+        "sha256:12fbd90bf5869345cf171f7373130993bc7cbf7c33548894ffbd3fe70f3f6f77"
+      ],
+      "scope": "diverse32",
+      "stage_state": "INCONCLUSIVE",
+      "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+      "version": "pipeline-cost-observations/v1"
+    },
+    "cost.transfer": {
+      "authority": "scoped forecast only; separate reviewed study decision required",
+      "envelopes": {},
+      "forecast": {
+        "budget": 7200,
+        "identity": "sha256:a8e54ab7e8cc5d6349e92913ad810ded40edcf7621ace98bea810832a4f3a555",
+        "missing": [
+          "checkpoint_p95",
+          "cleanup",
+          "export",
+          "fit_p95",
+          "generation_p95",
+          "hidden_scoring_p95",
+          "reference_p95",
+          "startup",
+          "teacher_forcing_p95",
+          "training_p95"
+        ],
+        "projected_seconds": null,
+        "reason": "unknown complete-schedule components",
+        "scope": "transfer-screen",
+        "version": "pipeline-scoped-cost/v1",
+        "within_budget": false
+      },
+      "identity": "sha256:37ed3b8c48df06808cfe6b1d4d7a1bb18afe308074266c26dbe91ccd42ab22b3",
+      "missing": [
+        "identical source, weights, policies, resources and completed work",
+        "three complete exact-scope baseline observations"
+      ],
+      "observations": [],
+      "scope": "transfer-screen",
+      "stage_state": "INCONCLUSIVE",
+      "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+      "version": "pipeline-cost-observations/v1"
+    }
+  },
+  "carryovers": {
+    "008:T093": {
+      "closure": "user deferred; no weight acquisition/conversion",
+      "disposition": "DEFERRED"
+    },
+    "008:T094": {
+      "closure": "current whole-pipeline performance, parity and retained arithmetic gap review",
+      "disposition": "PENDING"
+    },
+    "008:T097": {
+      "closure": "supported commands, interruption/resume, isolation and exports on both engines",
+      "disposition": "PENDING"
+    },
+    "008:T098": {
+      "closure": "all applicable current-source qualification identities and gate decisions",
+      "disposition": "PENDING"
+    },
+    "008:T099": {
+      "closure": "matched prospective contracts and fresh sealed cohort",
+      "disposition": "PENDING"
+    },
+    "008:T100": {
+      "closure": "all six matched representation arms and full controls",
+      "disposition": "PENDING"
+    },
+    "008:T101": {
+      "closure": "single registered transfer endpoint decision",
+      "disposition": "PENDING"
+    },
+    "008:T102": {
+      "closure": "separately admitted curriculum then replay",
+      "disposition": "PENDING"
+    },
+    "008:T103": {
+      "closure": "reviewed assistance inputs and matched comparison or explicit deferral",
+      "disposition": "PENDING"
+    },
+    "008:T104": {
+      "closure": "component sensitivity and separately selected matched retraining",
+      "disposition": "PENDING"
+    },
+    "008:T105": {
+      "closure": "immutable final plan and explicit authorized execution",
+      "disposition": "PENDING"
+    },
+    "008:T106": {
+      "closure": "evidence-backed discovery review after final results",
+      "disposition": "PENDING"
+    },
+    "008:T107": {
+      "closure": "evidence-backed longer-run go/no-go report",
+      "disposition": "PENDING"
+    }
+  },
+  "retained_arithmetic": {
+    "review_trigger": ">5x; review rather than weaken semantics",
+    "small_value_gap": "13.29\u201313.40x historical observation"
+  }
+}

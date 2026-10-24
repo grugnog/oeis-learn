@@ -10,6 +10,25 @@ const TRANSFER: &str = r#"(module
   (func (export "count") (result i32) global.get $calls)
 )"#;
 
+#[test]
+fn fit_slice_does_not_charge_guest_setup_twice() {
+    // A synthetic setup charge avoids sleeps or dependence on compiler speed.
+    // The tiny guest traps at init: reaching it proves the slice was admitted.
+    let bytes=wat::parse_str("(module (func (export \"host_init\") (param i32 i32 i32 i32 i32 i32 i32) (result i32) unreachable))").unwrap();
+    let mut runtime=BigintRuntime::new(&bytes).unwrap();
+    runtime.compilation_seconds=3600.0;
+    let resources=Resources::default();
+    let indices=vec!["0".into()];
+    let source="(program (return $index))";
+    assert_eq!(runtime.evaluate(source,&indices,&resources).reason.as_deref(),Some("deadline"));
+    let result=runtime.evaluate_after_setup(source,&indices,&resources);
+    assert_eq!(result.reason.as_deref(),Some("runtime_failure"));
+    assert_eq!(result.resource_identity,resources.identity());
+    assert!(result.values.is_empty());
+    // Standalone execution and profiling retain their original setup charge.
+    assert_eq!(runtime.evaluate_measured(source,&indices,&resources).0.reason.as_deref(),Some("deadline"));
+}
+
 fn fixture(wat: &str, fuel: u64) -> (BigintRuntime, Store<Limits>, Instance) {
     fixture_with_probe(wat, fuel, false, 4 * 65536)
 }

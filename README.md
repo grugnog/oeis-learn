@@ -13,6 +13,10 @@ Start with the [spec 007 quickstart](specs/007-experiment-foundation/quickstart.
 proof limits and measurement decisions. The [handoff](specs/007-experiment-foundation/validation/handoff.md)
 records which gates have executable evidence and which still require acceptance.
 
+## Combined pipeline validation
+
+Spec009 adds `python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready`. Use the [pipeline operator guide](specs/009-pipeline-throughput/quickstart.md) for the complete command with recorded parent/input paths, both-engine checks, finite limits and one archive. The host needs only Python and the selected engine. Current local evidence is 80 stdlib tests passing; pinned-container/native/HIP qualification and performance adoption remain pending. Phase 6 uses separately admitted study manifests and never runs through `all-ready`. See the [implementation closeout](specs/009-pipeline-throughput/validation/implementation-closeout.md).
+
 ## Setup and CPU diagnostics
 
 Python dependencies and developer tools are locked in `uv.lock`:
@@ -20,7 +24,7 @@ Python dependencies and developer tools are locked in `uv.lock`:
 ```bash
 uv sync --locked
 uv run oeis-learn foundation --help
-OMP_NUM_THREADS=2 uv run python scripts/verify_phase11.py --output runs/007-cpu-review
+OMP_NUM_THREADS=2 uv run python scripts/verify_phase 11.py --output runs/007-cpu-review
 ```
 
 Use a new output directory for each quickstart. The script freezes a small fixture
