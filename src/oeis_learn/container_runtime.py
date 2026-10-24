@@ -136,7 +136,17 @@ class Engine:
         return self.image(tag)
 
     def user_args(self):
-        facts = self.facts()
+        if self.name == "docker":
+            # User mapping needs security options, not measured memory. Keep
+            # resource qualification strict in facts(), independently of argv
+            # construction for explicitly bounded roles.
+            info = self.info()
+            facts = {
+                "rootless": any("rootless" in str(v) for v in info.get("SecurityOptions", [])),
+                "selinux": any("selinux" in str(v) for v in info.get("SecurityOptions", [])),
+            }
+        else:
+            facts = self.facts()
         args = ["--user", f"{os.getuid()}:{os.getgid()}"]
         if self.name == "docker" and facts["rootless"]:
             args = ["--user", "0:0"]  # Namespace root maps to the unprivileged engine owner.

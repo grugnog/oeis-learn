@@ -3,6 +3,34 @@ from oeis_learn.pipeline_validation.resources import resolve, reserve
 
 
 class Resources(unittest.TestCase):
+    def test_docker_user_mapping_does_not_require_resource_qualification(self):
+        from oeis_learn.container_runtime import Engine
+        from unittest.mock import patch
+        engine=Engine('docker',executable='docker',details={
+            'SecurityOptions':['name=rootless','name=selinux']})
+        with patch.object(engine,'facts',side_effect=AssertionError('resource probe during user mapping')):
+            self.assertEqual(engine.user_args(),['--user','0:0','--security-opt=label=disable'])
+        with self.assertRaisesRegex(RuntimeError,'MemTotal'):
+            engine.facts()
+
+    def test_docker_bounded_command_uses_security_only_metadata(self):
+        from oeis_learn.container_runtime import Engine
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        with TemporaryDirectory() as directory:
+            for security in ([],['name=rootless']):
+                engine=Engine('docker',executable='docker',details={'SecurityOptions':security})
+                with patch.object(engine,'facts',side_effect=AssertionError('resource probe during command construction')):
+                    command=engine.command(image='sha256:'+'a'*64,name='fixture',
+                        mounts=[(Path(directory),'/work/input',False)],argv=['python','-V'],
+                        memory_bytes=4<<30,cpus=2)
+                self.assertIn('--network=none',command)
+                self.assertIn('--memory='+str(4<<30),command)
+                self.assertEqual(command[-4:],['--entrypoint','python','sha256:'+'a'*64,'-V'])
+                with self.assertRaisesRegex(RuntimeError,'MemTotal'):
+                    engine.facts()
+
     def test_docker_shim_or_missing_memory_is_an_explicit_capability_gap(self):
         from oeis_learn.container_runtime import Engine
         engine=Engine.__new__(Engine);engine.name='docker'
