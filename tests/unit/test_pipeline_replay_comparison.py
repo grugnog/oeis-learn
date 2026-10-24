@@ -25,6 +25,22 @@ def baseline_fixture():
 
 
 class ReplayComparison(unittest.TestCase):
+    def test_real_thread_observations_cannot_be_relabelled_as_qualified(self):
+        ref,rows,_=baseline_fixture()
+        # The target counterexample was a validly sealed result from a shared
+        # pytest process. Replay viability alone intentionally ignores threads;
+        # candidate freezing must still reject its incompatible real setting.
+        for count in (2,16):
+            changed=copy.deepcopy(rows)
+            for receipt in changed.values():
+                result=receipt['observations']['result']
+                result['torch_threads']['interop']=count
+                receipt['observations']['result']=seal(result)
+            report=replay_report(changed,ref['identity'],'work')
+            self.assertEqual(report['status'],'COMPLETE')
+            with self.assertRaisesRegex(ValueError,'frozen replay threads'):
+                freeze_comparison(report,changed,ref)
+
     def test_isolated_parser_requires_frozen_slot_reference_and_setup_deadline(self):
         import tempfile
         from unittest.mock import patch

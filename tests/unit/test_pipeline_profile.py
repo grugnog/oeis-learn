@@ -804,6 +804,22 @@ def test_host_startup_gap_is_separate_from_container_work(tmp_path):
 
 
 def check_baseline_replay_role(device,tmp_path):
+    """Start with real frozen threads, without changing pytest's global pools."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    import torch
+    before=(torch.get_num_threads(),torch.get_num_interop_threads())
+    code=('import sys; from pathlib import Path; import torch; '
+        'torch.set_num_interop_threads(1); '
+        'from tests.unit.test_pipeline_profile import _check_baseline_replay_role; '
+        '_check_baseline_replay_role(sys.argv[1],Path(sys.argv[2]))')
+    subprocess.run([sys.executable,'-c',code,device,str(tmp_path)],
+        cwd=Path(__file__).resolve().parents[2],check=True,timeout=180)
+    assert (torch.get_num_threads(),torch.get_num_interop_threads())==before
+
+
+def _check_baseline_replay_role(device,tmp_path):
     """Actual tensor/reference files and role functions; tiny frozen fixture weights."""
     import time
     import torch
@@ -811,6 +827,13 @@ def check_baseline_replay_role(device,tmp_path):
     from tests.integration.test_bigint_decoding import model
     from oeis_learn.pipeline_validation.replay import prepare_inputs,reference_role,replay_role,cached_replay,verify_outputs,tensor_record
     from oeis_learn.pipeline_validation.identity import file_hash,seal
+
+    assert torch.get_num_interop_threads()==1
+    def already_configured(count):
+        # These role functions normally run once per isolated process. The
+        # fixture calls several in one child; PyTorch permits setting this pool
+        # only once. Check the real setting instead of inventing observations.
+        assert count==torch.get_num_interop_threads()==1
 
     class Encoder(torch.nn.Module):
         def __init__(self):
@@ -829,7 +852,7 @@ def check_baseline_replay_role(device,tmp_path):
     prepare_inputs({'fixture':'frozen'},[{'id':str(i),'values':[str(n) for n in range(20)]} for i in range(8)],weights,prepared,source='fixture-source')
     inputs=prepared/'input';reference=tmp_path/'reference';reference.mkdir()
     cfg=dict(source='fixture-source',contract='fixture-contract',options=dict(seconds=570,memory_ceiling=1<<30,render_node=None))
-    with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads'):
+    with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads',side_effect=already_configured):
         result=reference_role(inputs,reference,cfg)
         ref=json.loads((reference/'reference.json').read_text())
         assert result['reference']==ref['identity']
@@ -856,6 +879,7 @@ def check_baseline_replay_role(device,tmp_path):
             output=tmp_path/'gpu';output.mkdir()
             result=replay_role(inputs,output,cfg)
             assert result['status']=='COMPLETE' and result['boundaries']==12
+            assert result['torch_threads']=={'intraop':2,'interop':1}
             assert result['reference']==ref['identity'] and result['device']['hip']
             # Same public child/slot parser and actual role used by the operator;
             # tiny fixture weights are correctness evidence, not performance.
