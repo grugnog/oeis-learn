@@ -56,6 +56,8 @@ class Ladder(unittest.TestCase):
                 slot=json.loads((inputs/'comparison-slot.json').read_text()) if (inputs/'comparison-slot.json').exists() else None
                 key=slot['id'] if slot else str(output.parent.name);calls.append((key,options['batch_size'],options['measurement']))
                 if slot and fail_at==slot['id']:raise RuntimeError('injected candidate failure')
+                if slot and fail_at=='mutate-child' and slot['id']==slots(32)[0]['id']:
+                    (output.parents[2]/'comparison-contract.json').write_text('{"identity":"changed"}')
                 if not kw['gpu']:
                     self.assertEqual(kw['mode'],'hardware-reference')
                     (output/'private').mkdir();(output/'private/reference.pt').write_bytes(b'reference')
@@ -121,6 +123,52 @@ class Ladder(unittest.TestCase):
         self.assertEqual(nested[slots(32)[2]['id']],'FAIL')
         self.assertTrue(all(nested[s['id']]=='BLOCKED' for s in slots(32)[3:]))
         self.assertIsNone(report['branches']['32']['paired_gain'])
+
+    def test_changed_child_stops_before_any_scored_pair(self):
+        code,summary,report,nested,calls=self.run_host(durations={16:100,32:50,64:25,128:20},fail_at='mutate-child')
+        self.assertEqual(code,1)
+        self.assertEqual(nested[slots(32)[0]['id']],'PASS')
+        self.assertTrue(all(nested[s['id']]=='BLOCKED' for s in slots(32)[1:]))
+        self.assertFalse(any(key==slots(32)[1]['id'] for key,_,_ in calls))
+
+    def test_role_authority_and_weights_are_checked_before_numeric_dispatch(self):
+        import tempfile
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.hardware_ladder import hardware_role
+        ref,rows,_=fixture();measurement=mode_report(rows,ref['identity'],'work')
+        child=freeze_child(rows,ref,measurement,32,weight_bytes=1024);slot=slots(32)[2]
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'weights.pt').write_bytes(b'x'*1024)
+            for name,value in [('reference.json',ref),('comparison-contract.json',child),('comparison-slot.json',slot)]:
+                (root/name).write_text(json.dumps(value))
+            cfg=dict(source='source',contract='validation',options=dict(seconds=child['limits']['internal_seconds'],memory_ceiling=32<<30,
+                render_node=None,batch_size=32,measurement=measurement['mode'],comparison=child['identity'],slot=slot['id']))
+            value=dict(device=child['resource_device']['device'],torch_threads=child['threads'])
+            with patch('oeis_learn.pipeline_validation.hardware_ladder.numeric_role',return_value=value) as run:
+                self.assertEqual(hardware_role(root,root,cfg)['comparison'],child['identity'])
+                for field,value in [('batch_size',128),('comparison','other'),('measurement','ordinary/v1'),('seconds',570)]:
+                    bad=copy.deepcopy(cfg);bad['options'][field]=value
+                    with self.assertRaises(ValueError):hardware_role(root,root,bad)
+                (root/'weights.pt').write_bytes(b'x'*1025)
+                with self.assertRaises(ValueError):hardware_role(root,root,cfg)
+                self.assertEqual(run.call_count,1)
+
+    def test_visible_basis_is32_rows_and_no_private_truth_is_read(self):
+        import ast
+        import importlib.util
+        import tempfile
+        source=ROOT/'tests/unit/test_pipeline_profile.py'
+        fn=next(n for n in ast.parse(source.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='parent_fixture')
+        namespace={};exec(compile(ast.Module(body=[fn],type_ignores=[]),str(source),'exec'),namespace)
+        spec=importlib.util.spec_from_file_location('hardware_prepare_test',ROOT/'scripts/profile_bigint_pipeline.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            run,inputs,out=namespace['parent_fixture'](Path(directory));(inputs/'private/synthetic-truth.json').unlink()
+            module.prepare(run,inputs,out,image='image',source='source',render_node=None,replay='ladder/v1')
+            work=json.loads((out/'input/work.json').read_text())
+            self.assertEqual(len(work['prompts']),32)
+            self.assertEqual(len(work['manifest']['plan']['tokens']),128)
+            self.assertFalse((out/'private').exists())
 
     def test_fixed_work_modes_and_closed_public_graph(self):
         from oeis_learn.pipeline_validation.contracts import parse
