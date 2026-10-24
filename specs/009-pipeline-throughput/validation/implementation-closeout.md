@@ -1,3 +1,5 @@
+Latest operator collection: see the [second archive review and rerun](operator-20261024-review.md). Its 15 HIP tests pass; CPU/workflow failures are the Docker fixture issue already repaired by `5f0c568`. Combined current-source validation remains pending.
+
 # Implementation handoff: Spec 009
 
 Latest follow-up: the [operator archive review and repair handoff](operator-20261023-review.md) supersedes the original evidence status and next-command guidance below. It records 593 CPU/14 actual-HIP passing tests on the producer, three repaired failure paths, 85 current host tests and the remaining current-source gates.

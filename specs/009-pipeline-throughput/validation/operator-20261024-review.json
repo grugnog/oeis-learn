@@ -1,0 +1,179 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-20261024T013625Z.zip",
+  "archive_sha256": "sha256:6d60451beb1b690ccb97b32ae0a30fdb0a67edc279fec0f066ed144ad142a7e1",
+  "archive_bytes": 4820654,
+  "archive_members": 125,
+  "manifest_identity": "sha256:367377935af6e33304c22d91f2e0fe4fb53adf20ac84d6c929da3b3a0aaa3825",
+  "integrity": "PASS",
+  "source": "sha256:45f20504444c34a5ecef6869f964135bbb998c5bcfdb4840f61e7572810f8ad9",
+  "producer_commit": "170cb10f0880bd94f647d79f6d83f426f9602820",
+  "elapsed_seconds": 1078.9970268760808,
+  "selected_scope": "FAIL",
+  "engineering": "BLOCKED",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "learning": "NOT_ADMITTED",
+  "research": "NOT_EXECUTED",
+  "long_run_admission": "NOT_ADMITTED",
+  "stages": {
+    "baseline.calibration": {
+      "state": "BLOCKED",
+      "identity": "sha256:6444b15b5c5d3f901ec62e10ac72b84edcaeca792ce411ba00193ba6018df088",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "cost.diverse32": {
+      "state": "BLOCKED",
+      "identity": "sha256:d6ead54052ca2c5d216540f66537b05c4228924d0e645e3c15511b48e038b8c1",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "cost.transfer": {
+      "state": "BLOCKED",
+      "identity": "sha256:d334aac395baa167e6e05ffb12e3d3354bc790864380841aa5c4ac60848534c1",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "cpu.podman.semantic": {
+      "state": "FAIL",
+      "identity": "sha256:418395b785a8ca081d37bad7329a128922e2abe7d286becec2094bfc55aae856",
+      "reason": "RuntimeError: bigint-cpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-20261024T013625Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-20261024T013625Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stdout.log"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:c768aac8129a2d630a03a38d3f5a919654511028ba8bf2c821744e2112d7da27",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:d5da23c2e089c5b92117929bed65d675785852edad62166a7f301e26a61971f9",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:edf991bb684a77f19518b09fff7b86332f6e65048825ddab3cab2812042010d7",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:52bb47978e865f1ebff0b17370106fe82926aafc78610101ad11b5189754a73f",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:4d73512decf2e9ee87de0490aa9bce9b8ecefd2b8685b98222e55415b5b3d241",
+      "reason": ""
+    },
+    "inference.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:a28daaa20b9598e76a1a1f7fc181eaa26eecefd63a8be03cdc0cf699394f1c9c",
+      "reason": "failed/missing prerequisites: baseline.calibration"
+    },
+    "native.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:4e1205415c9af690e70a9ff7d44e0526780441f710422cd43871f76b2e77b224",
+      "reason": "failed/missing prerequisites: policy.compare"
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:165629e25a9fb183cf99d99bca08eb4d92d201494010c138ac866c88b2418028",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "FAIL",
+      "identity": "sha256:d6aa34f5d796672797cca2c5bbf9e149f085cd0fedb48bfc91686f2baf32a279",
+      "reason": "RuntimeError: cpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-20261024T013625Z/stages/operations.podman.workflow/cpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-20261024T013625Z/stages/operations.podman.workflow/cpu-regressions/stdout.log"
+    },
+    "overlap.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:7fb93cbc43b47048859d3d10482f37e5cfa01f51c5d168fb096c1a711da583cd",
+      "reason": "failed/missing prerequisites: baseline.calibration,policy.compare,native.compare"
+    },
+    "policy.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:9ec1b9b742fb35b52858641f1d24a3c4ef5f4960b00c0937287e85ced88bc75b",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "qualification": {
+      "state": "PASS",
+      "identity": "sha256:b2a1643842ccf718c6bf0c68c2f1d1be86fe0ee77fb76bf60d32a3841614bcf1",
+      "reason": ""
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 598,
+      "failures": 1,
+      "errors": 0,
+      "skips": 0,
+      "failed_cases": [
+        {
+          "classname": "tests.unit.test_bigint_diagnostic_collector",
+          "name": "test_replay_container_mounts_only_case_script_and_new_output[docker]",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        }
+      ]
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "failed_cases": []
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "failures": 8,
+      "errors": 0,
+      "skips": 9,
+      "failed_cases": [
+        {
+          "classname": "tests.integration.test_foundation_resources",
+          "name": "test_role_mount_plan_never_exposes_workspace_socket_or_gpu_to_workers",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_runtime",
+          "name": "test_role_bounds_and_mounts_are_portable[docker]",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_runtime",
+          "name": "test_rootless_docker_maps_namespace_root_to_caller",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_runtime",
+          "name": "test_gpu_devices_are_explicit_and_cpu_cannot_receive_them[docker]",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_storage",
+          "name": "test_both_launchers_keep_scratch_in_the_only_writable_mount[docker-fresh]",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_storage",
+          "name": "test_both_launchers_keep_scratch_in_the_only_writable_mount[docker-generic]",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_container_storage",
+          "name": "test_launch_records_workspace_space_and_compiler_paths",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        },
+        {
+          "classname": "tests.unit.test_foundation_roles",
+          "name": "test_role_command_is_confined_and_cpu_generation_is_explicit",
+          "message": "RuntimeError: Docker did not report a usable MemTotal; independent Docker resource/portability qualification is unavailable"
+        }
+      ]
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "failed_cases": []
+    }
+  },
+  "interpretation": "Nine test failures share the Docker user-mapping resource probe already repaired in 5f0c568. HIP checkpoint fixture passes. Calibration, native/inference/overlap and costs were blocked, not measured."
+}

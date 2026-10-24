@@ -1449,7 +1449,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Reviewed first operator archive: 593 CPU and 14 actual-HIP tests passed at producer f7ecc720, but calibration/cost failed, native comparison was inconclusive and Docker capability was unavailable. Repairs pass 85 host tests; current-source CPU/HIP/engine/calibration/complete-cost gates remain pending. See operator-20261023-review.md for one combined rerun.",
+  "target_validation": "Second operator archive reviewed: all 15 actual-HIP tests including diagnostic checkpoint roundtrip passed at 170cb10. Nine CPU/workflow failures share the already-fixed Docker user-mapping resource probe. Current source has 87 passing host tests; previously failed CI jobs pass, with separate Podman build cancelled. Combined current-source calibration/native/comparison/cost/operator gates remain pending. See operator-20261024-review.md.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1463,5 +1463,15 @@
     "portability": "PENDING",
     "current_source_followup": "specs/009-pipeline-throughput/validation/operator-repair-local.json",
     "disposition": "Historical producer evidence retained; affected current-source runtime and operator gates remain pending after repairs."
+  },
+  "operator_followup": {
+    "evidence": "specs/009-pipeline-throughput/validation/operator-20261024-review.json",
+    "review": "specs/009-pipeline-throughput/validation/operator-20261024-review.md",
+    "producer_commit": "170cb10f0880bd94f647d79f6d83f426f9602820",
+    "integrity": "PASS",
+    "hip_tests": 15,
+    "hip_checkpoint_fixture": "PASS",
+    "blocking_cause": "Docker command fixtures missing memory facts; already repaired in 5f0c568",
+    "disposition": "No new implementation defect found. Affected current-source runtime and operator gates remain pending; task counts unchanged."
   }
 }
