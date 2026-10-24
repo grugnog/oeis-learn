@@ -449,3 +449,7 @@ This separately registered component scope follows accepted replay viability; se
 - [X] 009:C002 Bind current source/reference/weights, complete baselines, resources/threads, immutable child/slot identities and finite setup/startup allowances; execute one candidate warmup and two pairs with independent missing-slot reporting.
 - [X] 009:C003 Run host contract/orchestration/privacy/partial-work checks and the actual public stdlib CLI; author/register real CPU/HIP comparison role fixtures and record the verified non-admitting local archive.
 - [ ] 009:C004 Execute/review the one combined target command, including current pinned CPU/actual-HIP roles, all five comparison slots, source/images/resources and archive; preserve failures without adaptive retries or adoption.
+
+### Comparison qualification fixture follow-up
+
+The [first comparison archive review](validation/replay-comparison-operator-20261024T190425Z.md) retains a mandatory HIP fixture failure before measured work:621 CPU tests and15 other HIP tests passed.009:C004 and T110 remain pending. The fixture now establishes real interop=1 in a fresh bounded subprocess and checks actual2/1 observations without weakening the production gate.106 available host tests pass. No schedule, budget, workload or scientific threshold changed, and no incomplete pair became a performance result.

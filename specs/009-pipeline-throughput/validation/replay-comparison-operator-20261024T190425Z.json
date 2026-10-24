@@ -1,0 +1,347 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-replay-comparison-20261024T190425Z.zip",
+  "archive_sha256": "sha256:86af612941410a1160b65ff546f1837c7094c7bfec129c5ca89b8b8a51d34414",
+  "archive_bytes": 3573382,
+  "archive_manifest": "sha256:86a0d4a0f58c30253c9074eca15b06415030a0aa0d903e0950368837fb2c21fe",
+  "verified_members": 122,
+  "producer": "ba8e64e39e660ad29f11fd246f239698a3e2f0d2",
+  "source": "sha256:0960ff8fe166dfa0270c4d7da67ecb40aca019f3074c7d025a7afbd75ee2c81c",
+  "source_entries": 697,
+  "exact_source_match": true,
+  "contract": "sha256:1a1fca1628a59acc38b83e08d577b3327d4f91942dcd0ba290b0dc14b73bdb95",
+  "scope": "engineering-replay-comparison",
+  "elapsed_seconds": 789.8148374860175,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 789.8148374860175,
+    "engineering": "FAIL",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 280.9416887909174,
+      "2": 103.32512130308896
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-replay-comparison",
+    "selected_scope": "FAIL",
+    "version": "pipeline-summary/v1"
+  },
+  "stages": {
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:d6a9bc66466711b8c08e6aef3fb370f8f3b5cd678c59d046ef7dc21fb2504ab8"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:29c3b4f628c0c86abf02f36f29b3aa1f7a26d06a62bb551eef74da3fd254aa58"
+    },
+    "hip.preflight": {
+      "state": "FAIL",
+      "reason": "RuntimeError: bigint-gpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-replay-comparison-20261024T190425Z/stages/hip.preflight/bigint-gpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-replay-comparison-20261024T190425Z/stages/hip.preflight/bigint-gpu-regressions/stdout.log",
+      "receipt": "sha256:6944126a5028f67527579bb6b67ee35183256c65dcde48ab45c73ea1f0a7c9ba"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:fd011cf90fc34198b83697ec4136dc3dfdcfe7c1856a40136d4c6635c0f77049"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:0d99b79919d11d85a079b0bb02abdb0f44b0a0a97e9a5e8bcb9e79f018922b77"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:a58af0c3d1e36ffcc49ade1f68903a818b93c4f13d0c41ea3a31c76eb8ad2458"
+    },
+    "replay.calibration-0": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.warmup",
+      "receipt": "sha256:f87124b86fc8923901c852727a35e424c9b6b27361aa8607df7310a3ceff244b"
+    },
+    "replay.calibration-1": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.calibration-0",
+      "receipt": "sha256:4676e98cf0d70362a403dc1392dff7db50a2250687a0809d98faece31b5439a1"
+    },
+    "replay.calibration-2": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.calibration-1",
+      "receipt": "sha256:ded06de0395f01a6f1c2fb7282a75ba2b548f6e1e7f8d0bf12a537cd58a75e14"
+    },
+    "replay.cold": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: hip.preflight",
+      "receipt": "sha256:62a40c561e7f1a0c27cc9d02f3489614a31bb494fc57da5a4286571595a4b057"
+    },
+    "replay.compare.freeze": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.report",
+      "receipt": "sha256:961e3508bae3f4a52d7d75bb40171eab5144bfabc388c5d4812bfaf0fca51a30"
+    },
+    "replay.compare.pair0.A": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.compare.warmup",
+      "receipt": "sha256:51427e60ed1c479ea0c57a83c9ee9bb3b3b3ac8c0a2f5f0efac804d690a7745a"
+    },
+    "replay.compare.pair0.B": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.compare.pair0.A",
+      "receipt": "sha256:5291aab0d3f20921f40ea1f2dc6eec78151f12ded13eedef364ab51cc439ecca"
+    },
+    "replay.compare.pair1.A": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.compare.pair1.B",
+      "receipt": "sha256:9231185d14167fa596717d32208e062e8ab9bbdae00caeabc0847789d45f5163"
+    },
+    "replay.compare.pair1.B": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.compare.pair0.B",
+      "receipt": "sha256:0439431a69bf0ae695237fbb78ba9e9884d175ce908a2c9b96fcb157a5893959"
+    },
+    "replay.compare.report": {
+      "state": "INCONCLUSIVE",
+      "reason": "",
+      "receipt": "sha256:f88b413b1663b8f1132028f07cc15aa665a6f3625278e083ce80bd043ecff610"
+    },
+    "replay.compare.warmup": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.compare.freeze",
+      "receipt": "sha256:1de4cfe9d1ff82e249773aedf0ca1eaf6c76c19a8970aff668a21c4bbccc0e22"
+    },
+    "replay.reference": {
+      "state": "PASS",
+      "reason": "",
+      "receipt": "sha256:b4eed85ff351ccbe26d690fcd235298552f73eb803670a8638bc83eea05dfe41"
+    },
+    "replay.report": {
+      "state": "INCONCLUSIVE",
+      "reason": "",
+      "receipt": "sha256:93077fdd3b7a1864e50a914154fb9ea8a750ff37fa0521299377eaaf0cf09af5"
+    },
+    "replay.warmup": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: replay.cold",
+      "receipt": "sha256:9ecd3cca08118d616570dcf42a9a9ad2d317878de9c1f8b004f3a6f6a6df19a7"
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "tests": "621",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "275.121"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "tests": "16",
+        "failures": "1",
+        "errors": "0",
+        "skipped": "0",
+        "time": "100.401"
+      }
+    ]
+  },
+  "cpu_reference": {
+    "authority": "frozen visible-only replay reference; no hidden truth",
+    "identity": "sha256:cd891e3448bd90f94affa9c4330f207ed7af846920701cf0ae89a96231fa4709",
+    "reference": "sha256:b69e4ac48519f29e4e50cd308c1fc1a7075aed14cb3f09297731d1d519b57685",
+    "resources": {
+      "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+      "breach": null,
+      "ceiling_bytes": 120744574976,
+      "last": {
+        "available": 127023738880,
+        "current": 408059904,
+        "driver": 173633536,
+        "limit": 120744574976,
+        "physical": 134161076224
+      },
+      "machine_peak_upper_bytes": 7137337344,
+      "qualified": true,
+      "role_peak_upper_bytes": 429654016,
+      "samples": 3,
+      "version": "pipeline-memory-observation/v1"
+    },
+    "seconds_through_role": 1.7739526871591806,
+    "status": "COMPLETE",
+    "version": "pipeline-role-result/v1",
+    "workload": "sha256:7e3f90c31dc1f2f8beff33ed96de9c461fbdf6982b8eeb8246e43de060635a60"
+  },
+  "baseline_report": {
+    "authority": "baseline replay viability only; not full-pipeline, generated-program or research admission",
+    "calibration": null,
+    "identity": "sha256:e95d38fc06307c443687eded110341121a4e1fb6289126494f9afd5a7cf99986",
+    "missing": [
+      "replay.cold",
+      "replay.cold: resource/device identity unavailable",
+      "replay.warmup",
+      "replay.warmup: resource/device identity unavailable",
+      "replay.calibration-0",
+      "replay.calibration-0: resource/device identity unavailable",
+      "replay.calibration-1",
+      "replay.calibration-1: resource/device identity unavailable",
+      "replay.calibration-2",
+      "replay.calibration-2: resource/device identity unavailable",
+      "one consistent resource/device envelope required"
+    ],
+    "optimization_adoption": false,
+    "reference": "sha256:b69e4ac48519f29e4e50cd308c1fc1a7075aed14cb3f09297731d1d519b57685",
+    "research_cost_admission": false,
+    "status": "INCONCLUSIVE",
+    "trials": {
+      "replay.calibration-0": "sha256:f87124b86fc8923901c852727a35e424c9b6b27361aa8607df7310a3ceff244b",
+      "replay.calibration-1": "sha256:4676e98cf0d70362a403dc1392dff7db50a2250687a0809d98faece31b5439a1",
+      "replay.calibration-2": "sha256:ded06de0395f01a6f1c2fb7282a75ba2b548f6e1e7f8d0bf12a537cd58a75e14",
+      "replay.cold": "sha256:62a40c561e7f1a0c27cc9d02f3489614a31bb494fc57da5a4286571595a4b057",
+      "replay.warmup": "sha256:9ecd3cca08118d616570dcf42a9a9ad2d317878de9c1f8b004f3a6f6a6df19a7"
+    },
+    "version": "pipeline-replay-report/v1",
+    "workload": "sha256:7e3f90c31dc1f2f8beff33ed96de9c461fbdf6982b8eeb8246e43de060635a60"
+  },
+  "comparison_report": {
+    "comparison": null,
+    "identity": "sha256:33dc88d9aa959b1597794e502ec40cbd0e54fb8d0d858882e428c3b88b76710a",
+    "interpretation": "observational exploratory forced replay only; no optimization or research admission",
+    "missing": [
+      "replay.compare.warmup: comparison contract never frozen",
+      "replay.compare.pair0.A: comparison contract never frozen",
+      "replay.compare.pair0.B: comparison contract never frozen",
+      "replay.compare.pair1.B: comparison contract never frozen",
+      "replay.compare.pair1.A: comparison contract never frozen"
+    ],
+    "optimization_adoption": false,
+    "paired_gain": null,
+    "pairs": [],
+    "research_cost_admission": false,
+    "slots": [
+      {
+        "complete": false,
+        "reason": "comparison contract never frozen",
+        "receipt": "sha256:1de4cfe9d1ff82e249773aedf0ca1eaf6c76c19a8970aff668a21c4bbccc0e22",
+        "result": null,
+        "slot": {
+          "arm": "B",
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.warmup",
+          "pair": null,
+          "scored": false
+        },
+        "state": "BLOCKED",
+        "verified_seconds": null
+      },
+      {
+        "complete": false,
+        "reason": "comparison contract never frozen",
+        "receipt": "sha256:51427e60ed1c479ea0c57a83c9ee9bb3b3b3ac8c0a2f5f0efac804d690a7745a",
+        "result": null,
+        "slot": {
+          "arm": "A",
+          "bookkeeping": "baseline",
+          "id": "replay.compare.pair0.A",
+          "pair": 0,
+          "scored": true
+        },
+        "state": "BLOCKED",
+        "verified_seconds": null
+      },
+      {
+        "complete": false,
+        "reason": "comparison contract never frozen",
+        "receipt": "sha256:5291aab0d3f20921f40ea1f2dc6eec78151f12ded13eedef364ab51cc439ecca",
+        "result": null,
+        "slot": {
+          "arm": "B",
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair0.B",
+          "pair": 0,
+          "scored": true
+        },
+        "state": "BLOCKED",
+        "verified_seconds": null
+      },
+      {
+        "complete": false,
+        "reason": "comparison contract never frozen",
+        "receipt": "sha256:0439431a69bf0ae695237fbb78ba9e9884d175ce908a2c9b96fcb157a5893959",
+        "result": null,
+        "slot": {
+          "arm": "B",
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair1.B",
+          "pair": 1,
+          "scored": true
+        },
+        "state": "BLOCKED",
+        "verified_seconds": null
+      },
+      {
+        "complete": false,
+        "reason": "comparison contract never frozen",
+        "receipt": "sha256:9231185d14167fa596717d32208e062e8ab9bbdae00caeabc0847789d45f5163",
+        "result": null,
+        "slot": {
+          "arm": "A",
+          "bookkeeping": "baseline",
+          "id": "replay.compare.pair1.A",
+          "pair": 1,
+          "scored": true
+        },
+        "state": "BLOCKED",
+        "verified_seconds": null
+      }
+    ],
+    "status": "INCONCLUSIVE",
+    "version": "pipeline-replay-comparison-report/v1"
+  },
+  "failure": {
+    "test": "tests.integration.test_bigint_gpu::test_actual_hip_baseline_replay_reference_and_frozen_roles",
+    "exception": "ValueError: frozen replay threads required",
+    "location": "freeze_comparison -> envelope",
+    "cause": "Fixture mocked set_num_interop_threads while real get_num_interop_threads retained the shared pytest-process setting. Production equality check correctly rejects that observation.",
+    "observed_interop_threads": null,
+    "observed_interop_reason": "Exact value is not retained in the failure traceback; do not infer it.",
+    "performance_interpretation": "No baseline timing or candidate arm ran; no speedup or failed performance hypothesis can be inferred."
+  },
+  "producer_ci": [
+    {
+      "id": 40122875898,
+      "name": "Foundation review validation (phases 7\u201311)",
+      "conclusion": "success"
+    },
+    {
+      "id": 40122875900,
+      "name": "Container and native acceptance",
+      "conclusion": "success"
+    }
+  ],
+  "repair": {
+    "paths": [
+      "tests/unit/test_pipeline_profile.py",
+      "tests/unit/test_pipeline_replay_comparison.py"
+    ],
+    "runtime_code_changed": false,
+    "production_thread_gate_changed": false,
+    "description": "Run fixture in a fresh bounded subprocess, configure actual interop=1 before tensor work, verify the real setting on repeated role loads and preserve parent thread pools. Test correctly sealed incompatible real thread observations still fail.",
+    "target_validation": "PENDING",
+    "task_counts": {
+      "complete": 77,
+      "pending_runtime": 19,
+      "blocked_research": 15
+    }
+  }
+}

@@ -1456,7 +1456,9 @@
         "specs/009-pipeline-throughput/validation/task-evidence.json",
         "src/oeis_learn/pipeline_validation/registry.py",
         "specs/009-pipeline-throughput/validation/replay-comparison-implementation.md",
-        "specs/009-pipeline-throughput/validation/replay-comparison-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/replay-comparison-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/replay-comparison-operator-20261024T190425Z.md",
+        "specs/009-pipeline-throughput/validation/replay-comparison-thread-fix-local-evidence.json"
       ]
     },
     {
@@ -1561,14 +1563,16 @@
     "contract": "specs/009-pipeline-throughput/contracts/replay-comparison.md",
     "manifest": "configs/foundation/pipeline_replay_comparison.json",
     "handoff": "specs/009-pipeline-throughput/validation/replay-comparison-implementation.md",
-    "source": "sha256:0960ff8fe166dfa0270c4d7da67ecb40aca019f3074c7d025a7afbd75ee2c81c",
-    "status": "IMPLEMENTED_TARGET_PENDING",
+    "source": "sha256:c2e5a59d84e35f036e32108f7b45fc7d74ca3d115a1e76a2a58d085a15dfd225",
+    "status": "FIXTURE_THREAD_REPAIR_TARGET_PENDING",
     "tasks": {
       "009:C001": "complete",
       "009:C002": "complete",
       "009:C003": "complete",
       "009:C004": "pending_runtime"
     },
-    "meaning": "Separate observational two-pair component experiment; accepted baseline preserved; original generation/pipeline/cost/research gates remain open."
+    "meaning": "Mandatory HIP fixture failed before all measured baseline/candidate roles. Thread fixture repaired using actual isolated process settings; production contract/guards unchanged. No comparison/adoption/research result inferred; target rerun pending.",
+    "operator_review": "specs/009-pipeline-throughput/validation/replay-comparison-operator-20261024T190425Z.md",
+    "local_evidence": "specs/009-pipeline-throughput/validation/replay-comparison-thread-fix-local-evidence.json"
   }
 }
