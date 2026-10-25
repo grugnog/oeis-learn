@@ -59,10 +59,10 @@ class Sizing(unittest.TestCase):
         self.assertEqual(report['model_selection'],'NOT_DECIDED')
 
     def result(self,p):
-        from oeis_learn.pipeline_validation.model_sizes import parameters
+        from oeis_learn.pipeline_validation.model_sizes import parameters,EXECUTION
         return seal(dict(status='COMPLETE',profile=p,counts=parameters(p),training_tokens=100,
             training_updates=32,validation_rows=32,training_tokens_per_second=10,training_updates_per_second=1,
-            whole_seconds=100,resources={'qualified':True,'ceiling_bytes':32<<30,'breach':None},
+            whole_seconds=100,execution=EXECUTION,resources={'qualified':True,'ceiling_bytes':32<<30,'breach':None},
             numerical_parity=True,changed_parameters=True,torch_threads={'intraop':2,'interop':1},device={'hip':'fixture'},
             source='source',contract='contract',workload='work',reference='ref',initial_parameters='initial',trained_parameters='trained',
             generation={'scheduled':64,'started':64,'decoded':0,'verified':0}))
@@ -71,7 +71,7 @@ class Sizing(unittest.TestCase):
         from oeis_learn.pipeline_validation.model_sizing import summarize_profiles
         from oeis_learn.pipeline_validation.model_sizes import PROFILES,SLOTS
         for field,value in [('training_updates',31),('torch_threads',{'intraop':8,'interop':1}),
-            ('reference','different'),('resources',{'qualified':False}),('whole_seconds',1081)]:
+            ('reference','different'),('resources',{'qualified':False}),('whole_seconds',1081),('execution',{})]:
             receipts={k:seal(dict(state='PASS',observations={'result':self.result(PROFILES[k.split('.')[1]])})) for k in SLOTS}
             k='sizing.m32.calibration-2';v=seal(dict(receipts[k]['observations']['result'],**{field:value}))
             receipts[k]=seal(dict(receipts[k],observations={'result':v}))
@@ -130,7 +130,7 @@ class Sizing(unittest.TestCase):
         from types import SimpleNamespace
         from unittest.mock import Mock
         from oeis_learn.pipeline_validation.model_sizing import SizingStages
-        from oeis_learn.pipeline_validation.model_sizes import PROFILES
+        from oeis_learn.pipeline_validation.model_sizes import PROFILES,EXECUTION
         from oeis_learn.pipeline_validation.registry import model_sizing_registry,resolve
         from oeis_learn.pipeline_validation.runner import execute
         from oeis_learn.pipeline_validation.identity import write,file_hash
@@ -148,9 +148,9 @@ class Sizing(unittest.TestCase):
                 self.assertEqual(selected.policy['memory_bytes'],64<<30);self.assertEqual(selected.policy['cpus'],16)
                 if cfg['mode']=='sizing-reference':
                     self.assertFalse(kw['gpu']);(output/'private').mkdir();(output/'private/weights.pt').write_bytes(b'frozen');(output/'private/oracle.pt').write_bytes(b'oracle')
-                    write(output/'reference.json',seal(dict(workload='work',version='fixture')))
+                    write(output/'reference.json',seal(dict(workload='work',version='fixture',execution=EXECUTION)))
                     inodes[p['name']]=(output/'private/weights.pt').stat().st_ino
-                    result=dict(status='COMPLETE',resources={'qualified':True})
+                    result=dict(status='COMPLETE',resources={'qualified':True},execution=EXECUTION)
                 else:
                     self.assertTrue(kw['gpu']);self.assertEqual(kw['seconds'],1110)
                     self.assertEqual((inputs/'weights.pt').stat().st_ino,inodes[p['name']])
@@ -179,3 +179,72 @@ class Sizing(unittest.TestCase):
             self.assertEqual(report['samples'],0)
             self.assertIn('prospective byte cap',report['collector_error'])
             self.assertEqual((Path(f)/'samples.jsonl').stat().st_size,0)
+
+    def execution_modules(self,*,ignore_math=False):
+        from types import ModuleType,SimpleNamespace
+        from contextlib import contextmanager
+        torch=ModuleType('torch');nn=ModuleType('torch.nn');attention=ModuleType('torch.nn.attention')
+        state=dict(fastpath=True,precision='high',deterministic=False,warn=True,math=False,flash=True,efficient=True,cudnn=True)
+        cuda=SimpleNamespace(matmul=SimpleNamespace(allow_tf32=True))
+        for name,key in [('math_sdp_enabled','math'),('flash_sdp_enabled','flash'),('mem_efficient_sdp_enabled','efficient'),('cudnn_sdp_enabled','cudnn')]:
+            setattr(cuda,name,lambda key=key:state[key])
+        torch.backends=SimpleNamespace(cuda=cuda,cudnn=SimpleNamespace(allow_tf32=True),mha=SimpleNamespace(get_fastpath_enabled=lambda:state['fastpath'],set_fastpath_enabled=lambda v:state.update(fastpath=v)))
+        torch.get_float32_matmul_precision=lambda:state['precision'];torch.set_float32_matmul_precision=lambda v:state.update(precision=v)
+        torch.are_deterministic_algorithms_enabled=lambda:state['deterministic'];torch.is_deterministic_algorithms_warn_only_enabled=lambda:state['warn']
+        torch.use_deterministic_algorithms=lambda value,warn_only=False:state.update(deterministic=value,warn=warn_only)
+        torch.float32='torch.float32';torch.get_default_dtype=lambda:torch.float32
+        @contextmanager
+        def kernel(backend):
+            saved={k:state[k] for k in ('math','flash','efficient','cudnn')}
+            if not ignore_math:state.update(math=True,flash=False,efficient=False,cudnn=False)
+            try:yield
+            finally:state.update(saved)
+        attention.sdpa_kernel=kernel;attention.SDPBackend=SimpleNamespace(MATH='MATH');nn.attention=attention;torch.nn=nn
+        return {'torch':torch,'torch.nn':nn,'torch.nn.attention':attention},state
+
+    def test_sizing_execution_enforces_math_and_restores_flags_on_exception(self):
+        from oeis_learn.pipeline_validation.sizing_execution import execution_context,execution_observation
+        from oeis_learn.pipeline_validation.model_sizes import EXECUTION
+        modules,state=self.execution_modules();before=dict(state);torch=modules['torch']
+        with patch.dict('sys.modules',modules):
+            with self.assertRaisesRegex(RuntimeError,'body failure'):
+                with execution_context():
+                    self.assertEqual(execution_observation(),EXECUTION)
+                    self.assertFalse(torch.backends.cuda.matmul.allow_tf32)
+                    raise RuntimeError('body failure')
+        self.assertEqual(state,before);self.assertTrue(torch.backends.cuda.matmul.allow_tf32);self.assertTrue(torch.backends.cudnn.allow_tf32)
+
+    def test_sizing_execution_rejects_unenforced_backend_and_restores_flags(self):
+        from oeis_learn.pipeline_validation.sizing_execution import execution_context
+        modules,state=self.execution_modules(ignore_math=True);before=dict(state)
+        with patch.dict('sys.modules',modules),self.assertRaisesRegex(RuntimeError,'execution policy'):
+            with execution_context():self.fail('wrong backend admitted')
+        self.assertEqual(state,before)
+
+    def test_sizing_execution_nested_scope_preserves_owning_policy(self):
+        from oeis_learn.pipeline_validation.sizing_execution import execution_context,execution_observation
+        from oeis_learn.pipeline_validation.model_sizes import EXECUTION
+        modules,state=self.execution_modules();before=dict(state)
+        with patch.dict('sys.modules',modules):
+            with execution_context():
+                with execution_context():self.assertEqual(execution_observation(),EXECUTION)
+                self.assertEqual(execution_observation(),EXECUTION)
+        self.assertEqual(state,before)
+
+    def test_historical_reference_schema_remains_readable_without_promoting_policy(self):
+        from oeis_learn.pipeline_validation.model_sizing import validate_reference_record
+        from oeis_learn.pipeline_validation.model_sizes import EXECUTION
+        old=seal(dict(version='pipeline-sizing-reference/v1',source='source',contract='contract',profile='historical',workload='work',weights='weights',oracle='oracle',counts={},memory={},expected={}))
+        self.assertEqual(validate_reference_record(old),old)
+        current=seal(dict(old,version='pipeline-sizing-reference/v2',execution=EXECUTION))
+        self.assertEqual(validate_reference_record(current),current)
+        with self.assertRaises(ValueError):validate_reference_record(seal(dict(old,execution=EXECUTION)))
+        with self.assertRaises(ValueError):validate_reference_record(seal({k:v for k,v in current.items() if k!='execution'}))
+
+    def test_historical_input_schema_cannot_enter_current_execution(self):
+        from oeis_learn.pipeline_validation.model_sizing import validate_input_manifest,read_work
+        old=seal(dict(version='pipeline-sizing-input/v1',binding={'source':'source'},payload='payload',profiles={},slots=[],updates=32,training_batch=8,validation_rows=32,generation_batches=[8,32],body_tokens=1024,initialization='historical'))
+        self.assertEqual(validate_input_manifest(old),old)
+        with tempfile.TemporaryDirectory() as f:
+            path=Path(f);(path/'work.json').write_text(json.dumps({'manifest':old}))
+            with self.assertRaisesRegex(ValueError,'explicit execution policy v2'):read_work(path,{'source':'source'})

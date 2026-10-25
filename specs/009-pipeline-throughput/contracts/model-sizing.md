@@ -92,3 +92,26 @@ One command shares CPU/HIP qualification, all references/roles and one archive.
 The next persistent-state soak depends on these measurements and an explicit model
 choice. No multi-day run, research cost admission, resume or final authority is
 created by this hardware screen.
+
+
+## Explicit execution-policy repair before any sizing timing
+
+The first collection at6135575 failed the first m8 HIP encoder parity check, with
+fused encoder/memory-efficient dispatch despite the declared eager policy. All15
+timing slots were never started; retain the failure and its CPU evidence. The
+corrected source enforces `pipeline-sizing-execution/v1` for both CPU references
+and entire GPU roles/fixtures: highest FP32 matmul, TF32 disabled, deterministic
+algorithms, fused encoder/MHA fast paths disabled and SDPA math only. It restores
+all prior flags on success/failure; existing production/other-scope defaults are
+unchanged. Bind the exact policy in preparation, references, per-role audits and
+results; missing/mismatched policy cannot qualify a profile. Public parity records
+retain shape/dtype/mismatch counts/max error before the original unchanged strict
+assertions, including when a fixture fails. No tolerance, profile, data, seed,
+row/attempt/update roster, phase/deadline or adoption rule changes. Whether this
+removes the numerical mismatch remains pending actual HIP validation; do not infer
+that from host simulations. The command remains the same finite prospective scope.
+
+The explicit-policy input and CPU reference use `pipeline-sizing-input/v2` and
+`pipeline-sizing-reference/v2`. Historical v1 schema/seal readers remain available
+for the failed collection; current execution rejects v1 rather than promoting it
+or rewriting its evidence.

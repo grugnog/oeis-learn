@@ -6,6 +6,9 @@ PROFILES={key:seal(dict(version='pipeline-model-size/v1',name=key,width=d,heads=
     for key,d,h,e,l in [('m8',256,4,4,4),('m32',512,8,4,4),('m100',768,12,6,6)]}
 TRIALS=['cold','warmup','calibration-0','calibration-1','calibration-2']
 SLOTS=[f'sizing.{key}.{trial}' for key in PROFILES for trial in TRIALS]
+EXECUTION=seal(dict(version='pipeline-sizing-execution/v1',mha_fastpath=False,sdpa_backends=['math'],
+    float32_matmul='highest',matmul_tf32=False,cudnn_tf32=False,deterministic_algorithms=True,
+    deterministic_warn_only=False,dtype='torch.float32'))
 
 
 def validate_profile(profile):

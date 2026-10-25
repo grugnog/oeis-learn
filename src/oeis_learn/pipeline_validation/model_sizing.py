@@ -6,9 +6,22 @@ from pathlib import Path
 import statistics
 import time
 from .identity import seal,digest,write,file_hash,number,validate
-from .model_sizes import PROFILES,TRIALS,SLOTS,validate_profile,parameters,peak_estimate
+from .model_sizes import PROFILES,TRIALS,SLOTS,EXECUTION,validate_profile,parameters,peak_estimate
+from .sizing_execution import sizing_execution,execution_observation,record_parity
 
 MEANING='fresh-model hardware sizing; no model-quality/default/persistent-state/research/learning admission'
+
+
+def validate_input_manifest(record):
+    fields={'version','binding','payload','profiles','slots','updates','training_batch','validation_rows','generation_batches','body_tokens','initialization'}
+    if record.get('version') not in {'pipeline-sizing-input/v1','pipeline-sizing-input/v2'}:raise ValueError('registered sizing input version required')
+    return validate(record,fields|({'execution'} if record['version'].endswith('/v2') else set()),record['version'])
+
+
+def validate_reference_record(record):
+    fields={'version','source','contract','profile','workload','weights','oracle','counts','memory','expected'}
+    if record.get('version') not in {'pipeline-sizing-reference/v1','pipeline-sizing-reference/v2'}:raise ValueError('registered sizing reference version required')
+    return validate(record,fields|({'execution'} if record['version'].endswith('/v2') else set()),record['version'])
 
 
 def attempt_plan(prompts):
@@ -57,7 +70,7 @@ def summarize_profiles(receipts):
 def complete_result(result,profile):
     if result!=seal(result):raise ValueError('immutable sizing result required')
     expected=dict(status='COMPLETE',profile=profile,counts=parameters(profile),training_updates=32,
-        validation_rows=32,numerical_parity=True,changed_parameters=True,torch_threads={'intraop':2,'interop':1})
+        validation_rows=32,numerical_parity=True,changed_parameters=True,torch_threads={'intraop':2,'interop':1},execution=EXECUTION)
     if any(result.get(k)!=v for k,v in expected.items()):raise ValueError('same full sizing work/shape/actual threads required')
     memory=result.get('resources',{})
     if memory.get('qualified') is not True or memory.get('breach') is not None or not result.get('device',{}).get('hip'):
@@ -83,8 +96,8 @@ def prepare_inputs(recipe,prompts,training,validation,output,**binding):
     for r in training+validation:
         if len(r['values'])!=20 or not r['tokens'] or len(r['tokens'])>1024:raise ValueError('bounded real training token rows required')
     payload=dict(recipe=recipe,prompts=prompts,training=training,validation=validation)
-    m=seal(dict(version='pipeline-sizing-input/v1',binding=binding,payload=digest(payload),profiles=PROFILES,
-        slots=SLOTS,updates=32,training_batch=8,validation_rows=32,generation_batches=[8,32],body_tokens=1024,
+    m=seal(dict(version='pipeline-sizing-input/v2',binding=binding,payload=digest(payload),profiles=PROFILES,
+        slots=SLOTS,execution=EXECUTION,updates=32,training_batch=8,validation_rows=32,generation_batches=[8,32],body_tokens=1024,
         initialization='fresh seeded per profile; no inherited trained weights'))
     target=Path(output)/'input';target.mkdir();write(target/'work.json',dict(manifest=m,**payload));write(Path(output)/'manifest.json',m)
     return m
@@ -92,10 +105,10 @@ def prepare_inputs(recipe,prompts,training,validation,output,**binding):
 
 def read_work(inputs,config):
     work=json.loads((inputs/'work.json').read_text());m=work['manifest']
-    validate(m,{'version','binding','payload','profiles','slots','updates','training_batch','validation_rows',
-        'generation_batches','body_tokens','initialization'},'pipeline-sizing-input/v1')
+    validate_input_manifest(m)
+    if m['version']!='pipeline-sizing-input/v2':raise ValueError('current sizing admission requires explicit execution policy v2')
     if (set(work)!={'manifest','recipe','prompts','training','validation'} or m!=seal(m)
-        or m['profiles']!=PROFILES or m['slots']!=SLOTS or m['binding']['source']!=config['source']
+        or m['profiles']!=PROFILES or m['slots']!=SLOTS or m['execution']!=EXECUTION or m['binding']['source']!=config['source']
         or m['payload']!=digest({k:v for k,v in work.items() if k!='manifest'})
         or m['updates']!=32 or m['training_batch']!=8 or m['validation_rows']!=32
         or m['generation_batches']!=[8,32] or m['body_tokens']!=1024
@@ -111,12 +124,14 @@ def options(config,cpu=False):
     return validate_profile(opt['profile'])
 
 
+@sizing_execution
 def reference_role(inputs,output,config):
     import torch
     from oeis_learn.experiments.bootstrap_models import construct_sizing_models
     from .replay import tensor_record,check_deadline
     p=options(config,True);work=read_work(inputs,config);deadline=time.monotonic()+570
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
+    write(output/'execution.json',execution_observation())
     encoder,decoder,counts=construct_sizing_models(p);encoder.eval();decoder.eval()
     private=output/'private';private.mkdir()
     torch.save(dict(encoder=encoder.state_dict(),decoder=decoder.state_dict()),private/'weights.pt')
@@ -127,11 +142,11 @@ def reference_role(inputs,output,config):
         for pos in (1,32,128):
             check_deadline(deadline);expected[str(pos)]=decoder(tokens[:,:pos],memory)[:,-1:].cpu()
     torch.save(dict(memory=memory,expected=expected),private/'oracle.pt')
-    ref=seal(dict(version='pipeline-sizing-reference/v1',source=config['source'],contract=config['contract'],
+    ref=seal(dict(version='pipeline-sizing-reference/v2',source=config['source'],contract=config['contract'],
         profile=p,workload=work['manifest']['identity'],weights=file_hash(private/'weights.pt'),oracle=file_hash(private/'oracle.pt'),
-        counts=counts,memory=tensor_record(memory),expected={k:tensor_record(v) for k,v in expected.items()}))
+        counts=counts,execution=execution_observation(),memory=tensor_record(memory),expected={k:tensor_record(v) for k,v in expected.items()}))
     write(output/'reference.json',ref);check_deadline(deadline)
-    return dict(status='COMPLETE',profile=p,reference=ref['identity'],counts=counts,interpretation=MEANING)
+    return dict(status='COMPLETE',profile=p,reference=ref['identity'],counts=counts,execution=execution_observation(),interpretation=MEANING)
 
 
 def fit_generated(output,rows,prompts,config,deadline):
@@ -185,6 +200,7 @@ def fit_generated(output,rows,prompts,config,deadline):
             boundary=ledger.boundary({'scope':'model-sizing'}))))
 
 
+@sizing_execution
 def gpu_role(inputs,output,config):
     import torch
     from oeis_learn.experiments.bootstrap_models import construct_sizing_models
@@ -197,12 +213,14 @@ def gpu_role(inputs,output,config):
     p=options(config);work=read_work(inputs,config);started=time.monotonic();deadline=started+1080
     rows=attempt_plan(work['prompts']);write(output/'attempt-plan.json',seal(dict(version='pipeline-sizing-attempt-plan/v1',rows=rows)))
     ref=json.loads((inputs/'reference.json').read_text())
-    validate(ref,{'version','source','contract','profile','workload','weights','oracle','counts','memory','expected'},'pipeline-sizing-reference/v1')
-    if (ref!=seal(ref) or ref['profile']!=p or ref['workload']!=work['manifest']['identity'] or ref['source']!=config['source']
+    validate_reference_record(ref)
+    if ref['version']!='pipeline-sizing-reference/v2':raise ValueError('current sizing admission requires explicit reference execution policy v2')
+    if (ref!=seal(ref) or ref['execution']!=EXECUTION or ref['profile']!=p or ref['workload']!=work['manifest']['identity'] or ref['source']!=config['source']
         or ref['contract']!=config['contract'] or ref['weights']!=file_hash(inputs/'weights.pt') or ref['oracle']!=file_hash(inputs/'oracle.pt')):
         raise ValueError('frozen sizing profile/reference/source/weights required')
     torch.set_num_threads(2);torch.set_num_interop_threads(1);torch.use_deterministic_algorithms(True)
     torch.set_float32_matmul_precision('highest');torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
+    write(output/'execution.json',execution_observation())
     timings={};success=False
     try:
         with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node'],host_counters=False,sample_bytes=16<<10):
@@ -216,12 +234,14 @@ def gpu_role(inputs,output,config):
             encoder.eval();decoder.eval()
             with torch.no_grad():
                 memory=encoder.forward_from_sequences([[int(v) for v in r['values']] for r in work['prompts'][:2]],device='cuda')
+                record_parity(memory,oracle['memory'],output,'encoder')
                 torch.testing.assert_close(memory.cpu(),oracle['memory'],atol=2e-5,rtol=2e-4)
                 tokens=torch.ones((2,128),dtype=torch.long,device='cuda');value,cache=decoder.prefill(tokens[:,:1],memory,capacity=128,backend='eager')
                 actual={'1':value}
                 for pos in range(2,129):
                     check_deadline(deadline);value=decoder.decode_step(tokens[:,pos-1],cache)
                     if pos in (32,128):actual[str(pos)]=value
+                for key,value in actual.items():record_parity(value,oracle['expected'][key],output,'decoder.p'+key)
                 verify_outputs(actual,oracle['expected'],deadline=deadline)
             del oracle,cache,memory,actual,value
             initial=parameter_digest(encoder,decoder)
@@ -268,7 +288,7 @@ def gpu_role(inputs,output,config):
         write(output/'progress.json',seal(dict(version='pipeline-sizing-progress/v1',profile=p,complete=success,timings=timings,counts=generation_counts(rows,max(.000001,time.monotonic()-started)))))
     seconds=time.monotonic()-started
     if seconds>1080:raise TimeoutError('sizing primary/export exceeded immutable parent')
-    return dict(status='COMPLETE',profile=p,counts=counts,reference=ref['identity'],workload=work['manifest']['identity'],source=config['source'],contract=config['contract'],
+    return dict(status='COMPLETE',profile=p,counts=counts,reference=ref['identity'],workload=work['manifest']['identity'],source=config['source'],contract=config['contract'],execution=execution_observation(),
         numerical_parity=True,changed_parameters=True,initial_parameters=initial,trained_parameters=trained,
         training_updates=32,training_tokens=training_tokens,training_tokens_per_second=training_tokens/timings['training'],
         training_updates_per_second=32/timings['training'],validation_rows=32,validation_rows_per_second=32/timings['validation'],
@@ -329,7 +349,8 @@ class SizingStages:
             if (result['source']!=cfg['source'] or result['contract']!=cfg['contract'] or result['reference']!=frozen['identity']
                 or result['workload']!=frozen['workload'] or result['resources']['ceiling_bytes']!=cfg['options']['memory_ceiling']):
                 raise ValueError('frozen sizing source/reference/current resource envelope differs')
-        elif result.get('resources',{}).get('qualified') is not True:raise ValueError('CPU reference memory observation required')
+        elif result.get('resources',{}).get('qualified') is not True or result.get('execution')!=EXECUTION:
+            raise ValueError('CPU reference memory and explicit execution observation required')
         if cpu:self.references[key]=(output/'role',{n:file_hash(output/'role'/r) for n,r in [('reference.json','reference.json'),('weights.pt','private/weights.pt'),('oracle.pt','private/oracle.pt')]})
         else:
             host_timing=json.loads((output/'role/host-timing.json').read_text())

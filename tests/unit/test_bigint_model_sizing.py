@@ -5,13 +5,17 @@ from pathlib import Path
 import subprocess
 import sys
 import pytest
+from oeis_learn.pipeline_validation.sizing_execution import sizing_execution
 
 
 def check_profiles(device,output):
+    if os.environ.get('OEIS_TEST_OUTPUT'):
+        output=Path(os.environ['OEIS_TEST_OUTPUT'])/('model-sizing-'+device)
     code='from tests.unit.test_bigint_model_sizing import _check_profiles;_check_profiles('+repr(device)+','+repr(str(output))+')'
     subprocess.run([sys.executable,'-c',code],check=True,timeout=180)
 
 
+@sizing_execution
 def _check_profiles(device,output):
     import gc
     import time
@@ -23,6 +27,12 @@ def _check_profiles(device,output):
     from oeis_learn.decoder import bigint_codec as codec
     from oeis_learn.decoder.bigint_generation import GenerationRequest,sample_batch
     from oeis_learn.encoder.hybrid import ChunkHybridEncoder
+    from oeis_learn.pipeline_validation.sizing_execution import execution_observation,record_parity
+    from oeis_learn.pipeline_validation.model_sizes import EXECUTION
+    from unittest.mock import patch
+    Path(output).mkdir(parents=True,exist_ok=True)
+    (Path(output)/'execution.json').write_text(json.dumps(execution_observation(),indent=2)+'\n')
+    assert execution_observation()==EXECUTION
     torch.set_num_threads(2);torch.set_num_interop_threads(1);torch.use_deterministic_algorithms(True)
     if device=='cuda':assert torch.version.hip and torch.cuda.is_available()
     torch.manual_seed(20261016);old_e,old_d,_=construct_bigint_models()
@@ -40,16 +50,22 @@ def _check_profiles(device,output):
         encoder.eval();decoder.eval()
         rows=[[0,(1<<4096)-1,-1],[3,6,9]]
         with torch.no_grad():
-            memory=encoder.forward_from_sequences(rows);tokens=torch.ones((2,32),dtype=torch.long)
+            # Fail if a future refactor admits either fused eval entry point.
+            with patch.object(torch,'_transformer_encoder_layer_fwd',side_effect=AssertionError('fused encoder bypass')),patch.object(torch,'_native_multi_head_attention',side_effect=AssertionError('fused MHA bypass')):
+                memory=encoder.forward_from_sequences(rows)
+            tokens=torch.ones((2,32),dtype=torch.long)
             expected={i:decoder(tokens[:,:i],memory)[:,-1:].clone() for i in (1,8,32)}
         encoder=encoder.to(device);decoder=decoder.to(device);decoder.cache_bookkeeping='hoisted/v1'
         with torch.no_grad():
-            actual_memory=encoder.forward_from_sequences(rows,device=device)
+            with patch.object(torch,'_transformer_encoder_layer_fwd',side_effect=AssertionError('fused encoder bypass')),patch.object(torch,'_native_multi_head_attention',side_effect=AssertionError('fused MHA bypass')):
+                actual_memory=encoder.forward_from_sequences(rows,device=device)
+            record_parity(actual_memory,memory,output,key+'.encoder')
             torch.testing.assert_close(actual_memory.cpu(),memory,atol=2e-5,rtol=2e-4)
             value,cache=decoder.prefill(tokens[:,:1].to(device),actual_memory,capacity=32,backend='eager')
             for i in range(1,33):
                 if i>1:value=decoder.decode_step(tokens[:,i-1].to(device),cache)
                 if i in expected:
+                    record_parity(value,expected[i],output,key+'.decoder.p'+str(i))
                     torch.testing.assert_close(value.cpu(),expected[i],atol=2e-5,rtol=2e-4)
                     assert torch.equal(value.cpu().argmax(-1),expected[i].argmax(-1))
             before=cache.tokens.clone();lengths=list(cache.lengths)
@@ -74,7 +90,7 @@ def _check_profiles(device,output):
                     actual.extend(sample_batch(decoder,requests,batch_size=batch,capacity_qualified=batch==32,bookkeeping='hoisted/v1'))
                 assert len(actual)==32 and all(len(r['tokens'])<=4 for r in actual)
         reports.append(dict(profile=key,counts=counts,device=device,hip=torch.version.hip if device=='cuda' else None,
-            actual_update=True,cpu_full_cached_parity=True,batches=[8,32],body_cap=4,
+            actual_update=True,cpu_full_cached_parity=True,batches=[8,32],body_cap=4,execution=execution_observation(),
             meaning='bounded runtime fixture; operator retains full1024 body cap'))
         del encoder,decoder,memory,tokens,train,actual;gc.collect()
         if device=='cuda':torch.cuda.empty_cache()
