@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -483,3 +483,12 @@ Per the user's request to minimize handoffs, [contract](contracts/hardware-ladde
 ### Accepted combined hardware ladder
 
 [Target review](validation/hardware-ladder-operator-20261024T220811Z.md) closes009:H004 and affected-sourceT110 at adda1b6:639 CPU/18 HIP tests and all22 GPU roles complete;0.62% overhead selects aggregate telemetry. Batch128 is the experimental finite-roster winner,61.13% median interval reduction versus16, about90.5% sampled GPU busy and2.84GiB role memory. Original counts78 complete/18 runtime pending/15 research held. No duplicate run or production/learning admission. Native CPU scheduling, deliberate overlap and useful full-pipeline/sustained operations remain.
+
+## Supplemental native CPU capacity screen — slot waves v1
+
+After the [accepted GPU ladder](validation/hardware-ladder-operator-20261024T220811Z.md), the next hardware investigation isolates native CPU admission/scaling. [Contract](contracts/native-capacity.md) and [handoff](validation/native-capacity-implementation.md) freeze a separate CPU-only scope, preserving original queued/default behavior and all accepted source-bound evidence. Counts77 complete/19 runtime pending/15 research held reflect reopening affected-sourceT110 for new native code. Deliberate overlap/full-pipeline/sustained work remains later; no learning investigation.
+
+- [X] 009:N001 Freeze the separate closed CPU-only manifest/registry, full18-row corpus, slot-wave admission with immutable four-second request/parent clocks, independent1/2/4 hypotheses and ordinary/observed roles under unchanged limits.
+- [X] 009:N002 Implement fresh clients/caches, full baseline-only calibration and source-bound child, durable18-slot/job plans/events/terminal debits, strict complete semantic/worker/clock parity, no favorable partial ratios and global containment stops.
+- [X] 009:N003 Run134 host tests and actual public stdlib export with all18 undispatched slots explicit; author/register three real packaged-native1/2/4 slot/assignment/clock fixtures, retain source-bound local evidence and one combined command.
+- [ ] 009:N004 Collect/review the combined CPU target archive, current qualification image/fixtures, complete/inconclusive/blocked trials, actual CPU/memory/native service observations, all immutable clocks/debits and cleanup. No GPU ladder repetition or production/learning admission inferred.

@@ -165,3 +165,7 @@ Freeze32 visible inputs cyclically mapped into128 independent cache rows, not128
 ## Accepted finite capacity ladder
 
 [Actual target evidence](validation/hardware-ladder-operator-20261024T220811Z.md) verifies all22 GPU roles and selects128 experimentally:61.13% median interval reduction versus16, about90.5% sampled GPU busy,2.84GiB role memory, and0.62% overhead in the one observation pair. The finite roster ends at128. This capacity fixture uses32 unique visible rows replicated into128 physical rows and does not qualify generated-program throughput. Next hardware work concerns CPU/native queue/service behavior, deliberate overlap and sustained useful pipeline work. No automatic larger-size sweep or learning experiment.
+
+## Native CPU capacity follow-up
+
+The [native-capacity contract](contracts/native-capacity.md) registers a CPU-only phase1/3 scope after the accepted GPU128 screen. It isolates a prospective slot-wave admission policy from the old queued diagnostic and keeps the same immutable four-second request deadline once admitted. Full18-row baselines, two independent worker hypotheses and separately observed roles share one image/prerequisite/archive invocation. There is no cold-selected subset, production scheduler change, HIP repeat, automatic overlap or scientific authority.134 host tests and local export pass; three packaged-native fixtures and the actual screen await target execution. See [handoff](validation/native-capacity-implementation.md).
