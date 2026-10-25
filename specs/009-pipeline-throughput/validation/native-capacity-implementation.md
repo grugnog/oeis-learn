@@ -1,3 +1,5 @@
+Latest target collection: [qualification failure and repair](native-capacity-operator-20261025T032351Z.md).652 CPU tests pass; one serial metrics fixture assertion blocks all performance slots. The fixture and independent CI disposition-serializer issue are repaired;136 host tests pass. Use the same combined command below after updating, with a fresh output. No GPU repeat.
+
 # Native CPU capacity: combined target handoff
 
 The [accepted GPU ladder](hardware-ladder-operator-20261024T220811Z.md) selects128
@@ -38,12 +40,12 @@ cannot qualify or select a candidate; an8GiB expected peak plus1GiB headroom mus
 fit known current capacity before launch. Native per-slot1GiB/aggregate4GiB and
 shared CPU/quota/cache/artifact bounds remain; external cleanup stays within5s.
 
-**134 host stdlib tests pass**, including11 new tests covering the finite graph,
+**136 host stdlib tests pass**, including12 native-capacity tests and a foundation-serializer regression. Coverage includes the finite graph,
 full work, strict clocks/debits, immutable child, independent partial outcomes,
 negative gains, primary overruns, fatal stops and a complete simulated graph with
 one verified archive. The actual public stdlib CLI exits3 for the unavailable
 local Podman, records all18 undispatched slots as UNSTARTED, and exports a verified
-23-listed-member partial archive. [Local evidence](native-capacity-local-evidence.json)
+23-listed-member partial archive. [Current repair-local evidence](native-capacity-fix-local-evidence.json)
 binds the exact709-entry source, manifest and archive. Compilation and whitespace
 checks pass. The007 code binding is refreshed with all68 dispositions and incomplete
 foundation acceptance preserved. Existing manifests and accepted evidence are unchanged.

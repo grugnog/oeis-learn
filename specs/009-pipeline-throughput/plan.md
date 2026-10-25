@@ -169,3 +169,7 @@ Freeze32 visible inputs cyclically mapped into128 independent cache rows, not128
 ## Native CPU capacity follow-up
 
 The [native-capacity contract](contracts/native-capacity.md) registers a CPU-only phase1/3 scope after the accepted GPU128 screen. It isolates a prospective slot-wave admission policy from the old queued diagnostic and keeps the same immutable four-second request deadline once admitted. Full18-row baselines, two independent worker hypotheses and separately observed roles share one image/prerequisite/archive invocation. There is no cold-selected subset, production scheduler change, HIP repeat, automatic overlap or scientific authority.134 host tests and local export pass; three packaged-native fixtures and the actual screen await target execution. See [handoff](validation/native-capacity-implementation.md).
+
+## First native-capacity collection: validation repair
+
+The [source-matched target review](validation/native-capacity-operator-20261025T032351Z.md) records652 CPU passes and a serial-worker fixture metrics assertion failure before all performance work. The fixture now respects the existing serial/pooled metric shapes; separate completed CI failures from a wrong007 binding serializer are repaired with the actual foundation canonical functions.136 host tests and verified partial export pass. Runtime Python, full18-row work, immutable clocks, candidate roster and thresholds remain unchanged. Corrected-source CPU validation remains pending under the same single-command scope; no duplicate GPU scope or learning work is introduced.
