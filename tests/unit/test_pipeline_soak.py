@@ -8,6 +8,85 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_missed_native_intervals_do_not_catch_up_or_renew(self):
+        from oeis_learn.fresh.engineering import Control
+        from oeis_learn.pipeline_validation.soak_contract import lease
+        h='sha256:'+'a'*64;clock=[100.]
+        cfg=seal(dict(version='pipeline-engineering-worker/v1',source=h,work=h,choice=h,mode='window',
+            batch_size=8,window=0,resume=False,lease=lease(h,h,h,now=100),token_target=1,seconds=3600,
+            instrumented=False,cadence_tokens=10))
+        c=Control({'engineering':cfg},{},Path('/unused'),clock=lambda:clock[0])
+        self.assertTrue(c.pulse_due());self.assertEqual(c.active_pulse,0);c.pulsed()
+        self.assertFalse(c.pulse_due())
+        clock[0]=1500
+        self.assertTrue(c.pulse_due());self.assertEqual(c.active_pulse,2);c.pulsed()
+        self.assertEqual(c.state['pulse_slots'][1]['state'],'UNSTARTED')
+        with self.assertRaises(ValueError):c.pulsed()
+        clock[0]=3690;self.assertFalse(c.pulse_due())
+
+    def test_unstarted_diagnostic_roster_cannot_complete_a_window(self):
+        from oeis_learn.fresh.engineering import Control
+        from oeis_learn.pipeline_validation.soak_contract import lease
+        h='sha256:'+'a'*64;clock=[100.]
+        cfg=seal(dict(version='pipeline-engineering-worker/v1',source=h,work=h,choice=h,mode='window',
+            batch_size=8,window=0,resume=False,lease=lease(h,h,h,now=100),token_target=1,seconds=3600,
+            instrumented=False,cadence_tokens=10))
+        c=Control({'engineering':cfg},{},Path('/unused'),clock=lambda:clock[0],minimum_examples=2)
+        c.update([{'tokens':[1]}],.1);c.cycled(complete=False);clock[0]=3700
+        self.assertFalse(c.finish()['complete'])
+        c.cycled();self.assertFalse(c.finish()['complete'])
+        c.update([{'tokens':[1]}],.1);self.assertTrue(c.finish()['complete'])
+
+    def test_native_peer_drains_and_gpu_probe_stays_on_owner_thread(self):
+        import tempfile,threading,time,types
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.soak_native import pulse
+        from oeis_learn.fresh.pipeline_jobs import JobLedger
+        owner=threading.get_ident();release=threading.Event();peer=[];completed=[]
+        boundary=JobLedger().boundary({})
+        class NonQuiescentWorker(RuntimeError):pass
+        # Substitute only the container-owned client import, not pulse's supervision.
+        module=types.SimpleNamespace(NonQuiescentWorker=NonQuiescentWorker)
+        with tempfile.TemporaryDirectory() as td:
+            control=types.SimpleNamespace(output=Path(td),active_pulse=0,
+                component=lambda *a,**kw:None,pulsed=lambda:completed.append(True))
+            client=types.SimpleNamespace(worker=types.SimpleNamespace(cancel_all=release.set))
+            def native(*args):
+                peer.append(threading.get_ident())
+                if not release.wait(2):raise RuntimeError('owner did not release native peer')
+                return dict(ordinal=0,boundary=boundary,seconds=.01,results=[])
+            def gpu():
+                self.assertEqual(threading.get_ident(),owner);release.set()
+            with patch.dict('sys.modules',{'oeis_learn.synthesis.worker_pool':module}),patch('oeis_learn.pipeline_validation.soak_native._native_pulse',side_effect=native):
+                selection={'pipeline_boundary':boundary}
+                pulse(client,control,selection,{},time.monotonic()+2,gpu_probe=gpu)
+            self.assertNotEqual(peer,[owner]);self.assertEqual(completed,[True])
+            self.assertEqual(selection['pipeline_boundary']['active'],0)
+
+    def test_oom_event_remains_fatal_after_usage_drops(self):
+        import tempfile
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.memory import MemoryWatchdog
+        with tempfile.TemporaryDirectory() as td:
+            killed=[];watch=MemoryWatchdog(td,ceiling=1000,reader=lambda:dict(physical=10000,available=9990,current=10,limit=1000),killer=lambda:killed.append(True),audit_samples=True)
+            read=Path.read_text
+            def fixture(path,*args,**kwargs):
+                if path.name=='memory.events':return 'oom 1\noom_kill 1\n'
+                if path.name=='memory.stat':return 'anon 10\nfile 0\n'
+                if path.name=='cpu.stat':return 'usage_usec 10\n'
+                return read(path,*args,**kwargs)
+            with patch.object(Path,'read_text',fixture):watch.sample()
+            self.assertEqual(killed,[True]);self.assertFalse(watch.report()['qualified'])
+            self.assertIn('OOM',watch.breach['reason'])
+
+    def test_roles_reject_unregistered_options_and_resume_outside_windows(self):
+        from oeis_learn.pipeline_validation.soak_runtime import role_options
+        opt=dict(kind='batch',batch_size=8,seconds=300,memory_ceiling=1000,render_node='/dev/dri/renderD128',
+            instrumented=False,choice='sha256:'+'a'*64,resume=False,window=0,lease=None)
+        role_options({'options':opt})
+        for changed in (dict(opt,extra=True),dict(opt,resume=True),dict(opt,window=1),dict(opt,batch_size=True)):
+            with self.assertRaises(ValueError):role_options({'options':changed})
+
     def test_foreign_uid_preserves_rootless_security_arguments(self):
         from oeis_learn.pipeline_validation.soak_operations import foreign_user_args,fixture_code
         before=['--user','0:0','--userns=keep-id','--security-opt=label=disable']

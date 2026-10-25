@@ -26,7 +26,8 @@ def window_review(states):
             if max(lengths)>1.05*min(lengths):missing.append('window length mixtures do not match within5%')
             else:drift=1-statistics.median(rates[-2:])/statistics.median(rates[:2])
         legs.append(dict(leg=leg,windows=len(windows),rates=rates,mean_target_lengths=lengths,
-            drift=drift,missing=missing,verdict='INCONCLUSIVE' if missing else 'PASS' if drift<=.10 else 'FAIL'))
+            drift=drift,investigate_five_percent_decline=drift is not None and drift>=.05,
+            missing=missing,verdict='INCONCLUSIVE' if missing else 'PASS' if drift<=.10 else 'FAIL'))
     return legs
 
 
@@ -96,12 +97,18 @@ def report(receipts,*,root=None):
     portability='PASS' if engines=={'docker','podman'} and all(receipts.get(k,{}).get('state') in {'PASS','REUSED'} for e in engines
         for k in ('cpu.'+e+'.semantic','operations.'+e+'.workflow','operations.'+e+'.retirement','soak.operations.'+e)) else 'PENDING'
     totals=persistent['results'][-1]['trainer']['engineering']['state']['components'] if persistent and len(persistent.get('results',[]))==2 else {}
+    generated=totals.get('generation_native',{});elapsed=persistent.get('elapsed_seconds') if persistent else None
+    rates={k:generated.get(k,0)*60/elapsed if elapsed else None for k in
+        ('scheduled','started','unstarted','decoded','emitted_tokens','native_started','native_complete','visible_verified')}
     return seal(dict(version='pipeline-soak-report/v1',sustained_operation=sustained,
         correctness_recovery='PASS' if parity and joint and scorer else 'PENDING',portability=portability,
         primary_engineering_readiness='PASS' if sustained=='PASS' and parity and joint and scorer else 'FAIL' if sustained=='FAIL' else 'PENDING',
         isolated_cpu_scorer='PASS' if scorer else 'PENDING',
         missing=missing,choice=choice,window_reviews=legs,resource_reviews=resources,stages=current,
         operation_totals=totals,verification_scope='visible20; no continuation/final claims',
+        generated_work_per_whole_soak_minute=rates,
+        natural_generation_to_native='EXERCISED' if generated.get('native_started',0) else 'NOT_EXERCISED',
+        diagnostic_native_load='separately labelled health pulses; excluded from generated-work rates',
         native_pulse_slots=persistent['results'][-1]['trainer']['engineering']['state'].get('pulse_slots',[]) if persistent else [],
         whole_soak_seconds=persistent.get('elapsed_seconds') if persistent else None,
         optimization_adoption='INCONCLUSIVE',supported_default='RETAIN_BASELINE',

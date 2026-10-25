@@ -448,9 +448,13 @@ def _train(inputs, output):
                         details=[item for r in diagnostic['records'].values() for d in r['details'].values() for item in d['details']]
                         control.component('generation_native',time.monotonic()-generation_started,scheduled=len(panel),started=len(details),
                             unstarted=len(panel)-len(details),decoded=sum(d['generation']['complete'] for d in details),
-                            emitted_tokens=sum(len(d['tokens']) for d in details),native_complete=sum(d['fitting']['complete'] for d in details),
+                            emitted_tokens=sum(len(d['tokens']) for d in details),
+                            native_started=sum(d['fitting']['outcome']!='not_attempted' for d in details),
+                            native_complete=sum(d['fitting']['complete'] for d in details),
                             visible_verified=sum(bool(r['selections'].get('rescue') or r['selections'].get('raw')) for r in diagnostic['records'].values()))
-                        control.cycled()
+                        # Grammar/deadline outcomes are legitimate terminal attempts;
+                        # undispatched prompts cannot establish a complete cycle.
+                        control.cycled(complete=len(details)==len(panel))
                     if recipe.get('pipeline'):
                         from .pipeline_jobs import merge_boundary
                         selection['pipeline_boundary'] = merge_boundary(selection['pipeline_boundary'],diagnostic['pipeline_boundary'])
