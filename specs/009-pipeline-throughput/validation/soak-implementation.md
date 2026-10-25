@@ -1,6 +1,6 @@
 # Full-scale engineering soak: corrected target handoff
 
-The [first target review](soak-operator-20261025T211131Z.md) verifies all twelve full-data batch trials and selects32, but UID operations block every soak leg. The permission/image repair passes192 host tests and is pushed; corrected actual target qualification remains pending.
+The [second collection](soak-operator-20261025T222026Z.md) exposes a container-TMPDIR path-substitution bug in the new test and a numeric UID/host-owner mapping mismatch. Its diagnostics disprove the previous mount-parent explanation. Both repairs now pass194 host tests and verified local export; actual corrected rootless/HIP qualification remains pending. The first collection's successful full-size batch32 preflight remains accepted at its producer.
 
 Code and available local checks are complete on `009-pipeline-throughput`,
 PR [#60](https://github.com/grugnog/oeis-learn/pull/60), stacked on #59.
@@ -70,15 +70,18 @@ sustained PASS;5% is an investigation trigger. Anonymous/file/driver growth and
 checkpoint/launch/cleanup costs stay visible. Hardware qualification has no learned
 success threshold, and zero generated-to-native work is explicitly NOT_EXERCISED.
 
-Repair local evidence:192 stdlib tests pass and the actual public CLI exports a
+Repair local evidence:194 stdlib tests pass and the actual public CLI exports a
 verified88-member PARTIAL archive with zero omissions when both engines are
-unavailable. The full UID exporter/recovery code executes locally under restrictive
-umask077, with only its read-only mount simulated. Both images now explicitly
-provide searchable0755 mount parents, the fixture explicitly publishes readable
-public proof files and logs UID/path modes, and primary UID operations gate
-preparation/candidate timings. A pinned CPU image-path regression is registered.
-Actual repaired-image foreign-UID/rootless access and the unstarted soak still
-require the command above; no host permission/account changes are needed.
+unavailable. The fixture takes explicit paths rather than string replacements,
+including the observed `/work/output/.runtime/tmp` layout. Rootless Podman's
+requested numeric container UID now maps to the invoking host owner using explicit
+keep-id UID/GID options, with actual container/host file-owner assertions. Public
+proof files get explicit0644 modes even with private defaults. Missing device
+attestation preserves the original launch/fatal resource error and INCOMPLETE
+isolation evidence; cleanup remains mandatory. No host permission/account/ACL
+changes are needed. Actual repaired namespace behavior still requires the one
+combined command above. See [second operator review](soak-operator-20261025T222026Z.md)
+and [current local evidence](soak-uid-map-local-evidence.json).
 
 At prior producer d80bf576,716 CPU tests plus31 subtests,21 HIP tests and all12
 batch roles pass; all four scoped full-size parity records have zero mismatches.
@@ -87,7 +90,7 @@ maximum calibration role upper memory. Short whole-role GPU means near63% includ
 setup, validation and checkpoint/drain and do not establish steady training duty.
 No joint/stress/overhead/soak/scorer role starts. Docker is a Podman compatibility
 alias and remains a portability blocker only. Both already-completed PR workflows
-at d80bf576 pass; they do not qualify repair source1f3bba26, and no new CI is awaited.
+at d80bf576 pass; they do not qualify current repair sourced5c6de02, and no new CI is awaited.
 See [operator review](soak-operator-20261025T211131Z.md) and
 [repair local evidence](soak-uid-repair-local-evidence.json).
 

@@ -1,7 +1,7 @@
 # Integrated remaining-work plan: full-scale, bounded engineering soak
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25
-**Status:** First target reviewed: full-size model/batch preflight passes, UID operations block all soak legs. Repair code/local checks complete; corrected actual runtime/soak qualification pending. See [one command and evidence](validation/soak-implementation.md).
+**Status:** Second target reviewed: UID and test-path failures block all soak work. Explicit numeric owner mapping/path/publication/error repairs pass194 host tests; corrected actual runtime/soak qualification pending. See [one command](validation/soak-implementation.md).
 **Specification:** [Spec 009](spec.md) · **Execution checklist:** [tasks.md](tasks.md#integrated-soak-work-packages)
 
 This is the single current implementation sequence for the remaining Spec 009
@@ -494,3 +494,9 @@ Original full-work/mandatory-strata confirmation eligibility is explicitly false
 [Repair evidence](validation/soak-uid-repair-local-evidence.json) records192 passing host tests and verified public export. Both pinned images explicitly provide searchable0755 mount parents. Only the disposable UID fixture sets022 to publish host-readable proof and logs path modes before writing; restrictive077 export/recovery is reproduced and tested locally. Primary UID operations now gate preparation/candidate timing. Private/pytest symlink names no longer become public optional omissions; mandatory/public unsafe-member rules remain strict. These changes leave model/data/work/selection/caps/scientific gates unchanged.
 
 Use [one corrected combined command](validation/soak-implementation.md). Changed image/source closure requires fresh compatible-source qualification before the previously unstarted joint/overhead/soak/scorer stages; earlier successful preflight remains accepted at its producer, not relabelled current. S004–S006/S011/S012 and original runtime tasks remain open. This concrete mandatory failure justifies one repair collection under the original handoff policy; it is not a new isolated size search or automatic fallback. No new CI wait or learning admission.
+
+## Second target review: owner mapping and container-path repair
+
+[The second collection](validation/soak-operator-20261025T222026Z.md) verifies source1f3bba26 and21 HIP passes, but one new CPU fixture fails and UID operations still block every soak leg. Diagnostics show /work0755/output0777, disproving the previous mode-only hypothesis. The fixture had changed --user without mapping the host owner to that numeric container UID; the exact filesystem rejection mechanism is not identified. Its CPU test also corrupted explicit input paths through sequential string replacement when TMPDIR was under /work/output.
+
+The [new local repair](validation/soak-uid-map-local-evidence.json) passes194 host tests and verified public export. Fixture paths are explicit arguments; rootless Podman uses documented keep-id UID/GID owner mapping with real ownership assertions; public modes are explicit even under private file defaults; missing device evidence cannot mask launch/fatal resource failures. No host accounts/ACLs/ownership are changed. This scopes arbitrary numeric container users rather than foreign subordinate-host-ID filesystem access. Model/data/work/selection/global/phase/prompt rules are unchanged. All repairs finish before the [one combined follow-up](validation/soak-implementation.md). No current runtime task closes from host tests; original counts77/19/15 and scientific holds remain.

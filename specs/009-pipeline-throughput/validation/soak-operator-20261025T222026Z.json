@@ -1,0 +1,132 @@
+{
+  "version": "pipeline-soak-operator-review/v1",
+  "producer": "4c6f3c23e603e92cb64402577fc12d43edd8b0fa",
+  "source": "sha256:1f3bba2634ac7a12d64e09afc214f772f4af55696f9dd7816ed0a24c8baf7fc3",
+  "source_entries": 731,
+  "source_matches_producer": true,
+  "archive": {
+    "name": "009-soak-20261025T222026Z.zip",
+    "sha256": "sha256:1462b88871b5548257b9d046266822953285601c2bbd0289d3bcda158075344f",
+    "bytes": 6556124,
+    "members": 183,
+    "omissions": [],
+    "verified": true
+  },
+  "receipts": {
+    "count": 38,
+    "bound_public_files_verified": 76,
+    "states": {
+      "BLOCKED": 27,
+      "FAIL": 2,
+      "PARTIAL": 1,
+      "PASS": 7,
+      "INCONCLUSIVE": 1
+    },
+    "sealed_and_inventory_and_prerequisites_verified": true
+  },
+  "elapsed_seconds": 1459.255718443077,
+  "selected_scope": "FAIL",
+  "qualification": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 750,
+      "errors": 0,
+      "failures": 1,
+      "skipped": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 9
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  },
+  "cpu": {
+    "passed": 718,
+    "failed": 1,
+    "subtests_passed": 31,
+    "failed_test": "tests.unit.test_pipeline_soak.SoakContracts.test_uid_export_executes_recovery_under_restrictive_umask"
+  },
+  "hip_passes": 21,
+  "retirement_passes": 123,
+  "workflow": {
+    "passed": 1106,
+    "skipped": 9
+  },
+  "uid_diagnostics": {
+    "uid": 12345,
+    "gid": 12345,
+    "mount_permissions": [
+      {
+        "path": "/work",
+        "mode": "0o755",
+        "uid": 0,
+        "gid": 0
+      },
+      {
+        "path": "/work/output",
+        "mode": "0o777",
+        "uid": 1000,
+        "gid": 100
+      }
+    ]
+  },
+  "uid_command_mapping": {
+    "user": "12345:12345",
+    "namespace": "keep-id",
+    "output_owner": 1000
+  },
+  "failures": [
+    {
+      "test": "tests.unit.test_pipeline_soak.SoakContracts.test_uid_export_executes_recovery_under_restrictive_umask",
+      "kind": "failure",
+      "message": "self = <tests.unit.test_pipeline_soak.SoakContracts testMethod=test_uid_export_executes_recovery_under_restrictive_umask>\n\n    def test_uid_export_executes_recovery_under_restrictive_umask(self):\n        import os,tempfile,errno\n        from unittest.mock import patch\n        from oeis_learn.pipeline_validation.soak_operations import fixture_code\n        with tempfile.TemporaryDirectory() as td:\n            root=Path(td);source=root/'input';source.mkdir();output=root/'output';output.mkdir()\n            code=fixture_code(os.getuid()).replace('/work/input',str(source)).replace('/work/output',str(output))\n            original=Path.write_text\n            def readonly(path,*args,**kwargs):\n                if path==source/'forbidden':raise OSError(errno.EROFS,'labelled read-only mount simulation')\n                return original(path,*args,**kwargs)\n            before=os.umask(0o077)\n            try:\n>               with patch.object(Path,'write_text',readonly):exec(compile(code,'uid-export-fixture','exec'),{})\n                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\ntests/unit/test_pipeline_soak.py:24: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   ???\nE   AssertionError\n\nuid-export-fixture:23: AssertionError"
+    }
+  ],
+  "uid_stderr": "Traceback (most recent call last):\n  File \"<string>\", line 18, in <module>\n  File \"/opt/oeis-build/src/oeis_learn/pipeline_validation/identity.py\", line 70, in write\n    with path.open('x' if exclusive else 'w', encoding='utf-8') as stream:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/work/output/devices.json'\n",
+  "diagnosis": {
+    "previous_mount_parent_hypothesis": "DISPROVEN: work0755/output0777 and same EACCES",
+    "test_failure": "Sequential broad replacement of /work/input then /work/output corrupts the inserted input path when TMPDIR itself is under /work/output; reproduced locally.",
+    "mapping_failure": "Requested numeric UID differs from mounted host owner under unchanged keep-id mapping; changing --user alone does not map the invoking host owner.",
+    "filesystem_mechanism": "The archive does not identify which filesystem/ACL/namespace mechanism rejects world-writable subordinate-UID access; no specific mechanism claimed."
+  },
+  "repair": {
+    "mapping": "Rootless Podman keep-id:uid=UID,gid=GID maps the existing host owner to the requested numeric container ID; assert container output ownership and actual host export UID; literal engines labelled separately.",
+    "documentation": "https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode",
+    "paths": "Fixture accepts explicit input/output paths; no string substitution; regression uses the real container TMPDIR prefix.",
+    "publication": "Explicit0644 chmod after public writes/copies; simulate private default file modes instead of trusting umask alone.",
+    "failure": "Preserve launch and fatal ResourceBreach when device attestation is absent; isolation remains incomplete and cleanup still required."
+  },
+  "hardware": {
+    "persistent_windows": 0,
+    "soak_parent_started": false,
+    "new_batch_trials": 0,
+    "previous_batch32_evidence": "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+    "current_readiness": "PENDING"
+  },
+  "portability": {
+    "primary": "podman",
+    "docker": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence",
+    "status": "PENDING"
+  },
+  "original_counts": {
+    "complete": 77,
+    "pending_runtime": 19,
+    "blocked_research": 15
+  },
+  "default": "RETAIN_BASELINE",
+  "learning": "NOT_ADMITTED",
+  "final_access": "SEALED",
+  "followup": "One corrected combined command/ZIP after all repairs; fresh affected-source prerequisites then unstarted joint/soak. Do not relabel previous successful measurements or renew nonexistent parent work."
+}
