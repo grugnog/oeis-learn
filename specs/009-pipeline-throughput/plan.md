@@ -1,7 +1,7 @@
 # Integrated remaining-work plan: full-scale, bounded engineering soak
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25
-**Status:** Implementation plan; the new soak scope is not implemented or admitted yet.
+**Status:** Code/local implementation complete through the first HIP handoff; actual current-source runtime/soak qualification pending. See [one command and evidence](validation/soak-implementation.md).
 **Specification:** [Spec 009](spec.md) · **Execution checklist:** [tasks.md](tasks.md#integrated-soak-work-packages)
 
 This is the single current implementation sequence for the remaining Spec 009
@@ -27,11 +27,11 @@ producer56f6156/source735ede… (720 source entries). Its104.5M model gives2,092
 median training tokens/s and5.89GiB observed role upper memory on short work.
 Earlier bookkeeping, GPU capacity, native slot-wave and co-scheduling evidence
 remains accepted at its own producers. None needs a duplicate isolated ladder.
-Current original-task counts remain78 complete /18 runtime pending /15 research
-held. Writing this plan does not close runtime tasks or invalidate that source.
-Reopen T110 when implementation first changes its runtime/test/contract closure.
+Current original-task counts are77 complete /19 runtime pending /15 research
+held after reopening affected-source T110 for this implementation. Accepted older-
+source evidence remains historical; host checks do not close current runtime tasks.
 
-The practical gaps are specific: normal `fresh.bigint_worker.models` still uses
+At the planning baseline, the practical gaps were specific: normal `fresh.bigint_worker.models` used
 the fixed8.1M constructor; the sizing harness uses128 training/32 validation rows
 and short disposable updates; normal learning has an update/early-stop endpoint;
 and fresh sizing processes do not establish persistent state, long-run ledger,
@@ -393,7 +393,7 @@ build/test/soak/result sequence is planned.
 
 ## Every remaining original engineering task has an endpoint
 
-The following18 tasks are currently pending runtime. These mappings define what
+The following18 original engineering tasks, plus reopened affected-source T110, are currently pending runtime. These mappings define what
 the combined implementation/collection must deliver; a successful soak alone
 cannot tick every row. Keep a row open with its exact blocker if its complete
 original scope remains unexecuted or incompatible.
@@ -419,9 +419,9 @@ original scope remains unexecuted or incompatible.
 | T085 | S009,S011–S012 | `validation/phase-5-report.md`: engineering/cost/adoption decisions, retained small-value gap and strictly scoped008:T094/T097/T098 disposition |
 | T086 | S009,S011–S012 | Reconcile `carryover.md`, task evidence and quickstart; measured next-step cost/limits/archive and all scientific holds |
 
-T110, currently complete at the accepted source, reopens when new runtime/test/
-contract bytes change, then closes only after final affected-source packaging and
-actual target evidence. T111 is reconciled again at closeout; prior completion
+T110 is reopened for the new runtime/test/contract closure; its accepted older-
+source completion remains historical. It closes only after final affected-source
+packaging and actual target evidence. T111 is reconciled again at closeout; prior completion
 is not erased. SupplementalS tasks track new integration, not replacements for
 original tasks or a change to the original111-task denominator.
 
@@ -478,3 +478,11 @@ code/local verification before a user-run target command. Completion of the
 engineering investigation means a reviewed positive, negative or inconclusive
 report plus explicit remaining blockers; it does not assert whole-Spec009 research
 completion or launch a multi-day run.
+
+## Implementation checkpoint before the first target collection
+
+The [closed soak contract](contracts/soak.md), [single handoff](validation/soak-implementation.md) and [local evidence](validation/soak-local-evidence.json) implement the sequence above. The38-stage both-engine roster fits all existing phase reservations; the actual public CLI and190 host tests pass available checks and export explicit missing-engine evidence. The existing trainer now owns explicit m100 FP32 updates, full data, token cadence, in-place seven-state recovery and immutable7800s parent. No second trainer or default change was introduced.
+
+Preflight reserves270s worker work/300s role/330s external per batch trial, with two full training passes and full validation. Joint fixtures test the full model/long context and a labelled small-row recovery fixture before the actual full-data legs. All96 periodic prompts must dispatch to count as a complete cycle; legitimate grammar/deadline outcomes remain distinct from scientific success. Native pulse intervals never catch up after long generation. The mandatory1Hz resource audit stays active if optional instrumentation exceeds5% overhead. Arbitrary-UID/export/interruption fixtures run per engine, and a public CPU scorer runs after GPU drain.
+
+Original full-work/mandatory-strata confirmation eligibility is explicitly false for this new model/batch scope. Its20 cold/warm slots remain UNSTARTED and defaults remain baseline; no favorable exploratory subset is promoted. Original diverse32/transfer costs remain unknown. S002/S004–S006 runtime clauses and S011/S012 remain open until target collection/review; the implemented/local packages do not close original runtime or held research tasks.

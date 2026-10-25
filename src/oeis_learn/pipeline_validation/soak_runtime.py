@@ -143,8 +143,10 @@ def run_worker(inputs,output,work,recipe,config,**kw):
     source=output/'private/worker-input';source.mkdir(parents=True,exist_ok=True)
     replace_json(source/'examples.json',examples)
     replace_json(source/'settings.json',dict(settings,initial_weights_sha256=file_hash(inputs/'initial.pt')))
-    import os
-    if not (source/'initial.pt').exists():os.link(inputs/'initial.pt',source/'initial.pt')
+    # Input/output are distinct bind mounts even when their host directories share
+    # a filesystem. Linux rejects hard links across those mount boundaries.
+    import shutil
+    if not (source/'initial.pt').exists():shutil.copyfile(inputs/'initial.pt',source/'initial.pt')
     logs=output/('worker-'+('resume' if kw.get('resume') else 'fresh'))
     try:
         launch([sys.executable,'-m','oeis_learn.pipeline_validation.soak_runtime','--train',str(source),str(output/'private/trainer')],

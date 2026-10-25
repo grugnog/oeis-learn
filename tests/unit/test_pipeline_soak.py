@@ -8,6 +8,18 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_worker_initialization_crosses_readonly_bind_mount_by_copy(self):
+        import tempfile,errno
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.soak_runtime import run_worker
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);inputs=root/'input';inputs.mkdir();(inputs/'initial.pt').write_bytes(b'frozen weights')
+            output=root/'output'
+            with patch('oeis_learn.pipeline_validation.soak_runtime.worker_settings',return_value=({'seconds':1},{})),patch('oeis_learn.pipeline_validation.supervision.launch',side_effect=RuntimeError('fixture stop before training')),patch('os.link',side_effect=OSError(errno.EXDEV,'distinct bind mounts')):
+                with self.assertRaisesRegex(RuntimeError,'fixture stop'):
+                    run_worker(inputs,output,None,None,{'options':{'seconds':3}})
+            self.assertEqual((output/'private/worker-input/initial.pt').read_bytes(),b'frozen weights')
+
     def test_missed_native_intervals_do_not_catch_up_or_renew(self):
         from oeis_learn.fresh.engineering import Control
         from oeis_learn.pipeline_validation.soak_contract import lease
