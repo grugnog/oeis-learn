@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1448,10 +1448,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Accepted affected-source closure at176ecc9 remains historical. New one-container GPU/native coexistence, child supervision, cancellation and fixture code requires current CPU/native/HIP/package qualification.",
-      "blocking_reason": "154 host tests and verified local partial export pass. Current pinned real-native cycles, actual HIP/native coexistence and all20 ordinary/repeatability slots await the combined target archive; no learning run admitted.",
+      "implementation_disposition": "Current-source packaging/CPU/native/HIP scope qualified at5014881 by accepted co-scheduling archive; original portability/operations/full-pipeline/research tasks remain scoped separately.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1478,7 +1478,9 @@
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.json",
         "specs/009-pipeline-throughput/validation/coschedule-implementation.md",
-        "specs/009-pipeline-throughput/validation/coschedule-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/coschedule-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.md",
+        "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.json"
       ]
     },
     {
@@ -1649,7 +1651,7 @@
     "local_evidence": "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json"
   },
   "coschedule_refinement": {
-    "status": "IMPLEMENTED_TARGET_PENDING",
+    "status": "ACCEPTED_TARGET_COMPONENT_SCOPE",
     "source": "sha256:eb57cb0b2279dbea1430f9a8dd88e2e548c60417aaef36a996563412d40ac02a",
     "manifest": "configs/foundation/pipeline_coschedule.json",
     "contract": "specs/009-pipeline-throughput/contracts/coschedule.md",
@@ -1659,8 +1661,11 @@
       "009:O001": "complete",
       "009:O002": "complete",
       "009:O003": "complete",
-      "009:O004": "pending_runtime"
+      "009:O004": "complete"
     },
-    "meaning": "Separate GPU128/native144 equal-component serial/overlap and ten-repeat shared-controller scope; one quota and GPU owner. No generated-program/default/research/learning admission."
+    "meaning": "All20 trials,12800 GPU boundaries,2880 strict native jobs and ten observed repeats pass at exact source. Overlap reduces component elapsed21.72/24.99%; no generated-program/persistent-trainer/default/research/learning admission.",
+    "producer": "5014881dba04e1c22da6784e3fcd00ec74e5a365",
+    "operator_review": "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.md",
+    "archive_sha256": "sha256:ce32629c46558d71e468bb646a4bb4ee9ebb291c7ae46cf7040f72a6938d909b"
   }
 }

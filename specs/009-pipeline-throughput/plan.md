@@ -181,3 +181,8 @@ The [source-matched target review](validation/native-capacity-operator-20261025T
 ## Registered component co-scheduling and repeatability follow-up
 
 The [co-scheduling contract](contracts/coschedule.md) registers phases1/2/4 after accepted native4/GPU128 evidence. One shared container/quota/watchdog owns fresh single GPU children and four native slots; serial and deliberate overlap arms process identical GPU128/native144 work. Complete references and five serial baselines freeze a child before two AB/BA exploratory pairs; their complete decision chooses the fixed ten observed repeats. Unique cycle jobs, original request/parent clocks, shared five-second error drain and existing artifact caps remain.154 host tests/export pass; new actual native/HIP fixtures and the complete target scope remain pending. See [handoff](validation/coschedule-implementation.md). This component scope does not close original queued/v2 native, useful generated-program/full-pipeline confirmation, persistent trainer or held learning gates.
+
+
+## Accepted co-scheduling and converged hardware direction
+
+[Target review](validation/coschedule-operator-20261025T151306Z.md) accepts all20 slots at5014881:21.72/24.99% component elapsed reductions, ten complete repeats and qualified shared resources. The isolated GPU/native/overlap search is complete for this finite roster. [Hardware convergence](validation/hardware-convergence.md) freezes the working direction and identifies one combined useful real-pipeline/persistent-state qualification before a separately decided multi-day run. Actual generated batch128 is not currently admitted; original full-work/five-pair/cost requirements and user-held learning investigations remain.
