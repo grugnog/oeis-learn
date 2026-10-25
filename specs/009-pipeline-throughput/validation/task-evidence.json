@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1448,10 +1448,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "New hardware-only profiles, real workload/telemetry and165 host tests/local export complete; current-source runtime remains pending.",
-      "blocking_reason": "Current source720 execution-policy repair requires corrected CPU/HIP fixture/reference/sizing evidence. First target had19 HIP passes/one parity failure before all15 timings; no current source qualification inferred.",
+      "implementation_disposition": "Exact source720 packaging/CPU/HIP prerequisites, explicit execution policy and all15 real sizing trials pass at56f6156. Documentation-only review preserves that closure; unrelated portability/operations/performance/scientific tasks remain separate.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1486,7 +1486,9 @@
         "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.md",
         "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.json",
         "specs/009-pipeline-throughput/validation/model-sizing-execution-repair.md",
-        "specs/009-pipeline-throughput/validation/model-sizing-execution-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/model-sizing-execution-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T180134Z.md",
+        "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T180134Z.json"
       ]
     },
     {
@@ -1675,7 +1677,7 @@
     "archive_sha256": "sha256:ce32629c46558d71e468bb646a4bb4ee9ebb291c7ae46cf7040f72a6938d909b"
   },
   "model_sizing_refinement": {
-    "status": "EXECUTION_REPAIRED_TARGET_PENDING",
+    "status": "PASS_AT_PRODUCER",
     "source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
     "manifest": "configs/foundation/pipeline_model_sizing.json",
     "contract": "specs/009-pipeline-throughput/contracts/model-sizing.md",
@@ -1685,9 +1687,27 @@
       "009:M001": "complete",
       "009:M002": "complete",
       "009:M003": "complete",
-      "009:M004": "pending_runtime"
+      "009:M004": "complete"
     },
-    "meaning": "First source-matched target passes687 CPU+30 subtests/all CPU references; first m8 HIP encoder parity fails, all15 timing slots blocked. Explicit scoped FP32/math dispatch, versioned policy binding and diagnostics repaired;170 host tests/export pass, corrected CPU/HIP collection pending. No model/learning/default admission.",
-    "operator_review": "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.md"
+    "meaning": "All15 finite sizing trials and170 host/692 CPU+31 subtests/20 actual-HIP fixtures pass at exact source720. Explicit math policy retains strict tolerance,84 exported parity records have zero mismatches,640 native jobs consume exactly once within4s and no resource/cleanup breach occurs. Largest tested104.5M gives2092 median training tokens/s and5.89GiB role upper memory; useful generated-program verification is zero. No learned-quality/default/persistent-state/optimization/cost/learning admission.",
+    "operator_review": "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T180134Z.md",
+    "producer": "56f61564b0b504b9aa5ffc3273bb73974ebaf87e",
+    "prior_failure_review": "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.md",
+    "archive_sha256": "sha256:02306e7d77637af302361d064e39fd4bae94e221527f1a4a7d687918f36cbd93",
+    "next_engineering_direction": {
+      "profile": "m100",
+      "parameters": 104496662,
+      "status": "PROPOSED_ENGINEERING_CANDIDATE",
+      "model_selection": "NOT_DECIDED",
+      "production_default_changed": false,
+      "reason": "largest tested profile passes bounded work and retains practical short-update rate with headroom; user prefers capacity",
+      "remaining": [
+        "persistent trainer/optimizer and checkpoint/stop/resume",
+        "representative longer-sequence and training-batch efficiency costs",
+        "time-windowed component throughput and memory stability",
+        "original full-pipeline adoption/operations/exact cost gates"
+      ],
+      "new_target_command": null
+    }
   }
 }

@@ -1,3 +1,5 @@
+**Latest accepted sizing result**: [model-sizing-operator-20261025T180134Z.md](model-sizing-operator-20261025T180134Z.md). Corrected sizing is accepted at56f6156/source735ede…:170 host,692 CPU tests plus31 subtests,20 actual-HIP tests and all15 trials pass. Actual8.12M/31.90M/104.50M profiles achieve median training5,934/4,219/2,092 tokens/s with2.45/3.36/5.89GiB observed role upper memory. All84 parity records have zero mismatches and640 strict native jobs complete; zero verified generated programs remains explicit.009:M004/T110 close at that source; original counts78 complete/18 runtime pending/15 research held.104.5M is the proposed next engineering candidate, not a production/learning choice. Persistent state/checkpoint/resume, longer-sequence and training-batch efficiency work remains before a longer run. No repeat of this size ladder or multi-day training is requested. Earlier handoffs below are historical.
+
 # Corrected sizing execution policy and one rerun
 
 [First target collection](model-sizing-operator-20261025T170755Z.md) passes687 CPU

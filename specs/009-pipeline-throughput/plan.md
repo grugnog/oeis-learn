@@ -1,3 +1,5 @@
+**Latest hardware evidence**: [corrected sizing PASS](validation/model-sizing-operator-20261025T180134Z.md). Corrected sizing is accepted at56f6156/source735ede…:170 host,692 CPU tests plus31 subtests,20 actual-HIP tests and all15 trials pass. Actual8.12M/31.90M/104.50M profiles achieve median training5,934/4,219/2,092 tokens/s with2.45/3.36/5.89GiB observed role upper memory. All84 parity records have zero mismatches and640 strict native jobs complete; zero verified generated programs remains explicit.009:M004/T110 close at that source; original counts78 complete/18 runtime pending/15 research held.104.5M is the proposed next engineering candidate, not a production/learning choice. Persistent state/checkpoint/resume, longer-sequence and training-batch efficiency work remains before a longer run. No repeat of this size ladder or multi-day training is requested. The next engineering scope must make the persistent-state and training-efficiency integration concrete before any target command.
+
 # Implementation Plan: Bounded Pipeline Throughput and Research Completion
 
 **Branch**: `009-pipeline-throughput` | **Date**: 2026-10-23 | **Spec**: [spec.md](spec.md)

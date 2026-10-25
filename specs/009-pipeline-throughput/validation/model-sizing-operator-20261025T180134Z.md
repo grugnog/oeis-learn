@@ -5,7 +5,7 @@ Accept the completed finite sizing screen at producer
 `sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15`.
 The unchanged `009-model-sizing-20261025T180134Z.zip` is 7,130,107 bytes,
 SHA256 `02306e7d77637af302361d064e39fd4bae94e221527f1a4a7d687918f36cbd93`.
-All1,198 listed members plus manifest,1,089 stage-file hashes,26 immutable PASS
+All 1,198 listed members plus manifest,1,089 stage-file hashes,26 immutable PASS
 receipts and the exact720-entry source closure verify. The invocation ends PASS
 in1,411.25s (23.52min), including shared qualification/build/inspection/export.
 [Machine-readable review](model-sizing-operator-20261025T180134Z.json) retains
@@ -23,7 +23,7 @@ read-only roots, unprivileged, one16-CPU quota and120,744,574,976-byte
 
 The corrected CPU/HIP fixtures and all15 trial encoders/cached decoders now pass
 the original2e-5 absolute/2e-4 relative tolerances and greedy-ID assertions.
-All84 exported parity records are finite, have zero mismatched elements and audit
+All 84 exported parity records are finite, have zero mismatched elements and audit
 FP32/highest matmul, TF32 off, deterministic algorithms, fused encoder/MHA paths
 off and SDPA math only. Maximum absolute error across these records is
 0.00000751019. This confirms the corrected policy works on this actual target;
@@ -60,14 +60,14 @@ checkpoint costs, long-sequence capacity or multi-day cost admission.
 
 ## Real generation and native work
 
-All960 planned attempts start:32 distinct prompt IDs per batch8/32 arm, unchanged
+All 960 planned attempts start:32 distinct prompt IDs per batch8/32 arm, unchanged
 per-prompt seeds, original60s group clocks and1024-token maximum. No padding,
 replicated capacity rows, forced tokens, retries or favorable subset is introduced.
 
 The8.1M model's320 attempts all terminate with explicit `grammar_dead_end`, zero
 decoded programs and67,680 emitted partial tokens across five roles. Each of the
 31.9M and104.5M models completes320/320 attempts,4,480 emitted tokens and the same
-short14-token constant-return source. All640 complete programs are independently
+short14-token constant-return source. All 640 complete programs are independently
 submitted to native fitting; all return complete `unsat_in_scope`, zero admitted
 assignments and zero independently verified programs. The registered model-sizing
 report's hardware eligibility requires the actual update/parity/resource work;
@@ -133,3 +133,8 @@ whole-pipeline/five-pair adoption, portability/operations, complete cost and
 scientific gates remain separate.008:T093 stays deferred; the original negative
 008:T096 remains7730/14400s. No default, learning strategy, final exposure or
 multi-day training authority changes.
+
+Review validation reruns all170 stdlib host cases successfully, verifies task
+markers/counts and relative links, and confirms the source snapshot remains
+exactly720 entries/source735ede… after documentation edits. Whitespace checks
+pass. No new runtime code or dependency is introduced by this review.

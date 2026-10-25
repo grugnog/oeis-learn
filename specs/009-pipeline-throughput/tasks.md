@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: [First model-sizing target](validation/model-sizing-operator-20261025T170755Z.md) passes687 CPU tests plus30 subtests and all three CPU references/counts; first m8 HIP encoder parity fails before all15 timings. [Execution-policy repair](validation/model-sizing-execution-repair.md) enforces/audits scoped FP32/math attention with unchanged tolerances and passes170 host tests/verified export. Corrected CPU/HIP collection remains pending; counts77 complete/19 runtime pending/15 research held or blocked. No model choice or long-run authority.
+**Status**: [Corrected model-sizing target](validation/model-sizing-operator-20261025T180134Z.md) passes170 host tests,692 CPU tests plus31 subtests,20 actual-HIP tests and all15 trials.009:M001–M004 and affected-sourceT110 close at56f6156/source735ede…; original counts78 complete/18 runtime pending/15 research held.104.5M is a practical next engineering candidate, with2,092 training tokens/s and5.89GiB observed role upper memory; persistent-state/checkpoint/operations, longer-sequence and training-batch efficiency qualification remain before any longer run. No default or learning authority.
 
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
 
@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -523,9 +523,15 @@ The user requested larger model capacity before the long-run choice. This prospe
 - [X] 009:M001 Freeze explicit hardware-only profiles/initializations, fixed real-data workload, complete/partial denominators, CPU oracle, finite15-slot/phase/resource/artifact rules and separate authority before timing.
 - [X] 009:M002 Implement the exact sized constructor while preserving frozen default weights/shapes; shared source/data/reference/weight/resource binding, real disposable AdamW/validation/grammar/native observations, all-row/clock/debit evidence, bounded telemetry and no automatic model/learning selection.
 - [X] 009:M003 Run170 host tests, actual public stdlib CLI and verified partial export; author/register real pinned CPU/HIP shape/count/baseline/cache/update/generation/native fixtures and one target command without installing host dependencies.
-- [ ] 009:M004 Collect/review current CPU/HIP fixtures and all15 admitted/blocked/failed profile roles, actual counts/numerical parity/updates, generation denominators, native clocks/debits, memory categories, complete timing/source/device/cleanup and archive evidence. No quality, persistent-trainer, full-pipeline/default or multi-day admission inferred.
+- [X] 009:M004 Collect/review current CPU/HIP fixtures and all15 admitted/blocked/failed profile roles, actual counts/numerical parity/updates, generation denominators, native clocks/debits, memory categories, complete timing/source/device/cleanup and archive evidence. No quality, persistent-trainer, full-pipeline/default or multi-day admission inferred.
 
 
 ### Sizing prerequisite failure and execution-policy repair
 
 The [first collection](validation/model-sizing-operator-20261025T170755Z.md) retains the687CPU/30subtest passes, all three actual CPU model counts and19HIP passes/one strict encoder parity failure; all15 timing slots are blocked. The [repair](validation/model-sizing-execution-repair.md) explicitly disables fused encoder/MHA paths, selects SDPA math/highest FP32 and binds audited execution policy in v2 inputs/references/results. Original tolerances/work/roster/clocks remain. Five new regressions and170host tests/export pass; corrected runtime pending.009:M004/T110 stay unchecked and original counts77/19/15 are unchanged. No repeated favorable timing selection, model-quality/default or learning admission.
+
+## Corrected model-sizing target accepted; converge on sustained hardware work
+
+[Reviewed archive](validation/model-sizing-operator-20261025T180134Z.md) verifies the exact720-entry source closure and all26 stages at56f6156. All15 trials execute real updates/validation/generation;84 exported parity records have zero mismatches,640 native jobs retain their original4s clocks and no work remains active/reserved.009:M004 and affected-sourceT110 close; original counts78/18/15. The initial parity failure stays historical. No runtime code changes are made for this review, so no identical target rerun is needed.
+
+The largest tested profile104.5M is the proposed engineering integration direction under the user's capacity preference;31.9M remains a measured fallback. The immutable sizing report keeps model_selection=NOT_DECIDED. Prioritize the existing T064/T069/T073/T078 persistent/update/checkpoint/operations requirements with time-windowed utilization/memory and representative longer-sequence/training-batch costs, using the existing trainer/CheckpointStore. Freeze any new finite engineering scope and complete its code/local fault checks before another target handoff. Do not turn spare RAM or short fresh-model generation into evidence of learned quality, useful-throughput adoption or multi-day readiness.
