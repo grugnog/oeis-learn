@@ -1,0 +1,99 @@
+{
+  "version": "pipeline-planning-review/v1",
+  "meaning": "Document/traceability validation only; no soak implementation, runtime execution, research admission or new task closure.",
+  "plan": "specs/009-pipeline-throughput/plan.md",
+  "plan_sha256": "sha256:15aab7a2e2b8938940acbcf5b2959b488ee5e952631a0e5e74cedd5ad4ca3fa2",
+  "original_counts": {
+    "complete": 78,
+    "pending_runtime": 18,
+    "blocked_research": 15
+  },
+  "coverage": {
+    "pending_runtime": [
+      "T011",
+      "T025",
+      "T026",
+      "T031",
+      "T034",
+      "T041",
+      "T059",
+      "T060",
+      "T062",
+      "T064",
+      "T069",
+      "T073",
+      "T075",
+      "T076",
+      "T078",
+      "T084",
+      "T085",
+      "T086"
+    ],
+    "blocked_research": [
+      "T093",
+      "T094",
+      "T095",
+      "T096",
+      "T097",
+      "T098",
+      "T099",
+      "T100",
+      "T101",
+      "T102",
+      "T103",
+      "T104",
+      "T105",
+      "T106",
+      "T107"
+    ]
+  },
+  "planned_work_packages": [
+    "009:S001",
+    "009:S002",
+    "009:S003",
+    "009:S004",
+    "009:S005",
+    "009:S006",
+    "009:S007",
+    "009:S008",
+    "009:S009",
+    "009:S010",
+    "009:S011",
+    "009:S012"
+  ],
+  "all_original_markers_consistent": true,
+  "all_work_packages_unchecked": true,
+  "relative_links_verified": 110,
+  "checklists": [
+    {
+      "file": "specs/009-pipeline-throughput/checklists/requirements.md",
+      "checked": 16,
+      "unchecked": 0,
+      "markers_changed": false
+    }
+  ],
+  "budgets": {
+    "global_seconds": 86400,
+    "total_reserved_seconds": 84000,
+    "phase4_seconds": 18000,
+    "phase4_subreservations_seconds": [
+      3600,
+      1200,
+      7800,
+      5400
+    ],
+    "work_windows_seconds": [
+      3600,
+      3600
+    ],
+    "checkpoint_restart_reserve_seconds": 600,
+    "soak_parent_seconds": 7800
+  },
+  "hip_handoff_target": 1,
+  "result_archives_per_invocation": 1,
+  "current_source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
+  "source_entries": 720,
+  "runtime_source_unchanged": true,
+  "new_executable_command": false,
+  "implementation_started": false
+}

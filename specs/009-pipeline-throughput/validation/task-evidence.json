@@ -1823,6 +1823,15 @@
       "research": false,
       "final_access": false,
       "multi_day_training": false
-    }
+    },
+    "native_health_stress_pulses": {
+      "every_workload_seconds": 600,
+      "maximum_pulses": 12,
+      "cases_per_pulse": 18,
+      "separate_from_generated_program_metrics": true
+    },
+    "training_data": "full approved generic training partition; frozen complete development-validation partitions and real cadence",
+    "soak_status": "planned integration, not an executed or admitted learning run",
+    "planning_review": "specs/009-pipeline-throughput/validation/integrated-soak-plan-review.json"
   }
 }

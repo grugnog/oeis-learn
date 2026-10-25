@@ -1,3 +1,5 @@
+**Current integrated execution plan:** [Full-scale bounded soak and remaining Spec009 tasks](plan.md). This is the single current sequence: complete all unblocked integration/local checks, then target one combined HIP command/result archive covering qualification, finite batch selection, persistent104.5M work, controlled restart and reports. Two3600s workload windows share a600s checkpoint/restart reserve; old global/phase/resource/artifact caps remain. Any follow-up HIP loop needs a concrete blocker and reuses only proven-compatible evidence. The new scope is PLANNED, with no new executable handoff yet; original counts78/18/15 and accepted source735ede… remain unchanged. Earlier handoffs and implementation snapshots below are historical at their stated producers.
+
 # Spec 008 carryover and scope revisions
 
 **Recorded**: 2026-10-23  
