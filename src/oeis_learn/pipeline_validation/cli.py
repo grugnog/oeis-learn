@@ -4,7 +4,7 @@ import shutil
 from dataclasses import asdict
 from .contracts import parse
 from .identity import confined, digest, number, reference
-from .registry import registry, replay_registry, replay_comparison_registry, replay_batching_registry, hardware_registry, resolve
+from .registry import registry, replay_registry, replay_comparison_registry, replay_batching_registry, hardware_registry, native_capacity_registry, resolve
 from .runner import execute
 from .adapters import Adapters
 
@@ -33,7 +33,9 @@ def main(args, root, host_factory):
     args.pipeline_engines=engines
     if (contract['scope'].startswith('engineering-replay') or contract['scope']=='engineering-hardware') and args.phase not in {'all-ready','1','2'}:
         raise ValueError('replay scope registers only phases 1 and 2')
-    select_registry={'engineering':registry,'engineering-replay':replay_registry,
+    if contract['scope']=='engineering-native-capacity' and args.phase not in {'all-ready','1','3'}:
+        raise ValueError('native capacity scope registers only phases 1 and 3')
+    select_registry={'engineering-native-capacity':native_capacity_registry,'engineering':registry,'engineering-replay':replay_registry,
         'engineering-replay-comparison':replay_comparison_registry,'engineering-replay-batching':replay_batching_registry,'engineering-hardware':hardware_registry}
     all_stages=select_registry[contract['scope']](engines,primary)
     stages=resolve(all_stages,args.phase)

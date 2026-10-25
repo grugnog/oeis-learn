@@ -123,3 +123,10 @@ def hardware_registry(engines=('docker',),primary='docker'):
         stages.append(Stage(key,2,(previous,),seconds=1800,adapter='hardware-branch'));previous=key
     stages.append(Stage('hardware.report',2,seconds=30,adapter='hardware-report'))
     return stages
+
+
+def native_capacity_registry(engines=('docker',),primary='docker'):
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','cpu'} or s.adapter=='image' and s.id.endswith('.qualification')]
+    stages.append(Stage('native.capacity',3,('cpu.'+primary+'.semantic',),seconds=4500,adapter='native-capacity'))
+    stages.append(Stage('native.capacity.report',3,seconds=30,adapter='native-capacity-report'))
+    return stages

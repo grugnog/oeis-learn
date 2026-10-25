@@ -209,3 +209,30 @@ def test_disk_cache_rejects_bad_names_and_symlinks_without_following(tmp_path):
     with RoleCaches(ServiceLimits(), root) as cache:
         assert not cache.disk.entries and not list(root.glob("*.json"))
     assert outside.read_text() == "SECRET"
+
+
+@pytest.mark.parametrize('workers',[1,2,4])
+def test_real_native_slot_waves_preserve_full_corpus_and_clocks(tmp_path,workers):
+    import os
+    from oeis_learn.pipeline_validation.role import native_trial
+    from oeis_learn.pipeline_validation.native_capacity import semantics
+    from oeis_learn.pipeline_validation.identity import seal
+    binary=Path('/opt/oeis-build-info/synthesis-worker')
+    if not binary.exists():
+        if os.environ.get('OEIS_REQUIRE_BIGINT_BUILD')=='1':
+            pytest.fail('packaged synthesis worker required')
+        pytest.skip('requires qualification image')
+    # Independent simple affine fixture isolates scheduling from hard solver cases.
+    # The operator's full18-stratum screen remains independently required.
+    source='(program (return (add (mul (param.get p0) $index) (param.get p1))))'
+    corpus=seal(dict(version='pipeline-native-corpus/v1',exclusions=[],rows=[
+        dict(id=f'affine-{i}',stratum='affine-fixture',source=source,
+            indices=[str(j) for j in range(20)],values=[str(3*j+7) for j in range(20)]) for i in range(18)]))
+    result=native_trial(tmp_path,workers=workers,corpus=corpus,contract='sha256:'+'1'*64,cap=60,admission='slot-waves/v1')
+    expected=semantics(result,corpus)
+    assert len(expected)==18 and all(r['outcome']=='verified_solution' and r['admitted'] for r in expected)
+    assert all(a['assignment']=={'p0':'3','p1':'7'} for r in expected for a in r['admitted'])
+    assert result['metrics']['workers']==workers
+    assert all(s['batches'] for s in result['metrics']['slots'])
+    assert result['primary_seconds']>=result['seconds']
+    assert (tmp_path/'measurement.json').is_file()
