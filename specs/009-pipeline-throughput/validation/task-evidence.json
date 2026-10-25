@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 78,
-    "pending_runtime": 18,
+    "complete": 77,
+    "pending_runtime": 19,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -810,10 +810,11 @@
       "status": "pending_runtime",
       "phase": 3,
       "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "The accepted full18-row slot-wave screen qualifies the separate experimental4-worker diagnostic. This original phase3 gate retains its original queued/v2 policy, faults/cost/acceptance scope and current-source requirements; it is not closed by the separate two-pair slot-wave comparison.",
       "evidence": [
         "configs/foundation/pipeline_validation.json",
-        "specs/009-pipeline-throughput/validation/phase-3-local.md"
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md"
       ]
     },
     {
@@ -822,9 +823,10 @@
       "status": "pending_runtime",
       "phase": 3,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "The accepted full18-row slot-wave screen qualifies the separate experimental4-worker diagnostic. This original phase3 gate retains its original queued/v2 policy, faults/cost/acceptance scope and current-source requirements; it is not closed by the separate two-pair slot-wave comparison.",
       "evidence": [
-        "specs/009-pipeline-throughput/validation/phase-3-local.md"
+        "specs/009-pipeline-throughput/validation/phase-3-local.md",
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md"
       ]
     },
     {
@@ -847,11 +849,12 @@
       "status": "pending_runtime",
       "phase": 3,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "The accepted full18-row slot-wave screen qualifies the separate experimental4-worker diagnostic. This original phase3 gate retains its original queued/v2 policy, faults/cost/acceptance scope and current-source requirements; it is not closed by the separate two-pair slot-wave comparison.",
       "evidence": [
         "specs/009-pipeline-throughput/contracts/scheduling.md",
         "specs/009-pipeline-throughput/validation/phase-3-local.md",
-        "specs/009-pipeline-throughput/validation/task-evidence.json"
+        "specs/009-pipeline-throughput/validation/task-evidence.json",
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md"
       ]
     },
     {
@@ -1445,10 +1448,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Affected-source CPU/native1/2/4 fixture, full18-row timing, clocks/debits and package execution accepted at176ecc9; no whole-feature/research completion.",
-      "blocking_reason": null,
+      "implementation_disposition": "Accepted affected-source closure at176ecc9 remains historical. New one-container GPU/native coexistence, child supervision, cancellation and fixture code requires current CPU/native/HIP/package qualification.",
+      "blocking_reason": "154 host tests and verified local partial export pass. Current pinned real-native cycles, actual HIP/native coexistence and all20 ordinary/repeatability slots await the combined target archive; no learning run admitted.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1473,7 +1476,9 @@
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T032351Z.json",
         "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
-        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.json"
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.json",
+        "specs/009-pipeline-throughput/validation/coschedule-implementation.md",
+        "specs/009-pipeline-throughput/validation/coschedule-local-evidence.json"
       ]
     },
     {
@@ -1642,5 +1647,20 @@
     "meaning": "Separate CPU-only queued diagnostic, fixed full18-row slot-wave calibration and independent1/2/4 worker screens plus observed follow-ups in one archive; no production/GPU/learning authority.",
     "operator_review": "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
     "local_evidence": "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json"
+  },
+  "coschedule_refinement": {
+    "status": "IMPLEMENTED_TARGET_PENDING",
+    "source": "sha256:eb57cb0b2279dbea1430f9a8dd88e2e548c60417aaef36a996563412d40ac02a",
+    "manifest": "configs/foundation/pipeline_coschedule.json",
+    "contract": "specs/009-pipeline-throughput/contracts/coschedule.md",
+    "handoff": "specs/009-pipeline-throughput/validation/coschedule-implementation.md",
+    "local_evidence": "specs/009-pipeline-throughput/validation/coschedule-local-evidence.json",
+    "tasks": {
+      "009:O001": "complete",
+      "009:O002": "complete",
+      "009:O003": "complete",
+      "009:O004": "pending_runtime"
+    },
+    "meaning": "Separate GPU128/native144 equal-component serial/overlap and ten-repeat shared-controller scope; one quota and GPU owner. No generated-program/default/research/learning admission."
   }
 }

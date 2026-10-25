@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: Implementation and available host work reconciled in PR #60. Checked items are completed code/documentation or the stated host fixture task, not target qualification. The actual stdlib CLI passed 89 tests; the current-source fourth operator archive verifies and passes selected Podman prerequisite engineering while comparisons/costs remain inconclusive. See validation/operator-20261024T141450Z-review.md. Unchecked runtime/engine/HIP and unadmitted research tasks remain visible; see [implementation closeout](validation/implementation-closeout.md) and [task evidence](validation/task-evidence.json). No performance adoption or scientific result is claimed.
+**Status**: Original six-phase implementation remains distinct from target qualification and user-held scientific work. Accepted native-capacity evidence at176ecc9 passes655 CPU tests/all18 slots and selects4 workers experimentally. Current co-scheduling code passes154 host tests and verified local export; actual CPU/native/HIP20-slot collection remains pending. Original counts77 complete/19 runtime pending/15 research held or blocked reflect reopened affected-sourceT110. See the current [co-scheduling handoff](validation/coschedule-implementation.md), [implementation closeout](validation/implementation-closeout.md) and [task evidence](validation/task-evidence.json). No production or learning admission.
 
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
 
@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -500,3 +500,12 @@ After the [accepted GPU ladder](validation/hardware-ladder-operator-20261024T220
 ### Accepted full18-row native screen
 
 [Corrected target review](validation/native-capacity-operator-20261025T040709Z.md) closes009:N004/T110 at176ecc9:655 CPU tests, all18 native slots/324 result rows and strict306 wave debits complete. Four workers win experimentally with68.63–70.71% reductions; no defaults or learning admission. Counts78 complete/18 runtime pending/15 research held. No duplicate native/GPU screen is requested; deliberate co-scheduling, useful pipeline throughput and stability remain hardware work.
+
+## Supplemental GPU/native co-scheduling and repeatability v1
+
+The [accepted native screen](validation/native-capacity-operator-20261025T040709Z.md) and earlier GPU128 screen support this separate [contract](contracts/coschedule.md)/[handoff](validation/coschedule-implementation.md). One container shares the CPU/memory envelope, one fresh GPU child runs at a time, and native4 deliberately overlaps only in its named arm. Fixed eight-cycle/144-native-row work retains complete evidence inside existing artifact bounds. Original policies, scientific requirements and learning hold remain.
+
+- [X] 009:O001 Register the separate closed manifest/graph, accepted evidence basis, GPU128/native144 equal work, fixed20-slot serial/overlap/repeat roster, immutable clocks and unchanged global/phase/resource/artifact bounds before timing.
+- [X] 009:O002 Implement CPU/native references, source-bound baseline-only child and schedule decision, one quota/GPU owner, fresh supervised GPU children, unique native cycle jobs, strict full-work parity/clock/debit/resource gates and bounded shared cancellation/drain with complete partial/unstarted evidence.
+- [X] 009:O003 Run154 host tests and actual public stdlib export with all20 unstarted slots explicit; author/register packaged-native cycles and real HIP/native serial/overlap fixtures; record exact source/manifest/archive and one target command without host dependencies.
+- [ ] 009:O004 Collect/review current CPU/native/HIP fixtures and every admitted/failed/blocked ordinary/repeatability slot from one target archive, including source/child/decision/boundaries/jobs/clock/debit/resource/device/cleanup identities. No original joint adoption, persistent-trainer, learning or multi-day admission inferred.
