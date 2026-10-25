@@ -1,3 +1,5 @@
+**Completed handoff**: [Accepted target review](coschedule-operator-20261025T151306Z.md) closes009:O004/T110 at5014881. All20 slots/current CPU/HIP fixtures pass; no rerun is requested. [Hardware convergence](hardware-convergence.md) records the next integration question. The implementation details and command below are historical at their stated source.
+
 # Combined GPU/native coexistence and repeatability handoff
 
 The [accepted native screen](native-capacity-operator-20261025T040709Z.md) passes:
