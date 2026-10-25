@@ -58,6 +58,16 @@ memory proof. Actual aggregate watchdogs remain mandatory.
 Use one-Hz whole-role observations, including cgroup memory.stat, device residency,
 CPU quota, disk, component durations and checkpoint-free disposable update costs.
 Telemetry overhead is uncalibrated; all models use the same collection mode.
+The sizing recorder omits bulk whole-host CPU/load strings (whole-role CPU comes
+from cgroup cpu.stat), retains host memory and process/GPU/cgroup observations,
+and fails closed on a sample exceeding16KiB rather than silently truncating it.
+At most1110 external-role seconds need about261MiB across all15 roles. Native public
+receipts retain every compact independent-admission/source/assignment/verification
+digest plus complete clock/debit records. Exact raw native responses remain in
+the invocation's excluded private payload under the8GiB disk watchdog; this archive
+does not claim to requalify fitting semantics or admit a generated program to research.
+This keeps uncompressed mandatory evidence within512MiB without dropping trials,
+trimming private responses to look complete or raising caps.
 Weights/oracles are hard-linked into read-only role inputs rather than copied for
 every trial. Full generated/native evidence stays bounded by unchanged512MiB ZIP,
 8GiB transient, stream/trace/reserve/global/build and5s cleanup caps. Fifteen1110s
@@ -71,6 +81,9 @@ per whole-role minute, batch/prompt denominators, native clocks, full costs and
 observed memory. Calibration aggregates require all three complete calibrations
 and all five role audits; no favorable-subset medians. Parameter-count ranking of
 hardware-eligible profiles is descriptive, not a selected learning configuration.
+Both in-role and engine-startup-through-cleanup whole-minute program rates are
+reported. Any72h token extrapolation uses training-only short-trial throughput,
+excludes other phases/thermal effects and is explicitly not research-cost admission.
 Generation incompleteness stays explicit and cannot establish useful-throughput
 readiness even if finite updates/memory qualify. Original complete-work/five-pair,
 persistent-state/operations/cost/learning gates remain separate.

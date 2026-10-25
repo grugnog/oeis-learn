@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import statistics
 import time
-from .identity import seal,digest,write,file_hash,number
+from .identity import seal,digest,write,file_hash,number,validate
 from .model_sizes import PROFILES,TRIALS,SLOTS,validate_profile,parameters,peak_estimate
 
 MEANING='fresh-model hardware sizing; no model-quality/default/persistent-state/research/learning admission'
@@ -46,6 +46,8 @@ def summarize_profiles(receipts):
         profiles[key]=dict(profile=p,parameters=parameters(p),complete=ok,missing=missing,
             training_tokens_per_second_median=statistics.median(v['training_tokens_per_second'] for v in results[2:]) if ok else None,
             training_updates_per_second_median=statistics.median(v['training_updates_per_second'] for v in results[2:]) if ok else None,
+            training_only_72h_extrapolation_tokens=statistics.median(v['training_tokens_per_second'] for v in results[2:])*72*3600 if ok else None,
+            projection_caveat='short training-only extrapolation excludes generation/validation/checkpoints/export/thermal drift; not a complete cost receipt',
             slots={t:dict(state=r.get('state','UNSTARTED'),reason=r.get('reason','not dispatched'),receipt=r.get('identity')) for t,r in zip(TRIALS,rows)},
             trials={t:v for t,v in zip(TRIALS,results)})
     return seal(dict(version='pipeline-model-sizing-report/v1',profiles=profiles,hardware_eligible_profiles=eligible,
@@ -74,7 +76,7 @@ def complete_result(result,profile):
 def prepare_inputs(recipe,prompts,training,validation,output,**binding):
     attempt_plan(prompts)
     if len(training)!=128 or len(validation)!=32:raise ValueError('frozen128 training/32 validation rows required')
-    if recipe['model']['seed']!=20261016 or recipe['inputs']['profile']!='hybrid-chunks/v1' or not all(recipe['inputs']['mask'].values()):
+    if recipe['model']['seed']!=20261016 or recipe['inputs']['profile']!='hybrid-chunks/v1' or recipe['inputs']['mask']!={k:True for k in ('magnitude','modular','difference','exact_bytes')}:
         raise ValueError('existing full mathematical input profile required')
     if recipe['learning']['batch_size']!=8 or recipe['learning']['learning_rate']!=.0001:
         raise ValueError('unchanged batch8/LR1e-4 required')
@@ -90,9 +92,14 @@ def prepare_inputs(recipe,prompts,training,validation,output,**binding):
 
 def read_work(inputs,config):
     work=json.loads((inputs/'work.json').read_text());m=work['manifest']
+    validate(m,{'version','binding','payload','profiles','slots','updates','training_batch','validation_rows',
+        'generation_batches','body_tokens','initialization'},'pipeline-sizing-input/v1')
     if (set(work)!={'manifest','recipe','prompts','training','validation'} or m!=seal(m)
         or m['profiles']!=PROFILES or m['slots']!=SLOTS or m['binding']['source']!=config['source']
-        or m['payload']!=digest({k:v for k,v in work.items() if k!='manifest'})):
+        or m['payload']!=digest({k:v for k,v in work.items() if k!='manifest'})
+        or m['updates']!=32 or m['training_batch']!=8 or m['validation_rows']!=32
+        or m['generation_batches']!=[8,32] or m['body_tokens']!=1024
+        or len(work['training'])!=128 or len(work['validation'])!=32):
         raise ValueError('frozen sizing work/source identity mismatch')
     attempt_plan(work['prompts']);return work
 
@@ -151,7 +158,14 @@ def fit_generated(output,rows,prompts,config,deadline):
                         timing[row['id']]['dispatched']=time.monotonic()
                         result=client.fit(row['source'],VisiblePrompt(tuple(prompt['indices']),tuple(prompt['values'])),
                             policy='none' if '(param.get ' in row['source'] else 'eligible-literals/v1',deadline=until,seed=row['seed'])
-                        timing[row['id']]['native_completed']=time.monotonic();return result
+                        # Exact raw payload stays private and bounded by the global
+                        # disk watchdog. Public receipts retain every admission hash,
+                        # independent-verifier identity and strict terminal clock.
+                        raw=output/'private/native-results'/(digest(row['id'])[7:]+'.json');write(raw,result)
+                        compact=dict(complete=result.get('complete',False),outcome=result['outcome'],response_sha256=digest(result),
+                            admitted=[dict(source_sha256=a.get('source_sha256'),assignment_sha256=digest(a.get('assignment')),
+                                verification_sha256=digest(a.get('verification')),scope=a.get('verification',{}).get('scope')) for a in result.get('admitted',[])])
+                        timing[row['id']]['native_completed']=time.monotonic();return compact
                 result=yield NativeRequest(logical,i,until,operation,cancel=client.worker.cancel_all,
                     on_expired=lambda:dict(complete=False,outcome='deadline',admitted=[]))
                 evidence_path=output/(digest(row['id'])[7:]+'-native.json');write(evidence_path,result)
@@ -183,6 +197,7 @@ def gpu_role(inputs,output,config):
     p=options(config);work=read_work(inputs,config);started=time.monotonic();deadline=started+1080
     rows=attempt_plan(work['prompts']);write(output/'attempt-plan.json',seal(dict(version='pipeline-sizing-attempt-plan/v1',rows=rows)))
     ref=json.loads((inputs/'reference.json').read_text())
+    validate(ref,{'version','source','contract','profile','workload','weights','oracle','counts','memory','expected'},'pipeline-sizing-reference/v1')
     if (ref!=seal(ref) or ref['profile']!=p or ref['workload']!=work['manifest']['identity'] or ref['source']!=config['source']
         or ref['contract']!=config['contract'] or ref['weights']!=file_hash(inputs/'weights.pt') or ref['oracle']!=file_hash(inputs/'oracle.pt')):
         raise ValueError('frozen sizing profile/reference/source/weights required')
@@ -190,7 +205,7 @@ def gpu_role(inputs,output,config):
     torch.set_float32_matmul_precision('highest');torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     timings={};success=False
     try:
-        with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node']):
+        with Recorder(output/'observations',instrumented=True,render_node=config['options']['render_node'],host_counters=False,sample_bytes=16<<10):
             encoder,decoder,counts=construct_sizing_models(p)
             weights=torch.load(inputs/'weights.pt',map_location='cpu',weights_only=True)
             encoder.load_state_dict(weights['encoder']);decoder.load_state_dict(weights['decoder']);del weights
@@ -244,6 +259,8 @@ def gpu_role(inputs,output,config):
                 begin=time.monotonic();fit_generated(output/f'native-b{batch_size}',arm,work['prompts'],config,deadline);timings[f'native_b{batch_size}']=time.monotonic()-begin
             if parameter_digest(encoder,decoder)!=trained:raise RuntimeError('sampling mutated the frozen trained model')
             check_deadline(deadline);success=True
+        telemetry=json.loads((output/'observations/telemetry.json').read_text())
+        if telemetry['collector_error'] or not telemetry['samples']:raise RuntimeError('bounded telemetry collection required')
     except torch.cuda.OutOfMemoryError as exc:
         raise MemoryError('sizing HIP allocation exhausted; stop whole invocation') from exc
     finally:
@@ -262,7 +279,7 @@ def gpu_role(inputs,output,config):
 
 
 class SizingStages:
-    def __init__(self,adapters):self.a=adapters;self.prepared=None;self.references={}
+    def __init__(self,adapters):self.a=adapters;self.prepared=None;self.prepared_hash=None;self.references={}
     def __call__(self,stage,output):
         a=self.a
         if stage.id=='sizing.report':
@@ -277,9 +294,11 @@ class SizingStages:
             if not a.args.run or not a.args.inputs:raise CapabilityError('model sizing requires existing checked --run/--inputs')
             self.prepared=output/'prepared';self.prepared.mkdir();host.select_gpu()
             m=module.prepare(a.root/a.args.run,a.root/a.args.inputs,self.prepared,image=a.images.images[(a.args.engine,'gpu')],source=digest(collect_snapshot(a.root)),render_node=host.policy['render_node'],sizing=True)
+            self.prepared_hash=file_hash(self.prepared/'input/work.json')
             if a.contract['weights_ref'] and a.contract['weights_ref']['sha256']!=m['binding']['parent_weights']:raise ValueError('parent weights lineage differs')
             return dict(workload=m['identity'],interpretation=MEANING)
         key=stage.id.split('.')[1];profile=PROFILES[key];cpu=stage.adapter=='sizing-reference'
+        if file_hash(self.prepared/'input/work.json')!=self.prepared_hash:raise ValueError('prospective sizing work changed before dispatch')
         inputs=output/'input';inputs.mkdir();os.link(self.prepared/'input/work.json',inputs/'work.json')
         if not cpu:
             refroot,hashes=self.references[key]
@@ -312,4 +331,10 @@ class SizingStages:
                 raise ValueError('frozen sizing source/reference/current resource envelope differs')
         elif result.get('resources',{}).get('qualified') is not True:raise ValueError('CPU reference memory observation required')
         if cpu:self.references[key]=(output/'role',{n:file_hash(output/'role'/r) for n,r in [('reference.json','reference.json'),('weights.pt','private/weights.pt'),('oracle.pt','private/oracle.pt')]})
+        else:
+            host_timing=json.loads((output/'role/host-timing.json').read_text())
+            seconds=number(host_timing['seconds_through_cleanup'],positive=True)
+            attempts=json.loads((output/'role/attempts.json').read_text())
+            result=seal(dict(result,host_seconds_through_cleanup=seconds,
+                generation_including_container_startup_cleanup=generation_counts(attempts,seconds)))
         return result

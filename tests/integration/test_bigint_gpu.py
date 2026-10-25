@@ -210,3 +210,11 @@ def test_actual_hip_and_native_coschedule_serial_overlap_parity(tmp_path):
         pytest.skip('actual HIP required')
     from tests.unit.test_pipeline_profile import check_coschedule_role
     check_coschedule_role(tmp_path)
+
+
+def test_actual_hip_all_sizing_profiles_update_cache_and_generation(tmp_path):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':pytest.fail('actual HIP required')
+        pytest.skip('actual HIP required')
+    from tests.unit.test_bigint_model_sizing import check_profiles
+    check_profiles('cuda',tmp_path)
