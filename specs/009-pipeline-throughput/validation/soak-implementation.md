@@ -1,4 +1,6 @@
-# Full-scale engineering soak: first target handoff
+# Full-scale engineering soak: corrected target handoff
+
+The [first target review](soak-operator-20261025T211131Z.md) verifies all twelve full-data batch trials and selects32, but UID operations block every soak leg. The permission/image repair passes192 host tests and is pushed; corrected actual target qualification remains pending.
 
 Code and available local checks are complete on `009-pipeline-throughput`,
 PR [#60](https://github.com/grugnog/oeis-learn/pull/60), stacked on #59.
@@ -68,20 +70,28 @@ sustained PASS;5% is an investigation trigger. Anonymous/file/driver growth and
 checkpoint/launch/cleanup costs stay visible. Hardware qualification has no learned
 success threshold, and zero generated-to-native work is explicitly NOT_EXERCISED.
 
-Local evidence:190 stdlib tests pass; the actual public CLI exits3 with both engines
-explicitly unavailable and34 dependent stages blocked. Its88-member archive verifies
-without omissions. Host orchestration tests exercise the actual adapter graph and
-shared restart state with labelled fake roles; they are not HIP evidence. Real
-full-size CPU construction, actual trainer/checkpoint/resume and HIP update fixtures
-are registered in pinned qualification. Already available CI at09fee7c passes the
-foundation and twelve completed container/native jobs, including both containment
-jobs; that earlier source does not qualify the final changes. No newly queued PR CI
-is awaited. See [machine local evidence](soak-local-evidence.json).
+Repair local evidence:192 stdlib tests pass and the actual public CLI exports a
+verified88-member PARTIAL archive with zero omissions when both engines are
+unavailable. The full UID exporter/recovery code executes locally under restrictive
+umask077, with only its read-only mount simulated. Both images now explicitly
+provide searchable0755 mount parents, the fixture explicitly publishes readable
+public proof files and logs UID/path modes, and primary UID operations gate
+preparation/candidate timings. A pinned CPU image-path regression is registered.
+Actual repaired-image foreign-UID/rootless access and the unstarted soak still
+require the command above; no host permission/account changes are needed.
 
-Current original tasks:77 complete /19 runtime pending /15 research held. S001,
-S003,S007–S010 close for implementation/local scope. S002/S004–S006 have code and
-fixtures ready but retain their target-runtime clauses; S011 awaits this archive
-and S012 its review. Original adoption remains INCONCLUSIVE/RETAIN_BASELINE with
+At prior producer d80bf576,716 CPU tests plus31 subtests,21 HIP tests and all12
+batch roles pass; all four scoped full-size parity records have zero mismatches.
+Batch32 achieves2543 median training-component tokens/s versus2042 at8, with7.41GiB
+maximum calibration role upper memory. Short whole-role GPU means near63% include
+setup, validation and checkpoint/drain and do not establish steady training duty.
+No joint/stress/overhead/soak/scorer role starts. Docker is a Podman compatibility
+alias and remains a portability blocker only. Both already-completed PR workflows
+at d80bf576 pass; they do not qualify repair source1f3bba26, and no new CI is awaited.
+See [operator review](soak-operator-20261025T211131Z.md) and
+[repair local evidence](soak-uid-repair-local-evidence.json).
+
+Current original tasks:77 complete /19 runtime pending /15 research held. S001/S003/S007–S010 close for implementation/local scope. S002 has actual model/count/parity/update evidence at d80bf576. S004–S006 retain incomplete runtime clauses, S011 awaits corrected full-scope evidence and S012 its review. Original adoption remains INCONCLUSIVE/RETAIN_BASELINE with
 all20 cold/warm confirmation slots UNSTARTED: this disposable model/batch scope
 does not establish the original complete-work baseline/strata for adoption.
 Diverse32/full128+128 whole-schedule costs remain unknown.008:T093 stays deferred,

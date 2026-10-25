@@ -176,7 +176,9 @@
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "tests/unit/test_pipeline_bundle.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -366,7 +368,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -380,7 +384,9 @@
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "specs/009-pipeline-throughput/validation/phase-1-operator-review.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -448,7 +454,9 @@
         "src/oeis_learn/tracking/foundation_metrics.py",
         "src/oeis_learn/tracking/pipeline_profile.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -487,7 +495,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -582,7 +592,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-2-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -828,7 +840,9 @@
         "specs/009-pipeline-throughput/validation/phase-3-local.md",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -842,7 +856,9 @@
         "specs/009-pipeline-throughput/validation/phase-3-local.md",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -872,7 +888,9 @@
         "specs/009-pipeline-throughput/validation/task-evidence.json",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -899,7 +917,9 @@
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "tests/integration/test_bigint_workflow.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -968,7 +988,9 @@
         "src/oeis_learn/fresh/pipeline_report.py",
         "src/oeis_learn/tracking/pipeline_profile.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1020,7 +1042,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1049,7 +1073,9 @@
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "src/oeis_learn/fresh/bigint_config.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1064,7 +1090,9 @@
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "specs/009-pipeline-throughput/validation/task-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1092,7 +1120,9 @@
         "tests/unit/test_container_validation.py",
         "tests/unit/test_foundation_roles.py",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1173,7 +1203,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1186,7 +1218,9 @@
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1202,7 +1236,9 @@
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "specs/009-pipeline-throughput/validation/task-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1486,7 +1522,7 @@
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
       "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "All unblocked soak code/local checks complete; accepted source735ede remains historical.",
+      "implementation_disposition": "First f35e2441 target reviewed; full-size preflight passes, UID permissions block soak. Repair code/local checks complete; current repaired image/runtime/soak evidence pending.",
       "blocking_reason": "Integrated soak implementation changes runtime/source closure; final current-source CPU/HIP/operations evidence pending.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
@@ -1526,7 +1562,9 @@
         "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T180134Z.md",
         "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T180134Z.json",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
-        "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+        "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
       ]
     },
     {
@@ -1749,7 +1787,7 @@
     }
   },
   "integrated_soak_plan": {
-    "status": "CODE_LOCAL_COMPLETE_TARGET_PENDING",
+    "status": "REPAIR_CODE_LOCAL_COMPLETE_CORRECTED_TARGET_PENDING",
     "plan": "specs/009-pipeline-throughput/plan.md",
     "checklist": "specs/009-pipeline-throughput/tasks.md#integrated-soak-work-packages",
     "target": "full-scale104.5M engineering qualification and persistent soak",
@@ -1801,18 +1839,23 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S002": {
-        "status": "pending_runtime",
+        "status": "complete",
         "description": "Integrate explicit104.5M profile and audited FP32 math execution into existing recipe/model/identity/checkpoint paths; preserve historical v1/default behavior and verify actual CPU/HIP counts/parity/finite updates.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "actual scoped model/count/parity/update integration at d80bf576; repaired image/package/operations closure remains pending under T110",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
+        ],
+        "runtime_producer": "d80bf5763e151e2cccc0cd26f36695b6c5d561bb"
       },
       "009:S003": {
         "status": "complete",
@@ -1821,7 +1864,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S004": {
@@ -1831,7 +1876,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S005": {
@@ -1841,7 +1888,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S006": {
@@ -1851,7 +1900,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S007": {
@@ -1861,7 +1912,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S008": {
@@ -1871,7 +1924,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S009": {
@@ -1881,7 +1936,9 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S010": {
@@ -1891,17 +1948,21 @@
         "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S011": {
         "status": "pending_runtime",
         "description": "Collect/review the single combined target archive, including actual full-size state/restart/job/clock/resource/window and per-engine evidence; any further loop is limited to a concrete blocker and required compatible-source prerequisites.",
-        "implementation_status": "awaiting_target_archive",
+        "implementation_status": "first_archive_review_complete; corrected_full_collection_pending",
         "validation_scope": "target collection/review pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       },
       "009:S012": {
@@ -1911,7 +1972,9 @@
         "validation_scope": "target collection/review pending",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
-          "specs/009-pipeline-throughput/validation/soak-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+          "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
         ]
       }
     },
@@ -1941,11 +2004,11 @@
       "separate_from_generated_program_metrics": true
     },
     "training_data": "full approved generic training partition; frozen complete development-validation partitions and real cadence",
-    "soak_status": "implemented; current-source actual target qualification and sustained evidence pending",
+    "soak_status": "first collection: all12 batch roles pass; UID permission failure blocks joint/soak/scorer; zero persistent legs; corrected target pending",
     "planning_review": "specs/009-pipeline-throughput/validation/integrated-soak-plan-review.json",
     "handoff": "specs/009-pipeline-throughput/validation/soak-implementation.md",
-    "local_evidence": "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
-    "host_tests": 190,
+    "local_evidence": "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
+    "host_tests": 192,
     "non_image_phase_reservations_seconds": {
       "1": 1440,
       "2": 5820,
@@ -1953,6 +2016,13 @@
       "4": 12600,
       "5": 11340
     },
-    "static_stages": 38
+    "static_stages": 38,
+    "previous_local_evidence": "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
+    "latest_collection": "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+    "latest_qualification_producer": "d80bf5763e151e2cccc0cd26f36695b6c5d561bb",
+    "experimental_batch": 32,
+    "experimental_batch_adoption": "NOT_ADOPTED; actual long-context/joint/stability evidence pending",
+    "repair_source": "sha256:1f3bba2634ac7a12d64e09afc214f772f4af55696f9dd7816ed0a24c8baf7fc3",
+    "repair_runtime_producer": "b850276ccaf8ef809fd804ce2d1a5d281dc73514"
   }
 }

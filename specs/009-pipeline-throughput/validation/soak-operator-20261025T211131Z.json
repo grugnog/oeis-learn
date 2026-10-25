@@ -1,0 +1,437 @@
+{
+  "version": "pipeline-soak-operator-review/v1",
+  "producer": "d80bf5763e151e2cccc0cd26f36695b6c5d561bb",
+  "source": "sha256:f35e2441869aa4c4fb03c531df1cc427c41af171516e0dbe8ab28b8fed501693",
+  "source_entries": 731,
+  "source_matches_producer": true,
+  "archive": {
+    "name": "009-soak-20261025T211131Z.zip",
+    "sha256": "sha256:df2a5f8628d53368d2292517d9eba7419dd72fbe6265df6071a4a22c7bdb1beb",
+    "bytes": 9214938,
+    "members": 859,
+    "manifest": "sha256:377796695f036a9c23049eddef88b06017857316fce3ff5bf89279839e373fe6",
+    "verified": true,
+    "omissions": 290,
+    "omission_reasons": {
+      "symlink": 290
+    },
+    "omissions_only_excluded_pytest_links": true
+  },
+  "receipts": {
+    "count": 38,
+    "bound_public_files_verified": 696,
+    "states": {
+      "BLOCKED": 9,
+      "PASS": 26,
+      "PARTIAL": 1,
+      "FAIL": 1,
+      "INCONCLUSIVE": 1
+    },
+    "sealed_and_inventory_and_prerequisites_verified": true
+  },
+  "selected_scope": "FAIL",
+  "elapsed_seconds": 1911.2341109300032,
+  "qualification": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 747,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 9
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/policy.compare/role/results.xml": {
+      "tests": 45,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "cpu_pytest_passes": 716,
+  "cpu_subtests": 31,
+  "hip_passes": 21,
+  "retirement_passes": 123,
+  "workflow_passes": 1106,
+  "workflow_skips": 9,
+  "policy_passes": 45,
+  "model_parameters": 104496662,
+  "data_counts": {
+    "parameter_development": 128,
+    "structural_development": 128,
+    "training": 512
+  },
+  "trial_count": 12,
+  "all_trials_complete": true,
+  "identical_initialization": true,
+  "trials": [
+    {
+      "batch": 8,
+      "trial": "warmup",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 128,
+      "validation_rows": 256,
+      "training_seconds": 25.802511877845973,
+      "active_seconds": 33.109486980130896,
+      "role_upper_bytes": 5816971264
+    },
+    {
+      "batch": 8,
+      "trial": "calibration-0",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 128,
+      "validation_rows": 256,
+      "training_seconds": 26.07580831926316,
+      "active_seconds": 34.97641184180975,
+      "role_upper_bytes": 6490693632
+    },
+    {
+      "batch": 8,
+      "trial": "calibration-1",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 128,
+      "validation_rows": 256,
+      "training_seconds": 26.05275792698376,
+      "active_seconds": 38.23212174116634,
+      "role_upper_bytes": 5822910464
+    },
+    {
+      "batch": 8,
+      "trial": "calibration-2",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 128,
+      "validation_rows": 256,
+      "training_seconds": 25.774083422962576,
+      "active_seconds": 36.98489595996216,
+      "role_upper_bytes": 6535008256
+    },
+    {
+      "batch": 16,
+      "trial": "warmup",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 64,
+      "validation_rows": 256,
+      "training_seconds": 22.223013177746907,
+      "active_seconds": 26.221469290088862,
+      "role_upper_bytes": 7354036224
+    },
+    {
+      "batch": 16,
+      "trial": "calibration-0",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 64,
+      "validation_rows": 256,
+      "training_seconds": 22.236029405379668,
+      "active_seconds": 26.11808962118812,
+      "role_upper_bytes": 6523969536
+    },
+    {
+      "batch": 16,
+      "trial": "calibration-1",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 64,
+      "validation_rows": 256,
+      "training_seconds": 22.22460113442503,
+      "active_seconds": 26.44130779383704,
+      "role_upper_bytes": 7357059072
+    },
+    {
+      "batch": 16,
+      "trial": "calibration-2",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 64,
+      "validation_rows": 256,
+      "training_seconds": 22.315204072277993,
+      "active_seconds": 26.697299391031265,
+      "role_upper_bytes": 7356145664
+    },
+    {
+      "batch": 32,
+      "trial": "warmup",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 32,
+      "validation_rows": 256,
+      "training_seconds": 21.02135109063238,
+      "active_seconds": 24.149137967964634,
+      "role_upper_bytes": 7628894208
+    },
+    {
+      "batch": 32,
+      "trial": "calibration-0",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 32,
+      "validation_rows": 256,
+      "training_seconds": 20.91478562145494,
+      "active_seconds": 23.70191806484945,
+      "role_upper_bytes": 7961600000
+    },
+    {
+      "batch": 32,
+      "trial": "calibration-1",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 32,
+      "validation_rows": 256,
+      "training_seconds": 21.03677081502974,
+      "active_seconds": 24.28255007811822,
+      "role_upper_bytes": 7663153152
+    },
+    {
+      "batch": 32,
+      "trial": "calibration-2",
+      "complete": true,
+      "tokens": 53190,
+      "examples": 1024,
+      "updates": 32,
+      "validation_rows": 256,
+      "training_seconds": 20.85922274715267,
+      "active_seconds": 23.981021041981876,
+      "role_upper_bytes": 7659257856
+    }
+  ],
+  "arms": {
+    "8": {
+      "training_tokens_per_second_median": 2041.6264623143504,
+      "maximum_calibration_role_upper_bytes": 6535008256,
+      "whole_role_gpu_busy_means": [
+        58.116279069767444,
+        54.130434782608695,
+        54.62222222222222
+      ],
+      "whole_role_cpu_equivalents": [
+        1.1210969939150233,
+        1.0425654326563436,
+        1.0626044891965851
+      ],
+      "interpretation": "short fresh roles include setup, validation and checkpoint/drain; not steady-soak GPU duty"
+    },
+    "16": {
+      "training_tokens_per_second_median": 2392.0637551923496,
+      "maximum_calibration_role_upper_bytes": 7357059072,
+      "whole_role_gpu_busy_means": [
+        62.35294117647059,
+        60.4,
+        60.74285714285714
+      ],
+      "whole_role_cpu_equivalents": [
+        1.2587018784059352,
+        1.2449424347679041,
+        1.2401956978303261
+      ],
+      "interpretation": "short fresh roles include setup, validation and checkpoint/drain; not steady-soak GPU duty"
+    },
+    "32": {
+      "training_tokens_per_second_median": 2543.1769162116725,
+      "maximum_calibration_role_upper_bytes": 7961600000,
+      "whole_role_gpu_busy_means": [
+        62.84375,
+        63.28125,
+        62.96875
+      ],
+      "whole_role_cpu_equivalents": [
+        1.4027816222551615,
+        1.3930808558786454,
+        1.3973263764513961
+      ],
+      "interpretation": "short fresh roles include setup, validation and checkpoint/drain; not steady-soak GPU duty"
+    }
+  },
+  "selected_training_batch": 32,
+  "training_rate_gain_over_batch8": 0.24566220273652495,
+  "choice": {
+    "adoption": "EXPERIMENTAL_ONLY",
+    "batches": {
+      "16": [
+        {
+          "complete": true,
+          "seconds": 22.236029405379668,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 22.22460113442503,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 22.315204072277993,
+          "tokens": 53190
+        }
+      ],
+      "32": [
+        {
+          "complete": true,
+          "seconds": 20.91478562145494,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 21.03677081502974,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 20.85922274715267,
+          "tokens": 53190
+        }
+      ],
+      "8": [
+        {
+          "complete": true,
+          "seconds": 26.07580831926316,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 26.05275792698376,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 25.774083422962576,
+          "tokens": 53190
+        }
+      ]
+    },
+    "data_counts": {
+      "parameter_development": 128,
+      "structural_development": 128,
+      "training": 512
+    },
+    "envelope": {
+      "ceiling_bytes": 120744574976,
+      "cpus": 16,
+      "render_node": "/dev/dri/renderD128"
+    },
+    "execution": {
+      "cudnn_tf32": false,
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "dtype": "torch.float32",
+      "float32_matmul": "highest",
+      "identity": "sha256:a0f8b1b950e1b762393cc1b4012c9a052d02b03770f5f08197808183ae518d67",
+      "matmul_tf32": false,
+      "mha_fastpath": false,
+      "sdpa_backends": [
+        "math"
+      ],
+      "version": "pipeline-sizing-execution/v1"
+    },
+    "identity": "sha256:69934f6b4dcfeeeec645f90fa50cbc4d313a79ab29e0fa4aaa760abb679d3791",
+    "inference_batch": 16,
+    "live_memory_upper_bytes": 69915886272,
+    "profile": {
+      "backend": "eager",
+      "decoder_layers": 6,
+      "encoder_layers": 6,
+      "ff": 3072,
+      "heads": 12,
+      "identity": "sha256:f1374f2c3c2d23ff068273e4d6a8e1facccfe2aa0847e465f90ccf9b13a957b6",
+      "name": "m100",
+      "precision": "float32",
+      "seed": 20261016,
+      "version": "pipeline-model-size/v1",
+      "width": 768
+    },
+    "selected_training_batch": 32,
+    "source": "sha256:f35e2441869aa4c4fb03c531df1cc427c41af171516e0dbe8ab28b8fed501693",
+    "version": "pipeline-soak-choice/v1",
+    "work": "sha256:af3ce30ca590f456fe0cccd59ae85eb82c1202d3454e19c1deeb3a700d6f35b7",
+    "workers": 4
+  },
+  "parity": {
+    "records": 4,
+    "mismatches": 0,
+    "maximum_absolute_error": 9.298324584960938e-06,
+    "positions": [
+      1,
+      32,
+      128
+    ],
+    "long_context_1024": "PENDING_BLOCKED_JOINT"
+  },
+  "failure": {
+    "stage": "soak.operations.podman",
+    "actual": "PermissionError writing /work/output/devices.json under foreign UID12345",
+    "reported": "FileNotFoundError: [Errno 2] No such file or directory: '/home/owen/workspace/oies-learn/tmp-validation/009-soak-20261025T211131Z/stages/soak.operations.podman/arbitrary-uid/devices.json'",
+    "cleanup_acknowledged_within_bound": true,
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 9, in <module>\n  File \"/opt/oeis-build/src/oeis_learn/pipeline_validation/identity.py\", line 70, in write\n    with path.open('x' if exclusive else 'w', encoding='utf-8') as stream:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/work/output/devices.json'\n",
+    "diagnosis": "Output was explicitly chmod777; a non-searchable implicitly created /work ancestor is the leading inference. The old archive has no path-stat probe, so exact ancestor mode is not proven.",
+    "additional_local_defect": "A private077 umask produces unreadable foreign-UID public proof files; reproduced by executing the real export/recovery fixture locally."
+  },
+  "blocked": [
+    "soak.joint",
+    "soak.observation",
+    "soak.persistent",
+    "soak.scorer"
+  ],
+  "persistent_windows_executed": 0,
+  "soak_parent_started": false,
+  "hardware_readiness": "PENDING",
+  "portability": {
+    "status": "PENDING",
+    "reason": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence",
+    "primary": "podman"
+  },
+  "native_component": {
+    "comparison": "sha256:4adc522da4c00781e097ae626a1e6508f9c8f904925a64e7e6382426e713d0f4",
+    "disposition": "RETAIN_SERIAL_BASELINE",
+    "identity": "sha256:a38b28856815c5dd00c4878cd7972b3f3ff8e42414613543e61eb6a36805ec4b",
+    "production_adoption": false,
+    "reason": "native report retained in full; joint correctness, resource and five-pair confirmation remain independently mandatory",
+    "version": "pipeline-native-component/v1",
+    "workers": 1
+  },
+  "adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+  "learning": "NOT_ADMITTED",
+  "final_access": "SEALED",
+  "long_run_admission": "NOT_ADMITTED",
+  "original_counts": {
+    "complete": 77,
+    "pending_runtime": 19,
+    "blocked_research": 15
+  },
+  "repair": {
+    "image": "Explicit0755 /work parents in both pinned final images; actual image-path regression registered.",
+    "fixture": "Explicit022 umask and initial path/UID diagnostics; execute real ENOSPC/export recovery locally under077.",
+    "admission": "Primary operations now gate full-data preparation and candidate timings.",
+    "bundle": "Excluded private/pytest symlinks do not leak into optional public omission names; public/mandatory unsafe-link checks remain strict."
+  },
+  "followup": "One combined command after all repairs/local checks; changed image/source closure requires current pinned prerequisites, no manual profiler/resume loop. Prior successful data retained at its producer, not relabelled as current-source runtime evidence."
+}

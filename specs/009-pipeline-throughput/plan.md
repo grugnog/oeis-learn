@@ -1,7 +1,7 @@
 # Integrated remaining-work plan: full-scale, bounded engineering soak
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25
-**Status:** Code/local implementation complete through the first HIP handoff; actual current-source runtime/soak qualification pending. See [one command and evidence](validation/soak-implementation.md).
+**Status:** First target reviewed: full-size model/batch preflight passes, UID operations block all soak legs. Repair code/local checks complete; corrected actual runtime/soak qualification pending. See [one command and evidence](validation/soak-implementation.md).
 **Specification:** [Spec 009](spec.md) · **Execution checklist:** [tasks.md](tasks.md#integrated-soak-work-packages)
 
 This is the single current implementation sequence for the remaining Spec 009
@@ -485,4 +485,12 @@ The [closed soak contract](contracts/soak.md), [single handoff](validation/soak-
 
 Preflight reserves270s worker work/300s role/330s external per batch trial, with two full training passes and full validation. Joint fixtures test the full model/long context and a labelled small-row recovery fixture before the actual full-data legs. All96 periodic prompts must dispatch to count as a complete cycle; legitimate grammar/deadline outcomes remain distinct from scientific success. Native pulse intervals never catch up after long generation. The mandatory1Hz resource audit stays active if optional instrumentation exceeds5% overhead. Arbitrary-UID/export/interruption fixtures run per engine, and a public CPU scorer runs after GPU drain.
 
-Original full-work/mandatory-strata confirmation eligibility is explicitly false for this new model/batch scope. Its20 cold/warm slots remain UNSTARTED and defaults remain baseline; no favorable exploratory subset is promoted. Original diverse32/transfer costs remain unknown. S002/S004–S006 runtime clauses and S011/S012 remain open until target collection/review; the implemented/local packages do not close original runtime or held research tasks.
+Original full-work/mandatory-strata confirmation eligibility is explicitly false for this new model/batch scope. Its20 cold/warm slots remain UNSTARTED and defaults remain baseline; no favorable exploratory subset is promoted. Original diverse32/transfer costs remain unknown. At this initial checkpoint S002/S004–S006 and S011/S012 awaited target evidence; the first target review below now records S002 closure. Original runtime and held research tasks do not close from host simulations.
+
+## First target review and bounded permissions repair
+
+[The first collection](validation/soak-operator-20261025T211131Z.md) matches sourcef35e2441 and verifies716 CPU tests plus31 subtests,21 actual-HIP tests and all12 full-data calibration roles. Batch32 freezes experimentally at2543 training tokens/s and7.41GiB maximum calibration role upper memory. S002 gains actual scoped model/count/parity/update evidence at d80bf576. No persistent window or7800s parent starts: the foreign-UID fixture cannot write device attestation. Docker is a Podman alias, so portability remains pending without blocking primary work.
+
+[Repair evidence](validation/soak-uid-repair-local-evidence.json) records192 passing host tests and verified public export. Both pinned images explicitly provide searchable0755 mount parents. Only the disposable UID fixture sets022 to publish host-readable proof and logs path modes before writing; restrictive077 export/recovery is reproduced and tested locally. Primary UID operations now gate preparation/candidate timing. Private/pytest symlink names no longer become public optional omissions; mandatory/public unsafe-member rules remain strict. These changes leave model/data/work/selection/caps/scientific gates unchanged.
+
+Use [one corrected combined command](validation/soak-implementation.md). Changed image/source closure requires fresh compatible-source qualification before the previously unstarted joint/overhead/soak/scorer stages; earlier successful preflight remains accepted at its producer, not relabelled current. S004–S006/S011/S012 and original runtime tasks remain open. This concrete mandatory failure justifies one repair collection under the original handoff policy; it is not a new isolated size search or automatic fallback. No new CI wait or learning admission.
