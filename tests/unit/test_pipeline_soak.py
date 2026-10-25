@@ -8,6 +8,34 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_continuation_cannot_reset_counters_or_lose_resume_state(self):
+        from oeis_learn.fresh.engineering import Control
+        from oeis_learn.pipeline_validation.soak_contract import lease
+        h='sha256:'+'a'*64
+        clock=[100.]
+        l=lease(h,h,h,now=100)
+        cfg=seal(dict(version='pipeline-engineering-worker/v1',source=h,work=h,choice=h,mode='window',
+            batch_size=8,window=0,resume=False,lease=l,token_target=1,seconds=3600,
+            instrumented=False,cadence_tokens=10))
+        c=Control({'engineering':cfg},{},Path('/unused'),clock=lambda:clock[0])
+        c.update([{'tokens':[1]*10}],.1);c.cycled();clock[0]=3700
+        first=c.finish();self.assertTrue(first['complete'])
+        second=seal(dict(cfg,window=1,resume=True))
+        resumed=Control({'engineering':second},{'engineering':copy.deepcopy(first['state'])},Path('/unused'),clock=lambda:clock[0])
+        self.assertEqual(resumed.state['tokens'],10)
+        self.assertEqual(resumed.deadline,7300)
+        with self.assertRaises(ValueError):Control({'engineering':second},{},Path('/unused'),clock=lambda:clock[0])
+
+    def test_ordinary_timer_does_not_synchronize_gpu(self):
+        import ast
+        path=Path(__file__).resolve().parents[2]/'src/oeis_learn/tracking/foundation_metrics.py'
+        node=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.ClassDef) and n.name=='PhaseTimer')
+        namespace={};exec(compile(ast.Module(body=[node],type_ignores=[]),str(path),'exec'),namespace)
+        # Execute the actual class without importing its container-owned dependencies.
+        values=iter([1,4]);timer=namespace['PhaseTimer']('cuda',clock=lambda:next(values),synchronized=False)
+        with timer.phase('ordinary'):pass
+        self.assertEqual(timer.values,{'ordinary':3})
+
     def test_registered_scope_keeps_learning_denied(self):
         from oeis_learn.pipeline_validation.contracts import parse
         from oeis_learn.pipeline_validation.soak_contract import manifest

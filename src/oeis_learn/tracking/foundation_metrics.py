@@ -179,13 +179,15 @@ def fuel_summary(values, *, limit, near_fraction=0.75):
 class PhaseTimer:
     """Wall phases synchronized at both device boundaries, with explicit sensor availability."""
 
-    def __init__(self, device="cpu", *, clock=None):
+    def __init__(self, device="cpu", *, clock=None,synchronized=True):
         import time
 
         self.device, self.clock = device, clock or time.monotonic_ns
+        self.synchronized=synchronized
         self.values = {}
 
     def synchronize(self):
+        if not self.synchronized:return
         import torch
 
         if torch.device(self.device).type == "cuda":

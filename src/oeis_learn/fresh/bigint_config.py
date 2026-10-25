@@ -135,12 +135,23 @@ def _merge(base, patch, path="recipe"):
 
 
 def resolve(value, *, seed=None, artifacts=None):
-    if not isinstance(value, dict) or value.get("version") != "bigint-bootstrap/v1":
-        raise ValueError("bigint-bootstrap/v1 required")
+    if not isinstance(value, dict) or value.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2"}:
+        raise ValueError("registered bigint-bootstrap version required")
     value = deepcopy(value)
+    sized=value['version']=='bigint-bootstrap/v2'
+    shape=value.pop('model_profile',None)
+    if sized:
+        from oeis_learn.pipeline_validation.model_sizes import PROFILES
+        if shape!=PROFILES['m100']:raise ValueError('explicit registered104.5M profile required')
+    elif shape is not None:raise ValueError('v1 cannot reinterpret model shapes')
+    base=defaults()
+    if sized:
+        base['version']='bigint-bootstrap/v2'
+        base['model'].update(d_model=768,heads=12,encoder_layers=6,decoder_layers=6,ff=3072)
     existing = value.pop("identity", None)
     pipeline = value.pop('pipeline', None)
-    result = _merge(defaults(), value)
+    result = _merge(base, value)
+    if sized:result['model_profile']=shape
     if pipeline is not None:
         from .pipeline_jobs import validate_policy
         result['pipeline'] = validate_policy(pipeline)
@@ -152,7 +163,7 @@ def resolve(value, *, seed=None, artifacts=None):
         if result["execution"]["artifacts"] not in (None, artifacts):
             raise ValueError("runtime artifact mismatch")
         result["execution"]["artifacts"] = deepcopy(artifacts)
-    baseline = defaults()
+    baseline = base
     for section, keys in {
         "data": [
             "generator",
@@ -279,6 +290,9 @@ def resolve(value, *, seed=None, artifacts=None):
     from oeis_learn.encoder.ablation import InputMask
 
     InputMask(**result["inputs"]["mask"])
+    if sized and (result['model']['seed']!=shape['seed'] or result['inputs']['profile']!='hybrid-chunks/v1'
+        or result['inputs']['mask']!=defaults()['inputs']['mask'] or result['inputs']['ablation_mode']!='post_training'):
+        raise ValueError('registered104.5M requires frozen seed/full hybrid features')
     if result["inputs"]["profile"] not in {"hybrid-chunks/v1", "tri-stream/v1"} or result["inputs"][
         "ablation_mode"
     ] not in {"post_training", "retrained"}:
