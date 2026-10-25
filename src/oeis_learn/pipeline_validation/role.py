@@ -32,7 +32,7 @@ def native_corpus():
     return seal(dict(version='pipeline-native-corpus/v1',rows=rows,exclusions=[]))
 
 
-def native_trial(output,*,workers,corpus,contract,cap,admission="queued8/v1"):
+def native_trial(output,*,workers,corpus,contract,cap,admission="queued8/v1",on_client=None):
     if admission not in {"queued8/v1","slot-waves/v1"} or type(workers) is not int or workers not in (1,2,4):
         raise ValueError("registered native admission/worker policy required")
     from oeis_learn.synthesis.client import SynthesisClient
@@ -49,6 +49,7 @@ def native_trial(output,*,workers,corpus,contract,cap,admission="queued8/v1"):
     from .native_capacity import NativeEvidence
     evidence=NativeEvidence(output,corpus,ledger,timing) if admission=='slot-waves/v1' else nullcontext()
     with evidence, SynthesisClient(contract,service_limits=limits,cache_root=output/'private/native-cache') as client:
+        if on_client is not None:on_client(client)
         def job(i,row):
             logical=logical_job(contract=contract,snapshot='fixed-native-corpus',mode='native',arm='fit',
                 prompt_id=row['id'],attempt_ordinal=0,method='fixture',seed=20261016)
@@ -181,7 +182,7 @@ def cpu_contracts(inputs,output,config):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity','coschedule-reference','coschedule-gpu','coschedule-study']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
     role_started=time.monotonic()
@@ -205,16 +206,17 @@ def main(argv=None):
         from .replay_batching import reference_role as batching_reference,batch_role,comparison_role as batching_compare
         from .hardware_ladder import reference_role as hardware_reference,hardware_role
         from .native_capacity import investigate
+        from .coschedule import reference_role as coschedule_reference,gpu_role as coschedule_gpu,study as coschedule_study
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
         if ceiling is None:
             from .resources import observe,resolve
             ceiling=resolve(**observe())['ceiling_bytes']
-        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay'},
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study'},
                 render_node=config['options'].get('render_node')) as guard:
-            if args.mode=='native-capacity' and not guard.report()['qualified']:
+            if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study'} and not guard.report()['qualified']:
                 raise RuntimeError('known aggregate CPU role memory accounting required before native capacity work')
-            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate}[args.mode](inputs,output,config)
+            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach

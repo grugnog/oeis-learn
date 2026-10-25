@@ -130,3 +130,11 @@ def native_capacity_registry(engines=('docker',),primary='docker'):
     stages.append(Stage('native.capacity',3,('cpu.'+primary+'.semantic',),seconds=4500,adapter='native-capacity'))
     stages.append(Stage('native.capacity.report',3,seconds=30,adapter='native-capacity-report'))
     return stages
+
+
+def coschedule_registry(engines=('docker',),primary='docker'):
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip'}]
+    stages.append(Stage('coschedule.reference',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=600,adapter='coschedule-reference'))
+    stages.append(Stage('coschedule.study',4,('coschedule.reference','hip.preflight'),seconds=12500,adapter='coschedule-study'))
+    stages.append(Stage('coschedule.report',4,seconds=30,adapter='coschedule-report'))
+    return stages

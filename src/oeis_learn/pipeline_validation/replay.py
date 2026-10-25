@@ -293,7 +293,7 @@ class ReplayStages:
         self.a=adapters;self.prepared=None;self.reference=None;self.reference_hash=None;self.payload_hash=None
         self.batching=batching
 
-    def __call__(self,stage,output,*,comparison=None,trial_options=None):
+    def __call__(self,stage,output,*,comparison=None,trial_options=None,mode_override=None):
         a=self.a
         if stage.adapter=='replay-report':
             ref=json.loads((self.reference/'reference.json').read_text()) if self.reference else {}
@@ -348,6 +348,9 @@ class ReplayStages:
             seconds=child['limits']['external_seconds'];internal=child['limits']['internal_seconds']
             mode='replay-batching-compare' if self.batching else 'replay-compare'
         if ladder:mode='hardware-replay' if gpu else 'hardware-reference'
+        if mode_override is not None:
+            if mode_override!='coschedule-reference' or stage.adapter!='hardware-reference':raise ValueError('closed co-scheduling reference mode required')
+            mode=mode_override
         m=json.loads((inputs/'work.json').read_text())['manifest']
         config=dict(version='pipeline-role/v1',source=m['binding']['source'],
             contract=a.contract['identity'],mode=mode,options=dict(seconds=internal,memory_ceiling=resource['ceiling_bytes'],render_node=host.policy['render_node']))

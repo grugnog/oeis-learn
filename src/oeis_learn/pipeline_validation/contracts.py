@@ -15,6 +15,7 @@ def parse(record):
         'pipeline-replay-batching-validation/v1':('engineering-replay-batching','pipeline-replay-batching-registry/v1',['cache-replay-batching/v1'],['batch8-16/v1']),
         'pipeline-hardware-validation/v1':('engineering-hardware','pipeline-hardware-registry/v1',['replay-capacity128/v1'],['telemetry-overhead/v1','batch16-capacity/v1']),
         'pipeline-native-capacity-validation/v1':('engineering-native-capacity','pipeline-native-capacity-registry/v1',['native18-slot-waves/v1'],['native1-2-4/v1']),
+        'pipeline-coschedule-validation/v1':('engineering-coschedule','pipeline-coschedule-registry/v1',['replay128-native144/v1'],['serial-overlap/v1','repeat10/v1']),
     }
     if version not in variants:raise ValueError('registered engineering version required')
     scope,registry,workloads,comparisons=variants[version]
@@ -26,7 +27,7 @@ def parse(record):
         raise ValueError('engineering authority cannot grant learning/resume/final access')
     if record['excluded_authorities'] != DENIED:
         raise ValueError('excluded authorities must remain explicit')
-    if record['phases'] != ([1,3] if scope=='engineering-native-capacity' else [1,2] if replay else [1, 2, 3, 4, 5]):
+    if record['phases'] != ([1,2,4] if scope=='engineering-coschedule' else [1,3] if scope=='engineering-native-capacity' else [1,2] if replay else [1, 2, 3, 4, 5]):
         raise ValueError('registered engineering phases required')
     if record['workloads']!=workloads or record['comparisons']!=comparisons:
         raise ValueError('custom workload/comparison overrides are not registered; the static versioned adapters freeze these records')
