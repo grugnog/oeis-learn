@@ -1451,7 +1451,7 @@
       "status": "pending_runtime",
       "phase": 0,
       "implementation_disposition": "New hardware-only profiles, real workload/telemetry and165 host tests/local export complete; current-source runtime remains pending.",
-      "blocking_reason": "Reopened for new explicit model-sizing runtime/source719; current CPU/HIP fixture and model-size collection awaits target execution. Earlier source5014881 closure remains historical and valid.",
+      "blocking_reason": "Current source720 execution-policy repair requires corrected CPU/HIP fixture/reference/sizing evidence. First target had19 HIP passes/one parity failure before all15 timings; no current source qualification inferred.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1482,7 +1482,11 @@
         "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.md",
         "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.json",
         "specs/009-pipeline-throughput/validation/model-sizing-implementation.md",
-        "specs/009-pipeline-throughput/validation/model-sizing-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/model-sizing-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.md",
+        "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.json",
+        "specs/009-pipeline-throughput/validation/model-sizing-execution-repair.md",
+        "specs/009-pipeline-throughput/validation/model-sizing-execution-local-evidence.json"
       ]
     },
     {
@@ -1671,18 +1675,19 @@
     "archive_sha256": "sha256:ce32629c46558d71e468bb646a4bb4ee9ebb291c7ae46cf7040f72a6938d909b"
   },
   "model_sizing_refinement": {
-    "status": "IMPLEMENTED_TARGET_PENDING",
-    "source": "sha256:ddc4d496011e12175a49453b25af45e434dce4ba4a5887b85f1405d90b635042",
+    "status": "EXECUTION_REPAIRED_TARGET_PENDING",
+    "source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
     "manifest": "configs/foundation/pipeline_model_sizing.json",
     "contract": "specs/009-pipeline-throughput/contracts/model-sizing.md",
-    "handoff": "specs/009-pipeline-throughput/validation/model-sizing-implementation.md",
-    "local_evidence": "specs/009-pipeline-throughput/validation/model-sizing-local-evidence.json",
+    "handoff": "specs/009-pipeline-throughput/validation/model-sizing-execution-repair.md",
+    "local_evidence": "specs/009-pipeline-throughput/validation/model-sizing-execution-local-evidence.json",
     "tasks": {
       "009:M001": "complete",
       "009:M002": "complete",
       "009:M003": "complete",
       "009:M004": "pending_runtime"
     },
-    "meaning": "Separate fresh-model hardware capacity/throughput screen at8.12M/31.90M/104.50M; same data/learning strategy/batch/FP32,15 roles. No learned-quality, model/default choice, persistent-state or research admission."
+    "meaning": "First source-matched target passes687 CPU+30 subtests/all CPU references; first m8 HIP encoder parity fails, all15 timing slots blocked. Explicit scoped FP32/math dispatch, versioned policy binding and diagnostics repaired;170 host tests/export pass, corrected CPU/HIP collection pending. No model/learning/default admission.",
+    "operator_review": "specs/009-pipeline-throughput/validation/model-sizing-operator-20261025T170755Z.md"
   }
 }

@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: Hardware-first work now includes the user-requested separate [model-size screen](validation/model-sizing-implementation.md):8.12M/31.90M/104.50M parameters,165 host tests and verified local export pass; current CPU/HIP sizing collection remains pending. Accepted co-scheduling O004 remains complete at5014881. Original counts77 complete/19 runtime pending/15 research held or blocked reflect reopening affected-sourceT110. No production default, learning-quality/curriculum or multi-day admission.
+**Status**: [First model-sizing target](validation/model-sizing-operator-20261025T170755Z.md) passes687 CPU tests plus30 subtests and all three CPU references/counts; first m8 HIP encoder parity fails before all15 timings. [Execution-policy repair](validation/model-sizing-execution-repair.md) enforces/audits scoped FP32/math attention with unchanged tolerances and passes170 host tests/verified export. Corrected CPU/HIP collection remains pending; counts77 complete/19 runtime pending/15 research held or blocked. No model choice or long-run authority.
 
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
 
@@ -522,5 +522,10 @@ The user requested larger model capacity before the long-run choice. This prospe
 
 - [X] 009:M001 Freeze explicit hardware-only profiles/initializations, fixed real-data workload, complete/partial denominators, CPU oracle, finite15-slot/phase/resource/artifact rules and separate authority before timing.
 - [X] 009:M002 Implement the exact sized constructor while preserving frozen default weights/shapes; shared source/data/reference/weight/resource binding, real disposable AdamW/validation/grammar/native observations, all-row/clock/debit evidence, bounded telemetry and no automatic model/learning selection.
-- [X] 009:M003 Run165 host tests, actual public stdlib CLI and verified partial export; author/register real pinned CPU/HIP shape/count/baseline/cache/update/generation/native fixtures and one target command without installing host dependencies.
+- [X] 009:M003 Run170 host tests, actual public stdlib CLI and verified partial export; author/register real pinned CPU/HIP shape/count/baseline/cache/update/generation/native fixtures and one target command without installing host dependencies.
 - [ ] 009:M004 Collect/review current CPU/HIP fixtures and all15 admitted/blocked/failed profile roles, actual counts/numerical parity/updates, generation denominators, native clocks/debits, memory categories, complete timing/source/device/cleanup and archive evidence. No quality, persistent-trainer, full-pipeline/default or multi-day admission inferred.
+
+
+### Sizing prerequisite failure and execution-policy repair
+
+The [first collection](validation/model-sizing-operator-20261025T170755Z.md) retains the687CPU/30subtest passes, all three actual CPU model counts and19HIP passes/one strict encoder parity failure; all15 timing slots are blocked. The [repair](validation/model-sizing-execution-repair.md) explicitly disables fused encoder/MHA paths, selects SDPA math/highest FP32 and binds audited execution policy in v2 inputs/references/results. Original tolerances/work/roster/clocks remain. Five new regressions and170host tests/export pass; corrected runtime pending.009:M004/T110 stay unchecked and original counts77/19/15 are unchanged. No repeated favorable timing selection, model-quality/default or learning admission.

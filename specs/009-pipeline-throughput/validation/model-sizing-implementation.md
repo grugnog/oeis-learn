@@ -1,3 +1,5 @@
+**Superseded handoff**: [First target review](model-sizing-operator-20261025T170755Z.md) records a HIP encoder parity prerequisite failure before all15 timing roles. Use the [corrected execution-policy handoff](model-sizing-execution-repair.md):170 host tests/export pass; actual corrected CPU/HIP remains pending. The original source-bound details below are historical.
+
 # One-command model-size hardware screen
 
 The user requested increasing model capacity before the long-run choice. This is

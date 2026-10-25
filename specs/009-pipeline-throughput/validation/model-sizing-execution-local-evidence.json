@@ -1,0 +1,28 @@
+{
+  "version": "pipeline-model-sizing-local-evidence/v1",
+  "source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
+  "source_entries": 720,
+  "manifest": "sha256:f7d87fe9b5968d2f503f651e540e13bd4b798949f96be6ce6d517bd8ce549c47",
+  "host_tests": 170,
+  "new_execution_tests": 5,
+  "failing_producer_review": "model-sizing-operator-20261025T170755Z.md",
+  "runtime_status": "Corrected CPU/HIP math-path fixture/reference/trials pending; no host Torch/pytest/native/engine installed.",
+  "cli": {
+    "output": "tmp-validation/009-model-sizing-execution-reviewed",
+    "exit": 3,
+    "reason": "local Podman unavailable; all15 trials BLOCKED, no timing",
+    "verified_listed_members": 63,
+    "archive_bytes": 3980385,
+    "archive_sha256": "sha256:9c96f6690a28068ffddede2e31bffd01ec7b7e07b5cf2544ec430108e01cb771",
+    "manifest_sha256": "sha256:cbba6983a25762e9d950d354bbdee0982fe769fbe47e442c0d588cba43be0990"
+  },
+  "checks": [
+    "170 host tests PASS",
+    "3 new scoped flag enforcement/restoration/nesting tests PASS",
+    "v1 historical readers retained; v2 current admission/missing-policy rejection PASS",
+    "actual public CLI partial archive verified",
+    "compilation/whitespace PASS",
+    "007 actual serializer binding refreshed;68 dispositions/full007 false unchanged"
+  ],
+  "interpretation": "Execution-policy/diagnostic repair only; original strict tolerances, profiles/work/roster/budgets/defaults unchanged. No target success inferred."
+}

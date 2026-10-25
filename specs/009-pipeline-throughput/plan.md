@@ -191,3 +191,8 @@ The [co-scheduling contract](contracts/coschedule.md) registers phases1/2/4 afte
 ## User-requested model sizing before the persistent-state soak
 
 The user requested greater learned-detail capacity and authorized a compact hardware-only8M/~32M/~100M screen before the integrated soak. [Contract](contracts/model-sizing.md) explicitly versions that architecture change; frozen production constructors, accepted component evidence and learning strategy remain. Fifteen fresh roles measure actual updates/validation/grammar sampling/native verification with the same real data and immutable budgets. [Handoff](validation/model-sizing-implementation.md) records165 host tests, verified export and authored current CPU/HIP fixtures awaiting target. Model choice and persistent-state qualification depend on those observations; no automatic size expansion, learned-quality conclusion, curriculum change or long training. Original counts77/19/15 reflect current-sourceT110 reopening.
+
+
+## Corrected explicit sizing execution policy
+
+[First target collection](validation/model-sizing-operator-20261025T170755Z.md) exposes an unconstrained fused encoder path in the declared eager sizing scope:687CPU/30subtests and all CPU references pass; first m8 HIP encoder parity fails and all15 timings remain unstarted. [Repair/handoff](validation/model-sizing-execution-repair.md) applies one audited/restoring FP32 mathematical-attention context to CPU references, GPU roles and fixtures, keeps tolerances/work/budgets unchanged and versions input/reference policy evidence while retaining historical readers.170host tests/export pass; corrected actual HIP is required before interpreting model capacity or proceeding to persistent-state qualification.
