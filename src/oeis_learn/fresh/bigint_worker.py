@@ -138,7 +138,7 @@ def validation_loss(encoder, decoder, rows, device, *, deadline, measure=None,ti
             break
         batch = rows[i : i + 8]
         began=time.monotonic()
-        total += _batch_loss(encoder, decoder, batch, device,timer=timer) * len(batch)
+        total += _batch_loss(encoder, decoder, batch, device,**(dict(timer=timer) if timer is not None else {})) * len(batch)
         if measure is not None:measure(time.monotonic()-began,len(batch))
         done += len(batch)
     return dict(
@@ -281,8 +281,10 @@ def _train(inputs, output):
     control=None;timer=None
     if engineering:
         from .engineering import Control
+        from .pipeline_profile import parameter_digest
         from oeis_learn.tracking.foundation_metrics import PhaseTimer
-        control=Control(settings,selection,output)
+        engineering_initial=parameter_digest(encoder,decoder)
+        control=Control(settings,selection,output,minimum_examples=len(rows))
         deadline=min(deadline,control.deadline)
         timer=PhaseTimer(settings['device'],synchronized=False)
     batch_size=control.batch_size if control else recipe['learning']['batch_size']
@@ -405,6 +407,15 @@ def _train(inputs, output):
                     output / "progress.json",
                     dict(update=order["completed"], last_loss=record["loss"]),
                 )
+                if control and control.pulse_due():
+                    from oeis_learn.pipeline_validation.soak_native import pulse
+                    def gpu_probe():
+                        import math
+                        began=time.monotonic();encoder.eval();decoder.eval()
+                        value=_batch_loss(encoder,decoder,rows[:8],settings['device'],timer=timer,observe=False)
+                        if not math.isfinite(value):raise FloatingPointError('nonfinite read-only probe')
+                        control.component('gpu_readonly_probe',time.monotonic()-began,rows=min(8,len(rows)))
+                    pulse(synthesis,control,selection,recipe,deadline,gpu_probe=gpu_probe)
                 if (control.cycle_due() if control else (
                     order["completed"] % recipe["learning"]["validation_every"] == 0
                     or order["completed"] == recipe["learning"]["max_updates"]
@@ -434,9 +445,11 @@ def _train(inputs, output):
                         **(dict(evidence=control.evidence) if control else {})
                     )
                     if control:
-                        total=sum(len(d['details']) for r in diagnostic['records'].values() for d in r['details'].values())
-                        control.component('generation_native',time.monotonic()-generation_started,attempts=total,
-                            verified=sum(bool(r['selections'].get('rescue')) for r in diagnostic['records'].values()))
+                        details=[item for r in diagnostic['records'].values() for d in r['details'].values() for item in d['details']]
+                        control.component('generation_native',time.monotonic()-generation_started,scheduled=len(panel),started=len(details),
+                            unstarted=len(panel)-len(details),decoded=sum(d['generation']['complete'] for d in details),
+                            emitted_tokens=sum(len(d['tokens']) for d in details),native_complete=sum(d['fitting']['complete'] for d in details),
+                            visible_verified=sum(bool(r['selections'].get('rescue') or r['selections'].get('raw')) for r in diagnostic['records'].values()))
                         control.cycled()
                     if recipe.get('pipeline'):
                         from .pipeline_jobs import merge_boundary
@@ -507,15 +520,6 @@ def _train(inputs, output):
                     save()
                     if early:
                         break
-                if control and control.pulse_due():
-                    from oeis_learn.pipeline_validation.soak_native import pulse
-                    def gpu_probe():
-                        import math
-                        began=time.monotonic();encoder.eval();decoder.eval()
-                        value=_batch_loss(encoder,decoder,rows[:8],settings['device'],timer=timer,observe=False)
-                        if not math.isfinite(value):raise FloatingPointError('nonfinite read-only probe')
-                        control.component('gpu_readonly_probe',time.monotonic()-began,rows=min(8,len(rows)))
-                    pulse(synthesis,control,selection,recipe,deadline,gpu_probe=gpu_probe)
             if selection["selected_update"] is None:
                 selection["selected_update"] = order["completed"]
             if control and control.cfg['mode'] in {'batch','observation'}:
@@ -527,7 +531,7 @@ def _train(inputs, output):
     finally:
         if control:
             engineering_result=control.finish(completed=successful)
-        save()
+        if control is None or successful:save()
         if control:write(output/'engineering.json',engineering_result)
     write(
         output / "metrics.json",
@@ -540,6 +544,10 @@ def _train(inputs, output):
             early_stop=early,
         ),
     )
+    if control:
+        engineering_final=parameter_digest(encoder,decoder)
+        if engineering_final==engineering_initial and control.state['updates']>control.start_updates:
+            raise RuntimeError('engineering updates did not change actual parameters')
     return dict(
         update=order["completed"],
         checkpoint=pointer,
@@ -548,7 +556,10 @@ def _train(inputs, output):
         counts=counts,
         final_access="sealed",
         fixture=bool(settings.get("fixture")),
-        **(dict(engineering=read(output/'engineering.json')) if control else {}),
+        **(dict(engineering=read(output/'engineering.json'),initial_parameter_digest=engineering_initial,
+            final_parameter_digest=engineering_final,
+            torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
+            execution=__import__('oeis_learn.pipeline_validation.sizing_execution',fromlist=['execution_observation']).execution_observation()) if control else {}),
     )
 
 

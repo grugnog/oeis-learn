@@ -148,10 +148,18 @@ def run_worker(inputs,output,work,recipe,config,**kw):
     logs=output/('worker-'+('resume' if kw.get('resume') else 'fresh'))
     try:
         launch([sys.executable,'-m','oeis_learn.pipeline_validation.soak_runtime','--train',str(source),str(output/'private/trainer')],
-            logs,seconds=min(config['options']['seconds'],settings['seconds']+90),stream_cap=8<<20)
+            logs,seconds=min(config['options']['seconds'],settings['seconds']+90),stream_cap=8<<20,grace_seconds=.1)
+    except BaseException as exc:
+        failure=output/'private/trainer/worker-failure.json'
+        if failure.is_file() and json.loads(failure.read_text()).get('fatal')=='RESOURCE_BREACH':
+            from .runner import ResourceBreach
+            raise ResourceBreach('worker allocation/nonquiescent failure: '+json.loads(failure.read_text())['error']) from exc
+        raise
     finally:
         export_worker_evidence(output,resume=kw.get('resume',False))
     report=json.loads((output/'private/trainer/worker-result.json').read_text())
+    if report.get('torch_threads')!={'intraop':2,'interop':1} or report.get('execution')!=EXECUTION:
+        raise RuntimeError('actual worker must enforce Torch2/1 and registered FP32 execution')
     # Copy compact receipt only, never tensors/checkpoints/raw fitting payloads.
     write(output/('resumed-trainer.json' if kw.get('resume') else 'trainer.json'),report)
     trainer=output/'private/trainer'
@@ -179,7 +187,7 @@ def export_worker_evidence(output,*,resume=False):
     import shutil
     output=Path(output);trainer=output/'private/trainer'
     export=output/('resumed-evidence' if resume else 'fresh-evidence');export.mkdir(parents=True,exist_ok=True)
-    for name in ['engineering-attempts.jsonl','engineering.json','validation.json','progress.json','checkpoint-identity.json',
+    for name in ['engineering-attempts.jsonl','engineering.json','worker-failure.json','validation.json','progress.json','checkpoint-identity.json',
                  *[p.name for p in trainer.glob('native-pulse-*.json')],*[p.name for p in trainer.glob('cycle-plan-*.json')]]:
         if (trainer/name).is_file():shutil.copyfile(trainer/name,export/name)
 
@@ -201,6 +209,7 @@ def trial(inputs,output,config):
             first=run_worker(inputs,output,work,recipe,config,fixture=True,mode='window',seconds=60,lease=l)
             second=run_worker(inputs,output,work,recipe,config,fixture=True,mode='window',seconds=60,lease=l,resume=True,window=1)
             if not first['engineering']['complete'] or not second['engineering']['complete']:raise RuntimeError('bounded full-size restart fixture incomplete')
+            if first['final_parameter_digest']!=second['initial_parameter_digest']:raise RuntimeError('full-size restart changed checkpoint weights')
             result=dict(status='COMPLETE',first=first,second=second,fixture=True)
         else:
             result=run_worker(inputs,output,work,recipe,config,mode=opt['kind'],
@@ -218,7 +227,14 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--train',nargs=2,required=True);args=parser.parse_args()
     from oeis_learn.fresh.bigint_worker import train
     from oeis_learn.fresh.common import write as replace_json
-    result=train(*args.train)
+    import torch
+    torch.set_num_threads(2);torch.set_num_interop_threads(1)
+    try:result=train(*args.train)
+    except BaseException as exc:
+        from oeis_learn.synthesis.worker_pool import NonQuiescentWorker
+        replace_json(Path(args.train[1])/'worker-failure.json',dict(error=type(exc).__name__+': '+str(exc),
+            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,torch.cuda.OutOfMemoryError,NonQuiescentWorker)) else None))
+        raise
     replace_json(Path(args.train[1])/'worker-result.json',result)
 
 

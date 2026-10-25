@@ -8,6 +8,15 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_foreign_uid_preserves_rootless_security_arguments(self):
+        from oeis_learn.pipeline_validation.soak_operations import foreign_user_args,fixture_code
+        before=['--user','0:0','--userns=keep-id','--security-opt=label=disable']
+        after=foreign_user_args(before)
+        self.assertEqual(after,['--user','12345:12345','--userns=keep-id','--security-opt=label=disable'])
+        self.assertEqual(before[1],'0:0')
+        compile(fixture_code(12345),'uid-fixture','exec')
+        compile(fixture_code(1000,wait=True),'interruption-fixture','exec')
+
     def test_phase_spans_split_without_fractional_completed_work(self):
         from oeis_learn.fresh.engineering import Control
         h='sha256:'+'a'*64;clock=[100.]
@@ -72,7 +81,7 @@ class SoakContracts(unittest.TestCase):
         examples={k:[dict(id=k+str(i),values=['1']*20,indices=list(map(str,range(20))),tokens=[1]*20) for i in range(n)]
             for k,n in [('training',512),('parameter_development',128),('structural_development',128)]}
         facts=dict(physical=128<<30,available=120<<30,limits=[],cpus=16,quota=16,cpuset=16)
-        calls=[];leases=[]
+        calls=[];leases=[];clock=[1000.]
         class Adapter:
             def __init__(self):
                 self.args=types.SimpleNamespace(engine='podman',pipeline_engines=['podman'],run='unused',inputs='unused')
@@ -81,6 +90,7 @@ class SoakContracts(unittest.TestCase):
                 self.s=SoakStages(self)
             def host(self,name):return types.SimpleNamespace(policy=dict(memory_bytes=112<<30,cpus=16,render_node='/dev/dri/renderD128'),select_gpu=lambda:None,gpu_lock=nullcontext)
             def __call__(self,stage,output):
+                if stage.adapter in {'soak-operations','soak-scorer'}:write(output/'fixture.json',{'fixture':True});return {'fixture':True}
                 if stage.adapter.startswith('soak-'):return self.s(stage,output)
                 write(output/'fixture.json',{'fixture':True});return {'fixture':True}
         def prepare(run,inputs,output,**kw):
@@ -94,24 +104,28 @@ class SoakContracts(unittest.TestCase):
                 write(output/'reference.json',{'fixture':True});r=dict(status='COMPLETE',execution=EXECUTION)
             else:
                 calls.append(opt['kind']);(output/'private').mkdir(exist_ok=True)
-                eng=dict(complete=True,window=opt['window'],active_seconds=3600 if opt['kind']=='window' else 10,
+                eng=dict(complete=True,examples=512,window=opt['window'],active_seconds=3600 if opt['kind']=='window' else 10,
                     state=dict(components={'training':dict(tokens=2*work['data']['tokens']['training'],seconds=800/opt['batch_size'])},windows=[]))
                 if opt['kind']=='window':
                     leases.append(opt['lease'])
+                    start=opt['lease']['started']
                     if opt['window']==1:self.assertTrue((output/'private/state-marker').exists())
                     (output/'private/state-marker').write_text('same state')
-                    windows=[dict(leg=l,ordinal=i,start=l*4000+i*300,planned_stop=l*4000+(i+1)*300,
-                        stop=l*4000+(i+1)*300,complete=True,components={'training':dict(seconds=100,tokens=10000,examples=500)})
+                    windows=[dict(leg=l,ordinal=i,start=start+l*3600+i*300,planned_stop=start+l*3600+(i+1)*300,
+                        stop=start+l*3600+(i+1)*300,complete=True,components={'training':dict(seconds=100,tokens=10000,examples=500)})
                         for l in range(opt['window']+1) for i in range(12)]
                     eng['state']['windows']=windows
-                    samples=[dict(time=opt['window']*4000+i,anon=100,file=100,current=100,driver=100,
+                    eng['state']['pulse_slots']=[dict(leg=l,slot=i,state='PASS') for l in range(opt['window']+1) for i in range(6)]
+                    samples=[dict(time=start+opt['window']*3600+i,anon=100,file=100,current=100,driver=100,
                         cpu_usage_usec=i*1000000,gpu_busy_percent=80) for i in range(3600)]
                     (output/'resource-samples.jsonl').write_text(''.join(json.dumps(s)+'\n' for s in samples))
+                    clock[0]+=3600
                 r=dict(status='COMPLETE',execution=EXECUTION,profile=PROFILES['m100'],source=cfg['source'],work=work['identity'],
-                    device={'hip':'fixture'},resources=memory,trainer=dict(engineering=eng,counts={'actual':parameters(PROFILES['m100'])}))
+                    device={'hip':'fixture'},resources=memory,trainer=dict(engineering=eng,counts={'actual':parameters(PROFILES['m100'])},
+                        final_parameter_digest='state',initial_parameter_digest='state'))
                 if opt['kind']=='parity':r['numerical_parity']=True
             write(output/'summary.json',seal(r));write(output/'host-timing.json',{'seconds_through_cleanup':10})
-        with tempfile.TemporaryDirectory() as td,patch('oeis_learn.pipeline_validation.benchmarks.legacy',return_value=types.SimpleNamespace(prepare=prepare,container_stage=container)),patch('oeis_learn.pipeline_validation.resources.observe',return_value=facts):
+        with tempfile.TemporaryDirectory() as td,patch('oeis_learn.pipeline_validation.benchmarks.legacy',return_value=types.SimpleNamespace(prepare=prepare,container_stage=container)),patch('oeis_learn.pipeline_validation.resources.observe',return_value=facts),patch('time.monotonic',side_effect=lambda:clock[0]):
             a=Adapter();out=Path(td)/'run'
             code=execute(resolve(soak_registry(('podman',),'podman'),'all-ready'),out,adapter=a,binding={'source':'fixture'},cap=86400,reserve=1200,contract=a.contract)
             self.assertEqual(code,0)

@@ -51,6 +51,7 @@ def test_engineering_complete_state_restart_retains_exact_ledger(tmp_path):
     settings['engineering']=seal(dict(cfg,window=1,resume=True));write(inputs/'settings.json',settings)
     second=train(inputs,root)
     assert second['engineering']['complete'] and second['update']>first['update']
+    assert first['final_parameter_digest']==second['initial_parameter_digest']
     state=CheckpointStore(root/'checkpoints',run.contract).load(second['checkpoint'])
     assert state['ledger'].snapshot()==settings['ledger']
     assert state['states']['selection']['engineering']['tokens']>first['engineering']['state']['tokens']

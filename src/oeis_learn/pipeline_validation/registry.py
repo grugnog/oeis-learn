@@ -159,6 +159,8 @@ def soak_registry(engines=('docker',),primary='docker'):
     """One combined collection; original adoption is separately reported."""
     stages=[s for s in registry(engines,primary) if s.adapter in
         {'host','engine','image','cpu','hip','retirement','operations','policy','native'}]
+    for engine in engines:
+        stages.append(Stage('soak.operations.'+engine,5,('image.'+engine+'.qualification',),seconds=180,adapter='soak-operations'))
     stages.append(Stage('soak.prepare',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=60,adapter='soak-prepare'))
     stages.append(Stage('soak.reference',2,('soak.prepare',),seconds=600,adapter='soak-reference'))
     stages.append(Stage('soak.parity',2,('soak.reference','hip.preflight'),seconds=600,adapter='soak-parity'))
@@ -168,8 +170,9 @@ def soak_registry(engines=('docker',),primary='docker'):
             key=f'soak.b{batch}.{trial}'
             stages.append(Stage(key,2,(previous,'hip.preflight'),seconds=330,adapter='soak-batch'));previous=key
     stages.append(Stage('soak.freeze',2,('soak.parity',),seconds=60,adapter='soak-freeze'))
-    stages.append(Stage('soak.joint',4,('soak.freeze','policy.compare','native.compare','operations.'+primary+'.workflow','operations.'+primary+'.retirement'),seconds=3600,adapter='soak-joint'))
+    stages.append(Stage('soak.joint',4,('soak.freeze','policy.compare','native.compare','operations.'+primary+'.workflow','operations.'+primary+'.retirement','soak.operations.'+primary),seconds=3600,adapter='soak-joint'))
     stages.append(Stage('soak.observation',4,('soak.joint',),seconds=1200,adapter='soak-observation'))
     stages.append(Stage('soak.persistent',4,('soak.observation',),seconds=7800,adapter='soak-persistent'))
+    stages.append(Stage('soak.scorer',5,('soak.persistent','image.'+primary+'.qualification'),seconds=120,adapter='soak-scorer'))
     stages.append(Stage('soak.report',5,seconds=60,adapter='soak-report'))
     return stages

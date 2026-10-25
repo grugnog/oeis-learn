@@ -62,7 +62,7 @@ def report(receipts,*,root=None):
         r=receipts.get(key,{})
         if r!=seal(r) or r.get('state')!='PASS':return None
         return r.get('observations',{}).get('result')
-    persistent=result('soak.persistent');parity=result('soak.parity');joint=result('soak.joint')
+    persistent=result('soak.persistent');parity=result('soak.parity');joint=result('soak.joint');scorer=result('soak.scorer')
     missing=[];windows=[];legs=[];resources=[];choice=None
     if not parity:missing.append('current full-size CPU/HIP parity')
     if not joint:missing.append('joint full-size stress and complete-state recovery fixture')
@@ -79,16 +79,31 @@ def report(receipts,*,root=None):
                     or r.get('profile')!=PROFILES['m100'] or not eng.get('complete') or eng.get('window')!=i
                     or r.get('trainer',{}).get('counts',{}).get('actual')!=parameters(PROFILES['m100'])):
                     missing.append('actual full-size source/device/resource/window audit differs')
+                if eng.get('examples',0)<choice['data_counts']['training']:
+                    missing.append('complete training-partition traversal required in each leg')
+                if any(w['start']<persistent['lease']['started'] or w['planned_stop']>persistent['lease']['expires']
+                    for w in eng.get('state',{}).get('windows',[])):
+                    missing.append('work windows cannot precede/renew their immutable lease')
             state=trials[-1]['trainer']['engineering']['state'];windows=state['windows'];legs=window_review(windows)
+            for leg in (0,1):
+                if not any(p['leg']==leg and p['state']=='PASS' for p in state.get('pulse_slots',[])):
+                    missing.append('native coexistence pulse not exercised in leg'+str(leg))
             if root is not None:resources=resource_review(root,windows,choice['live_memory_upper_bytes'])
             else:missing.append('resource sample audit not available')
     sustained='INCONCLUSIVE' if missing or not legs or not resources or any(r['verdict']=='INCONCLUSIVE' for r in [*legs,*resources]) else 'FAIL' if any(r['verdict']=='FAIL' for r in [*legs,*resources]) else 'PASS'
     current={k:dict(state=v['state'],reason=v.get('reason',''),receipt=v.get('identity')) for k,v in receipts.items()}
     engines={k.split('.')[1] for k in receipts if k.startswith('engine.')}
-    portability='PASS' if engines=={'docker','podman'} and all(receipts.get('cpu.'+e+'.semantic',{}).get('state') in {'PASS','REUSED'} and receipts.get('operations.'+e+'.workflow',{}).get('state')=='PASS' for e in engines) else 'PENDING'
+    portability='PASS' if engines=={'docker','podman'} and all(receipts.get(k,{}).get('state') in {'PASS','REUSED'} for e in engines
+        for k in ('cpu.'+e+'.semantic','operations.'+e+'.workflow','operations.'+e+'.retirement','soak.operations.'+e)) else 'PENDING'
+    totals=persistent['results'][-1]['trainer']['engineering']['state']['components'] if persistent and len(persistent.get('results',[]))==2 else {}
     return seal(dict(version='pipeline-soak-report/v1',sustained_operation=sustained,
-        correctness_recovery='PASS' if parity and joint else 'PENDING',portability=portability,
+        correctness_recovery='PASS' if parity and joint and scorer else 'PENDING',portability=portability,
+        primary_engineering_readiness='PASS' if sustained=='PASS' and parity and joint and scorer else 'FAIL' if sustained=='FAIL' else 'PENDING',
+        isolated_cpu_scorer='PASS' if scorer else 'PENDING',
         missing=missing,choice=choice,window_reviews=legs,resource_reviews=resources,stages=current,
+        operation_totals=totals,verification_scope='visible20; no continuation/final claims',
+        native_pulse_slots=persistent['results'][-1]['trainer']['engineering']['state'].get('pulse_slots',[]) if persistent else [],
+        whole_soak_seconds=persistent.get('elapsed_seconds') if persistent else None,
         optimization_adoption='INCONCLUSIVE',supported_default='RETAIN_BASELINE',
         confirmation=dict(eligible=False,reason='original complete-work/mandatory-strata/fixed-budget baseline is not established by disposable size/batch work',
             slots=[dict(scope=s,pair=i,order=o,arm=a,state='UNSTARTED') for s in ('cold','warm') for i,o in enumerate(('AB','BA','AB','BA','AB')) for a in o]),

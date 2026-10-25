@@ -578,6 +578,8 @@ def generate(
                 record.setdefault("details", {})[mode] = result
                 record["family"] = row.get("family", row["id"])
                 record["strata"] = row.get("strata", strata(row))
+    if pipeline and evidence and model_snapshot(encoder,decoder)!=snapshot:
+        raise RuntimeError('generation mutated its frozen model snapshot')
     return dict(
         records=records,
         **(dict(pipeline_boundary=__import__('oeis_learn.pipeline_validation.identity',fromlist=['seal']).seal(dict(

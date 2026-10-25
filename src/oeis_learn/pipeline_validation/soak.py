@@ -92,9 +92,18 @@ class SoakStages:
 
     def __call__(self,stage,output):
         a=self.a
+        if stage.adapter=='soak-operations':
+            from .soak_operations import run
+            from .benchmarks import legacy
+            engine=stage.id.split('.')[-1]
+            return run(a.host(engine),a.images.images[(engine,'qualification')],output,legacy(a.root).container_stage)
+        if stage.adapter=='soak-scorer':
+            from .soak_operations import score_after_drain
+            from .benchmarks import legacy
+            return score_after_drain(a.host(a.args.engine),a.images.images[(a.args.engine,'qualification')],output,legacy(a.root).container_stage)
         if stage.id=='soak.report':
             from .soak_report import report
-            r=report(a.receipts,root=output.parent);write(output/'soak-report.json',r);return dict(r,stage_state='PASS' if r['sustained_operation']=='PASS' else 'FAIL' if r['sustained_operation']=='FAIL' else 'INCONCLUSIVE')
+            r=report(a.receipts,root=output.parent);write(output/'soak-report.json',r);return dict(r,stage_state='PASS' if r['primary_engineering_readiness']=='PASS' else 'FAIL' if r['sustained_operation']=='FAIL' else 'INCONCLUSIVE')
         from .benchmarks import legacy
         from .runner import CapabilityError
         from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -141,7 +150,7 @@ class SoakStages:
             selected=select_batch(rows,expected_tokens=2*self.work['data']['tokens']['training'])
             self.choice=seal(dict(version='pipeline-soak-choice/v1',source=source,work=self.work['identity'],
                 batches=rows,selected_training_batch=selected,profile=PROFILES['m100'],execution=EXECUTION,
-                inference_batch=16,workers=4,envelope=self.envelope,adoption='EXPERIMENTAL_ONLY'))
+                inference_batch=16,workers=4,envelope=self.envelope,data_counts=self.work['data']['counts'],adoption='EXPERIMENTAL_ONLY'))
             self.choice=seal(dict(self.choice,live_memory_upper_bytes=peak(selected)))
             write(output/'choice.json',self.choice);return self.choice
         if stage.id=='soak.joint':return self.invoke(stage,output,kind='joint',batch=self.choice['selected_training_batch'])
@@ -176,6 +185,8 @@ class SoakStages:
                     try:
                         result=self.invoke(stage,output,kind='window',batch=self.choice['selected_training_batch'],
                             instrumented=self.observed,seconds=min(3900,left),resume=bool(window),window=window,parent=parent,role_root=role)
+                        if window and results[0]['trainer']['final_parameter_digest']!=result['trainer']['initial_parameter_digest']:
+                            raise RuntimeError('resumed weights differ from prior final full-state checkpoint')
                         write(output/f'window-{window}/result.json',result)
                         ledger.transition('PASS' if result['status']=='COMPLETE' else 'PARTIAL',
                             files={'result.json':file_hash(output/f'window-{window}/result.json')})
@@ -190,6 +201,7 @@ class SoakStages:
                     if ledger.read()['state']=='PENDING':ledger.transition('BLOCKED',reason='preceding window/reservation incomplete; original allowance not renewed')
                 budget.finish('engineering-soak','completed' if completed else 'interrupted')
                 write(output/'terminal-budget.json',budget.snapshot())
-            write(output/'persistent.json',seal(dict(version='pipeline-soak-persistent/v1',lease=parent,choice=self.choice,results=results)))
-            return dict(status='COMPLETE',lease=parent,choice=self.choice,results=results)
+            result=dict(status='COMPLETE',lease=parent,choice=self.choice,results=results,elapsed_seconds=time.monotonic()-parent['started'])
+            write(output/'persistent.json',seal(dict(version='pipeline-soak-persistent/v1',**result)))
+            return result
         raise ValueError('unknown soak stage')

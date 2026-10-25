@@ -11,7 +11,7 @@ def _native_pulse(client,control,recipe,deadline):
     from oeis_learn.fresh.common import write
     from contextlib import nullcontext
     began=time.monotonic();ledger=JobLedger();timing={};rows=native_corpus()['rows'];results=[]
-    ordinal=control.state['pulses']
+    ordinal=control.active_pulse
     def job(i,row):
         admitted=time.monotonic();until=min(deadline,admitted+4)
         logical=logical_job(contract=recipe['identity'],snapshot=control.binding+':pulse'+str(ordinal),
@@ -75,7 +75,7 @@ def pulse(client,control,selection,recipe,deadline,*,gpu_probe=None):
         # The native peer has already written its complete partial ledger.
         import json
         from pathlib import Path
-        p=control.output/f"native-pulse-{control.state['pulses']}.json"
+        p=control.output/f"native-pulse-{control.active_pulse}.json"
         if p.is_file():
             partial=json.loads(p.read_text());selection['pipeline_boundary']=merge_boundary(selection['pipeline_boundary'],partial['boundary'])
         raise values['error']

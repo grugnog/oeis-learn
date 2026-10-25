@@ -32,7 +32,7 @@ def parse(value,*,fixture=False):
 
 
 class Control:
-    def __init__(self,settings,selection,output,*,clock=time.monotonic):
+    def __init__(self,settings,selection,output,*,clock=time.monotonic,minimum_examples=0):
         self.cfg=parse(settings['engineering'],fixture=bool(settings.get('fixture')))
         self.output=Path(output);self.clock=clock;self.started=clock()
         self.deadline=min(self.started+self.cfg['seconds'],self.cfg['lease']['expires']-60 if self.cfg['lease'] else float('inf'))
@@ -45,12 +45,15 @@ class Control:
         else:
             if previous is not None:raise ValueError('fresh engineering cannot reset prior work')
             self.state=dict(binding=self.binding,tokens=0,examples=0,cycles=0,updates=0,
-                completed_window=-1,components={},windows=[],next_validation=self.cfg['cadence_tokens'],pulses=0)
+                completed_window=-1,components={},windows=[],next_validation=self.cfg['cadence_tokens'],pulses=0,
+                pulse_slots=[dict(leg=leg,slot=i,state='UNSTARTED') for leg in (0,1) for i in range(6)])
         self.start_tokens=self.state['tokens'];self.start_updates=self.state['updates']
+        self.start_examples=self.state['examples'];self.minimum_examples=minimum_examples
         self.start_cycles=self.state['cycles'];self.last=self.started;self.bucket=None
         self.start_pulses=self.state['pulses']
         self.batch_size=self.cfg['batch_size'];self.events=0
         self.next_pulse=self.started
+        self.active_pulse=None
         import math
         self.windows=[dict(leg=self.cfg['window'],ordinal=i,start=self.started+i*300,
             planned_stop=min(self.deadline,self.started+(i+1)*300),components={})
@@ -102,10 +105,17 @@ class Control:
         self.events+=1
 
     def pulse_due(self):
-        return self.cfg['mode']=='window' and self.clock()>=self.next_pulse and self.clock()+30<self.deadline and self.state['pulses']-self.start_pulses<6
+        now=self.clock();slot=int((now-self.started)//600)
+        due=(self.cfg['mode']=='window' and 0<=slot<6 and now>=self.next_pulse and now+30<self.deadline)
+        if due:
+            self.active_pulse=self.cfg['window']*6+slot
+            due=self.state['pulse_slots'][self.active_pulse]['state']=='UNSTARTED'
+        return due
 
     def pulsed(self):
-        self.state['pulses']+=1;self.next_pulse=self.started+(self.state['pulses']-self.start_pulses)*600
+        if self.active_pulse is None or self.state['pulse_slots'][self.active_pulse]['state']!='UNSTARTED':raise ValueError('duplicate/unplanned native pulse')
+        slot=self.state['pulse_slots'][self.active_pulse];slot['state']='PASS'
+        self.state['pulses']+=1;self.next_pulse=self.started+(slot['slot']+1)*600;self.active_pulse=None
 
     def flush(self,now=None):
         now=self.clock() if now is None else now
@@ -120,10 +130,12 @@ class Control:
         self.flush()
         elapsed=self.clock()-self.started
         enough=(self.state['tokens']-self.start_tokens>=self.cfg['token_target'] if self.cfg['mode']!='window'
-            else elapsed>=self.cfg['seconds']-10 and self.state['cycles']>self.start_cycles)
+            else elapsed>=self.cfg['seconds']-10 and self.state['cycles']>self.start_cycles
+                and self.state['examples']-self.start_examples>=self.minimum_examples)
         complete=completed and enough
         if complete:self.state['completed_window']=self.cfg['window']
         return seal(dict(version='pipeline-engineering-result/v1',binding=self.binding,mode=self.cfg['mode'],
             complete=complete,batch_size=self.batch_size,window=self.cfg['window'],active_seconds=elapsed,
+            examples=self.state['examples']-self.start_examples,
             tokens=self.state['tokens']-self.start_tokens,updates=self.state['updates']-self.start_updates,
             cycles=self.state['cycles']-self.start_cycles,state=self.state))

@@ -51,13 +51,17 @@ class MemoryWatchdog:
                 try:return {x.split()[0]:int(x.split()[1]) for x in Path('/sys/fs/cgroup',name).read_text().splitlines()}
                 except (OSError,ValueError,IndexError):return {}
             memory=table('memory.stat');cpu=table('cpu.stat')
+            events=table('memory.events')
+            if any(events.get(k,0)>0 for k in ('oom','oom_kill')):
+                self.breach=dict(reason='container memory OOM event',observation=dict(row,events=events))
+                if terminate:self.killer()
             def sensor(name):
                 if not self.render_node:return None
                 try:return int((Path('/sys/class/drm')/Path(self.render_node).name/'device'/name).read_text().strip())
                 except (OSError,ValueError):return None
             sample=dict(time=time.monotonic(),**row,anon=memory.get('anon'),file=memory.get('file'),
                 kernel=memory.get('kernel'),shmem=memory.get('shmem'),cpu_usage_usec=cpu.get('usage_usec'),
-                gpu_busy_percent=sensor('gpu_busy_percent'))
+                gpu_busy_percent=sensor('gpu_busy_percent'),oom_events=events.get('oom'),oom_kill_events=events.get('oom_kill'))
             payload=json.dumps(sample,sort_keys=True,allow_nan=False)+'\n'
             if self.samples>9000 or len(payload.encode())>4096:
                 self.breach=dict(reason='mandatory memory sample bound exceeded',observation=row)
