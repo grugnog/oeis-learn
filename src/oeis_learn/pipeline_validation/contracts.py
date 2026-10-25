@@ -9,6 +9,7 @@ DENIED = ['training', 'resume', 'T096_retry', 'assisted_data', 'final']
 def parse(record):
     version=record.get('version') if isinstance(record,dict) else None
     variants={
+        'pipeline-soak-validation/v1':('engineering-soak','pipeline-soak-registry/v1',['full-partition-soak/v1'],['training-batch8-16-32/v1']),
         'pipeline-validation/v1':('engineering','pipeline-registry/v1',[],[]),
         'pipeline-replay-validation/v1':('engineering-replay','pipeline-replay-registry/v1',['cache-replay/v1'],[]),
         'pipeline-replay-comparison-validation/v1':('engineering-replay-comparison','pipeline-replay-comparison-registry/v1',['cache-replay/v1'],['cache-bookkeeping/v1']),
@@ -20,7 +21,7 @@ def parse(record):
     }
     if version not in variants:raise ValueError('registered engineering version required')
     scope,registry,workloads,comparisons=variants[version]
-    replay=version!='pipeline-validation/v1'
+    replay=version not in {'pipeline-validation/v1','pipeline-soak-validation/v1'}
     validate(record, FIELDS, version)
     if record['scope'] != scope or record['stage_registry_version'] != registry:
         raise ValueError('engineering scope/registered version required')

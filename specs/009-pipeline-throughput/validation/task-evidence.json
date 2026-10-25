@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 78,
-    "pending_runtime": 18,
+    "complete": 77,
+    "pending_runtime": 19,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1448,10 +1448,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Exact source720 packaging/CPU/HIP prerequisites, explicit execution policy and all15 real sizing trials pass at56f6156. Documentation-only review preserves that closure; unrelated portability/operations/performance/scientific tasks remain separate.",
-      "blocking_reason": null,
+      "implementation_disposition": "Accepted source735ede remains historical; new soak scope under implementation.",
+      "blocking_reason": "Integrated soak implementation changes runtime/source closure; final current-source CPU/HIP/operations evidence pending.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1711,13 +1711,13 @@
     }
   },
   "integrated_soak_plan": {
-    "status": "PLANNED_NOT_IMPLEMENTED",
+    "status": "IMPLEMENTING",
     "plan": "specs/009-pipeline-throughput/plan.md",
     "checklist": "specs/009-pipeline-throughput/tasks.md#integrated-soak-work-packages",
     "target": "full-scale104.5M engineering qualification and persistent soak",
     "accepted_runtime_producer": "56f61564b0b504b9aa5ffc3273bb73974ebaf87e",
     "accepted_runtime_source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
-    "original_counts_unchanged": true,
+    "original_counts_unchanged": false,
     "pending_engineering_tasks": [
       "T011",
       "T025",
