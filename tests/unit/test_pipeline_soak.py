@@ -8,6 +8,115 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_phase_spans_split_without_fractional_completed_work(self):
+        from oeis_learn.fresh.engineering import Control
+        h='sha256:'+'a'*64;clock=[100.]
+        cfg=seal(dict(version='pipeline-engineering-worker/v1',source=h,work=h,choice=h,mode='batch',batch_size=8,
+            window=0,resume=False,lease=None,token_target=10,seconds=600,instrumented=False,cadence_tokens=100))
+        c=Control({'engineering':cfg},{},Path('/unused'),clock=lambda:clock[0])
+        clock[0]=410;c.component('training',20,tokens=16,examples=8,updates=1)
+        self.assertEqual(c.windows[0]['components']['training']['seconds'],10)
+        self.assertNotIn('tokens',c.windows[0]['components']['training'])
+        self.assertEqual(c.windows[1]['components']['training']['tokens'],16)
+        self.assertEqual(c.windows[1]['components']['training']['seconds'],10)
+
+    def test_failed_child_evidence_is_exported_without_tensors(self):
+        import tempfile
+        from oeis_learn.pipeline_validation.soak_runtime import export_worker_evidence
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);p=root/'private/trainer';p.mkdir(parents=True)
+            (p/'engineering-attempts.jsonl').write_text('{"event":"STARTED"}\n')
+            (p/'initial.pt').write_bytes(b'private')
+            (p/'cycle-plan-0.json').write_text('{"planned":32}')
+            export_worker_evidence(root)
+            self.assertTrue((root/'fresh-evidence/engineering-attempts.jsonl').exists())
+            self.assertTrue((root/'fresh-evidence/cycle-plan-0.json').exists())
+            self.assertFalse((root/'fresh-evidence/initial.pt').exists())
+
+    def test_partial_soak_does_not_promote_learning_or_defaults(self):
+        from oeis_learn.pipeline_validation.soak_report import report
+        r=report({})
+        self.assertEqual(r['sustained_operation'],'INCONCLUSIVE')
+        self.assertEqual(r['supported_default'],'RETAIN_BASELINE')
+        self.assertEqual(r['learning'],'NOT_ADMITTED')
+        self.assertEqual(len(r['confirmation']['slots']),20)
+        self.assertFalse(r['costs']['within_eighty_percent'])
+
+    def test_drift_uses_all_declared_steady_windows(self):
+        from oeis_learn.pipeline_validation.soak_report import window_review
+        windows=[dict(leg=leg,ordinal=i,start=i*300,stop=(i+1)*300,complete=True,
+            components={'training':dict(tokens=1000,examples=100,seconds=10 if i<8 else 12)})
+            for leg in (0,1) for i in range(1,11)]
+        r=window_review(windows)
+        self.assertEqual([x['verdict'] for x in r],['FAIL','FAIL'])
+        self.assertEqual(window_review(windows[:-1])[1]['verdict'],'INCONCLUSIVE')
+
+    def test_long_stress_program_is_valid_but_not_corpus(self):
+        from oeis_learn.decoder.bigint_codec import encode_body
+        source='(program (local $b0 bigint) '+('(set $b0 (int 1)) '*100)+'(return (get $b0)))'
+        self.assertEqual(len(encode_body(source)),1016)
+
+    def test_complete_host_orchestration_shares_state_and_exports_one_archive(self):
+        import tempfile,types
+        from contextlib import nullcontext
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.soak import SoakStages,prepare_inputs,peak
+        from oeis_learn.pipeline_validation.soak_contract import manifest
+        from oeis_learn.pipeline_validation.registry import soak_registry,resolve
+        from oeis_learn.pipeline_validation.runner import execute
+        from oeis_learn.pipeline_validation.identity import write,digest
+        from oeis_learn.pipeline_validation.model_sizes import EXECUTION,PROFILES,parameters
+        from oeis_learn.pipeline_validation.bundle import verify
+        from oeis_learn.fresh.bigint_config import defaults
+        root=Path(__file__).resolve().parents[2]
+        examples={k:[dict(id=k+str(i),values=['1']*20,indices=list(map(str,range(20))),tokens=[1]*20) for i in range(n)]
+            for k,n in [('training',512),('parameter_development',128),('structural_development',128)]}
+        facts=dict(physical=128<<30,available=120<<30,limits=[],cpus=16,quota=16,cpuset=16)
+        calls=[];leases=[]
+        class Adapter:
+            def __init__(self):
+                self.args=types.SimpleNamespace(engine='podman',pipeline_engines=['podman'],run='unused',inputs='unused')
+                self.root=root;self.contract=manifest();self.receipts={}
+                self.images=types.SimpleNamespace(images={('podman','gpu'):'image'})
+                self.s=SoakStages(self)
+            def host(self,name):return types.SimpleNamespace(policy=dict(memory_bytes=112<<30,cpus=16,render_node='/dev/dri/renderD128'),select_gpu=lambda:None,gpu_lock=nullcontext)
+            def __call__(self,stage,output):
+                if stage.adapter.startswith('soak-'):return self.s(stage,output)
+                write(output/'fixture.json',{'fixture':True});return {'fixture':True}
+        def prepare(run,inputs,output,**kw):
+            return prepare_inputs(defaults(),examples,output,source=kw['source'],image='image',parent='parent',parent_checkpoint={},data='data')
+        def container(host,image,inputs,output,**kw):
+            output.mkdir(parents=True,exist_ok=True);cfg=json.loads((inputs/'expected.json').read_text());opt=cfg['options']
+            work=json.loads((inputs/'work.json').read_text())['manifest']
+            memory=dict(qualified=True,ceiling_bytes=112<<30,breach=None)
+            if cfg['mode']=='soak-reference':
+                p=output/'private';p.mkdir();(p/'initial.pt').write_bytes(b'initial');(p/'oracle.pt').write_bytes(b'oracle')
+                write(output/'reference.json',{'fixture':True});r=dict(status='COMPLETE',execution=EXECUTION)
+            else:
+                calls.append(opt['kind']);(output/'private').mkdir(exist_ok=True)
+                eng=dict(complete=True,window=opt['window'],active_seconds=3600 if opt['kind']=='window' else 10,
+                    state=dict(components={'training':dict(tokens=2*work['data']['tokens']['training'],seconds=800/opt['batch_size'])},windows=[]))
+                if opt['kind']=='window':
+                    leases.append(opt['lease'])
+                    if opt['window']==1:self.assertTrue((output/'private/state-marker').exists())
+                    (output/'private/state-marker').write_text('same state')
+                    windows=[dict(leg=l,ordinal=i,start=l*4000+i*300,planned_stop=l*4000+(i+1)*300,
+                        stop=l*4000+(i+1)*300,complete=True,components={'training':dict(seconds=100,tokens=10000,examples=500)})
+                        for l in range(opt['window']+1) for i in range(12)]
+                    eng['state']['windows']=windows
+                    samples=[dict(time=opt['window']*4000+i,anon=100,file=100,current=100,driver=100,
+                        cpu_usage_usec=i*1000000,gpu_busy_percent=80) for i in range(3600)]
+                    (output/'resource-samples.jsonl').write_text(''.join(json.dumps(s)+'\n' for s in samples))
+                r=dict(status='COMPLETE',execution=EXECUTION,profile=PROFILES['m100'],source=cfg['source'],work=work['identity'],
+                    device={'hip':'fixture'},resources=memory,trainer=dict(engineering=eng,counts={'actual':parameters(PROFILES['m100'])}))
+                if opt['kind']=='parity':r['numerical_parity']=True
+            write(output/'summary.json',seal(r));write(output/'host-timing.json',{'seconds_through_cleanup':10})
+        with tempfile.TemporaryDirectory() as td,patch('oeis_learn.pipeline_validation.benchmarks.legacy',return_value=types.SimpleNamespace(prepare=prepare,container_stage=container)),patch('oeis_learn.pipeline_validation.resources.observe',return_value=facts):
+            a=Adapter();out=Path(td)/'run'
+            code=execute(resolve(soak_registry(('podman',),'podman'),'all-ready'),out,adapter=a,binding={'source':'fixture'},cap=86400,reserve=1200,contract=a.contract)
+            self.assertEqual(code,0)
+            self.assertEqual(calls.count('batch'),12);self.assertEqual(calls.count('window'),2)
+            self.assertEqual(leases[0],leases[1]);verify(out.with_suffix('.zip'))
     def test_continuation_cannot_reset_counters_or_lose_resume_state(self):
         from oeis_learn.fresh.engineering import Control
         from oeis_learn.pipeline_validation.soak_contract import lease

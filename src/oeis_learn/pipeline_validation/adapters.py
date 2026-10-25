@@ -31,6 +31,8 @@ class Adapters:
         self.coschedule=CoscheduleStages(self)
         from .model_sizing import SizingStages
         self.sizing=SizingStages(self)
+        from .soak import SoakStages
+        self.soak=SoakStages(self)
         self.hosts={};self.images=Images(contract['budgets']['build_per_engine_seconds'])
 
     def host(self,name):
@@ -75,6 +77,8 @@ class Adapters:
             return launch([sys.executable,'-S','-c',code],output,seconds=stage.seconds,stream_cap=self.contract['budgets']['stream_bytes'])
         if stage.adapter.startswith('sizing-'):
             return self.sizing(stage,output)
+        if stage.adapter.startswith('soak-'):
+            return self.soak(stage,output)
         if stage.adapter.startswith('coschedule-'):
             return self.coschedule(stage,output)
         if stage.adapter.startswith('native-capacity'):

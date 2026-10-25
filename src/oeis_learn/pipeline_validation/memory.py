@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import signal
 import threading
+import json
+import time
 from .identity import write
 
 
@@ -27,12 +29,13 @@ def observe(render_node=None):
 
 
 class MemoryWatchdog:
-    def __init__(self, output, *, ceiling, gpu=False, render_node=None, reader=None, killer=None):
+    def __init__(self, output, *, ceiling, gpu=False, render_node=None, reader=None, killer=None,audit_samples=False):
         self.output=Path(output);self.ceiling=ceiling;self.gpu=gpu
         self.reader=reader or (lambda:observe(render_node))
         self.killer=killer or (lambda:os.kill(os.getpid(),signal.SIGTERM))
         self.stop=threading.Event();self.samples=0;self.known=True
         self.machine_peak=0;self.role_peak=0;self.breach=None;self.last=None
+        self.audit_samples=audit_samples;self.render_node=render_node
 
     def sample(self, *, terminate=True):
         try:
@@ -43,6 +46,29 @@ class MemoryWatchdog:
         required=['physical','available','current','limit']+(['driver'] if self.gpu else [])
         known=all(type(row.get(k)) is int and row[k]>=0 for k in required)
         self.known &= known
+        if self.audit_samples:
+            def table(name):
+                try:return {x.split()[0]:int(x.split()[1]) for x in Path('/sys/fs/cgroup',name).read_text().splitlines()}
+                except (OSError,ValueError,IndexError):return {}
+            memory=table('memory.stat');cpu=table('cpu.stat')
+            def sensor(name):
+                if not self.render_node:return None
+                try:return int((Path('/sys/class/drm')/Path(self.render_node).name/'device'/name).read_text().strip())
+                except (OSError,ValueError):return None
+            sample=dict(time=time.monotonic(),**row,anon=memory.get('anon'),file=memory.get('file'),
+                kernel=memory.get('kernel'),shmem=memory.get('shmem'),cpu_usage_usec=cpu.get('usage_usec'),
+                gpu_busy_percent=sensor('gpu_busy_percent'))
+            payload=json.dumps(sample,sort_keys=True,allow_nan=False)+'\n'
+            if self.samples>9000 or len(payload.encode())>4096:
+                self.breach=dict(reason='mandatory memory sample bound exceeded',observation=row)
+                if terminate:self.killer()
+                return
+            try:
+                with (self.output/'resource-samples.jsonl').open('a') as stream:stream.write(payload)
+            except OSError:
+                self.breach=dict(reason='mandatory resource audit cannot be written',observation=row)
+                if terminate:self.killer()
+                return
         if not known:
             return
         # Summing driver residency gives a conservative upper bound even on UMA

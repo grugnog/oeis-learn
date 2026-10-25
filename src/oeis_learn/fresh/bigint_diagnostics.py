@@ -274,6 +274,7 @@ def _portfolio(
             from contextlib import nullcontext
             affinity = getattr(getattr(client,'worker',None),'affinity',None)
             with affinity(prompt_ordinal) if affinity else nullcontext():
+                if evidence:native_clock['dispatched']=time.monotonic()
                 raw_found, raw_status = (None, detail['raw'])
                 if position == 0 and not template:
                     raw_found, raw_status = _raw(client, source, prompt, service_deadline if pipeline else min(deadline,time.monotonic()+4))
@@ -285,9 +286,11 @@ def _portfolio(
                     fit_result = client.fit(source,prompt,
                         policy='none' if '(param.get ' in source else 'eligible-literals/v1',
                         deadline=service_deadline if pipeline else min(deadline,time.monotonic()+4),seed=attempt['seed']%2**32)
+                if evidence:native_clock['completed']=time.monotonic()
                 return raw_found, raw_status, fit_result, time.monotonic()-fit_started
         fitting_start = time.monotonic()
         service_deadline = min(deadline,fitting_start+4)
+        native_clock=dict(admitted=fitting_start,deadline=service_deadline)
         if pipeline:
             def expired_native():
                 reason='native/reference service deadline; late candidate excluded'
@@ -299,6 +302,8 @@ def _portfolio(
                 cancel=getattr(getattr(client,'worker',None),'cancel_all',None),on_expired=expired_native)
         else:
             found, detail['raw'], fit, fit_elapsed = native_work()
+        if evidence:
+            native_clock['owner_observed']=time.monotonic()
         if found:
             found.update(_attempt_ordinal=position,_job_id=job['job_id'])
             raw.append(found)
@@ -341,6 +346,7 @@ def _portfolio(
         if fit["outcome"] in {"unknown", "resource_exhausted"} or not detail['fitting']['complete']:
             incomplete = True
         if evidence:
+            detail['fitting'].update(clock=native_clock,job_id=job['job_id'])
             evidence(row['id'],mode,position,'COMMITTED' if detail['fitting']['complete'] else 'INCOMPLETE',
                 dict(raw=detail['raw'],fitting=detail['fitting'],fit_seconds=fit_elapsed))
         fitted.extend(fit["admitted"])

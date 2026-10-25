@@ -423,6 +423,11 @@ def _train(inputs, output):
                         control.component('validation',time.monotonic()-validation_started,rows=loss['attempted'])
                         if not loss['complete']:raise TimeoutError('complete full-development validation required')
                     panel = [index[k] for ids in selection["panels"].values() for k in ids]
+                    if control:
+                        write(output/f"cycle-plan-{control.state['cycles']}.json",dict(
+                            version='pipeline-soak-cycle/v1',cycle=control.state['cycles'],
+                            prompts=[r['id'] for r in panel],mode='correct',attempts_per_prompt=1,
+                            maximum_body_tokens=1024,maximum_prompt_seconds=60,snapshot_update=order['completed']))
                     generation_started=time.monotonic()
                     diagnostic = generate(
                         encoder, decoder, panel, recipe, synthesis, deadline=min(deadline,time.monotonic()+900) if control else deadline, periodic=True,
@@ -504,7 +509,13 @@ def _train(inputs, output):
                         break
                 if control and control.pulse_due():
                     from oeis_learn.pipeline_validation.soak_native import pulse
-                    pulse(synthesis,control,selection,recipe,deadline)
+                    def gpu_probe():
+                        import math
+                        began=time.monotonic();encoder.eval();decoder.eval()
+                        value=_batch_loss(encoder,decoder,rows[:8],settings['device'],timer=timer,observe=False)
+                        if not math.isfinite(value):raise FloatingPointError('nonfinite read-only probe')
+                        control.component('gpu_readonly_probe',time.monotonic()-began,rows=min(8,len(rows)))
+                    pulse(synthesis,control,selection,recipe,deadline,gpu_probe=gpu_probe)
             if selection["selected_update"] is None:
                 selection["selected_update"] = order["completed"]
             if control and control.cfg['mode'] in {'batch','observation'}:

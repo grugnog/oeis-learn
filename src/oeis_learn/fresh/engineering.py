@@ -23,6 +23,7 @@ def parse(value,*,fixture=False):
     if value['seconds']>3600 or value['cadence_tokens']%1 or value['token_target']%1:raise ValueError('finite engineering work required')
     if value['mode']=='window':
         remaining(value['lease'])
+        if any(value['lease'][k]!=value[k] for k in ('source','work','choice')):raise ValueError('lease cannot change source/work/choice')
         if not fixture and value['seconds']!=3600:raise ValueError('complete3600s work window required')
         if value['resume']!=(value['window']==1):raise ValueError('second window must restore complete state')
     elif value['lease'] is not None or value['resume'] or value['window']:
@@ -35,7 +36,7 @@ class Control:
         self.cfg=parse(settings['engineering'],fixture=bool(settings.get('fixture')))
         self.output=Path(output);self.clock=clock;self.started=clock()
         self.deadline=min(self.started+self.cfg['seconds'],self.cfg['lease']['expires']-60 if self.cfg['lease'] else float('inf'))
-        self.binding=digest({k:self.cfg[k] for k in ('source','work','choice','mode','batch_size','lease','cadence_tokens')})
+        self.binding=digest({k:self.cfg[k] for k in ('source','work','choice','mode','batch_size','lease','cadence_tokens','instrumented')})
         previous=selection.get('engineering')
         if self.cfg['resume']:
             if not previous or previous['binding']!=self.binding or previous['completed_window']!=0:
@@ -50,6 +51,12 @@ class Control:
         self.start_pulses=self.state['pulses']
         self.batch_size=self.cfg['batch_size'];self.events=0
         self.next_pulse=self.started
+        import math
+        self.windows=[dict(leg=self.cfg['window'],ordinal=i,start=self.started+i*300,
+            planned_stop=min(self.deadline,self.started+(i+1)*300),components={})
+            for i in range(math.ceil(self.cfg['seconds']/300))]
+        self.state['windows'].extend(self.windows)
+        if len(self.state['windows'])>32:raise ValueError('engineering window evidence capacity exhausted')
 
     def wants_update(self,completed):
         return (self.clock()<self.deadline-5 and completed<SPEC['max_updates']
@@ -58,15 +65,16 @@ class Control:
 
     def component(self,name,seconds,**counts):
         number(seconds)
-        now=self.clock();slot=int((now-self.started)//300)
-        if self.bucket is None or self.bucket['ordinal']!=slot:
-            self.flush(now)
-            self.bucket=dict(leg=self.cfg['window'],ordinal=slot,start=now,stop=now,components={})
-        for target in (self.state['components'],self.bucket['components']):
-            row=target.setdefault(name,dict(seconds=0))
-            row['seconds']+=seconds
-            for k,v in counts.items():row[k]=row.get(k,0)+number(v)
-        self.bucket['stop']=now
+        now=self.clock();start=now-seconds
+        row=self.state['components'].setdefault(name,dict(seconds=0));row['seconds']+=seconds
+        for k,v in counts.items():row[k]=row.get(k,0)+number(v)
+        for window in self.windows:
+            overlap=max(0,min(now,window['planned_stop'])-max(start,window['start']))
+            terminal=window['start']<=now<window['planned_stop']
+            if overlap or terminal:
+                part=window['components'].setdefault(name,dict(seconds=0));part['seconds']+=overlap
+                if terminal:
+                    for k,v in counts.items():part[k]=part.get(k,0)+number(v)
 
     def update(self,rows,seconds):
         tokens=sum(len(r['tokens']) for r in rows)
@@ -100,10 +108,10 @@ class Control:
         self.state['pulses']+=1;self.next_pulse=self.started+(self.state['pulses']-self.start_pulses)*600
 
     def flush(self,now=None):
-        if self.bucket is not None:
-            self.bucket['stop']=self.clock() if now is None else now
-            self.state['windows'].append(self.bucket);self.bucket=None
-            if len(self.state['windows'])>32:raise ValueError('engineering window evidence capacity exhausted')
+        now=self.clock() if now is None else now
+        for window in self.windows:
+            window['stop']=min(now,window['planned_stop'])
+            window['complete']=now>=window['planned_stop']
 
     def checkpoint(self,selection):
         selection['engineering']=self.state

@@ -161,12 +161,13 @@ def soak_registry(engines=('docker',),primary='docker'):
         {'host','engine','image','cpu','hip','retirement','operations','policy','native'}]
     stages.append(Stage('soak.prepare',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=60,adapter='soak-prepare'))
     stages.append(Stage('soak.reference',2,('soak.prepare',),seconds=600,adapter='soak-reference'))
-    previous='soak.reference'
+    stages.append(Stage('soak.parity',2,('soak.reference','hip.preflight'),seconds=600,adapter='soak-parity'))
     for batch in (8,16,32):
+        previous='soak.parity'
         for trial in ('warmup','calibration-0','calibration-1','calibration-2'):
             key=f'soak.b{batch}.{trial}'
             stages.append(Stage(key,2,(previous,'hip.preflight'),seconds=330,adapter='soak-batch'));previous=key
-    stages.append(Stage('soak.freeze',2,(previous,),seconds=60,adapter='soak-freeze'))
+    stages.append(Stage('soak.freeze',2,('soak.parity',),seconds=60,adapter='soak-freeze'))
     stages.append(Stage('soak.joint',4,('soak.freeze','policy.compare','native.compare','operations.'+primary+'.workflow','operations.'+primary+'.retirement'),seconds=3600,adapter='soak-joint'))
     stages.append(Stage('soak.observation',4,('soak.joint',),seconds=1200,adapter='soak-observation'))
     stages.append(Stage('soak.persistent',4,('soak.observation',),seconds=7800,adapter='soak-persistent'))

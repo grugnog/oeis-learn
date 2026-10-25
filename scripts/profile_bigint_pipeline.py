@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False, sizing=False):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False, sizing=False,soak=False):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -92,6 +92,10 @@ def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32
     examples = read(example_file)
     view = "concrete" if recipe["learning"]["target_view"] == "literal" else "parameterized"
     learner = examples["views"][view]
+    if soak:
+        from oeis_learn.pipeline_validation.soak import prepare_inputs
+        return prepare_inputs(recipe,learner,output,source=source,image=image,
+            parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
     if scope not in ('diverse32','transfer-screen'):raise ValueError('unknown pipeline cost scope')
     selected_rows=learner['training'] if scope=='diverse32' else learner['parameter_development']+learner['structural_development']
     ids=examples['tiny_ids'] if scope=='diverse32' else [r['id'] for r in selected_rows]
