@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1445,10 +1445,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Accepted affected-source closure at adda1b6 remains historical. New CPU/native wave admission/role/fixture code needs current CPU/package qualification.",
-      "blocking_reason": "Target CPU suite recorded652 passes and one serial metrics fixture assertion failure; performance work never dispatched. Fixture and foundation serializer binding repaired;136 host tests/export pass. Corrected pinned CPU/native qualification and full18-row screen remain pending; no HIP replay selected.",
+      "implementation_disposition": "Affected-source CPU/native1/2/4 fixture, full18-row timing, clocks/debits and package execution accepted at176ecc9; no whole-feature/research completion.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1471,7 +1471,9 @@
         "specs/009-pipeline-throughput/validation/native-capacity-local-evidence.json",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T032351Z.md",
         "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T032351Z.json",
-        "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
+        "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.json"
       ]
     },
     {
@@ -1626,7 +1628,7 @@
     "operator_review": "specs/009-pipeline-throughput/validation/hardware-ladder-operator-20261024T220811Z.md"
   },
   "native_capacity_refinement": {
-    "status": "VALIDATION_REPAIRED_TARGET_PENDING",
+    "status": "ACCEPTED_ENGINEERING_SCOPE",
     "source": "sha256:4534bfdc83f9faf7132830a4d281c55fb8e6c52f129f2f4e3339fcbe7504308c",
     "manifest": "configs/foundation/pipeline_native_capacity.json",
     "contract": "specs/009-pipeline-throughput/contracts/native-capacity.md",
@@ -1635,10 +1637,10 @@
       "009:N001": "complete",
       "009:N002": "complete",
       "009:N003": "complete",
-      "009:N004": "pending_runtime"
+      "009:N004": "complete"
     },
     "meaning": "Separate CPU-only queued diagnostic, fixed full18-row slot-wave calibration and independent1/2/4 worker screens plus observed follow-ups in one archive; no production/GPU/learning authority.",
-    "operator_review": "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T032351Z.md",
+    "operator_review": "specs/009-pipeline-throughput/validation/native-capacity-operator-20261025T040709Z.md",
     "local_evidence": "specs/009-pipeline-throughput/validation/native-capacity-fix-local-evidence.json"
   }
 }

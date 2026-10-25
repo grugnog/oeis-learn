@@ -173,3 +173,7 @@ The [native-capacity contract](contracts/native-capacity.md) registers a CPU-onl
 ## First native-capacity collection: validation repair
 
 The [source-matched target review](validation/native-capacity-operator-20261025T032351Z.md) records652 CPU passes and a serial-worker fixture metrics assertion failure before all performance work. The fixture now respects the existing serial/pooled metric shapes; separate completed CI failures from a wrong007 binding serializer are repaired with the actual foundation canonical functions.136 host tests and verified partial export pass. Runtime Python, full18-row work, immutable clocks, candidate roster and thresholds remain unchanged. Corrected-source CPU validation remains pending under the same single-command scope; no duplicate GPU scope or learning work is introduced.
+
+## Accepted native component and co-scheduling boundary
+
+[Actual native-capacity evidence](validation/native-capacity-operator-20261025T040709Z.md) accepts the full18-row screen and selects4 workers experimentally after68.63–70.71% paired interval reductions. All306 wave clocks/debits verify; no default changes. Alongside accepted GPU128 capacity this supports a new prospective component co-scheduling/parity/resource and repeatability scope. Isolated screens stay accepted at their sources; useful generated-program/full-pipeline confirmation, persistent-trainer stability and learning admission remain separate.

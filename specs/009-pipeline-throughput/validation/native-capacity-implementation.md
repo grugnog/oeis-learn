@@ -1,3 +1,5 @@
+Target status: [accepted corrected collection](native-capacity-operator-20261025T040709Z.md) at176ecc9. All18 slots and655 CPU tests pass;4 workers win experimentally. The command below is retained for reproducibility, not a duplicate-run request. Earlier failure/repair evidence remains historical.
+
 Latest target collection: [qualification failure and repair](native-capacity-operator-20261025T032351Z.md).652 CPU tests pass; one serial metrics fixture assertion blocks all performance slots. The fixture and independent CI disposition-serializer issue are repaired;136 host tests pass. Use the same combined command below after updating, with a fresh output. No GPU repeat.
 
 # Native CPU capacity: combined target handoff
