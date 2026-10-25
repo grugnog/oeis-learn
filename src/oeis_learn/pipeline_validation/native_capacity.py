@@ -66,6 +66,8 @@ def observed_trial(function,output,**kwargs):
 
 
 def comparison(child,receipts,workers,corpus):
+    validate(child,{'version','source','parent','corpus','semantics','baselines','calibration','workers','slots','memory_ceiling','admission','service_seconds','primary_measurement','decision_rule','interpretation'},'pipeline-native-capacity-child/v1')
+    if child['corpus']!=corpus['identity'] or child['workers']!=[2,4] or child['slots']!=SLOTS[6:] or child['decision_rule']!=RULE or child['service_seconds']!=4 or child['admission']!='slot-waves/v1' or child['primary_measurement']!='ordinary/v1':raise ValueError('registered finite native child required')
     expected=child['semantics'];rows=[];missing=[]
     keys=[f'w{workers}-{n}' for n in ('warmup','pair0-A','pair0-B','pair1-B','pair1-A')]
     for key in keys:
@@ -94,7 +96,7 @@ def freeze_child(config,corpus,receipts):
     if any(receipts[k]!=seal(receipts[k]) for k in BASELINES):raise ValueError('immutable baseline receipts required')
     baseline=[receipts[k]['observations']['result'] for k in BASELINES]
     expected=semantics(baseline[0],corpus)
-    if any(receipts[k]['state']!='PASS' or semantics(r,corpus)!=expected for k,r in zip(BASELINES,baseline)):
+    if any(receipts[k]['state']!='PASS' or r.get('workers')!=1 or semantics(r,corpus)!=expected for k,r in zip(BASELINES,baseline)):
         raise ValueError('complete equal-semantic baseline roster required')
     calibration=calibrate([dict(complete=True,seconds=r['primary_seconds'],identity=receipts[k]['identity'])
         for k,r in zip(BASELINES[2:],baseline[2:])],minimum=30,cap=270,parent=config['contract'],workload=corpus['identity'])
@@ -128,6 +130,8 @@ def investigate(inputs,output,config):
                 admission='queued8/v1' if queued else 'slot-waves/v1')
             # The old diagnostic may end incompletely without preventing the new
             # named admission hypothesis; all scored slots require complete work.
+            if not queued and number(trial['primary_seconds'],positive=True)>seconds:
+                trial=seal(dict(trial,complete=False,failure='primary wall reservation exceeded'))
             state='PASS' if queued or trial.get('complete') else 'INCONCLUSIVE'
             receipts[key]=ledger.transition(state,files=public_files(ledger.root),observations={'result':trial})
             return trial
@@ -198,5 +202,8 @@ class NativeCapacityStages:
         if result.get('status')=='FAIL':
             if result.get('fatal'):raise ResourceBreach(result.get('error','native role containment failure'))
             raise RuntimeError(result.get('error','native capacity role failed'))
+        if result.get('resources',{}).get('qualified') is not True:
+            return dict(result,status='INCONCLUSIVE',selected_workers=1,stage_state='INCONCLUSIVE',
+                qualification_reason='whole-role aggregate memory accounting unavailable; retain serial')
         if result['status']!='COMPLETE':return dict(result,stage_state='INCONCLUSIVE')
         return result

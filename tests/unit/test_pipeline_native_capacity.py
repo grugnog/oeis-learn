@@ -138,3 +138,59 @@ class NativeCapacityTests(unittest.TestCase):
             self.assertTrue(r['complete']);self.assertEqual(sum(created),18)
             self.assertEqual(len(r['jobs']),18)
             self.assertEqual(r['admission'],'slot-waves/v1')
+
+    def test_clock_mutation_missing_debits_and_wrong_workers_cannot_score(self):
+        from copy import deepcopy
+        for mutation in ('deadline','observed','debit','frontier','workers'):
+            def changed(output,**kw):
+                r=self.trial(output,**kw)
+                if Path(output).name=='w2-pair0-B':
+                    r=deepcopy(r);job=next(iter(r['jobs'].values()))
+                    if mutation=='deadline':r['timing'][job['job']['prompt_id']]['deadline']+=1
+                    if mutation=='observed':job['observed']=job['deadline']
+                    if mutation=='debit':job['consumed']=0
+                    if mutation=='frontier':r['boundary']=seal(dict(r['boundary'],frontier=[]))
+                    if mutation=='workers':r['workers']=4
+                    r=seal(r)
+                return r
+            with self.subTest(mutation=mutation):
+                result,_=self.run_screen(changed)
+                self.assertEqual(result['comparisons'][0]['pairs'],[])
+                self.assertEqual(result['comparisons'][0]['status'],'INCONCLUSIVE')
+
+    def test_primary_wall_overrun_and_unsupported_gain_retain_serial(self):
+        def slow(output,**kw):
+            r=self.trial(output,**kw)
+            if Path(output).name.startswith(('w2','w4')) and not Path(output).name.endswith('-A'):
+                r=seal(dict(r,primary_seconds=kw['cap']+1))
+            return r
+        result,_=self.run_screen(slow)
+        self.assertEqual(result['selected_workers'],1)
+        self.assertTrue(all(c['pairs']==[] for c in result['comparisons']))
+        def negative(output,**kw):
+            r=self.trial(output,**kw)
+            return seal(dict(r,primary_seconds=2))
+        result,_=self.run_screen(negative)
+        self.assertEqual(result['status'],'COMPLETE');self.assertEqual(result['selected_workers'],1)
+        self.assertTrue(all(not c['supported'] for c in result['comparisons']))
+
+    def test_full_simulated_cpu_graph_exports_one_verified_archive(self):
+        from oeis_learn.pipeline_validation.runner import execute
+        from oeis_learn.pipeline_validation.registry import native_capacity_registry
+        from oeis_learn.pipeline_validation.native_capacity import investigate,NativeCapacityStages
+        from oeis_learn.pipeline_validation.bundle import verify
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)/'out';a=SimpleNamespace(receipts={});report=NativeCapacityStages(a)
+            def adapter(stage,output):
+                if stage.id=='native.capacity':
+                    return investigate(None,output,dict(source='source',contract='parent',options=dict(seconds=4470,memory_ceiling=16<<30)))
+                if stage.id=='native.capacity.report':return report(stage,output)
+                return {'fixture':True}
+            adapter.receipts=a.receipts
+            with patch('oeis_learn.pipeline_validation.role.native_trial',self.trial),patch('oeis_learn.pipeline_validation.native_capacity.observed_trial',side_effect=lambda fn,*args,**kw:fn(*args,**kw)):
+                code=execute(native_capacity_registry(('podman',),'podman'),root,adapter=adapter,binding={'source':'source'},cap=10000,reserve=1200,contract={'scope':'engineering-native-capacity'})
+            self.assertEqual(code,0)
+            manifest=verify(root.with_suffix('.zip'));self.assertEqual(manifest['summary_state'],'PASS')
+            d=json.loads((root/'summary.json').read_text());self.assertEqual(d['scope'],'engineering-native-capacity');self.assertFalse(d['feature_complete'])
+            self.assertEqual(len(list((root/'stages/native.capacity/slots').glob('*/receipt.json'))),18)

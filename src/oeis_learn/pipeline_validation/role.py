@@ -33,7 +33,7 @@ def native_corpus():
 
 
 def native_trial(output,*,workers,corpus,contract,cap,admission="queued8/v1"):
-    if admission not in {"queued8/v1","slot-waves/v1"} or workers not in (1,2,4):
+    if admission not in {"queued8/v1","slot-waves/v1"} or type(workers) is not int or workers not in (1,2,4):
         raise ValueError("registered native admission/worker policy required")
     from oeis_learn.synthesis.client import SynthesisClient
     from oeis_learn.synthesis.service_policy import ServiceLimits
@@ -212,6 +212,8 @@ def main(argv=None):
             ceiling=resolve(**observe())['ceiling_bytes']
         with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay'},
                 render_node=config['options'].get('render_node')) as guard:
+            if args.mode=='native-capacity' and not guard.report()['qualified']:
+                raise RuntimeError('known aggregate CPU role memory accounting required before native capacity work')
             result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
