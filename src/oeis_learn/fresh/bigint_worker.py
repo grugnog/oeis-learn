@@ -243,7 +243,7 @@ def _train(inputs, output):
         if restore_root!=output:
             shutil.copytree(restore_root / "checkpoints", output / "checkpoints", dirs_exist_ok=True)
         pointer = read(output / "checkpoints/latest.json")
-        restored = CheckpointStore(output / "checkpoints", contract).load(pointer)
+        restored = CheckpointStore(output / "checkpoints", contract,policies=recipe.get('pipeline')).load(pointer)
         if engineering and restored['ledger'].snapshot()!=ledger.snapshot():
             raise ValueError('engineering restart must retain exact cumulative ledger')
         states = restored["states"]
@@ -557,7 +557,7 @@ def _load_models(inputs, settings):
 
     encoder, decoder, counts = models(settings["recipe"], settings["device"])
     contract = ExperimentContract(**settings["contract"])
-    store = CheckpointStore(Path(inputs) / "checkpoints", contract)
+    store = CheckpointStore(Path(inputs) / "checkpoints", contract,policies=settings['recipe'].get('pipeline'))
     loaded = store.load(settings["checkpoint"])
     encoder.load_state_dict(loaded["states"]["weights"]["encoder"])
     decoder.load_state_dict(loaded["states"]["weights"]["decoder"])

@@ -33,7 +33,7 @@ def data_contract(examples):
     counts={};tokens={};ids={}
     for name,minimum in [('training',512),('parameter_development',128),('structural_development',128)]:
         rows=examples[name]
-        if not isinstance(rows,list) or len(rows)<minimum:raise ValueError('full approved partition required: '+name)
+        if not isinstance(rows,list) or not minimum<=len(rows)<=4096:raise ValueError('full approved bounded partition required: '+name)
         ids[name]=[r['id'] for r in rows]
         if len(set(ids[name]))!=len(rows):raise ValueError('unique full partition IDs required')
         for row in rows:
@@ -46,13 +46,14 @@ def data_contract(examples):
         lengths={k:dict(min=min(len(r['tokens']) for r in rows),max=max(len(r['tokens']) for r in rows)) for k,rows in examples.items()}))
 
 
-def select_batch(rows):
+def select_batch(rows,*,expected_tokens=None):
     eligible={}
     for batch in (8,16,32):
         trials=rows.get(str(batch),[])
         try:
             if len(trials)!=3 or not all(t['complete'] is True for t in trials):continue
             if len({t['tokens'] for t in trials})!=1:continue
+            if expected_tokens is not None and any(t['tokens']!=expected_tokens for t in trials):continue
             rates=[number(t['tokens'],positive=True)/number(t['seconds'],positive=True) for t in trials]
             eligible[batch]=statistics.median(rates)
         except (ValueError,KeyError,TypeError):continue
@@ -61,6 +62,8 @@ def select_batch(rows):
 
 
 def lease(source,work,choice,*,now=None):
+    from oeis_learn.synthesis.state import require_hash
+    for value in (source,work,choice):require_hash(value)
     now=time.monotonic() if now is None else number(now)
     return seal(dict(version='pipeline-soak-lease/v1',source=source,work=work,choice=choice,
         started=now,expires=now+SPEC['parent_seconds'],windows=SPEC['work_windows_seconds'],
@@ -71,4 +74,7 @@ def remaining(record,*,now=None):
     validate(record,{'version','source','work','choice','started','expires','windows','parent_seconds'},'pipeline-soak-lease/v1')
     if (record['parent_seconds']!=7800 or record['windows']!=[3600,3600]
         or record['expires']!=record['started']+7800):raise ValueError('immutable soak parent required')
+    from oeis_learn.synthesis.state import require_hash
+    for k in ('source','work','choice'):require_hash(record[k])
+    number(record['started']);number(record['expires'],positive=True)
     return max(0,record['expires']-(time.monotonic() if now is None else number(now)))

@@ -27,11 +27,28 @@ def work_input(inputs,config):
     return work,recipe
 
 
+def role_options(config,*,reference=False):
+    fields={'seconds','memory_ceiling','render_node'}
+    if not reference:fields|={'kind','batch_size','instrumented','choice','resume','window','lease'}
+    opt=config['options']
+    if set(opt)!=fields:raise ValueError('closed soak role options required')
+    from .identity import number
+    number(opt['seconds'],positive=True);number(opt['memory_ceiling'],positive=True)
+    if opt['seconds']>7800:raise ValueError('fixed role parent required')
+    if not reference:
+        if opt['kind'] not in {'parity','batch','joint','observation','window'}:raise ValueError('unknown soak role kind')
+        if type(opt['batch_size']) is not int or opt['batch_size'] not in (8,16,32):raise ValueError('registered training batch required')
+        if type(opt['instrumented']) is not bool or type(opt['resume']) is not bool:raise ValueError('explicit role flags required')
+        if opt['kind']!='window' and (opt['resume'] or opt['window'] or opt['lease'] is not None):raise ValueError('only fixed windows recover state')
+    return opt
+
+
 @sizing_execution
 def reference(inputs,output,config):
     import torch
     from oeis_learn.fresh.bigint_worker import models
     from .replay import tensor_record
+    role_options(config,reference=True)
     work,recipe=work_input(inputs,config);torch.set_num_threads(2);torch.set_num_interop_threads(1)
     encoder,decoder,counts=models(recipe,'cpu');encoder.eval();decoder.eval()
     private=output/'private';private.mkdir()
@@ -171,7 +188,7 @@ def export_worker_evidence(output,*,resume=False):
 def trial(inputs,output,config):
     import torch
     from oeis_learn.tracking.pipeline_profile import Recorder
-    work,recipe=work_input(inputs,config);opt=config['options']
+    work,recipe=work_input(inputs,config);opt=role_options(config)
     if not torch.version.hip or not torch.cuda.is_available() or torch.cuda.device_count()!=1:raise RuntimeError('one actual HIP owner required')
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     with Recorder(output/'observations',instrumented=opt.get('instrumented',False),render_node=opt['render_node'],host_counters=False,sample_bytes=16<<10):
@@ -190,6 +207,9 @@ def trial(inputs,output,config):
                 resume=opt.get('resume',False),window=opt.get('window',0),lease=opt.get('lease'))
             result=dict(status='COMPLETE' if result['engineering']['complete'] else 'PARTIAL',trainer=result)
     write(output/'execution.json',execution_observation())
+    telemetry=json.loads((output/'observations/telemetry.json').read_text())
+    if telemetry['collector_error'] or opt['instrumented'] and not telemetry['samples']:
+        raise RuntimeError('declared observation mode did not collect bounded telemetry')
     return dict(result,execution=execution_observation(),profile=PROFILES['m100'],source=config['source'],
         work=work['manifest']['identity'],device=dict(hip=torch.version.hip,name=torch.cuda.get_device_name()))
 

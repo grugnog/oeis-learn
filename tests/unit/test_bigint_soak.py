@@ -31,6 +31,34 @@ def test_actual_trainer_constructs_registered_full_size():
     assert sum(p.numel() for p in encoder.parameters())+sum(p.numel() for p in decoder.parameters())==104496662
 
 
+def test_engineering_complete_state_restart_retains_exact_ledger(tmp_path):
+    from tests.integration.test_bigint_workflow import _fixture
+    from oeis_learn.fresh.bigint_worker import train
+    from oeis_learn.fresh.bigint_state import CheckpointStore
+    from oeis_learn.fresh.common import write
+    from oeis_learn.pipeline_validation.identity import seal
+    from oeis_learn.pipeline_validation.soak_contract import lease
+    h='sha256:'+'e'*64
+    run,inputs,settings,examples=_fixture('cpu',tmp_path)
+    l=lease(h,h,h)
+    cfg=seal(dict(version='pipeline-engineering-worker/v1',source=h,work=h,choice=h,
+        mode='window',batch_size=8,window=0,resume=False,lease=l,token_target=1,seconds=8,
+        instrumented=False,cadence_tokens=1))
+    settings['engineering']=cfg;write(inputs/'settings.json',settings)
+    root=tmp_path/'persistent'
+    first=train(inputs,root)
+    assert first['engineering']['complete'] and first['update']>0
+    settings['engineering']=seal(dict(cfg,window=1,resume=True));write(inputs/'settings.json',settings)
+    second=train(inputs,root)
+    assert second['engineering']['complete'] and second['update']>first['update']
+    state=CheckpointStore(root/'checkpoints',run.contract).load(second['checkpoint'])
+    assert state['ledger'].snapshot()==settings['ledger']
+    assert state['states']['selection']['engineering']['tokens']>first['engineering']['state']['tokens']
+    # A third process cannot replay the second window or obtain another allowance.
+    with pytest.raises(ValueError,match='first-window'):
+        train(inputs,root)
+
+
 @pytest.mark.parametrize('device',['cpu',pytest.param('cuda',marks=pytest.mark.gpu)])
 def test_engineering_uses_actual_trainer_and_checkpoint(tmp_path,device):
     import torch,os

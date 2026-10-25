@@ -175,7 +175,7 @@ class SoakContracts(unittest.TestCase):
 
     def test_lease_does_not_renew_across_restart(self):
         from oeis_learn.pipeline_validation.soak_contract import lease,remaining
-        l=lease('source','work','choice',now=100)
+        l=lease(*['sha256:'+'a'*64]*3,now=100)
         self.assertEqual(remaining(l,now=4000),3900)
         self.assertEqual(remaining(l,now=7900),0)
         bad=dict(l,expires=8000)

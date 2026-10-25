@@ -138,7 +138,7 @@ class SoakStages:
                         rows[str(batch)].append(dict(complete=False));continue
                     r=receipt['observations']['result']['trainer']['engineering']
                     training=r['state']['components']['training'];rows[str(batch)].append(dict(complete=r['complete'],tokens=training['tokens'],seconds=training['seconds']))
-            selected=select_batch(rows)
+            selected=select_batch(rows,expected_tokens=2*self.work['data']['tokens']['training'])
             self.choice=seal(dict(version='pipeline-soak-choice/v1',source=source,work=self.work['identity'],
                 batches=rows,selected_training_batch=selected,profile=PROFILES['m100'],execution=EXECUTION,
                 inference_batch=16,workers=4,envelope=self.envelope,adoption='EXPERIMENTAL_ONLY'))
@@ -156,19 +156,40 @@ class SoakStages:
             result=seal(dict(version='pipeline-soak-observation/v1',overhead=overhead,primary='observed' if self.observed else 'ordinary',results=values))
             write(output/'observation-choice.json',result);return result
         if stage.id=='soak.persistent':
+            from .receipts import Ledger
+            from oeis_learn.synthesis.state import BudgetLedger
             parent=lease(source,self.work['identity'],self.choice['identity']);write(output/'lease.json',parent)
+            budget=BudgetLedger(7800);budget.start('engineering-soak',7800)
+            write(output/'budget.json',budget.snapshot())
+            ledgers=[Ledger(output/f'window-{i}',f'soak.window-{i}',dict(source=source,lease=parent['identity'],choice=self.choice['identity'])) for i in (0,1)]
             results=[];role=output/'role'
-            for window in (0,1):
-                if window:
-                    archived=output/'leg-0';archived.mkdir()
-                    for path in list(role.iterdir()):
-                        if path.name not in {'private','.runtime'}:shutil.move(str(path),str(archived/path.name))
-                left=remaining(parent)
-                if left<3720:raise CapabilityError('remaining original lease cannot fit next complete work window')
-                result=self.invoke(stage,output,kind='window',batch=self.choice['selected_training_batch'],
-                    instrumented=self.observed,seconds=min(3900,left),resume=bool(window),window=window,parent=parent,role_root=role)
-                results.append(result)
-                if result['status']!='COMPLETE':raise RuntimeError('persistent window incomplete; no automatic restart/refund')
+            completed=False
+            try:
+                for window in (0,1):
+                    if window:
+                        archived=output/'leg-0';archived.mkdir()
+                        for path in list(role.iterdir()):
+                            if path.name not in {'private','.runtime'}:shutil.move(str(path),str(archived/path.name))
+                    left=remaining(parent)
+                    if left<3720:raise CapabilityError('remaining original lease cannot fit next complete work window')
+                    ledger=ledgers[window];ledger.transition('READY');ledger.transition('RUNNING')
+                    try:
+                        result=self.invoke(stage,output,kind='window',batch=self.choice['selected_training_batch'],
+                            instrumented=self.observed,seconds=min(3900,left),resume=bool(window),window=window,parent=parent,role_root=role)
+                        write(output/f'window-{window}/result.json',result)
+                        ledger.transition('PASS' if result['status']=='COMPLETE' else 'PARTIAL',
+                            files={'result.json':file_hash(output/f'window-{window}/result.json')})
+                        results.append(result)
+                        if result['status']!='COMPLETE':raise RuntimeError('persistent window incomplete; no automatic restart/refund')
+                    except BaseException as exc:
+                        if ledger.read()['state']=='RUNNING':ledger.transition('PARTIAL' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__+': '+str(exc))
+                        raise
+                completed=True
+            finally:
+                for ledger in ledgers:
+                    if ledger.read()['state']=='PENDING':ledger.transition('BLOCKED',reason='preceding window/reservation incomplete; original allowance not renewed')
+                budget.finish('engineering-soak','completed' if completed else 'interrupted')
+                write(output/'terminal-budget.json',budget.snapshot())
             write(output/'persistent.json',seal(dict(version='pipeline-soak-persistent/v1',lease=parent,choice=self.choice,results=results)))
             return dict(status='COMPLETE',lease=parent,choice=self.choice,results=results)
         raise ValueError('unknown soak stage')
