@@ -96,7 +96,9 @@ RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 FROM qualification-native AS qualification
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 COPY . /opt/oeis-build
-RUN bash /opt/oeis-build/docker/dev/build-native.sh
+# Runtime-created mount parents can inherit a private umask. The parent must be
+# searchable by arbitrary numeric role UIDs; bind mounts retain their own modes.
+RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV CARGO_TARGET_DIR=/opt/oeis-native-target \
     PYTHONPATH=/opt/oeis-build/src OMP_NUM_THREADS=2
 WORKDIR /opt/oeis-build
@@ -130,7 +132,7 @@ RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 FROM gpu-native AS gpu
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 COPY . /opt/oeis-build
-RUN bash /opt/oeis-build/docker/dev/build-native.sh
+RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV PYTHONPATH=/workspace/src
 WORKDIR /workspace
 # The host wrapper supplies each command and its explicit mounts.

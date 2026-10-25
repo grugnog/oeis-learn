@@ -161,7 +161,7 @@ def soak_registry(engines=('docker',),primary='docker'):
         {'host','engine','image','cpu','hip','retirement','operations','policy','native'}]
     for engine in engines:
         stages.append(Stage('soak.operations.'+engine,5,('image.'+engine+'.qualification',),seconds=180,adapter='soak-operations'))
-    stages.append(Stage('soak.prepare',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=60,adapter='soak-prepare'))
+    stages.append(Stage('soak.prepare',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu','soak.operations.'+primary),seconds=60,adapter='soak-prepare'))
     stages.append(Stage('soak.reference',2,('soak.prepare',),seconds=600,adapter='soak-reference'))
     stages.append(Stage('soak.parity',2,('soak.reference','hip.preflight'),seconds=600,adapter='soak-parity'))
     for batch in (8,16,32):

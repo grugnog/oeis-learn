@@ -91,6 +91,11 @@ drained, a separate CPU-only scorer checks public identity/constant programs aga
 the independent evaluator at100 indices. This is an isolation/correctness fixture,
 not hidden scientific scoring or a measured full-control schedule. A missing
 secondary engine leaves portability pending while primary work stays independent.
+Images explicitly provide searchable0755 `/work` mount parents; the disposable
+UID fixture explicitly publishes0644 public files rather than inheriting a private
+host umask. It records parent/output permission diagnostics before its first write.
+Primary UID operations must pass before full-data preparation/candidate timings;
+a failure cannot consume the batch roster merely because that branch is independent.
 
 The closed both-engine graph has38 stages. Non-image reservations by phases1–5
 are1440/5820/3600/12600/11340 seconds, all within the original phase caps. Builds

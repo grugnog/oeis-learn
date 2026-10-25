@@ -22,6 +22,15 @@ from oeis_learn.pipeline_validation.bundle import pack,verify
 from oeis_learn.pipeline_validation.recovery import minimal_archive
 from unittest.mock import patch
 out=Path('/work/output')
+# Only this disposable fixture publishes foreign-UID files for the host reader.
+# Never inherit a host-private077 umask into its public export proof.
+os.umask(0o022)
+paths=[]
+for path in (out.parent,out):
+ try:
+  info=path.stat();paths.append(dict(path=str(path),mode=oct(info.st_mode&0o777),uid=info.st_uid,gid=info.st_gid))
+ except OSError as exc:paths.append(dict(path=str(path),error=str(exc)))
+print(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),mount_permissions=paths)),flush=True)
 write(out/'devices.json',device_view())
 assert os.getuid()=={uid}
 readonly=False

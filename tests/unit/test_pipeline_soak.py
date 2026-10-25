@@ -8,6 +8,29 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_uid_export_executes_recovery_under_restrictive_umask(self):
+        import os,tempfile,errno
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.soak_operations import fixture_code
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);source=root/'input';source.mkdir();output=root/'output';output.mkdir()
+            code=fixture_code(os.getuid()).replace('/work/input',str(source)).replace('/work/output',str(output))
+            original=Path.write_text
+            def readonly(path,*args,**kwargs):
+                if path==source/'forbidden':raise OSError(errno.EROFS,'labelled read-only mount simulation')
+                return original(path,*args,**kwargs)
+            before=os.umask(0o077)
+            try:
+                with patch.object(Path,'write_text',readonly):exec(compile(code,'uid-export-fixture','exec'),{})
+            finally:os.umask(before)
+            receipt=json.loads((output/'uid-export.json').read_text())
+            self.assertTrue(receipt['healthy']);self.assertTrue(receipt['expected_failed_export_verified'])
+            # Namespace-mapped host owner must read the foreign UID's public proof.
+            for p in [output/'uid-export.json',*(output/'failure-export-evidence').glob('*.json')]:
+                self.assertEqual(p.stat().st_mode&0o044,0o044,p)
+            self.assertEqual((output/'devices.json').stat().st_mode&0o044,0o044)
+            self.assertFalse(list(output.rglob('*.zip')))
+
     def test_worker_initialization_crosses_readonly_bind_mount_by_copy(self):
         import tempfile,errno
         from unittest.mock import patch
@@ -178,9 +201,11 @@ class SoakContracts(unittest.TestCase):
                 self.args=types.SimpleNamespace(engine='podman',pipeline_engines=['podman'],run='unused',inputs='unused')
                 self.root=root;self.contract=manifest();self.receipts={}
                 self.images=types.SimpleNamespace(images={('podman','gpu'):'image'})
+                self.fail_operations=False
                 self.s=SoakStages(self)
             def host(self,name):return types.SimpleNamespace(policy=dict(memory_bytes=112<<30,cpus=16,render_node='/dev/dri/renderD128'),select_gpu=lambda:None,gpu_lock=nullcontext)
             def __call__(self,stage,output):
+                if stage.adapter=='soak-operations' and self.fail_operations:raise PermissionError('fixture UID cannot write')
                 if stage.adapter in {'soak-operations','soak-scorer'}:write(output/'fixture.json',{'fixture':True});return {'fixture':True}
                 if stage.adapter.startswith('soak-'):return self.s(stage,output)
                 write(output/'fixture.json',{'fixture':True});return {'fixture':True}
@@ -222,6 +247,13 @@ class SoakContracts(unittest.TestCase):
             self.assertEqual(code,0)
             self.assertEqual(calls.count('batch'),12);self.assertEqual(calls.count('window'),2)
             self.assertEqual(leases[0],leases[1]);verify(out.with_suffix('.zip'))
+            calls.clear();failed=Adapter();failed.fail_operations=True;out=Path(td)/'failed'
+            code=execute(resolve(soak_registry(('podman',),'podman'),'all-ready'),out,adapter=failed,binding={'source':'fixture'},cap=86400,reserve=1200,contract=failed.contract)
+            self.assertNotEqual(code,0);self.assertEqual(calls,[])
+            summary=json.loads((out/'summary.json').read_text())
+            self.assertEqual(summary['stages']['soak.prepare']['state'],'BLOCKED')
+            self.assertEqual(summary['stages']['soak.report']['state'],'INCONCLUSIVE')
+            verify(out.with_suffix('.zip'))
     def test_continuation_cannot_reset_counters_or_lose_resume_state(self):
         from oeis_learn.fresh.engineering import Control
         from oeis_learn.pipeline_validation.soak_contract import lease

@@ -3,6 +3,14 @@ import copy
 import pytest
 
 
+def test_image_mount_parent_is_searchable_by_arbitrary_numeric_uid():
+    import stat
+    from pathlib import Path
+    parent=Path('/work')
+    assert parent.is_dir() and not parent.is_symlink()
+    assert stat.S_IMODE(parent.stat().st_mode)&0o005==0o005
+
+
 def test_sized_recipe_preserves_legacy_identity_and_rejects_shape_drift():
     from oeis_learn.fresh.bigint_config import resolve
     from oeis_learn.pipeline_validation.model_sizes import PROFILES

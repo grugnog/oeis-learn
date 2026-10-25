@@ -30,3 +30,12 @@ class Bundle(unittest.TestCase):
                 pack(root,mandatory=['link.json'])
             with self.assertRaises((ValueError,OSError)):
                 pack(root,mandatory=['missing.json'])
+
+    def test_excluded_tree_links_are_private_not_public_omissions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)/'out';root.mkdir();self.fixture(root)
+            for name in ('private','pytest'):
+                (root/name).mkdir();(root/name/'alias.json').symlink_to(root/'summary.json')
+            (root/'public-alias.json').symlink_to(root/'summary.json')
+            manifest=verify(pack(root,mandatory=['summary.json']))
+            self.assertEqual(manifest['omissions'],[{'path':'public-alias.json','reason':'symlink'}])

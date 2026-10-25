@@ -35,6 +35,10 @@ def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20):
         name=str(path.relative_to(root))
         if name in names or name=='manifest.json':
             continue
+        # Excluded trees are not public candidates, including their link names.
+        # Public unsafe links still get explicit omissions; mandatory paths stay strict.
+        if set(Path(name).parts)&EXCLUDED:
+            continue
         if path.is_symlink():
             omissions.append(dict(path=name,reason='symlink'));continue
         if not path.is_file() or not public(Path(name)):
