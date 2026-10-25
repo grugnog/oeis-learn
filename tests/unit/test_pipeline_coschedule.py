@@ -225,3 +225,57 @@ class Coschedule(unittest.TestCase):
         self.assertEqual(result['status'],'INCONCLUSIVE');self.assertFalse(result['repeatability']['complete'])
         self.assertEqual(len(result['repeatability']['trials']),10)
         self.assertIsNone(result['repeatability']['median']);self.assertIsNone(result['repeatability']['maximum'])
+
+    def test_undispatched_study_reports_all_twenty_slots_unstarted(self):
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation.coschedule import CoscheduleStages
+        from oeis_learn.pipeline_validation.registry import Stage
+        a=SimpleNamespace(receipts={'coschedule.study':{'state':'BLOCKED','reason':'HIP unavailable'}})
+        with tempfile.TemporaryDirectory() as f:
+            result=CoscheduleStages(a)(Stage('coschedule.report',4),Path(f))
+        self.assertEqual(len(result['slots']),20)
+        self.assertTrue(all(r==dict(state='UNSTARTED',reason='HIP unavailable') for r in result['slots'].values()))
+        self.assertFalse(result['optimization_adoption'])
+
+    def test_public_graph_keeps_one_shared_container_and_verified_export(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from oeis_learn.pipeline_validation.coschedule import CoscheduleStages
+        from oeis_learn.pipeline_validation.registry import coschedule_registry,resolve
+        from oeis_learn.pipeline_validation.runner import execute
+        from oeis_learn.pipeline_validation.identity import write,file_hash
+        from oeis_learn.pipeline_validation.bundle import verify
+        from oeis_learn.pipeline_validation.hardware_ladder import ladder_plan
+        contract=json.loads((ROOT/'configs/foundation/pipeline_coschedule.json').read_text())
+        with tempfile.TemporaryDirectory() as f:
+            root=Path(f);host=SimpleNamespace(policy=dict(memory_bytes=32<<30,cpus=16,render_node='/dev/dri/renderD128'),select_gpu=Mock(),gpu_lock=lambda:nullcontext())
+            a=SimpleNamespace(root=root,args=SimpleNamespace(engine='podman',run='parent',inputs='data'),contract=contract,host=lambda _:host,
+                images=SimpleNamespace(images={('podman','gpu'):'fixture-image'}),receipts={})
+            calls=[]
+            def prepare(run,data,output,**kw):
+                self.assertEqual(kw['replay'],'ladder/v1');inputs=output/'input';inputs.mkdir();(inputs/'weights.pt').write_bytes(b'frozen')
+                manifest=seal(dict(binding={'source':kw['source']},weights=file_hash(inputs/'weights.pt'),plan=ladder_plan(1)))
+                write(inputs/'work.json',dict(manifest=manifest));return manifest
+            def container(selected,image,inputs,output,**kw):
+                output.mkdir();config=json.loads((inputs/'expected.json').read_text());calls.append(config['mode'])
+                self.assertEqual(selected.policy['memory_bytes'],32<<30);self.assertEqual(selected.policy['cpus'],16)
+                if config['mode']=='coschedule-reference':
+                    self.assertFalse(kw['gpu']);(output/'private').mkdir();(output/'private/reference.pt').write_bytes(b'oracle')
+                    write(output/'reference.json',seal(dict(version='fixture',weights='weights')))
+                    write(output/'native-reference.json',seal(dict(version='fixture-native')))
+                else:
+                    self.assertEqual(config['mode'],'coschedule-study');self.assertTrue(kw['gpu']);self.assertEqual(kw['seconds'],12500)
+                    self.assertEqual(config['options']['seconds'],12470);self.assertTrue((inputs/'native-reference.json').is_file())
+                write(output/'summary.json',seal(dict(status='COMPLETE',resources={'qualified':True})))
+            co=CoscheduleStages(a)
+            class Adapter:
+                receipts={}
+                def __call__(self,stage,output):
+                    a.receipts=self.receipts
+                    return co(stage,output) if stage.adapter.startswith('coschedule-') else {'fixture':True}
+            with patch('oeis_learn.pipeline_validation.benchmarks.legacy',return_value=SimpleNamespace(prepare=prepare,container_stage=container)),patch('oeis_learn.experiments.source_snapshot.collect_snapshot',return_value={'fixture':'bytes'}),patch('oeis_learn.pipeline_validation.resources.observe',return_value=dict(physical=64<<30,available=64<<30,limits=[],cpus=16)):
+                code=execute(resolve(coschedule_registry(('podman',),'podman'),'all-ready'),root/'out',adapter=Adapter(),binding={'source':'fixture'},cap=86400,reserve=1200,contract=contract)
+            self.assertEqual(code,0);self.assertEqual(calls,['coschedule-reference','coschedule-study'])
+            self.assertEqual(verify((root/'out').with_suffix('.zip'))['summary_state'],'PASS')
+            self.assertFalse(json.loads((root/'out/summary.json').read_text())['feature_complete'])

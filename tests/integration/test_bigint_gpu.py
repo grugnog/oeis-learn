@@ -202,3 +202,11 @@ def test_actual_hip_hardware_capacity128_and_all_registered_batches(tmp_path):
         pytest.skip('actual HIP required')
     from tests.unit.test_pipeline_profile import check_hardware_capacity_role
     check_hardware_capacity_role('cuda',tmp_path)
+
+
+def test_actual_hip_and_native_coschedule_serial_overlap_parity(tmp_path):
+    if not torch.cuda.is_available() or not torch.version.hip:
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':pytest.fail('actual HIP required for coexistence evidence')
+        pytest.skip('actual HIP required')
+    from tests.unit.test_pipeline_profile import check_coschedule_role
+    check_coschedule_role(tmp_path)

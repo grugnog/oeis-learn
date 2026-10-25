@@ -334,7 +334,9 @@ class CoscheduleStages:
             self.native_hash=file_hash(self.replay.reference/'native-reference.json');return result
         if stage.id=='coschedule.report':
             r=a.receipts.get('coschedule.study',{});result=seal(dict(version='pipeline-coschedule-disposition/v1',state=r.get('state','UNSTARTED'),reason=r.get('reason','not dispatched'),
-                result=r.get('observations',{}).get('result'),planned_slots=STUDY_SLOTS,optimization_adoption=False,research_cost_admission=False))
+                result=r.get('observations',{}).get('result'),planned_slots=STUDY_SLOTS,
+                slots=r.get('observations',{}).get('result',{}).get('slots',{}) or {k:dict(state='UNSTARTED',reason=r.get('reason','study not dispatched')) for k in STUDY_SLOTS},
+                optimization_adoption=False,research_cost_admission=False))
             write(output/'disposition.json',result);return result
         from .resources import resolve,observe,reserve
         from .runner import CapabilityError,ResourceBreach

@@ -215,7 +215,7 @@ def main(argv=None):
         with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study'},
                 render_node=config['options'].get('render_node')) as guard:
             if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study'} and not guard.report()['qualified']:
-                raise RuntimeError('known aggregate CPU role memory accounting required before native capacity work')
+                raise RuntimeError('known aggregate memory accounting required before '+args.mode)
             result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:

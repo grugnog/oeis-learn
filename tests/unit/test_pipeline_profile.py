@@ -994,3 +994,69 @@ def _check_hardware_capacity_role(device,tmp_path):
 
 def test_hardware_capacity128_cpu_reference_and_batches(tmp_path):
     check_hardware_capacity_role('cpu',tmp_path)
+
+
+def check_coschedule_role(tmp_path):
+    import torch
+    before=(torch.get_num_threads(),torch.get_num_interop_threads())
+    code=('import sys; from pathlib import Path; import torch; torch.set_num_interop_threads(1); '
+        'from tests.unit.test_pipeline_profile import _check_coschedule_role; _check_coschedule_role(Path(sys.argv[1]))')
+    subprocess.run([sys.executable,'-c',code,str(tmp_path)],cwd=Path(__file__).resolve().parents[2],check=True,timeout=180)
+    assert (torch.get_num_threads(),torch.get_num_interop_threads())==before
+
+
+def _check_coschedule_role(tmp_path):
+    """Real HIP/native coexistence fixture; tiny model and affine correctness work."""
+    import shutil
+    import threading
+    import torch
+    from unittest.mock import patch
+    from tests.integration.test_bigint_decoding import model
+    from tests.integration.test_synthesis_worker import native_affine_wave_corpus
+    from oeis_learn.pipeline_validation.hardware_ladder import prepare_inputs,numeric_role
+    from oeis_learn.pipeline_validation.coschedule import reference_role,trial,read_reference,complete
+    from oeis_learn.pipeline_validation.memory import MemoryWatchdog,observe
+    from oeis_learn.pipeline_validation.identity import file_hash,seal
+    assert torch.version.hip and torch.cuda.is_available() and torch.cuda.device_count()==1
+    assert torch.get_num_interop_threads()==1
+    render=next(iter(sorted(Path('/dev/dri').glob('renderD*'))),None)
+    assert render is not None, 'actual mapped render node required'
+    envelope=observe(str(render));ceiling=envelope['limit']
+    assert type(ceiling) is int and ceiling>0, 'actual cgroup memory limit required'
+    class Encoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.linear=torch.nn.Linear(1,16)
+        def forward_from_sequences(self,values,device):
+            return self.linear(torch.tensor(values,dtype=torch.float32,device=device)[:,:,None])
+    def models(recipe,device):return Encoder().to(device),model().to(device),{}
+    def configured(count):assert count==torch.get_num_interop_threads()==1
+    torch.manual_seed(20261025);weights=tmp_path/'weights.pt'
+    torch.save({'encoder':Encoder().state_dict(),'decoder':model().state_dict()},weights)
+    original=file_hash(weights);prepared=tmp_path/'prepared';prepared.mkdir()
+    prepare_inputs({'fixture':'tiny-frozen'},[{'id':str(i),'values':[str(n+i) for n in range(20)]} for i in range(32)],weights,prepared,source='fixture-source')
+    inputs=prepared/'input';reference=tmp_path/'reference';reference.mkdir()
+    source='fixture-source';contract='sha256:'+'1'*64
+    cfg=dict(source=source,contract=contract,options=dict(seconds=570,memory_ceiling=ceiling,render_node=str(render),batch_size=16,measurement='aggregate1Hz/v1'))
+    corpus=native_affine_wave_corpus();owner=threading.get_ident()
+    with patch('oeis_learn.fresh.bigint_worker.models',models),patch.object(torch,'set_num_interop_threads',side_effect=configured),patch('oeis_learn.pipeline_validation.role.native_corpus',return_value=corpus):
+        reference_role(inputs,reference,cfg)
+        for name in ('reference.json','native-reference.json'):shutil.copyfile(reference/name,inputs/name)
+        shutil.copyfile(reference/'private/reference.pt',inputs/'reference.pt')
+        base=dict(source=source,contract=contract,options=dict(memory_ceiling=ceiling,render_node=str(render)))
+        ref=read_reference(inputs,base)
+        for schedule in ('serial','overlap'):
+            output=tmp_path/schedule;output.mkdir()
+            with MemoryWatchdog(output,ceiling=ceiling,gpu=True,render_node=str(render)) as guard:
+                def actual_gpu(selected,destination,config,seconds):
+                    assert threading.get_ident()==owner
+                    destination.mkdir()
+                    options=dict(seconds=240,memory_ceiling=ceiling,render_node=str(render),batch_size=128,measurement='ordinary/v1')
+                    result=numeric_role(selected,destination,dict(source=source,contract=contract,options=options))
+                    assert result['boundaries']==640 and result['device']['hip']
+                    return seal(dict(result,resources=guard.report()))
+                result=trial(inputs,output,base,schedule=schedule,observed=schedule=='overlap',seconds=400,gpu_executor=actual_gpu)
+                complete(result,base,ref,schedule=schedule,observed=schedule=='overlap')
+            assert guard.report()['qualified']
+            assert result['native']['cycles']==8 and result['native']['rows']==144
+            assert json.loads((output/'trial-progress.json').read_text())['peer_drained']
+    assert file_hash(weights)==original
