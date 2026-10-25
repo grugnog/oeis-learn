@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 78,
-    "pending_runtime": 18,
+    "complete": 77,
+    "pending_runtime": 19,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1448,10 +1448,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Current-source packaging/CPU/native/HIP scope qualified at5014881 by accepted co-scheduling archive; original portability/operations/full-pipeline/research tasks remain scoped separately.",
-      "blocking_reason": null,
+      "implementation_disposition": "New hardware-only profiles, real workload/telemetry and165 host tests/local export complete; current-source runtime remains pending.",
+      "blocking_reason": "Reopened for new explicit model-sizing runtime/source719; current CPU/HIP fixture and model-size collection awaits target execution. Earlier source5014881 closure remains historical and valid.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1480,7 +1480,9 @@
         "specs/009-pipeline-throughput/validation/coschedule-implementation.md",
         "specs/009-pipeline-throughput/validation/coschedule-local-evidence.json",
         "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.md",
-        "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.json"
+        "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.json",
+        "specs/009-pipeline-throughput/validation/model-sizing-implementation.md",
+        "specs/009-pipeline-throughput/validation/model-sizing-local-evidence.json"
       ]
     },
     {
@@ -1667,5 +1669,20 @@
     "producer": "5014881dba04e1c22da6784e3fcd00ec74e5a365",
     "operator_review": "specs/009-pipeline-throughput/validation/coschedule-operator-20261025T151306Z.md",
     "archive_sha256": "sha256:ce32629c46558d71e468bb646a4bb4ee9ebb291c7ae46cf7040f72a6938d909b"
+  },
+  "model_sizing_refinement": {
+    "status": "IMPLEMENTED_TARGET_PENDING",
+    "source": "sha256:ddc4d496011e12175a49453b25af45e434dce4ba4a5887b85f1405d90b635042",
+    "manifest": "configs/foundation/pipeline_model_sizing.json",
+    "contract": "specs/009-pipeline-throughput/contracts/model-sizing.md",
+    "handoff": "specs/009-pipeline-throughput/validation/model-sizing-implementation.md",
+    "local_evidence": "specs/009-pipeline-throughput/validation/model-sizing-local-evidence.json",
+    "tasks": {
+      "009:M001": "complete",
+      "009:M002": "complete",
+      "009:M003": "complete",
+      "009:M004": "pending_runtime"
+    },
+    "meaning": "Separate fresh-model hardware capacity/throughput screen at8.12M/31.90M/104.50M; same data/learning strategy/batch/FP32,15 roles. No learned-quality, model/default choice, persistent-state or research admission."
   }
 }

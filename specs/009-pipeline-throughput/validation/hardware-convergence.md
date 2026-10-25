@@ -1,3 +1,5 @@
+**User-directed refinement**: After this report, the user requested a larger model before the long-run choice and authorized the proposed compact sizing screen. [Implementation/handoff](model-sizing-implementation.md) registers8.12M/31.90M/104.50M fresh profiles without changing accepted component results or production defaults. The no-model-change direction below describes the prior scope; current hardware sizing is explicit and separate. The persistent-state soak still waits for model choice and its own qualification.
+
 # Converge hardware settings before a longer useful test
 
 Decision after [accepted co-scheduling evidence](coschedule-operator-20261025T151306Z.md):

@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: Original six-phase implementation remains distinct from target qualification and user-held scientific work. [Accepted co-scheduling evidence](validation/coschedule-operator-20261025T151306Z.md) at5014881 passes674 CPU tests plus25 subtests,19 actual-HIP tests and all20 component trials. Overlap reduces elapsed21.72/24.99%; all ten observed repeats pass. Original counts78 complete/18 runtime pending/15 research held or blocked include affected-sourceT110 closure. Further work should converge on real-pipeline integration and persistent-state qualification; no new isolated sweep or learning admission.
+**Status**: Hardware-first work now includes the user-requested separate [model-size screen](validation/model-sizing-implementation.md):8.12M/31.90M/104.50M parameters,165 host tests and verified local export pass; current CPU/HIP sizing collection remains pending. Accepted co-scheduling O004 remains complete at5014881. Original counts77 complete/19 runtime pending/15 research held or blocked reflect reopening affected-sourceT110. No production default, learning-quality/curriculum or multi-day admission.
 
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
 
@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -514,3 +514,13 @@ The [accepted native screen](validation/native-capacity-operator-20261025T040709
 ### Accepted co-scheduling and configuration convergence
 
 [Target review](validation/coschedule-operator-20261025T151306Z.md) closes009:O004 andT110 at5014881. All20 trials verify12800 GPU boundaries/2880 native debits; overlap reduces component elapsed21.72/24.99%. Ten observed repeats span39.019–39.504s with4.42GiB sampled role upper peak. Counts78 complete/18 runtime pending/15 research held. Do not repeat isolated component screens. Real generation currently admits at most32 rows, so GPU128 capacity is not a drop-in training setting; useful generated-program throughput, persistent state/checkpoint/resource qualification and original adoption/cost gates remain. See [hardware convergence](validation/hardware-convergence.md).
+
+
+## Supplemental model-size hardware screen v1
+
+The user requested larger model capacity before the long-run choice. This prospectively revises the earlier no-model-change convergence direction without changing any accepted result or original default. [Contract](contracts/model-sizing.md)/[handoff](validation/model-sizing-implementation.md) freeze fresh8.12M/31.90M/104.50M profiles, actual update/generation/native work and finite15-slot roster. Original qualification/adoption/research requirements remain.
+
+- [X] 009:M001 Freeze explicit hardware-only profiles/initializations, fixed real-data workload, complete/partial denominators, CPU oracle, finite15-slot/phase/resource/artifact rules and separate authority before timing.
+- [X] 009:M002 Implement the exact sized constructor while preserving frozen default weights/shapes; shared source/data/reference/weight/resource binding, real disposable AdamW/validation/grammar/native observations, all-row/clock/debit evidence, bounded telemetry and no automatic model/learning selection.
+- [X] 009:M003 Run165 host tests, actual public stdlib CLI and verified partial export; author/register real pinned CPU/HIP shape/count/baseline/cache/update/generation/native fixtures and one target command without installing host dependencies.
+- [ ] 009:M004 Collect/review current CPU/HIP fixtures and all15 admitted/blocked/failed profile roles, actual counts/numerical parity/updates, generation denominators, native clocks/debits, memory categories, complete timing/source/device/cleanup and archive evidence. No quality, persistent-trainer, full-pipeline/default or multi-day admission inferred.

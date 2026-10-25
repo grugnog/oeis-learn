@@ -186,3 +186,8 @@ The [co-scheduling contract](contracts/coschedule.md) registers phases1/2/4 afte
 ## Accepted co-scheduling and converged hardware direction
 
 [Target review](validation/coschedule-operator-20261025T151306Z.md) accepts all20 slots at5014881:21.72/24.99% component elapsed reductions, ten complete repeats and qualified shared resources. The isolated GPU/native/overlap search is complete for this finite roster. [Hardware convergence](validation/hardware-convergence.md) freezes the working direction and identifies one combined useful real-pipeline/persistent-state qualification before a separately decided multi-day run. Actual generated batch128 is not currently admitted; original full-work/five-pair/cost requirements and user-held learning investigations remain.
+
+
+## User-requested model sizing before the persistent-state soak
+
+The user requested greater learned-detail capacity and authorized a compact hardware-only8M/~32M/~100M screen before the integrated soak. [Contract](contracts/model-sizing.md) explicitly versions that architecture change; frozen production constructors, accepted component evidence and learning strategy remain. Fifteen fresh roles measure actual updates/validation/grammar sampling/native verification with the same real data and immutable budgets. [Handoff](validation/model-sizing-implementation.md) records165 host tests, verified export and authored current CPU/HIP fixtures awaiting target. Model choice and persistent-state qualification depend on those observations; no automatic size expansion, learned-quality conclusion, curriculum change or long training. Original counts77/19/15 reflect current-sourceT110 reopening.

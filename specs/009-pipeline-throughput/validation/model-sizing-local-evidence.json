@@ -1,0 +1,33 @@
+{
+  "version": "pipeline-model-sizing-local-evidence/v1",
+  "source": "sha256:ddc4d496011e12175a49453b25af45e434dce4ba4a5887b85f1405d90b635042",
+  "source_entries": 719,
+  "manifest": "sha256:f7d87fe9b5968d2f503f651e540e13bd4b798949f96be6ce6d517bd8ce549c47",
+  "host_tests": 165,
+  "new_host_tests": 11,
+  "runtime_fixtures": "Authored and registered only: exact actual counts/all three shapes, default baseline byte compatibility, actual CPU/HIP updates/cache/grammar sampling and real native clock/debit admission. No local Torch/pytest/native/engine installed.",
+  "cli": {
+    "output": "tmp-validation/009-model-sizing-local",
+    "exit": 3,
+    "selected_scope": "PARTIAL",
+    "reason": "Podman unavailable; all15 GPU slots blocked explicitly",
+    "archive_sha256": "sha256:e5bfb1652e344249158a93c3a93bace6202a1050ccd11413c58847ca1603d370",
+    "archive_bytes": 3974650,
+    "verified_listed_members": 63,
+    "manifest_sha256": "sha256:fcbce47855d91781e0c9296931df1815ecfa8fcd95e66cb2af6f8492dcf2828a"
+  },
+  "checks": [
+    "stdlib host suite165 PASS",
+    "full host-adapter simulated15-trial graph and archive PASS",
+    "actual public CLI verified partial export",
+    "compilation PASS",
+    "whitespace PASS",
+    "actual foundation serializer binding refreshed;68 dispositions/full007 false unchanged"
+  ],
+  "authority": {
+    "optimization_adoption": false,
+    "research_cost_admission": false,
+    "learning": false,
+    "multiday": false
+  }
+}
