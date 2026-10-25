@@ -194,3 +194,26 @@ class NativeCapacityTests(unittest.TestCase):
             manifest=verify(root.with_suffix('.zip'));self.assertEqual(manifest['summary_state'],'PASS')
             d=json.loads((root/'summary.json').read_text());self.assertEqual(d['scope'],'engineering-native-capacity');self.assertFalse(d['feature_complete'])
             self.assertEqual(len(list((root/'stages/native.capacity/slots').glob('*/receipt.json'))),18)
+
+    def test_real_fixture_checks_actual_serial_and_pooled_metric_shapes(self):
+        import ast
+        from oeis_learn.synthesis.worker_pool import WorkerPool
+        from oeis_learn.synthesis.service_policy import ServiceLimits
+        path=Path(__file__).resolve().parents[1]/'integration/test_synthesis_worker.py'
+        function=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='assert_wave_worker_activity')
+        namespace={};exec(compile(ast.Module(body=[function],type_ignores=[]),str(path),'exec'),namespace)
+        check=namespace['assert_wave_worker_activity']
+        for workers in (1,2,4):
+            with self.subTest(workers=workers),WorkerPool(contract_sha256='sha256:'+'1'*64,limits=ServiceLimits(max_inflight_batches=workers)) as pool:
+                # Use real factory/stat shapes without launching a host process.
+                result=dict(workers=workers,metrics=pool.stats)
+                with self.assertRaises(AssertionError):check(result,workers)
+                slots=getattr(pool,'slots',[pool])
+                for i,slot in enumerate(slots):slot.stats['batches']=18//workers+(i<18%workers)
+                result['metrics']=pool.stats;check(result,workers)
+                with self.assertRaises(AssertionError):check(dict(result,workers=8),workers)
+                if workers>1:
+                    changed=json.loads(json.dumps(result));changed['metrics']['workers']=1
+                    with self.assertRaises(AssertionError):check(changed,workers)
+                    changed=json.loads(json.dumps(result));changed['metrics']['slots'][0]['batches']=0
+                    with self.assertRaises(AssertionError):check(changed,workers)

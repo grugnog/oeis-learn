@@ -70,3 +70,25 @@ class Contracts(unittest.TestCase):
             changed=copy.deepcopy(cfg);changed['budgets'][name]=value
             with self.assertRaises(ValueError):parse(seal(changed))
         with self.assertRaises(ValueError):parse(seal(dict(cfg,source={'ignored':'source'})))
+
+    def test_current_dispositions_use_the_package_implementation_serializer(self):
+        import ast
+        import hashlib
+        # Execute the actual small identity functions, avoiding the runtime's
+        # non-stdlib dependency imports on the portable host.
+        namespace=dict(json=json,hashlib=hashlib,Path=Path,Any=object)
+        def definitions(path,names):
+            functions=[n for n in ast.parse(path.read_text()).body if isinstance(n,ast.FunctionDef) and n.name in names]
+            self.assertEqual({n.name for n in functions},set(names))
+            exec(compile(ast.Module(body=functions,type_ignores=[]),str(path),'exec'),namespace)
+        definitions(ROOT/'src/oeis_learn/experiments/artifacts.py',['canonical_bytes','compute_canonical_digest'])
+        namespace['digest']=namespace['compute_canonical_digest']
+        source=ROOT/'src/oeis_learn/evaluation/experiment_runner.py'
+        namespace['__file__']=str(source)
+        definitions(source,['implementation_identity'])
+        self.assertEqual(namespace['canonical_bytes']({'text':'λ'}),'{"text":"λ"}'.encode())
+        record=json.loads((ROOT/'specs/007-experiment-foundation/validation/current-dispositions.json').read_text())
+        self.assertEqual(record['implementation_sha256'],namespace['implementation_identity']())
+        self.assertEqual(record['original_inputs'],68)
+        self.assertEqual(len(record['items']),68)
+        self.assertIs(record['full_007_complete'],False)

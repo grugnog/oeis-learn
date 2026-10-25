@@ -211,6 +211,22 @@ def test_disk_cache_rejects_bad_names_and_symlinks_without_following(tmp_path):
     assert outside.read_text() == "SECRET"
 
 
+def assert_wave_worker_activity(result,workers):
+    """Assert actual factory-specific stats without changing production schemas."""
+    assert result['workers']==workers
+    metrics=result['metrics']
+    if workers==1:
+        # WorkerPool deliberately returns its retained serial implementation.
+        assert 'workers' not in metrics and 'slots' not in metrics
+        slots=[metrics]
+    else:
+        assert metrics['workers']==workers and len(metrics['slots'])==workers
+        slots=metrics['slots']
+    assert all(type(slot['batches']) is int and slot['batches']>0 for slot in slots)
+    assert sum(slot['batches'] for slot in slots)==metrics['batches']
+    assert metrics['batches']>=18  # Distinct prompts must exercise actual slots.
+
+
 @pytest.mark.parametrize('workers',[1,2,4])
 def test_real_native_slot_waves_preserve_full_corpus_and_clocks(tmp_path,workers):
     import os
@@ -232,8 +248,6 @@ def test_real_native_slot_waves_preserve_full_corpus_and_clocks(tmp_path,workers
     expected=semantics(result,corpus)
     assert len(expected)==18 and all(r['outcome']=='verified_solution' and r['admitted'] for r in expected)
     assert all(a['assignment']=={'p0':'3','p1':'7'} for r in expected for a in r['admitted'])
-    assert result['metrics']['workers']==workers
-    assert all(s['batches'] for s in result['metrics']['slots'])
-    assert result['metrics']['batches']>=18  # Distinct prompts prevent all-cache-hit slot coverage.
+    assert_wave_worker_activity(result,workers)
     assert result['primary_seconds']>=result['seconds']
     assert (tmp_path/'measurement.json').is_file()
