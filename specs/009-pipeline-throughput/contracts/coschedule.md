@@ -12,7 +12,7 @@ comparisons `serial-overlap/v1` and `repeat10/v1`. Original scopes remain unchan
 Each trial performs the accepted128-row/131072-supplied-BOS-token/640-boundary
 hoisted FP32 eager GPU replay once, plus8 cold native4 cycles of the full18-row
 native corpus (144 result rows). The fixed8-cycle count retains complete native
-evidence within the existing512MiB mandatory archive allowance (about297MiB
+evidence within the existing512MiB mandatory archive allowance (about283MiB
 extrapolated native public payload across twenty trials before GPU/report files).
 This is a prospective component fixture with128 GPU rows and144 native fits;
 its serial/overlap arms have identical work. It does not represent generated-program flow.
@@ -54,7 +54,9 @@ Before candidate timing, seal a child binding current source/manifest, weights,
 replay/native references, full fixed work, complete five baseline receipts,
 resources/actual threads/device, accepted evidence basis, all later slots and rules.
 Use `ceil(max(400,2*max(three complete baseline primary intervals)))`, maximum570s,
-with30s external setup/cleanup:430–600s external. Reserve all five comparison
+with30s parent setup/export/reaping reservation per trial:430–600s total.
+The enclosing12500s role is externally supervised; the GPU subprocess also has
+its own270s watchdog. Reserve all five comparison
 and ten repeatability trials plus60s before dispatch. No clamping or extra samples.
 One excluded overlap warmup then exactly two fresh AB/BA pairs compare A=serial,
 B=overlap. Primary trials are ordinary apart from mandatory watchdogs; incomplete,

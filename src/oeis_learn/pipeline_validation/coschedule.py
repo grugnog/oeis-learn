@@ -277,7 +277,7 @@ def study(inputs,output,config):
     ledgers={k:Ledger(output/'trials'/k,k,dict(source=config['source'],contract=config['contract'],native_reference=ref['identity'])) for k in STUDY_SLOTS}
     receipts={};child=None;decision=None;failure=None;fatal=None
     def run(key,schedule,observed,seconds):
-        if time.monotonic()+seconds+60>deadline:raise TimeoutError('whole study cannot fit next trial and report')
+        if time.monotonic()+seconds+90>deadline:raise TimeoutError('whole study cannot fit next trial and report')
         ledger=ledgers[key];ledger.transition('READY');ledger.transition('RUNNING');print('COSCHEDULE '+key+'; output '+str(ledger.root),flush=True)
         try:
             r=trial(inputs,ledger.root,config,schedule=schedule,observed=observed,seconds=seconds)
@@ -293,7 +293,7 @@ def study(inputs,output,config):
         for key in BASELINES:run(key,'serial',False,570)
         child=freeze(config,ref,receipts);path=output/'comparison-contract.json';write(path,child);sha=file_hash(path)
         seconds=child['calibration']['reservation_seconds']
-        if 15*seconds+60>deadline-time.monotonic():raise TimeoutError('remaining finite comparison/repeat roster cannot fit')
+        if 15*(seconds+30)+60>deadline-time.monotonic():raise TimeoutError('remaining finite comparison/repeat roster cannot fit')
         for key in COMPARE:
             if file_hash(path)!=sha:raise ValueError('prospective co-scheduling child changed')
             run(key,'serial' if key.endswith('-A') else 'overlap',False,seconds)
@@ -314,7 +314,7 @@ def study(inputs,output,config):
         times=[r['primary_seconds'] for r in repeated if r['state']=='PASS']
         result=seal(dict(version='pipeline-coschedule-report/v1',status='COMPLETE' if not failure and all(r['state']=='PASS' for r in receipts.values()) else 'INCONCLUSIVE',
             source=config['source'],contract=config['contract'],child=child['identity'] if child else None,comparison=decision,
-            repeatability=dict(trials=repeated,complete=len(times)==10,minimum=min(times) if len(times)==10 else None,maximum=max(times) if len(times)==10 else None,median=statistics.median(times) if len(times)==10 else None),
+            repeatability=dict(trials=repeated,complete=len(times)==10,minimum=min(times) if len(times)==10 else None,maximum=max(times) if len(times)==10 else None,median=statistics.median(times) if len(times)==10 else None,last_vs_first_ratio=times[-1]/times[0] if len(times)==10 else None),
             slots={k:dict(state=r['state'],receipt=r['identity'],reason=r.get('reason')) for k,r in receipts.items()},failure=failure,
             interpretation=MEANING,optimization_adoption=False,research_cost_admission=False))
         write(output/'coschedule-report.json',result)
