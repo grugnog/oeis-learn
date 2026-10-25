@@ -1,3 +1,5 @@
+Latest accepted scope: [combined hardware ladder PASS](validation/hardware-ladder-operator-20261024T220811Z.md).639 CPU/18 actual-HIP tests and all22 GPU roles pass at exact producer adda1b6. Batch128 achieves61.13% median replay interval reduction versus16 and about90.5% sampled GPU busy with2.84GiB role memory. Counts78 complete/18 runtime pending/15 research held. No duplicate run is requested; no production/learning admission. Earlier handoffs below are historical at their stated sources.
+
 Current hardware handoff: [one combined overhead/capacity run](validation/hardware-ladder-implementation.md), covering ordinary-versus-telemetry and conditional batch32/64/128 comparisons in one archive.123 host tests pass; new CPU/HIP collection is pending. Accepted batch8/16 evidence stays complete; no learning-quality work is launched.
 
 Latest batching result: [registered target PASS](validation/replay-batching-operator-20261024T203537Z.md),629 CPU/17 HIP tests and all roles complete. Batch16 cuts equal-work interval48.98% median, with GPU busy about44% and1.71GiB sampled role memory. No duplicate run requested.

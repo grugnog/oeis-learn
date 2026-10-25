@@ -358,7 +358,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -478,4 +478,8 @@ Per the user's request to minimize handoffs, [contract](contracts/hardware-ladde
 - [X] 009:H001 Freeze the separate manifest, prior batch16 evidence basis,128-row/131072-token/640-boundary work, mode/progression/selection rules, finite candidate roster and unchanged phase/global/resource bounds.
 - [X] 009:H002 Implement shared reference/preparation, ordinary/telemetry mode calibration, complete baseline-only duration/capacity admission and per-branch five-role ledgers with strict source/mode/weight/child custody, no retries and explicit stopped/unstarted work.
 - [X] 009:H003 Run host authority/DAG/negative/failure/receipt/global-stop checks and actual public stdlib export; author/register real CPU/HIP128-row/all-size/ordinary-mode oracle fixtures; retain local evidence and one combined command.
-- [ ] 009:H004 Collect/review the combined target archive, including current CPU/HIP kernels, frozen mode, every admitted/stopped/blocked branch, CPU/GPU/memory observations and package/source/audit/cleanup identities. No production or learning admission inferred.
+- [X] 009:H004 Collect/review the combined target archive, including current CPU/HIP kernels, frozen mode, every admitted/stopped/blocked branch, CPU/GPU/memory observations and package/source/audit/cleanup identities. No production or learning admission inferred.
+
+### Accepted combined hardware ladder
+
+[Target review](validation/hardware-ladder-operator-20261024T220811Z.md) closes009:H004 and affected-sourceT110 at adda1b6:639 CPU/18 HIP tests and all22 GPU roles complete;0.62% overhead selects aggregate telemetry. Batch128 is the experimental finite-roster winner,61.13% median interval reduction versus16, about90.5% sampled GPU busy and2.84GiB role memory. Original counts78 complete/18 runtime pending/15 research held. No duplicate run or production/learning admission. Native CPU scheduling, deliberate overlap and useful full-pipeline/sustained operations remain.

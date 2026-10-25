@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 78,
+    "pending_runtime": 18,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1445,10 +1445,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Accepted affected-source closure at d74d30e remains historical. Combined hardware mode/capacity/role/fixture changes need new affected-source qualification.",
-      "blocking_reason": "Current pinned CPU/actual-HIP128-row/all-size/ordinary-mode/package execution is pending;123 host tests and verified local missing-engine export do not supply it.",
+      "implementation_disposition": "Affected-source CPU/HIP128-row/all-size/mode/packaging execution accepted at adda1b6; no whole-feature or research completion.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1464,7 +1464,9 @@
         "specs/009-pipeline-throughput/validation/replay-batching-local-evidence.json",
         "specs/009-pipeline-throughput/validation/replay-batching-operator-20261024T203537Z.md",
         "specs/009-pipeline-throughput/validation/hardware-ladder-implementation.md",
-        "specs/009-pipeline-throughput/validation/hardware-ladder-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/hardware-ladder-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/hardware-ladder-operator-20261024T220811Z.md",
+        "specs/009-pipeline-throughput/validation/hardware-ladder-operator-20261024T220811Z.json"
       ]
     },
     {
@@ -1604,7 +1606,7 @@
     "operator_review": "specs/009-pipeline-throughput/validation/replay-batching-operator-20261024T203537Z.md"
   },
   "hardware_ladder_refinement": {
-    "status": "IMPLEMENTED_TARGET_PENDING",
+    "status": "ACCEPTED_ENGINEERING_SCOPE",
     "source": "sha256:e1e827a317bac519c3f904b71755bd7d05610cddc69d5fea28ac17462ca34bd7",
     "manifest": "configs/foundation/pipeline_hardware_ladder.json",
     "contract": "specs/009-pipeline-throughput/contracts/hardware-ladder.md",
@@ -1613,8 +1615,9 @@
       "009:H001": "complete",
       "009:H002": "complete",
       "009:H003": "complete",
-      "009:H004": "pending_runtime"
+      "009:H004": "complete"
     },
-    "meaning": "Combined observation-overhead calibration and finite32/64/128 capacity hypotheses with shared preparation/archive and serial timing. Explicit32-input/128-logical-row fixture. No learning-quality work or production adoption."
+    "meaning": "Combined observation-overhead calibration and finite32/64/128 capacity hypotheses with shared preparation/archive and serial timing. Explicit32-input/128-logical-row fixture. No learning-quality work or production adoption.",
+    "operator_review": "specs/009-pipeline-throughput/validation/hardware-ladder-operator-20261024T220811Z.md"
   }
 }

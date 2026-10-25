@@ -1,3 +1,5 @@
+Target status: [accepted archive](hardware-ladder-operator-20261024T220811Z.md) at adda1b6. The command below is retained as historical/reproducible documentation; no duplicate run is requested.009:H004 and affected-sourceT110 close for this source.
+
 # Combined hardware experiments: one-command handoff
 
 The [batch8/16 archive](replay-batching-operator-20261024T203537Z.md) is accepted:
