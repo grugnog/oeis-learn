@@ -1709,5 +1709,120 @@
       ],
       "new_target_command": null
     }
+  },
+  "integrated_soak_plan": {
+    "status": "PLANNED_NOT_IMPLEMENTED",
+    "plan": "specs/009-pipeline-throughput/plan.md",
+    "checklist": "specs/009-pipeline-throughput/tasks.md#integrated-soak-work-packages",
+    "target": "full-scale104.5M engineering qualification and persistent soak",
+    "accepted_runtime_producer": "56f61564b0b504b9aa5ffc3273bb73974ebaf87e",
+    "accepted_runtime_source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
+    "original_counts_unchanged": true,
+    "pending_engineering_tasks": [
+      "T011",
+      "T025",
+      "T026",
+      "T031",
+      "T034",
+      "T041",
+      "T059",
+      "T060",
+      "T062",
+      "T064",
+      "T069",
+      "T073",
+      "T075",
+      "T076",
+      "T078",
+      "T084",
+      "T085",
+      "T086"
+    ],
+    "held_research_tasks": [
+      "T093",
+      "T094",
+      "T095",
+      "T096",
+      "T097",
+      "T098",
+      "T099",
+      "T100",
+      "T101",
+      "T102",
+      "T103",
+      "T104",
+      "T105",
+      "T106",
+      "T107"
+    ],
+    "work_packages": {
+      "009:S001": {
+        "status": "pending_implementation",
+        "description": "Freeze the versioned full-scale engineering contract, complete input/cadence/slot roster, fixed branch/selection rules, per-phase subreservations and worst-case job/checkpoint/archive bounds before target timing."
+      },
+      "009:S002": {
+        "status": "pending_implementation",
+        "description": "Integrate explicit104.5M profile and audited FP32 math execution into existing recipe/model/identity/checkpoint paths; preserve historical v1/default behavior and verify actual CPU/HIP counts/parity/finite updates."
+      },
+      "009:S003": {
+        "status": "pending_implementation",
+        "description": "Add bounded time/work-based engineering continuation to the existing trainer using full approved training/validation partitions and frozen real cadence; retain actual optimizer/data/selection behavior and bounded metrics without a second trainer."
+      },
+      "009:S004": {
+        "status": "pending_implementation",
+        "description": "Complete full-state drain/checkpoint/publication/prune/controlled-stop/resume and interruption/corruption/duplicate-debit tests; preserve optimizer/RNG/data/selection/curriculum/replay/frontier and original cumulative budget."
+      },
+      "009:S005": {
+        "status": "pending_implementation",
+        "description": "Finish original common-v2 queued native1/2/4 policy/exactness/cache/transport/clock/cancellation/fault evidence; require quiescence and healthy subsequent work without substituting accepted slot-wave scope."
+      },
+      "009:S006": {
+        "status": "pending_implementation",
+        "description": "Complete installed-command/retirement/readers/source, arbitrary-UID/rootless export, failed-prerequisite/full-disk/interruption, isolated-scorer and Docker/Podman operations prerequisites with explicit missing-capability states."
+      },
+      "009:S007": {
+        "status": "pending_implementation",
+        "description": "Implement finite full-data training-batch8/16/32 and long-sequence qualification, real sampling/capacity/joint safety and overhead fallback; freeze one candidate by the planned rule and retain original conditional five-pair adoption semantics."
+      },
+      "009:S008": {
+        "status": "pending_implementation",
+        "description": "Register one combined bounded DAG with shared prerequisites and automatic preregistered decisions, two3600s persistent work windows,600s checkpoint/restart reserve, strict global/resource/storage/watchdog accounting and one verified archive even on failure."
+      },
+      "009:S009": {
+        "status": "pending_implementation",
+        "description": "Implement independent safety/recovery/soak/performance/portability/cost verdicts, matched time-window metrics and complete denominators; preserve exact-scope diverse32/transfer costs and original negative/carryover/research dispositions."
+      },
+      "009:S010": {
+        "status": "pending_implementation",
+        "description": "Finish all unblocked code/local fault checks and current source/binding/packaging/task verification, commit/push periodically, and publish one concrete HIP command with finite complete roster, expected costs and one ZIP; do not wait for new PR CI."
+      },
+      "009:S011": {
+        "status": "pending_implementation",
+        "description": "Collect/review the single combined target archive, including actual full-size state/restart/job/clock/resource/window and per-engine evidence; any further loop is limited to a concrete blocker and required compatible-source prerequisites."
+      },
+      "009:S012": {
+        "status": "pending_implementation",
+        "description": "Close only fully evidenced original tasks, reconcile all engineering/carryover/held research endpoints and source-bound rollback/default decisions, then publish hardware readiness and the separate next learning-decision prerequisites without launching research."
+      }
+    },
+    "work_windows_seconds": [
+      3600,
+      3600
+    ],
+    "checkpoint_restart_reserve_seconds": 600,
+    "inclusive_soak_parent_seconds": 7800,
+    "global_ceiling_seconds": 86400,
+    "total_reservation_ceiling_seconds": 84000,
+    "initial_hip_handoff_target": 1,
+    "result_archives_per_invocation": 1,
+    "new_target_command": null,
+    "additional_hip_loop": "concrete mandatory failure, runtime defect, missing capability or explicit new decision; finish unblocked repairs and reuse only proven-compatible evidence",
+    "reopen_T110": "first runtime/test/contract closure change; planning alone preserves accepted source qualification",
+    "authorities": {
+      "engineering_scope": "to be versioned and implemented before execution",
+      "research": false,
+      "final_access": false,
+      "multi_day_training": false
+    }
   }
 }
