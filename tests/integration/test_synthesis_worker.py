@@ -227,12 +227,13 @@ def test_real_native_slot_waves_preserve_full_corpus_and_clocks(tmp_path,workers
     source='(program (return (add (mul (param.get p0) $index) (param.get p1))))'
     corpus=seal(dict(version='pipeline-native-corpus/v1',exclusions=[],rows=[
         dict(id=f'affine-{i}',stratum='affine-fixture',source=source,
-            indices=[str(j) for j in range(20)],values=[str(3*j+7) for j in range(20)]) for i in range(18)]))
+            indices=[str(20*i+j) for j in range(20)],values=[str(3*(20*i+j)+7) for j in range(20)]) for i in range(18)]))
     result=native_trial(tmp_path,workers=workers,corpus=corpus,contract='sha256:'+'1'*64,cap=60,admission='slot-waves/v1')
     expected=semantics(result,corpus)
     assert len(expected)==18 and all(r['outcome']=='verified_solution' and r['admitted'] for r in expected)
     assert all(a['assignment']=={'p0':'3','p1':'7'} for r in expected for a in r['admitted'])
     assert result['metrics']['workers']==workers
     assert all(s['batches'] for s in result['metrics']['slots'])
+    assert result['metrics']['batches']>=18  # Distinct prompts prevent all-cache-hit slot coverage.
     assert result['primary_seconds']>=result['seconds']
     assert (tmp_path/'measurement.json').is_file()
