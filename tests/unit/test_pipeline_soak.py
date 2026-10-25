@@ -8,13 +8,62 @@ from oeis_learn.pipeline_validation.identity import seal
 
 
 class SoakContracts(unittest.TestCase):
+    def test_launch_error_is_not_replaced_by_missing_device_file(self):
+        import tempfile,types
+        from unittest.mock import Mock,patch
+        from oeis_learn.pipeline_validation.benchmarks import legacy
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        module=legacy(Path(__file__).resolve().parents[2])
+        inspection=[dict(State={'OOMKilled':False},HostConfig=dict(NetworkMode='none',ReadonlyRootfs=True,
+            Privileged=False,Devices=[],DeviceRequests=[]),Mounts=[dict(Type='bind',Destination='/work/input',RW=False),
+            dict(Type='bind',Destination='/work/output',RW=True)])]
+        for fatal in (False,True):
+            with self.subTest(fatal=fatal),tempfile.TemporaryDirectory() as td:
+                root=Path(td);inputs=root/'input';inputs.mkdir();out=root/'role';out.mkdir()
+                if fatal:(out/'summary.json').write_text(json.dumps(dict(fatal='RESOURCE_BREACH',error='original allocation failure')))
+                engine=Mock();engine.command.return_value=['fixture-engine'];engine.call.return_value=types.SimpleNamespace(stdout=json.dumps(inspection))
+                host=types.SimpleNamespace(engine=engine,policy=dict(memory_bytes=1<<30,cpus=2))
+                with patch('oeis_learn.pipeline_validation.supervision.launch',side_effect=RuntimeError('original launch failure')):
+                    with self.assertRaisesRegex(ResourceBreach if fatal else RuntimeError,'original allocation failure' if fatal else 'original launch failure'):
+                        module.container_stage(host,'image',inputs,out,mode='fixture',seconds=1,gpu=False,argv=['python','-c','fixture'])
+                self.assertEqual(json.loads((out/'isolation-audit.json').read_text())['status'],'INCOMPLETE')
+                self.assertTrue(json.loads((out/'cleanup.json').read_text())['within_bound'])
+
+    def test_uid_publication_overrides_private_default_file_modes(self):
+        import os,tempfile,errno,shutil
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.soak_operations import fixture_code
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);source=root/'input';source.mkdir();output=root/'output';output.mkdir()
+            code=fixture_code(os.getuid(),inputs=source,output=output,owner_mapped=True)
+            original_write=Path.write_text;original_open=Path.open;original_copy=shutil.copyfile
+            def readonly(path,*args,**kwargs):
+                if path==source/'forbidden':raise OSError(errno.EROFS,'labelled read-only mount simulation')
+                return original_write(path,*args,**kwargs)
+            def private_create(path,mode='r',*args,**kwargs):
+                stream=original_open(path,mode,*args,**kwargs)
+                if 'w' in mode or 'x' in mode:os.fchmod(stream.fileno(),0o600)
+                return stream
+            def private_copy(src,dst,*args,**kwargs):
+                result=original_copy(src,dst,*args,**kwargs);Path(dst).chmod(0o600);return result
+            before=os.umask(0o077)
+            try:
+                with patch.object(Path,'write_text',readonly),patch.object(Path,'open',private_create),patch('shutil.copyfile',side_effect=private_copy):
+                    exec(compile(code,'uid-export-private-file-fixture','exec'),{})
+            finally:os.umask(before)
+            for path in [output/'devices.json',output/'ready.json',output/'uid-export.json',*(output/'failure-export-evidence').glob('*.json')]:
+                self.assertEqual(path.stat().st_mode&0o777,0o644,path)
+
     def test_uid_export_executes_recovery_under_restrictive_umask(self):
         import os,tempfile,errno
         from unittest.mock import patch
         from oeis_learn.pipeline_validation.soak_operations import fixture_code
         with tempfile.TemporaryDirectory() as td:
-            root=Path(td);source=root/'input';source.mkdir();output=root/'output';output.mkdir()
-            code=fixture_code(os.getuid()).replace('/work/input',str(source)).replace('/work/output',str(output))
+            # This is also the real container TMPDIR layout. Broad string
+            # replacement corrupts an input path containing /work/output.
+            root=Path(td)/'work/output/.runtime/tmp/case';root.mkdir(parents=True)
+            source=root/'input';source.mkdir();output=root/'output';output.mkdir()
+            code=fixture_code(os.getuid(),inputs=source,output=output,owner_mapped=True)
             original=Path.write_text
             def readonly(path,*args,**kwargs):
                 if path==source/'forbidden':raise OSError(errno.EROFS,'labelled read-only mount simulation')
@@ -126,8 +175,10 @@ class SoakContracts(unittest.TestCase):
         from oeis_learn.pipeline_validation.soak_operations import foreign_user_args,fixture_code
         before=['--user','0:0','--userns=keep-id','--security-opt=label=disable']
         after=foreign_user_args(before)
-        self.assertEqual(after,['--user','12345:12345','--userns=keep-id','--security-opt=label=disable'])
+        self.assertEqual(after,['--user','12345:12345','--userns=keep-id:uid=12345,gid=12345','--security-opt=label=disable'])
         self.assertEqual(before[1],'0:0')
+        self.assertEqual(foreign_user_args(['--user','1000:100','--group-add=keep-groups']),
+            ['--user','12345:12345','--group-add=keep-groups'])
         compile(fixture_code(12345),'uid-fixture','exec')
         compile(fixture_code(1000,wait=True),'interruption-fixture','exec')
 

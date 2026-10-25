@@ -7,21 +7,31 @@ from .identity import write,seal,file_hash
 
 
 def foreign_user_args(arguments,uid=12345):
+    """Select a numeric container UID while preserving rootless host ownership."""
     arguments=list(arguments)
     if '--user' not in arguments:raise ValueError('explicit original user mapping required')
     arguments[arguments.index('--user')+1]=f'{uid}:{uid}'
+    # Changing --user alone leaves this UID mapped to a subordinate host ID.
+    # keep-id's explicit mapping lets the real invoking host owner access its
+    # mounted files even on filesystems/ACLs that reject subordinate host users.
+    if '--userns=keep-id' in arguments:
+        arguments[arguments.index('--userns=keep-id')]=f'--userns=keep-id:uid={uid},gid={uid}'
     return arguments
 
 
-def fixture_code(uid,*,wait=False):
+def fixture_code(uid,*,wait=False,inputs='/work/input',output='/work/output',owner_mapped=False):
     return f'''import json,os,time,errno,shutil
 from pathlib import Path
 from oeis_learn.tracking.pipeline_profile import device_view
-from oeis_learn.pipeline_validation.identity import write
+from oeis_learn.pipeline_validation.identity import write as write_json
 from oeis_learn.pipeline_validation.bundle import pack,verify
 from oeis_learn.pipeline_validation.recovery import minimal_archive
 from unittest.mock import patch
-out=Path('/work/output')
+out=Path({str(output)!r})
+def write(path,value):
+ result=write_json(path,value)
+ path.chmod(0o644)
+ return result
 # Only this disposable fixture publishes foreign-UID files for the host reader.
 # Never inherit a host-private077 umask into its public export proof.
 os.umask(0o022)
@@ -30,14 +40,22 @@ for path in (out.parent,out):
  try:
   info=path.stat();paths.append(dict(path=str(path),mode=oct(info.st_mode&0o777),uid=info.st_uid,gid=info.st_gid))
  except OSError as exc:paths.append(dict(path=str(path),error=str(exc)))
-print(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),mount_permissions=paths)),flush=True)
+maps={{}}
+for kind in ('uid_map','gid_map'):
+ try:maps[kind]=Path('/proc/self',kind).read_text().strip()
+ except OSError as exc:maps[kind]=str(exc)
+print(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),mount_permissions=paths,id_maps=maps)),flush=True)
 write(out/'devices.json',device_view())
 assert os.getuid()=={uid}
+if {owner_mapped!r}:
+ # A workspace may legitimately inherit a project/setgid group. Owner UID is
+ # the portable write-access invariant; retain observed group IDs in diagnostics.
+ assert out.stat().st_uid==os.getuid()
 readonly=False
-try:(Path('/work/input')/'forbidden').write_text('forbidden')
+try:(Path({str(inputs)!r})/'forbidden').write_text('forbidden')
 except OSError as exc:readonly=exc.errno in (errno.EROFS,errno.EACCES,errno.EPERM)
 assert readonly
-write(out/'ready.json',{{'uid':os.getuid(),'input_readonly':readonly}})
+write(out/'ready.json',{{'uid':os.getuid(),'input_readonly':readonly,'owner_mapped':{owner_mapped!r},'id_maps':maps}})
 if {wait!r}:time.sleep(120)
 else:
  root=out/'export-case';root.mkdir(mode=0o777)
@@ -53,8 +71,9 @@ else:
  proof=out/'failure-export-evidence';proof.mkdir(mode=0o777);proof.chmod(0o777)
  for name in ('summary.json','export-failure.json','stage-index.json'):
   shutil.copyfile(summary.parent/name,proof/name)
+  (proof/name).chmod(0o644)
  archive.unlink();shutil.rmtree(root)
- write(out/'uid-export.json',{{'uid':os.getuid(),'readonly_input':readonly,'expected_failed_export_verified':True,'manifest':manifest['identity'],'healthy':True}})
+write(out/'uid-export.json',{{'uid':os.getuid(),'readonly_input':readonly,'expected_failed_export_verified':True,'manifest':manifest['identity'],'healthy':True,'owner_mapped':{owner_mapped!r}}})
 '''
 
 
@@ -63,15 +82,18 @@ def run(host,image,output,container_stage):
     arbitrary=12345 if os.getuid()!=12345 else 12346
     foreign=copy.copy(host);foreign.engine=copy.copy(host.engine)
     args=foreign_user_args(host.engine.user_args(),arbitrary)
+    owner_mapped=f'--userns=keep-id:uid={arbitrary},gid={arbitrary}' in args
     foreign.engine.user_args=lambda:args
     uid_output=output/'arbitrary-uid';uid_output.mkdir(mode=0o777);uid_output.chmod(0o777)
     # Only this disposable UID fixture allows a second numeric namespace user.
     for relative in ('.runtime','.runtime/tmp','.runtime/home','.runtime/cache'):
         p=uid_output/relative;p.mkdir(mode=0o777,exist_ok=True);p.chmod(0o777)
     container_stage(foreign,image,source,uid_output,mode='uid-export',seconds=60,gpu=False,
-        argv=['python','-c',fixture_code(arbitrary)])
+        argv=['python','-c',fixture_code(arbitrary,owner_mapped=owner_mapped)])
     uid=json.loads((uid_output/'uid-export.json').read_text())
     if uid['uid']!=arbitrary or not uid['expected_failed_export_verified']:raise RuntimeError('arbitrary UID export incomplete')
+    if uid['owner_mapped']!=owner_mapped or owner_mapped and (uid_output/'uid-export.json').stat().st_uid!=os.getuid():
+        raise RuntimeError('numeric container UID did not preserve the invoking host owner')
     # Verify true external interruption and acknowledged engine reclamation.
     interrupt=output/'interrupted'
     actual_uid=0 if host.engine.name=='docker' and host.engine.facts()['rootless'] else os.getuid()
@@ -92,6 +114,7 @@ def run(host,image,output,container_stage):
     result=json.loads((healthy/'uid-export.json').read_text())
     if not result['healthy']:raise RuntimeError('engine did not recover after interruption')
     return seal(dict(version='pipeline-soak-operations/v1',engine=host.engine.name,arbitrary_uid=arbitrary,
+        uid_mapping='invoking-host-owner-to-numeric-container-uid' if owner_mapped else 'literal-numeric-uid',
         permission_export=True,readonly_inputs=True,expected_enospc_recovery=True,
         interrupted_cleanup=True,healthy_after_interruption=True,training=False))
 

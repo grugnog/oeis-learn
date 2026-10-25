@@ -267,7 +267,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             "OEIS_EXPECTED_PIPELINE_DEVICES": json.dumps(expected_devices, sort_keys=True),
         },
     )
-    cleanup_state={}
+    cleanup_state={};role_error=None
     try:
         if argv is None:
             launch(command, output, seconds=seconds)
@@ -275,13 +275,15 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             from oeis_learn.pipeline_validation.supervision import launch as supervised
             supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     except BaseException as exc:
+        role_error=exc
         if argv is not None and not isinstance(exc,KeyboardInterrupt):
             try:
                 failed=json.loads((output/'summary.json').read_text())
             except (OSError,ValueError):failed={}
             if failed.get('fatal')=='RESOURCE_BREACH':
                 from oeis_learn.pipeline_validation.runner import ResourceBreach
-                raise ResourceBreach(failed.get('error','role resource breach')) from exc
+                role_error=ResourceBreach(failed.get('error','role resource breach'))
+                raise role_error from exc
         raise
     finally:
         cleanup_started=time.monotonic()
@@ -302,9 +304,6 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
             }
             from oeis_learn.tracking.pipeline_profile import audit_device_view
 
-            method = audit_device_view(
-                config.get("Devices") or [], read(output / "devices.json"), expected_devices
-            )
             if (
                 config.get("NetworkMode") != "none"
                 or not config.get("ReadonlyRootfs")
@@ -316,6 +315,17 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
                     from oeis_learn.pipeline_validation.runner import ResourceBreach
                     raise ResourceBreach('actual role isolation audit failed')
                 raise RuntimeError("actual role isolation audit failed")
+            try:
+                view=read(output/'devices.json')
+            except FileNotFoundError:
+                if role_error is None:raise
+                write(output/'isolation-audit.json',dict(status='INCOMPLETE',
+                    reason='role failed before device attestation',
+                    launcher_error=type(role_error).__name__+': '+str(role_error)))
+                # Missing evidence must not hide the actual launch failure or
+                # downgrade a fatal resource failure into an ordinary file error.
+                raise role_error
+            method = audit_device_view(config.get('Devices') or [],view,expected_devices)
             write(
                 output / "isolation-audit.json",
                 dict(

@@ -92,8 +92,15 @@ the independent evaluator at100 indices. This is an isolation/correctness fixtur
 not hidden scientific scoring or a measured full-control schedule. A missing
 secondary engine leaves portability pending while primary work stays independent.
 Images explicitly provide searchable0755 `/work` mount parents; the disposable
-UID fixture explicitly publishes0644 public files rather than inheriting a private
-host umask. It records parent/output permission diagnostics before its first write.
+UID fixture explicitly chmods0644 public files rather than trusting umask/default
+ACL inheritance. Rootless Podman's requested numeric UID/GID maps to the invoking
+host owner with `--userns=keep-id:uid=UID,gid=GID`; changing `--user` alone is not
+an owner mapping. The role verifies container ownership and the host verifies the
+exported file's actual host UID. Literal-UID engines retain that explicit label.
+This qualifies arbitrary numeric container users, not foreign subordinate-host-UID
+filesystem access. No host account, ownership or ACL changes are made. See the
+[official mapping contract](https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode).
+The fixture records parent/output modes and UID/GID maps before its first write.
 Primary UID operations must pass before full-data preparation/candidate timings;
 a failure cannot consume the batch roster merely because that branch is independent.
 
