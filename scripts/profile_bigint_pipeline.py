@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False, sizing=False):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -126,6 +126,12 @@ def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32
     ]
     if len(training) != 128 or len(validation) != 256:
         raise ValueError("complete128/256 synthetic update/validation records required")
+    if sizing:
+        if replay or scope!='diverse32':raise ValueError('separate real32 sizing preparation required')
+        from oeis_learn.pipeline_validation.model_sizing import prepare_inputs
+        return prepare_inputs(recipe,prompts,training,validation[:32],output,image=image,source=source,
+            render_node=render_node,parent=parent['contract_sha256'],parent_checkpoint=selected,
+            parent_weights=ref['sha256'],data=prepared['identity'])
     truth_file = inputs / "private/synthetic-truth.json"
     if file_hash(truth_file) != prepared["files"]["private/synthetic-truth.json"]["sha256"]:
         raise ValueError("synthetic training truth hash mismatch")

@@ -138,3 +138,18 @@ def coschedule_registry(engines=('docker',),primary='docker'):
     stages.append(Stage('coschedule.study',4,('coschedule.reference','hip.preflight'),seconds=12500,adapter='coschedule-study'))
     stages.append(Stage('coschedule.report',4,seconds=30,adapter='coschedule-report'))
     return stages
+
+
+def model_sizing_registry(engines=('docker',),primary='docker'):
+    from .model_sizes import PROFILES,TRIALS
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip'}]
+    stages.append(Stage('sizing.prepare',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=30,adapter='sizing-prepare'))
+    for key in PROFILES:
+        stages.append(Stage('sizing.'+key+'.reference',1,('sizing.prepare',),seconds=600,adapter='sizing-reference'))
+    for key in PROFILES:
+        previous='sizing.'+key+'.reference'
+        for trial in TRIALS:
+            name=f'sizing.{key}.{trial}'
+            stages.append(Stage(name,4,(previous,'hip.preflight'),seconds=1110,adapter='sizing-trial'));previous=name
+    stages.append(Stage('sizing.report',4,seconds=30,adapter='sizing-report'))
+    return stages

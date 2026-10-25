@@ -230,6 +230,7 @@ class Recorder:
                 name: read_text(cg / name) if cg else None
                 for name in (
                     "cpu.stat",
+                    "memory.stat",
                     "memory.current",
                     "memory.peak",
                     "memory.events",
