@@ -1,3 +1,5 @@
+**Current implementation/handoff:** [Learning-pilot preflight](learning-pilot-implementation.md) now implements all unblocked preparation code and supplies one finite command/ZIP. Actual larger-corpus/current-source HIP/restart/full-control costs await that collection. T011 closes and new-source T110 reopens; original counts remain87/9/15. The accepted hardware result below remains historical evidence; do not repeat its soak/size ladder.
+
 **Current preparation:** [Sequence-learning pilot plan](learning-pilot-plan.md) and [L001–L015 tasks](../tasks.md#long-run-learning-pilot-preparation) now include actual held-out100-term learning/control curves and cautious further-training estimates. The proposed profile is48 hours inclusive with up to24 learner-role hours, subject to corpus feasibility, implementation and measured cost/admission. A short test validates plumbing without any learning-success threshold. No executable new HIP command or long-run admission exists yet; accepted hardware evidence is preserved.
 
 # Hardware readiness and remaining work

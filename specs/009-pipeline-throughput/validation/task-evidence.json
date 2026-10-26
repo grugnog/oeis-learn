@@ -36,6 +36,12 @@
       "tests/unit/test_pipeline_validation.py",
       "tests/unit/test_pipeline_profile.py",
       "tests/integration/test_bigint_workflow.py"
+    ],
+    "learning_pilot": [
+      "src/oeis_learn/pipeline_validation/pilot.py",
+      "src/oeis_learn/pipeline_validation/pilot_study.py",
+      "src/oeis_learn/fresh/pilot_control.py",
+      "src/oeis_learn/fresh/pilot_metrics.py"
     ]
   },
   "tasks": [
@@ -174,10 +180,10 @@
     {
       "task": "T011",
       "description": "[P] [US1] Add archive/failure tests in `tests/unit/test_pipeline_bundle.py` for arbitrary UID, unreadable mandatory files, symlinks/traversal, full disk, capped optional details, contradictory summaries, interrupted builds/startup and surviving minimal failure records.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 1,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Partial existing evidence only: exhaustive unreadable/traversal/capped-optional/contradictory-summary catalog not established in named bundle tests. Host-side test work, not a reason to repeat accepted primary soak.",
+      "implementation_disposition": "Completed missing named host fault catalog: unreadable mandatory, traversal/symlink, optional caps, contradictory summaries, ENOSPC partial-ZIP removal/minimal recovery, interrupted build/startup; retain accepted actual arbitrary-UID evidence.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "tests/unit/test_pipeline_bundle.py",
@@ -186,7 +192,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
       ]
     },
     {
@@ -1294,8 +1302,8 @@
       "description": "[US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.",
       "status": "pending_runtime",
       "phase": 5,
-      "implementation_disposition": "Current carryover/gate/quickstart reconciliation complete; prospective costed next-run command/archive handoff remains incomplete.",
-      "blocking_reason": "Next longer-run recipe, complete measured expected cost, finite limits and archive path are not yet frozen. Preparation can proceed without repeating accepted primary soak.",
+      "implementation_disposition": "Finite preflight CLI/archive and all unblocked pilot code/local work delivered; exact larger-corpus/full-control measured costs and reviewed long-run handoff pending.",
+      "blocking_reason": "Single new target archive must establish full corpus feasibility, current-source runtime and exact-schedule cost/admission. No missing-cost waiver or automatic long run.",
       "evidence": [
         "specs/009-pipeline-throughput/carryover.md",
         "specs/009-pipeline-throughput/quickstart.md",
@@ -1310,7 +1318,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
         "specs/009-pipeline-throughput/validation/hardware-readiness-next.md",
-        "specs/009-pipeline-throughput/validation/phase-5-report.md"
+        "specs/009-pipeline-throughput/validation/phase-5-report.md",
+        "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md"
       ]
     },
     {
@@ -1592,10 +1602,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "All affected unchanged runtime-source packaging/CPU/HIP/primary operations checks pass in accepted archive. Documentation-only reconciliation leaves source d5c6de02 unchanged; no redundant hardware rerun or CI wait.",
-      "blocking_reason": null,
+      "implementation_disposition": "Prior source d5c6de02 closure retained. New pilot runtime/fixtures/contract are implemented and host/package checks pass; current pinned CPU/HIP installed-source qualification is registered in the single preflight.",
+      "blocking_reason": "Current-source target CPU/native/HIP/operations evidence pending; do not repeat accepted primary soak or size ladder.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1640,7 +1650,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
-        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md"
       ]
     },
     {
@@ -2196,27 +2208,27 @@
     "repeat_primary_soak": false
   },
   "learning_pilot_preparation": {
-    "status": "PLAN_AND_EXISTING_EVIDENCE_REVIEW_COMPLETE_IMPLEMENTATION_PENDING",
+    "status": "CODE_LOCAL_COMPLETE_TARGET_FEASIBILITY_COST_PENDING",
     "plan": "specs/009-pipeline-throughput/validation/learning-pilot-plan.md",
     "existing_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-existing-evidence.json",
     "accepted_hardware_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
-    "runtime_source_unchanged": true,
+    "runtime_source_unchanged": false,
     "tasks": {
       "009:L001": "complete",
       "009:L002": "complete",
-      "009:L003": "pending",
-      "009:L004": "pending",
-      "009:L005": "pending",
-      "009:L006": "pending",
-      "009:L007": "pending",
-      "009:L008": "pending",
-      "009:L009": "pending",
-      "009:L010": "pending",
-      "009:L011": "pending",
-      "009:L012": "pending",
-      "009:L013": "pending",
-      "009:L014": "pending",
-      "009:L015": "pending"
+      "009:L003": "complete_code_local",
+      "009:L004": "pending_target_corpus",
+      "009:L005": "complete_code_local",
+      "009:L006": "complete_code_local",
+      "009:L007": "complete_code_local",
+      "009:L008": "complete_code_local",
+      "009:L009": "complete_code_local",
+      "009:L010": "complete_code_local",
+      "009:L011": "complete_code_local",
+      "009:L012": "partial_code_local_handoff_complete_target_cost_pending",
+      "009:L013": "pending_target_review",
+      "009:L014": "pending_explicit_admission_and_execution",
+      "009:L015": "pending_long_run_results"
     },
     "proposed": {
       "training_examples": 32768,
@@ -2241,10 +2253,23 @@
       "oeis_development": 8
     },
     "short_test_learning_threshold": null,
-    "full_cost": "UNKNOWN_PENDING_IMPLEMENTATION_AND_MEASUREMENT",
-    "new_hip_command_available": false,
+    "full_cost": "UNKNOWN_PENDING_EXACT_SCOPE_TARGET_MEASUREMENT",
+    "new_hip_command_available": true,
     "long_run_admitted": false,
     "final_access": "SEALED",
-    "original_counts_unchanged": true
+    "original_counts_unchanged": true,
+    "implementation": "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
+    "local_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
+    "retained_target_gates": [
+      "L004 full33024 production admissions/diversity/feasibility",
+      "L010 actual pinned CPU/HIP fixtures and restart (authored, not executed here)",
+      "L012/L013 exact-scope measured forecast/handoff",
+      "L014 explicit admitted run",
+      "L015 learning/compute review"
+    ],
+    "runtime_source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+    "runtime_source_entries": 749,
+    "host_tests": 220,
+    "new_target_loop_count": 1
   }
 }

@@ -100,7 +100,7 @@ The short test passes on **correct plumbing, completeness accounting, numerical 
 
 Thirty minutes describes learner work only. Full-corpus preparation, current qualification and three full-control cost observations can take hours; freeze and disclose their measured expected time and hard ceiling before handoff. Target one combined validation/archive loop, followed by one separately admitted long-run invocation. Do not hide a multi-hour evaluation inside a claimed30-minute end-to-end test. If a concrete defect requires another loop, repair it first and rerun only its affected scope.
 
-The resulting readiness artifact must identify the exact command, admitted decision, immutable source/image/data/profile/seed, projected cost at most80% of the finite budget, stage/job/storage bounds, progress every60s, resume/recovery procedure and archive path. No runnable HIP command is published by this planning document: the runtime extension and cost evidence do not exist yet. Launch remains an explicit subsequent action; no background run starts here.
+The resulting readiness artifact must identify the exact command, admitted decision, immutable source/image/data/profile/seed, projected cost at most80% of the finite budget, stage/job/storage bounds, progress every60s, resume/recovery procedure and archive path. The runtime extension is now implemented; use the separate [implementation/preflight handoff](learning-pilot-implementation.md). Exact-scope target cost evidence and long-run admission still do not exist. This plan does not supply long-run authority; launch remains an explicit subsequent action and no background run starts here.
 
 ## Implementation packages and original-task alignment
 

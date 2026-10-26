@@ -92,3 +92,8 @@ The [registered baseline replay scope](validation/replay-operator-20261024T17275
 ### Current comparison implementation: separate phase-2 scope
 
 The [new component comparison](validation/replay-comparison-implementation.md) implements the next isolated bookkeeping investigation with its own prospective child/order/limits. It is target-pending and closes no008 carryover. Accepted baseline source69807d38 and original negative/inconclusive measurements remain unchanged. Missing full-generation, native/joint, operations/portability, full-control costs and scientific gates remain explicit. Current111-task counts are77 complete/19 runtime pending/15 research blocked after reopening affected-source T110; no historical result is revoked or reassigned.
+
+
+## Learning-pilot implementation/local handoff
+
+The [new preflight](validation/learning-pilot-implementation.md) adds the user-requested sequence-learning evaluation and conditional further-compute analysis without closing any full008 carryover or changing008:T096 NEGATIVE. All unblocked code/local work is delivered; actual corpus feasibility/current-source CPU/HIP/restart/full-control costs remain target-pending. T011 closes and009:T110 reopens for changed runtime source, preserving87/9/15 original counts. The one finite command returns a single ZIP; L013 reviews it before any explicitly admitted long study. Old-source hardware evidence is retained; no size/batch/soak repeat.
