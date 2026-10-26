@@ -1,0 +1,60 @@
+"""Closed prospective learning-pilot profile; parsing never supplies admission."""
+from .identity import seal,validate,digest,reference
+
+SPEC=dict(training=32768,parameter_development=128,structural_development=128,training_panel=32,
+    oeis_development=8,batch=16,workers=4,seed=20261016,max_updates=1048576,max_tokens=1<<30,
+    max_validations=4096,max_training_bins=4096,max_attempt_events=100000,attempt_event_bytes=2048,
+    max_source_counters=262144,evaluation_rows=1776,scoring_outcomes=10656,
+    snapshot_hours=[0,1.5,3,6,12,24],transient_bytes=16<<30,durable_bytes=32<<30,
+    reservations=dict(learner=86400,evaluation=28800,qualification=3600,setup=3600,
+        cleanup=900,archive=900,safety=48600))
+ARMS=('raw','rescue','equal_budget','shuffled','absent','template')
+SPLITS=('training_panel','parameter_development','structural_development','oeis_development')
+PROFILE=seal(dict(version='pipeline-learning-pilot-profile/v1',spec=SPEC,training=32768,
+    batch=16,curriculum=False,replay=False,assisted=False,final=False,precision='float32',
+    initialization='fresh_random',selection='visible-only/v2',extrapolation='conditional-backtested/v1'))
+
+
+def parse_profile(record):
+    if record!=PROFILE:raise ValueError('registered closed pilot profile required')
+    return record
+
+
+def decision(*,source,prepared=None,qualification=None,cost=None):
+    return seal(dict(version='pipeline-pilot-study/v1',state='DRAFT',profile=PROFILE,source=source,
+        prepared=prepared,qualification=qualification,cost=cost,authority=None))
+
+
+def decision_payload(record):
+    return digest({k:v for k,v in record.items() if k not in {'identity','state','authority'}})
+
+
+def parse_decision(record,*,root=None,source=None):
+    validate(record,{'version','state','profile','source','prepared','qualification','cost','authority'},'pipeline-pilot-study/v1')
+    parse_profile(record['profile'])
+    from oeis_learn.synthesis.state import require_hash
+    require_hash(record['source'])
+    if record['state'] not in {'DRAFT','FROZEN','ADMITTED'}:raise ValueError('prospective pilot decision required')
+    missing=[k for k in ('prepared','qualification','cost','authority') if record[k] is None]
+    if record['state']!='ADMITTED':missing.append('explicit_admission')
+    if source is not None and source!=record['source']:missing.append('current_source')
+    # Validate public authority before even resolving private prepared inputs.
+    if root is not None and not missing:
+        import json
+        authority=json.loads(reference(root,record['authority']).read_text())
+        validate(authority,{'version','decision_payload','approved','reviewed_by'},'pipeline-study-authority/v1')
+        if authority['approved'] is not True or not authority['reviewed_by'] or authority['decision_payload']!=decision_payload(record):
+            missing.append('reviewed_decision')
+        q=json.loads(reference(root,record['qualification']).read_text())
+        validate(q,{'version','source','profile','image','engine','resources','required','receipts','state'},'pipeline-pilot-qualification/v1')
+        if q['state']!='PASS' or q['source']!=record['source'] or q['profile']!=PROFILE['identity']:
+            missing.append('qualification')
+        if q['engine'] not in ('podman','docker') or not q['required'] or any(q['receipts'].get(k,{}).get('state') not in ('PASS','REUSED') for k in q['required']):
+            missing.append('qualification_receipts')
+        c=json.loads(reference(root,record['cost']).read_text())
+        from .pilot_cost import validate_forecast
+        if not validate_forecast(c,source=record['source']):missing.append('exact_scope_cost')
+        if not missing:
+            prepared=json.loads(reference(root,record['prepared']).read_text())
+            if c['work']!=prepared['identity']:missing.append('cost_work_binding')
+    return dict(status='BLOCKED' if missing else 'ADMITTED',missing=sorted(set(missing)),contract=record)

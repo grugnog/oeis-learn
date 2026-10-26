@@ -116,7 +116,7 @@ def predictive_entropy(logits, targets, pad_id):
         return float((entropy * mask).sum() / mask.sum().clamp_min(1))
 
 
-def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,timer=None,observe=True):
+def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,timer=None,observe=True,learning_metrics=False):
     """Shared measured update for legacy warmup/bridge and strict SFT consumers."""
     from oeis_learn.rl.policy import trajectory_mean
     from oeis_learn.tracking.foundation_metrics import PhaseTimer, resource_metrics, sensor_metrics
@@ -137,7 +137,11 @@ def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, p
         optimizer.step()
     if any(not bool(torch.isfinite(p).all()) for p in params):
         raise FloatingPointError("nonfinite supervised parameters")
-    return dict(loss=float(loss.detach()), gradient_norm=float(norm),
+    extra={}
+    if learning_metrics:
+        from oeis_learn.fresh.pilot_metrics import tensor_metrics
+        extra["token_metrics"]=tensor_metrics(logits,targets,pad_id)
+    return dict(**extra,loss=float(loss.detach()), gradient_norm=float(norm),
                 entropy=predictive_entropy(logits, targets, pad_id),
                 phase_timings_ns=timer.values, resources=resource_metrics(device) if observe else {},
                 sensors=sensor_metrics(device) if observe else {})

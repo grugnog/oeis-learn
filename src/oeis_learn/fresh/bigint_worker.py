@@ -39,7 +39,7 @@ def models(recipe, device):
     from oeis_learn.experiments.bootstrap_models import construct_bigint_models
 
     mask = InputMask(**recipe["inputs"]["mask"])
-    if recipe['version']=='bigint-bootstrap/v2':
+    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'}:
         from oeis_learn.experiments.bootstrap_models import construct_sizing_models
         encoder,decoder,actual=construct_sizing_models(recipe['model_profile'],device=device)
         counts=dict(encoder_parameters=actual['encoder'],total_parameters=actual['total'],
@@ -97,7 +97,7 @@ def client(settings, output):
     )
 
 
-def _batch_loss(encoder, decoder, rows, device, *, optimizer=None, timer=None, observe=True):
+def _batch_loss(encoder, decoder, rows, device, *, optimizer=None, timer=None, observe=True, learning_metrics=False):
     import torch
 
     from oeis_learn.decoder import bigint_codec as codec
@@ -113,7 +113,7 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None, timer=None, o
     if optimizer is not None:
         return supervised_step(
             encoder, decoder, optimizer, sequences, tokens, device=device, pad_id=codec.PAD_ID,
-            timer=timer,observe=observe
+            timer=timer,observe=observe,learning_metrics=learning_metrics
         )
     from oeis_learn.rl.policy import trajectory_mean
     from oeis_learn.rl.token_loss import token_cross_entropy
@@ -166,7 +166,7 @@ def train(inputs, output):
     settings=read(Path(inputs)/'settings.json')
     from contextlib import nullcontext
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
-    with execution_context() if settings['recipe']['version']=='bigint-bootstrap/v2' else nullcontext():
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'} else nullcontext():
         return _train(inputs,output)
 
 
@@ -178,6 +178,9 @@ def _train(inputs, output):
     settings = read(inputs / "settings.json")
     recipe = settings["recipe"]
     engineering=settings.get('engineering')
+    pilot=settings.get('pilot')
+    if pilot and engineering:raise ValueError('pilot and historical engineering controls cannot mix')
+    if (recipe['version']=='bigint-bootstrap/v3') != bool(pilot) and not settings.get('fixture'):raise ValueError('v3 requires explicit bounded pilot authority')
     if engineering:
         from .engineering import parse as parse_engineering
         parse_engineering(engineering,fixture=bool(settings.get('fixture')))
@@ -244,7 +247,7 @@ def _train(inputs, output):
             shutil.copytree(restore_root / "checkpoints", output / "checkpoints", dirs_exist_ok=True)
         pointer = read(output / "checkpoints/latest.json")
         restored = CheckpointStore(output / "checkpoints", contract,policies=recipe.get('pipeline')).load(pointer)
-        if engineering and restored['ledger'].snapshot()!=ledger.snapshot():
+        if (engineering or pilot) and restored['ledger'].snapshot()!=ledger.snapshot():
             raise ValueError('engineering restart must retain exact cumulative ledger')
         states = restored["states"]
         if any(
@@ -287,6 +290,15 @@ def _train(inputs, output):
         control=Control(settings,selection,output,minimum_examples=len(rows))
         deadline=min(deadline,control.deadline)
         timer=PhaseTimer(settings['device'],synchronized=False)
+    if pilot:
+        from .pilot_control import Control as PilotControl
+        from .pipeline_profile import parameter_digest
+        from oeis_learn.tracking.foundation_metrics import PhaseTimer
+        engineering_initial=parameter_digest(encoder,decoder)
+        control=PilotControl(settings,selection,output,minimum_examples=len(rows))
+        timer=PhaseTimer(settings['device'],synchronized=False)
+        # Work deadline excludes final validation/checkpoint reserve.
+        deadline=min(deadline,control.deadline)
     batch_size=control.batch_size if control else recipe['learning']['batch_size']
     store = CheckpointStore(output / "checkpoints", contract, policies=recipe.get('pipeline'))
     if recipe.get('pipeline') and 'pipeline_boundary' not in selection:
@@ -340,6 +352,20 @@ def _train(inputs, output):
             ),
         )
 
+    def pilot_validation():
+        from .pilot_metrics import validation
+        measured=validation(encoder,decoder,examples,settings['device'],deadline=time.monotonic()+90,timer=timer,training_ids=settings['pilot_training_ids'])
+        if not all(r['complete'] for r in measured.values()):raise TimeoutError('full pilot teacher-forcing validation incomplete')
+        dev=[measured[k] for k in ('parameter_development','structural_development')]
+        loss=sum(r['loss_sum'] for r in dev)/sum(r['tokens'] for r in dev)
+        if loss<selection.get('pilot_best_loss',float('inf')):
+            selection['pilot_best_loss']=loss;selection['selected_update']=order['completed']
+        item=dict(update=order['completed'],tokens=control.state['tokens'],splits=measured)
+        selection['evaluations'].append(dict(update=order['completed'],loss=loss))
+        if len(selection['evaluations'])>4096:raise ValueError('pilot validation journal exhausted')
+        write(output/'pilot-validation.json',item)
+        return item
+
     try:
         with client(settings, output) as synthesis:
             target = min(
@@ -347,7 +373,7 @@ def _train(inputs, output):
                 order["completed"]
                 + settings.get("update_limit", recipe["learning"]["validation_every"]),
             )
-            if control:target=49152
+            if control:target=1048576 if pilot else 49152
             while order["completed"] < target and time.monotonic() < deadline and (control is None or control.wants_update(order['completed'])):
                 from .tuning import permutation
 
@@ -387,14 +413,17 @@ def _train(inputs, output):
                     batch = [
                         dict(index[r["target"]], tokens=r["tokens"]) for r in augmented
                     ] + batch[len(augmented) :]
+                if pilot and control.state["tokens"]+sum(len(r["tokens"]) for r in batch)>(1<<30):break
                 encoder.train()
                 decoder.train()
                 update_started=time.monotonic()
                 record = _batch_loss(
                     encoder, decoder, batch, settings["device"], optimizer=optimizer,
-                    **(dict(timer=timer,observe=False) if control else {})
+                    **(dict(timer=timer,observe=False,learning_metrics=bool(pilot)) if control else {})
                 )
                 order["completed"] += 1
+                if pilot:
+                    tm=record['token_metrics'];control.last_loss=tm['loss_sum']/tm['tokens'];control.last_metrics=tm
                 if control:control.update(batch,time.monotonic()-update_started)
                 else:metrics.append(
                     dict(
@@ -420,6 +449,11 @@ def _train(inputs, output):
                     order["completed"] % recipe["learning"]["validation_every"] == 0
                     or order["completed"] == recipe["learning"]["max_updates"]
                 )):
+                    if pilot:
+                        pilot_validation()
+                        control.cycled()
+                        save()
+                        continue
                     from .diagnostics import evaluate_bigint as generate
                     validation_started=time.monotonic()
                     loss = validation_loss(
@@ -526,17 +560,18 @@ def _train(inputs, output):
                         break
             if selection["selected_update"] is None:
                 selection["selected_update"] = order["completed"]
-            if control and control.cfg['mode'] in {'batch','observation'}:
+            if control and not pilot and control.cfg['mode'] in {'batch','observation'}:
                 validation_started=time.monotonic()
                 loss=validation_loss(encoder,decoder,examples['parameter_development']+examples['structural_development'],settings['device'],deadline=deadline,timer=timer)
                 control.component('validation',time.monotonic()-validation_started,rows=loss['attempted'])
                 if not loss['complete']:raise TimeoutError('complete batch-arm validation required')
+            if pilot:pilot_validation()
             successful=True
     finally:
         if control:
             engineering_result=control.finish(completed=successful)
         if control is None or successful:save()
-        if control:write(output/'engineering.json',engineering_result)
+        if control:write(output/('pilot.json' if pilot else 'engineering.json'),engineering_result)
     write(
         output / "metrics.json",
         dict(
@@ -560,7 +595,7 @@ def _train(inputs, output):
         counts=counts,
         final_access="sealed",
         fixture=bool(settings.get("fixture")),
-        **(dict(engineering=read(output/'engineering.json'),initial_parameter_digest=engineering_initial,
+        **(dict(**({'pilot':read(output/'pilot.json')} if pilot else {'engineering':read(output/'engineering.json')}),initial_parameter_digest=engineering_initial,
             final_parameter_digest=engineering_final,
             torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
             execution=__import__('oeis_learn.pipeline_validation.sizing_execution',fromlist=['execution_observation']).execution_observation()) if control else {}),
@@ -596,7 +631,7 @@ def generate(inputs, output):
     settings=read(Path(inputs)/'settings.json')
     from contextlib import nullcontext
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
-    with execution_context() if settings['recipe']['version']=='bigint-bootstrap/v2' else nullcontext():
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'} else nullcontext():
         return _generate(inputs,output)
 
 
