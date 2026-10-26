@@ -1,0 +1,43 @@
+{
+  "version": "pipeline-pilot-corpus-repair-local/v1",
+  "date": "2026-10-26",
+  "branch": "009-pipeline-throughput",
+  "pr": 60,
+  "status": "LOCAL_REPAIR_COMPLETE_CAPACITY_AND_TARGET_PENDING",
+  "source": "sha256:50032af3a6842a93329e0a760fb794ef5ebc4b0cfa7febce3dda44540a1b46e2",
+  "source_entries": 752,
+  "host_tests": {
+    "tests": 227,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 102.2,
+    "concurrent_local_capacity_probe": true,
+    "dependencies": "stdlib only; no host packages installed"
+  },
+  "checks": [
+    "unused bridge counterexample and independent selected-population overlap/family audit",
+    "strict reference prefix recovery; corrupted/semantically changed cache rejection",
+    "failed preparation preserves exact selection shortage and raw reference prefix",
+    "selection parent deadline reports partial counts before stopping",
+    "complete parser matches incremental grammar for valid, truncated, mutated, post-EOS and invalid-type token streams"
+  ],
+  "codec_benchmark": {
+    "programs": 512,
+    "tokens": 29789,
+    "legacy_seconds": 14.944210849000228,
+    "single_parse_seconds": 0.3049168490001648,
+    "interpretation": "descriptive local CPU microbenchmark; not target performance evidence"
+  },
+  "original_counts": {
+    "complete": 87,
+    "engineering_pending": 9,
+    "research_held": 15
+  },
+  "limitations": [
+    "actual approved OEIS cohort not present locally",
+    "current native and pinned CPU/HIP qualification pending",
+    "32768 full selection capacity not yet demonstrated",
+    "full296 controls/cost session not started",
+    "no long study admission or learning result"
+  ]
+}
