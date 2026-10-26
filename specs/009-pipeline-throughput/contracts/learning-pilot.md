@@ -84,8 +84,18 @@ coverage. Unstarted work or missing components yields UNKNOWN. Per component,
 take twice the largest observed role time, round upward and require at least30s.
 CPU cost conservatively projects all1,776 selected arms per snapshot using the
 maximum independently scored public cost sentinel, or actual scorer-role time,
-whichever is larger. Public identity/quadratic/branch/factorial/large-cancellation
-sentinels are fixtures and never learned successes. Three owned4,096-member,
+whichever is larger. `pipeline-pilot-scoring-cost/v2` requires six full100-index
+positive fixtures: identity, quadratic, branch, factorial,4096-bit identity and
+1024-bit degree4 cancellation. The original4096-bit degree4 cancellation remains
+an explicitly separate stress case, never relabeled a full-horizon success.
+It must either succeed fully or finish with production term/aggregate fuel
+exhaustion while independent reference completes100 indices. Unknown transport,
+deadline, mismatch or other failures block this cost qualification. All42 arm
+costs, including paid stress failures, contribute to the maximum; positive
+fixtures must all complete and agree exactly. The report binds work/resources
+and preserves every case/outcome. Public sentinels are fixtures and never learned
+successes; scientific scorer completeness and coverage rules are unchanged.
+Three owned4,096-member,
 at-least16MiB archive export/verification probes bound a512MiB export by linear
 byte scaling times two; source/filesystem must match. These observed envelopes
 are not p95 or universal source-cost bounds. Later-model complexity may exhaust

@@ -9,6 +9,38 @@ from oeis_learn.pipeline_validation.identity import seal,digest
 
 
 class Pilot(unittest.TestCase):
+    def test_cost_probes_separate_positive_full_horizons_from_explicit_fuel_stress(self):
+        import time
+        from oeis_learn.pipeline_validation.pilot_scoring_cost import sentinels
+        from oeis_learn.synthesis.contracts import ResourceProfile,identity
+        from oeis_learn.synthesis.reference import evaluate
+        class Fixture:
+            limits=ResourceProfile()
+            stress_reason='aggregate_fuel'
+            bad_positive=False
+            def runtime_identity(self,profile):return identity('synthetic reference-only cost fixture')
+            def execute(self,source,indices,*,deadline):
+                if len(indices)==100 and int(indices[0]).bit_length()==4096 and '(sub (mul' in source:
+                    return dict(outcome='failure',reason=self.stress_reason,values=[])
+                result=evaluate(source,indices,self.limits,deadline=deadline)
+                values=list(result.values)
+                if self.bad_positive and len(indices)==100 and int(indices[0])==0 and source=='(program (return $index))':values[0]='999'
+                return dict(outcome=result.outcome,reason=result.reason,values=values)
+        fixture=Fixture();result=sentinels(fixture,deadline=time.monotonic()+120,policies={})
+        self.assertTrue(result['complete'])
+        self.assertFalse(result['learned_success'])
+        self.assertEqual(len(result['required_cases']),6)
+        self.assertEqual(result['stress_cases'],['large-cancel-4096-stress'])
+        self.assertEqual(result['stress_disposition'],'BOUNDED_RESOURCE_EXHAUSTION')
+        self.assertTrue(all(x['complete'] and x['success'] for case in result['required_cases'] for x in result['outcomes'][case].values()))
+        fixture.stress_reason='unknown_transport_error'
+        unknown=sentinels(fixture,deadline=time.monotonic()+120,policies={})
+        self.assertFalse(unknown['complete'])
+        self.assertEqual(unknown['stress_disposition'],'UNRESOLVED')
+        fixture.stress_reason='aggregate_fuel';fixture.bad_positive=True
+        with self.assertRaisesRegex(RuntimeError,'full-horizon disagreement'):
+            sentinels(fixture,deadline=time.monotonic()+120,policies={})
+
     def test_pretty_serialization_and_event_stream_caps_are_real_byte_limits(self):
         from oeis_learn.pipeline_validation.pilot_runtime import bounded_write
         from oeis_learn.pipeline_validation.pilot_evidence import Evidence

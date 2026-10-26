@@ -37,8 +37,11 @@ def test_actual_v3_constructor_and_public_independent_cost_sentinels(tmp_path):
     del encoder,decoder
     with client(dict(recipe=cfg,contract_sha256=digest('public pilot cost fixture')),tmp_path) as synthesis:
         result=sentinels(synthesis,deadline=time.monotonic()+120,policies=cfg['pipeline'])
-    assert result['complete'] and result['fixture'] and result['learned_success'] is False
-    assert len(result['outcomes'])==5 and result['maximum_selected_program_seconds']>0
+    import json
+    assert result['complete'] and result['fixture'] and result['learned_success'] is False, json.dumps(result,sort_keys=True)
+    assert len(result['required_cases'])==6 and len(result['stress_cases'])==1
+    assert all(x['complete'] and x['success'] for key in result['required_cases'] for x in result['outcomes'][key].values()), json.dumps(result,sort_keys=True)
+    assert result['maximum_selected_program_seconds']>0
 
 
 @pytest.mark.parametrize('device',['cpu',pytest.param('cuda',marks=pytest.mark.gpu)])
