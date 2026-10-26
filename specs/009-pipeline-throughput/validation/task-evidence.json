@@ -1606,7 +1606,7 @@
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
       "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Prior affected-source closures remain historical. 142043Z passes752 CPU plus41 subtests and23 HIP tests, but new selected-population/cache/codec changes have227 host passes and await current pinned/native/HIP qualification.",
+      "implementation_disposition": "Prior affected-source closures remain historical. 142043Z passes752 CPU plus41 subtests and23 HIP tests, but new selected-population/cache/codec changes have227 host passes and await current pinned/native/HIP qualification. Exact-byte memory compaction and closed recovery checks pass228 host tests; local65536-row peak RSS833552->202116KiB with identical serialized content.",
       "blocking_reason": "Corpus selection failed after262144 raw eligible counters. Local full-capacity analysis precedes a new combined qualification/corpus/session handoff; accepted primary hardware soak and size ladder are not repeated.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",

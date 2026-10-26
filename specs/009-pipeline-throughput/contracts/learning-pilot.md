@@ -43,7 +43,12 @@ binding includes seed/generator, reference implementation, resource policy,
 serialization and100-index horizon. Reuse validates batch hashes, counter/source
 metadata, canonical values and limits. It never imports native admissions or a
 learning result; all33,024 selected sources still require fresh production proof.
-Private references remain outside public evidence ZIPs and learner/generator mounts.
+Preparation shares the identical fixed index vector and interns equal immutable
+value/source/metadata strings in memory; all serialized row bytes remain unchanged.
+Cache recovery also requires the closed original row fields, the independent
+reference discriminator and the original visible input-bit limit, in addition to
+intermediate-bit, source and resource checks. Private references remain outside
+public evidence ZIPs and learner/generator mounts.
 Retain the complete prior output directory to recover them after a failed run.
 
 Learners receive only visible20 generic values/indices, generic targets and

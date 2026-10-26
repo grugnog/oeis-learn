@@ -1,11 +1,25 @@
 """Finite larger generic corpus, preserving the historical512-row input format."""
 from collections import Counter,defaultdict
 import json
+import sys
 from pathlib import Path
 import time
 from .identity import seal,digest,file_hash,write,validate,confined
 from .pilot_contract import SPEC,PROFILE
 CHECKPOINTS=(65536,131072,262144)
+
+
+_GENERIC_INDICES=list(map(str,range(100)))
+
+
+def compact_reference(row):
+    """Share equal immutable strings and the fixed index vector; bytes stay exact."""
+    if row['indices']!=_GENERIC_INDICES:raise ValueError('fixed complete generic reference horizon required')
+    row['indices']=_GENERIC_INDICES
+    row['values']=[sys.intern(v) for v in row['values']]
+    for key in ('source','parameter_source','family','generator','origin','stage','oracle','resource'):
+        if key in row:row[key]=sys.intern(row[key])
+    return row
 
 
 def labels(row):
@@ -169,18 +183,23 @@ def prepare(inputs,output,config):
                 stats['reused_reference_counters']+=1
                 if row is not None:
                     expected=sampler.sample(counter)
+                    if set(row)!=set(expected)|{'indices','values','oracle','resource'}:
+                        raise ValueError('closed cached reference fields required')
+                    if row['oracle']!='independent-source-reference/v1':raise ValueError('cached reference oracle changed')
                     if any(row.get(k)!=v for k,v in expected.items()) or row.get('resource')!=digest(asdict(limits)):
                         raise ValueError('cached reference counter/source/resources changed')
                     if row['indices']!=list(map(str,range(100))) or len(row['values'])!=100:
                         raise ValueError('complete cached100-index reference required')
-                    for v in row['values']:canonical_integer(v,bits=limits.intermediate_bits)
+                    for i,v in enumerate(row['values']):
+                        n=canonical_integer(v,bits=limits.intermediate_bits)
+                        if i<20 and abs(n).bit_length()>limits.input_bits:raise ValueError('cached reference input integer limit')
                 else:excluded[record['exclusion']]+=1
             else:
                 try:row=materialize(sampler.sample(counter),limits)
                 except ValueError as exc:
                     excluded[str(exc)]+=1;row=None;cache.append(counter,None,str(exc))
                 else:cache.append(counter,row)
-            if row is not None:rows.append(row)
+            if row is not None:rows.append(compact_reference(row))
             stats['sampled']=counter+1
             if (counter+1)%256==0:
                 replace_json(Path(output)/'progress.json',dict(counter=counter+1,eligible=len(rows),seconds=time.monotonic()-begin));report()

@@ -617,3 +617,11 @@ codec targets use one parse of the unchanged grammar.227 host tests pass.
 Current-source T110 remains pending, with original counts87/9/15 unchanged.
 Local capacity analysis must finish before another target handoff. No learning
 success, original research closure or long-run admission is inferred.
+
+
+Exact-byte reference representation compaction now passes228 host tests and reduces
+local65,536-row process peak RSS833,552→202,116KiB (75.75%), with identical full
+serialized content. Cache recovery rejects unknown fields/oracle identities and
+visible integers above the original input limit. These are local engineering
+results; corpus capacity, actual cohort/native admissions and current target
+qualification remain pending. No original checkbox or research disposition changes.

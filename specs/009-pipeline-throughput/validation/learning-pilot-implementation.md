@@ -1,3 +1,5 @@
+**Current status:** [The142043Z target review](learning-pilot-operator-20261026T142043Z.md) passes primary CPU/HIP/policy/operations but fails corpus selection. Local corrected full-capacity analysis is in progress; finish it before using the historical target command below. Reference-cache recovery, exact-byte memory compaction and strict recovery validation are implemented. The accepted hardware soak is unchanged.
+
 **Current target review and repaired handoff:** [First pilot preflight](learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.
 
 # Learning-pilot implementation and one target handoff

@@ -33,6 +33,18 @@ class CorpusSelection(unittest.TestCase):
                 with patch('oeis_learn.data.bigint_programs.materialize',side_effect=AssertionError('must reuse original reference')):
                     with self.assertRaisesRegex(ValueError,'training'):pilot_data.prepare(inputs,second,config)
                 self.assertEqual(json.loads((second/'preparation.json').read_text())['reused_reference_counters'],1)
+                from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache
+                original=list(ReferenceCache(output/'private/reference-cache',report['reference_cache']['binding']).records())[0]['row']
+                for label,change,pattern in [
+                    ('overflow',dict(values=[str(1<<4096)]+original['values'][1:]),'input integer'),
+                    ('oracle',dict(oracle='unknown-reference'),'oracle'),
+                    ('fields',dict(unexpected=True),'fields')]:
+                    row=dict(original,**change);seed=ReferenceCache(root/label,report['reference_cache']['binding'])
+                    seed.append(0,row);seed.flush()
+                    shutil.rmtree(inputs/'reference-cache');shutil.copytree(root/label,inputs/'reference-cache')
+                    destination=root/(label+'-result');destination.mkdir()
+                    with self.assertRaisesRegex(ValueError,pattern):pilot_data.prepare(inputs,destination,config)
+
 
     def test_selection_deadline_reports_partial_counts_before_stopping(self):
         from oeis_learn.pipeline_validation.pilot_selection import select
@@ -43,6 +55,18 @@ class CorpusSelection(unittest.TestCase):
         self.assertEqual(observed[-1]['required']['training'],8)
         self.assertEqual(observed[-1]['stages']['training'],{})
         self.assertEqual(observed[-1]['selected_families']['training'],0)
+
+    def test_reference_compaction_preserves_all_bytes_and_shares_repeated_storage(self):
+        from oeis_learn.pipeline_validation.pilot_data import compact_reference
+        from oeis_learn.data.bigint_programs import BigintSampler,materialize
+        row=materialize(BigintSampler().sample(0));before=json.dumps(row,sort_keys=True)
+        a=compact_reference(json.loads(before));b=compact_reference(json.loads(before))
+        self.assertEqual(json.dumps(a,sort_keys=True),before)
+        self.assertIs(a['indices'],b['indices'])
+        self.assertIs(a['source'],b['source'])
+        for x,y in zip(a['values'],b['values']):self.assertIs(x,y)
+        bad=json.loads(before);bad['indices'][-1]='100'
+        with self.assertRaisesRegex(ValueError,'horizon'):compact_reference(bad)
 
     def test_reference_cache_preserves_prefix_and_rejects_corruption_or_changed_semantics(self):
         from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache

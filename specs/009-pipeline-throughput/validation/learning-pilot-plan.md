@@ -146,3 +146,14 @@ typed grammar, avoiding quadratic prefix replay during corpus publication. Local
 feasibility and current target native agreement remain distinct gates. No short
 preflight learning-success expectation, multi-day admission or original task
 closure changes.
+
+
+Local execution interruption during concurrent large-corpus probes exposed a
+representation-memory concern (the interruption's cause is not proven). On the
+same65,536 rows, sharing the fixed generic index vector and equal immutable
+strings reduces measured process peak RSS from833,552KiB to202,116KiB, with the
+same full serialized-row hash. Preparation applies this exact-byte compaction;
+corpus semantics, resource limits, horizons and counts are unchanged. Finish
+large local probes in separate phases and preserve completed reference batches.
+Cache recovery additionally rejects unknown row fields/oracle identities and
+visible integers exceeding the original input-bit limit.

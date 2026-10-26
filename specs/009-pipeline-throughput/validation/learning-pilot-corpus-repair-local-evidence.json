@@ -4,14 +4,14 @@
   "branch": "009-pipeline-throughput",
   "pr": 60,
   "status": "LOCAL_REPAIR_COMPLETE_CAPACITY_AND_TARGET_PENDING",
-  "source": "sha256:50032af3a6842a93329e0a760fb794ef5ebc4b0cfa7febce3dda44540a1b46e2",
+  "source": "sha256:25de1cf0abc8e057d13959c947318e1a5ff9cc18566a304004e2fa620b45f0e3",
   "source_entries": 752,
   "host_tests": {
-    "tests": 227,
+    "tests": 228,
     "failures": 0,
     "errors": 0,
-    "seconds": 102.2,
-    "concurrent_local_capacity_probe": true,
+    "seconds": 38.658,
+    "concurrent_reference_generation": true,
     "dependencies": "stdlib only; no host packages installed"
   },
   "checks": [
@@ -19,7 +19,10 @@
     "strict reference prefix recovery; corrupted/semantically changed cache rejection",
     "failed preparation preserves exact selection shortage and raw reference prefix",
     "selection parent deadline reports partial counts before stopping",
-    "complete parser matches incremental grammar for valid, truncated, mutated, post-EOS and invalid-type token streams"
+    "complete parser matches incremental grammar for valid, truncated, mutated, post-EOS and invalid-type token streams",
+    "closed cached row fields and reference oracle identity required",
+    "cached visible integers retain original input-bit limit",
+    "exact-byte compaction shares index/value/source storage without changing corpus semantics"
   ],
   "codec_benchmark": {
     "programs": 512,
@@ -66,7 +69,8 @@
       "policy.compare": "BLOCKED",
       "study.report": "PASS"
     },
-    "source": "sha256:50032af3a6842a93329e0a760fb794ef5ebc4b0cfa7febce3dda44540a1b46e2"
+    "source": "sha256:50032af3a6842a93329e0a760fb794ef5ebc4b0cfa7febce3dda44540a1b46e2",
+    "historical_before_memory_compaction": true
   },
   "public_archive": {
     "path": "tmp-validation/009-pilot-corpus-repair-local.zip",
@@ -99,5 +103,24 @@
       "unused_candidates_are_not_group_bridges": true
     },
     "seconds": 195.6638677019996
+  },
+  "memory_compaction": {
+    "raw": {
+      "mode": "raw",
+      "rows": 65536,
+      "content_sha256": "sha256:ecc0b9a42825c2926b33dffbfdc0ac4611e00a4684bc817f3ef4c819e5a1a1a8",
+      "max_rss_kib": 833552,
+      "seconds": 13.477736972000457
+    },
+    "compact": {
+      "mode": "compact",
+      "rows": 65536,
+      "content_sha256": "sha256:ecc0b9a42825c2926b33dffbfdc0ac4611e00a4684bc817f3ef4c819e5a1a1a8",
+      "max_rss_kib": 202116,
+      "seconds": 21.81891348499994
+    },
+    "serialized_rows_identical": true,
+    "peak_rss_reduction_percent": 75.75,
+    "evidence": "local process memory only; current target memory and native qualification remain pending"
   }
 }
