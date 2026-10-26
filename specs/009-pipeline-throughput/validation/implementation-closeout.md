@@ -1,3 +1,7 @@
+**Current accepted result:** [Primary engineering soak PASS](soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks87 complete/9 engineering pending/15 research held; no default, learning or multi-day admission.
+
+Historical source-specific records follow; their prior pending handoffs do not request a duplicate run.
+
 **Current corrected soak handoff:** [Second collection review](soak-operator-20261025T222026Z.md) disproves the previous mount-parent hypothesis and identifies a container-TMPDIR test substitution bug plus a numeric UID/host-owner mapping mismatch. Explicit fixture paths, rootless owner mapping, public file modes and launch-error preservation now pass194 host tests/verified local export. Actual corrected runtime and both soak windows remain pending; prior104.5M batch32 preflight stays scoped to its producer. Use [one combined command](soak-implementation.md); no host changes, extra profiler/resume handoff, new CI wait or learning/default admission. Original counts77/19/15 remain.
 
 The records below are historical handoffs and source-specific decisions; use the current handoff above for this implementation.

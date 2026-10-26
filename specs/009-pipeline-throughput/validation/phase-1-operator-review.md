@@ -1,3 +1,24 @@
+# Current US1 acceptance matrix — accepted primary engine
+
+Source and sealed receipts: [accepted soak review](soak-operator-20261025T232558Z.md), [operator index](phase-1-operator.json). T025/T026 close for their stated scope; missing second-engine evidence is explicitly permitted by T025 and remains T084.
+
+| Acceptance boundary | Evidence | Disposition |
+| --- | --- | --- |
+| One public stdlib command; shared build/phase graph; one archive | Actual38-stage combined invocation;994 verified members/zero omissions | PASS |
+| Failed prerequisite blocks expensive descendants; independent work continues | Actual earlier UID-failed collections block all soak work; current Docker alias blocks five dependents; current DAG/failure host fixtures pass | PASS |
+| Permission-safe export and minimal failure record | NumericUID12345/rootless keep-id owner mapping; injected ENOSPC recovery; actual host-readable export | PASS |
+| Startup/interruption and cleanup | Real expected-timeout container, acknowledged cleanup and healthy next role | PASS |
+| Current package/native/installed readers/commands | Pinned qualification, retirement and installed workflow suites pass | PASS |
+| Actual HIP and complete engineering state recovery |21 HIP tests; two real hour windows, seven state payloads, one7800s parent | PASS |
+| Source/receipt/image binding and immutable reuse |731-entry current snapshot;38 receipt seals/prerequisites/803 file hashes verified; historical producer records retained | PASS |
+| Independent Docker | Docker command returns Podman metadata; descendants explicitly blocked | PENDING — T084 |
+| Exhaustive archive-fault test catalog | Scoped UID/ENOSPC/symlink/interruption coverage does not establish every named T011 case | PENDING — T011 |
+| Research authority | No learning/long-run/final admission; originals retain baseline/UNKNOWN costs | HELD |
+
+No separate manual build/test/profile/archive command or new identical target run is required. The missing T011 catalog is host-side work; hardware acceptance is retained. Historical matrix follows at its original evidence scope.
+
+---
+
 # US1 acceptance matrix
 
 | Acceptance boundary | Current evidence | Disposition |

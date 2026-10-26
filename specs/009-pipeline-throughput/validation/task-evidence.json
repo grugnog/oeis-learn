@@ -1,10 +1,10 @@
 {
   "version": "pipeline-task-evidence/v1",
-  "source_evidence": "specs/009-pipeline-throughput/validation/local-evidence.json",
+  "source_evidence": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 77,
-    "pending_runtime": 19,
+    "complete": 87,
+    "pending_runtime": 9,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -30,7 +30,13 @@
       "tests/unit/test_pipeline_studies.py",
       "tests/integration/test_bigint_workflow.py"
     ],
-    "workload_roster": "Static versioned adapters implement the finite default roster. Arbitrary manifest workload/comparison overrides fail closed."
+    "workload_roster": "Static versioned adapters implement the finite default roster. Arbitrary manifest workload/comparison overrides fail closed.",
+    "operations_fixture_tests": [
+      "tests/unit/test_pipeline_soak.py",
+      "tests/unit/test_pipeline_validation.py",
+      "tests/unit/test_pipeline_profile.py",
+      "tests/integration/test_bigint_workflow.py"
+    ]
   },
   "tasks": [
     {
@@ -171,7 +177,7 @@
       "status": "pending_runtime",
       "phase": 1,
       "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "Partial existing evidence only: exhaustive unreadable/traversal/capped-optional/contradictory-summary catalog not established in named bundle tests. Host-side test work, not a reason to repeat accepted primary soak.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "tests/unit/test_pipeline_bundle.py",
@@ -363,10 +369,10 @@
     {
       "task": "T025",
       "description": "[US1] Run/review real-engine phase-1 orchestration, permission-safe export, deliberate failed-prerequisite and interruption fixtures via the combined entry point; retain the receipt index in `specs/009-pipeline-throughput/validation/phase-1-operator.json`, with missing second-engine/HIP evidence explicitly pending.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 1,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "One combined real-engine invocation, permission-safe UID/ENOSPC export, interruption and healthy subsequent role PASS; earlier actual failed-UID prerequisite blocked soak descendants. Independent Docker missing is explicit, as permitted by task scope.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -374,16 +380,19 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-1-operator.json"
       ]
     },
     {
       "task": "T026",
       "description": "[US1] Close the US1 acceptance matrix in `specs/009-pipeline-throughput/validation/phase-1-operator-review.md`, confirming no separate manual build/test/profile/archive command, no dependent expensive work after failed prerequisites and no research authority inferred from validation.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 1,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "US1 acceptance matrix reviewed against actual current Podman run, historical failed prerequisite and passing DAG fixtures; one command/one archive and no research authority.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-local.md",
         "specs/009-pipeline-throughput/validation/phase-1-operator-review.md",
@@ -392,7 +401,10 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-1-operator-review.md"
       ]
     },
     {
@@ -451,10 +463,10 @@
     {
       "task": "T031",
       "description": "[US2] Implement observation modes and overhead calibration in `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/tracking/foundation_metrics.py`: ordinary 1 Hz sampling, unavailable sensors, host/device boundary attribution, interval unions, separate synchronized mode, optional one-update/eight-token traces capped at 40 MiB each, and ordinary-primary fallback if overhead exceeds 5%.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 1,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Actual overhead5.81% selects ordinary primary with mandatory1Hz resource audit; passing sensor/interval/synchronized/trace/fallback fixtures retain explicit unavailable capabilities.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
         "src/oeis_learn/tracking/foundation_metrics.py",
@@ -464,7 +476,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
       ]
     },
     {
@@ -499,7 +513,7 @@
       "status": "pending_runtime",
       "phase": 1,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "Original exact-work baseline calibration remains incomplete/empty, with missing material strata; full-model soak calibration is a separate scope.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-1-measurement-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -598,7 +612,7 @@
       "status": "pending_runtime",
       "phase": 2,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "Actual current HIP/parity prerequisites pass, but original frozen isolated inference comparisons remain uncompleted.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-2-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -927,10 +941,10 @@
     {
       "task": "T064",
       "description": "[P] [US3] Add complete-state barrier/resume tests in `tests/integration/test_bigint_workflow.py` for changed-policy rejection, pending-work cancellation, optimizer/RNG/data/curriculum/replay/selection preservation, conservative budget recovery and explicitly nonresumable weights-only clones.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 4,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Pinned CPU/HIP complete-state/policy/cancellation/corruption/budget fixtures PASS; actual104.5M restart preserves seven state payloads, immutable debit and consumed frontier in distinct containers.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "tests/integration/test_bigint_workflow.py",
@@ -939,7 +953,10 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md"
       ]
     },
     {
@@ -999,10 +1016,10 @@
     {
       "task": "T069",
       "description": "[US3] Add bounded overlap/resource observations to `src/oeis_learn/tracking/pipeline_profile.py` and `src/oeis_learn/fresh/pipeline_report.py`, keeping ordinary timing free of per-stage GPU synchronization, bounded device events at drain boundaries, source-bound measurement mode and CPU scorer startup after GPU-role drain.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 4,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Ordinary primary uses unsynchronized stage clocks and source-bound minimal observations; isolated CPU scorer starts only after persistent GPU parent drain.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "src/oeis_learn/fresh/pipeline_report.py",
@@ -1012,7 +1029,10 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-4-local.md"
       ]
     },
     {
@@ -1060,7 +1080,7 @@
       "status": "pending_runtime",
       "phase": 4,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "Actual current joint safety/updates/recovery pass, but original complete-work comparison/confirmation slots remain UNSTARTED.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -1088,10 +1108,10 @@
     {
       "task": "T075",
       "description": "[US3] Set the supported default only after T074 qualifies it and retain serial rollback in `configs/foundation/pipeline_validation.json` and `src/oeis_learn/fresh/bigint_config.py`; if adoption fails, retain the baseline and record investigation completion without claiming a speedup.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 4,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Conditional no-adoption disposition: T074 remains INCONCLUSIVE/RETAIN_BASELINE with all20 original confirmation slots UNSTARTED. No global default change; serial rollback retained.",
+      "blocking_reason": null,
       "evidence": [
         "configs/foundation/pipeline_validation.json",
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
@@ -1101,16 +1121,19 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-5-report.md"
       ]
     },
     {
       "task": "T076",
       "description": "[US3] Review implementation/target evidence and update `specs/009-pipeline-throughput/quickstart.md` and `specs/009-pipeline-throughput/validation/task-evidence.json` with the chosen envelope, rollback and one consolidated next validation command; no separate profiler/repackaging handoff.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 4,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Chosen experimental envelope, unchanged defaults/serial rollback and accepted evidence documented. No duplicate target command needed; next ready work is prospective longer-run preparation.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/quickstart.md",
         "specs/009-pipeline-throughput/validation/phase-4-local.md",
@@ -1120,7 +1143,10 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/hardware-readiness-next.md"
       ]
     },
     {
@@ -1139,10 +1165,10 @@
     {
       "task": "T078",
       "description": "[P] [US4] Extend `tests/unit/test_container_validation.py` and `tests/unit/test_foundation_roles.py` with supported-command inventory, retired-command disposition, clean installed readers/no retired solver reachability, arbitrary-UID/rootless export, isolated CPU scorer and normal/interrupted complete-state operations coverage.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 5,
-      "implementation_disposition": "Fixtures/adapters authored; corresponding pinned-runtime or target checks remain unrun.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Current installed command/readers/retirement, rootless numericUID/export, interruption/healthy next role, isolated CPU scorer and complete-state operations pass. Tests are distributed across existing suites; full independent Docker coverage belongs to T084.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "tests/unit/test_container_validation.py",
@@ -1152,7 +1178,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
       ]
     },
     {
@@ -1229,7 +1257,7 @@
       "status": "pending_runtime",
       "phase": 5,
       "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "blocking_reason": "Current primary Podman qualification passes. Docker command reports Podman metadata; independent Docker qualification remains missing.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -1243,10 +1271,10 @@
     {
       "task": "T085",
       "description": "[US4] Publish source-bound engineering/cost decisions and the retained small-value 13.29\u201313.40x gap/>5x review-trigger disposition in `specs/009-pipeline-throughput/validation/phase-5-report.md`; review 008:T089\u2013092 dependencies, close only evidenced T094/T097/T098 portions and retain T095's old scoped decision and T096's original negative result.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 5,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Published source-bound phase5 engineering/cost report, retained13.29\u201313.40x/>5x trigger, scoped008:T094/T097/T098 portions and unchanged historical cost/negative learning dispositions.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/phase-5-local.md",
         "specs/009-pipeline-throughput/validation/soak-implementation.md",
@@ -1254,7 +1282,11 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/phase-5-report.md",
+        "specs/009-pipeline-throughput/validation/phase-5-qualification.json"
       ]
     },
     {
@@ -1262,8 +1294,8 @@
       "description": "[US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.",
       "status": "pending_runtime",
       "phase": 5,
-      "implementation_disposition": "Target collection/review or evidence-dependent decision; no current target artifact.",
-      "blocking_reason": "Needs pinned-image CPU/Torch/native or actual engine/HIP collection and evidence review. Host fixtures/compilation cannot close this gate.",
+      "implementation_disposition": "Current carryover/gate/quickstart reconciliation complete; prospective costed next-run command/archive handoff remains incomplete.",
+      "blocking_reason": "Next longer-run recipe, complete measured expected cost, finite limits and archive path are not yet frozen. Preparation can proceed without repeating accepted primary soak.",
       "evidence": [
         "specs/009-pipeline-throughput/carryover.md",
         "specs/009-pipeline-throughput/quickstart.md",
@@ -1274,7 +1306,11 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+        "specs/009-pipeline-throughput/validation/hardware-readiness-next.md",
+        "specs/009-pipeline-throughput/validation/phase-5-report.md"
       ]
     },
     {
@@ -1556,10 +1592,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Second target source1f3bba26 reviewed; UID mapping and test path fail, no soak begins. All unblocked explicit owner/path/mode/error repairs pass194 host checks; actual affected-source namespace/CPU/HIP/operations pending.",
-      "blocking_reason": "Integrated soak implementation changes runtime/source closure; final current-source CPU/HIP/operations evidence pending.",
+      "implementation_disposition": "All affected unchanged runtime-source packaging/CPU/HIP/primary operations checks pass in accepted archive. Documentation-only reconciliation leaves source d5c6de02 unchanged; no redundant hardware rerun or CI wait.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1602,7 +1638,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
         "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+        "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
       ]
     },
     {
@@ -1622,7 +1660,7 @@
     "008:T093": "user deferred; unchanged",
     "008:T096": "historical NEGATIVE;7730/14400 seconds consumed; unchanged"
   },
-  "target_validation": "Registered baseline replay scope passes at c9be16a/source69807d38: 99 host, 613 CPU and 16 actual-HIP tests; reference and all five trials verify 12/12 boundaries. Three baseline intervals29.6049\u201329.7764s derive a60s replay-only bound. Both producer CI workflows pass. No duplicate run needed; full-generation/native/comparison/cost, Docker portability and separately admitted research remain outside this accepted scope.",
+  "target_validation": "Accepted current primary Podman soak at466863f/runtime d5c6de02:754 CPU JUnit cases (721 tests+33 subtests),21 HIP,123 retirement,1106 workflow passed/9 skips,45 policy. Full104.5M batch16 two-window recovery PASS; independent Docker portability pending. Preserve accepted evidence, no duplicate HIP run.",
   "research": "No study admitted or executed. No assistance input/deferral, final plan/exposure, performance adoption or longer-run authority invented.",
   "operator_review": {
     "evidence": "specs/009-pipeline-throughput/validation/phase-1-operator.json",
@@ -1825,31 +1863,22 @@
     }
   },
   "integrated_soak_plan": {
-    "status": "REPAIR_CODE_LOCAL_COMPLETE_CORRECTED_TARGET_PENDING",
+    "status": "PRIMARY_ENGINEERING_ACCEPTED_REMAINING_ORIGINAL_GATES_EXPLICIT",
     "plan": "specs/009-pipeline-throughput/plan.md",
     "checklist": "specs/009-pipeline-throughput/tasks.md#integrated-soak-work-packages",
     "target": "full-scale104.5M engineering qualification and persistent soak",
-    "accepted_runtime_producer": "56f61564b0b504b9aa5ffc3273bb73974ebaf87e",
-    "accepted_runtime_source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
+    "accepted_runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278",
+    "accepted_runtime_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
     "original_counts_unchanged": false,
     "pending_engineering_tasks": [
       "T011",
-      "T025",
-      "T026",
-      "T031",
       "T034",
       "T041",
       "T059",
       "T060",
       "T062",
-      "T064",
-      "T069",
       "T073",
-      "T075",
-      "T076",
-      "T078",
       "T084",
-      "T085",
       "T086"
     ],
     "held_research_tasks": [
@@ -1874,64 +1903,71 @@
         "status": "complete",
         "description": "Freeze the versioned full-scale engineering contract, complete input/cadence/slot roster, fixed branch/selection rules, per-phase subreservations and worst-case job/checkpoint/archive bounds before target timing.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S002": {
         "status": "complete",
         "description": "Integrate explicit104.5M profile and audited FP32 math execution into existing recipe/model/identity/checkpoint paths; preserve historical v1/default behavior and verify actual CPU/HIP counts/parity/finite updates.",
         "implementation_status": "complete",
-        "validation_scope": "actual scoped model/count/parity/update integration at d80bf576; repaired image/package/operations closure remains pending under T110",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
         ],
-        "runtime_producer": "d80bf5763e151e2cccc0cd26f36695b6c5d561bb"
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S003": {
         "status": "complete",
         "description": "Add bounded time/work-based engineering continuation to the existing trainer using full approved training/validation partitions and frozen real cadence; retain actual optimizer/data/selection behavior and bounded metrics without a second trainer.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S004": {
-        "status": "pending_runtime",
+        "status": "complete",
         "description": "Complete full-state drain/checkpoint/publication/prune/controlled-stop/resume and interruption/corruption/duplicate-debit tests; preserve optimizer/RNG/data/selection/curriculum/replay/frontier and original cumulative budget.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S005": {
         "status": "pending_runtime",
         "description": "Finish original common-v2 queued native1/2/4 policy/exactness/cache/transport/clock/cancellation/fault evidence; require quiescence and healthy subsequent work without substituting accepted slot-wave scope.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Original common-v2 queued1/2/4 and counterexample scopes remain incomplete. Accepted health pulses/slot-wave screens are narrower evidence.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
@@ -1942,102 +1978,118 @@
         ]
       },
       "009:S006": {
-        "status": "pending_runtime",
+        "status": "complete",
         "description": "Complete installed-command/retirement/readers/source, arbitrary-UID/rootless export, failed-prerequisite/full-disk/interruption, isolated-scorer and Docker/Podman operations prerequisites with explicit missing-capability states.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S007": {
         "status": "complete",
         "description": "Implement finite full-data training-batch8/16/32 and long-sequence qualification, real sampling/capacity/joint safety and overhead fallback; freeze one candidate by the planned rule and retain original conditional five-pair adoption semantics.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S008": {
         "status": "complete",
         "description": "Register one combined bounded DAG with shared prerequisites and automatic preregistered decisions, two3600s persistent work windows,600s checkpoint/restart reserve, strict global/resource/storage/watchdog accounting and one verified archive even on failure.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S009": {
         "status": "complete",
         "description": "Implement independent safety/recovery/soak/performance/portability/cost verdicts, matched time-window metrics and complete denominators; preserve exact-scope diverse32/transfer costs and original negative/carryover/research dispositions.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S010": {
         "status": "complete",
         "description": "Finish all unblocked code/local fault checks and current source/binding/packaging/task verification, commit/push periodically, and publish one concrete HIP command with finite complete roster, expected costs and one ZIP; do not wait for new PR CI.",
         "implementation_status": "complete",
-        "validation_scope": "host/local complete; actual pinned CPU/HIP/engine/soak evidence pending",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S011": {
-        "status": "pending_runtime",
+        "status": "complete",
         "description": "Collect/review the single combined target archive, including actual full-size state/restart/job/clock/resource/window and per-engine evidence; any further loop is limited to a concrete blocker and required compatible-source prerequisites.",
-        "implementation_status": "first_archive_review_complete; corrected_full_collection_pending",
-        "validation_scope": "target collection/review pending",
+        "implementation_status": "complete",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       },
       "009:S012": {
-        "status": "pending_review",
+        "status": "complete",
         "description": "Close only fully evidenced original tasks, reconcile all engineering/carryover/held research endpoints and source-bound rollback/default decisions, then publish hardware readiness and the separate next learning-decision prerequisites without launching research.",
-        "implementation_status": "awaiting_target_archive",
-        "validation_scope": "target collection/review pending",
+        "implementation_status": "complete",
+        "validation_scope": "Actual current-source primary engineering scope accepted; independent Docker explicitly pending under T084; original adoption/cost/research gates separate.",
         "evidence": [
           "specs/009-pipeline-throughput/validation/soak-implementation.md",
           "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
           "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json",
           "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json"
-        ]
+          "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
+          "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+          "specs/009-pipeline-throughput/validation/hardware-readiness-next.md",
+          "specs/009-pipeline-throughput/validation/phase-5-report.md"
+        ],
+        "runtime_producer": "466863f7edd2633760893eb4bcb06005690f2278"
       }
     },
     "work_windows_seconds": [
@@ -2050,9 +2102,8 @@
     "total_reservation_ceiling_seconds": 84000,
     "initial_hip_handoff_target": 1,
     "result_archives_per_invocation": 1,
-    "new_target_command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_soak.json --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs --max-seconds 86400 --output tmp-validation/009-soak-TIMESTAMP",
     "additional_hip_loop": "concrete mandatory failure, runtime defect, missing capability or explicit new decision; finish unblocked repairs and reuse only proven-compatible evidence",
-    "reopen_T110": "reopened for changed current-source runtime/test/contract closure; accepted older-source completion preserved",
+    "reopen_T110": "closed for exact current runtime d5c6de02 by actual CPU/HIP/primary operations evidence; documentation-only reconciliation does not reopen it",
     "authorities": {
       "engineering_scope": "pipeline-soak-validation/v1; bounded disposable updates and own-state recovery only",
       "research": false,
@@ -2066,7 +2117,7 @@
       "separate_from_generated_program_metrics": true
     },
     "training_data": "full approved generic training partition; frozen complete development-validation partitions and real cadence",
-    "soak_status": "second collection: CPU fixture path corruption and unmapped numeric-owner access fail;21 HIP pass; zero new batch trials/soak legs. Explicit owner mapping/path/mode/error repairs complete locally; target pending.",
+    "soak_status": "PASS: current primary CPU/HIP/operations, full-model batch16, joint stress, both persistent windows, exact-state restart and CPU scorer accepted. Independent Docker pending.",
     "planning_review": "specs/009-pipeline-throughput/validation/integrated-soak-plan-review.json",
     "handoff": "specs/009-pipeline-throughput/validation/soak-implementation.md",
     "local_evidence": "specs/009-pipeline-throughput/validation/soak-uid-map-local-evidence.json",
@@ -2080,19 +2131,68 @@
     },
     "static_stages": 38,
     "previous_local_evidence": "specs/009-pipeline-throughput/validation/soak-local-evidence.json",
-    "latest_collection": "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json",
-    "latest_qualification_producer": "4c6f3c23e603e92cb64402577fc12d43edd8b0fa",
-    "experimental_batch": 32,
-    "experimental_batch_adoption": "NOT_ADOPTED; actual long-context/joint/stability evidence pending",
+    "latest_collection": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+    "latest_qualification_producer": "466863f7edd2633760893eb4bcb06005690f2278",
+    "experimental_batch": 16,
+    "experimental_batch_adoption": "EXPERIMENTAL_ENGINEERING_ONLY; no original complete-work/default adoption",
     "repair_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
     "repair_runtime_producer": "c41578f0b4754879aec666491aadd99583b1d6ad",
     "previous_collections": [
-      "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json"
+      "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+      "specs/009-pipeline-throughput/validation/soak-operator-20261025T222026Z.json"
     ],
     "previous_local_evidence_chain": [
       "specs/009-pipeline-throughput/validation/soak-uid-repair-local-evidence.json"
     ],
-    "completed_target_attempts": 2,
-    "runtime_disposition": "S002 remains accepted only at d80bf576; all other incomplete current runtime/soak gates stay open."
+    "completed_target_attempts": 3,
+    "runtime_disposition": "Current exact-source primary hardware/recovery accepted; original queued native/comparison/cost/Docker scopes remain separate.",
+    "operator_review": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+    "no_duplicate_primary_soak": true,
+    "next_preparation": "specs/009-pipeline-throughput/validation/hardware-readiness-next.md",
+    "scope_dispositions": {
+      "primary_hardware": "PASS",
+      "portability": "PENDING_REAL_DOCKER",
+      "original_adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+      "full_cost": "UNKNOWN",
+      "learned_quality": "NOT_ASSESSED",
+      "long_run_authority": "NOT_ADMITTED",
+      "checkpoint_authority": "engineering own-state recovery only; not research resume"
+    },
+    "watchpoints": [
+      "between-leg median decline7.36% exceeds5% investigation trigger, cause unknown",
+      "transient storage7.546/8GiB",
+      "unattributed parent cost535.994s and nonexhaustive final-save component counters"
+    ],
+    "historical_reproduction_command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_soak.json --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs --max-seconds 86400 --output tmp-validation/009-soak-TIMESTAMP"
+  },
+  "pending_runtime_count_meaning": "Legacy field includes7 missing original runtime-evidence tasks and2 engineering test/preparation tasks T011/T086.",
+  "accepted_soak_review": {
+    "review": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
+    "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+    "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+    "closed_original_tasks": [
+      "T025",
+      "T026",
+      "T031",
+      "T064",
+      "T069",
+      "T075",
+      "T076",
+      "T078",
+      "T085",
+      "T110"
+    ],
+    "remaining_original_engineering": [
+      "T011",
+      "T034",
+      "T041",
+      "T059",
+      "T060",
+      "T062",
+      "T073",
+      "T084",
+      "T086"
+    ],
+    "repeat_primary_soak": false
   }
 }

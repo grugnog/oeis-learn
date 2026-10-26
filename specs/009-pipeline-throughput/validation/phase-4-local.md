@@ -1,3 +1,11 @@
+# Current-source primary runtime acceptance
+
+The [accepted soak](soak-operator-20261025T232558Z.md) now supplies actual pinned CPU/HIP, full-state recovery and primary operations evidence at unchanged d5c6de02. Two distinct containers preserve all seven complete-state payloads, original7800s debit and exact consumed frontier; all active/reserved jobs drain. Ordinary timing remains unsynchronized, overhead5.81% selects ordinary primary with minimal1Hz observations, and the public CPU scorer runs after GPU drain. T064/T069/current-sourceT110 close; original whole-pipeline comparisons T073 and independent Docker T084 stay open. See [phase5 decisions](phase-5-report.md) and [task evidence](task-evidence.json). No duplicate primary soak is requested.
+
+Historical local evidence follows; its target-pending statements applied before the accepted collection.
+
+---
+
 # Phase 4 overlap and comparison implementation
 
 Status: implementation/local fixture evidence; target qualification pending.

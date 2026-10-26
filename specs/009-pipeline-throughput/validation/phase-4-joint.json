@@ -8,5 +8,14 @@
     "identity": "sha256:23c8e4a4f33a1925a0c40ca50b593c8a7ccdc798d9ddcecf5f1cf3f2e7ace533",
     "reason": "failed/missing prerequisites: baseline.calibration"
   },
-  "decision": "INCONCLUSIVE prerequisite; joint comparison unstarted; no five-pair evidence, no adoption"
+  "decision": "INCONCLUSIVE prerequisite; joint comparison unstarted; no five-pair evidence, no adoption",
+  "supplemental_current_soak": {
+    "review": "soak-operator-20261025T232558Z.json",
+    "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+    "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+    "joint_safety": "PASS",
+    "full_state_restart": "PASS",
+    "original_complete_work_comparison": "NOT_SUBSTITUTED; T073 remains pending",
+    "authority": "Separate scope; preserves all original failed/unstarted slots and original no-adoption decision."
+  }
 }

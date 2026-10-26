@@ -1,3 +1,9 @@
+# Accepted full-scale soak: reproduction interface
+
+**Current accepted result:** [Primary engineering soak PASS](soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks87 complete/9 engineering pending/15 research held; no default, learning or multi-day admission.
+
+The command and implementation notes below are historical reproduction instructions. They are **not a request to run again**. Actual source d5c6de02 now passes primary CPU/HIP/operations and both persistent windows. Earlier pending statements below describe the pre-collection handoff.
+
 # Full-scale engineering soak: corrected target handoff
 
 The [second collection](soak-operator-20261025T222026Z.md) exposes a container-TMPDIR path-substitution bug in the new test and a numeric UID/host-owner mapping mismatch. Its diagnostics disprove the previous mount-parent explanation. Both repairs now pass194 host tests and verified local export; actual corrected rootless/HIP qualification remains pending. The first collection's successful full-size batch32 preflight remains accepted at its producer.

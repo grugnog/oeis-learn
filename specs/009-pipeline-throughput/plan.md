@@ -1,7 +1,7 @@
 # Integrated remaining-work plan: full-scale, bounded engineering soak
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25
-**Status:** Second target reviewed: UID and test-path failures block all soak work. Explicit numeric owner mapping/path/publication/error repairs pass194 host tests; corrected actual runtime/soak qualification pending. See [one command](validation/soak-implementation.md).
+**Status:** Accepted primary Podman soak PASS at unchanged d5c6de02; both windows/restart complete. Independent Docker and original comparison/cost gates remain separate. No duplicate primary HIP run. See [accepted evidence](validation/soak-operator-20261025T232558Z.md) and [next preparation](validation/hardware-readiness-next.md).
 **Specification:** [Spec 009](spec.md) · **Execution checklist:** [tasks.md](tasks.md#integrated-soak-work-packages)
 
 This is the single current implementation sequence for the remaining Spec 009
@@ -27,9 +27,12 @@ producer56f6156/source735ede… (720 source entries). Its104.5M model gives2,092
 median training tokens/s and5.89GiB observed role upper memory on short work.
 Earlier bookkeeping, GPU capacity, native slot-wave and co-scheduling evidence
 remains accepted at its own producers. None needs a duplicate isolated ladder.
-Current original-task counts are77 complete /19 runtime pending /15 research
-held after reopening affected-source T110 for this implementation. Accepted older-
-source evidence remains historical; host checks do not close current runtime tasks.
+Current original-task counts are87 complete /9 engineering pending /15 research
+held after reviewing actual current-source evidence. T011 retains a test-catalog gap;
+seven original runtime gates and the T086 prospective costed handoff remain separate. T110 closes for unchanged
+affected runtime source; documentation changes do not require hardware requalification.
+Accepted older-source evidence remains historical. The execution sequence below
+records the implemented soak design; the next action is the linked preparation package.
 
 At the planning baseline, the practical gaps were specific: normal `fresh.bigint_worker.models` used
 the fixed8.1M constructor; the sizing harness uses128 training/32 validation rows
@@ -500,3 +503,9 @@ Use [one corrected combined command](validation/soak-implementation.md). Changed
 [The second collection](validation/soak-operator-20261025T222026Z.md) verifies source1f3bba26 and21 HIP passes, but one new CPU fixture fails and UID operations still block every soak leg. Diagnostics show /work0755/output0777, disproving the previous mode-only hypothesis. The fixture had changed --user without mapping the host owner to that numeric container UID; the exact filesystem rejection mechanism is not identified. Its CPU test also corrupted explicit input paths through sequential string replacement when TMPDIR was under /work/output.
 
 The [new local repair](validation/soak-uid-map-local-evidence.json) passes194 host tests and verified public export. Fixture paths are explicit arguments; rootless Podman uses documented keep-id UID/GID owner mapping with real ownership assertions; public modes are explicit even under private file defaults; missing device evidence cannot mask launch/fatal resource failures. No host accounts/ACLs/ownership are changed. This scopes arbitrary numeric container users rather than foreign subordinate-host-ID filesystem access. Model/data/work/selection/global/phase/prompt rules are unchanged. All repairs finish before the [one combined follow-up](validation/soak-implementation.md). No current runtime task closes from host tests; original counts77/19/15 and scientific holds remain.
+
+## Accepted primary target and next preparation — 2026-10-25
+
+[The completed archive](validation/soak-operator-20261025T232558Z.md) now establishes current-source primary qualification, full104.5M training-batch16, both hour windows, seven-state restart, joint stress, operations and separate CPU scorer. Source d5c6de02 is unchanged by this reconciliation. Original task counts are87 complete/9 engineering pending/15 research held. The remaining engineering tasks are T011/T034/T041/T059/T060/T062/T073/T084/T086. S005 retains original queued native scope; S004/S006/S011/S012 close for applicable evidenced scope with independent Docker explicitly pending. Full008 carryovers remain unclosed.
+
+Do not repeat the accepted soak or size/batch screens. The next ready work is [prospective longer-run preparation](validation/hardware-readiness-next.md), including remaining host-side fault tests, a new finite recipe/budget/storage design and complete-schedule cost/admission. T086 remains open until that costed command/archive handoff exists. The accepted7.36% between-leg decline and7.546/8GiB transient peak are watchpoints for that preparation, not an automatic additional HIP loop. No new target command or learning/final/multi-day execution is requested now.
