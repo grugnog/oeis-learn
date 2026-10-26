@@ -516,3 +516,8 @@ The user now authorizes preparation of sequence-learning evaluation and further-
 ## Learning-pilot code/local handoff
 
 The [implementation and one target command](validation/learning-pilot-implementation.md) now realize the [prospective learning plan](validation/learning-pilot-plan.md) through all unblocked code/local work. The separate [contract](contracts/learning-pilot.md) preserves old profiles/defaults and hardware evidence while adding finite strict32768-example preparation, actual-checkpoint full-denominator learning/control curves and conditional further-compute reports. L004 actual corpus feasibility, L012 measured-cost clause, L013 target review and L014/L015 subsequent admitted execution/analysis remain open. Pinned CPU/HIP fixtures are authored, not claimed run. T011 closes; new-source T110 reopens; original counts87/9/15 remain. Do not repeat the accepted size/batch/two-hour soak. No long run is automatically admitted.
+
+
+### First pilot validation collection
+
+The [review and repaired consolidated handoff](validation/learning-pilot-operator-20261026T124145Z.md) retain23 HIP passes and750 CPU passes/one cost-probe failure before any corpus or session work. The scoped scoring-cost v2 separates six required full100-index positive paths and the retained4096-bit fuel stress, with explicit unknown/mismatch failures and complete diagnostics. It changes no learner/scientific scorer/resource/clock policy.221 local host tests pass; corrected target qualification, corpus feasibility and full costs remain pending before L013 can admit a long study.

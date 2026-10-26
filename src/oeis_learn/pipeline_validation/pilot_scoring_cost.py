@@ -22,7 +22,7 @@ def sentinels(client,*,deadline,policies):
         ns=list(map(decimal_integer,indices));vs=list(map(decimal_integer,values))
         prompt=VisiblePrompt(tuple(ns[:20]),tuple(vs[:20]))
         found,status=_raw(client,source,prompt,min(deadline,time.monotonic()+4))
-        if found is None or not status['complete']:raise ValueError('public scoring-cost sentinel lacks exact independent visible admission: '+key)
+        if found is None or not status['complete']:raise ValueError('public scoring-cost sentinel lacks exact independent visible admission: '+key+' '+str(status))
         found.update(_attempt_ordinal=0,_job_id=digest(['public-cost',key]))
         selection=_seal([found],prompt,cost=0,selection='visible-only/v2',snapshot=digest('public-cost'),policies=policies)
         arms=('raw','rescue','equal_budget','shuffled','absent','template')

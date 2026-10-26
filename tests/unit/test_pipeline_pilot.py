@@ -20,7 +20,7 @@ class Pilot(unittest.TestCase):
             bad_positive=False
             def runtime_identity(self,profile):return identity('synthetic reference-only cost fixture')
             def execute(self,source,indices,*,deadline):
-                if len(indices)==100 and int(indices[0]).bit_length()==4096 and '(sub (mul' in source:
+                if self.stress_reason is not None and len(indices)==100 and int(indices[0]).bit_length()==4096 and '(sub (mul' in source:
                     return dict(outcome='failure',reason=self.stress_reason,values=[])
                 result=evaluate(source,indices,self.limits,deadline=deadline)
                 values=list(result.values)
@@ -37,6 +37,10 @@ class Pilot(unittest.TestCase):
         unknown=sentinels(fixture,deadline=time.monotonic()+120,policies={})
         self.assertFalse(unknown['complete'])
         self.assertEqual(unknown['stress_disposition'],'UNRESOLVED')
+        fixture.stress_reason=None
+        full=sentinels(fixture,deadline=time.monotonic()+120,policies={})
+        self.assertTrue(full['complete'])
+        self.assertEqual(full['stress_disposition'],'FULL_HORIZON_SUCCESS')
         fixture.stress_reason='aggregate_fuel';fixture.bad_positive=True
         with self.assertRaisesRegex(RuntimeError,'full-horizon disagreement'):
             sentinels(fixture,deadline=time.monotonic()+120,policies={})

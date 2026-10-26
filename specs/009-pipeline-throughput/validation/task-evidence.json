@@ -1320,7 +1320,9 @@
         "specs/009-pipeline-throughput/validation/hardware-readiness-next.md",
         "specs/009-pipeline-throughput/validation/phase-5-report.md",
         "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
-        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md"
+        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
+        "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json"
       ]
     },
     {
@@ -1652,7 +1654,9 @@
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
         "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
-        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md"
+        "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
+        "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json"
       ]
     },
     {
@@ -2208,7 +2212,7 @@
     "repeat_primary_soak": false
   },
   "learning_pilot_preparation": {
-    "status": "CODE_LOCAL_COMPLETE_TARGET_FEASIBILITY_COST_PENDING",
+    "status": "FIRST_TARGET_CPU_PROBE_FAILURE_REVIEWED_REPAIR_LOCAL_COMPLETE_TARGET_PENDING",
     "plan": "specs/009-pipeline-throughput/validation/learning-pilot-plan.md",
     "existing_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-existing-evidence.json",
     "accepted_hardware_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
@@ -2226,7 +2230,7 @@
       "009:L010": "complete_code_local",
       "009:L011": "complete_code_local",
       "009:L012": "partial_code_local_handoff_complete_target_cost_pending",
-      "009:L013": "pending_target_review",
+      "009:L013": "partial_first_failed_archive_reviewed_corrected_target_readiness_pending",
       "009:L014": "pending_explicit_admission_and_execution",
       "009:L015": "pending_long_run_results"
     },
@@ -2267,9 +2271,22 @@
       "L014 explicit admitted run",
       "L015 learning/compute review"
     ],
-    "runtime_source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+    "runtime_source": "sha256:8976b7b032124c2a223ab7a75ac040faf948472bef2960d6f101e9454dafa2a2",
     "runtime_source_entries": 749,
-    "host_tests": 220,
-    "new_target_loop_count": 1
+    "host_tests": 221,
+    "new_target_loop_count": 2,
+    "operator_review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
+    "repair_local_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json",
+    "first_target": {
+      "hip_passed": 23,
+      "cpu_passed": 750,
+      "cpu_failed": 1,
+      "corpus_started": false,
+      "session_started": false,
+      "scorer_case_native_reason": "NOT_ARCHIVED_UNKNOWN",
+      "learning_or_long_run_admitted": false
+    },
+    "target_collections_reviewed": 1,
+    "proposed_next_collection": 2
   }
 }

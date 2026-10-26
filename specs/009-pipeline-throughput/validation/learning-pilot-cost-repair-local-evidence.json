@@ -1,0 +1,65 @@
+{
+  "version": "pipeline-pilot-cost-repair-local/v1",
+  "date": "2026-10-26",
+  "branch": "009-pipeline-throughput",
+  "pr": 60,
+  "status": "LOCAL_REPAIR_COMPLETE_TARGET_PENDING",
+  "source": "sha256:8976b7b032124c2a223ab7a75ac040faf948472bef2960d6f101e9454dafa2a2",
+  "source_entries": 749,
+  "core_repair_commit": "d174240d7f94ba7309694e1551016805738f2439",
+  "foundation_implementation": "sha256:0b5924e61f89ab8dadd1d3cf44e0946298247e2ebfcd1088ef132ead45ffc17c",
+  "host_tests": {
+    "tests": 221,
+    "failures": 0,
+    "errors": 0,
+    "dependencies": "stdlib only; no packages installed"
+  },
+  "checks": [
+    "Reference-only mock reproduces old complete=False when4096-bit100-index production is fuel limited",
+    "Six positive full100-index fixtures required in all six arms; original4096-bit case retained separately",
+    "Explicit bounded fuel stress includes all elapsed costs, never scientific completeness or learned success",
+    "Unknown stress/transport/deadline remain blockers; positive production/reference mismatch still raises",
+    "Full stress success remains valid without inventing fuel failure",
+    "Real pinned CPU failure assertion retains all per-case outcomes; visible failures retain case/status",
+    "Current actual foundation binding, syntax, JSON, links, task ledger and post-hooks checked"
+  ],
+  "public_cli": {
+    "exit_code": 3,
+    "selected_scope": "PARTIAL",
+    "elapsed_seconds": 25.628275227000017,
+    "stage_counts": {
+      "BLOCKED": 15,
+      "PARTIAL": 2,
+      "PASS": 3
+    },
+    "readiness": "BLOCKED",
+    "cost": "UNKNOWN"
+  },
+  "archive": {
+    "path": "tmp-validation/009-learning-pilot-cost-repair-final-local.zip",
+    "sha256": "sha256:a83431481d16fd7672a204e953a37a633f43a298977b1bfdcd6c67209b92963f",
+    "members": 57,
+    "verified": true,
+    "omissions": []
+  },
+  "original_counts": {
+    "complete": 87,
+    "pending_runtime": 9,
+    "blocked_research": 15
+  },
+  "preserved_target": {
+    "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+    "hip_passed": 23,
+    "cpu_passed": 750,
+    "cpu_failed": 1,
+    "corpus_started": false,
+    "session_started": false,
+    "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json"
+  },
+  "target": "Corrected native probes/current-package qualification/corpus/restart/full-control costs remain pending in one combined follow-up.",
+  "diagnosis": "Original archive has no case-level failure reason; aggregate-fuel diagnosis remains an inference.",
+  "learning": "NO_RESULTS_NO_ADMISSION",
+  "final_access": "SEALED",
+  "ci": "No new PR CI awaited",
+  "limitations": "Local independent reference/fake-client evidence is not repaired actual native/HIP qualification or learned capability."
+}

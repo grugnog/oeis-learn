@@ -1,3 +1,5 @@
+**Current target review and repaired handoff:** [First pilot preflight](learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.
+
 # Learning-pilot implementation and one target handoff
 
 Recorded2026-10-26 UTC on `009-pipeline-throughput`, PR #60. The
