@@ -3,11 +3,11 @@
   "date": "2026-10-26",
   "branch": "009-pipeline-throughput",
   "pr": 60,
-  "status": "V1_CAPACITY_BLOCKED_V2_PROSPECTIVE_CORRECTION_IMPLEMENTING",
-  "source": "sha256:25de1cf0abc8e057d13959c947318e1a5ff9cc18566a304004e2fa620b45f0e3",
-  "source_entries": 752,
+  "status": "V2_CODE_LOCAL_VERIFIED_EXPANDED_POOL_PENDING",
+  "source": "sha256:821d3956bd3d37757ff7a8920ac8d56ae064b4ab0866aa5f6e9d2d4ad8b25818",
+  "source_entries": 754,
   "host_tests": {
-    "tests": 228,
+    "tests": 230,
     "failures": 0,
     "errors": 0,
     "seconds": 38.658,
@@ -379,5 +379,23 @@
     "native_admissions": 0,
     "reference_math_reexecuted": false,
     "hip_qualified": false
-  }
+  },
+  "actual_legacy_import": {
+    "status": "FULL_LEGACY_PREFIX_IMPORT_PATH_VERIFIED_WITH_SYNTHETIC_SELECTION_FAILURE",
+    "count": 262144,
+    "reused_counter_verified": 1,
+    "source_index_unchanged": true,
+    "migration": {
+      "count": 262144,
+      "input_binding": "sha256:33fa7d41f1c9d89b030c42d5c8dc3e4c351e7b9a3040c5c0d11833daaaeff104",
+      "input_index_sha256": "sha256:2b7591d91bd71b8353e047864dacc7cd68425d73cbe797aa54c8541bcd223b20",
+      "native_admissions": 0,
+      "output_binding": "sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87",
+      "version": "pipeline-pilot-reference-migration/v1"
+    },
+    "native_admissions": 0,
+    "actual_oeis_qualified": false,
+    "hip_qualified": false
+  },
+  "capacity_reproducer": "specs/009-pipeline-throughput/validation/pilot_capacity_cover.py"
 }
