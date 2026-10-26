@@ -31,6 +31,8 @@ class Study:
         self.p=pilot;self.ledger=ledger;self.record=record;self.cost=cost;self.root=root;self.receipts={}
         self.p.snapshots=[r['result']['snapshot'] for k,r in ledger.value['slots'].items()
             if k.startswith('pilot.evaluate-') and r['state']=='COMPLETE']
+        self.p.learner_seconds=sum(r['result'].get('learner_role_seconds',0.) for k,r in ledger.value['slots'].items()
+            if k.startswith('pilot.train-') and r['state']=='COMPLETE')
 
     def previous_state(self):
         candidates=[]
@@ -108,7 +110,7 @@ class Study:
                 p.interrupted=sorted(int(k.rsplit('-',1)[1]) for k,r in self.ledger.value['slots'].items()
                     if k.startswith('pilot.train-') and r['state']=='INTERRUPTED')
                 result,target=p.train(output,ordinal,seconds=stage.seconds-10,worker_seconds=0 if ordinal==0 else stage.seconds-150)
-                stored=dict(trainer=result['trainer'],source=result['source'],work=result['work'],output=str(target))
+                stored=dict(trainer=result['trainer'],source=result['source'],work=result['work'],output=str(target),learner_role_seconds=result['learner_role_seconds'])
             else:
                 train_slot=self.ledger.value['slots']['pilot.train-'+str(ordinal)]
                 if train_slot['state']!='COMPLETE':

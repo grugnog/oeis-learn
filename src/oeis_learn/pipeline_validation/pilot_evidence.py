@@ -19,7 +19,12 @@ class Evidence:
         self.jobs[key]=event;self.events+=1
         if self.events>15984:raise ValueError('registered pilot event capacity exceeded')
         compact={k:payload[k] for k in ('source_sha256','complete','seed','generation_seconds','fit_seconds') if k in payload}
-        compact['tokens_count']=len(payload.get('tokens',[]));compact['tokens_sha256']=digest(payload.get('tokens',[]))
+        tokens=payload.get('tokens',[])
+        if type(tokens) is int:
+            if not 0<=tokens<=1024:raise ValueError('generation token count outside original cap')
+            compact['tokens_count']=tokens;compact['tokens_sha256']=None
+        else:
+            compact['tokens_count']=len(tokens);compact['tokens_sha256']=digest(tokens)
         if 'reason' in payload:compact['reason']=str(payload['reason'])[:256]
         for k in ('raw','fitting'):
             if k in payload:compact[k]={n:v for n,v in payload[k].items() if n in {'complete','outcome','clock','job_id'}}

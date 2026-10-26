@@ -51,8 +51,11 @@ class PilotLedger:
         row=self.value['slots'][key]
         if row['state']!='ACTIVE':raise ValueError('terminal pilot slots are immutable')
         ended=self.clock()
+        late=ended-row['started']>row['seconds']
+        if late:
+            state='INTERRUPTED';result=dict(result or {},fatal=True,error='original wall reservation exceeded')
         row.update(state=state,ended=ended,result=result);self.persist()
-        if ended-row['started']>row['seconds']:
+        if late:
             from .runner import ResourceBreach
             raise ResourceBreach('pilot slot exceeded original wall reservation')
 

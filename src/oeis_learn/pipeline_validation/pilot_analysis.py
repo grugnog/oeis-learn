@@ -62,3 +62,28 @@ def extrapolate(points):
             observed_slope_sensitivity=[clip(last+lo*doublings),clip(last+hi*doublings)])
     return dict(status='CONDITIONAL',scenarios=scenarios,backtest_absolute_error=error,
         guaranteed_capacity_upper_bound=None,interpretation='Same-regime token-exposure scenarios; not confidence bounds or an asymptote.')
+
+
+def compute_estimates(points,projection,denominator):
+    """Observed learner-role rates only; future evaluation/total costs stay unknown."""
+    unknown=lambda why:dict(status='UNKNOWN',reason=why,future_total_seconds=None)
+    rows=[r for r in points if r['tokens']>0]
+    if projection['status']!='CONDITIONAL':return unknown('learning scenario unavailable')
+    if len(rows)<4 or any(type(r.get('learner_role_seconds')) not in (int,float) for r in rows):
+        return unknown('comparable observed learner-role wall costs unavailable')
+    rates=[]
+    for a,b in zip(rows,rows[1:]):
+        seconds=b['learner_role_seconds']-a['learner_role_seconds'];tokens=b['tokens']-a['tokens']
+        if seconds<=0 or tokens<=0:return unknown('role time/exposure did not strictly advance')
+        rates.append(seconds/tokens)
+    rates=rates[-3:];last=rows[-1];scenarios={}
+    for key,multiple in [('2x',2),('4x',4)]:
+        tokens=last['tokens']*(multiple-1);bounds=[tokens*min(rates),tokens*max(rates)]
+        gain=max(0,projection['scenarios'][key]['recent_trend']-last['accuracy'])*denominator
+        scenarios[key]=dict(additional_tokens=tokens,additional_learner_seconds_range=bounds,
+            recent_trend_additional_verified_sequences=gain,
+            recent_trend_seconds_per_additional_sequence_range=[x/gain for x in bounds] if gain>0 else None,
+            plateau_additional_verified_sequences=0,plateau_seconds_per_additional_sequence=None,
+            future_evaluation_seconds=None,future_total_seconds=None)
+    return dict(status='CONDITIONAL',scenarios=scenarios,
+        interpretation='Observed last three learner-role seconds/token range; no guaranteed throughput, learning gain or total future-study cost.')

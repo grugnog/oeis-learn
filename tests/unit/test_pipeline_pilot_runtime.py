@@ -19,6 +19,25 @@ def test_opt_in_recipe_preserves_old_limits_and_cannot_enable_interventions():
     with pytest.raises(ValueError):resolve(bad)
 
 
+def test_actual_v3_constructor_and_public_independent_cost_sentinels(tmp_path):
+    from oeis_learn.pipeline_validation.pilot_recipe import recipe
+    from oeis_learn.fresh.bigint_worker import models,client
+    from oeis_learn.pipeline_validation.model_sizes import parameters,PROFILES
+    from oeis_learn.pipeline_validation.sizing_execution import execution_context
+    from oeis_learn.pipeline_validation.pilot_scoring_cost import sentinels
+    from oeis_learn.pipeline_validation.identity import digest
+    cfg=recipe()
+    with execution_context():
+        encoder,decoder,counts=models(cfg,'cpu')
+        assert counts['actual']==parameters(PROFILES['m100'])
+        assert counts['actual']['total']==104496662
+    del encoder,decoder
+    with client(dict(recipe=cfg,contract_sha256=digest('public pilot cost fixture')),tmp_path) as synthesis:
+        result=sentinels(synthesis,deadline=time.monotonic()+120,policies=cfg['pipeline'])
+    assert result['complete'] and result['fixture'] and result['learned_success'] is False
+    assert len(result['outcomes'])==5 and result['maximum_selected_program_seconds']>0
+
+
 @pytest.mark.parametrize('device',['cpu',pytest.param('cuda',marks=pytest.mark.gpu)])
 def test_token_weighting_masks_padding_and_keeps_exact_match_distinct(device):
     import torch,os,math

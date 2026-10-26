@@ -119,8 +119,72 @@ old=resolve({'version':'bigint-bootstrap/v1'});assert old['learning']['max_updat
             self.assertEqual(r['states']['INCOMPLETE'],1)
             self.assertLess(max(len(x) for x in (Path(folder)/'attempts.jsonl').read_bytes().splitlines()),2048)
 
+    def test_evidence_accepts_real_generator_count_only_callback(self):
+        from oeis_learn.pipeline_validation.pilot_evidence import Evidence
+        with tempfile.TemporaryDirectory() as folder:
+            with Evidence(Path(folder),[{'id':'a'}]) as e:
+                e('a','correct',0,'STARTED',{'seed':1})
+                e('a','correct',0,'GENERATED',dict(tokens=1024,source_sha256=digest('source'),generation_seconds=1.,complete=True))
+                e('a','correct',0,'COMMITTED',{'complete':True})
+            generated=json.loads((Path(folder)/'attempts.jsonl').read_text().splitlines()[1])
+            self.assertEqual(generated['payload']['tokens_count'],1024)
+            self.assertIsNone(generated['payload']['tokens_sha256'])
+
 
 class LearningCurves(unittest.TestCase):
+    def test_report_keeps_zero_success_missing_controls_and_overfitting_distinct(self):
+        from oeis_learn.pipeline_validation.pilot import learning_report
+        from oeis_learn.pipeline_validation.pilot_contract import ARMS
+        prompts=[dict(id=k,family='f',strata={'length':'short'}) for k in ('a','b')]
+        manifest={'roster':{'structural_development':['a','b']}}
+        snapshots=[]
+        for i in range(6):
+            outcomes={k:{arm:dict(success=False,complete=True) for arm in ARMS} for k in ('a','b')}
+            if i==5:outcomes['b'].pop('absent')
+            splits={k:dict(complete=True,loss=.1 if k=='training_panel' else .5+i/10,token_accuracy=.9 if k=='training_panel' else .5)
+                for k in ('training_panel','structural_development')}
+            snapshots.append(dict(ordinal=i,tokens=0 if i==0 else 2**i,updates=i,examples=i*16,unique_examples=i*16,
+                learner_role_seconds=i*100,teacher_forcing={'splits':splits},outcomes=outcomes))
+        report=learning_report(manifest,prompts,snapshots,purpose='longrun')
+        raw=report['series']['structural_development:raw']
+        self.assertEqual(raw['points'][-1]['measurement']['coverage'],1.)
+        self.assertEqual(raw['points'][-1]['measurement']['upper'],0.)
+        self.assertEqual(raw['extrapolation']['status'],'UNKNOWN')
+        absent=report['series']['structural_development:absent']['points'][-1]
+        self.assertEqual(absent['measurement']['upper'],.5)
+        self.assertEqual(report['series']['structural_development:equal_budget']['points'][-1]['correct_minus_controls']['absent']['unresolved_pairs'],1)
+        self.assertGreater(report['teacher_forcing_gaps'][-1]['gaps']['structural_development']['loss_gap'],0)
+        self.assertEqual(len(report['actual_snapshots']),6)
+
+    def test_further_compute_is_conditional_and_zero_gain_has_no_cost_ratio(self):
+        from oeis_learn.pipeline_validation.pilot_analysis import extrapolate,compute_estimates
+        points=[dict(tokens=2**i,accuracy=i/10,coverage=1.,learner_role_seconds=2**i*3) for i in range(5)]
+        result=compute_estimates(points,extrapolate(points),128)
+        self.assertEqual(result['status'],'CONDITIONAL')
+        self.assertEqual(result['scenarios']['2x']['additional_learner_seconds_range'],[48.,48.])
+        self.assertGreater(result['scenarios']['2x']['recent_trend_seconds_per_additional_sequence_range'][0],0)
+        zero=[dict(x,accuracy=0.) for x in points]
+        self.assertIsNone(compute_estimates(zero,extrapolate(zero),128)['scenarios']['2x']['recent_trend_seconds_per_additional_sequence_range'])
+        points[-1]['learner_role_seconds']=None
+        self.assertEqual(compute_estimates(points,extrapolate(points),128)['status'],'UNKNOWN')
+
+    def test_late_or_unacknowledged_slots_cannot_be_resumed(self):
+        from oeis_learn.pipeline_validation.pilot_ledger import PilotLedger
+        from oeis_learn.pipeline_validation.pilot_contract import decision
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        from oeis_learn.pipeline_validation.identity import write
+        with tempfile.TemporaryDirectory() as folder:
+            clock=[100.];root=Path(folder);role=root/'role';role.mkdir()
+            ledger=PilotLedger(root/'ledger',decision(source=digest('s')),clock=lambda:clock[0],boot='fixture')
+            ledger.reserve('pilot.train-1',seconds=10,category='learner',output=role)
+            with self.assertRaises(ValueError):ledger.recover('pilot.train-1')
+            clock[0]=111.
+            with self.assertRaises(ResourceBreach):ledger.finish('pilot.train-1','COMPLETE')
+            self.assertEqual(ledger.value['slots']['pilot.train-1']['state'],'INTERRUPTED')
+            self.assertTrue(ledger.value['slots']['pilot.train-1']['result']['fatal'])
+            write(role/'cleanup.json',{'within_bound':True});write(role/'summary.json',{'fatal':False})
+            with self.assertRaises(ValueError):ledger.recover('pilot.train-1')
+
     def rows(self):
         return [{'id':str(i),'family':'f'+str(i//2),'success':i==0,'complete':i<3} for i in range(4)]
 

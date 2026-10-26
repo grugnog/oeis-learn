@@ -7,6 +7,17 @@ from .identity import seal,digest,file_hash,write,validate,confined
 from .pilot_contract import SPEC,PROFILE
 
 
+def labels(row):
+    from oeis_learn.fresh.bigint_splits import behavior,paired_tokens
+    from oeis_learn.fresh.bigint_diagnostics import strata
+    visible=dict(row,values=row['values'][:20])
+    if 'parameter_source' in row:visible['tokens']=paired_tokens(row)['concrete']
+    result=strata(visible)
+    if 'parameter_source' not in row:result.update(length='unknown',complexity='unknown')
+    constant,offset,nonaffine=behavior(row)
+    return dict(result,stage=row.get('stage','OEIS'),nonaffine=str(nonaffine),offset_only=str(offset),constant=str(constant))
+
+
 def learner_view(examples):
     if set(examples)!={'training','parameter_development','structural_development'}:
         raise ValueError('only generic visible learner splits permitted')
@@ -81,7 +92,7 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
         for r in rs:
             roster[split].append(r['id'])
             prompts.append(dict(id=r['id'],indices=r['indices'][:20],values=r['values'][:20],
-                horizon_indices=r['indices'],family=r['family'],strata=dict(split=split,stage=r.get('stage','OEIS'))))
+                horizon_indices=r['indices'],family=r['family'],strata=dict(split=split,**labels(r))))
             truth[r['id']]=dict(indices=r['indices'],values=r['values'])
     out=Path(output);out.mkdir(parents=True,exist_ok=True)
     write(out/'examples.json',examples);write(out/'prompts.json',prompts);write(out/'private/truth.json',truth)
@@ -93,6 +104,16 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
         groups_identity=digest(groups),native_admissions=len(admissions),admissions_identity=digest(admissions),structural_families=len({r['family'] for r in splits['structural_development']}),
         training_families=len({r['family'] for r in splits['training']}),
         limitations='Observed100-index/20-window grouping, not universal equivalence; OEIS development already exposed.')
+    from oeis_learn.fresh.bigint_splits import paired_tokens
+    audit['splits']={}
+    for split,rs in splits.items():
+        lengths=[len(paired_tokens(r)['concrete']) for r in rs]
+        audit['splits'][split]=dict(unique_sources=len({digest(r['source']) for r in rs}),
+            unique_groups=len({groups[r['id']] for r in rs}),families=len({r['family'] for r in rs}),
+            source_identity=digest([digest(r['source']) for r in rs]),assignment_identity=digest([r['assignment'] for r in rs]),
+            target_lengths=dict(min=min(lengths),max=max(lengths),sum=sum(lengths)),
+            parameter_counts=dict(Counter(len(r['assignment']) for r in rs)),
+            strata={key:dict(Counter(labels(r)[key] for r in rs)) for key in ('size','length','complexity','nonaffine','offset_only','constant')})
     m=seal(dict(version='pipeline-pilot-inputs/v1',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
         roster=roster,audit=audit,files={name:{'sha256':file_hash(out/name),'bytes':(out/name).stat().st_size}
             for name in ('examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json')}))
@@ -108,11 +129,21 @@ def check(root,*,hidden=False):
         raise ValueError('complete frozen evaluation roster required')
     if len({v for ids in m['roster'].values() for v in ids})!=296:raise ValueError('duplicate evaluation prompt')
     if set(m['files'])!={'examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json'}:raise ValueError('closed pilot file inventory required')
+    from oeis_learn.synthesis.state import require_hash
+    require_hash(m['source'])
+    if m['audit']['native_admissions']!=33024:raise ValueError('all selected generic sources require independent production admission')
     if digest(json.loads((root/'recipe.json').read_text()))!=m['recipe']:raise ValueError('pilot recipe binding changed')
     for name,r in m['files'].items():
         if name.startswith('private/') and not hidden:continue
         f=confined(root,name)
         if f.stat().st_size!=r['bytes'] or file_hash(f)!=r['sha256']:raise ValueError('prepared pilot file mismatch')
+    if hidden:
+        admissions=json.loads((root/'private/admissions.json').read_text())
+        if len(admissions)!=33024 or digest(admissions)!=m['audit']['admissions_identity']:raise ValueError('pilot production admission inventory changed')
+        truth=json.loads((root/'private/truth.json').read_text())
+        if set(truth)!={v for ids in m['roster'].values() for v in ids}:raise ValueError('independent scoring truth roster changed')
+        for row in truth.values():
+            if set(row)!={'indices','values'} or len(row['indices'])!=100 or len(row['values'])!=100:raise ValueError('exact100-index truth required')
     return m
 
 

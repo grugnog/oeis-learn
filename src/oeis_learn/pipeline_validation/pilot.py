@@ -28,8 +28,8 @@ def checkpoint_view(source,target):
 
 
 def learning_report(prepared,prompts,snapshots,*,purpose):
-    from .pilot_analysis import coverage,paired,extrapolate
-    families={r['id']:r['family'] for r in prompts};series={};count=3 if purpose=='preflight' else 6
+    from .pilot_analysis import coverage,paired,extrapolate,compute_estimates
+    families={r['id']:r['family'] for r in prompts};strata={r['id']:r.get('strata',{}) for r in prompts};series={};count=3 if purpose=='preflight' else 6
     points=[]
     for ordinal in range(count):
         actual=next((s for s in snapshots if s['ordinal']==ordinal),None)
@@ -41,22 +41,49 @@ def learning_report(prepared,prompts,snapshots,*,purpose):
                 rows=[]
                 for key in ids:
                     x=point.get('outcomes',{}).get(key,{}).get(arm,{})
-                    rows.append(dict(id=key,family=families[key],success=x.get('success',False),complete=x.get('complete',False)))
+                    rows.append(dict(id=key,family=families[key],strata=strata[key],success=x.get('success',False),complete=x.get('complete',False)))
                 result=coverage(ids,rows)
+                stratified={}
+                for dimension in sorted({k for r in rows for k in r['strata']} - {'split'}):
+                    for label in sorted({r['strata'][dimension] for r in rows if dimension in r['strata']}):
+                        subset=[r for r in rows if r['strata'].get(dimension)==label]
+                        stratified[dimension+':'+label]=coverage([r['id'] for r in subset],subset)
+                controls={}
+                if arm=='equal_budget':
+                    for control in ('shuffled','absent','template'):
+                        comparison=[]
+                        for key in ids:
+                            x=point.get('outcomes',{}).get(key,{}).get(control,{})
+                            comparison.append(dict(id=key,family=families[key],success=x.get('success',False),complete=x.get('complete',False)))
+                        controls[control]=paired(comparison,rows)
                 if baseline is None:baseline=rows
                 observations.append(dict(ordinal=point['ordinal'],tokens=point['tokens'],updates=point['updates'],
-                    measurement=result,change_from_initialization=paired(baseline,rows),outcomes=rows))
-                if point['tokens'] is not None:trend.append(dict(tokens=point['tokens'],accuracy=result['accuracy'],coverage=result['coverage']))
+                    learner_role_seconds=point.get('learner_role_seconds'),examples=point.get('examples'),unique_examples=point.get('unique_examples'),
+                    effective_example_epochs=point.get('examples',0)/SPEC['training'] if point.get('examples') is not None else None,
+                    measurement=result,stratified=stratified,change_from_initialization=paired(baseline,rows),
+                    correct_minus_controls=controls,outcomes=rows))
+                if point['tokens'] is not None:trend.append(dict(tokens=point['tokens'],accuracy=result['accuracy'],coverage=result['coverage'],learner_role_seconds=point.get('learner_role_seconds')))
             projection=extrapolate(trend)
             if split in ('parameter_development','structural_development'):
                 losses=[s.get('teacher_forcing',{}).get('splits',{}).get(split,{}).get('loss') for s in snapshots]
                 values=[x for x in losses if x is not None]
                 if len(values)>1 and values[-1]>min(values[:-1]):
                     projection=dict(status='UNKNOWN',reason='development teacher-forced loss worsened; overfitting warning',guaranteed_capacity_upper_bound=None)
-            series[split+':'+arm]=dict(points=observations,extrapolation=projection)
+            series[split+':'+arm]=dict(points=observations,extrapolation=projection,further_compute=compute_estimates(trend,projection,len(ids)))
+    gaps=[]
+    for point in sorted(snapshots,key=lambda x:x['ordinal']):
+        splits=point.get('teacher_forcing',{}).get('splits',{});training=splits.get('training_panel',{})
+        values={}
+        for split in ('parameter_development','structural_development'):
+            dev=splits.get(split,{})
+            values[split]=dict(loss_gap=dev['loss']-training['loss'],token_accuracy_gap=dev['token_accuracy']-training['token_accuracy']) if (
+                training.get('complete') and dev.get('complete') and training.get('loss') is not None and dev.get('loss') is not None) else None
+        gaps.append(dict(ordinal=point['ordinal'],tokens=point['tokens'],gaps=values))
     return seal(dict(version='pipeline-pilot-learning-report/v1',profile=PROFILE['identity'],purpose=purpose,
         metric='independently_verified_continuation100',series=series,
         actual_snapshots=[{k:v for k,v in s.items() if k!='outcomes'} for s in snapshots],
+        teacher_forcing_gaps=gaps,training_panel_interpretation='Fixed32 examples; rolling bins describe the full sampled training stream.',
+        control_attempts=dict(correct=8,shuffled=1,absent=1,template=8),control_interpretation='Shuffled/absent have one attempt; equal-budget correct/template have eight. Do not attribute the whole gap to conditioning alone.',
         no_short_test_learning_threshold=True,final_access='SEALED',
         limitations=['One seed; no seed-variance estimate.','Exposed development, not fresh finals.',
             'Conditional scenarios are not statistical confidence bounds or capacity ceilings.'],
@@ -67,6 +94,7 @@ class PilotStages:
     def __init__(self,adapters):
         self.a=adapters;self.prepared=None;self.manifest=None;self.state=None;self.trainer=None
         self.snapshots=[];self.calibrations=[];self.purpose='preflight';self.deadline=None;self.interrupted=[];self.archives=None
+        self.learner_seconds=0.;self.setup_seconds=0.
 
     def invoke(self,root,label,mode,files,*,seconds,ordinal=0,worker_seconds=0):
         began=time.monotonic();a=self.a;host=a.host(a.args.engine)
@@ -115,6 +143,7 @@ class PilotStages:
             shutil.rmtree(source)
 
     def train(self,root,ordinal,*,seconds,worker_seconds):
+        began=time.monotonic()
         files={n:self.prepared/n for n in ('prepared.json','recipe.json','examples.json')}
         if self.state:
             files['checkpoints']=self.state/'checkpoints';files['selected.json']=self.state/'selected.json'
@@ -122,6 +151,9 @@ class PilotStages:
             ordinal=ordinal,worker_seconds=worker_seconds)
         if result['status']!='COMPLETE':raise RuntimeError('pilot learner role incomplete; original allowance not renewed')
         trainer=result['trainer']
+        result['learner_role_seconds']=time.monotonic()-began if ordinal else 0.
+        if ordinal:self.learner_seconds+=result['learner_role_seconds']
+        else:self.setup_seconds+=time.monotonic()-began
         if self.trainer and self.trainer['final_parameter_digest']!=trainer['initial_parameter_digest']:
             raise ResourceBreach('pilot resumed weights differ from previous full checkpoint')
         previous=self.state;self.state=target/'private/trainer';self.trainer=trainer
@@ -158,6 +190,9 @@ class PilotStages:
             source=scored['source'],work=scored['work'],checkpoint=self.trainer['checkpoint']))
         self.calibrations.append(row)
         point=dict(ordinal=ordinal,tokens=self.trainer['pilot']['state']['tokens'],updates=self.trainer['update'],
+            examples=self.trainer['pilot']['state']['examples'],unique_examples=self.trainer['pilot']['state']['unique_examples'],
+            learner_role_seconds=None if self.interrupted else self.learner_seconds,
+            initialization_role_seconds=self.setup_seconds,evaluation_role_seconds=generation_seconds+scoring_seconds,
             checkpoint=self.trainer['checkpoint'],parameter_digest=self.trainer['final_parameter_digest'],
             teacher_forcing=json.loads((self.state/'pilot-validation.json').read_text()),
             outcomes=json.loads((score/'outcomes.json').read_text()),state='COMPLETE')
