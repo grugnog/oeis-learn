@@ -3,7 +3,7 @@
   "date": "2026-10-26",
   "branch": "009-pipeline-throughput",
   "pr": 60,
-  "status": "LOCAL_REPAIR_COMPLETE_CAPACITY_AND_TARGET_PENDING",
+  "status": "V1_CAPACITY_BLOCKED_V2_PROSPECTIVE_CORRECTION_IMPLEMENTING",
   "source": "sha256:25de1cf0abc8e057d13959c947318e1a5ff9cc18566a304004e2fa620b45f0e3",
   "source_entries": 752,
   "host_tests": {
@@ -122,5 +122,262 @@
     "serialized_rows_identical": true,
     "peak_rss_reduction_percent": 75.75,
     "evidence": "local process memory only; current target memory and native qualification remain pending"
+  },
+  "capacity_262144": {
+    "error": "pilot corpus selection shortfall: {'training': 22520, 'parameter_development': 128, 'structural_development': 128}; required {'training': 32768, 'parameter_development': 128, 'structural_development': 128}",
+    "audit": {
+      "policy": "selected-disjoint-windows/v1",
+      "phase": "complete",
+      "counts": {
+        "training": 22520,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "required": {
+        "training": 32768,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "candidate_rows": 262144,
+      "candidate_families": 6879,
+      "qualified_families": 5183,
+      "stages": {
+        "training": {
+          "D": 1685,
+          "B": 11071,
+          "A": 1103,
+          "C": 8661
+        },
+        "parameter_development": {
+          "D": 47,
+          "B": 75,
+          "A": 5,
+          "C": 1
+        },
+        "structural_development": {
+          "A": 128
+        }
+      },
+      "selected_families": {
+        "training": 1573,
+        "parameter_development": 128,
+        "structural_development": 22
+      },
+      "behavior_counts": {
+        "training": {
+          "constant": 472,
+          "offset_only": 36
+        },
+        "parameter_development": {
+          "constant": 3,
+          "offset_only": 0
+        },
+        "structural_development": {
+          "constant": 0,
+          "offset_only": 0
+        }
+      },
+      "rejections": {
+        "overlap": 182278
+      },
+      "unused_candidates_are_not_group_bridges": true
+    },
+    "seconds": 661.7589693650007
+  },
+  "reference_cache_transfer": {
+    "document": "specs/009-pipeline-throughput/validation/learning-pilot-reference-cache.md",
+    "counters": 262144,
+    "native_admitted": 0,
+    "total_original_local_reference_cost": "UNKNOWN",
+    "persistent_upload": "UNAVAILABLE_AUTH_READER_FAILED_BEFORE_ANY_LIBRARY_WRITE",
+    "workspace_download_available": true
+  },
+  "capacity_ordering_diagnostic": {
+    "error": "pilot corpus selection shortfall: {'training': 22536, 'parameter_development': 128, 'structural_development': 128}; required {'training': 32768, 'parameter_development': 128, 'structural_development': 128}",
+    "audit": {
+      "policy": "LOCAL_PROTOTYPE_rare-first-visible-window_NOT_QUALIFIED",
+      "phase": "complete",
+      "counts": {
+        "training": 22536,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "required": {
+        "training": 32768,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "candidate_rows": 262144,
+      "candidate_families": 6879,
+      "qualified_families": 5183,
+      "stages": {
+        "training": {
+          "D": 1814,
+          "B": 11522,
+          "A": 539,
+          "C": 8661
+        },
+        "parameter_development": {
+          "D": 47,
+          "B": 75,
+          "A": 5,
+          "C": 1
+        },
+        "structural_development": {
+          "A": 128
+        }
+      },
+      "selected_families": {
+        "training": 1551,
+        "parameter_development": 128,
+        "structural_development": 22
+      },
+      "behavior_counts": {
+        "training": {
+          "constant": 412,
+          "offset_only": 35
+        },
+        "parameter_development": {
+          "constant": 3,
+          "offset_only": 0
+        },
+        "structural_development": {
+          "constant": 0,
+          "offset_only": 0
+        }
+      },
+      "rejections": {
+        "overlap": 182262
+      },
+      "unused_candidates_are_not_group_bridges": true
+    },
+    "seconds": 579.8164537519997
+  },
+  "fixed_pool_capacity_ceilings": [
+    {
+      "version": "pilot-sparse-window-clique-cover/v1",
+      "counters": 65536,
+      "seed": 20261016,
+      "candidate_families": 2137,
+      "reserved_families": 535,
+      "nonreserved_rows": 47856,
+      "distinct_complete_horizons": 26596,
+      "window_offsets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "window_classes": 256830,
+      "training_ceiling": 9904,
+      "required_training": 32768,
+      "seconds": 19.08490382400032,
+      "small_exact_system_checks": 64,
+      "reasoning": "All nonreserved candidates are covered by chosen actual20-term-window cliques. Any pairwise-window-disjoint training set can contain at most one row per clique, so it cannot exceed this cover size. Collapsing identical100-term rows is exact. Other windows, codec/behavior and parameter/OEIS/structural exclusions can only reduce the true maximum. This is a fixed data-pool ceiling, not a learned model capacity or runtime qualification.",
+      "native_or_hip_qualification": false,
+      "cover_identity": "sha256:7bd759a7ccc70fa2751bb3e6fce1685a236462364245e8c95ea97908cf8d4ed3"
+    },
+    {
+      "version": "pilot-sparse-window-clique-cover/v1",
+      "counters": 131072,
+      "seed": 20261016,
+      "candidate_families": 3894,
+      "reserved_families": 974,
+      "nonreserved_rows": 100416,
+      "distinct_complete_horizons": 48346,
+      "window_offsets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "window_classes": 432650,
+      "training_ceiling": 15798,
+      "required_training": 32768,
+      "seconds": 65.35261803199955,
+      "small_exact_system_checks": 64,
+      "reasoning": "All nonreserved candidates are covered by chosen actual20-term-window cliques. Any pairwise-window-disjoint training set can contain at most one row per clique, so it cannot exceed this cover size. Collapsing identical100-term rows is exact. Other windows, codec/behavior and parameter/OEIS/structural exclusions can only reduce the true maximum. This is a fixed data-pool ceiling, not a learned model capacity or runtime qualification.",
+      "native_or_hip_qualification": false,
+      "cover_identity": "sha256:8128ca1351b8377dd2f0073d04df46007c5be62f51a9f1ef0bba0d0ede41bc38"
+    },
+    {
+      "version": "pilot-sparse-window-clique-cover/v1",
+      "counters": 262144,
+      "seed": 20261016,
+      "candidate_families": 6879,
+      "reserved_families": 1720,
+      "nonreserved_rows": 201920,
+      "distinct_complete_horizons": 87254,
+      "window_offsets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "window_classes": 721025,
+      "training_ceiling": 25495,
+      "required_training": 32768,
+      "seconds": 95.01909069399971,
+      "small_exact_system_checks": 64,
+      "reasoning": "All nonreserved candidates are covered by chosen actual20-term-window cliques. Any pairwise-window-disjoint training set can contain at most one row per clique, so it cannot exceed this cover size. Collapsing identical100-term rows is exact. Other windows, codec/behavior and parameter/OEIS/structural exclusions can only reduce the true maximum. This is a fixed data-pool ceiling, not a learned model capacity or runtime qualification.",
+      "native_or_hip_qualification": false,
+      "cover_identity": "sha256:fcf2f05d8c812ee92d2600d88d32b8638f83744c816b3c53fc961b9d8fea725b"
+    }
+  ],
+  "reference_packet_validation": {
+    "status": "ALL_REFERENCE_ROWS_DECODE_SOURCE_RESOURCE_VALIDATED",
+    "counters": 262144,
+    "index_sha256": "sha256:2b7591d91bd71b8353e047864dacc7cd68425d73cbe797aa54c8541bcd223b20",
+    "binding": "sha256:33fa7d41f1c9d89b030c42d5c8dc3e4c351e7b9a3040c5c0d11833daaaeff104",
+    "seconds": 132.99062231300013,
+    "complete_100_index_values_per_row": true,
+    "native_admissions": 0,
+    "reference_math_reexecuted": false,
+    "hip_qualified": false
   }
 }

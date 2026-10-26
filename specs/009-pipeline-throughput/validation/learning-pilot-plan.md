@@ -157,3 +157,34 @@ corpus semantics, resource limits, horizons and counts are unchanged. Finish
 large local probes in separate phases and preserve completed reference batches.
 Cache recovery additionally rejects unknown row fields/oracle identities and
 visible integers exceeding the original input-bit limit.
+
+## Prospective preparation correction: profile v2
+
+The full262,144-row pool has a verified sparse-window clique-cover ceiling of
+25,495 permitted training examples under its fixed family reserve, before codec,
+behavior, parameter or OEIS exclusions. The implemented greedy selector finds
+22,520; a local rare-first ordering finds22,536 and is not adopted. Changing the
+ordering cannot overcome that pool's ceiling. This is a data-preparation result,
+not a learning result. Preserve the negative and the completed reference data.
+
+The minimal correction is a separately versioned learning-pilot profile v2,
+recipe `bigint-bootstrap/v4` and prepared-input v3. Double only the finite generic
+candidate budget to524,288 counters/32,768 underlying template draws, with one
+prospective full-pool selection checkpoint. The original mechanical generator,
+seed, parameter range, complete100-index semantics, fixed32,768/128/128 selected
+counts, family reserve, pairwise20-window exclusions, model, batch, optimizer,
+48-hour ceiling,24 learner-role hours, evaluation cadence and9,000-second
+preparation deadline stay fixed. No reduced corpus or relaxed overlap fallback
+exists. The larger pool must demonstrate local mathematical feasibility before
+another target handoff. Cold generation may still exhaust the unchanged deadline;
+the validated reference prefix is an explicit warm preparation asset.
+
+Freeze legacy profile v1/recipe v3 bytes in a regression fixture. Their readers
+retain their original identities and limits; they cannot admit the new profile.
+Reference-cache v2 raises only the finite counter bound and explicitly imports
+compatible v1 raw batches by verifying their old mathematical binding and hashes,
+then recording migration and original producer/cost lineage. Every selected
+source still needs fresh native agreement. Preserve the existing262,144-counter
+transfer as a usable prefix; do not recompute it or reinterpret its partial
+receipt as qualification. Larger-pool/reference work is preparation, with its
+costs disclosed separately, and never launches the long run.
