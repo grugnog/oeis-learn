@@ -39,7 +39,7 @@ def models(recipe, device):
     from oeis_learn.experiments.bootstrap_models import construct_bigint_models
 
     mask = InputMask(**recipe["inputs"]["mask"])
-    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'}:
+    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'}:
         from oeis_learn.experiments.bootstrap_models import construct_sizing_models
         encoder,decoder,actual=construct_sizing_models(recipe['model_profile'],device=device)
         counts=dict(encoder_parameters=actual['encoder'],total_parameters=actual['total'],
@@ -166,7 +166,7 @@ def train(inputs, output):
     settings=read(Path(inputs)/'settings.json')
     from contextlib import nullcontext
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
-    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'} else nullcontext():
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else nullcontext():
         return _train(inputs,output)
 
 
@@ -180,7 +180,7 @@ def _train(inputs, output):
     engineering=settings.get('engineering')
     pilot=settings.get('pilot')
     if pilot and engineering:raise ValueError('pilot and historical engineering controls cannot mix')
-    if (recipe['version']=='bigint-bootstrap/v3') != bool(pilot) and not settings.get('fixture'):raise ValueError('v3 requires explicit bounded pilot authority')
+    if (recipe['version'] in {'bigint-bootstrap/v3','bigint-bootstrap/v4'}) != bool(pilot) and not settings.get('fixture'):raise ValueError('pilot recipe requires explicit bounded pilot authority')
     if engineering:
         from .engineering import parse as parse_engineering
         parse_engineering(engineering,fixture=bool(settings.get('fixture')))
@@ -635,7 +635,7 @@ def generate(inputs, output):
     settings=read(Path(inputs)/'settings.json')
     from contextlib import nullcontext
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
-    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'} else nullcontext():
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else nullcontext():
         return _generate(inputs,output)
 
 

@@ -81,7 +81,7 @@ def learning_report(prepared,prompts,snapshots,*,purpose):
             values[split]=dict(loss_gap=dev['loss']-training['loss'],token_accuracy_gap=dev['token_accuracy']-training['token_accuracy']) if (
                 training.get('complete') and dev.get('complete') and training.get('loss') is not None and dev.get('loss') is not None) else None
         gaps.append(dict(ordinal=point['ordinal'],tokens=point['tokens'],gaps=values))
-    return seal(dict(version='pipeline-pilot-learning-report/v1',profile=PROFILE['identity'],purpose=purpose,
+    return seal(dict(version='pipeline-pilot-learning-report/v1',profile=prepared.get('profile',PROFILE['identity']),purpose=purpose,
         metric='independently_verified_continuation100',series=series,
         actual_snapshots=[{k:v for k,v in s.items() if k!='outcomes'} for s in snapshots],
         teacher_forcing_gaps=gaps,training_panel_interpretation='Fixed32 examples; rolling bins describe the full sampled training stream.',
@@ -229,16 +229,18 @@ class PilotStages:
             files={name:{'sha256':file_hash(path),'bytes':path.stat().st_size} for name,path in files.items()},
             count=8,exposure='Previously exposed development; accepted engineering soak and input preparation. Not a fresh final cohort.'))
         write(source/'oeis-lineage.json',lineage);files['oeis-lineage.json']=source/'oeis-lineage.json'
-        from .pilot_cache import binding
+        from .pilot_cache_v2 import binding
+        from .pilot_cache import binding as legacy_binding
         from oeis_learn.data.bigint_programs import BigintSampler
         from oeis_learn.synthesis.contracts import ResourceProfile
-        expected=binding(BigintSampler(SPEC['seed']),ResourceProfile());seeds=[]
+        sampler=BigintSampler(SPEC['seed']);limits=ResourceProfile()
+        expected=binding(sampler,limits);legacy_expected=legacy_binding(sampler,limits);seeds=[]
         for previous in a.args.reuse:
             prior=confined(a.root,previous)/'stages/pilot.prepare/prepare'
             index=prior/'private/reference-cache/index.json';proof=prior/'preparation.json'
             if index.is_file() and proof.is_file():
                 ref=json.loads(proof.read_text()).get('reference_cache',{})
-                if ref.get('binding')==expected:
+                if ref.get('binding') in (expected,legacy_expected):
                     if file_hash(index)!=ref['index_sha256']:raise ValueError('retained reference cache index changed')
                     producer=json.loads(proof.read_text())
                     receipt=json.loads((prior.parent/'receipt.json').read_text())
@@ -255,7 +257,7 @@ class PilotStages:
                 elapsed_seconds=receipt.get('observations',{}).get('elapsed_seconds'),
                 cost_status=producer.get('preparation_cost_status','ENCLOSING_ROLE_ONLY'),
                 provenance=producer.get('provenance','Independent reference in production preparation; see retained public proof.'))
-            provenance=seal(dict(version='pipeline-pilot-reference-provenance/v1',binding=expected,
+            provenance=seal(dict(version='pipeline-pilot-reference-provenance/v2',binding=expected,input_binding=producer['reference_cache']['binding'],
                 index_sha256=file_hash(cache_root/'index.json'),producer=digest(retained),
                 receipt=receipt['identity'],state=receipt['state'],origin=origin,authority='RAW_REFERENCE_ONLY'))
             write(source/'reference-provenance.json',provenance)

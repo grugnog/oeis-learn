@@ -135,15 +135,16 @@ def _merge(base, patch, path="recipe"):
 
 
 def resolve(value, *, seed=None, artifacts=None):
-    if not isinstance(value, dict) or value.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2","bigint-bootstrap/v3"}:
+    if not isinstance(value, dict) or value.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2","bigint-bootstrap/v3","bigint-bootstrap/v4"}:
         raise ValueError("registered bigint-bootstrap version required")
     value = deepcopy(value)
-    pilot=value['version']=='bigint-bootstrap/v3'
-    sized=value['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'}
+    pilot=value['version'] in ('bigint-bootstrap/v3','bigint-bootstrap/v4')
+    expanded=value['version']=='bigint-bootstrap/v4'
+    sized=value['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'}
     pilot_profile=value.pop('pilot_profile',None)
     if pilot:
-        from oeis_learn.pipeline_validation.pilot_contract import PROFILE
-        if pilot_profile!=PROFILE:raise ValueError('explicit registered learning-pilot profile required')
+        from oeis_learn.pipeline_validation.pilot_contract import PROFILE,LEGACY_PROFILE
+        if pilot_profile!=(PROFILE if expanded else LEGACY_PROFILE):raise ValueError('explicit registered learning-pilot profile required')
     elif pilot_profile is not None:raise ValueError('pilot profile cannot change old recipes')
     shape=value.pop('model_profile',None)
     if sized:
@@ -155,7 +156,7 @@ def resolve(value, *, seed=None, artifacts=None):
         base['version']=value['version']
         base['model'].update(d_model=768,heads=12,encoder_layers=6,decoder_layers=6,ff=3072)
     if pilot:
-        base["data"].update(training=32768,max_families=16384)
+        base["data"].update(training=32768,max_families=32768 if expanded else 16384)
         base["learning"].update(batch_size=16,max_updates=1048576)
         base["budgets"].update(training_seconds=86400,preparation_seconds=9000)
     existing = value.pop("identity", None)
@@ -292,7 +293,7 @@ def resolve(value, *, seed=None, artifacts=None):
     if result["archive"]["max_alternatives"] != 8 or result["learning"]["replay_capacity"] > 4096:
         raise ValueError("archive/replay cap exceeded")
     if (
-        result["data"]["max_families"] > (16384 if pilot else 4096)
+        result["data"]["max_families"] > (32768 if expanded else 16384 if pilot else 4096)
         or result["data"]["max_records"] > 10000
         or result["data"]["max_download_bytes"] > 100 << 30
         or any(result["data"][k] > 1000 for k in ("oeis_development", "oeis_final"))

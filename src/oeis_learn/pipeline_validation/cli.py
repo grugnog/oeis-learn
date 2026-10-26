@@ -16,6 +16,8 @@ def main(args, root, host_factory):
         raise ValueError('engineering invocation cannot use study/final authority')
     path=confined(root,args.manifest or 'configs/foundation/pipeline_validation.json')
     contract=parse(json.loads(path.read_text()))
+    if contract['version']=='pipeline-pilot-validation/v1':
+        raise ValueError('legacy pilot preflight is read-only after its proven corpus-capacity shortfall; use the current v2 manifest and reuse compatible raw references')
     maximum=contract['budgets']['global_seconds']
     if args.max_seconds is not None:
         if not 0<number(args.max_seconds)<=maximum:

@@ -31,8 +31,8 @@ class CorpusSelection(unittest.TestCase):
                 shutil.copytree(output/'private/reference-cache',inputs/'reference-cache')
                 def lineage():
                     index=inputs/'reference-cache/index.json'
-                    write(inputs/'reference-provenance.json',seal(dict(version='pipeline-pilot-reference-provenance/v1',
-                        binding=report['reference_cache']['binding'],index_sha256=file_hash(index),producer=digest('fixture proof'),
+                    write(inputs/'reference-provenance.json',seal(dict(version='pipeline-pilot-reference-provenance/v2',
+                        binding=report['reference_cache']['binding'],input_binding=report['reference_cache']['binding'],index_sha256=file_hash(index),producer=digest('fixture proof'),
                         receipt=digest('fixture receipt'),state='PARTIAL',origin=dict(cost_status='UNKNOWN_FIXTURE'),authority='RAW_REFERENCE_ONLY')),exclusive=False)
                 lineage()
                 second=root/'second';second.mkdir()
@@ -41,7 +41,7 @@ class CorpusSelection(unittest.TestCase):
                 restored=json.loads((second/'preparation.json').read_text())
                 self.assertEqual(restored['reused_reference_counters'],1)
                 self.assertEqual(restored['reference_provenance']['origin']['cost_status'],'UNKNOWN_FIXTURE')
-                from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache
+                from oeis_learn.pipeline_validation.pilot_cache_v2 import ReferenceCache
                 original=list(ReferenceCache(output/'private/reference-cache',report['reference_cache']['binding']).records())[0]['row']
                 for label,change,pattern in [
                     ('overflow',dict(values=[str(1<<4096)]+original['values'][1:]),'input integer'),
@@ -76,6 +76,29 @@ class CorpusSelection(unittest.TestCase):
         for x,y in zip(a['values'],b['values']):self.assertIs(x,y)
         bad=json.loads(before);bad['indices'][-1]='100'
         with self.assertRaisesRegex(ValueError,'horizon'):compact_reference(bad)
+
+    def test_v2_reference_cache_imports_legacy_prefix_without_reexecuting_math(self):
+        from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache as Legacy
+        from oeis_learn.pipeline_validation.pilot_cache_v2 import ReferenceCache
+        from oeis_learn.pipeline_validation.identity import file_hash
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);legacy=Legacy(root/'old',digest('legacy math'))
+            for i in range(3):legacy.append(i,{'value':i})
+            legacy.flush();old_hash=file_hash(legacy.path)
+            with patch.object(Legacy,'__init__',side_effect=AssertionError('read-only legacy source must not be initialized')):
+                current=ReferenceCache(root/'new',digest('current math'),seed=root/'old',legacy_expected=digest('legacy math'))
+            self.assertEqual(current.count,3)
+            self.assertEqual(current.value['version'],'pipeline-pilot-reference-cache/v2')
+            self.assertEqual(current.migration['input_index_sha256'],old_hash)
+            self.assertEqual([r['row']['value'] for r in current.records()],[0,1,2])
+            self.assertEqual(file_hash(legacy.path),old_hash)
+            for item in legacy.value['batches']:
+                self.assertEqual(file_hash(root/'new'/item['path']),item['sha256'])
+            current.append(3,{'value':3});current.flush()
+            resumed=ReferenceCache(root/'resumed',digest('current math'),seed=root/'new')
+            self.assertEqual(resumed.count,4)
+            with self.assertRaises(ValueError):ReferenceCache(root/'wrong',digest('current math'),seed=root/'old',legacy_expected=digest('different math'))
+            with self.assertRaises(ValueError):ReferenceCache(root/'unknown',digest('current math'),seed=root/'old')
 
     def test_reference_cache_preserves_prefix_and_rejects_corruption_or_changed_semantics(self):
         from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache

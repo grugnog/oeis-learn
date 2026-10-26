@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 from .identity import seal,digest,file_hash,write,validate
-from .pilot_contract import SPEC,PROFILE,SPLITS
+from .pilot_contract import SPEC,PROFILE,LEGACY_PROFILE,SPLITS
 from .sizing_execution import sizing_execution,execution_observation
 
 
@@ -31,19 +31,20 @@ def options(config):
 def visible_work(inputs,config):
     from .pilot_data import learner_view
     m=json.loads((inputs/'prepared.json').read_text())
-    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2'):raise ValueError('registered pilot input format required')
+    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2','pipeline-pilot-inputs/v3'):raise ValueError('registered pilot input format required')
     validate(m,{'version','source','profile','recipe','roster','audit','files'},m['version'])
-    if m['version']=='pipeline-pilot-inputs/v2':
+    if m['version'] in ('pipeline-pilot-inputs/v2','pipeline-pilot-inputs/v3'):
         from .pilot_selection import POLICY
         if m['audit'].get('selection',{}).get('policy')!=POLICY:raise ValueError('registered selected-population policy required')
-    if m['profile']!=PROFILE['identity'] or m['source']!=config['source']:raise ValueError('pilot data/source/profile changed')
+    current=m['version']=='pipeline-pilot-inputs/v3';profile=PROFILE if current else LEGACY_PROFILE
+    if m['profile']!=profile['identity'] or m['source']!=config['source']:raise ValueError('pilot data/source/profile changed')
     for name in ('examples.json','recipe.json'):
         if file_hash(inputs/name)!=m['files'][name]['sha256']:raise ValueError('pilot visible data/recipe changed')
     examples=learner_view(json.loads((inputs/'examples.json').read_text()))
     if {k:len(v) for k,v in examples.items()}!={k:SPEC[k] for k in examples}:raise ValueError('full pilot data required')
     from oeis_learn.fresh.bigint_config import resolve
     recipe=resolve(json.loads((inputs/'recipe.json').read_text()))
-    if recipe['version']!='bigint-bootstrap/v3' or digest(recipe)!=m['recipe']:raise ValueError('exact pilot recipe required')
+    if recipe['version']!=('bigint-bootstrap/v4' if current else 'bigint-bootstrap/v3') or digest(recipe)!=m['recipe']:raise ValueError('exact pilot recipe required')
     return m,recipe,examples
 
 
@@ -54,7 +55,7 @@ def settings(manifest,recipe,config):
     contract=ExperimentContract(data=manifest['identity'],split=digest(manifest['roster']),model=digest(recipe['model']),
         inputs=digest(recipe['inputs']),decoder=digest(recipe['model_profile']),solver=digest(recipe['fitting']),
         runtime=digest(dict(source=config['source'],image=opt['image'])),resources=digest(recipe['execution']['resources']),
-        policy=digest(dict(profile=PROFILE['identity'],purpose=opt['purpose'],pipeline=recipe['pipeline'])),
+        policy=digest(dict(profile=manifest['profile'],purpose=opt['purpose'],pipeline=recipe['pipeline'])),
         track='generic_only',foundation=None,seed=SPEC['seed'],budget=budget)
     ledger=BudgetLedger(budget);ledger.start('learning-pilot',budget)
     control=configuration(source=config['source'],work=manifest['identity'],purpose=opt['purpose'],

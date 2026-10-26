@@ -633,8 +633,8 @@ registered v1 negative and corrects its data capacity through a new opt-in
 profile. Original111 task IDs/counts and accepted hardware evidence are unchanged.
 
 - [X] 009:G001 Record the fixed262,144-pool upper bound25,495, both failed local orderings and an exact legacy profile/recipe fixture; preserve all reference work.
-- [ ] 009:G002 Implement explicit profile v2/recipe v4/prepared-input v3 with a524,288-counter candidate budget and unchanged scientific/resource/training/evaluation limits; keep legacy readers and identities.
-- [ ] 009:G003 Implement versioned bounded raw-reference cache migration from v1, preserving original producer/cost lineage and fresh native-admission requirements; reject incompatible semantics and malformed rows.
+- [X] 009:G002 Implement explicit profile v2/recipe v4/prepared-input v3 with a524,288-counter candidate budget and unchanged scientific/resource/training/evaluation limits; keep legacy readers and identities.
+- [X] 009:G003 Implement versioned bounded raw-reference cache migration from v1, preserving original producer/cost lineage and fresh native-admission requirements; reject incompatible semantics and malformed rows.
 - [ ] 009:G004 Demonstrate local full32,768/128/128 mathematical selection, independent final overlap/family/panel/stage audits and complete transferable reference data; actual approved OEIS/native evidence remains owned by G005.
 - [ ] 009:G005 Collect current-source pinned CPU/native/HIP/operations, actual approved OEIS exclusions, all33,024 native admissions and complete full296-row preflight cost/restart evidence; no repeat hardware size/batch/two-hour soak or automatic long-run admission.
 - [ ] 009:G006 Finish local regression/source/packaging/task checks, commit/push and publish one finite combined target command using compatible retained reference work; do not wait for newly queued PR CI.

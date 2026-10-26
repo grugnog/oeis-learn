@@ -8,15 +8,19 @@ SPEC=dict(training=32768,parameter_development=128,structural_development=128,tr
     snapshot_hours=[0,1.5,3,6,12,24],transient_bytes=16<<30,durable_bytes=32<<30,
     reservations=dict(learner=86400,evaluation=28800,qualification=3600,setup=3600,
         cleanup=900,archive=900,safety=48600))
+from copy import deepcopy
+LEGACY_SPEC=deepcopy(SPEC)
+SPEC=deepcopy(SPEC);SPEC['max_source_counters']=524288
 ARMS=('raw','rescue','equal_budget','shuffled','absent','template')
 SPLITS=('training_panel','parameter_development','structural_development','oeis_development')
-PROFILE=seal(dict(version='pipeline-learning-pilot-profile/v1',spec=SPEC,training=32768,
+LEGACY_PROFILE=seal(dict(version='pipeline-learning-pilot-profile/v1',spec=LEGACY_SPEC,training=32768,
     batch=16,curriculum=False,replay=False,assisted=False,final=False,precision='float32',
     initialization='fresh_random',selection='visible-only/v2',extrapolation='conditional-backtested/v1'))
+PROFILE=seal(dict(LEGACY_PROFILE,version='pipeline-learning-pilot-profile/v2',spec=SPEC))
 
 
 def parse_profile(record):
-    if record!=PROFILE:raise ValueError('registered closed pilot profile required')
+    if record not in (LEGACY_PROFILE,PROFILE):raise ValueError('registered closed pilot profile required')
     return record
 
 
@@ -24,8 +28,8 @@ def preflight_manifest():
     from pathlib import Path
     import json
     value=json.loads((Path(__file__).resolve().parents[3]/'configs/foundation/pipeline_soak.json').read_text())
-    value.update(version='pipeline-pilot-validation/v1',scope='engineering-pilot',
-        stage_registry_version='pipeline-pilot-registry/v1',workloads=['learning-pilot-preflight/v1'],comparisons=[])
+    value.update(version='pipeline-pilot-validation/v2',scope='engineering-pilot',
+        stage_registry_version='pipeline-pilot-registry/v2',workloads=['learning-pilot-preflight/v2'],comparisons=[])
     value['budgets']['transient_bytes']=SPEC['transient_bytes']
     value['budgets']['free_disk_reserve_bytes']=5<<30
     value['budgets']['bundle_members']=4097
@@ -56,6 +60,7 @@ def parse_decision(record,*,root=None,source=None):
     if record['state'] not in {'DRAFT','FROZEN','ADMITTED'}:raise ValueError('prospective pilot decision required')
     missing=[k for k in ('prepared','qualification','cost','authority') if record[k] is None]
     if record['state']!='ADMITTED':missing.append('explicit_admission')
+    if record['profile']!=PROFILE:missing.append('current_profile')
     if source is not None and source!=record['source']:missing.append('current_source')
     if root is None:missing.append('unresolved_authority')
     # Validate public authority before even resolving private prepared inputs.

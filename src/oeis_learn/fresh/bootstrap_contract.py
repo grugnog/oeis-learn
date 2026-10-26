@@ -72,19 +72,19 @@ def bigint_profile(recipe):
     """Standard-library profile binding shared by orchestration and model roles."""
     from copy import deepcopy
 
-    if recipe.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2","bigint-bootstrap/v3"} or tuple(
+    if recipe.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2","bigint-bootstrap/v3","bigint-bootstrap/v4"} or tuple(
         recipe["execution"][k] for k in ("language", "codec", "runtime")
     ) != ("bigint-body/v1", "bigint-codec/v1", "bigint-wasm/v1"):
         raise ValueError("explicit bigint language/codec/runtime profile required")
     if recipe["inputs"]["profile"] not in {"hybrid-chunks/v1", "tri-stream/v1"}:
         raise ValueError("unsupported bigint input profile")
     profile = dict(
-        version="bigint-model/v2" if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'} else "bigint-model/v1",
+        version="bigint-model/v2" if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else "bigint-model/v1",
         architecture=deepcopy(recipe["model"]),
         features=deepcopy(recipe["inputs"]),
         execution=deepcopy(recipe["execution"]),
     )
-    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3'}:
+    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'}:
         from oeis_learn.pipeline_validation.model_sizes import PROFILES,EXECUTION
         if recipe.get('model_profile')!=PROFILES['m100']:raise ValueError('registered sized profile required')
         profile.update(model_profile=recipe['model_profile'],numerics=EXECUTION)

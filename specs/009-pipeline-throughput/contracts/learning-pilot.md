@@ -1,4 +1,4 @@
-# Strict learning pilot v1
+# Strict learning pilot profiles
 
 This implements the prospective [learning plan](../validation/learning-pilot-plan.md).
 It preserves the accepted engineering soak, old v1/v2 recipe/input readers,
@@ -7,14 +7,14 @@ The pilot is one seed and exposed development evidence, not an adoption study.
 
 ## Separate authority and exact work
 
-`bigint-bootstrap/v3`, `pipeline-learning-pilot-profile/v1` and
-`pipeline-pilot-inputs/v2` opt into the exact104,496,662-parameter FP32/math model,
+`bigint-bootstrap/v4`, `pipeline-learning-pilot-profile/v2` and
+`pipeline-pilot-inputs/v3` opt into the exact104,496,662-parameter FP32/math model,
 training/inference batch16, native4, Torch2/1, literal targets, fresh initialization,
 unchanged AdamW/LR and no curriculum, replay or assistance. `pilot_recipe.py`
 resolves the existing recipe; `bigint_worker.py` remains the only trainer.
 
-Preparation samples at most262,144 existing mechanical counters, attempting the
-complete split at65,536/131,072/262,144, under9,000s. At least16 distinct variants
+Preparation samples at most524,288 existing mechanical counters and attempts the
+complete split at that full-pool checkpoint, under the unchanged9,000s deadline. At least16 distinct variants
 per eligible family, matched parameter holdouts, whole-family structural reserve,
 unique observed20-term shifted windows, stages A–D and existing diverse32 rules
 apply. Constant/offset-only rows in each split are each capped at10%. The v2
@@ -29,16 +29,27 @@ production runtime and agree with the independent reference. The audit binds
 sources, assignments, groups, family/variant provenance, token lengths, magnitude,
 complexity, behavior strata, exclusions and all production admissions. Data
 feasibility remains unqualified until this full preparation actually completes.
-Historical v1 prepared-input readers remain available with their original meaning.
+Historical profile v1, recipe v3 and prepared-input v1/v2 readers remain available
+with their exact original identities and limits. An immutable legacy fixture
+checks this and the identical model definition. Historical preflight v1 manifests
+remain readable, but execution is rejected before engine access; they cannot run
+as the new profile. All three old checkpoints have mathematical training ceilings
+9,904/15,798/25,495, below32,768, under their own fixed family reserves. The
+unadopted rare-first ordering also fails. Profile v2 changes only candidate
+preparation capacity; generator semantics, selected counts and learning controls
+remain fixed. No ordering or relaxed-overlap fallback is introduced.
 
-Preparation v2 retains a private, sealed, contiguous original-counter reference
+Reference-cache v2 retains a private, sealed, contiguous original-counter reference
 cache (256 records per gzip batch, at most1GiB compressed,16MiB decoded per batch,
-262,144 counters and2,048 batches). Every excluded counter has an explicit reason.
+524,288 counters and2,048 batches). Every excluded counter has an explicit reason.
 The public preparation report binds its semantic identity, count, bytes and index
 hash even on failure, and records selection counts/rejections at each checkpoint,
 progress every10s and the original parent deadline. Complete targets are parsed
 once with the same typed grammar; generation still checks each incremental prefix.
 Explicit `--reuse` may seed only compatible raw mathematical reference batches;
+v1 prefixes remain usable through explicit read-only validation of their old
+mathematical binding, unchanged batch hashes and sealed v2 index migration.
+The current input and migrated output index hashes are distinguished in lineage;
 binding includes seed/generator, reference implementation, resource policy,
 serialization and100-index horizon. Reuse validates batch hashes, counter/source
 metadata, canonical values and limits. It never imports native admissions or a
@@ -76,7 +87,7 @@ nonfinite updates, resource breach or unacknowledged cleanup blocks further work
 
 ## Preparation and subsequent admission
 
-`pipeline-pilot-validation/v1` registers one engineering-preflight DAG through
+`pipeline-pilot-validation/v2` registers one engineering-preflight DAG through
 the existing CLI. Both engines are inventoried; missing independent Docker is
 explicit. Primary current-source CPU/native/HIP/policy/operations qualification
 precedes corpus preparation and the session. No size/batch ladder or two-hour

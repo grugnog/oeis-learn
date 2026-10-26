@@ -22,7 +22,7 @@ def test_opt_in_recipe_preserves_old_limits_and_cannot_enable_interventions():
         with pytest.raises(ValueError):resolve(bad)
 
 
-def test_actual_v3_constructor_and_public_independent_cost_sentinels(tmp_path):
+def test_actual_pilot_constructor_and_public_independent_cost_sentinels(tmp_path):
     from oeis_learn.pipeline_validation.pilot_recipe import recipe
     from oeis_learn.fresh.bigint_worker import models,client
     from oeis_learn.pipeline_validation.model_sizes import parameters,PROFILES

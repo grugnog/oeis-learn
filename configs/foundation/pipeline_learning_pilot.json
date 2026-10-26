@@ -47,11 +47,11 @@
   "reuse_refs": [],
   "scope": "engineering-pilot",
   "source": {},
-  "stage_registry_version": "pipeline-pilot-registry/v1",
-  "version": "pipeline-pilot-validation/v1",
+  "stage_registry_version": "pipeline-pilot-registry/v2",
+  "version": "pipeline-pilot-validation/v2",
   "weights_ref": null,
   "workloads": [
-    "learning-pilot-preflight/v1"
+    "learning-pilot-preflight/v2"
   ],
-  "identity": "sha256:956e978ab8bb8135125f69e23df650f4ca6cec85e7f9eff15b766cbf13e5f79a"
+  "identity": "sha256:a180d2de661bd7a6d88766391411b5169c35b8a2f83142c88ca04634f0301540"
 }

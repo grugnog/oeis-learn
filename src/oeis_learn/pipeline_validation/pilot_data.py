@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 import time
 from .identity import seal,digest,file_hash,write,validate,confined
-from .pilot_contract import SPEC,PROFILE
-CHECKPOINTS=(65536,131072,262144)
+from .pilot_contract import SPEC,PROFILE,LEGACY_PROFILE
+CHECKPOINTS=(524288,)
 
 
 _GENERIC_INDICES=list(map(str,range(100)))
@@ -110,7 +110,7 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
             target_lengths=dict(min=min(lengths),max=max(lengths),sum=sum(lengths)),
             parameter_counts=dict(Counter(len(r['assignment']) for r in rs)),
             strata={key:dict(Counter(r[key] for r in strata_rows)) for key in ('size','length','complexity','nonaffine','offset_only','constant')})
-    m=seal(dict(version='pipeline-pilot-inputs/v2',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
+    m=seal(dict(version='pipeline-pilot-inputs/v3',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
         roster=roster,audit=audit,files={name:{'sha256':file_hash(out/name),'bytes':(out/name).stat().st_size}
             for name in ('examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json')}))
     write(out/'prepared.json',m);return m
@@ -118,14 +118,17 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
 
 def check(root,*,hidden=False):
     root=Path(root);m=json.loads((root/'prepared.json').read_text())
-    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2'):raise ValueError('registered pilot inputs required')
+    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2','pipeline-pilot-inputs/v3'):raise ValueError('registered pilot inputs required')
     validate(m,{'version','source','profile','recipe','roster','audit','files'},m['version'])
-    if m['version']=='pipeline-pilot-inputs/v2':
+    if m['version'] in ('pipeline-pilot-inputs/v2','pipeline-pilot-inputs/v3'):
         from .pilot_selection import POLICY
         selection=m['audit'].get('selection',{})
         if selection.get('policy')!=POLICY or selection.get('counts')!=m['audit']['counts'] or selection.get('required')!=m['audit']['counts']:
             raise ValueError('registered complete selected-population policy required')
-    if m['profile']!=PROFILE['identity'] or m['audit']['counts']!={k:SPEC[k] for k in ('training','parameter_development','structural_development')}:
+    profile=PROFILE if m['version']=='pipeline-pilot-inputs/v3' else LEGACY_PROFILE
+    if m['version']=='pipeline-pilot-inputs/v3' and not 33024<=m['audit']['sampled']<=SPEC['max_source_counters']:
+        raise ValueError('finite current pilot source-counter audit required')
+    if m['profile']!=profile['identity'] or m['audit']['counts']!={k:SPEC[k] for k in ('training','parameter_development','structural_development')}:
         raise ValueError('full registered pilot corpus required')
     if {k:len(v) for k,v in m['roster'].items()}!={'training_panel':32,'parameter_development':128,'structural_development':128,'oeis_development':8}:
         raise ValueError('complete frozen evaluation roster required')
@@ -155,7 +158,8 @@ def prepare(inputs,output,config):
     from oeis_learn.synthesis.contracts import ResourceProfile,canonical_integer
     from oeis_learn.synthesis.client import SynthesisClient
     from .pilot_recipe import recipe
-    from .pilot_cache import ReferenceCache,binding
+    from .pilot_cache_v2 import ReferenceCache,binding
+    from .pilot_cache import binding as legacy_binding
     from oeis_learn.fresh.common import write as replace_json
     opt=config['options'];root=Path(output)/'private/prepared'
     begin=time.monotonic();deadline=begin+opt['seconds']-60
@@ -167,12 +171,12 @@ def prepare(inputs,output,config):
         if file_hash(inputs/name)!=ref['sha256'] or (inputs/name).stat().st_size!=ref['bytes']:raise ValueError('exposed-development lineage changed')
     sampler=BigintSampler(SPEC['seed']);limits=ResourceProfile();rows=[];excluded=Counter();selected=None
     cache=ReferenceCache(Path(output)/'private/reference-cache',binding(sampler,limits),
-        seed=inputs/'reference-cache' if (inputs/'reference-cache/index.json').exists() else None)
+        seed=inputs/'reference-cache' if (inputs/'reference-cache/index.json').exists() else None,legacy_expected=legacy_binding(sampler,limits))
     cached=cache.count;records=iter(cache.records());stats=dict(version='pipeline-pilot-preparation/v2',source=config['source'],
         phase='sampling',status='RUNNING',sampled=0,eligible=0,available_reference_counters=cached,reused_reference_counters=0,selection_attempts=[],exclusions={})
     def report():
         stats.update(elapsed_seconds=time.monotonic()-begin,eligible=len(rows),exclusions=dict(excluded),
-            reference_cache=dict(binding=cache.expected,count=cache.count,bytes=cache.value['bytes'],index_sha256=file_hash(cache.path)))
+            reference_cache=dict(binding=cache.expected,count=cache.count,bytes=cache.value['bytes'],index_sha256=file_hash(cache.path),migration=cache.migration))
         replace_json(Path(output)/'preparation.json',stats)
     report()
     try:
@@ -180,8 +184,9 @@ def prepare(inputs,output,config):
             provenance_path=inputs/'reference-provenance.json'
             if provenance_path.stat().st_size>32768:raise ValueError('bounded reference provenance required')
             provenance=json.loads(provenance_path.read_text())
-            validate(provenance,{'version','binding','index_sha256','producer','receipt','state','origin','authority'},'pipeline-pilot-reference-provenance/v1')
-            if (provenance['binding']!=cache.expected or provenance['index_sha256']!=file_hash(cache.path)
+            validate(provenance,{'version','binding','input_binding','index_sha256','producer','receipt','state','origin','authority'},'pipeline-pilot-reference-provenance/v2')
+            if (provenance['binding']!=cache.expected or provenance['index_sha256']!=file_hash(inputs/'reference-cache/index.json')
+                or provenance['input_binding']!=ReferenceCache.index(inputs/'reference-cache')['binding']
                 or provenance['authority']!='RAW_REFERENCE_ONLY'):raise ValueError('reference provenance/cache binding changed')
             stats['reference_provenance']=provenance;report()
         for counter in range(SPEC['max_source_counters']):

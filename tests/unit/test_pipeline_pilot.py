@@ -69,11 +69,32 @@ sys.modules[m.__name__]=m
 from oeis_learn.pipeline_validation.pilot_recipe import recipe
 from oeis_learn.fresh.bigint_config import resolve
 r=recipe();assert resolve(r)==r
+assert r['version']=='bigint-bootstrap/v4' and r['data']['max_families']==32768
+import json
+from pathlib import Path
+from oeis_learn.pipeline_validation.pilot_contract import LEGACY_PROFILE,PROFILE,parse_profile,SPEC
+frozen=json.loads(Path('tests/fixtures/pipeline-pilot-v1.json').read_text())
+assert resolve(frozen['recipe'])==frozen['recipe']
+from oeis_learn.fresh.bootstrap_contract import bigint_profile
+assert bigint_profile(r)==bigint_profile(frozen['recipe'])
+assert LEGACY_PROFILE==frozen['profile'] and parse_profile(LEGACY_PROFILE)==LEGACY_PROFILE
+assert PROFILE['version']=='pipeline-learning-pilot-profile/v2' and SPEC['max_source_counters']==524288
 assert r['learning']['batch_size']==16 and r['data']['training']==32768
 old=resolve({'version':'bigint-bootstrap/v1'});assert old['learning']['max_updates']==3000
 """
         result=subprocess.run([sys.executable,'-S','-c',code],cwd=Path(__file__).resolve().parents[2],capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
+
+    def test_legacy_manifest_is_readable_but_cannot_run_as_new_profile(self):
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation.contracts import parse
+        from oeis_learn.pipeline_validation.cli import main
+        frozen=json.loads((Path(__file__).resolve().parents[1]/'fixtures/pipeline-pilot-v1.json').read_text())
+        self.assertEqual(parse(frozen['manifest']),frozen['manifest'])
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);(root/'legacy.json').write_text(json.dumps(frozen['manifest']))
+            args=SimpleNamespace(phase='all-ready',study_manifest=None,final_plan=None,manifest='legacy.json')
+            with self.assertRaisesRegex(ValueError,'read-only'):main(args,root,None)
 
     def test_profile_counts_roster_and_reservations(self):
         from oeis_learn.pipeline_validation.pilot_contract import SPEC,parse_profile,PROFILE
