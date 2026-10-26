@@ -1,0 +1,32 @@
+{
+  "version": "pipeline-learning-pilot-planning-review/v1",
+  "status": "PLAN_VALIDATED_IMPLEMENTATION_PENDING",
+  "runtime_source_unchanged": true,
+  "runtime_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "source_entries": 731,
+  "scope": "Documentation and read-only existing-archive analysis only; no new runtime implementation, tests, target evidence or research admission.",
+  "checks": {
+    "plan_budget_arithmetic": "PASS",
+    "complete_evaluation_roster": "PASS",
+    "original_task_counts_and_checkboxes": "PASS",
+    "supplemental_L001_L015_statuses": "PASS:2 complete/13 pending",
+    "changed_document_links_json": "PASS",
+    "checklists": [
+      {
+        "file": "requirements.md",
+        "total": 16,
+        "checked": 16,
+        "unchecked": 0
+      }
+    ],
+    "post_implement_hooks": "none registered"
+  },
+  "original_counts": {
+    "complete": 87,
+    "pending_runtime": 9,
+    "blocked_research": 15
+  },
+  "new_hip_command_available": false,
+  "long_run_admitted": false,
+  "ci_waited": false
+}

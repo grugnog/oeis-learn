@@ -1,3 +1,5 @@
+**Current preparation:** [Sequence-learning pilot plan](learning-pilot-plan.md) and [L001–L015 tasks](../tasks.md#long-run-learning-pilot-preparation) now include actual held-out100-term learning/control curves and cautious further-training estimates. The proposed profile is48 hours inclusive with up to24 learner-role hours, subject to corpus feasibility, implementation and measured cost/admission. A short test validates plumbing without any learning-success threshold. No executable new HIP command or long-run admission exists yet; accepted hardware evidence is preserved.
+
 # Hardware readiness and remaining work
 
 The [accepted primary soak](soak-operator-20261025T232558Z.md) establishes a workable **104.5M-parameter / training-batch-16 / inference-batch-16 / four-native-worker / ordinary-observation** configuration. Keep FP32 math, Torch 2/1 threads, native one thread each, one GPU owner, bounded overlap and drain barriers. This is the largest model tested, not proof that every larger model is infeasible or that filling unused memory improves useful throughput. Keep serial rollback and historical v1 defaults.

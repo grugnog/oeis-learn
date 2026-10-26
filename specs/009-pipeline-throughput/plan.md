@@ -1,12 +1,10 @@
-# Integrated remaining-work plan: full-scale, bounded engineering soak
+# Integrated remaining-work plan: long-run sequence-learning pilot preparation
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25
-**Status:** Accepted primary Podman soak PASS at unchanged d5c6de02; both windows/restart complete. Independent Docker and original comparison/cost gates remain separate. No duplicate primary HIP run. See [accepted evidence](validation/soak-operator-20261025T232558Z.md) and [next preparation](validation/hardware-readiness-next.md).
+**Status:** Hardware soak accepted; current next work is [learning-pilot preparation](validation/learning-pilot-plan.md). User now requests sequence-learning evaluation and cautious further-compute estimates. Proposed48-hour inclusive/24-hour learner profile, larger strict corpus, six full-development checkpoints and one short plumbing/cost validation remain prospective; no long run is launched.
 **Specification:** [Spec 009](spec.md) · **Execution checklist:** [tasks.md](tasks.md#integrated-soak-work-packages)
 
-This is the single current implementation sequence for the remaining Spec 009
-engineering tasks and the practical soak. It replaces the earlier sequence of
-isolated screens. The [previous plan at2291446](https://github.com/grugnog/oeis-learn/blob/22914464b6ff21d342265e61004bd0dc0f2534d7/specs/009-pipeline-throughput/plan.md)
+The linked learning-pilot plan and [L001–L015 checklist](tasks.md#long-run-learning-pilot-preparation) are the current preparation sequence. The following sections retain the accepted engineering-soak design and its historical execution sequence. They do not request another identical soak. The original soak replaced the earlier isolated screens. The [previous plan at2291446](https://github.com/grugnog/oeis-learn/blob/22914464b6ff21d342265e61004bd0dc0f2534d7/specs/009-pipeline-throughput/plan.md)
 remains historical design context. The original six phase numbers,111 task IDs,
 [contracts](contracts/) and [008 carryovers](carryover.md) keep their meanings.
 A work package below may satisfy several original tasks; it never changes their
@@ -509,3 +507,7 @@ The [new local repair](validation/soak-uid-map-local-evidence.json) passes194 ho
 [The completed archive](validation/soak-operator-20261025T232558Z.md) now establishes current-source primary qualification, full104.5M training-batch16, both hour windows, seven-state restart, joint stress, operations and separate CPU scorer. Source d5c6de02 is unchanged by this reconciliation. Original task counts are87 complete/9 engineering pending/15 research held. The remaining engineering tasks are T011/T034/T041/T059/T060/T062/T073/T084/T086. S005 retains original queued native scope; S004/S006/S011/S012 close for applicable evidenced scope with independent Docker explicitly pending. Full008 carryovers remain unclosed.
 
 Do not repeat the accepted soak or size/batch screens. The next ready work is [prospective longer-run preparation](validation/hardware-readiness-next.md), including remaining host-side fault tests, a new finite recipe/budget/storage design and complete-schedule cost/admission. T086 remains open until that costed command/archive handoff exists. The accepted7.36% between-leg decline and7.546/8GiB transient peak are watchpoints for that preparation, not an automatic additional HIP loop. No new target command or learning/final/multi-day execution is requested now.
+
+## Current extension: measure learning over a finite longer run
+
+The user now authorizes preparation of sequence-learning evaluation and further-training estimates. [Learning-pilot plan](validation/learning-pilot-plan.md) freezes the question, existing-data warning, proposed larger generic corpus, full-checkpoint control roster, prospective48-hour inclusive/24-hour learner ceiling, hidden-isolated independent scoring, conservative cost gates and one30-minute learner/restart plumbing test with no learning-efficiency criterion. Actual preparation/calibration may take hours; its whole-schedule cost must be measured. This design is documentation-only; original runtime remains d5c6de02 and accepted hardware evidence is retained. L003–L015 are implementation/validation/execution tasks, not completed features. T086 and all unexecuted original scientific studies remain open.
