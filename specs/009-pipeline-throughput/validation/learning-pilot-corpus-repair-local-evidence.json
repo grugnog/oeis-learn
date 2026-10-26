@@ -397,5 +397,47 @@
     "actual_oeis_qualified": false,
     "hip_qualified": false
   },
-  "capacity_reproducer": "specs/009-pipeline-throughput/validation/pilot_capacity_cover.py"
+  "capacity_reproducer": "specs/009-pipeline-throughput/validation/pilot_capacity_cover.py",
+  "expanded_reference_packet_validation": {
+    "status": "ALL_REFERENCE_ROWS_DECODE_SOURCE_RESOURCE_VALIDATED",
+    "counters": 524288,
+    "index_sha256": "sha256:bf352f37583f2cc0b982b0b55073c4ca8a93beb348d50ab70e017fbb2613012b",
+    "binding": "sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87",
+    "seconds": 214.75905317600154,
+    "complete_100_index_values_per_row": true,
+    "native_admissions": 0,
+    "reference_math_reexecuted": false,
+    "hip_qualified": false
+  },
+  "v2_public_cli": {
+    "path": "tmp-validation/009-pilot-v2-local.zip",
+    "sha256": "sha256:63d64b3034ff715da0978792c224c6cf66c8d34a9ad8dfa64a7c962e7597cdd6",
+    "members": 57,
+    "omissions": [],
+    "verified": true,
+    "selected_scope": "PARTIAL",
+    "seconds": 75.72102924599858,
+    "states": {
+      "cpu.docker.semantic": "BLOCKED",
+      "cpu.podman.semantic": "BLOCKED",
+      "engine.docker": "PARTIAL",
+      "engine.podman": "PARTIAL",
+      "hip.preflight": "BLOCKED",
+      "host.contracts": "PASS",
+      "image.docker.qualification": "BLOCKED",
+      "image.podman.gpu": "BLOCKED",
+      "image.podman.qualification": "BLOCKED",
+      "operations.docker.retirement": "BLOCKED",
+      "operations.docker.workflow": "BLOCKED",
+      "operations.podman.retirement": "BLOCKED",
+      "operations.podman.workflow": "BLOCKED",
+      "pilot.operations.docker": "BLOCKED",
+      "pilot.operations.podman": "BLOCKED",
+      "pilot.prepare": "BLOCKED",
+      "pilot.report": "PASS",
+      "pilot.session": "BLOCKED",
+      "policy.compare": "BLOCKED",
+      "study.report": "PASS"
+    }
+  }
 }

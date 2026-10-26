@@ -34,3 +34,26 @@ After downloading, retain the archive and its extracted directory under the
 repository's `tmp-validation/` tree for the eventual explicit `--reuse` handoff.
 Full local selected-corpus feasibility and actual target native/OEIS/cost checks
 remain separate gates. Do not repeat accepted hardware size/batch/soak work.
+
+## Expanded profile-v2 transfer
+
+The expanded data-only archive is
+`009-generic-reference-cache-524288-v2-UNQUALIFIED.tar.gz`,262,704,408 bytes,
+SHA256 `e8fde1c693c2445e0f6c2098de8cf75871dea24673847e5898a190bc3eff8864`.
+Its extracted root is `009-generic-reference-cache-524288-v2`. Cache-v2 binding:
+`sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87`;
+index SHA256:
+`bf352f37583f2cc0b982b0b55073c4ca8a93beb348d50ab70e017fbb2613012b`.
+Producer source:
+`sha256:821d3956bd3d37757ff7a8920ac8d56ae064b4ab0866aa5f6e9d2d4ad8b25818`.
+
+All524,288 original counters have complete100-index reference values and pass
+closed-field/source/counter/resource/visible-bit/intermediate-bit validation.
+The original262,144 batches are copied through explicit v1 migration; they are
+not recomputed or changed. The58.5-second packet role is copying/serialization,
+not total original reference-generation cost, which remains explicitly UNKNOWN.
+No native, actual OEIS or HIP qualification follows from this transfer.
+
+Full selected-corpus feasibility and independent overlap/family/panel audits
+remain pending at this checkpoint. The new artifact is a warm input for the
+prospective profile-v2 handoff, not a replacement for the target preflight.
