@@ -39,5 +39,65 @@
     "32768 full selection capacity not yet demonstrated",
     "full296 controls/cost session not started",
     "no long study admission or learning result"
-  ]
+  ],
+  "public_cli": {
+    "exit_code": 3,
+    "selected_scope": "PARTIAL",
+    "seconds": 43.65312220800024,
+    "stage_states": {
+      "cpu.docker.semantic": "BLOCKED",
+      "cpu.podman.semantic": "BLOCKED",
+      "engine.docker": "PARTIAL",
+      "engine.podman": "PARTIAL",
+      "hip.preflight": "BLOCKED",
+      "host.contracts": "PASS",
+      "image.docker.qualification": "BLOCKED",
+      "image.podman.gpu": "BLOCKED",
+      "image.podman.qualification": "BLOCKED",
+      "operations.docker.retirement": "BLOCKED",
+      "operations.docker.workflow": "BLOCKED",
+      "operations.podman.retirement": "BLOCKED",
+      "operations.podman.workflow": "BLOCKED",
+      "pilot.operations.docker": "BLOCKED",
+      "pilot.operations.podman": "BLOCKED",
+      "pilot.prepare": "BLOCKED",
+      "pilot.report": "PASS",
+      "pilot.session": "BLOCKED",
+      "policy.compare": "BLOCKED",
+      "study.report": "PASS"
+    },
+    "source": "sha256:50032af3a6842a93329e0a760fb794ef5ebc4b0cfa7febce3dda44540a1b46e2"
+  },
+  "public_archive": {
+    "path": "tmp-validation/009-pilot-corpus-repair-local.zip",
+    "sha256": "sha256:5423b878d0a79ab7d8b75be4246e8ca6eef9596fd74533ea0762dc43cfa4afd0",
+    "members": 57,
+    "omissions": [],
+    "verified": true
+  },
+  "capacity_65536": {
+    "error": "pilot corpus selection shortfall: {'training': 8547, 'parameter_development': 128, 'structural_development': 128}; required {'training': 32768, 'parameter_development': 128, 'structural_development': 128}",
+    "audit": {
+      "policy": "selected-disjoint-windows/v1",
+      "phase": "complete",
+      "counts": {
+        "training": 8547,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "required": {
+        "training": 32768,
+        "parameter_development": 128,
+        "structural_development": 128
+      },
+      "candidate_rows": 65536,
+      "candidate_families": 2137,
+      "qualified_families": 1613,
+      "rejections": {
+        "overlap": 42522
+      },
+      "unused_candidates_are_not_group_bridges": true
+    },
+    "seconds": 195.6638677019996
+  }
 }

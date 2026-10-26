@@ -602,3 +602,18 @@ Implementation/local scope is complete for L003/L005–L011; authored pinned CPU
 ### First pilot target review and cost-probe repair
 
 [The first archive](validation/learning-pilot-operator-20261026T124145Z.md) verifies749 source entries/183 members/20 receipts,23 actual HIP passes and750 CPU passes with one public scoring-cost fixture failure. Actual v3 model counts and the CPU/HIP metric/resume fixtures pass their assertions; full CPU qualification fails. Corpus preparation/session never start. The exact failing probe/reason was not archived; aggregate fuel exhaustion of the original4096-bit cancellation is an inference, not a fabricated target diagnosis. The explicit v2 positive/stress split retains that case, requires all six positive100-index paths, preserves scientific scoring rules and adds complete failure diagnostics.221 host tests pass; actual repaired native qualification is pending. L013 has reviewed the first failed archive but remains open for complete readiness/cost adjudication, alongside L004/L012/L014/L015 and current-source T110. Original87/9/15 counts remain; no long run is admitted and no accepted hardware experiment is repeated.
+
+
+### Learning-pilot corpus preparation review, 2026-10-26
+
+[142043Z review](validation/learning-pilot-operator-20261026T142043Z.md) preserves
+752 CPU plus41 subtest passes,23 actual-HIP passes and all primary policy/operations
+prerequisites. Data selection failed after262,144 eligible counters; no native
+selected-source corpus admission, learner or full-control costs started. The
+prospective v2 selected-population guard removes unused bridge candidates while
+retaining exact counts/family/overlap safeguards. Preparation now retains private
+semantic-bound reference batches and detailed progress/failure audits; complete
+codec targets use one parse of the unchanged grammar.227 host tests pass.
+Current-source T110 remains pending, with original counts87/9/15 unchanged.
+Local capacity analysis must finish before another target handoff. No learning
+success, original research closure or long-run admission is inferred.

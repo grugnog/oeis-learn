@@ -1606,8 +1606,8 @@
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
       "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "Prior source d5c6de02 closure retained. New pilot runtime/fixtures/contract are implemented and host/package checks pass; current pinned CPU/HIP installed-source qualification is registered in the single preflight.",
-      "blocking_reason": "Current-source target CPU/native/HIP/operations evidence pending; do not repeat accepted primary soak or size ladder.",
+      "implementation_disposition": "Prior affected-source closures remain historical. 142043Z passes752 CPU plus41 subtests and23 HIP tests, but new selected-population/cache/codec changes have227 host passes and await current pinned/native/HIP qualification.",
+      "blocking_reason": "Corpus selection failed after262144 raw eligible counters. Local full-capacity analysis precedes a new combined qualification/corpus/session handoff; accepted primary hardware soak and size ladder are not repeated.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1656,7 +1656,9 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
-        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T142043Z.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json"
       ]
     },
     {
@@ -2288,5 +2290,12 @@
     },
     "target_collections_reviewed": 1,
     "proposed_next_collection": 2
+  },
+  "learning_pilot_corpus_preparation": {
+    "status": "LOCAL_REPAIR_CAPACITY_ANALYSIS_TARGET_PENDING",
+    "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T142043Z.json",
+    "local": "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json",
+    "next": "Establish full32768 selection feasibility locally before another target loop; preserve exact target evidence and private reference caches",
+    "original_task_counts_unchanged": true
   }
 }
