@@ -102,11 +102,16 @@ def encode_body(source):
 def validate_body(ids):
     if not ids or len(ids) > MAX_BODY_TOKENS:
         raise CodecError("token cap")
-    state = BodyState()
-    for token in ids:
-        state.consume(token)
-    if not state.finished:
-        raise CodecError("incomplete source or missing EOS")
+    # Complete targets need one grammar parse. Prefix replay remains necessary
+    # for generation, but would make corpus validation quadratic in token count.
+    from .bigint_grammar import Reader, Need
+    if any(type(token) is not int or token not in ID_TO_TOKEN for token in ids):
+        raise CodecError("invalid token")
+    try:
+        Reader([ID_TO_TOKEN[token] for token in ids]).program()
+    except Need as exc:
+        raise CodecError("incomplete source or missing EOS") from exc
+
 
 
 def decode_body(ids):

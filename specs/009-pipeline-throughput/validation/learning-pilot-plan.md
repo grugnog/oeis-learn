@@ -124,3 +124,25 @@ The checklist in [tasks.md](../tasks.md#long-run-learning-pilot-preparation) is 
 | L015 | Review learning/generalization/compute-extension evidence and decide whether to continue same-regime training or design curriculum separately | T107 support; no automatic next run |
 
 Original T034/T041/T059/T060/T062/T073 remain the original optimization/comparison investigation; their missing confirmation is not silently filled by this pilot. Policy/exactness/clock/containment counterexamples relevant to the chosen experimental configuration must nevertheless pass before learning. T084 remains independent Docker portability. Historical-model rescue stays deferred. Representation seed pairs, curriculum/replay, assistance, encoder studies and final exposure remain separate planned decisions.
+
+
+## Corpus preparation repair, 2026-10-26
+
+The142043Z archive passed primary CPU/native/HIP/policy/operations qualification
+but exhausted262,144 raw counters without a selected corpus. Its old selector did
+not retain checkpoint failure details or reference rows in a reusable private
+cache. Local reproduction found that global overlap components included unused
+bridge candidates. The v2 selected-population guard in the contract removes that
+unintended dependency while requiring pairwise disjoint selected windows, the
+independent final overlap audit, the existing structural/family rules and exact
+32,768/128/128 counts. This is a prospective disclosed selection correction;
+the old negative remains negative. No learning outcome selects a row.
+
+Preparation now preserves private raw-reference batches and public selection
+progress/failures under the original finite deadline. Explicit compatible cache
+reuse avoids resampling retained counters; native execution is always repeated
+for every selected source. Complete codec validation uses one parse of the same
+typed grammar, avoiding quadratic prefix replay during corpus publication. Local
+feasibility and current target native agreement remain distinct gates. No short
+preflight learning-success expectation, multi-day admission or original task
+closure changes.

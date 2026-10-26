@@ -34,10 +34,10 @@ def learner_view(examples):
     return out
 
 
-def choose(rows,*,blocked=()):
+def choose(rows,*,blocked=(),deadline=None,progress=None):
     from .pilot_selection import select
     result=select(rows,training=SPEC['training'],parameter=SPEC['parameter_development'],
-        structural=SPEC['structural_development'],blocked=blocked)
+        structural=SPEC['structural_development'],blocked=blocked,deadline=deadline,progress=progress)
     if {r['stage'] for r in result['splits']['training']}!={'A','B','C','D'}:
         raise ValueError('generic stage coverage missing')
     return result
@@ -108,7 +108,9 @@ def check(root,*,hidden=False):
     validate(m,{'version','source','profile','recipe','roster','audit','files'},m['version'])
     if m['version']=='pipeline-pilot-inputs/v2':
         from .pilot_selection import POLICY
-        if m['audit'].get('selection',{}).get('policy')!=POLICY:raise ValueError('registered selected-population policy required')
+        selection=m['audit'].get('selection',{})
+        if selection.get('policy')!=POLICY or selection.get('counts')!=m['audit']['counts'] or selection.get('required')!=m['audit']['counts']:
+            raise ValueError('registered complete selected-population policy required')
     if m['profile']!=PROFILE['identity'] or m['audit']['counts']!={k:SPEC[k] for k in ('training','parameter_development','structural_development')}:
         raise ValueError('full registered pilot corpus required')
     if {k:len(v) for k,v in m['roster'].items()}!={'training_panel':32,'parameter_development':128,'structural_development':128,'oeis_development':8}:
@@ -186,7 +188,9 @@ def prepare(inputs,output,config):
             stats['phase']='selection';cache.flush();report()
             try:
                 oeis=[dict(id=r['id'],indices=truth[r['id']]['indices'],values=truth[r['id']]['values']) for r in prompts]
-                selected=choose(rows,blocked=oeis)
+                def selection_progress(audit):
+                    stats['selection_progress']=audit;report()
+                selected=choose(rows,blocked=oeis,deadline=deadline,progress=selection_progress)
                 stats['selection_attempts'].append(dict(counter=counter+1,status='COMPLETE',audit=selected['selection_audit']));break
             except ValueError as exc:
                 excluded[str(exc)]+=1

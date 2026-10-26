@@ -34,6 +34,14 @@ class CorpusSelection(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'training'):pilot_data.prepare(inputs,second,config)
                 self.assertEqual(json.loads((second/'preparation.json').read_text())['reused_reference_counters'],1)
 
+    def test_selection_deadline_reports_partial_counts_before_stopping(self):
+        from oeis_learn.pipeline_validation.pilot_selection import select
+        observed=[]
+        with self.assertRaisesRegex(TimeoutError,'selection deadline'):
+            select([],training=8,parameter=1,structural=1,deadline=0,progress=observed.append)
+        self.assertEqual(observed[-1]['counts'],dict(training=0,parameter_development=0,structural_development=0))
+        self.assertEqual(observed[-1]['required']['training'],8)
+
     def test_reference_cache_preserves_prefix_and_rejects_corruption_or_changed_semantics(self):
         from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache
         with tempfile.TemporaryDirectory() as folder:
@@ -84,3 +92,26 @@ class CorpusSelection(unittest.TestCase):
         self.assertTrue({r['family'] for r in result['splits']['parameter_development']}<=training)
         self.assertFalse({r['family'] for r in result['splits']['structural_development']}&training)
 
+
+
+class CompleteCodecValidation(unittest.TestCase):
+    def test_complete_parser_matches_incremental_grammar_on_valid_and_invalid_streams(self):
+        from oeis_learn.decoder.bigint_codec import encode_body,validate_body,PAD_ID,EOS_ID
+        from oeis_learn.decoder.bigint_grammar import BodyState,CodecError
+        from oeis_learn.data.bigint_programs import BigintSampler
+        def incremental(ids):
+            state=BodyState()
+            try:
+                for token in ids:state.consume(token)
+                return state.finished
+            except CodecError:return False
+        sampler=BigintSampler()
+        for counter in range(0,512,16):
+            ids=encode_body(sampler.sample(counter)['source'])
+            cases=[ids,ids[:-1],ids[:len(ids)//2],ids+[EOS_ID],[],[True],[1.0],[-1],[999999]]
+            for offset in (0,len(ids)//2,len(ids)-2):
+                bad=list(ids);bad[offset]=PAD_ID;cases.append(bad)
+            for case in cases:
+                try:validate_body(case);actual=True
+                except CodecError:actual=False
+                self.assertEqual(actual,incremental(case),(counter,case))

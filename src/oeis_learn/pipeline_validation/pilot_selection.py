@@ -1,6 +1,7 @@
 """Select a disjoint actual corpus; unused bridge candidates are not examples."""
 from collections import Counter,defaultdict
 from functools import lru_cache
+import time
 from oeis_learn.synthesis.contracts import identity,canonical_integer
 
 POLICY='selected-disjoint-windows/v1'
@@ -39,7 +40,7 @@ class Shortfall(ValueError):
         super().__init__('pilot corpus selection shortfall: '+str(audit['counts'])+'; required '+str(audit['required']))
 
 
-def select(rows,*,training,parameter,structural,blocked=()):
+def select(rows,*,training,parameter,structural,blocked=(),deadline=None,progress=None):
     """Production fixes counts in its wrapper; small counts support counterexamples."""
     from oeis_learn.fresh.bigint_splits import behavior
     from oeis_learn.decoder.bigint_codec import encode_body
@@ -53,6 +54,23 @@ def select(rows,*,training,parameter,structural,blocked=()):
     reserved=set(keys[::4]);splits=dict(training=[],parameter_development=[],structural_development=[])
     limits=dict(training=training,parameter_development=parameter,structural_development=structural)
     rejected=Counter();facts={};paired={};family_ok={};selected_ids=set();counts={k:[0,0] for k in splits}
+
+    last_report=0.;phase='structural'
+
+    def audit():
+        return dict(policy=POLICY,phase=phase,counts={k:len(v) for k,v in splits.items()},required=limits,
+            candidate_rows=len(rows),candidate_families=len(keys),qualified_families=sum(family_ok.values()),
+            rejections=dict(rejected),unused_candidates_are_not_group_bridges=True)
+
+    def tick(force=False):
+        nonlocal last_report
+        now=time.monotonic()
+        expired=deadline is not None and now>=deadline
+        if progress is not None and (force or expired or now-last_report>=10):
+            progress(audit());last_report=now
+        if expired:raise TimeoutError('finite pilot corpus selection deadline')
+
+    tick(True)
 
     @lru_cache(maxsize=32768)
     def encoded(source):return tuple(encode_body(source))
@@ -73,6 +91,7 @@ def select(rows,*,training,parameter,structural,blocked=()):
         return family_ok[key]
 
     def eligible(row,split,local=(),extra=(0,0)):
+        tick()
         if row['id'] in selected_ids:return None
         if not valid_family(row['family']):return None
         try:tokens(row)
@@ -96,6 +115,7 @@ def select(rows,*,training,parameter,structural,blocked=()):
         windows=eligible(row,'structural_development')
         if windows is not None:commit(row,'structural_development',windows)
         if len(splits['structural_development'])==structural:break
+    phase='matched-parameter';tick(True)
     for key in keys:
         if key in reserved:continue
         if len(splits['parameter_development'])==parameter:break
@@ -110,23 +130,22 @@ def select(rows,*,training,parameter,structural,blocked=()):
             if len(batch)==5:break
         if len(batch)==5:
             for row,split,windows in batch:commit(row,split,windows)
+    phase='training';tick(True)
     pools=defaultdict(list)
     for row in sorted(rows,key=lambda r:r['id']):
         if row['family'] in key_set and row['family'] not in reserved:pools[row['stage']].append(row)
     positions={k:0 for k in pools}
     while len(splits['training'])<training:
-        progress=False
+        advanced=False
         for stage in sorted(pools):
             while positions[stage]<len(pools[stage]):
                 row=pools[stage][positions[stage]];positions[stage]+=1
                 windows=eligible(row,'training')
                 if windows is None:continue
-                commit(row,'training',windows);progress=True;break
+                commit(row,'training',windows);advanced=True;break
             if len(splits['training'])==training:break
-        if not progress:break
-    audit=dict(policy=POLICY,counts={k:len(v) for k,v in splits.items()},required=limits,
-        candidate_rows=len(rows),candidate_families=len(keys),qualified_families=sum(family_ok.values()),
-        rejections=dict(rejected),unused_candidates_are_not_group_bridges=True)
-    if audit['counts']!=limits:raise Shortfall(audit)
-    return dict(splits=splits,selection_audit=audit,
+        if not advanced:break
+    phase='complete';tick(True);result_audit=audit()
+    if result_audit['counts']!=limits:raise Shortfall(result_audit)
+    return dict(splits=splits,selection_audit=result_audit,
         paired={r['id']:paired[r['id']] for rs in splits.values() for r in rs})

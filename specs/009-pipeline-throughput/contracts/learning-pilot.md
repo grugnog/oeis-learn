@@ -8,7 +8,7 @@ The pilot is one seed and exposed development evidence, not an adoption study.
 ## Separate authority and exact work
 
 `bigint-bootstrap/v3`, `pipeline-learning-pilot-profile/v1` and
-`pipeline-pilot-inputs/v1` opt into the exact104,496,662-parameter FP32/math model,
+`pipeline-pilot-inputs/v2` opt into the exact104,496,662-parameter FP32/math model,
 training/inference batch16, native4, Torch2/1, literal targets, fresh initialization,
 unchanged AdamW/LR and no curriculum, replay or assistance. `pilot_recipe.py`
 resolves the existing recipe; `bigint_worker.py` remains the only trainer.
@@ -16,15 +16,35 @@ resolves the existing recipe; `bigint_worker.py` remains the only trainer.
 Preparation samples at most262,144 existing mechanical counters, attempting the
 complete split at65,536/131,072/262,144, under9,000s. At least16 distinct variants
 per eligible family, matched parameter holdouts, whole-family structural reserve,
-unique observed20-term shifted groups, stages A–D and existing diverse32 rules
-apply. Constant/offset-only training rows are each capped at10%. Whole detected
-groups overlapping the frozen eight exposed OEIS-development cases are excluded
-before selection. There is no padding, favorable-model filtering or fallback.
+unique observed20-term shifted windows, stages A–D and existing diverse32 rules
+apply. Constant/offset-only rows in each split are each capped at10%. The v2
+selector checks the actual selected population against all100-index windows of
+the frozen eight exposed OEIS-development cases. Unselected candidates cannot
+transitively merge two otherwise disjoint selected examples. All selected generic
+rows are pairwise window-disjoint, and publication independently repeats the
+legacy overlap-group audit on the complete selected plus OEIS population.
+Structural reserve and matched four-training/one-parameter cases remain mandatory. There is no padding, favorable-model filtering or fallback.
 All32,768+128+128 selected generic sources must execute exactly100 indices in the
 production runtime and agree with the independent reference. The audit binds
 sources, assignments, groups, family/variant provenance, token lengths, magnitude,
 complexity, behavior strata, exclusions and all production admissions. Data
 feasibility remains unqualified until this full preparation actually completes.
+Historical v1 prepared-input readers remain available with their original meaning.
+
+Preparation v2 retains a private, sealed, contiguous original-counter reference
+cache (256 records per gzip batch, at most1GiB compressed,16MiB decoded per batch,
+262,144 counters and2,048 batches). Every excluded counter has an explicit reason.
+The public preparation report binds its semantic identity, count, bytes and index
+hash even on failure, and records selection counts/rejections at each checkpoint,
+progress every10s and the original parent deadline. Complete targets are parsed
+once with the same typed grammar; generation still checks each incremental prefix.
+Explicit `--reuse` may seed only compatible raw mathematical reference batches;
+binding includes seed/generator, reference implementation, resource policy,
+serialization and100-index horizon. Reuse validates batch hashes, counter/source
+metadata, canonical values and limits. It never imports native admissions or a
+learning result; all33,024 selected sources still require fresh production proof.
+Private references remain outside public evidence ZIPs and learner/generator mounts.
+Retain the complete prior output directory to recover them after a failed run.
 
 Learners receive only visible20 generic values/indices, generic targets and
 bounded horizon indices. Generators receive only visible20 prompts and the actual
