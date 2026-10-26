@@ -149,6 +149,15 @@ class CorpusSelection(unittest.TestCase):
         training={r['family'] for r in result['splits']['training']}
         self.assertTrue({r['family'] for r in result['splits']['parameter_development']}<=training)
         self.assertFalse({r['family'] for r in result['splits']['structural_development']}&training)
+        from oeis_learn.fresh.bigint_splits import behavior
+        clock=[0.]
+        def slow_sort(row):
+            clock[0]+=2
+            return behavior(row)
+        with patch('oeis_learn.pipeline_validation.pilot_selection.time.monotonic',side_effect=lambda:clock[0]),patch('oeis_learn.fresh.bigint_splits.behavior',side_effect=slow_sort):
+            with self.assertRaisesRegex(TimeoutError,'selection deadline'):
+                select(rows,training=8,parameter=1,structural=1,deadline=1)
+
 
 
 

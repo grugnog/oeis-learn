@@ -113,7 +113,10 @@ def select(rows,*,training,parameter,structural,blocked=(),deadline=None,progres
 
     # Deterministic structural reserve, then one matched parameter case per family.
     structural_rows=[r for k in keys if k in reserved for r in families[k]]
-    structural_rows.sort(key=lambda r:(not behavior(r)[2],r.get('stage',''),r['id']))
+    def structural_key(row):
+        tick()
+        return (not behavior(row)[2],row.get('stage',''),row['id'])
+    structural_rows.sort(key=structural_key)
     for row in structural_rows:
         windows=eligible(row,'structural_development')
         if windows is not None:commit(row,'structural_development',windows)
