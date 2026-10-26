@@ -112,7 +112,7 @@ class PilotStages:
         if host.policy['cpus']<6:raise CapabilityError('two Torch and four native equivalents required')
         source=root/'private'/('input-'+label);source.mkdir(parents=True)
         for name,path in files.items():
-            if name=='checkpoints':checkpoint_view(path,source/name)
+            if name in ('checkpoints','reference-cache'):checkpoint_view(path,source/name)
             else:link(path,source/name)
         target=root/label
         from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -229,6 +229,19 @@ class PilotStages:
             files={name:{'sha256':file_hash(path),'bytes':path.stat().st_size} for name,path in files.items()},
             count=8,exposure='Previously exposed development; accepted engineering soak and input preparation. Not a fresh final cohort.'))
         write(source/'oeis-lineage.json',lineage);files['oeis-lineage.json']=source/'oeis-lineage.json'
+        from .pilot_cache import binding
+        from oeis_learn.data.bigint_programs import BigintSampler
+        from oeis_learn.synthesis.contracts import ResourceProfile
+        expected=binding(BigintSampler(SPEC['seed']),ResourceProfile());seeds=[]
+        for previous in a.args.reuse:
+            prior=confined(a.root,previous)/'stages/pilot.prepare/prepare'
+            index=prior/'private/reference-cache/index.json';proof=prior/'preparation.json'
+            if index.is_file() and proof.is_file():
+                ref=json.loads(proof.read_text()).get('reference_cache',{})
+                if ref.get('binding')==expected:
+                    if file_hash(index)!=ref['index_sha256']:raise ValueError('retained reference cache index changed')
+                    seeds.append((ref['count'],index.parent))
+        if seeds:files['reference-cache']=max(seeds,key=lambda x:x[0])[1]
         for engine in a.args.pipeline_engines:
             if a.receipts.get('cpu.'+engine+'.semantic',{}).get('state')=='PASS':
                 for path in (output.parent/('cpu.'+engine+'.semantic')).rglob('pytest'):

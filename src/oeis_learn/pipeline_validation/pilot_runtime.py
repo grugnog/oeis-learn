@@ -31,7 +31,11 @@ def options(config):
 def visible_work(inputs,config):
     from .pilot_data import learner_view
     m=json.loads((inputs/'prepared.json').read_text())
-    validate(m,{'version','source','profile','recipe','roster','audit','files'},'pipeline-pilot-inputs/v1')
+    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2'):raise ValueError('registered pilot input format required')
+    validate(m,{'version','source','profile','recipe','roster','audit','files'},m['version'])
+    if m['version']=='pipeline-pilot-inputs/v2':
+        from .pilot_selection import POLICY
+        if m['audit'].get('selection',{}).get('policy')!=POLICY:raise ValueError('registered selected-population policy required')
     if m['profile']!=PROFILE['identity'] or m['source']!=config['source']:raise ValueError('pilot data/source/profile changed')
     for name in ('examples.json','recipe.json'):
         if file_hash(inputs/name)!=m['files'][name]['sha256']:raise ValueError('pilot visible data/recipe changed')

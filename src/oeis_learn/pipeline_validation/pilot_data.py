@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 from .identity import seal,digest,file_hash,write,validate,confined
 from .pilot_contract import SPEC,PROFILE
+CHECKPOINTS=(65536,131072,262144)
 
 
 def labels(row):
@@ -33,33 +34,12 @@ def learner_view(examples):
     return out
 
 
-def choose(rows):
-    """Reuse old matched holdouts, then fill nonreserved families without duplicates."""
-    from oeis_learn.fresh.bigint_splits import choose_splits,paired_tokens,behavior
-    from oeis_learn.synthesis.contracts import identity
-    result=choose_splits(rows);groups=result['groups'];splits=result['splits']
-    eligible=[];variants=defaultdict(set)
-    for r in rows:
-        if r['id'] in groups:variants[r['family']].add(r['variant']);eligible.append(r)
-    families=sorted((k for k,v in variants.items() if len(v)>=16),key=lambda k:identity(['structural-reservation/v1',k]))
-    family_set=set(families);reserved=set(families[::4]);used={groups[r['id']] for rs in splits.values() for r in rs}
-    pools=defaultdict(list)
-    for r in sorted(eligible,key=lambda r:r['id']):
-        if r['family'] not in reserved and r['family'] in family_set:pools[r['stage']].append(r)
-    positions={k:0 for k in pools};training=splits['training'];facts=[behavior(r) for r in training]
-    constant=sum(x[0] for x in facts);offset=sum(x[1] for x in facts)
-    while len(training)<SPEC['training']:
-        progress=False
-        for stage in sorted(pools):
-            while positions[stage]<len(pools[stage]):
-                r=pools[stage][positions[stage]];positions[stage]+=1
-                if groups[r['id']] in used:continue
-                c,o,_=behavior(r)
-                if constant+c>SPEC['training']//10 or offset+o>SPEC['training']//10:continue
-                training.append(r);used.add(groups[r['id']]);constant+=c;offset+=o;progress=True;break
-            if len(training)==SPEC['training']:break
-        if not progress:raise ValueError(f'pilot unique training shortfall:{len(training)}/{SPEC["training"]}')
-    if {r['stage'] for r in training}!={'A','B','C','D'}:raise ValueError('generic stage coverage missing')
+def choose(rows,*,blocked=()):
+    from .pilot_selection import select
+    result=select(rows,training=SPEC['training'],parameter=SPEC['parameter_development'],
+        structural=SPEC['structural_development'],blocked=blocked)
+    if {r['stage'] for r in result['splits']['training']}!={'A','B','C','D'}:
+        raise ValueError('generic stage coverage missing')
     return result
 
 
@@ -98,7 +78,7 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
     write(out/'examples.json',examples);write(out/'prompts.json',prompts);write(out/'private/truth.json',truth)
     write(out/'recipe.json',recipe);write(out/'private/admissions.json',admissions)
     tokens={k:sum(len(r['tokens']) for r in rs) for k,rs in examples.items()}
-    audit=dict(counts={k:len(rs) for k,rs in examples.items()},tokens=tokens,
+    audit=dict(counts={k:len(rs) for k,rs in examples.items()},tokens=tokens,selection=rows['selection_audit'],
         exposed_development=lineage,
         stages=dict(Counter(r['stage'] for r in splits['training'])),
         nonaffine=sum(behavior(r)[2] for r in splits['training']),sampled=sampled,exclusions=dict(exclusions),
@@ -116,7 +96,7 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
             target_lengths=dict(min=min(lengths),max=max(lengths),sum=sum(lengths)),
             parameter_counts=dict(Counter(len(r['assignment']) for r in rs)),
             strata={key:dict(Counter(r[key] for r in strata_rows)) for key in ('size','length','complexity','nonaffine','offset_only','constant')})
-    m=seal(dict(version='pipeline-pilot-inputs/v1',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
+    m=seal(dict(version='pipeline-pilot-inputs/v2',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
         roster=roster,audit=audit,files={name:{'sha256':file_hash(out/name),'bytes':(out/name).stat().st_size}
             for name in ('examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json')}))
     write(out/'prepared.json',m);return m
@@ -124,7 +104,11 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
 
 def check(root,*,hidden=False):
     root=Path(root);m=json.loads((root/'prepared.json').read_text())
-    validate(m,{'version','source','profile','recipe','roster','audit','files'},'pipeline-pilot-inputs/v1')
+    if m.get('version') not in ('pipeline-pilot-inputs/v1','pipeline-pilot-inputs/v2'):raise ValueError('registered pilot inputs required')
+    validate(m,{'version','source','profile','recipe','roster','audit','files'},m['version'])
+    if m['version']=='pipeline-pilot-inputs/v2':
+        from .pilot_selection import POLICY
+        if m['audit'].get('selection',{}).get('policy')!=POLICY:raise ValueError('registered selected-population policy required')
     if m['profile']!=PROFILE['identity'] or m['audit']['counts']!={k:SPEC[k] for k in ('training','parameter_development','structural_development')}:
         raise ValueError('full registered pilot corpus required')
     if {k:len(v) for k,v in m['roster'].items()}!={'training_panel':32,'parameter_development':128,'structural_development':128,'oeis_development':8}:
@@ -150,10 +134,12 @@ def check(root,*,hidden=False):
 
 
 def prepare(inputs,output,config):
+    from dataclasses import asdict
     from oeis_learn.data.bigint_programs import BigintSampler,materialize
-    from oeis_learn.synthesis.contracts import ResourceProfile
+    from oeis_learn.synthesis.contracts import ResourceProfile,canonical_integer
     from oeis_learn.synthesis.client import SynthesisClient
     from .pilot_recipe import recipe
+    from .pilot_cache import ReferenceCache,binding
     from oeis_learn.fresh.common import write as replace_json
     opt=config['options'];root=Path(output)/'private/prepared'
     begin=time.monotonic();deadline=begin+opt['seconds']-60
@@ -164,36 +150,68 @@ def prepare(inputs,output,config):
     for name,ref in lineage['files'].items():
         if file_hash(inputs/name)!=ref['sha256'] or (inputs/name).stat().st_size!=ref['bytes']:raise ValueError('exposed-development lineage changed')
     sampler=BigintSampler(SPEC['seed']);limits=ResourceProfile();rows=[];excluded=Counter();selected=None
-    for counter in range(SPEC['max_source_counters']):
-        if time.monotonic()>=deadline:raise TimeoutError('finite pilot corpus preparation deadline')
-        try:rows.append(materialize(sampler.sample(counter),limits))
-        except ValueError as exc:excluded[str(exc)]+=1
-        if (counter+1)%256==0:replace_json(Path(output)/'progress.json',dict(counter=counter+1,eligible=len(rows),seconds=time.monotonic()-begin))
-        if counter+1 not in (65536,131072,262144):continue
-        try:
-            # Frozen data-only decontamination, before any native/model outcomes.
-            # Keep whole detected groups on the exposed-development side.
-            from oeis_learn.fresh.bigint_splits import overlap_groups
-            oeis=[dict(id=r['id'],indices=truth[r['id']]['indices'],values=truth[r['id']]['values']) for r in prompts]
-            groups=overlap_groups(rows+oeis);forbidden={groups[r['id']] for r in oeis}
-            eligible=[r for r in rows if groups[r['id']] not in forbidden]
-            excluded['frozen_OEIS_development_overlap_groups']=len(rows)-len(eligible)
-            selected=choose(eligible);break
-        except ValueError as exc:excluded[str(exc)]+=1
-    if selected is None:raise ValueError('full pilot corpus shortfall; no duplicate padding or fallback')
-    # Production exactness independently cross-checks every selected generic source.
-    admitted=0;admissions={}
-    with SynthesisClient(digest(PROFILE),limits=limits,cache_root=Path(output)/'private/admission-cache') as client:
-        for rs in selected['splits'].values():
-            for r in rs:
-                if time.monotonic()>=deadline:raise TimeoutError('complete native admission deadline')
-                result=client.execute(r['source'],r['indices'],deadline=min(deadline,time.monotonic()+30))
-                if result.get('outcome')!='ok' or result.get('values')!=r['values']:
-                    raise ValueError('selected generic source lacks complete independent production agreement')
-                admitted+=1
-                admissions[r['id']]=dict(source=digest(r['source']),horizon=digest(dict(indices=r['indices'],values=r['values'])),resource=r['resource'],runtime=client.runtime_identity('bigint-body/v1'),independent_reference=True)
-                if admitted%256==0:replace_json(Path(output)/'progress.json',dict(admitted=admitted,seconds=time.monotonic()-begin))
-    m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded,admissions=admissions,lineage=lineage)
-    check(root,hidden=True);write(Path(output)/'corpus-audit.json',m['audit'])
-    return dict(status='COMPLETE',work=m['identity'],prepared='private/prepared',counts=m['audit']['counts'],
-        native_admitted=admitted,seconds=time.monotonic()-begin)
+    cache=ReferenceCache(Path(output)/'private/reference-cache',binding(sampler,limits),
+        seed=inputs/'reference-cache' if (inputs/'reference-cache/index.json').exists() else None)
+    cached=cache.count;records=iter(cache.records());stats=dict(version='pipeline-pilot-preparation/v2',source=config['source'],
+        phase='sampling',status='RUNNING',sampled=0,eligible=0,available_reference_counters=cached,reused_reference_counters=0,selection_attempts=[],exclusions={})
+    def report():
+        stats.update(elapsed_seconds=time.monotonic()-begin,eligible=len(rows),exclusions=dict(excluded),
+            reference_cache=dict(binding=cache.expected,count=cache.count,bytes=cache.value['bytes'],index_sha256=file_hash(cache.path)))
+        replace_json(Path(output)/'preparation.json',stats)
+    report()
+    try:
+        for counter in range(SPEC['max_source_counters']):
+            if time.monotonic()>=deadline:raise TimeoutError('finite pilot corpus preparation deadline')
+            if counter<cached:
+                record=next(records);row=record['row']
+                stats['reused_reference_counters']+=1
+                if row is not None:
+                    expected=sampler.sample(counter)
+                    if any(row.get(k)!=v for k,v in expected.items()) or row.get('resource')!=digest(asdict(limits)):
+                        raise ValueError('cached reference counter/source/resources changed')
+                    if row['indices']!=list(map(str,range(100))) or len(row['values'])!=100:
+                        raise ValueError('complete cached100-index reference required')
+                    for v in row['values']:canonical_integer(v,bits=limits.intermediate_bits)
+                else:excluded[record['exclusion']]+=1
+            else:
+                try:row=materialize(sampler.sample(counter),limits)
+                except ValueError as exc:
+                    excluded[str(exc)]+=1;row=None;cache.append(counter,None,str(exc))
+                else:cache.append(counter,row)
+            if row is not None:rows.append(row)
+            stats['sampled']=counter+1
+            if (counter+1)%256==0:
+                replace_json(Path(output)/'progress.json',dict(counter=counter+1,eligible=len(rows),seconds=time.monotonic()-begin));report()
+            if counter+1 not in CHECKPOINTS:continue
+            stats['phase']='selection';cache.flush();report()
+            try:
+                oeis=[dict(id=r['id'],indices=truth[r['id']]['indices'],values=truth[r['id']]['values']) for r in prompts]
+                selected=choose(rows,blocked=oeis)
+                stats['selection_attempts'].append(dict(counter=counter+1,status='COMPLETE',audit=selected['selection_audit']));break
+            except ValueError as exc:
+                excluded[str(exc)]+=1
+                stats['selection_attempts'].append(dict(counter=counter+1,status='SHORTFALL',error=str(exc),audit=getattr(exc,'audit',None)))
+                stats['phase']='sampling';report()
+        if selected is None:
+            raise ValueError('full pilot corpus shortfall; no padding/fallback: '+str(stats['selection_attempts']))
+        stats['phase']='native-admission';report();admitted=0;admissions={}
+        with SynthesisClient(digest(PROFILE),limits=limits,cache_root=Path(output)/'private/admission-cache') as client:
+            for rs in selected['splits'].values():
+                for r in rs:
+                    if time.monotonic()>=deadline:raise TimeoutError('complete native admission deadline')
+                    result=client.execute(r['source'],r['indices'],deadline=min(deadline,time.monotonic()+30))
+                    if result.get('outcome')!='ok' or result.get('values')!=r['values']:
+                        stats['native_failure']=dict(id=r['id'],source=digest(r['source']),outcome=result.get('outcome'),reason=result.get('reason'),coverage=len(result.get('values',[])))
+                        raise ValueError('selected generic source lacks complete independent production agreement: '+str(stats['native_failure']))
+                    admitted+=1;stats['native_admitted']=admitted
+                    admissions[r['id']]=dict(source=digest(r['source']),horizon=digest(dict(indices=r['indices'],values=r['values'])),resource=r['resource'],runtime=client.runtime_identity('bigint-body/v1'),independent_reference=True)
+                    if admitted%256==0:
+                        replace_json(Path(output)/'progress.json',dict(admitted=admitted,seconds=time.monotonic()-begin));report()
+        stats['phase']='publication';report()
+        m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded,admissions=admissions,lineage=lineage)
+        check(root,hidden=True);write(Path(output)/'corpus-audit.json',m['audit']);stats.update(status='COMPLETE',phase='complete')
+        return dict(status='COMPLETE',work=m['identity'],prepared='private/prepared',counts=m['audit']['counts'],native_admitted=admitted,seconds=time.monotonic()-begin)
+    except BaseException as exc:
+        stats.update(status='FAILED',error=type(exc).__name__+': '+str(exc));raise
+    finally:
+        cache.flush();report()
