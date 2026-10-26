@@ -60,6 +60,9 @@ def select(rows,*,training,parameter,structural,blocked=(),deadline=None,progres
     def audit():
         return dict(policy=POLICY,phase=phase,counts={k:len(v) for k,v in splits.items()},required=limits,
             candidate_rows=len(rows),candidate_families=len(keys),qualified_families=sum(family_ok.values()),
+            stages={k:dict(Counter(r['stage'] for r in rs)) for k,rs in splits.items()},
+            selected_families={k:len({r['family'] for r in rs}) for k,rs in splits.items()},
+            behavior_counts={k:dict(constant=v[0],offset_only=v[1]) for k,v in counts.items()},
             rejections=dict(rejected),unused_candidates_are_not_group_bridges=True)
 
     def tick(force=False):

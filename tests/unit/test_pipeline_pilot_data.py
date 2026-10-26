@@ -41,6 +41,8 @@ class CorpusSelection(unittest.TestCase):
             select([],training=8,parameter=1,structural=1,deadline=0,progress=observed.append)
         self.assertEqual(observed[-1]['counts'],dict(training=0,parameter_development=0,structural_development=0))
         self.assertEqual(observed[-1]['required']['training'],8)
+        self.assertEqual(observed[-1]['stages']['training'],{})
+        self.assertEqual(observed[-1]['selected_families']['training'],0)
 
     def test_reference_cache_preserves_prefix_and_rejects_corruption_or_changed_semantics(self):
         from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache
