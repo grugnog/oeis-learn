@@ -1,0 +1,710 @@
+{
+  "version": "pipeline-soak-operator-review/v1",
+  "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+  "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "source_entries": 731,
+  "source_matches_current_runtime": true,
+  "archive": {
+    "name": "009-soak-20261025T232558Z.zip",
+    "sha256": "sha256:54c1d61f95d081950dff30c40b51d60563c71c7a833274f7579b1cbb2be21b9a",
+    "bytes": 12982101,
+    "members": 994,
+    "omissions": [],
+    "verified": true
+  },
+  "receipts": {
+    "count": 38,
+    "bound_public_files_verified": 803,
+    "states": {
+      "BLOCKED": 5,
+      "PASS": 32,
+      "PARTIAL": 1
+    },
+    "hashes_prerequisites_and_source_verified": true
+  },
+  "elapsed_seconds": 9452.063967633061,
+  "qualification": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 754,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 9
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "stages/policy.compare/role/results.xml": {
+      "tests": 45,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  },
+  "choice": {
+    "adoption": "EXPERIMENTAL_ONLY",
+    "batches": {
+      "16": [
+        {
+          "complete": true,
+          "seconds": 22.37261271988973,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 22.191910739289597,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 22.22412973199971,
+          "tokens": 53190
+        }
+      ],
+      "32": [
+        {
+          "complete": true,
+          "seconds": 22.99352951324545,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 22.978942264569923,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 20.84350843541324,
+          "tokens": 53190
+        }
+      ],
+      "8": [
+        {
+          "complete": true,
+          "seconds": 27.750983353704214,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 25.952254531672224,
+          "tokens": 53190
+        },
+        {
+          "complete": true,
+          "seconds": 25.9287977097556,
+          "tokens": 53190
+        }
+      ]
+    },
+    "data_counts": {
+      "parameter_development": 128,
+      "structural_development": 128,
+      "training": 512
+    },
+    "envelope": {
+      "ceiling_bytes": 120744574976,
+      "cpus": 16,
+      "render_node": "/dev/dri/renderD128"
+    },
+    "execution": {
+      "cudnn_tf32": false,
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "dtype": "torch.float32",
+      "float32_matmul": "highest",
+      "identity": "sha256:a0f8b1b950e1b762393cc1b4012c9a052d02b03770f5f08197808183ae518d67",
+      "matmul_tf32": false,
+      "mha_fastpath": false,
+      "sdpa_backends": [
+        "math"
+      ],
+      "version": "pipeline-sizing-execution/v1"
+    },
+    "identity": "sha256:cf3a022a1de252cbc78be269803c44191b04d50f81cf5a47d85728b6d46377f9",
+    "inference_batch": 16,
+    "live_memory_upper_bytes": 40924857024,
+    "profile": {
+      "backend": "eager",
+      "decoder_layers": 6,
+      "encoder_layers": 6,
+      "ff": 3072,
+      "heads": 12,
+      "identity": "sha256:f1374f2c3c2d23ff068273e4d6a8e1facccfe2aa0847e465f90ccf9b13a957b6",
+      "name": "m100",
+      "precision": "float32",
+      "seed": 20261016,
+      "version": "pipeline-model-size/v1",
+      "width": 768
+    },
+    "selected_training_batch": 16,
+    "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+    "version": "pipeline-soak-choice/v1",
+    "work": "sha256:82441a6bc112ea9b4d91267faf536c5096193eb7a1777eb8e8c59dfa67c47b49",
+    "workers": 4
+  },
+  "preflight_median_training_tokens_per_second": {
+    "16": 2393.3445602332704,
+    "32": 2314.727953427647,
+    "8": 2049.5329195807144
+  },
+  "primary_engineering_readiness": "PASS",
+  "correctness_recovery": "PASS",
+  "sustained_operation": "PASS",
+  "portability": "PENDING",
+  "portability_reason": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence",
+  "legs": [
+    {
+      "leg": 0,
+      "active_seconds": 3602.0832486709114,
+      "role_seconds": 3608.9394548719283,
+      "updates": 7424,
+      "tokens": 6170040,
+      "examples": 118784,
+      "completed_cycles": 29,
+      "role_upper_peak_bytes": 10814099456,
+      "initial": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+      "final": "sha256:7acee4d70f17f2414304d40fdbe88a80d43e51629f51ec45ea2ef4227caed076",
+      "container_id": "d43e979134da6150409103b64e4e448b642395529065e77c4fa18b1d56349095",
+      "window_binding": "sha256:02e7c956c620603cfb2c602b4cc4dfd355ebf09d124a2e62470dd95a8ec846e6"
+    },
+    {
+      "leg": 1,
+      "active_seconds": 3595.3338509870227,
+      "role_seconds": 3602.692262374796,
+      "updates": 7222,
+      "tokens": 6002079,
+      "examples": 115552,
+      "completed_cycles": 28,
+      "role_upper_peak_bytes": 11388043264,
+      "initial": "sha256:7acee4d70f17f2414304d40fdbe88a80d43e51629f51ec45ea2ef4227caed076",
+      "final": "sha256:ba94f401f29bbdcb637b6775e5e3098ccf87301e19016a77731d18ccad4f1321",
+      "container_id": "4f2a34a2dcc8dc783d450b47a169582160a301667d35f53e31b3bbb8dc44a3cf",
+      "window_binding": "sha256:02e7c956c620603cfb2c602b4cc4dfd355ebf09d124a2e62470dd95a8ec846e6"
+    }
+  ],
+  "whole_soak_seconds": 7213.195237410953,
+  "budget": {
+    "budget": 7800,
+    "records": {
+      "engineering-soak": {
+        "debit": 7800,
+        "status": "completed"
+      }
+    }
+  },
+  "checkpoint": {
+    "states": [
+      "curriculum",
+      "data_order",
+      "optimizer",
+      "replay",
+      "rng",
+      "selection",
+      "weights"
+    ],
+    "full_payload_hashes_verified_by_runtime": true,
+    "weight_continuity_exact": true,
+    "distinct_containers": true,
+    "boundaries": [
+      {
+        "active": 0,
+        "reserved": 0,
+        "consumed": 2790,
+        "frontier_count": 2790
+      },
+      {
+        "active": 0,
+        "reserved": 0,
+        "consumed": 5586,
+        "frontier_count": 5586
+      }
+    ]
+  },
+  "attempts": {
+    "events": 16416,
+    "scheduled": 5472,
+    "decoded": 5370,
+    "native_outcomes": {
+      "unsat_in_scope": 1240,
+      "verified_solution": 2301,
+      "resource_exhausted": 1828,
+      "unknown": 1
+    },
+    "late_owner_observations": 0,
+    "complete_owner_deadlines_strict": true,
+    "native_owner_seconds_max": 2.483565049013123,
+    "native_queue_seconds_max": 2.2990029081702232,
+    "terminal_events": {
+      "STARTED": 5472,
+      "GENERATED": 5472,
+      "COMMITTED": 3530,
+      "INCOMPLETE": 1942
+    },
+    "native_complete": 3530,
+    "native_incomplete_reasons": [
+      {
+        "outcome": "verified_solution",
+        "reason": null,
+        "count": 11
+      },
+      {
+        "outcome": "resource_exhausted",
+        "reason": "owner_deadline",
+        "count": 342
+      },
+      {
+        "outcome": "resource_exhausted",
+        "reason": "queue_deadline",
+        "count": 1128
+      },
+      {
+        "outcome": "resource_exhausted",
+        "reason": "resource_exhausted:timeout",
+        "count": 343
+      },
+      {
+        "outcome": "resource_exhausted",
+        "reason": "deadline",
+        "count": 14
+      },
+      {
+        "outcome": "resource_exhausted",
+        "reason": "resource_exhausted:deadline",
+        "count": 1
+      },
+      {
+        "outcome": "unknown",
+        "reason": "unknown:timeout",
+        "count": 1
+      }
+    ]
+  },
+  "pulses": [
+    {
+      "ordinal": 0,
+      "jobs": 18,
+      "seconds": 1.1501324069686234
+    },
+    {
+      "ordinal": 1,
+      "jobs": 18,
+      "seconds": 0.3037015839945525
+    },
+    {
+      "ordinal": 2,
+      "jobs": 18,
+      "seconds": 0.3087900618556887
+    },
+    {
+      "ordinal": 3,
+      "jobs": 18,
+      "seconds": 0.3093564948067069
+    },
+    {
+      "ordinal": 4,
+      "jobs": 18,
+      "seconds": 0.3213543670717627
+    },
+    {
+      "ordinal": 5,
+      "jobs": 18,
+      "seconds": 0.307354950113222
+    },
+    {
+      "ordinal": 6,
+      "jobs": 18,
+      "seconds": 0.33087807218544185
+    },
+    {
+      "ordinal": 7,
+      "jobs": 18,
+      "seconds": 0.31863638013601303
+    },
+    {
+      "ordinal": 8,
+      "jobs": 18,
+      "seconds": 0.3178115710616112
+    },
+    {
+      "ordinal": 9,
+      "jobs": 18,
+      "seconds": 0.324038852006197
+    },
+    {
+      "ordinal": 10,
+      "jobs": 18,
+      "seconds": 0.32059887307696044
+    },
+    {
+      "ordinal": 11,
+      "jobs": 18,
+      "seconds": 0.3151227468624711
+    }
+  ],
+  "job_frontier_exact_union": true,
+  "components": {
+    "checkpoint": {
+      "checkpoints": 57,
+      "seconds": 97.34225593367592
+    },
+    "generation_native": {
+      "decoded": 5370,
+      "emitted_tokens": 301050,
+      "native_complete": 3530,
+      "native_started": 5370,
+      "scheduled": 5472,
+      "seconds": 1547.2131070320029,
+      "started": 5472,
+      "unstarted": 0,
+      "visible_verified": 2310
+    },
+    "gpu_readonly_probe": {
+      "rows": 96,
+      "seconds": 1.3089868277311325
+    },
+    "native_probes": {
+      "jobs": 216,
+      "seconds": 4.627776360139251
+    },
+    "training": {
+      "examples": 234336,
+      "seconds": 4890.791480813408,
+      "tokens": 12172119,
+      "updates": 14646
+    },
+    "validation": {
+      "rows": 14592,
+      "seconds": 135.9174797940068
+    }
+  },
+  "resource_reviews": [
+    {
+      "category_growth_bytes": {
+        "anon": 27709440.0,
+        "driver": 0.0,
+        "file": 1262886912.0
+      },
+      "cpu_equivalents": 1.4469492711160719,
+      "gpu_busy_percent_mean": 74.779632721202,
+      "interpretation": "cgroup and driver are conservative overlapping domains; file cache and growth are reported, not a leak-freedom claim",
+      "leg": 0,
+      "registered_live_upper_bytes": 40924857024,
+      "role_upper_peak_bytes": 10812317696,
+      "steady_samples": 2995,
+      "verdict": "PASS",
+      "training_rate_median": 2587.2249546340054
+    },
+    {
+      "category_growth_bytes": {
+        "anon": 5668864.0,
+        "driver": 24576.0,
+        "file": 4374528.0
+      },
+      "cpu_equivalents": 1.4256021703609092,
+      "gpu_busy_percent_mean": 76.98931552587646,
+      "interpretation": "cgroup and driver are conservative overlapping domains; file cache and growth are reported, not a leak-freedom claim",
+      "leg": 1,
+      "registered_live_upper_bytes": 40924857024,
+      "role_upper_peak_bytes": 11388043264,
+      "steady_samples": 2995,
+      "verdict": "PASS",
+      "training_rate_median": 2396.758353569002
+    }
+  ],
+  "windows": [
+    {
+      "leg": 0,
+      "ordinal": 1,
+      "tokens": 471170,
+      "examples": 9072,
+      "training_seconds": 181.8652029640507,
+      "training_tokens_per_second": 2590.7649859392627
+    },
+    {
+      "leg": 0,
+      "ordinal": 2,
+      "tokens": 452957,
+      "examples": 8720,
+      "training_seconds": 174.54460074519739,
+      "training_tokens_per_second": 2595.078839827494
+    },
+    {
+      "leg": 0,
+      "ordinal": 3,
+      "tokens": 549401,
+      "examples": 10576,
+      "training_seconds": 212.09088860149495,
+      "training_tokens_per_second": 2590.403593585243
+    },
+    {
+      "leg": 0,
+      "ordinal": 4,
+      "tokens": 514399,
+      "examples": 9904,
+      "training_seconds": 198.44679367123172,
+      "training_tokens_per_second": 2592.1255288821076
+    },
+    {
+      "leg": 0,
+      "ordinal": 5,
+      "tokens": 450567,
+      "examples": 8672,
+      "training_seconds": 174.19889892451465,
+      "training_tokens_per_second": 2586.5088860018773
+    },
+    {
+      "leg": 0,
+      "ordinal": 6,
+      "tokens": 550144,
+      "examples": 10592,
+      "training_seconds": 212.7140878357459,
+      "training_tokens_per_second": 2586.3073085446586
+    },
+    {
+      "leg": 0,
+      "ordinal": 7,
+      "tokens": 488609,
+      "examples": 9408,
+      "training_seconds": 188.8518787373323,
+      "training_tokens_per_second": 2587.2604671282606
+    },
+    {
+      "leg": 0,
+      "ordinal": 8,
+      "tokens": 546686,
+      "examples": 10528,
+      "training_seconds": 211.30497484863736,
+      "training_tokens_per_second": 2587.18944213975
+    },
+    {
+      "leg": 0,
+      "ordinal": 9,
+      "tokens": 517114,
+      "examples": 9952,
+      "training_seconds": 200.0415037870407,
+      "training_tokens_per_second": 2585.0335565888713
+    },
+    {
+      "leg": 0,
+      "ordinal": 10,
+      "tokens": 514520,
+      "examples": 9904,
+      "training_seconds": 199.17234816821292,
+      "training_tokens_per_second": 2583.2903248469875
+    },
+    {
+      "leg": 1,
+      "ordinal": 1,
+      "tokens": 527095,
+      "examples": 10144,
+      "training_seconds": 219.60216857073829,
+      "training_tokens_per_second": 2400.226752907552
+    },
+    {
+      "leg": 1,
+      "ordinal": 2,
+      "tokens": 452313,
+      "examples": 8704,
+      "training_seconds": 188.76712023233995,
+      "training_tokens_per_second": 2396.1429270271237
+    },
+    {
+      "leg": 1,
+      "ordinal": 3,
+      "tokens": 519247,
+      "examples": 10000,
+      "training_seconds": 216.7640777810011,
+      "training_tokens_per_second": 2395.4476466557358
+    },
+    {
+      "leg": 1,
+      "ordinal": 4,
+      "tokens": 524086,
+      "examples": 10080,
+      "training_seconds": 218.6460164822638,
+      "training_tokens_per_second": 2396.96111748056
+    },
+    {
+      "leg": 1,
+      "ordinal": 5,
+      "tokens": 459317,
+      "examples": 8848,
+      "training_seconds": 192.28926430316642,
+      "training_tokens_per_second": 2388.6772964913594
+    },
+    {
+      "leg": 1,
+      "ordinal": 6,
+      "tokens": 529094,
+      "examples": 10192,
+      "training_seconds": 220.62942815758288,
+      "training_tokens_per_second": 2398.1116409461874
+    },
+    {
+      "leg": 1,
+      "ordinal": 7,
+      "tokens": 512117,
+      "examples": 9856,
+      "training_seconds": 213.25376053154469,
+      "training_tokens_per_second": 2401.4441701920055
+    },
+    {
+      "leg": 1,
+      "ordinal": 8,
+      "tokens": 469640,
+      "examples": 9040,
+      "training_seconds": 196.4145356740337,
+      "training_tokens_per_second": 2391.0653984357186
+    },
+    {
+      "leg": 1,
+      "ordinal": 9,
+      "tokens": 508801,
+      "examples": 9792,
+      "training_seconds": 212.16395356087014,
+      "training_tokens_per_second": 2398.1500696065427
+    },
+    {
+      "leg": 1,
+      "ordinal": 10,
+      "tokens": 510879,
+      "examples": 9840,
+      "training_seconds": 213.17218853789382,
+      "training_tokens_per_second": 2396.555589657444
+    }
+  ],
+  "between_leg_training_component_decline": 0.07361810604209607,
+  "between_leg_five_percent_investigation_trigger": true,
+  "within_leg_thresholds_pass": true,
+  "observation": {
+    "primary": "ordinary",
+    "overhead": 0.05809951649528289,
+    "identity": "sha256:83f0344f1ee227e4630281ecc79c16c01fd0f8816bfbcd55f588c1cbfe488d37"
+  },
+  "maximum_cleanup_seconds": 0.3629999370314181,
+  "parity": {
+    "records": 10,
+    "mismatches": 0,
+    "maximum_absolute_error": 8.344650268554688e-06
+  },
+  "long_stress": {
+    "actual_update": true,
+    "batch": 32,
+    "body_tokens": 1016,
+    "training_corpus": false
+  },
+  "scorer": {
+    "cases": [
+      {
+        "complete": true,
+        "correct": true,
+        "count": 100,
+        "source_sha256": "sha256:0e6e1396c0ee4cac879567e25fef88ee20351ee7792ce165c74aa4a567896deb"
+      },
+      {
+        "complete": true,
+        "correct": false,
+        "count": 100,
+        "source_sha256": "sha256:d505869b708aab532deac7847854418b5158f9f2adf92b57589ca7598c18d4ab"
+      }
+    ],
+    "cpu_only": true,
+    "final_access": "sealed",
+    "fixture": true,
+    "reference": "sha256:4e523478948faaaf0d4c04ae8b3fc8672f14da09640674aa317d9d6f13f0b8ec",
+    "version": "pipeline-soak-scorer/v1"
+  },
+  "native_component": {
+    "comparison": "sha256:d59489150ad526bd2f51794671c03977ad46ff60605f66e32bae7ffedcab980c",
+    "disposition": "RETAIN_SERIAL_BASELINE",
+    "identity": "sha256:a3b32aaa91d4da83da48a76943bd10279725bf63d73d1152c1337ca1c8163955",
+    "production_adoption": false,
+    "reason": "native report retained in full; joint correctness, resource and five-pair confirmation remain independently mandatory",
+    "version": "pipeline-native-component/v1",
+    "workers": 1
+  },
+  "native_comparison": {
+    "status": "INCONCLUSIVE",
+    "reason": "exactly three complete baseline-only calibration receipts required",
+    "selected_workers": 1
+  },
+  "new_hip_run_required": false,
+  "learning": "NOT_ADMITTED",
+  "long_run_admission": "NOT_ADMITTED",
+  "final_access": "SEALED",
+  "default": "RETAIN_BASELINE",
+  "limitations": [
+    "Between-leg training-component medians decline about7.4%; exceeds5% investigation trigger but below10%; cause not identified, retain observation for next independently admitted run.",
+    "Checkpoint component counters/times are snapshotted before final save; do not treat them as a complete publication-cost forecast. Inclusive parent/host durations remain authoritative.",
+    "Whole diverse32/transfer scientific control and scoring costs remain unknown; visible20 observations are not continuation100/final evidence."
+  ],
+  "images": {
+    "qualification": "sha256:c7ae1dc3281493492023c531185dbb9718cdf19b67bc2f039a35525d3e21bcbd",
+    "gpu": "sha256:2e40c916657634405d2bf2c380e8c53b57e2ac108b7aee149fa1a08a147b3244"
+  },
+  "qualification_summary": {
+    "cpu_tests": 721,
+    "cpu_subtests": 33,
+    "hip_tests": 21,
+    "workflow_tests": 1106,
+    "workflow_skips": 9,
+    "retirement_tests": 123,
+    "policy_tests": 45
+  },
+  "storage": {
+    "peak_transient_bytes": 8102641768,
+    "cap_bytes": 8589934592,
+    "public_archive_bytes": 12982101,
+    "public_archive_cap_bytes": 536870912,
+    "transient_headroom_bytes": 487292824
+  },
+  "component_accounting": {
+    "recorded_seconds": 6677.201086760964,
+    "inclusive_parent_seconds": 7213.195237410953,
+    "unattributed_seconds": 535.994150649989,
+    "note": "Component clocks are not exhaustive: final checkpoint publication, progress/evidence serialization, setup/drain and bookkeeping can remain outside these counters. Do not allocate unattributed time to a particular cause."
+  },
+  "scope_boundaries": {
+    "primary_hardware": "PASS",
+    "portability": "PENDING_REAL_DOCKER",
+    "original_adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+    "full_cost": "UNKNOWN",
+    "learned_quality": "NOT_ASSESSED",
+    "long_run_authority": "NOT_ADMITTED",
+    "checkpoint_authority": "engineering own-state recovery only; not research resume"
+  },
+  "reuse_decision": {
+    "repeat_primary_soak": false,
+    "repeat_size_or_batch_ladder": false,
+    "current_runtime_source_unchanged": true,
+    "accepted_components": [
+      "full model/count/numerics/updates",
+      "full-data batch calibration and selected16",
+      "long-context stress",
+      "persistent two-leg state recovery",
+      "native health/fitting containment",
+      "primary UID/ENOSPC/interruption/scorer operations"
+    ],
+    "not_implied": [
+      "independent Docker qualification",
+      "original complete-work five-pair adoption",
+      "full diverse32/transfer costs",
+      "new training recipe or longer duration",
+      "learning/final admission"
+    ]
+  }
+}
