@@ -10,6 +10,15 @@ from oeis_learn.pipeline_validation.identity import write
 
 
 class Bundle(unittest.TestCase):
+    def test_pilot_member_cap_preserves_mandatory_core(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)/'out';root.mkdir();self.fixture(root)
+            (root/'detail.txt').write_text('public')
+            with self.assertRaisesRegex(ValueError,'member cap'):pack(root,mandatory=['summary.json','contract.json'],member_cap=2)
+            manifest=verify(pack(root,mandatory=['summary.json','contract.json'],member_cap=3))
+            self.assertEqual(len(manifest['members']),2)
+            self.assertEqual(manifest['omissions'][0]['path'],'detail.txt')
+
     def fixture(self, root):
         write(root/'summary.json',dict(selected_scope='FAIL'))
         write(root/'contract.json',dict(identity='contract'))

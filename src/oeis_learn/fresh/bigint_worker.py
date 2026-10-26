@@ -364,6 +364,9 @@ def _train(inputs, output):
         selection['evaluations'].append(dict(update=order['completed'],loss=loss))
         selection.setdefault('pilot_validations',[]).append(item)
         if len(selection['evaluations'])>4096:raise ValueError('pilot validation journal exhausted')
+        import json
+        if len((json.dumps(selection['pilot_validations'],sort_keys=True,indent=2,allow_nan=False)+'\n').encode())>8<<20:
+            raise ValueError('cumulative pilot validation journal exceeds8MiB')
         write(output/'pilot-validation.json',item)
         return item
 

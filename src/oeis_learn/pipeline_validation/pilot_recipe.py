@@ -13,6 +13,16 @@ def recipe():
 
 
 def validate_effective(value):
+    from oeis_learn.fresh.bigint_config import defaults
+    from .model_sizes import PROFILES
+    expected=defaults();expected['version']='bigint-bootstrap/v3'
+    expected['data'].update(training=32768,max_families=16384)
+    expected['model'].update(d_model=768,heads=12,encoder_layers=6,decoder_layers=6,ff=3072)
+    expected['learning'].update(batch_size=16,max_updates=SPEC['max_updates'])
+    expected['budgets'].update(training_seconds=86400,preparation_seconds=9000)
+    expected.update(pipeline=PIPELINE,model_profile=PROFILES['m100'],pilot_profile=PROFILE)
+    if {k:v for k,v in value.items() if k!='identity'}!=expected:
+        raise ValueError('exact frozen pilot recipe required; changed data/model/solver/seed policy is a new prospective profile')
     if (value['pilot_profile']!=PROFILE or value['data']['training']!=32768 or value['data']['max_families']!=16384
         or value['learning']['batch_size']!=16 or value['learning']['max_updates']!=SPEC['max_updates']
         or value['budgets']['training_seconds']!=86400 or value['budgets']['preparation_seconds']!=9000

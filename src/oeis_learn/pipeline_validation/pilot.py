@@ -58,11 +58,13 @@ def learning_report(prepared,prompts,snapshots,*,purpose):
                         controls[control]=paired(comparison,rows)
                 if baseline is None:baseline=rows
                 observations.append(dict(ordinal=point['ordinal'],tokens=point['tokens'],updates=point['updates'],
-                    learner_role_seconds=point.get('learner_role_seconds'),examples=point.get('examples'),unique_examples=point.get('unique_examples'),
+                    learner_role_seconds=point.get('learner_role_seconds'),inclusive_wall_seconds=point.get('inclusive_wall_seconds'),
+                    examples=point.get('examples'),unique_examples=point.get('unique_examples'),unique_training_tokens=point.get('unique_training_tokens'),
                     effective_example_epochs=point.get('examples',0)/SPEC['training'] if point.get('examples') is not None else None,
                     measurement=result,stratified=stratified,change_from_initialization=paired(baseline,rows),
                     correct_minus_controls=controls,outcomes=rows))
-                if point['tokens'] is not None:trend.append(dict(tokens=point['tokens'],accuracy=result['accuracy'],coverage=result['coverage'],learner_role_seconds=point.get('learner_role_seconds')))
+                if point['tokens'] is not None:trend.append(dict(tokens=point['tokens'],accuracy=result['accuracy'],coverage=result['coverage'],
+                    complete_roster=digest(sorted(r['id'] for r in rows if r['complete'])),learner_role_seconds=point.get('learner_role_seconds')))
             projection=extrapolate(trend)
             if split in ('parameter_development','structural_development'):
                 losses=[s.get('teacher_forcing',{}).get('splits',{}).get(split,{}).get('loss') for s in snapshots]
@@ -95,6 +97,7 @@ class PilotStages:
         self.a=adapters;self.prepared=None;self.manifest=None;self.state=None;self.trainer=None
         self.snapshots=[];self.calibrations=[];self.purpose='preflight';self.deadline=None;self.interrupted=[];self.archives=None
         self.learner_seconds=0.;self.setup_seconds=0.
+        self.started=time.monotonic()
 
     def invoke(self,root,label,mode,files,*,seconds,ordinal=0,worker_seconds=0):
         began=time.monotonic();a=self.a;host=a.host(a.args.engine)
@@ -191,12 +194,18 @@ class PilotStages:
         self.calibrations.append(row)
         point=dict(ordinal=ordinal,tokens=self.trainer['pilot']['state']['tokens'],updates=self.trainer['update'],
             examples=self.trainer['pilot']['state']['examples'],unique_examples=self.trainer['pilot']['state']['unique_examples'],
+            unique_training_tokens=self.trainer['pilot']['state']['unique_tokens'],
+            repeated_training_tokens=self.trainer['pilot']['state']['tokens']-self.trainer['pilot']['state']['unique_tokens'],
+            repeated_examples=self.trainer['pilot']['state']['examples']-self.trainer['pilot']['state']['unique_examples'],
+            effective_token_epochs=self.trainer['pilot']['state']['tokens']/self.manifest['audit']['tokens']['training'],
+            inclusive_wall_seconds=time.monotonic()-self.started,
             learner_role_seconds=None if self.interrupted else self.learner_seconds,
             initialization_role_seconds=self.setup_seconds,evaluation_role_seconds=generation_seconds+scoring_seconds,
             checkpoint=self.trainer['checkpoint'],parameter_digest=self.trainer['final_parameter_digest'],
             teacher_forcing=json.loads((self.state/'pilot-validation.json').read_text()),
             outcomes=json.loads((score/'outcomes.json').read_text()),state='COMPLETE')
-        self.snapshots.append(point);write(root/('snapshot-'+str(ordinal)+'.json'),point)
+        from .pilot_runtime import bounded_write
+        bounded_write(root/('snapshot-'+str(ordinal)+'.json'),point,6<<20);self.snapshots.append(point)
         for path in (gen/'private',score/'private'):
             if path.exists():shutil.rmtree(path)
         return point
@@ -216,6 +225,10 @@ class PilotStages:
             path=confined(parent,relative);ref=manifest['files'][relative]
             if file_hash(path)!=ref['sha256'] or path.stat().st_size!=ref['bytes']:raise ValueError('approved development input changed')
             shutil.copyfile(path,source/name);files[name]=source/name
+        lineage=seal(dict(version='pipeline-pilot-exposed-development/v1',prepared=manifest['identity'],
+            files={name:{'sha256':file_hash(path),'bytes':path.stat().st_size} for name,path in files.items()},
+            count=8,exposure='Previously exposed development; accepted engineering soak and input preparation. Not a fresh final cohort.'))
+        write(source/'oeis-lineage.json',lineage);files['oeis-lineage.json']=source/'oeis-lineage.json'
         for engine in a.args.pipeline_engines:
             if a.receipts.get('cpu.'+engine+'.semantic',{}).get('state')=='PASS':
                 for path in (output.parent/('cpu.'+engine+'.semantic')).rglob('pytest'):
@@ -257,7 +270,8 @@ class PilotStages:
         write(output/'qualification.json',qualification)
         if self.manifest:
             report=learning_report(self.manifest,json.loads((self.prepared/'prompts.json').read_text()),self.snapshots,purpose=self.purpose)
-            write(output/'learning.json',report)
+            from .pilot_runtime import bounded_write
+            bounded_write(output/'learning.json',report,16<<20)
             ref=lambda p:dict(path=str(p.relative_to(a.root)),sha256=file_hash(p))
             candidate=decision(source=source,prepared=ref(self.prepared/'prepared.json'),
                 qualification=ref(output/'qualification.json'),cost=ref(output/'cost.json'))

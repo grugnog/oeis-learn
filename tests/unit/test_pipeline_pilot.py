@@ -9,6 +9,19 @@ from oeis_learn.pipeline_validation.identity import seal,digest
 
 
 class Pilot(unittest.TestCase):
+    def test_pretty_serialization_and_event_stream_caps_are_real_byte_limits(self):
+        from oeis_learn.pipeline_validation.pilot_runtime import bounded_write
+        from oeis_learn.pipeline_validation.pilot_evidence import Evidence
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);value={'rows':[{'a':i} for i in range(20)]}
+            compact=len(json.dumps(value).encode())
+            with self.assertRaises(ResourceBreach):bounded_write(root/'too-large.json',value,compact)
+            self.assertFalse((root/'too-large.json').exists())
+            with Evidence(root/'events',[{'id':'a'}]) as evidence:
+                evidence.bytes=16<<20
+                with self.assertRaisesRegex(ValueError,'16MiB'):evidence('a','correct',0,'STARTED',{})
+
     def test_recipe_normalization_without_importing_model_dependencies(self):
         import subprocess,sys
         # Only InputMask's constructor is replaced. Real pinned tests check the
@@ -83,6 +96,32 @@ old=resolve({'version':'bigint-bootstrap/v1'});assert old['learning']['max_updat
         self.assertEqual(parse_decision(forged)['status'],'BLOCKED')
         with self.assertRaises(ValueError):parse_decision(seal(dict(record,final_plan={'path':'private/final'})))
 
+    def test_exact_public_authority_cost_images_and_receipts_precede_private_inputs(self):
+        from oeis_learn.pipeline_validation.pilot_contract import decision,decision_payload,parse_decision,PROFILE,qualification_requirements
+        from oeis_learn.pipeline_validation.pilot_cost import forecast
+        from oeis_learn.pipeline_validation.identity import write,file_hash
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=digest('source');work=digest('work')
+            observations=[seal(dict(complete=True,seconds=100,generation_seconds=60,scoring_seconds=40,projected_all_selected_scoring_seconds=40,rows=296,source=source,work=work,checkpoint=digest(i))) for i in range(3)]
+            archives=[seal(dict(source=source,complete=True,seconds=1.,bytes=16<<20,members=4096,filesystem_device=1,ordinal=i)) for i in range(3)]
+            write(root/'cost.json',forecast(observations,source=source,work=work,archives=archives))
+            required=sorted(qualification_requirements('podman'))
+            q=seal(dict(version='pipeline-pilot-qualification/v1',state='PASS',source=source,profile=PROFILE['identity'],work=work,
+                engine='podman',cpus=16,resources=digest('resources'),image={'gpu':digest('gpu'),'qualification':digest('cpu')},
+                required=required,receipts={k:dict(state='PASS',identity=digest(k)) for k in required}))
+            write(root/'q.json',q);write(root/'prepared.json',{'identity':work})
+            ref=lambda n:dict(path=n,sha256=file_hash(root/n))
+            d=decision(source=source,prepared=ref('prepared.json'),qualification=ref('q.json'),cost=ref('cost.json'))
+            write(root/'authority.json',seal(dict(version='pipeline-study-authority/v1',decision_payload=decision_payload(d),approved=True,reviewed_by='fixture operator')))
+            d=seal(dict(d,state='ADMITTED',authority=ref('authority.json')))
+            self.assertEqual(parse_decision(d,root=root,source=source)['status'],'ADMITTED')
+            # Even a newly sealed decision cannot use missing controls to open private inputs.
+            q['receipts'][required[0]]['state']='PARTIAL';write(root/'q.json',seal(q),exclusive=False)
+            bad=seal(dict(d,prepared={'path':'private/never-exists','sha256':digest('missing')},qualification=ref('q.json')))
+            write(root/'authority.json',seal(dict(version='pipeline-study-authority/v1',decision_payload=decision_payload(bad),approved=True,reviewed_by='fixture operator')),exclusive=False)
+            bad=seal(dict(bad,authority=ref('authority.json')))
+            self.assertIn('qualification_receipts',parse_decision(bad,root=root,source=source)['missing'])
+
     def test_pilot_ledger_does_not_refund_or_renew_after_interruption(self):
         from oeis_learn.pipeline_validation.pilot_ledger import PilotLedger
         from oeis_learn.pipeline_validation.pilot_contract import decision
@@ -104,8 +143,11 @@ old=resolve({'version':'bigint-bootstrap/v1'});assert old['learning']['max_updat
     def test_sampling_and_archive_forecast_bounds_are_prospective(self):
         from oeis_learn.pipeline_validation.pilot_contract import SPEC
         # Mandatory worst-case evidence, without assuming compression.
-        upper=SPEC['max_attempt_events']*2048+120000*768+(6*8+6*4+32)*(1<<20)
-        self.assertLess(upper,(512-16)<<20)
+        # Events96, role samples<90, selections48, score24, snapshots36,
+        # cumulative ledger40, report16, journals8, bins12, other core20MiB.
+        upper=(96+90+48+24+36+40+16+8+12+20)*(1<<20)
+        self.assertEqual(upper,390<<20)
+        self.assertLess(upper+ (16<<20),512<<20)
 
     def test_evidence_retains_all_unstarted_attempts_and_hashes_long_tokens(self):
         from oeis_learn.pipeline_validation.pilot_evidence import Evidence
@@ -212,6 +254,8 @@ class LearningCurves(unittest.TestCase):
         self.assertAlmostEqual(r['scenarios']['2x']['recent_trend'],.5)
         self.assertIsNone(r['guaranteed_capacity_upper_bound'])
         self.assertEqual(extrapolate([dict(x,coverage=.5) for x in points])['status'],'UNKNOWN')
+        changed=[dict(x,complete_roster=digest(i%2)) for i,x in enumerate(points)]
+        self.assertEqual(extrapolate(changed)['status'],'UNKNOWN')
         points[-1]['accuracy']=0.
         self.assertEqual(extrapolate(points)['status'],'UNKNOWN')
 

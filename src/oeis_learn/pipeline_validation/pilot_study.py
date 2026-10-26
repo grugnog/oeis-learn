@@ -131,7 +131,8 @@ class Study:
     def finalize(self,output,invocation,receipts):
         p=self.p
         report=learning_report(p.manifest,json.loads((p.prepared/'prompts.json').read_text()),p.snapshots,purpose='longrun')
-        write(output/'learning.json',report);write(output/'debits.json',self.ledger.value)
+        from .pilot_runtime import bounded_write
+        bounded_write(output/'learning.json',report,16<<20);bounded_write(output/'debits.json',self.ledger.value,40<<20)
         complete=len(p.snapshots)==6 and all(r['state']=='COMPLETE' for k,r in self.ledger.value['slots'].items() if k.startswith('pilot.'))
         measured_complete=all(x['measurement']['coverage']>=.95 for v in report['series'].values() for x in v['points'])
         result=seal(dict(version='pipeline-pilot-study-report/v1',study=self.record['identity'],source=self.record['source'],
@@ -185,7 +186,7 @@ def run(args,root,host_factory,record):
             maximum=min(maximum,args.max_seconds)
         for path in ledger.value['invocations']:confined(root,path)
         if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh pilot recovery output required')
-        ledger.invocation(output);pilot.deadline=ledger.value['expires']
+        ledger.invocation(output);pilot.deadline=ledger.value['expires'];pilot.started=ledger.value['started']
         adapter=Study(pilot,ledger,record,cost,output)
         # The outer watch includes linked old state/data across recovery invocations.
         with DiskWatchdog(held,held/'durable-audit',cap=32<<30,extra_roots=[prepared,*map(Path,ledger.value['invocations'])],free_reserve=5<<30):

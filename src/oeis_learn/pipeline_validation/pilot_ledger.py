@@ -27,6 +27,9 @@ class PilotLedger:
 
     def persist(self):
         self.value=seal(self.value)
+        if len((json.dumps(self.value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode())>40<<20:
+            from .runner import ResourceBreach
+            raise ResourceBreach('mandatory cumulative pilot ledger exceeds40MiB')
         replace_json(self.path,self.value)
 
     def remaining(self):

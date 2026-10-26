@@ -17,6 +17,9 @@ def test_opt_in_recipe_preserves_old_limits_and_cannot_enable_interventions():
         with pytest.raises(ValueError):resolve(bad)
     bad=copy.deepcopy(old);bad.pop('identity');bad['learning']['max_updates']=1048576
     with pytest.raises(ValueError):resolve(bad)
+    for section,field,value in [('model','seed',20261017),('data','seed',20261017),('learning','validation_every',100)]:
+        bad=copy.deepcopy(new);bad.pop('identity');bad[section][field]=value
+        with pytest.raises(ValueError):resolve(bad)
 
 
 def test_actual_v3_constructor_and_public_independent_cost_sentinels(tmp_path):

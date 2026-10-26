@@ -6,7 +6,7 @@ from .identity import seal,digest,write
 
 class Evidence:
     def __init__(self,output,rows):
-        self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True);self.events=0
+        self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True);self.events=0;self.bytes=0
         self.jobs={(r['id'],mode,i):'UNSTARTED' for r in rows for mode,n in
             [('correct',8),('shuffled',1),('absent',1),('template',8)] for i in range(n)}
 
@@ -31,6 +31,8 @@ class Evidence:
         row=dict(prompt=prompt,mode=mode,attempt=attempt,event=event,payload_sha256=digest(payload),payload=compact)
         raw=json.dumps(row,sort_keys=True,allow_nan=False)+'\n'
         if len(raw.encode())>2048:raise ValueError('pilot event byte capacity exceeded')
+        self.bytes+=len(raw.encode())
+        if self.bytes>16<<20:raise ValueError('pilot mandatory event stream exceeded16MiB')
         with (self.output/'attempts.jsonl').open('a') as stream:stream.write(raw)
 
     def __enter__(self):return self
@@ -39,7 +41,7 @@ class Evidence:
 
     def finish(self):
         from collections import Counter
-        result=seal(dict(version='pipeline-pilot-attempt-index/v1',events=self.events,
+        result=seal(dict(version='pipeline-pilot-attempt-index/v1',events=self.events,bytes=self.bytes,
             expected=len(self.jobs),states=dict(Counter(self.jobs.values())),
             jobs=[dict(prompt=p,mode=m,attempt=i,state=s) for (p,m,i),s in sorted(self.jobs.items())]))
         write(self.output/'attempt-index.json',result)

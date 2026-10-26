@@ -9,7 +9,7 @@ from .sizing_execution import sizing_execution,execution_observation
 
 
 def bounded_write(path,value,cap):
-    if len(json.dumps(value,allow_nan=False).encode())>cap:
+    if len((json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode())>cap:
         from .runner import ResourceBreach
         raise ResourceBreach('mandatory pilot evidence byte cap exceeded: '+str(path))
     write(path,value)

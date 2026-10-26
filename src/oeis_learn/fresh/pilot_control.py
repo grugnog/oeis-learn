@@ -42,7 +42,7 @@ class Control:
             self.state=previous
         else:
             if previous is not None:raise ValueError('fresh pilot cannot reset prior counters')
-            self.state=dict(binding=self.binding,tokens=0,examples=0,updates=0,validations=0,completed_ordinal=-1,
+            self.state=dict(binding=self.binding,tokens=0,unique_tokens=0,examples=0,updates=0,validations=0,completed_ordinal=-1,
                 next_validation=self.cfg['cadence_tokens'],components={},bins=[],role_ordinal=-1,seen=[])
         if self.state['role_ordinal']>=self.cfg['ordinal']:raise ValueError('duplicate pilot role')
         self.state['role_ordinal']=self.cfg['ordinal'];self.start_tokens=self.state['tokens'];self.start_updates=self.state['updates']
@@ -65,6 +65,7 @@ class Control:
             if r.get('id') is not None and r['id'] not in self.seen:
                 if len(self.seen)>=SPEC['training']:raise ValueError('pilot unique-data allowance exceeded')
                 self.seen.add(r['id']);self.state['seen'].append(r['id'])
+                self.state['unique_tokens']+=len(r['tokens'])
         self.state['tokens']+=n;self.state['examples']+=len(rows);self.state['updates']+=1
         self.component('training',seconds,tokens=n,examples=len(rows),updates=1)
         ordinal=int((self.clock()-self.started)//60)

@@ -63,7 +63,7 @@ def choose(rows):
     return result
 
 
-def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusions,admissions):
+def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusions,admissions,lineage):
     from oeis_learn.fresh.bigint_inputs import visible_record
     from oeis_learn.fresh.bigint_splits import overlap_groups,diverse_tiny,behavior
     splits=rows['splits'];flat=[r for group in splits.values() for r in group]
@@ -99,6 +99,7 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
     write(out/'recipe.json',recipe);write(out/'private/admissions.json',admissions)
     tokens={k:sum(len(r['tokens']) for r in rs) for k,rs in examples.items()}
     audit=dict(counts={k:len(rs) for k,rs in examples.items()},tokens=tokens,
+        exposed_development=lineage,
         stages=dict(Counter(r['stage'] for r in splits['training'])),
         nonaffine=sum(behavior(r)[2] for r in splits['training']),sampled=sampled,exclusions=dict(exclusions),
         groups_identity=digest(groups),native_admissions=len(admissions),admissions_identity=digest(admissions),structural_families=len({r['family'] for r in splits['structural_development']}),
@@ -108,12 +109,13 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
     audit['splits']={}
     for split,rs in splits.items():
         lengths=[len(paired_tokens(r)['concrete']) for r in rs]
+        strata_rows=[labels(r) for r in rs]
         audit['splits'][split]=dict(unique_sources=len({digest(r['source']) for r in rs}),
             unique_groups=len({groups[r['id']] for r in rs}),families=len({r['family'] for r in rs}),
             source_identity=digest([digest(r['source']) for r in rs]),assignment_identity=digest([r['assignment'] for r in rs]),
             target_lengths=dict(min=min(lengths),max=max(lengths),sum=sum(lengths)),
             parameter_counts=dict(Counter(len(r['assignment']) for r in rs)),
-            strata={key:dict(Counter(labels(r)[key] for r in rs)) for key in ('size','length','complexity','nonaffine','offset_only','constant')})
+            strata={key:dict(Counter(r[key] for r in strata_rows)) for key in ('size','length','complexity','nonaffine','offset_only','constant')})
     m=seal(dict(version='pipeline-pilot-inputs/v1',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
         roster=roster,audit=audit,files={name:{'sha256':file_hash(out/name),'bytes':(out/name).stat().st_size}
             for name in ('examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json')}))
@@ -156,6 +158,11 @@ def prepare(inputs,output,config):
     opt=config['options'];root=Path(output)/'private/prepared'
     begin=time.monotonic();deadline=begin+opt['seconds']-60
     prompts=json.loads((inputs/'oeis-prompts.json').read_text());truth=json.loads((inputs/'oeis-truth.json').read_text())
+    lineage=json.loads((inputs/'oeis-lineage.json').read_text())
+    validate(lineage,{'version','prepared','files','count','exposure'},'pipeline-pilot-exposed-development/v1')
+    if lineage['count']!=8 or set(lineage['files'])!={'oeis-prompts.json','oeis-truth.json'}:raise ValueError('frozen exposed-development lineage required')
+    for name,ref in lineage['files'].items():
+        if file_hash(inputs/name)!=ref['sha256'] or (inputs/name).stat().st_size!=ref['bytes']:raise ValueError('exposed-development lineage changed')
     sampler=BigintSampler(SPEC['seed']);limits=ResourceProfile();rows=[];excluded=Counter();selected=None
     for counter in range(SPEC['max_source_counters']):
         if time.monotonic()>=deadline:raise TimeoutError('finite pilot corpus preparation deadline')
@@ -186,7 +193,7 @@ def prepare(inputs,output,config):
                 admitted+=1
                 admissions[r['id']]=dict(source=digest(r['source']),horizon=digest(dict(indices=r['indices'],values=r['values'])),resource=r['resource'],runtime=client.runtime_identity('bigint-body/v1'),independent_reference=True)
                 if admitted%256==0:replace_json(Path(output)/'progress.json',dict(admitted=admitted,seconds=time.monotonic()-begin))
-    m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded,admissions=admissions)
+    m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded,admissions=admissions,lineage=lineage)
     check(root,hidden=True);write(Path(output)/'corpus-audit.json',m['audit'])
     return dict(status='COMPLETE',work=m['identity'],prepared='private/prepared',counts=m['audit']['counts'],
         native_admitted=admitted,seconds=time.monotonic()-begin)

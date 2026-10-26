@@ -108,11 +108,17 @@ decision, fatal audits, orphan work or interrupted recovery blocks continuation.
 
 Hard work limits:1,048,576 updates,2^30 target tokens,32,768 unique training IDs,
 4,096 validations,4,096 minute bins,100,000 compact attempt events at2,048 bytes
-each. Teacher forcing uses the fixed32 panel and full128+128 development at
+each and16MiB per snapshot stream. Teacher forcing uses the fixed32 panel and full128+128 development at
 half-corpus-token cadence and every milestone; objective/optimizer are unchanged.
 Logs are bounded aggregates. Public evidence caps: selections8MiB and scoring
-outcomes4MiB per snapshot, validation journal8MiB per role, training bins2MiB per
-role, memory samples at most90,000 per role at768 bytes and1Hz.
+outcomes4MiB per snapshot, host snapshot6MiB, cumulative ledger40MiB, learning
+report16MiB, cumulative validation journal8MiB, training bins2MiB per role,
+memory samples at most90,000 per role at768 bytes and1Hz. Byte checks include
+the actual pretty-printed serialization. The conservative public-evidence
+worksheet is390MiB (events96, samples90, selections48, outcomes24, snapshots36,
+ledger40, report16, validation8, bins12, other core20MiB), leaving the16MiB
+emergency reserve and archive inventory/compression allowance within512MiB.
+Actual mandatory evidence/archive checks still fail rather than drop required work.
 
 Disk bounds are16GiB per invocation,32GiB durable across prepared data and all
 recovery invocations,5GiB free-space floor,128MiB optional traces,512MiB ZIP and
@@ -140,7 +146,8 @@ absent and eight-attempt correct/template budgets are explicitly unequal.
 
 Descriptive existing family resampling uses seed20261016 only for complete pairs;
 it is not seed variance or a fresh-final population confidence interval. At least
-four comparable nonzero token exposures with coverage at least95%, strictly
+four comparable nonzero token exposures with coverage at least95%, the same
+complete-scored roster/coverage at each point, strictly
 increasing exposure, no negative segment slope, a held-out later-checkpoint
 backtest error at most5 percentage points, and no worsening dev loss are required
 for conditional2x/4x-token scenarios. Publish plateau, recent median per-doubling

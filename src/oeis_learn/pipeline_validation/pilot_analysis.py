@@ -48,6 +48,8 @@ def extrapolate(points):
     for r in rows:
         number(r['tokens'],positive=True);number(r['accuracy']);number(r['coverage'])
     if any(r['coverage']<.95 or r['coverage']>1 or r['accuracy']>1 for r in rows):return unknown('inadequate complete coverage')
+    if len({r['coverage'] for r in rows})!=1 or len({r.get('complete_roster') for r in rows})!=1:
+        return unknown('complete evaluation coverage/population changed across checkpoints')
     if any(b['tokens']<=a['tokens'] for a,b in zip(rows,rows[1:])):return unknown('exposure did not strictly advance')
     slopes=[(b['accuracy']-a['accuracy'])/math.log2(b['tokens']/a['tokens']) for a,b in zip(rows,rows[1:])]
     predicted=rows[-2]['accuracy']+statistics.median(slopes[:-1])*math.log2(rows[-1]['tokens']/rows[-2]['tokens'])
