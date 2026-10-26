@@ -176,6 +176,14 @@ def prepare(inputs,output,config):
         replace_json(Path(output)/'preparation.json',stats)
     report()
     try:
+        if cached:
+            provenance_path=inputs/'reference-provenance.json'
+            if provenance_path.stat().st_size>32768:raise ValueError('bounded reference provenance required')
+            provenance=json.loads(provenance_path.read_text())
+            validate(provenance,{'version','binding','index_sha256','producer','receipt','state','origin','authority'},'pipeline-pilot-reference-provenance/v1')
+            if (provenance['binding']!=cache.expected or provenance['index_sha256']!=file_hash(cache.path)
+                or provenance['authority']!='RAW_REFERENCE_ONLY'):raise ValueError('reference provenance/cache binding changed')
+            stats['reference_provenance']=provenance;report()
         for counter in range(SPEC['max_source_counters']):
             if time.monotonic()>=deadline:raise TimeoutError('finite pilot corpus preparation deadline')
             if counter<cached:

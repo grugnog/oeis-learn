@@ -50,6 +50,11 @@ reference discriminator and the original visible input-bit limit, in addition to
 intermediate-bit, source and resource checks. Private references remain outside
 public evidence ZIPs and learner/generator mounts.
 Retain the complete prior output directory to recover them after a failed run.
+The next invocation retains the complete public producer proof/receipt and a
+bounded sealed raw-reference lineage. Original producer/cost status survives
+further reuse; locally prepared reference data explicitly records unknown total
+offline preparation cost. Copy time is never relabeled the original math cost,
+and a producer PASS never becomes native/HIP/learning authority.
 
 Learners receive only visible20 generic values/indices, generic targets and
 bounded horizon indices. Generators receive only visible20 prompts and the actual

@@ -29,10 +29,18 @@ class CorpusSelection(unittest.TestCase):
                 self.assertEqual(report['selection_attempts'][0]['audit']['reason'],'explicit fixture shortage')
                 self.assertEqual(report['reference_cache']['count'],1)
                 shutil.copytree(output/'private/reference-cache',inputs/'reference-cache')
+                def lineage():
+                    index=inputs/'reference-cache/index.json'
+                    write(inputs/'reference-provenance.json',seal(dict(version='pipeline-pilot-reference-provenance/v1',
+                        binding=report['reference_cache']['binding'],index_sha256=file_hash(index),producer=digest('fixture proof'),
+                        receipt=digest('fixture receipt'),state='PARTIAL',origin=dict(cost_status='UNKNOWN_FIXTURE'),authority='RAW_REFERENCE_ONLY')),exclusive=False)
+                lineage()
                 second=root/'second';second.mkdir()
                 with patch('oeis_learn.data.bigint_programs.materialize',side_effect=AssertionError('must reuse original reference')):
                     with self.assertRaisesRegex(ValueError,'training'):pilot_data.prepare(inputs,second,config)
-                self.assertEqual(json.loads((second/'preparation.json').read_text())['reused_reference_counters'],1)
+                restored=json.loads((second/'preparation.json').read_text())
+                self.assertEqual(restored['reused_reference_counters'],1)
+                self.assertEqual(restored['reference_provenance']['origin']['cost_status'],'UNKNOWN_FIXTURE')
                 from oeis_learn.pipeline_validation.pilot_cache import ReferenceCache
                 original=list(ReferenceCache(output/'private/reference-cache',report['reference_cache']['binding']).records())[0]['row']
                 for label,change,pattern in [
@@ -42,6 +50,7 @@ class CorpusSelection(unittest.TestCase):
                     row=dict(original,**change);seed=ReferenceCache(root/label,report['reference_cache']['binding'])
                     seed.append(0,row);seed.flush()
                     shutil.rmtree(inputs/'reference-cache');shutil.copytree(root/label,inputs/'reference-cache')
+                    lineage()
                     destination=root/(label+'-result');destination.mkdir()
                     with self.assertRaisesRegex(ValueError,pattern):pilot_data.prepare(inputs,destination,config)
 

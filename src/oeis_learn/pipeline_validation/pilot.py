@@ -240,8 +240,26 @@ class PilotStages:
                 ref=json.loads(proof.read_text()).get('reference_cache',{})
                 if ref.get('binding')==expected:
                     if file_hash(index)!=ref['index_sha256']:raise ValueError('retained reference cache index changed')
-                    seeds.append((ref['count'],index.parent))
-        if seeds:files['reference-cache']=max(seeds,key=lambda x:x[0])[1]
+                    producer=json.loads(proof.read_text())
+                    receipt=json.loads((prior.parent/'receipt.json').read_text())
+                    seeds.append((ref['count'],index.parent,producer,receipt))
+        if seeds:
+            count,cache_root,producer,receipt=max(seeds,key=lambda x:x[0])
+            files['reference-cache']=cache_root
+            # Preserve the complete public producer proof; only its compact
+            # lineage goes into the CPU role. No producer PASS is imported.
+            retained=dict(preparation=producer,receipt=receipt)
+            write(output/'reference-reuse.json',retained)
+            origin=producer.get('reference_provenance',{}).get('origin') or dict(
+                source=producer['source'],receipt=receipt['identity'],
+                elapsed_seconds=receipt.get('observations',{}).get('elapsed_seconds'),
+                cost_status=producer.get('preparation_cost_status','ENCLOSING_ROLE_ONLY'),
+                provenance=producer.get('provenance','Independent reference in production preparation; see retained public proof.'))
+            provenance=seal(dict(version='pipeline-pilot-reference-provenance/v1',binding=expected,
+                index_sha256=file_hash(cache_root/'index.json'),producer=digest(retained),
+                receipt=receipt['identity'],state=receipt['state'],origin=origin,authority='RAW_REFERENCE_ONLY'))
+            write(source/'reference-provenance.json',provenance)
+            files['reference-provenance.json']=source/'reference-provenance.json'
         for engine in a.args.pipeline_engines:
             if a.receipts.get('cpu.'+engine+'.semantic',{}).get('state')=='PASS':
                 for path in (output.parent/('cpu.'+engine+'.semantic')).rglob('pytest'):
