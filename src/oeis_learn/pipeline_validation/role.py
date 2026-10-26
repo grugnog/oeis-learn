@@ -182,7 +182,7 @@ def cpu_contracts(inputs,output,config):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-score','pilot-recover']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
     role_started=time.monotonic()
@@ -209,22 +209,26 @@ def main(argv=None):
         from .coschedule import reference_role as coschedule_reference,gpu_role as coschedule_gpu,study as coschedule_study
         from .model_sizing import reference_role as sizing_reference,gpu_role as sizing_trial
         from .soak_runtime import reference as soak_reference,trial as soak_trial
+        from .pilot_runtime import train as pilot_train,generate as pilot_generate,score as pilot_score,recover as pilot_recover
+        from .pilot_data import prepare as pilot_prepare
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
         if ceiling is None:
             from .resources import observe,resolve
             ceiling=resolve(**observe())['ceiling_bytes']
-        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study','sizing-trial','soak-trial'},
-                render_node=config['options'].get('render_node'),audit_samples=args.mode.startswith('soak-')) as guard:
-            if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial'} and not guard.report()['qualified']:
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study','sizing-trial','soak-trial','pilot-train','pilot-generate'},
+                render_node=config['options'].get('render_node'),audit_samples=args.mode.startswith(('soak-','pilot-')),
+                sample_limit=90000 if args.mode.startswith('pilot-') else 9000,
+                sample_bytes=768 if args.mode.startswith('pilot-') else 4096) as guard:
+            if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-score','pilot-recover'} and not guard.report()['qualified']:
                 raise RuntimeError('known aggregate memory accounting required before '+args.mode)
-            result={'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study,'sizing-reference':sizing_reference,'sizing-trial':sizing_trial,'soak-reference':soak_reference,'soak-trial':soak_trial}[args.mode](inputs,output,config)
+            result={'pilot-recover':pilot_recover,'pilot-prepare':pilot_prepare,'pilot-train':pilot_train,'pilot-generate':pilot_generate,'pilot-score':pilot_score,'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study,'sizing-reference':sizing_reference,'sizing-trial':sizing_trial,'soak-reference':soak_reference,'soak-trial':soak_trial}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach
         from oeis_learn.synthesis.worker_pool import NonQuiescentWorker
         result=dict(status='FAIL',error=f'{type(exc).__name__}: {exc}',
-            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,ResourceBreach,NonQuiescentWorker)) else None)
+            fatal='RESOURCE_BREACH' if isinstance(exc,(MemoryError,ResourceBreach,NonQuiescentWorker)) or type(exc).__name__=='OutOfMemoryError' or isinstance(exc,FloatingPointError) else None)
     finally:
         result['seconds_through_role']=time.monotonic()-role_started
         result.setdefault('version','pipeline-role-result/v1')

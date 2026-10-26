@@ -13,7 +13,7 @@ def public(path):
     return path.suffix in {'.json','.jsonl','.xml','.log','.md','.txt','.csv','.html'} and not (set(path.parts)&EXCLUDED or path.suffix in {'.pt','.pth','.bin','.ckpt','.zip','.lock'} or 'truth' in path.name or 'weights' in path.name)
 
 
-def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20):
+def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20, member_cap=None):
     root=Path(root)
     archive=root.with_suffix('.zip')
     if archive.exists():
@@ -29,6 +29,8 @@ def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20):
         if used+size > cap-(1<<20):
             raise ValueError('mandatory evidence exceeds archive cap: '+str(path))
         members.append(dict(path=name,bytes=size,sha256=file_hash(path),mandatory=True));used+=size
+    if member_cap is not None and len(members)+1>member_cap:
+        raise ValueError('mandatory evidence exceeds archive member cap')
     names={r['path'] for r in members}
     optional=0
     for path in sorted(root.rglob('*')):
@@ -44,7 +46,7 @@ def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20):
         if not path.is_file() or not public(Path(name)):
             continue
         size=path.stat().st_size
-        if used+size>cap-(1<<20) or optional+size>optional_cap:
+        if used+size>cap-(1<<20) or optional+size>optional_cap or member_cap is not None and len(members)+1>=member_cap:
             omissions.append(dict(path=name,reason='optional byte cap'));continue
         members.append(dict(path=name,bytes=size,sha256=file_hash(path),mandatory=False));used+=size;optional+=size
     summary=json.loads((root/'summary.json').read_text())

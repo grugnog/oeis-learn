@@ -71,7 +71,7 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
                 budgets=(contract or {}).get('budgets',{})
                 with DiskWatchdog(output,root,cap=budgets.get('transient_bytes',budgets.get('disk_bytes',8<<30)),
                         trace_cap=budgets.get('trace_bytes',128<<20),
-                        free_reserve=budgets.get('mandatory_reserve_bytes',16<<20)):
+                        free_reserve=budgets.get('free_disk_reserve_bytes',budgets.get('mandatory_reserve_bytes',16<<20))):
                     result=adapter(stage,root) or {}
                 files=public_files(root)
                 ledger.transition(result.get('stage_state','PASS'),files=files,observations=dict(elapsed_seconds=time.monotonic()-begin,result=result))
@@ -108,13 +108,19 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         mandatory.extend('stages/study.report/'+name for name in report_ledger.read()['files'])
     emergency.unlink(missing_ok=True)
     summary=summarize(receipts,interrupted=interrupted,registry_unavailable=unavailable)
-    if (contract or {}).get('scope','').startswith('engineering-replay') or (contract or {}).get('scope') in {'engineering-hardware','engineering-native-capacity','engineering-coschedule','engineering-model-sizing','engineering-soak'}:
+    if (contract or {}).get('scope','').startswith('engineering-replay') or (contract or {}).get('scope') in {'engineering-hardware','engineering-native-capacity','engineering-coschedule','engineering-model-sizing','engineering-soak','engineering-pilot'}:
         summary['scope']=contract['scope']
+    if (contract or {}).get('scope')=='engineering-pilot':
+        result=receipts.get('study.report',{}).get('observations',{}).get('result',{})
+        summary['engineering']=result.get('primary_plumbing','BLOCKED')
+        summary['research']='NOT_EXECUTED'
+    if (contract or {}).get('scope')=='learning-pilot-study':summary['long_run_admission']='ADMITTED_EXACT_PILOT_ONLY'
     summary.update(phase_consumed_seconds=phase_costs,elapsed_seconds=time.monotonic()-start,cap_seconds=cap,cleanup_archive_reserve_seconds=reserve)
     write(output/'summary.json',summary)
     code=EXIT[summary['selected_scope']]
     try:
-        archive=pack(output,mandatory=mandatory,cap=(contract or {}).get('budgets',{}).get('zip_bytes',512<<20))
+        archive=pack(output,mandatory=mandatory,cap=(contract or {}).get('budgets',{}).get('zip_bytes',512<<20),
+            **({'member_cap':budgets['bundle_members']} if 'bundle_members' in budgets else {}))
         print(f'SUMMARY {output}/summary.json; ARCHIVE {archive}',flush=True)
     except (OSError,ValueError) as exc:
         print(f'ARCHIVE FAILED: {exc}; surviving evidence: {output}/summary.json',flush=True)

@@ -72,6 +72,18 @@ def registry(engines=('docker',), primary='docker'):
     return stages
 
 
+def pilot_registry(engines=('docker',),primary='docker'):
+    stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip','retirement','operations','policy'}]
+    for engine in engines:
+        stages.append(Stage('pilot.operations.'+engine,5,('image.'+engine+'.qualification',),seconds=180,adapter='soak-operations'))
+    parents=('cpu.'+primary+'.semantic','hip.preflight','policy.compare','operations.'+primary+'.workflow',
+        'operations.'+primary+'.retirement','pilot.operations.'+primary)
+    stages.append(Stage('pilot.prepare',1,parents,seconds=9000,adapter='pilot-prepare'))
+    stages.append(Stage('pilot.session',4,('pilot.prepare',),seconds=28800,adapter='pilot-session'))
+    stages.append(Stage('pilot.report',5,seconds=600,adapter='pilot-report'))
+    return stages
+
+
 def replay_registry(engines=('docker',),primary='docker'):
     stages=[s for s in registry(engines,primary) if s.adapter in {'host','engine','image','cpu','hip'}]
     stages.append(Stage('replay.reference',1,('cpu.'+primary+'.semantic','image.'+primary+'.gpu'),seconds=600,adapter='replay-reference'))

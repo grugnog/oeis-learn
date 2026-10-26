@@ -20,6 +20,19 @@ def parse_profile(record):
     return record
 
 
+def preflight_manifest():
+    from pathlib import Path
+    import json
+    value=json.loads((Path(__file__).resolve().parents[3]/'configs/foundation/pipeline_soak.json').read_text())
+    value.update(version='pipeline-pilot-validation/v1',scope='engineering-pilot',
+        stage_registry_version='pipeline-pilot-registry/v1',workloads=['learning-pilot-preflight/v1'],comparisons=[])
+    value['budgets']['transient_bytes']=SPEC['transient_bytes']
+    value['budgets']['free_disk_reserve_bytes']=5<<30
+    value['budgets']['bundle_members']=4097
+    value['budgets']['phase_seconds']={'1':10800,'2':1200,'3':1200,'4':28800,'5':12000}
+    return seal(value)
+
+
 def decision(*,source,prepared=None,qualification=None,cost=None):
     return seal(dict(version='pipeline-pilot-study/v1',state='DRAFT',profile=PROFILE,source=source,
         prepared=prepared,qualification=qualification,cost=cost,authority=None))
@@ -27,6 +40,12 @@ def decision(*,source,prepared=None,qualification=None,cost=None):
 
 def decision_payload(record):
     return digest({k:v for k,v in record.items() if k not in {'identity','state','authority'}})
+
+
+def qualification_requirements(engine):
+    return {'host.contracts','cpu.'+engine+'.semantic','hip.preflight','policy.compare',
+        'operations.'+engine+'.workflow','operations.'+engine+'.retirement','pilot.operations.'+engine,
+        'pilot.prepare','pilot.session'}
 
 
 def parse_decision(record,*,root=None,source=None):
@@ -38,6 +57,7 @@ def parse_decision(record,*,root=None,source=None):
     missing=[k for k in ('prepared','qualification','cost','authority') if record[k] is None]
     if record['state']!='ADMITTED':missing.append('explicit_admission')
     if source is not None and source!=record['source']:missing.append('current_source')
+    if root is None:missing.append('unresolved_authority')
     # Validate public authority before even resolving private prepared inputs.
     if root is not None and not missing:
         import json
@@ -46,15 +66,25 @@ def parse_decision(record,*,root=None,source=None):
         if authority['approved'] is not True or not authority['reviewed_by'] or authority['decision_payload']!=decision_payload(record):
             missing.append('reviewed_decision')
         q=json.loads(reference(root,record['qualification']).read_text())
-        validate(q,{'version','source','profile','image','engine','resources','required','receipts','state'},'pipeline-pilot-qualification/v1')
+        validate(q,{'version','source','profile','work','image','engine','resources','cpus','required','receipts','state'},'pipeline-pilot-qualification/v1')
         if q['state']!='PASS' or q['source']!=record['source'] or q['profile']!=PROFILE['identity']:
             missing.append('qualification')
-        if q['engine'] not in ('podman','docker') or not q['required'] or any(q['receipts'].get(k,{}).get('state') not in ('PASS','REUSED') for k in q['required']):
+        if set(q['image'])!={'gpu','qualification'}:raise ValueError('both qualified image identities required')
+        for image in q['image'].values():require_hash(image)
+        require_hash(q['resources'])
+        if type(q['cpus']) is not int or not 6<=q['cpus']<=16:raise ValueError('qualified bounded CPU quota required')
+        if (q['engine'] not in ('podman','docker') or not isinstance(q['required'],list)
+            or len(q['required'])!=len(set(q['required'])) or set(q['required'])!=qualification_requirements(q['engine'])
+            or set(q['receipts'])!=set(q['required'])
+            or any(q['receipts'].get(k,{}).get('state') not in ('PASS','REUSED') for k in q['required'])):
             missing.append('qualification_receipts')
+        for r in q['receipts'].values():
+            if set(r)!={'state','identity'}:raise ValueError('qualified receipt identity required')
+            require_hash(r['identity'])
         c=json.loads(reference(root,record['cost']).read_text())
         from .pilot_cost import validate_forecast
         if not validate_forecast(c,source=record['source']):missing.append('exact_scope_cost')
         if not missing:
             prepared=json.loads(reference(root,record['prepared']).read_text())
-            if c['work']!=prepared['identity']:missing.append('cost_work_binding')
+            if c['work']!=prepared['identity'] or q['work']!=prepared['identity']:missing.append('cost_work_binding')
     return dict(status='BLOCKED' if missing else 'ADMITTED',missing=sorted(set(missing)),contract=record)

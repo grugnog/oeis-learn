@@ -6,19 +6,21 @@ from oeis_learn.pipeline_validation.pilot_contract import PROFILE,SPEC
 from .common import write
 
 
-def configuration(*,source,work,purpose,ordinal,seconds,cadence_tokens):
+def configuration(*,source,work,purpose,ordinal,seconds,cadence_tokens,interrupted=()):
     return seal(dict(version='pipeline-pilot-worker/v1',source=source,work=work,profile=PROFILE['identity'],
-        purpose=purpose,ordinal=ordinal,resume=ordinal>0,seconds=seconds,cadence_tokens=cadence_tokens))
+        purpose=purpose,ordinal=ordinal,resume=ordinal>0,seconds=seconds,cadence_tokens=cadence_tokens,interrupted=list(interrupted)))
 
 
 def parse(cfg):
-    validate(cfg,{'version','source','work','profile','purpose','ordinal','resume','seconds','cadence_tokens'},'pipeline-pilot-worker/v1')
+    validate(cfg,{'version','source','work','profile','purpose','ordinal','resume','seconds','cadence_tokens','interrupted'},'pipeline-pilot-worker/v1')
     from oeis_learn.synthesis.state import require_hash
     for k in ('source','work','profile'):require_hash(cfg[k])
     if cfg['profile']!=PROFILE['identity'] or cfg['purpose'] not in ('preflight','longrun'):raise ValueError('registered pilot purpose/profile required')
     maximum=2 if cfg['purpose']=='preflight' else 5
     if type(cfg['ordinal']) is not int or not 0<=cfg['ordinal']<=maximum or cfg['resume'] is not (cfg['ordinal']>0):
         raise ValueError('fixed distinct pilot roles required')
+    if (not isinstance(cfg['interrupted'],list) or any(type(x) is not int or not 0<x<cfg['ordinal'] for x in cfg['interrupted'])
+        or cfg['interrupted']!=sorted(set(cfg['interrupted']))):raise ValueError('explicit earlier interrupted ordinals required')
     number(cfg['seconds']);number(cfg['cadence_tokens'],positive=True)
     cap=900 if cfg['purpose']=='preflight' else 43200
     if cfg['seconds']>cap or (cfg['ordinal']==0)!=(cfg['seconds']==0) or type(cfg['cadence_tokens']) is not int:
@@ -33,7 +35,9 @@ class Control:
         self.binding=digest({k:self.cfg[k] for k in ('source','work','profile','purpose','cadence_tokens')})
         previous=selection.get('pilot')
         if self.cfg['resume']:
-            if not previous or previous['binding']!=self.binding or previous['completed_ordinal']!=self.cfg['ordinal']-1:
+            gaps=range(previous['completed_ordinal']+1,self.cfg['ordinal']) if previous else []
+            if (not previous or previous['binding']!=self.binding or previous['completed_ordinal']>=self.cfg['ordinal']
+                or any(x not in self.cfg['interrupted'] for x in gaps)):
                 raise ValueError('identical complete prior pilot state required; no allowance renewal')
             self.state=previous
         else:
@@ -42,6 +46,7 @@ class Control:
                 next_validation=self.cfg['cadence_tokens'],components={},bins=[],role_ordinal=-1,seen=[])
         if self.state['role_ordinal']>=self.cfg['ordinal']:raise ValueError('duplicate pilot role')
         self.state['role_ordinal']=self.cfg['ordinal'];self.start_tokens=self.state['tokens'];self.start_updates=self.state['updates']
+        self.state['interrupted_ordinals']=sorted(set(self.state.get('interrupted_ordinals',[]))|set(self.cfg['interrupted']))
         self.start_examples=self.state['examples'];self.initial_validation=True;self.last_loss=None;self.last_metrics=None
         self.seen=set(self.state['seen'])
         selection['pilot']=self.state

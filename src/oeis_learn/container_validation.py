@@ -129,6 +129,8 @@ def _stages(host, suite, output, *, external_seconds=None):
                 "tests/integration/test_bigint_gpu.py",
                 "tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]",
                 "tests/unit/test_bigint_soak.py::test_engineering_uses_actual_trainer_and_checkpoint[cuda]",
+                "tests/unit/test_pipeline_pilot_runtime.py::test_token_weighting_masks_padding_and_keeps_exact_match_distinct[cuda]",
+                "tests/unit/test_pipeline_pilot_runtime.py::test_pilot_actual_worker_state_and_metric_resume[cuda]",
             ]
             if gpu
             else sorted(set(bigint_cpu))

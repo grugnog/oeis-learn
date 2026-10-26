@@ -4,7 +4,7 @@ import shutil
 from dataclasses import asdict
 from .contracts import parse
 from .identity import confined, digest, number, reference
-from .registry import registry, replay_registry, replay_comparison_registry, replay_batching_registry, hardware_registry, native_capacity_registry, coschedule_registry, model_sizing_registry, soak_registry, resolve
+from .registry import registry, replay_registry, replay_comparison_registry, replay_batching_registry, hardware_registry, native_capacity_registry, coschedule_registry, model_sizing_registry, soak_registry, pilot_registry, resolve
 from .runner import execute
 from .adapters import Adapters
 
@@ -39,7 +39,7 @@ def main(args, root, host_factory):
         raise ValueError('co-scheduling scope registers only phases 1,2 and4')
     if contract['scope']=='engineering-model-sizing' and args.phase not in {'all-ready','1','2','4'}:
         raise ValueError('model sizing scope registers only phases1,2 and4')
-    select_registry={'engineering-soak':soak_registry,'engineering-model-sizing':model_sizing_registry,'engineering-coschedule':coschedule_registry,'engineering-native-capacity':native_capacity_registry,'engineering':registry,'engineering-replay':replay_registry,
+    select_registry={'engineering-pilot':pilot_registry,'engineering-soak':soak_registry,'engineering-model-sizing':model_sizing_registry,'engineering-coschedule':coschedule_registry,'engineering-native-capacity':native_capacity_registry,'engineering':registry,'engineering-replay':replay_registry,
         'engineering-replay-comparison':replay_comparison_registry,'engineering-replay-batching':replay_batching_registry,'engineering-hardware':hardware_registry}
     all_stages=select_registry[contract['scope']](engines,primary)
     stages=resolve(all_stages,args.phase)
@@ -93,6 +93,10 @@ def study_main(args,root,host_factory,*,collect=False):
         if collect:raise ValueError('nested study batches are not allowed')
         from .study_batch import main as batch_main
         return batch_main(args,root,host_factory,contract,source,final_plan)
+    if contract.get('version')=='pipeline-pilot-study/v1':
+        if collect or final_plan is not None:raise ValueError('pilot cannot mix final authority or study batches')
+        from .pilot import study_main as pilot_main
+        return pilot_main(args,root,host_factory,contract,source)
     decision=parse_study(contract,root=root,source=source,final_plan=final_plan)
     if args.scope_report:
         print(json.dumps(decision,indent=2));return 0

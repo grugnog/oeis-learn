@@ -31,10 +31,10 @@ def choose(rows):
     for r in rows:
         if r['id'] in groups:variants[r['family']].add(r['variant']);eligible.append(r)
     families=sorted((k for k,v in variants.items() if len(v)>=16),key=lambda k:identity(['structural-reservation/v1',k]))
-    reserved=set(families[::4]);used={groups[r['id']] for rs in splits.values() for r in rs}
+    family_set=set(families);reserved=set(families[::4]);used={groups[r['id']] for rs in splits.values() for r in rs}
     pools=defaultdict(list)
     for r in sorted(eligible,key=lambda r:r['id']):
-        if r['family'] not in reserved and r['family'] in families:pools[r['stage']].append(r)
+        if r['family'] not in reserved and r['family'] in family_set:pools[r['stage']].append(r)
     positions={k:0 for k in pools};training=splits['training'];facts=[behavior(r) for r in training]
     constant=sum(x[0] for x in facts);offset=sum(x[1] for x in facts)
     while len(training)<SPEC['training']:
@@ -52,11 +52,15 @@ def choose(rows):
     return result
 
 
-def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusions):
+def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusions,admissions):
     from oeis_learn.fresh.bigint_inputs import visible_record
     from oeis_learn.fresh.bigint_splits import overlap_groups,diverse_tiny,behavior
     splits=rows['splits'];flat=[r for group in splits.values() for r in group]
-    oeis=[dict(r,indices=oeis_truth[r['id']]['indices'],values=oeis_truth[r['id']]['values']) for r in oeis_prompts]
+    for r in oeis_prompts:
+        t=oeis_truth[r['id']]
+        if r['indices']!=t['indices'][:20] or r['values']!=t['values'][:20] or r['horizon_indices']!=t['indices']:
+            raise ValueError('approved OEIS visible/hidden binding changed')
+    oeis=[dict(r,family=r.get('family',r['id']),stage='OEIS',indices=oeis_truth[r['id']]['indices'],values=oeis_truth[r['id']]['values']) for r in oeis_prompts]
     if len(oeis)!=8 or len({r['id'] for r in oeis})!=8:raise ValueError('full frozen eight-row exposed OEIS-development required')
     groups=overlap_groups(flat+oeis)
     owner={}
@@ -81,17 +85,17 @@ def publish(rows,oeis_prompts,oeis_truth,output,*,source,recipe,sampled,exclusio
             truth[r['id']]=dict(indices=r['indices'],values=r['values'])
     out=Path(output);out.mkdir(parents=True,exist_ok=True)
     write(out/'examples.json',examples);write(out/'prompts.json',prompts);write(out/'private/truth.json',truth)
-    write(out/'recipe.json',recipe)
+    write(out/'recipe.json',recipe);write(out/'private/admissions.json',admissions)
     tokens={k:sum(len(r['tokens']) for r in rs) for k,rs in examples.items()}
     audit=dict(counts={k:len(rs) for k,rs in examples.items()},tokens=tokens,
         stages=dict(Counter(r['stage'] for r in splits['training'])),
         nonaffine=sum(behavior(r)[2] for r in splits['training']),sampled=sampled,exclusions=dict(exclusions),
-        groups_identity=digest(groups),structural_families=len({r['family'] for r in splits['structural_development']}),
+        groups_identity=digest(groups),native_admissions=len(admissions),admissions_identity=digest(admissions),structural_families=len({r['family'] for r in splits['structural_development']}),
         training_families=len({r['family'] for r in splits['training']}),
         limitations='Observed100-index/20-window grouping, not universal equivalence; OEIS development already exposed.')
     m=seal(dict(version='pipeline-pilot-inputs/v1',source=source,profile=PROFILE['identity'],recipe=digest(recipe),
         roster=roster,audit=audit,files={name:{'sha256':file_hash(out/name),'bytes':(out/name).stat().st_size}
-            for name in ('examples.json','prompts.json','private/truth.json','recipe.json')}))
+            for name in ('examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json')}))
     write(out/'prepared.json',m);return m
 
 
@@ -103,8 +107,10 @@ def check(root,*,hidden=False):
     if {k:len(v) for k,v in m['roster'].items()}!={'training_panel':32,'parameter_development':128,'structural_development':128,'oeis_development':8}:
         raise ValueError('complete frozen evaluation roster required')
     if len({v for ids in m['roster'].values() for v in ids})!=296:raise ValueError('duplicate evaluation prompt')
+    if set(m['files'])!={'examples.json','prompts.json','private/truth.json','recipe.json','private/admissions.json'}:raise ValueError('closed pilot file inventory required')
+    if digest(json.loads((root/'recipe.json').read_text()))!=m['recipe']:raise ValueError('pilot recipe binding changed')
     for name,r in m['files'].items():
-        if name=='private/truth.json' and not hidden:continue
+        if name.startswith('private/') and not hidden:continue
         f=confined(root,name)
         if f.stat().st_size!=r['bytes'] or file_hash(f)!=r['sha256']:raise ValueError('prepared pilot file mismatch')
     return m
@@ -126,11 +132,19 @@ def prepare(inputs,output,config):
         except ValueError as exc:excluded[str(exc)]+=1
         if (counter+1)%256==0:replace_json(Path(output)/'progress.json',dict(counter=counter+1,eligible=len(rows),seconds=time.monotonic()-begin))
         if counter+1 not in (65536,131072,262144):continue
-        try:selected=choose(rows);break
+        try:
+            # Frozen data-only decontamination, before any native/model outcomes.
+            # Keep whole detected groups on the exposed-development side.
+            from oeis_learn.fresh.bigint_splits import overlap_groups
+            oeis=[dict(id=r['id'],indices=truth[r['id']]['indices'],values=truth[r['id']]['values']) for r in prompts]
+            groups=overlap_groups(rows+oeis);forbidden={groups[r['id']] for r in oeis}
+            eligible=[r for r in rows if groups[r['id']] not in forbidden]
+            excluded['frozen_OEIS_development_overlap_groups']=len(rows)-len(eligible)
+            selected=choose(eligible);break
         except ValueError as exc:excluded[str(exc)]+=1
     if selected is None:raise ValueError('full pilot corpus shortfall; no duplicate padding or fallback')
     # Production exactness independently cross-checks every selected generic source.
-    admitted=0
+    admitted=0;admissions={}
     with SynthesisClient(digest(PROFILE),limits=limits,cache_root=Path(output)/'private/admission-cache') as client:
         for rs in selected['splits'].values():
             for r in rs:
@@ -139,8 +153,9 @@ def prepare(inputs,output,config):
                 if result.get('outcome')!='ok' or result.get('values')!=r['values']:
                     raise ValueError('selected generic source lacks complete independent production agreement')
                 admitted+=1
+                admissions[r['id']]=dict(source=digest(r['source']),horizon=digest(dict(indices=r['indices'],values=r['values'])),resource=r['resource'],runtime=client.runtime_identity('bigint-body/v1'),independent_reference=True)
                 if admitted%256==0:replace_json(Path(output)/'progress.json',dict(admitted=admitted,seconds=time.monotonic()-begin))
-    m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded)
+    m=publish(selected,prompts,truth,root,source=config['source'],recipe=recipe(),sampled=counter+1,exclusions=excluded,admissions=admissions)
     check(root,hidden=True);write(Path(output)/'corpus-audit.json',m['audit'])
     return dict(status='COMPLETE',work=m['identity'],prepared='private/prepared',counts=m['audit']['counts'],
         native_admitted=admitted,seconds=time.monotonic()-begin)

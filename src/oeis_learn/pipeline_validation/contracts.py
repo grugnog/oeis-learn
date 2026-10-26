@@ -9,6 +9,7 @@ DENIED = ['training', 'resume', 'T096_retry', 'assisted_data', 'final']
 def parse(record):
     version=record.get('version') if isinstance(record,dict) else None
     variants={
+        'pipeline-pilot-validation/v1':('engineering-pilot','pipeline-pilot-registry/v1',['learning-pilot-preflight/v1'],[]),
         'pipeline-soak-validation/v1':('engineering-soak','pipeline-soak-registry/v1',['full-partition-soak/v1'],['training-batch8-16-32/v1']),
         'pipeline-validation/v1':('engineering','pipeline-registry/v1',[],[]),
         'pipeline-replay-validation/v1':('engineering-replay','pipeline-replay-registry/v1',['cache-replay/v1'],[]),
@@ -21,7 +22,7 @@ def parse(record):
     }
     if version not in variants:raise ValueError('registered engineering version required')
     scope,registry,workloads,comparisons=variants[version]
-    replay=version not in {'pipeline-validation/v1','pipeline-soak-validation/v1'}
+    replay=version not in {'pipeline-validation/v1','pipeline-soak-validation/v1','pipeline-pilot-validation/v1'}
     validate(record, FIELDS, version)
     if record['scope'] != scope or record['stage_registry_version'] != registry:
         raise ValueError('engineering scope/registered version required')
@@ -49,6 +50,7 @@ def parse(record):
         require_hash(ref['sha256'])
     budgets = record['budgets']
     fields = {'global_seconds', 'build_per_engine_seconds', 'phase_seconds', 'archive_seconds', 'cleanup_seconds', 'stream_bytes', 'transient_bytes', 'trace_bytes', 'zip_bytes', 'mandatory_reserve_bytes'}
+    if scope=='engineering-pilot':fields.update({'free_disk_reserve_bytes','bundle_members'})
     if set(budgets) != fields or set(budgets['phase_seconds']) != {'1','2','3','4','5'}:
         raise ValueError('unknown/missing budget fields')
     for key, value in budgets.items():
@@ -58,8 +60,13 @@ def parse(record):
         number(value, positive=True)
     caps=dict(build_per_engine_seconds=14400,archive_seconds=900,cleanup_seconds=300,
         stream_bytes=8<<20,transient_bytes=8<<30,trace_bytes=128<<20,zip_bytes=512<<20)
+    if scope=='engineering-pilot':
+        caps['transient_bytes']=16<<30
+        caps['bundle_members']=4097
+        if budgets['free_disk_reserve_bytes']<5<<30:raise ValueError('pilot requires fiveGiB free-space floor')
     if any(budgets[key]>maximum for key,maximum in caps.items()):raise ValueError('registered operational caps may only be lowered')
     phases={'1':3600,'2':10800,'3':7200,'4':18000,'5':14400}
+    if scope=='engineering-pilot':phases={'1':10800,'2':1200,'3':1200,'4':28800,'5':12000}
     if any(budgets['phase_seconds'][key]>maximum for key,maximum in phases.items()):raise ValueError('owning phase caps may only be lowered')
     total = 2 * budgets['build_per_engine_seconds'] + sum(budgets['phase_seconds'].values()) + budgets['archive_seconds'] + budgets['cleanup_seconds']
     if total > budgets['global_seconds'] or budgets['global_seconds'] > 86400:

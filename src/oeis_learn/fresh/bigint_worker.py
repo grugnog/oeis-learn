@@ -360,8 +360,9 @@ def _train(inputs, output):
         loss=sum(r['loss_sum'] for r in dev)/sum(r['tokens'] for r in dev)
         if loss<selection.get('pilot_best_loss',float('inf')):
             selection['pilot_best_loss']=loss;selection['selected_update']=order['completed']
-        item=dict(update=order['completed'],tokens=control.state['tokens'],splits=measured)
+        item=dict(ordinal=control.cfg['ordinal'],update=order['completed'],tokens=control.state['tokens'],splits=measured)
         selection['evaluations'].append(dict(update=order['completed'],loss=loss))
+        selection.setdefault('pilot_validations',[]).append(item)
         if len(selection['evaluations'])>4096:raise ValueError('pilot validation journal exhausted')
         write(output/'pilot-validation.json',item)
         return item

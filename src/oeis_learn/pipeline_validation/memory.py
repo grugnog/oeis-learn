@@ -29,13 +29,17 @@ def observe(render_node=None):
 
 
 class MemoryWatchdog:
-    def __init__(self, output, *, ceiling, gpu=False, render_node=None, reader=None, killer=None,audit_samples=False):
+    def __init__(self, output, *, ceiling, gpu=False, render_node=None, reader=None, killer=None,audit_samples=False,
+                 sample_limit=9000,sample_bytes=4096):
         self.output=Path(output);self.ceiling=ceiling;self.gpu=gpu
         self.reader=reader or (lambda:observe(render_node))
         self.killer=killer or (lambda:os.kill(os.getpid(),signal.SIGTERM))
         self.stop=threading.Event();self.samples=0;self.known=True
         self.machine_peak=0;self.role_peak=0;self.breach=None;self.last=None
         self.audit_samples=audit_samples;self.render_node=render_node
+        if type(sample_limit) is not int or not 1<=sample_limit<=90000 or sample_bytes not in (768,1024,4096):
+            raise ValueError('finite registered sample/byte bounds required')
+        self.sample_limit=sample_limit;self.sample_bytes=sample_bytes
 
     def sample(self, *, terminate=True):
         try:
@@ -63,7 +67,7 @@ class MemoryWatchdog:
                 kernel=memory.get('kernel'),shmem=memory.get('shmem'),cpu_usage_usec=cpu.get('usage_usec'),
                 gpu_busy_percent=sensor('gpu_busy_percent'),oom_events=events.get('oom'),oom_kill_events=events.get('oom_kill'))
             payload=json.dumps(sample,sort_keys=True,allow_nan=False)+'\n'
-            if self.samples>9000 or len(payload.encode())>4096:
+            if self.samples>self.sample_limit or len(payload.encode())>self.sample_bytes:
                 self.breach=dict(reason='mandatory memory sample bound exceeded',observation=row)
                 if terminate:self.killer()
                 return
