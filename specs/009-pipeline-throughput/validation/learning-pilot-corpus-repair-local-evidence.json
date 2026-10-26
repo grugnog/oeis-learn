@@ -3,14 +3,14 @@
   "date": "2026-10-26",
   "branch": "009-pipeline-throughput",
   "pr": 60,
-  "status": "V2_CODE_LOCAL_VERIFIED_EXPANDED_POOL_PENDING",
-  "source": "sha256:821d3956bd3d37757ff7a8920ac8d56ae064b4ab0866aa5f6e9d2d4ad8b25818",
+  "status": "LOCAL_PREPARATION_COMPLETE_TARGET_PREFLIGHT_PENDING",
+  "source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
   "source_entries": 754,
   "host_tests": {
     "tests": 230,
     "failures": 0,
     "errors": 0,
-    "seconds": 38.658,
+    "seconds": 40.316,
     "concurrent_reference_generation": true,
     "dependencies": "stdlib only; no host packages installed"
   },
@@ -439,5 +439,69 @@
       "policy.compare": "BLOCKED",
       "study.report": "PASS"
     }
-  }
+  },
+  "expanded_selection": {
+    "policy": "selected-disjoint-windows/v1",
+    "phase": "complete",
+    "counts": {
+      "training": 32768,
+      "parameter_development": 128,
+      "structural_development": 128
+    },
+    "required": {
+      "training": 32768,
+      "parameter_development": 128,
+      "structural_development": 128
+    },
+    "candidate_rows": 524288,
+    "candidate_families": 11865,
+    "qualified_families": 8918,
+    "stages": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "selected_families": {
+      "training": 2146,
+      "parameter_development": 128,
+      "structural_development": 18
+    },
+    "behavior_counts": {
+      "training": {
+        "constant": 720,
+        "offset_only": 37
+      },
+      "parameter_development": {
+        "constant": 4,
+        "offset_only": 0
+      },
+      "structural_development": {
+        "constant": 0,
+        "offset_only": 0
+      }
+    },
+    "rejections": {
+      "overlap": 380409
+    },
+    "unused_candidates_are_not_group_bridges": true,
+    "groups": 33024,
+    "selected": 33024,
+    "diverse_panel": 32,
+    "seconds": 1918.1383881809998,
+    "evidence": "Local independent reference/selection only; native qualification and actual OEIS cohort remain pending",
+    "roster_identity": "sha256:22cc97951585fc32455a2aee59c88a2754fa183a992880e5f7f405d7a0ba1b53",
+    "independent_family_audit": {
+      "structural_train_disjoint": true,
+      "matched_parameter_families": 128,
+      "minimum_training_per_parameter_family": 4,
+      "parameter_assignments_unseen_in_training": true,
+      "unique_sources": 33024
+    },
+    "limitations": [
+      "Actual approved eight-row OEIS exclusions and all33024 production admissions remain target-only.",
+      "Structural development is128 A-stage examples in18 families; parameter development has no C-stage rows. Report these strata and do not infer broad loop-family generalization."
+    ]
+  },
+  "handoff": "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md#profile-v2-target-handoff"
 }

@@ -54,6 +54,6 @@ not recomputed or changed. The58.5-second packet role is copying/serialization,
 not total original reference-generation cost, which remains explicitly UNKNOWN.
 No native, actual OEIS or HIP qualification follows from this transfer.
 
-Full selected-corpus feasibility and independent overlap/family/panel audits
-remain pending at this checkpoint. The new artifact is a warm input for the
+Full selected-corpus mathematical feasibility and independent overlap/family/
+assignment/panel/stage audits now pass at the exact32,768/128/128 counts. The new artifact is a warm input for the
 prospective profile-v2 handoff, not a replacement for the target preflight.

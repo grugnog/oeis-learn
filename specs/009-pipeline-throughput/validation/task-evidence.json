@@ -2292,10 +2292,16 @@
     "proposed_next_collection": 2
   },
   "learning_pilot_corpus_preparation": {
-    "status": "LOCAL_REPAIR_CAPACITY_ANALYSIS_TARGET_PENDING",
+    "status": "LOCAL_V2_PREPARATION_COMPLETE_TARGET_PREFLIGHT_PENDING",
     "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T142043Z.json",
     "local": "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json",
-    "next": "Establish full32768 selection feasibility locally before another target loop; preserve exact target evidence and private reference caches",
-    "original_task_counts_unchanged": true
+    "next": "Run the single profile-v2 target preflight using the validated524288 reference transfer; no primary soak repeat",
+    "original_task_counts_unchanged": true,
+    "local_selection_counts": {
+      "training": 32768,
+      "parameter_development": 128,
+      "structural_development": 128
+    },
+    "host_tests": 230
   }
 }

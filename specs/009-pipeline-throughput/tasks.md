@@ -635,6 +635,19 @@ profile. Original111 task IDs/counts and accepted hardware evidence are unchange
 - [X] 009:G001 Record the fixed262,144-pool upper bound25,495, both failed local orderings and an exact legacy profile/recipe fixture; preserve all reference work.
 - [X] 009:G002 Implement explicit profile v2/recipe v4/prepared-input v3 with a524,288-counter candidate budget and unchanged scientific/resource/training/evaluation limits; keep legacy readers and identities.
 - [X] 009:G003 Implement versioned bounded raw-reference cache migration from v1, preserving original producer/cost lineage and fresh native-admission requirements; reject incompatible semantics and malformed rows.
-- [ ] 009:G004 Demonstrate local full32,768/128/128 mathematical selection, independent final overlap/family/panel/stage audits and complete transferable reference data; actual approved OEIS/native evidence remains owned by G005.
+- [X] 009:G004 Demonstrate local full32,768/128/128 mathematical selection, independent final overlap/family/panel/stage audits and complete transferable reference data; actual approved OEIS/native evidence remains owned by G005.
 - [ ] 009:G005 Collect current-source pinned CPU/native/HIP/operations, actual approved OEIS exclusions, all33,024 native admissions and complete full296-row preflight cost/restart evidence; no repeat hardware size/batch/two-hour soak or automatic long-run admission.
-- [ ] 009:G006 Finish local regression/source/packaging/task checks, commit/push and publish one finite combined target command using compatible retained reference work; do not wait for newly queued PR CI.
+- [X] 009:G006 Finish local regression/source/packaging/task checks, commit/push and publish one finite combined target command using compatible retained reference work; do not wait for newly queued PR CI.
+
+
+Profile-v2 local preparation is complete:230 host tests, exact32,768/128/128
+selection from524,288 preserved reference counters, independent33,024 singleton
+overlap groups,32-row diverse panel, A–D training coverage, structural-family
+separation and128 matched parameter families with unseen assignments. See the
+[current local evidence](validation/learning-pilot-corpus-repair-local-evidence.json)
+and [single target handoff](validation/learning-pilot-implementation.md#profile-v2-target-handoff).
+The selected structural development is128 A-stage rows/18 families and parameter
+development contains no C-stage rows; retain these limits in later interpretation.
+G005 remains target-pending (actual exposed eight-row OEIS, all native admissions,
+current installed-source CPU/HIP and full control/cost observations). Original
+counts87/9/15 and separate long-study admission remain unchanged. No CI wait.

@@ -1,4 +1,4 @@
-**Current status:** [The142043Z target review](learning-pilot-operator-20261026T142043Z.md) passes primary CPU/HIP/policy/operations but fails corpus selection. Local corrected full-capacity analysis is in progress; finish it before using the historical target command below. Reference-cache recovery, exact-byte memory compaction and strict recovery validation are implemented. The accepted hardware soak is unchanged.
+**Current status: local preparation complete.**230 host tests pass; the expanded pool meets exact32,768/128/128 counts and all independent local overlap/family/assignment/panel/stage audits. Use the [profile-v2 target handoff](#profile-v2-target-handoff) below with the validated expanded reference archive. Actual approved OEIS exclusions,33,024 native admissions and current-source CPU/HIP/full-control costs remain target-only. The accepted hardware soak is unchanged.
 
 **Current target review and repaired handoff:** [First pilot preflight](learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.
 
@@ -117,3 +117,40 @@ After the first archive, avoid another HIP loop unless a concrete affected-scope
 defect requires it. Actual long-run learning/capacity interpretation and the
 same-regime-versus-curriculum decision remain L014/L015, not conclusions of this
 short functional validation. No new PR CI is awaited.
+
+## Profile-v2 target handoff
+
+The revised candidate pool has locally selected the exact32,768/128/128 counts.
+Use the expanded validated reference transfer described in
+[reference-cache.md](learning-pilot-reference-cache.md) to avoid repeating raw
+reference generation. Current-source native/OEIS/HIP/cost qualification remains
+the purpose of the next preflight. Independent final local audits pass and are recorded in the current local
+evidence. The selected held-out structural rows cover stageA only; parameter
+development has no stageC rows, so future reports must retain those limitations.
+
+After downloading the expanded archive to `~/Downloads`, run from the existing
+checkout (adjust only that download path if your browser uses another folder):
+
+```bash
+git pull --ff-only origin 009-pipeline-throughput &&
+mkdir -p tmp-validation &&
+tar -xzf "$HOME/Downloads/009-generic-reference-cache-524288-v2-UNQUALIFIED.tar.gz" -C tmp-validation &&
+python3 scripts/foundation_run.py --engine podman --cpus 16 validate \
+  --suite pipeline --phase all-ready --engines both \
+  --manifest configs/foundation/pipeline_learning_pilot.json \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --reuse tmp-validation/009-generic-reference-cache-524288-v2 \
+  --max-seconds 86400 \
+  --output "tmp-validation/009-learning-pilot-preflight-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+If that exact cache directory is already extracted and verified, omit the tar
+line. Keep the complete resulting output directory as well as its sibling ZIP;
+private compatible reference data is deliberately excluded from the public ZIP.
+Send the resulting `009-learning-pilot-preflight-*.zip` for review. No primary
+size/batch/two-hour soak repeats. The learner portion remains15+15 minutes with
+restart plus three complete296-row control/scorer observations; it has no
+learning-success or loss-decrease gate. The full preflight can take hours:
+preparation is capped at9,000s, session at28,800s and the invocation at86,400s.
+Actual inclusive expected costs remain to be measured; these caps are not a
+claim of typical duration. No long study starts from this command.
