@@ -1,3 +1,7 @@
+> Implemented: see [main-CLI admission/execution handoff](long-run-implementation.md)
+> and [versioned contract](../contracts/long-run-pilot.md). The list below is retained
+> as the prospective requirement baseline; implementation is not target PASS or a launch.
+
 # Next work after successful calibration
 
 [141405Z calibration](pilot-calibration-operator-20261027T141405Z.md) passes all

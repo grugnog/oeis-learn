@@ -1,3 +1,8 @@
+> Current long-run preparation: use the main-program [full-clock v3 admission and
+> execution handoff](validation/long-run-implementation.md). It preserves the accepted
+> calibration and performs current checks through `oeis-learn pipeline pilot-admit`;
+> no one-time script or repeated calibration is needed.
+
 **Current learning-pilot status:** [Calibration accepted; no further calibration run](validation/pilot-calibration-operator-20261027T141405Z.md).
 The next preparation work is [versioned long-run authority/profile wiring](validation/long-run-admission-next.md).
 No runnable long-study command is admitted yet. The original engineering commands

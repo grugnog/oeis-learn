@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: [Primary engineering soak PASS](validation/soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](validation/hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks87 complete/9 engineering pending/15 research held; no default, learning or multi-day admission.
+**Status**: [Primary engineering soak PASS](validation/soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](validation/hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks87 complete/9 engineering pending/15 research held for the new long-run runtime source; accepted earlier-source closures remain recorded below. No default, learning or multi-day execution is inferred.
 
 **Current execution sequence:** [Long-run sequence-learning pilot preparation](validation/learning-pilot-plan.md), following the accepted soak in [plan.md](plan.md). Supplemental009:S001–S012 below record implementation and reviewed evidence by their individual scopes. All original task IDs/counts and historical producer-bound results retain their meanings. The initial combined HIP command/archive is now accepted for primary engineering. Further loops require a concrete blocker; do not repeat the primary soak for documentation or independent Docker.
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
@@ -359,7 +359,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -721,8 +721,27 @@ No new calibration/soak is requested; use the next versioned admission work belo
 [Next implementation requirements](validation/long-run-admission-next.md) preserve
 passed calibration evidence and the proposed24/48-hour duration without launching it.
 
-- [ ] 009:J001 Freeze the opt-in full-clock long-run profile/decision/cost-authority migration, evaluation36000s/safety41400s and legacy identity preservation.
-- [ ] 009:J002 Wire actual full-state learner/evaluation/ledger paths to that profile, retaining fresh initialization, all frozen populations/arms/clocks and hidden-scoring isolation.
-- [ ] 009:J003 Implement explicit source/image/data/cost compatibility and current affected checks without repeating passed calibration/reference/data/hardware work; combine required target checks into the eventual invocation where supported.
-- [ ] 009:J004 Complete authority/schema/deadline/missing-science/recovery/leakage/storage/read-only host and pinned fixtures, source/binding/package validation and periodic commits.
-- [ ] 009:J005 Publish one concrete reviewed costed long-run authority/command/output/recovery handoff with actual admission prerequisites; no automatic launch or extra calibration loop.
+- [X] 009:J001 Freeze the opt-in full-clock long-run profile/decision/cost-authority migration, evaluation36000s/safety41400s and legacy identity preservation.
+- [X] 009:J002 Wire actual full-state learner/evaluation/ledger paths to that profile, retaining fresh initialization, all frozen populations/arms/clocks and hidden-scoring isolation.
+- [X] 009:J003 Implement explicit source/image/data/cost compatibility and current affected checks without repeating passed calibration/reference/data/hardware work; combine required target checks into the eventual invocation where supported.
+- [X] 009:J004 Complete authority/schema/deadline/missing-science/recovery/leakage/storage/read-only host and pinned fixtures, source/binding/package validation and periodic commits.
+- [X] 009:J005 Publish one concrete reviewed costed long-run authority/command/output/recovery handoff with actual admission prerequisites; no automatic launch or extra calibration loop.
+
+## Main-CLI long-run admission implemented — 2026-10-27
+
+[Versioned contract](contracts/long-run-pilot.md) and [concrete handoff](validation/long-run-implementation.md)
+close J001–J005 for their implementation/local/command scopes. The main CLI
+`oeis-learn pipeline pilot-admit` (also portable foundation CLI) runs current
+qualification and prepares the exact source/data/image/cost-bound decision. Only
+explicit `--approve --reviewed-by` publishes ADMITTED after all gates; it never
+launches training. Main-CLI phase6 consumes that decision with fresh initialization,
+original60s evaluation and the36ks evaluation ledger.253host tests pass, including
+authority/receipt/source/cost rejection, source closure, main-CLI routing, failure
+archive and full-clock generator routing. A pinned CPU/HIP full-state fixture is
+registered in the same admission invocation; it is authored, not target evidence.
+T110 reopens only for changed runtime/current package qualification; previous
+3b084306824CPU/24HIP/calibration acceptance remains valid at its source. Original
+counts87complete/9engineering pending/15research held. T086 retains its actual
+current-source/expected-cost-review clause until the new target handoff is reviewed.
+L014/L015 remain open; no actual long run or strategy/default/final promotion occurs.
+No repeat calibration/reference/data/hardware ladder/soak is requested.

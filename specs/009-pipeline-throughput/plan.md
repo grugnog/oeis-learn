@@ -527,3 +527,14 @@ The [implementation and one target command](validation/learning-pilot-implementa
 ### First pilot validation collection
 
 The [review and repaired consolidated handoff](validation/learning-pilot-operator-20261026T124145Z.md) retain23 HIP passes and750 CPU passes/one cost-probe failure before any corpus or session work. The scoped scoring-cost v2 separates six required full100-index positive paths and the retained4096-bit fuel stress, with explicit unknown/mismatch failures and complete diagnostics. It changes no learner/scientific scorer/resource/clock policy.221 local host tests pass; corrected target qualification, corpus feasibility and full costs remain pending before L013 can admit a long study.
+
+### Full-clock long-run admission delivered (2026-10-27)
+
+The next-work J001–J005 implementation is now [delivered through the main CLI](validation/long-run-implementation.md),
+with a [separate v3 profile/v2 authority contract](contracts/long-run-pilot.md).
+Legacy profiles/readers retain their identities. Accepted preparation/calibration
+is imported with explicit compatible-source/native/runtime closures; current
+CPU/HIP/package/operations gates are combined into the admission invocation.
+Its explicit approval can produce an exact decision, followed by separately
+invoked phase6 full-state fresh learning. Actual target qualification (T110),
+long execution (L014) and scientific review (L015) remain distinct.

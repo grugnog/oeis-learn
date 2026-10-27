@@ -20,11 +20,23 @@ def registry(engine):
 class Admission:
     def __init__(self,adapters):self.a=adapters;self.imported=None;self.receipts={}
 
-    def stage_binding(self,stage,base):return self.a.stage_binding(stage,base)
+    def stage_binding(self,stage,base):
+        result=self.a.stage_binding(stage,base)
+        if stage.adapter=='cpu' and self.imported and result.get('hardware')!=self.imported['compatibility']['environment']['hardware']:
+            raise ValueError('calibrated CPU/host identity changed')
+        return result
 
     def __call__(self,stage,output):
         self.a.receipts=self.receipts
-        if stage.id!='pilot.compatibility':return self.a(stage,output)
+        if stage.id!='pilot.compatibility':
+            result=self.a(stage,output)
+            if stage.adapter=='engine':
+                from .resources import execution_identity
+                proof=self.imported['compatibility'];host=self.a.host(self.a.args.engine)
+                if (result!=proof['environment']['engine'] or host.policy['cpus']!=proof['cpus']
+                    or execution_identity(host.policy['pipeline_resources'])!=proof['resources']):
+                    raise ValueError('calibrated engine/resources/CPU changed before image work')
+            return result
         from .longrun_import import inspect
         self.imported=inspect(confined(self.a.root,self.a.args.calibration),confined(self.a.root,self.a.args.inputs),self.a.root,engine=self.a.args.engine)
         write(output/'compatibility.json',self.imported['compatibility'])
@@ -44,6 +56,7 @@ class Admission:
         if environment(invocation,a.args.engine)!=compat['environment']:raise ValueError('calibrated hardware/toolchain/native/environment changed')
         if execution_identity(host.policy['pipeline_resources'])!=compat['resources'] or host.policy['cpus']!=compat['cpus']:
             raise ValueError('calibrated resource envelope/CPU quota changed')
+        write(output/'environment.json',compat['environment'])
         ref=lambda p:dict(path=str(Path(p).relative_to(a.root)),sha256=file_hash(p))
         proof=invocation/'stages/pilot.compatibility/compatibility.json'
         cost=cost_authority(imported['candidate'],source=compat['source'],compatibility=compat['identity'])
@@ -74,6 +87,7 @@ class Admission:
 def main(args,root,host_factory):
     if args.approve and (not args.reviewed_by or not args.reviewed_by.strip()):raise ValueError('--approve requires explicit nonempty --reviewed-by')
     if not args.approve and args.reviewed_by:raise ValueError('--reviewed-by requires --approve')
+    if getattr(args,'cpus',None) not in (None,16):raise ValueError('calibrated pilot requires --cpus 16')
     root=Path(root);output=confined(root,args.output,exists=False)
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh admission output required')
     engine=args.engine

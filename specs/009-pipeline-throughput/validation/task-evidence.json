@@ -1,10 +1,10 @@
 {
   "version": "pipeline-task-evidence/v1",
-  "source_evidence": "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json",
+  "source_evidence": "specs/009-pipeline-throughput/validation/long-run-local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 88,
-    "pending_runtime": 8,
+    "complete": 87,
+    "pending_runtime": 9,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1302,7 +1302,7 @@
       "description": "[US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.",
       "status": "pending_runtime",
       "phase": 5,
-      "implementation_disposition": "Finite preflight CLI/archive and all unblocked pilot code/local work delivered; exact larger-corpus/full-control measured costs and reviewed long-run handoff pending.",
+      "implementation_disposition": "Main-CLI v3 admission/run/recovery command, original measured warm projection35h13m, separate preparation planning observation23m27s and finite12h/48h caps published. Current target handoff and prerequisites still await actual reviewed admission bundle.",
       "blocking_reason": "Single new target archive must establish full corpus feasibility, current-source runtime and exact-schedule cost/admission. No missing-cost waiver or automatic long run.",
       "evidence": [
         "specs/009-pipeline-throughput/carryover.md",
@@ -1322,7 +1322,8 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
-        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/long-run-implementation.md"
       ]
     },
     {
@@ -1604,10 +1605,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "complete",
+      "status": "pending_runtime",
       "phase": 0,
-      "implementation_disposition": "141405Z actual source3b084306 passes824CPU/24HIP/45policy/primary operations and all three saved-snapshot full-clock calibrations; independent review changes no runtime source. New long-profile code will require its own checks.",
-      "blocking_reason": null,
+      "implementation_disposition": "Main-CLI full-clock v3 implementation passes253stdlib tests and current source/package-layout/binding checks. Prior141405Z source3b084306824CPU/24HIP/calibration closure retained. New current pinned CPU/HIP/operations must pass in pilot-admit.",
+      "blocking_reason": "New affected source qualification pending through the combined main-CLI admission invocation.",
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1663,7 +1664,9 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md",
         "specs/009-pipeline-throughput/validation/pilot-calibration-local-evidence.json",
         "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.md",
-        "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json"
+        "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json",
+        "specs/009-pipeline-throughput/validation/long-run-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/long-run-implementation.md"
       ]
     },
     {
@@ -2384,5 +2387,31 @@
     ],
     "repeat_calibration": false,
     "long_run_admitted": false
+  },
+  "longrun_profile_v3": {
+    "status": "IMPLEMENTED_LOCAL_PASS_TARGET_PENDING",
+    "profile": "sha256:a0f0213518fcc9404903b691dbd48c2bd35a7e4637a3b0643a3159f486b2f670",
+    "source": "sha256:fcfbb37256bdc75f7c85ac13be29195ac315f77d72e2fff846640c2f521143c4",
+    "local": "specs/009-pipeline-throughput/validation/long-run-local-evidence.json",
+    "handoff": "specs/009-pipeline-throughput/validation/long-run-implementation.md",
+    "tasks": {
+      "009:J001": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+      "009:J002": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+      "009:J003": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+      "009:J004": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+      "009:J005": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF"
+    },
+    "host_tests": 253,
+    "repeat_calibration": false,
+    "repeat_reference": false,
+    "current_checks": "Single pilot-admit invocation, new full-state CPU/HIP purpose/recovery fixture included",
+    "pending": [
+      "T110 affected qualification",
+      "T086 target handoff review",
+      "L014 actual execution",
+      "L015 scientific analysis"
+    ],
+    "long_run_admitted": false,
+    "automatic_run_authorized": false
   }
 }
