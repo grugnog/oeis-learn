@@ -7,7 +7,9 @@ from .common import write
 
 
 def configuration(*,source,work,purpose,ordinal,seconds,cadence_tokens,interrupted=()):
-    return seal(dict(version='pipeline-pilot-worker/v1',source=source,work=work,profile=PROFILE['identity'],
+    from oeis_learn.pipeline_validation.longrun_contract import PURPOSE,PROFILE as FULL_PROFILE
+    profile=FULL_PROFILE if purpose==PURPOSE else PROFILE
+    return seal(dict(version='pipeline-pilot-worker/v1',source=source,work=work,profile=profile['identity'],
         purpose=purpose,ordinal=ordinal,resume=ordinal>0,seconds=seconds,cadence_tokens=cadence_tokens,interrupted=list(interrupted)))
 
 
@@ -15,7 +17,9 @@ def parse(cfg):
     validate(cfg,{'version','source','work','profile','purpose','ordinal','resume','seconds','cadence_tokens','interrupted'},'pipeline-pilot-worker/v1')
     from oeis_learn.synthesis.state import require_hash
     for k in ('source','work','profile'):require_hash(cfg[k])
-    if cfg['profile']!=PROFILE['identity'] or cfg['purpose'] not in ('preflight','longrun'):raise ValueError('registered pilot purpose/profile required')
+    from oeis_learn.pipeline_validation.longrun_contract import PURPOSE,PROFILE as FULL_PROFILE
+    profile=FULL_PROFILE if cfg['purpose']==PURPOSE else PROFILE
+    if cfg['profile']!=profile['identity'] or cfg['purpose'] not in ('preflight','longrun',PURPOSE):raise ValueError('registered pilot purpose/profile required')
     maximum=2 if cfg['purpose']=='preflight' else 5
     if type(cfg['ordinal']) is not int or not 0<=cfg['ordinal']<=maximum or cfg['resume'] is not (cfg['ordinal']>0):
         raise ValueError('fixed distinct pilot roles required')

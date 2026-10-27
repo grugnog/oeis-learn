@@ -96,7 +96,7 @@ class PilotStages:
     def __init__(self,adapters):
         self.a=adapters;self.prepared=None;self.manifest=None;self.state=None;self.trainer=None
         self.snapshots=[];self.calibrations=[];self.purpose='preflight';self.deadline=None;self.interrupted=[];self.archives=None
-        self.learner_seconds=0.;self.setup_seconds=0.
+        self.learner_seconds=0.;self.setup_seconds=0.;self.compatibility=None
         self.started=time.monotonic()
 
     def invoke(self,root,label,mode,files,*,seconds,ordinal=0,worker_seconds=0):
@@ -148,6 +148,7 @@ class PilotStages:
     def train(self,root,ordinal,*,seconds,worker_seconds):
         began=time.monotonic()
         files={n:self.prepared/n for n in ('prepared.json','recipe.json','examples.json')}
+        if self.compatibility is not None:files['compatibility.json']=self.compatibility
         if self.state:
             files['checkpoints']=self.state/'checkpoints';files['selected.json']=self.state/'selected.json'
         result,target=self.invoke(root,'train-'+str(ordinal),'pilot-train',files,seconds=seconds,
@@ -346,6 +347,8 @@ def study_main(args,root,host_factory,record,source):
     from .pilot_contract import parse_decision
     from .runner import execute
     from .registry import Stage
+    if record.get('version')=='pipeline-pilot-study/v2':
+        from .longrun_contract import parse_decision
     result=parse_decision(record,root=root,source=source)
     if args.scope_report:
         print(json.dumps(result,indent=2));return 0

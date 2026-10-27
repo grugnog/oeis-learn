@@ -368,6 +368,14 @@ def parser():
     compare = commands.add_parser("compare")
     compare.add_argument("--runs", nargs="+", required=True)
     compare.add_argument("--output", required=True)
+    admission = commands.add_parser("pilot-admit", help="qualify and prepare a versioned full-clock learning-pilot decision")
+    admission.add_argument("--inputs", required=True, help="retained full corpus producer directory")
+    admission.add_argument("--calibration", required=True, help="retained successful full-clock calibration directory")
+    admission.add_argument("--output", required=True)
+    admission.add_argument("--approve", action="store_true", help="explicitly approve the exact conditional pilot after all gates pass; does not launch it")
+    admission.add_argument("--reviewed-by")
+    admission.add_argument("--scope-report", action="store_true")
+    admission.add_argument("--max-seconds", type=float)
     validation = commands.add_parser("validate")
     validation.add_argument(
         "--suite",
@@ -393,6 +401,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "pilot-admit":
+            from oeis_learn.pipeline_validation.longrun_admission import main as admission_main
+            return admission_main(args, ROOT, Host)
         if args.command == "validate" and args.suite == "pipeline":
             from oeis_learn.pipeline_validation.cli import main as pipeline_main
             return pipeline_main(args, ROOT, Host)

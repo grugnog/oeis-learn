@@ -98,7 +98,7 @@ def study_main(args,root,host_factory,*,collect=False):
         if collect:raise ValueError('nested study batches are not allowed')
         from .study_batch import main as batch_main
         return batch_main(args,root,host_factory,contract,source,final_plan)
-    if contract.get('version')=='pipeline-pilot-study/v1':
+    if contract.get('version') in ('pipeline-pilot-study/v1','pipeline-pilot-study/v2'):
         if collect or final_plan is not None:raise ValueError('pilot cannot mix final authority or study batches')
         from .pilot import study_main as pilot_main
         return pilot_main(args,root,host_factory,contract,source)

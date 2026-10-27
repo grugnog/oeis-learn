@@ -39,6 +39,8 @@ class PilotLedger:
 
     def reserve(self,key,*,seconds,category,output):
         from .pilot_contract import SPEC
+        from .longrun_contract import PROFILE,SPEC as FULL_SPEC
+        if self.value['decision'].get('profile')==PROFILE:SPEC=FULL_SPEC
         from .identity import number
         number(seconds,positive=True)
         if self.remaining()<seconds+1800:raise ValueError('remaining original pilot wall allowance cannot fit slot/export')

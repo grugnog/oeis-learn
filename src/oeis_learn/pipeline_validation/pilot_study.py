@@ -155,7 +155,10 @@ def run(args,root,host_factory,record):
     q=json.loads(reference(root,record['qualification']).read_text());cost=json.loads(reference(root,record['cost']).read_text())
     prepared=reference(root,record['prepared']).parent
     metadata=check(prepared)
-    if metadata['identity']!=cost['work'] or metadata['source']!=record['source']:raise ValueError('qualified prepared work/source mismatch')
+    full_clock=record['version']=='pipeline-pilot-study/v2'
+    compatibility=reference(root,record['compatibility']) if full_clock else None
+    producer_source=json.loads(compatibility.read_text())['producer_source'] if full_clock else record['source']
+    if metadata['identity']!=cost['work'] or metadata['source']!=producer_source:raise ValueError('qualified prepared work/source mismatch')
     if args.engine not in ('auto',q['engine']) or args.image not in (None,q['image']['gpu']):raise ValueError('qualified engine/image mismatch')
     observed=observe();observed['limits'].append(Engine(q['engine']).facts()['memory_bytes'])
     policy=resolve(**observed,profile='workstation90',lower=int(args.memory_gib*(1<<30)) if args.memory_gib else None)
@@ -173,7 +176,9 @@ def run(args,root,host_factory,record):
     wrapper=seal(dict(version='pipeline-pilot-execution/v1',scope='learning-pilot-study',budgets=budgets,decision=record))
     owner=SimpleNamespace(args=options,root=Path(root),contract=wrapper,hosts={q['engine']:host},
         host=lambda name:host,images=SimpleNamespace(images={(q['engine'],k):v for k,v in q['image'].items()}))
-    pilot=PilotStages(owner);pilot.purpose='longrun';pilot.prepared=prepared;pilot.manifest=metadata
+    from .longrun_contract import PURPOSE
+    pilot=PilotStages(owner);pilot.purpose=PURPOSE if full_clock else 'longrun';pilot.prepared=prepared;pilot.manifest=metadata
+    pilot.compatibility=compatibility
     output=confined(root,args.output,exists=False)
     ancestor=output.parent
     while not ancestor.exists():ancestor=ancestor.parent

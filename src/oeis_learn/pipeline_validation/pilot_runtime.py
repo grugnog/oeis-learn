@@ -6,6 +6,7 @@ import time
 from .identity import seal,digest,file_hash,write,validate
 from .pilot_contract import SPEC,PROFILE,LEGACY_PROFILE,SPLITS
 from .sizing_execution import sizing_execution,execution_observation
+from .longrun_contract import PURPOSE,full_clock
 
 
 def bounded_write(path,value,cap):
@@ -19,7 +20,7 @@ def options(config):
     value=config['options']
     if set(value)!={'seconds','memory_ceiling','render_node','purpose','ordinal','worker_seconds','image','interrupted'}:
         raise ValueError('closed pilot role options required')
-    if value['purpose'] not in ('preflight','longrun','calibration') or type(value['ordinal']) is not int:
+    if value['purpose'] not in ('preflight','longrun','calibration',PURPOSE) or type(value['ordinal']) is not int:
         raise ValueError('explicit pilot purpose/ordinal required')
     from .identity import number
     number(value['seconds'],positive=True);number(value['memory_ceiling'],positive=True);number(value['worker_seconds'])
@@ -37,7 +38,13 @@ def visible_work(inputs,config):
         from .pilot_selection import POLICY
         if m['audit'].get('selection',{}).get('policy')!=POLICY:raise ValueError('registered selected-population policy required')
     current=m['version']=='pipeline-pilot-inputs/v3';profile=PROFILE if current else LEGACY_PROFILE
-    if m['profile']!=profile['identity'] or m['source']!=config['source']:raise ValueError('pilot data/source/profile changed')
+    if m['profile']!=profile['identity']:raise ValueError('pilot data/source/profile changed')
+    if options(config)['purpose']==PURPOSE:
+        from .longrun_import import validate_compatibility
+        proof=json.loads((inputs/'compatibility.json').read_text())
+        validate_compatibility(proof,source=config['source'])
+        if m['source']!=proof['producer_source'] or m['identity']!=proof['work']:raise ValueError('pilot retained data binding changed')
+    elif m['source']!=config['source']:raise ValueError('pilot data/source/profile changed')
     for name in ('examples.json','recipe.json'):
         if file_hash(inputs/name)!=m['files'][name]['sha256']:raise ValueError('pilot visible data/recipe changed')
     examples=learner_view(json.loads((inputs/'examples.json').read_text()))
@@ -146,7 +153,7 @@ def generate(inputs,output,config):
     from oeis_learn.fresh.pipeline_jobs import merge_boundary,JobLedger
     boundary=JobLedger().boundary(cfg['recipe']['pipeline'])
     from .pilot_evidence import Evidence
-    if opt['purpose']=='calibration':
+    if full_clock(opt['purpose']):
         from .pilot_clocks import FullClockEvidence,POLICY
         evidence=FullClockEvidence(output,rows,source=config['source'],work=cfg['pilot']['work'])
     else:evidence=Evidence(output,rows)
@@ -156,16 +163,16 @@ def generate(inputs,output,config):
             # A frozen proportional share prevents a slow split borrowing another's allowance.
             allowance=(opt['seconds']-60)*len(batch)/296
             result=evaluate(encoder,decoder,batch,cfg['recipe'],synthesis,
-                deadline=deadline if opt['purpose']=='calibration' else min(deadline,time.monotonic()+allowance),
+                deadline=deadline if full_clock(opt['purpose']) else min(deadline,time.monotonic()+allowance),
                 diagnostic_attempts=dict(correct=8,shuffled=1,absent=1,template=8),evidence=evidence,
-                **(dict(evaluation_policy=POLICY) if opt['purpose']=='calibration' else {}))
+                **(dict(evaluation_policy=POLICY) if full_clock(opt['purpose']) else {}))
             records.update({k:{n:r[n] for n in ('selections','arm_evidence','complete','family','strata')} for k,r in result['records'].items()})
             boundary=merge_boundary(boundary,result['pipeline_boundary']);controls[split]=result['controls']
     bounded_write(output/'selections.json',records,8<<20);write(output/'boundary.json',boundary);write(output/'controls.json',controls)
     return dict(status='COMPLETE',rows=len(records),checkpoint=cfg['checkpoint'],source=config['source'],
         work=cfg['pilot']['work'],execution=execution_observation(),counts=counts['actual'],
         **(dict(clock_complete=evidence.clock_summary['cost_complete'],evaluation_policy=POLICY,
-            portfolios=evidence.clock_summary['expected_portfolios']) if opt['purpose']=='calibration' else {}))
+            portfolios=evidence.clock_summary['expected_portfolios']) if full_clock(opt['purpose']) else {}))
 
 
 def score(inputs,output,config):
@@ -202,7 +209,7 @@ def recover(inputs,output,config):
     from oeis_learn.fresh.pipeline_profile import parameter_digest
     options(config)
     cfg=json.loads((inputs/'settings.json').read_text());parse(cfg['pilot'])
-    if cfg['pilot']['source']!=config['source'] or cfg['pilot']['purpose']!='longrun':raise ValueError('identical own pilot recovery only')
+    if cfg['pilot']['source']!=config['source'] or cfg['pilot']['purpose'] not in ('longrun',PURPOSE):raise ValueError('identical own pilot recovery only')
     pointer=json.loads((inputs/'checkpoints/latest.json').read_text())
     loaded=CheckpointStore(inputs/'checkpoints',ExperimentContract(**cfg['contract']),policies=cfg['recipe']['pipeline']).load(pointer)
     if loaded['ledger'].snapshot()!=cfg['ledger']:raise ValueError('recovered pilot debit changed')
