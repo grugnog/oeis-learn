@@ -1,17 +1,7 @@
-**Current action:** [Run the saved-snapshot calibration](pilot-calibration-implementation.md).
-The scoped implementation is ready for one target invocation using the complete
-213151Z directory. Historical preflight commands below should not be repeated.
-No cache download, data generation, learner leg or hardware soak is needed.
-
-**Latest disposition:** [Updated preflight review](learning-pilot-operator-20261026T213151Z.md)
-passes current-source CPU/HIP, full corpus/native admission and training/restart.
-Long run is NO-GO because two exact-attempt cost observations are incomplete.
-Preserve the full target output directory. The commands below are historical
-handoffs; do not repeat them unchanged. Next is scoped calibration implementation.
-
-**Current status: local preparation complete.**230 host tests pass; the expanded pool meets exact32,768/128/128 counts and all independent local overlap/family/assignment/panel/stage audits. Use the [profile-v2 target handoff](#profile-v2-target-handoff) below with the validated expanded reference archive. Actual approved OEIS exclusions,33,024 native admissions and current-source CPU/HIP/full-control costs remain target-only. The accepted hardware soak is unchanged.
-
-**Current target review and repaired handoff:** [First pilot preflight](learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.
+**Current status:** [Calibration PASS and candidate cost fits](pilot-calibration-operator-20261027T141405Z.md).
+No further calibration/soak is requested. Next is [versioned long-run profile and
+admission wiring](long-run-admission-next.md). Historical commands below are
+completed preparation handoffs, not a new instruction to run them.
 
 # Learning-pilot implementation and one target handoff
 

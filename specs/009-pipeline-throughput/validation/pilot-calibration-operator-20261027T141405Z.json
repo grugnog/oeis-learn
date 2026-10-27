@@ -1326,5 +1326,67 @@
     "policy.compare": "PASS",
     "study.report": "PASS"
   },
+  "test_counts": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "4a5f19193234",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "824",
+        "time": "296.524",
+        "timestamp": "2026-10-27T14:15:31.815632+00:00"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "ed205c479eac",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "24",
+        "time": "327.097",
+        "timestamp": "2026-10-27T14:30:43.593586+00:00"
+      }
+    ],
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "a43b4df9e07c",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "123",
+        "time": "42.186",
+        "timestamp": "2026-10-27T14:20:31.849657+00:00"
+      }
+    ],
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "91f67a9fe325",
+        "name": "pytest",
+        "skipped": "9",
+        "tests": "1115",
+        "time": "287.840",
+        "timestamp": "2026-10-27T14:21:16.115099+00:00"
+      }
+    ],
+    "stages/policy.compare/role/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "682be666f21e",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "45",
+        "time": "10.086",
+        "timestamp": "2026-10-27T14:36:13.286776+00:00"
+      }
+    ]
+  },
   "version": "pipeline-pilot-calibration-review/v1"
 }

@@ -1,3 +1,8 @@
+**Current learning-pilot status:** [Calibration accepted; no further calibration run](validation/pilot-calibration-operator-20261027T141405Z.md).
+The next preparation work is [versioned long-run authority/profile wiring](validation/long-run-admission-next.md).
+No runnable long-study command is admitted yet. The original engineering commands
+below retain their scopes; missing independent Docker and research gates remain.
+
 **Current target review and repaired handoff:** [First pilot preflight](validation/learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.
 
 **Current handoff:** [One learning-pilot preflight](validation/learning-pilot-implementation.md) implements the plan through all unblocked code/local work. It prepares/audits the proposed32768-example corpus, runs current qualification and15+15-minute restart plus three full296-row control/scorer cost observations, and returns one ZIP.220 host tests pass; actual pinned CPU/HIP/corpus/cost gates remain pending. No repeat hardware soak/size ladder, short-test learning threshold, final exposure or automatic long run. Original counts87/9/15 retain T110 pending for the changed runtime source; T011 now closes.

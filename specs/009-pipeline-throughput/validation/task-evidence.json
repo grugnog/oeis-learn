@@ -1,10 +1,10 @@
 {
   "version": "pipeline-task-evidence/v1",
-  "source_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.json",
+  "source_evidence": "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 87,
-    "pending_runtime": 9,
+    "complete": 88,
+    "pending_runtime": 8,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1604,10 +1604,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "239 stdlib host tests pass. Verified42-member missing-private-input public archive blocks before engine access. Pinned CPU/HIP fixtures are authored/registered, not locally executed.",
-      "blocking_reason": "Changed saved-snapshot/full-clock evaluator needs current pinned CPU/HIP qualification in the one calibration handoff;213151Z remains accepted.",
+      "implementation_disposition": "141405Z actual source3b084306 passes824CPU/24HIP/45policy/primary operations and all three saved-snapshot full-clock calibrations; independent review changes no runtime source. New long-profile code will require its own checks.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1661,7 +1661,9 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md",
-        "specs/009-pipeline-throughput/validation/pilot-calibration-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/pilot-calibration-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.md",
+        "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json"
       ]
     },
     {
@@ -2186,7 +2188,7 @@
     ],
     "historical_reproduction_command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_soak.json --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs --max-seconds 86400 --output tmp-validation/009-soak-TIMESTAMP"
   },
-  "pending_runtime_count_meaning": "Nine original engineering tasks remain: T034/T041/T059/T060/T062/T073/T084/T086/T110. T110 reopens for saved-snapshot calibration;213151Z remains accepted.",
+  "pending_runtime_count_meaning": "Eight original engineering tasks remain: T034/T041/T059/T060/T062/T073/T084/T086. T110 closes at unchanged source3b084306; versioned long admission remains separate.",
   "accepted_soak_review": {
     "review": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
     "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
@@ -2217,11 +2219,11 @@
     "repeat_primary_soak": false
   },
   "learning_pilot_preparation": {
-    "status": "SAVED_SNAPSHOT_CALIBRATION_CODE_LOCAL_COMPLETE_TARGET_PENDING",
+    "status": "CALIBRATION_ACCEPTED_LONG_PROFILE_MIGRATION_PENDING",
     "plan": "specs/009-pipeline-throughput/validation/learning-pilot-plan.md",
     "existing_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-existing-evidence.json",
     "accepted_hardware_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
-    "runtime_source_unchanged": false,
+    "runtime_source_unchanged": true,
     "tasks": {
       "009:L001": "complete",
       "009:L002": "complete",
@@ -2234,17 +2236,22 @@
       "009:L009": "complete_code_local",
       "009:L010": "complete_code_local",
       "009:L011": "complete_code_local",
-      "009:L012": "partial_code_local_handoff_complete_target_cost_pending",
+      "009:L012": "complete_measured_preparation_handoff",
       "009:L013": "complete_reviewed_no_go",
       "009:L014": "pending_explicit_admission_and_execution",
       "009:L015": "pending_long_run_results",
-      "009:G005": "partial_primary_pass_cost_pending",
+      "009:G005": "complete_qualified_composed_data_restart_and_full_clock_cost",
       "009:K001": "complete_code_local",
       "009:K002": "complete_code_local",
       "009:K003": "complete_code_local",
       "009:K004": "complete_code_local",
       "009:K005": "complete_code_local",
-      "009:K006": "pending_actual_private_import_qualification_and_full_clock_cost"
+      "009:K006": "complete_reviewed_candidate_cost_pass_legacy_admission_still_blocked",
+      "009:J001": "pending_long_profile_admission_implementation",
+      "009:J002": "pending_long_profile_admission_implementation",
+      "009:J003": "pending_long_profile_admission_implementation",
+      "009:J004": "pending_long_profile_admission_implementation",
+      "009:J005": "pending_long_profile_admission_implementation"
     },
     "proposed": {
       "training_examples": 32768,
@@ -2270,7 +2277,7 @@
     },
     "short_test_learning_threshold": null,
     "full_cost": "UNKNOWN_PENDING_EXACT_SCOPE_TARGET_MEASUREMENT",
-    "new_hip_command_available": true,
+    "new_hip_command_available": false,
     "long_run_admitted": false,
     "final_access": "SEALED",
     "original_counts_unchanged": false,
@@ -2301,7 +2308,8 @@
     "target_collections_reviewed": 1,
     "proposed_next_collection": 2,
     "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md",
-    "calibration_handoff": "specs/009-pipeline-throughput/validation/pilot-calibration-implementation.md"
+    "calibration_handoff": "specs/009-pipeline-throughput/validation/pilot-calibration-implementation.md",
+    "next": "specs/009-pipeline-throughput/validation/long-run-admission-next.md"
   },
   "learning_pilot_corpus_preparation": {
     "status": "LOCAL_V2_PREPARATION_COMPLETE_TARGET_PREFLIGHT_PENDING",
@@ -2358,6 +2366,23 @@
     "local_host_tests": 242,
     "unchanged": "no retry, allowance expansion, science/model/data/default change",
     "K006": "partial_target_import_and_qualification_reviewed_full_cost_unstarted",
+    "long_run_admitted": false
+  },
+  "pilot_calibration_141405Z": {
+    "review": "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.md",
+    "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+    "engineering": "PASS",
+    "candidate_cost": "PASS",
+    "projected_seconds": 126780,
+    "admission_target_seconds": 138240,
+    "complete_portfolios": 3552,
+    "closed": [
+      "T110",
+      "009:L012",
+      "009:G005",
+      "009:K006"
+    ],
+    "repeat_calibration": false,
     "long_run_admitted": false
   }
 }

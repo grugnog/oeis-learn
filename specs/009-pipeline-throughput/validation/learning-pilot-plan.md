@@ -1,3 +1,10 @@
+**Current state —2026-10-27:** [141405Z full-clock calibration passes](pilot-calibration-operator-20261027T141405Z.md).
+All preparation/calibration tasks now close at their scoped evidence. The measured
+candidate fits the prospective36000s evaluation reservation and48h/80% total gate.
+Next is [versioned long-run admission implementation](long-run-admission-next.md),
+with no further calibration, reference generation, learner test or hardware soak.
+The original plan/prospective revisions below remain historical context.
+
 # Prepare a bounded long run that measures sequence learning
 
 Recorded 2026-10-25 on `009-pipeline-throughput`, PR #60. This is the current prospective preparation plan, following the [accepted primary hardware soak](soak-operator-20261025T232558Z.md). The user now requests evaluation of sequence learning and estimates of what additional training might achieve. That authorizes preparation of the measurement paths; it does not launch a multi-day run or expose final data. Original Spec009 comparison tasks and historical008 results keep their meanings.

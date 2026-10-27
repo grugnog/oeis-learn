@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[3]/'src'))
 from oeis_learn.pipeline_validation.bundle import verify
@@ -100,6 +101,7 @@ def review(path):
         return dict(version='pipeline-pilot-calibration-review/v1',archive_sha256=file_hash(path),source=source,
             inventory=dict(total_members=len(manifest['members'])+1,omissions=manifest['omissions'],hash_mismatches=[]),
             elapsed_seconds=summary['elapsed_seconds'],stages={k:r['state'] for k,r in summary['stages'].items()},
+            test_counts={n:[t.attrib for t in ET.fromstring(z.read(n)) if t.tag=='testsuite'] for n in z.namelist() if n.endswith('results.xml')},
             cost=cost,snapshots=snapshots,primary_plumbing=summary['engineering'],portability=summary['portability'],
             next='Review versioned full-clock long profile and authority migration; no repeat calibration needed.',
             limitations=['No new training in calibration.','Scientific incomplete outcomes are not converted to negatives.',

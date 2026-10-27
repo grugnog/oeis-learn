@@ -1,11 +1,8 @@
-**Calibration implementation is ready:** [One saved-snapshot target handoff](validation/pilot-calibration-implementation.md)
-implements K001–K005. Current-source actual target checks/cost remain K006;
-T110 is reopened for the changed evaluator. Original counts87/9/15.
-
-**Current review:** [Updated pilot preflight](validation/learning-pilot-operator-20261026T213151Z.md)
-passes primary plumbing and full corpus/native feasibility; cost readiness is NO-GO.
-Use the [scoped follow-up](validation/learning-pilot-plan.md#scoped-calibration-follow-up).
-Original counts88/8/15; no repeated hardware soak or unchanged preflight is requested.
+**Current state —2026-10-27:** [Calibration PASS](validation/pilot-calibration-operator-20261027T141405Z.md).
+The prospective35h13m warm-run projection fits the38h24m admission target in48h.
+T110/L012/G005/K006 close; original counts88/8/15. No repeat calibration/soak.
+Next is [J001–J005 versioned long-run admission/profile wiring](validation/long-run-admission-next.md).
+The legacy long-run schema rejects the candidate cost; execution remains unadmitted.
 
 # Integrated remaining-work plan: long-run sequence-learning pilot preparation
 

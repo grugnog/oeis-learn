@@ -97,3 +97,14 @@ The [new component comparison](validation/replay-comparison-implementation.md) i
 ## Learning-pilot implementation/local handoff
 
 The [new preflight](validation/learning-pilot-implementation.md) adds the user-requested sequence-learning evaluation and conditional further-compute analysis without closing any full008 carryover or changing008:T096 NEGATIVE. All unblocked code/local work is delivered; actual corpus feasibility/current-source CPU/HIP/restart/full-control costs remain target-pending. T011 closes and009:T110 reopens for changed runtime source, preserving87/9/15 original counts. The one finite command returns a single ZIP; L013 reviews it before any explicitly admitted long study. Old-source hardware evidence is retained; no size/batch/soak repeat.
+
+
+## 141405Z calibration reconciliation
+
+The [accepted primary calibration](validation/pilot-calibration-operator-20261027T141405Z.md)
+closes exact-source009:T110 and supplemental L012/G005/K006. Original009counts are
+88complete/8engineering pending/15research held. Existing008carryover markers,
+T093deferred and T096negative remain unchanged; candidate cost/pass is not any
+original scientific study or adoption comparison. T086's reconciliation is updated
+here and in quickstart/task evidence, but its next complete long-profile command
+still depends on J001–J005. Long execution and its result analysis stay unstarted.

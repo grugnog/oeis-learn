@@ -1,23 +1,21 @@
-**Latest target review:** [035606Z CPU/HIP success and UID timeout](pilot-calibration-operator-20261027T035606Z.md).
-The read-only test repair passed all819CPU cases. UID operations then timed out;
-no calibration started. Pull the diagnostic repair and use the same command below.
-It preserves primary errors and inspect details; the engine stall's cause remains
-unknown. No allowances, automatic retries or prerequisite bypasses are added.
-
-**Latest target review:** [030746Z import/HIP success and CPU fixture repair](pilot-calibration-operator-20261027T030746Z.md).
-The repair only moves test fixture outputs off read-only installed sources.
-Pull the current branch and use the same command below with a fresh output.
-Its inputs remain the complete213151Z directory; no calibration timing started.
+**Calibration is complete:** [141405Z audited PASS](pilot-calibration-operator-20261027T141405Z.md).
+All three full-clock cost observations and current-source qualification pass.
+No further calibration or duplicate soak is requested. The next implementation is
+[versioned long-run admission/profile wiring](long-run-admission-next.md); no long
+run is admitted yet. Earlier failed collections remain linked in the review.
+The command below is the completed handoff, retained for reproducibility.
 
 # Saved-snapshot calibration: one target handoff
 
 This follows the [successful primary preflight and cost NO-GO](learning-pilot-operator-20261026T213151Z.md)
-and implements [the scoped contract](../contracts/pilot-calibration.md). Code/local
-checks are complete; actual private-file import, pinned CPU/HIP checks, three full
-original-clock observations and their candidate forecast remain target evidence.
+and implements [the scoped contract](../contracts/pilot-calibration.md). Code/local and actual target checks now pass, including private-file import,
+pinned CPU/HIP and three full original-clock observations with a passing candidate
+forecast. The following text records the historical delivered preparation scope.
 No learned-success threshold, learning-strategy change or long run is registered.
 
 ## Run once from the existing checkout
+
+**Completed on141405Z; no rerun requested.**
 
 Keep the complete213151Z output directory; its public ZIP excludes the required
 private files. This command reads its prepared corpus, original evaluation

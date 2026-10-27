@@ -359,7 +359,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -591,7 +591,7 @@ The user now requests a long-run learning evaluation, estimates of benefit from 
 - [X] 009:L009 Implement complete exact-schedule cost projection and admission for all1,776 evaluation rows/10,656 arm outcomes, learner/setup/checkpoint/startup/cleanup/export costs and prospective48-hour budget; require measured projection at most80%, with missing components UNKNOWN.
 - [X] 009:L010 Add host/CPU/HIP recovery, numerical, leakage, population/control, bounded-storage, zero-success, interruption and nonmonotonic-curve fixtures; register30-minute15+15-minute learner/restart validation with no learned-success or loss-reduction requirement.
 - [X] 009:L011 Register one consolidated preparation CLI/DAG/archive through existing phase/study adapters, sharing images/inputs and reusing only compatible evidence; retain every failed/unstarted task and explicit missing Docker capability.
-- [ ] 009:L012 Finish all unblocked implementation/local/source/binding/package checks, commit/push periodically and publish one actual finite workstation command/archive handoff with measured expected costs; do not wait for PR CI.
+- [X] 009:L012 Finish all unblocked implementation/local/source/binding/package checks, commit/push periodically and publish one actual finite workstation command/archive handoff with measured expected costs; do not wait for PR CI.
 - [X] 009:L013 Review the single new target archive; close only evidenced original portions, freeze a complete costed long-run command or no-go, and avoid repeat qualification/soak/size ladders without a concrete affected-scope defect.
 - [ ] 009:L014 Execute only a subsequently explicitly admitted fresh pilot within its immutable allowance; publish all fixed-checkpoint actual sequence/control/completeness/cost outcomes, including negative or interrupted runs.
 - [ ] 009:L015 Review demonstrated learning, data/overfitting limits and conditional further-compute estimates; make the subsequent same-regime-versus-curriculum decision without automatically running another study.
@@ -636,7 +636,7 @@ profile. Original111 task IDs/counts and accepted hardware evidence are unchange
 - [X] 009:G002 Implement explicit profile v2/recipe v4/prepared-input v3 with a524,288-counter candidate budget and unchanged scientific/resource/training/evaluation limits; keep legacy readers and identities.
 - [X] 009:G003 Implement versioned bounded raw-reference cache migration from v1, preserving original producer/cost lineage and fresh native-admission requirements; reject incompatible semantics and malformed rows.
 - [X] 009:G004 Demonstrate local full32,768/128/128 mathematical selection, independent final overlap/family/panel/stage audits and complete transferable reference data; actual approved OEIS/native evidence remains owned by G005.
-- [ ] 009:G005 Collect current-source pinned CPU/native/HIP/operations, actual approved OEIS exclusions, all33,024 native admissions and complete full296-row preflight cost/restart evidence; no repeat hardware size/batch/two-hour soak or automatic long-run admission.
+- [X] 009:G005 Collect current-source pinned CPU/native/HIP/operations, actual approved OEIS exclusions, all33,024 native admissions and complete full296-row preflight cost/restart evidence; no repeat hardware size/batch/two-hour soak or automatic long-run admission.
 - [X] 009:G006 Finish local regression/source/packaging/task checks, commit/push and publish one finite combined target command using compatible retained reference work; do not wait for newly queued PR CI.
 
 
@@ -675,7 +675,7 @@ none of these tasks repeat the passed corpus/native/training/soak work.
 - [X] 009:K003 Add opt-in full-clock portfolio receipts and financial-versus-scientific completeness checks while preserving legacy semantics and native4s clocks.
 - [X] 009:K004 Integrate one calibration-only CLI/registry/DAG, actual saved-weight loading, isolated scoring, candidate cost report and failure archive; no training/corpus preparation.
 - [X] 009:K005 Complete stdlib and pinned runtime counterexamples, source/task/binding/package checks; commit/push and publish one finite target command after all unblocked code work.
-- [ ] 009:K006 Review the target calibration archive and separately resolve cost/profile/long-run admission; no automatic research launch.
+- [X] 009:K006 Review the target calibration archive and separately resolve cost/profile/long-run admission; no automatic research launch.
 
 New calibration runtime reopens T110 for its own affected-source qualification; the213151Z source closure remains accepted. Original counts87/9/15 until this new source is qualified. K002–K004 cover implemented/local scope; actual saved-file import and full-clock timing remain K006 target evidence.
 
@@ -703,3 +703,26 @@ primary/fatal errors, bounded inspection diagnostics, and acknowledged cleanup;
 242host tests pass. The underlying engine stall remains UNKNOWN. No retry, larger
 clock, prerequisite bypass, science or default change. K006/T110 remain pending,
 original87/9/15; the same single command uses213151Z inputs and fresh output.
+
+
+## Calibration accepted — 141405Z
+
+[Audited calibration PASS](validation/pilot-calibration-operator-20261027T141405Z.md)
+verifies297members, all3552original-clock portfolios, actual source/work/checkpoint
+bindings,824CPU/24HIP/45policy and primary operations. All three finite cost
+observations complete; the prospective forecast126780s fits138240s admission
+target and36000s evaluation reservation. Scientific unknowns remain unknown.
+T110, L012, G005 and K006 close at their exact scopes; original88/8/15. The old
+long-run schema still rejects the candidate cost, so L014/L015 and T086 stay open.
+No new calibration/soak is requested; use the next versioned admission work below.
+
+## Versioned long-run admission follow-up
+
+[Next implementation requirements](validation/long-run-admission-next.md) preserve
+passed calibration evidence and the proposed24/48-hour duration without launching it.
+
+- [ ] 009:J001 Freeze the opt-in full-clock long-run profile/decision/cost-authority migration, evaluation36000s/safety41400s and legacy identity preservation.
+- [ ] 009:J002 Wire actual full-state learner/evaluation/ledger paths to that profile, retaining fresh initialization, all frozen populations/arms/clocks and hidden-scoring isolation.
+- [ ] 009:J003 Implement explicit source/image/data/cost compatibility and current affected checks without repeating passed calibration/reference/data/hardware work; combine required target checks into the eventual invocation where supported.
+- [ ] 009:J004 Complete authority/schema/deadline/missing-science/recovery/leakage/storage/read-only host and pinned fixtures, source/binding/package validation and periodic commits.
+- [ ] 009:J005 Publish one concrete reviewed costed long-run authority/command/output/recovery handoff with actual admission prerequisites; no automatic launch or extra calibration loop.
