@@ -678,3 +678,16 @@ none of these tasks repeat the passed corpus/native/training/soak work.
 - [ ] 009:K006 Review the target calibration archive and separately resolve cost/profile/long-run admission; no automatic research launch.
 
 New calibration runtime reopens T110 for its own affected-source qualification; the213151Z source closure remains accepted. Original counts87/9/15 until this new source is qualified. K002–K004 cover implemented/local scope; actual saved-file import and full-clock timing remain K006 target evidence.
+
+
+### First saved-snapshot target review and read-only fixture repair
+
+[030746Z review](validation/pilot-calibration-operator-20261027T030746Z.md) verifies
+all170members and successful actual private-data/three-snapshot import,24HIP
+passes and primary operations. One of819CPU cases fails because its fixture writes
+under read-only `/opt/oeis-build`; no calibration timing starts. The fixed test
+uses a writable synthetic repository and retains structured failure reports.
+Production Python/data/clock/model/budgets are unchanged. K006 remains partial
+(actual import/old-source HIP reviewed; fixed installed CPU and full costs pending).
+Original87/9/15 and T110 pending remain; rerun only the same bounded calibration
+scope with the original213151Z inputs, not data generation/training/soak.

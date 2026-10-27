@@ -2326,5 +2326,20 @@
     "L013": "reviewed_no_go",
     "G005": "partial_cost_pending",
     "T110": "complete_exact_source"
+  },
+  "pilot_calibration_030746Z": {
+    "review": "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T030746Z.md",
+    "source": "sha256:47c47e090ae462891dfbf3f1b2cca66feea694d064adfd4053e1e646db2a9bfb",
+    "inventory": "170 members, zero omissions/hash mismatches",
+    "actual_import": "PASS_three_saved_snapshots_and_prepared_inputs",
+    "cpu": "818 pass,1 read-only fixture failure (JUnit819 cases)",
+    "hip": "24 PASS",
+    "calibration_session": "NOT_STARTED",
+    "cost": "UNKNOWN",
+    "repair_source": "sha256:32e77120159d9ccb1203654dc7fcbc4967252623b30b7c2e7b7193a6c7a27fdf",
+    "runtime_python_changed": false,
+    "local_host_tests": 239,
+    "K006": "partial_fixed_installed_CPU_and_full_cost_pending",
+    "long_run_admitted": false
   }
 }

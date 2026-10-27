@@ -1,3 +1,8 @@
+**Latest target review:** [030746Z import/HIP success and CPU fixture repair](pilot-calibration-operator-20261027T030746Z.md).
+The repair only moves test fixture outputs off read-only installed sources.
+Pull the current branch and use the same command below with a fresh output.
+Its inputs remain the complete213151Z directory; no calibration timing started.
+
 # Saved-snapshot calibration: one target handoff
 
 This follows the [successful primary preflight and cost NO-GO](learning-pilot-operator-20261026T213151Z.md)
