@@ -381,3 +381,46 @@ class SoakContracts(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class FailedInspection(unittest.TestCase):
+    def run_case(self,*,launch_failure,remove_failure=None):
+        import tempfile,types,subprocess
+        from unittest.mock import Mock,patch
+        from oeis_learn.pipeline_validation.benchmarks import legacy
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        module=legacy(Path(__file__).resolve().parents[2])
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);inputs=root/'input';inputs.mkdir();out=root/'out';out.mkdir()
+            engine=Mock();engine.command.return_value=['fixture-engine']
+            inspection_error=subprocess.CalledProcessError(125,['fixture-engine','inspect','missing'],stderr=b'container unavailable',output=b'')
+            engine.call.side_effect=inspection_error
+            if remove_failure:engine.remove.side_effect=remove_failure
+            host=types.SimpleNamespace(engine=engine,policy=dict(memory_bytes=1<<30,cpus=2))
+            with patch('oeis_learn.pipeline_validation.supervision.launch',side_effect=launch_failure):
+                expected=ResourceBreach if remove_failure else type(launch_failure) if launch_failure else subprocess.CalledProcessError
+                with self.assertRaises(expected) as raised:
+                    module.container_stage(host,'image',inputs,out,mode='fixture',seconds=1,gpu=False,argv=['python','-c','fixture'])
+            audit=json.loads((out/'isolation-audit.json').read_text());detail=json.loads((out/'inspection-error.json').read_text())
+            cleanup=json.loads((out/'cleanup.json').read_text())
+            self.assertEqual(audit['status'],'INCOMPLETE');self.assertEqual(detail['returncode'],125)
+            self.assertEqual(detail['stderr'],'container unavailable')
+            self.assertEqual(cleanup['acknowledged'],not bool(remove_failure));engine.remove.assert_called_once()
+            self.assertFalse((out/'container-inspect.json').exists())
+            if remove_failure:self.assertFalse(cleanup['within_bound'])
+            elif launch_failure:self.assertIs(raised.exception,launch_failure)
+            else:self.assertIs(raised.exception,inspection_error)
+            return detail
+
+    def test_inspection_failure_retains_primary_timeout_and_fatal_resource_error(self):
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        for error in (TimeoutError('original launch deadline'),ResourceBreach('original allocation failure')):
+            with self.subTest(error=type(error).__name__):
+                detail=self.run_case(launch_failure=error)
+                self.assertIn(str(error),detail['launcher_error'])
+
+    def test_successful_launch_without_inspection_remains_failure(self):
+        detail=self.run_case(launch_failure=None)
+        self.assertIsNone(detail['launcher_error'])
+
+    def test_failed_reclamation_remains_fatal_after_missing_inspection(self):
+        self.run_case(launch_failure=TimeoutError('original launch deadline'),remove_failure=RuntimeError('no acknowledgement'))

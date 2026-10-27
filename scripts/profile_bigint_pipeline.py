@@ -290,9 +290,27 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
         if argv is not None:
             cleanup_state.setdefault('deadline',cleanup_started+5)
         try:
-            result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else max(.001,min(2,cleanup_state['deadline']-time.monotonic())))
-            inspection = json.loads(result.stdout)
-            write(output / "container-inspect.json", inspection)
+            try:
+                result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else max(.001,min(2,cleanup_state['deadline']-time.monotonic())))
+                inspection = json.loads(result.stdout)
+                if argv is not None and (not isinstance(inspection,list) or len(inspection)!=1 or not isinstance(inspection[0],dict)):
+                    raise ValueError('one container inspection record required')
+                write(output / "container-inspect.json", inspection)
+            except (OSError,ValueError,subprocess.SubprocessError) as inspection_error:
+                if argv is None:raise
+                def error_tail(value):
+                    if isinstance(value,bytes):value=value.decode(errors='replace')
+                    return str(value or '')[-8192:]
+                launcher_error=(type(role_error).__name__+': '+str(role_error))[:8192] if role_error is not None else None
+                write(output/'inspection-error.json',dict(
+                    error=type(inspection_error).__name__+': '+str(inspection_error),
+                    returncode=getattr(inspection_error,'returncode',None),
+                    stderr=error_tail(getattr(inspection_error,'stderr',None)),
+                    stdout=error_tail(getattr(inspection_error,'stdout',None)),launcher_error=launcher_error))
+                write(output/'isolation-audit.json',dict(status='INCOMPLETE',
+                    reason='container inspection unavailable; no isolation PASS inferred',launcher_error=launcher_error))
+                if role_error is not None:raise role_error from inspection_error
+                raise
             if argv is not None and inspection[0].get('State',{}).get('OOMKilled'):
                 from oeis_learn.pipeline_validation.runner import ResourceBreach
                 raise ResourceBreach('compute container exceeded its memory envelope')
@@ -343,10 +361,13 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=Non
                 from oeis_learn.pipeline_validation.supervision import reclaim
                 reclaim(host.engine,name,output,cleanup_state)
             elapsed = time.monotonic() - (start if argv is None else cleanup_started)
-            write(
-                output / "cleanup.json",
-                dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
-            )
+            if argv is None:
+                write(
+                    output / "cleanup.json",
+                    dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
+                )
+            # Modern roles retain reclaim's explicit acknowledgement/failure and
+            # shared deadline proof instead of replacing it with elapsed time.
             if argv is not None and elapsed>5:
                 from oeis_learn.pipeline_validation.runner import ResourceBreach
                 raise ResourceBreach('pipeline container reclamation exceeded five-second envelope')
