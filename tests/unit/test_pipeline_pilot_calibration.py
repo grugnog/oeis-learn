@@ -114,9 +114,18 @@ class FailureRouting(unittest.TestCase):
         from oeis_learn.pipeline_validation.adapters import Adapters
         from oeis_learn.pipeline_validation.runner import execute
         from oeis_learn.pipeline_validation.bundle import verify
-        root=Path(__file__).resolve().parents[2]
-        with tempfile.TemporaryDirectory(prefix='tmp-calibration-',dir=root) as tmp:
-            tmp=Path(tmp);(tmp/'producer').mkdir();calls=[]
+        # The installed source tree is read-only in qualification containers.
+        # This fixture needs only a synthetic repository, not the actual source root.
+        with tempfile.TemporaryDirectory(prefix='tmp-calibration-') as tmp:
+            tmp=Path(tmp);root=tmp;(tmp/'producer').mkdir();calls=[]
+            # Minimal synthetic governance bytes let the failure reporter compute
+            # its fixture identity without borrowing or mutating the real checkout.
+            for name in ('.specify/memory/constitution.md',
+                         'specs/007-experiment-foundation/validation/adoption.md',
+                         'specs/007-experiment-foundation/validation/review-inputs.json',
+                         'specs/007-experiment-foundation/tasks.md'):
+                path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_text('synthetic failure-routing fixture')
             def host(*a):calls.append(a);raise AssertionError('engine touched before private audit')
             args=SimpleNamespace(engine='podman',inputs=str(tmp/'producer'),pipeline_engines=['podman'])
             a=Adapters(args,root,host,manifest())
@@ -134,6 +143,8 @@ class FailureRouting(unittest.TestCase):
             s=json.loads((out/'summary.json').read_text())
             self.assertEqual(s['stages']['engine.podman']['state'],'BLOCKED')
             self.assertEqual(s['stages']['calibration.session']['state'],'BLOCKED')
+            self.assertEqual(s['stages']['calibration.report']['state'],'PASS')
+            self.assertEqual(s['stages']['study.report']['state'],'PASS')
             self.assertFalse(verify(out.with_suffix('.zip'))['omissions'])
 
 class CalibrationRouting(unittest.TestCase):
