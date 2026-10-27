@@ -188,3 +188,55 @@ source still needs fresh native agreement. Preserve the existing262,144-counter
 transfer as a usable prefix; do not recompute it or reinterpret its partial
 receipt as qualification. Larger-pool/reference work is preparation, with its
 costs disclosed separately, and never launches the long run.
+
+## Scoped calibration follow-up
+
+Prospective follow-up to the [213151Z NO-GO review](learning-pilot-operator-20261026T213151Z.md).
+No command in an earlier section should be repeated unchanged.
+
+1. Preserve this exact-source preparation/native qualification and the three
+   retained diagnostic weight snapshots. Add read-only import checking of the
+   prepared manifest, prompt/truth hashes, checkpoint weight/record hashes,
+   source/image/numerical identities, parent cleanup and original receipts. An
+   absent private payload blocks only that scope; never replace it with a new
+   favorable snapshot or rerun training automatically. Public review alone cannot
+   establish that the operator's private files still exist.
+2. The present cost definition requires all5328 attempts to have started, even
+   though each finite portfolio can legitimately expire before eight attempts.
+   Before further timing, specify a new opt-in evaluation/calibration identity
+   that can distinguish a fully exercised finite60s portfolio from a portfolio
+   cut short by its proportional parent slice. Require per-portfolio monotonic
+   start/deadline/finish, termination cause, expected/started/terminal counts,
+   remaining unstarted slots, positive cleanup and source/prompt/snapshot seals.
+   Cost-complete may mean all registered portfolios fully exercised under that
+   new explicit policy; it must never imply science-complete or retroactively
+   complete the current v1 observations. Preserve historical readers/defaults.
+   Do not extend original60s portfolios or native4s jobs, multiply allowances by
+   workers, or continue expired attempts in another invocation.
+3. Freeze that roster/scheduling/time accounting before new target measurements.
+   Retain296 prompts,8/1/1/8 attempts, all six scoring arms, full100-term isolated
+   scoring, six checkpoints, model/optimizer/seed and no short-run learning gate.
+   Assess a prospective evaluation reservation36000s with safety41400s, keeping
+   the48h inclusive/24 learner-hour maxima and80% admission threshold unchanged.
+   This is a proposal, not a proven sufficient budget or modified running lease.
+   The old31122s diagnostic cannot admit it. If the new finite envelopes exceed
+   budget, retain NO-GO and report the exact deficit rather than shrink coverage.
+4. Implement one finite calibration-only DAG using the three retained snapshots
+   and existing prepared views. Include compatible-source reuse/current affected
+   checks, complete positive scoring-cost sentinels, evidence/clock/storage fault
+   cases and archive calibration. No new learner leg, reference generation,
+   corpus selection, size/batch sweep or two-hour soak. Freeze and disclose the
+   entire command's expected costs and hard cap after local implementation.
+   A new source must receive its required affected checks; accepting old source
+   evidence is not silently qualifying changed runtime code.
+5. Test the importer/clock accounting on complete-negative, grammar-dead-end,
+   cap-exhausted, unstarted-parent, interrupted, stale-source/checkpoint,
+   swapped-prompt/hidden-view, duplicate-debit and missing-private cases. Missing
+   required clocks/cost components stay UNKNOWN. Hand off only after all code
+   work and local checks; request one resulting ZIP. Long-run admission remains
+   a separate source/data/image/cost review and no automatic launch follows.
+
+The current delivered code is the offline audit, not that new calibration
+protocol. Runtime source is deliberately unchanged so the successful target
+qualification remains valid. This section freezes the follow-up requirements;
+it does not claim those implementation or target tasks complete.

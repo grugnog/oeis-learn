@@ -1,3 +1,9 @@
+**Latest disposition:** [Updated preflight review](learning-pilot-operator-20261026T213151Z.md)
+passes current-source CPU/HIP, full corpus/native admission and training/restart.
+Long run is NO-GO because two exact-attempt cost observations are incomplete.
+Preserve the full target output directory. The commands below are historical
+handoffs; do not repeat them unchanged. Next is scoped calibration implementation.
+
 **Current status: local preparation complete.**230 host tests pass; the expanded pool meets exact32,768/128/128 counts and all independent local overlap/family/assignment/panel/stage audits. Use the [profile-v2 target handoff](#profile-v2-target-handoff) below with the validated expanded reference archive. Actual approved OEIS exclusions,33,024 native admissions and current-source CPU/HIP/full-control costs remain target-only. The accepted hardware soak is unchanged.
 
 **Current target review and repaired handoff:** [First pilot preflight](learning-pilot-operator-20261026T124145Z.md) verifies23 HIP passes and750 CPU passes/one public cost-fixture failure. Corpus/session never start. The scoped v2 probe repair and full diagnostics are implemented with221 host tests; corrected native/corpus/cost evidence remains pending. Use its one corrected combined command; retain old successful evidence and do not repeat the hardware soak/size ladder.

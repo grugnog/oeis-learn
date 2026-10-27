@@ -359,7 +359,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -583,7 +583,7 @@ The user now requests a long-run learning evaluation, estimates of benefit from 
 - [X] 009:L001 Freeze the prospective learning question, full-checkpoint control roster, finite candidate duration/storage/cost design, no short-test learning threshold, cautious extrapolation rules and original-task alignment in `validation/learning-pilot-plan.md`.
 - [X] 009:L002 Verify/review existing immutable soak development losses, last-batch losses, epoch counters and coverage limitations in `validation/learning-pilot-existing-evidence.json`; no new run, independent continuation score or asymptotic bound is inferred.
 - [X] 009:L003 Complete T011's missing archive/failure counterexample tests against the existing exporter before changing long-run runtime paths.
-- [ ] 009:L004 Demonstrate finite32,768-example corpus-generation feasibility; audit uniqueness/group/split/provenance/length/structure coverage and independent exact100-term targets; freeze visible/hidden views without curriculum or data padding.
+- [X] 009:L004 Demonstrate finite32,768-example corpus-generation feasibility; audit uniqueness/group/split/provenance/length/structure coverage and independent exact100-term targets; freeze visible/hidden views without curriculum or data padding.
 - [X] 009:L005 Add a closed, explicitly versioned learning-pilot decision/recipe/profile with finite cumulative time/work/storage and source/image/data/seed identities; retain old v1/v2/engineering limits and deny final exposure or automatic research promotion.
 - [X] 009:L006 Extend the existing worker/CheckpointStore with bounded continuation, fixed milestones, rolling metrics/job frontiers, atomic latest/selected/staging retention and full-state interruption recovery without debit renewal.
 - [X] 009:L007 Implement bounded per-split token-weighted teacher-forcing metrics and six actual-snapshot full128+128 generic development evaluations, a fixed32-row training panel and the frozen8-row exposed OEIS-development cohort, using existing raw/rescue/equal-budget/conditioning/template arms and isolated independent100-index CPU scoring.
@@ -592,7 +592,7 @@ The user now requests a long-run learning evaluation, estimates of benefit from 
 - [X] 009:L010 Add host/CPU/HIP recovery, numerical, leakage, population/control, bounded-storage, zero-success, interruption and nonmonotonic-curve fixtures; register30-minute15+15-minute learner/restart validation with no learned-success or loss-reduction requirement.
 - [X] 009:L011 Register one consolidated preparation CLI/DAG/archive through existing phase/study adapters, sharing images/inputs and reusing only compatible evidence; retain every failed/unstarted task and explicit missing Docker capability.
 - [ ] 009:L012 Finish all unblocked implementation/local/source/binding/package checks, commit/push periodically and publish one actual finite workstation command/archive handoff with measured expected costs; do not wait for PR CI.
-- [ ] 009:L013 Review the single new target archive; close only evidenced original portions, freeze a complete costed long-run command or no-go, and avoid repeat qualification/soak/size ladders without a concrete affected-scope defect.
+- [X] 009:L013 Review the single new target archive; close only evidenced original portions, freeze a complete costed long-run command or no-go, and avoid repeat qualification/soak/size ladders without a concrete affected-scope defect.
 - [ ] 009:L014 Execute only a subsequently explicitly admitted fresh pilot within its immutable allowance; publish all fixed-checkpoint actual sequence/control/completeness/cost outcomes, including negative or interrupted runs.
 - [ ] 009:L015 Review demonstrated learning, data/overfitting limits and conditional further-compute estimates; make the subsequent same-regime-versus-curriculum decision without automatically running another study.
 
@@ -651,3 +651,16 @@ development contains no C-stage rows; retain these limits in later interpretatio
 G005 remains target-pending (actual exposed eight-row OEIS, all native admissions,
 current installed-source CPU/HIP and full control/cost observations). Original
 counts87/9/15 and separate long-study admission remain unchanged. No CI wait.
+
+
+## Updated pilot preflight adjudication — 2026-10-26
+
+[Reviewed current-source archive](validation/learning-pilot-operator-20261026T213151Z.md)
+passes802CPU/23HIP/primary operations, all33024native admissions, actual exposed
+OEIS exclusions and15+15-minute training/restart. L004 and affected-source T110
+close. L013 closes with a NO-GO: two of three registered full-attempt cost
+observations leave1776/127 attempts UNSTARTED. G005 remains partial for its cost
+clause; L012's complete measured-cost handoff and L014/L015 remain open.
+Original counts88complete/8engineering pending/15research held. No old failure,
+Docker gap, research threshold or hardware adoption is changed. Next is a scoped
+calibration implementation using retained data/snapshots, not another full preflight.

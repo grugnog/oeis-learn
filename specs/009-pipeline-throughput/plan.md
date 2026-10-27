@@ -1,3 +1,8 @@
+**Current review:** [Updated pilot preflight](validation/learning-pilot-operator-20261026T213151Z.md)
+passes primary plumbing and full corpus/native feasibility; cost readiness is NO-GO.
+Use the [scoped follow-up](validation/learning-pilot-plan.md#scoped-calibration-follow-up).
+Original counts88/8/15; no repeated hardware soak or unchanged preflight is requested.
+
 # Integrated remaining-work plan: long-run sequence-learning pilot preparation
 
 **Branch:** `009-pipeline-throughput` · **Updated:** 2026-10-25

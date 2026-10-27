@@ -1,10 +1,10 @@
 {
   "version": "pipeline-task-evidence/v1",
-  "source_evidence": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.json",
+  "source_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 87,
-    "pending_runtime": 9,
+    "complete": 88,
+    "pending_runtime": 8,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1604,10 +1604,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Prior affected-source closures remain historical. 142043Z passes752 CPU plus41 subtests and23 HIP tests, but new selected-population/cache/codec changes have227 host passes and await current pinned/native/HIP qualification. Exact-byte memory compaction and closed recovery checks pass228 host tests; local65536-row peak RSS833552->202116KiB with identical serialized content.",
-      "blocking_reason": "Corpus selection failed after262144 raw eligible counters. Local full-capacity analysis precedes a new combined qualification/corpus/session handoff; accepted primary hardware soak and size ladder are not repeated.",
+      "implementation_disposition": "Current exact754-entry runtime source passes802 CPU (JUnit count includes subtests),23 actual HIP,45 policy,123 retirement,1115 workflow cases/9 skips and primary operations. Full native corpus and training/restart pass. This offline review changes no runtime source; incomplete scientific/cost work remains separate.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1658,7 +1658,9 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T142043Z.json",
-        "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json"
+        "specs/009-pipeline-throughput/validation/learning-pilot-corpus-repair-local-evidence.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.json",
+        "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md"
       ]
     },
     {
@@ -2183,7 +2185,7 @@
     ],
     "historical_reproduction_command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_soak.json --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs --max-seconds 86400 --output tmp-validation/009-soak-TIMESTAMP"
   },
-  "pending_runtime_count_meaning": "Legacy field includes7 missing original runtime-evidence tasks and2 engineering test/preparation tasks T011/T086.",
+  "pending_runtime_count_meaning": "Eight original engineering tasks remain: T034/T041/T059/T060/T062/T073/T084/T086. Historical sections retain their recorded counts.",
   "accepted_soak_review": {
     "review": "specs/009-pipeline-throughput/validation/soak-operator-20261025T232558Z.md",
     "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
@@ -2214,16 +2216,16 @@
     "repeat_primary_soak": false
   },
   "learning_pilot_preparation": {
-    "status": "FIRST_TARGET_CPU_PROBE_FAILURE_REVIEWED_REPAIR_LOCAL_COMPLETE_TARGET_PENDING",
+    "status": "PRIMARY_PREFLIGHT_PASS_LONG_RUN_NO_GO_INCOMPLETE_COST",
     "plan": "specs/009-pipeline-throughput/validation/learning-pilot-plan.md",
     "existing_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-existing-evidence.json",
     "accepted_hardware_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
-    "runtime_source_unchanged": false,
+    "runtime_source_unchanged": true,
     "tasks": {
       "009:L001": "complete",
       "009:L002": "complete",
       "009:L003": "complete_code_local",
-      "009:L004": "pending_target_corpus",
+      "009:L004": "complete_actual_native_and_corpus",
       "009:L005": "complete_code_local",
       "009:L006": "complete_code_local",
       "009:L007": "complete_code_local",
@@ -2232,9 +2234,10 @@
       "009:L010": "complete_code_local",
       "009:L011": "complete_code_local",
       "009:L012": "partial_code_local_handoff_complete_target_cost_pending",
-      "009:L013": "partial_first_failed_archive_reviewed_corrected_target_readiness_pending",
+      "009:L013": "complete_reviewed_no_go",
       "009:L014": "pending_explicit_admission_and_execution",
-      "009:L015": "pending_long_run_results"
+      "009:L015": "pending_long_run_results",
+      "009:G005": "partial_primary_pass_cost_pending"
     },
     "proposed": {
       "training_examples": 32768,
@@ -2260,10 +2263,10 @@
     },
     "short_test_learning_threshold": null,
     "full_cost": "UNKNOWN_PENDING_EXACT_SCOPE_TARGET_MEASUREMENT",
-    "new_hip_command_available": true,
+    "new_hip_command_available": false,
     "long_run_admitted": false,
     "final_access": "SEALED",
-    "original_counts_unchanged": true,
+    "original_counts_unchanged": false,
     "implementation": "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
     "local_evidence": "specs/009-pipeline-throughput/validation/learning-pilot-local-evidence.json",
     "retained_target_gates": [
@@ -2289,7 +2292,8 @@
       "learning_or_long_run_admitted": false
     },
     "target_collections_reviewed": 1,
-    "proposed_next_collection": 2
+    "proposed_next_collection": 2,
+    "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md"
   },
   "learning_pilot_corpus_preparation": {
     "status": "LOCAL_V2_PREPARATION_COMPLETE_TARGET_PREFLIGHT_PENDING",
@@ -2303,5 +2307,16 @@
       "structural_development": 128
     },
     "host_tests": 230
+  },
+  "pilot_preflight_213151Z": {
+    "review": "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T213151Z.md",
+    "source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+    "primary_plumbing": "PASS",
+    "cost": "UNKNOWN",
+    "long_run": "NO_GO",
+    "L004": "complete",
+    "L013": "reviewed_no_go",
+    "G005": "partial_cost_pending",
+    "T110": "complete_exact_source"
   }
 }
