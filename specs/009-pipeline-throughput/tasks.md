@@ -664,3 +664,15 @@ clause; L012's complete measured-cost handoff and L014/L015 remain open.
 Original counts88complete/8engineering pending/15research held. No old failure,
 Docker gap, research threshold or hardware adoption is changed. Next is a scoped
 calibration implementation using retained data/snapshots, not another full preflight.
+
+## Saved-snapshot cost calibration implementation
+
+[Prospective contract](contracts/pilot-calibration.md) implements the scoped follow-up;
+none of these tasks repeat the passed corpus/native/training/soak work.
+
+- [X] 009:K001 Freeze separate saved-snapshot calibration authority, full original60s clocks, audit semantics, exact roster, finite stage bounds and non-admitting candidate cost profile.
+- [ ] 009:K002 Implement read-only source/receipt/private prepared-data/snapshot import checks; block missing or changed inputs before engine access, with no learner fallback.
+- [ ] 009:K003 Add opt-in full-clock portfolio receipts and financial-versus-scientific completeness checks while preserving legacy semantics and native4s clocks.
+- [ ] 009:K004 Integrate one calibration-only CLI/registry/DAG, actual saved-weight loading, isolated scoring, candidate cost report and failure archive; no training/corpus preparation.
+- [ ] 009:K005 Complete stdlib and pinned runtime counterexamples, source/task/binding/package checks; commit/push and publish one finite target command after all unblocked code work.
+- [ ] 009:K006 Review the target calibration archive and separately resolve cost/profile/long-run admission; no automatic research launch.
