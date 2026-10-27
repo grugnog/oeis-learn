@@ -167,8 +167,13 @@ def _portfolio(
     snapshot=None,
     portfolio_seconds=60,
     evidence=None,
+    evaluation_policy=None,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
+        if evaluation_policy!=POLICY or portfolio_seconds!=60 or ATTEMPTS.get(mode)!=attempt_count:
+            raise ValueError('registered full-clock portfolio required')
 
     from .bigint_program_identity import structural_identity
 
@@ -179,6 +184,7 @@ def _portfolio(
         seed=recipe["model"]["seed"] + int(identity(row["id"])[7:14], 16),
         beam=recipe["search"]["beam"],seconds=portfolio_seconds,
     )
+    scope_deadline = deadline
     deadline = min(deadline, policy.deadline)
     pipeline = recipe.get('pipeline')
     selection = 'visible-only/v2' if pipeline else 'visible-only/v1'
@@ -267,7 +273,9 @@ def _portfolio(
             incomplete = True
             continue
         from .pipeline_jobs import logical_job, NativeRequest
-        job = logical_job(contract=recipe.get('identity', identity(recipe)),snapshot=snapshot,
+        contract_identity=recipe.get('identity',identity(recipe))
+        if evaluation_policy is not None:contract_identity=identity(dict(recipe=contract_identity,evaluation_policy=evaluation_policy))
+        job = logical_job(contract=contract_identity,snapshot=snapshot,
             mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
             method=attempt['method'],seed=attempt['seed'])
         def native_work():
@@ -354,7 +362,13 @@ def _portfolio(
             for record in fit["admitted"]:
                 rescue_identity(source_identity(source), record["original_source_sha256"])
             rescued.extend(fit["admitted"])
-    cost = time.monotonic() - start
+    finished = time.monotonic()
+    cost = finished - start
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import clock_record
+        evidence.portfolio(row['id'],mode,clock_record(prompt=row['id'],mode=mode,snapshot=snapshot,
+            start=start,scope_deadline=scope_deadline,finish=finished,expected=attempt_count,
+            started=len(details),terminal=len(details)))
     distinct = {}
     for r in fitted:
         previous = distinct.get(r['source_sha256'])
@@ -467,11 +481,17 @@ def generate(
     diagnostic_attempts=None,
     portfolio_seconds=60,
     evidence=None,
+    evaluation_policy=None,
 ):
     import torch
 
     if portfolio_seconds not in (60,180):
         raise ValueError('registered diagnostic portfolio ceiling required')
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
+        if (evaluation_policy!=POLICY or diagnostic_attempts!=ATTEMPTS or portfolio_seconds!=60
+            or periodic or not recipe.get('pipeline') or not callable(getattr(evidence,'portfolio',None))):
+            raise ValueError('explicit full-clock pilot calibration required')
     scope_start = time.monotonic()
     if diagnostic_attempts is not None and (
         periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
@@ -520,7 +540,9 @@ def generate(
             remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - offset
             now = time.monotonic()
             allowance = max(0, (deadline - now) * len(group) / max(1, remaining))
-            if pipeline:
+            if evaluation_policy is not None:
+                until = deadline
+            elif pipeline:
                 group_cursor += len(group)
                 until = min(deadline,scope_start+group_cursor*allocation,now+portfolio_seconds)
             else:
@@ -540,6 +562,7 @@ def generate(
                     compare_cache=compare_cache and mode == "correct" and i < 3,
                     **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else dict(mode=mode) if evidence else {}),
                     **(dict(evidence=evidence) if evidence else {}),
+                    **(dict(evaluation_policy=evaluation_policy) if evaluation_policy else {}),
                     **(dict(portfolio_seconds=portfolio_seconds) if portfolio_seconds != 60 else {}),
                 )
                 for i, row in enumerate(group, offset)

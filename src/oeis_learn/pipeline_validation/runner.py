@@ -108,9 +108,9 @@ def execute(stages, output, *, adapter, binding, cap, reserve, contract=None, un
         mandatory.extend('stages/study.report/'+name for name in report_ledger.read()['files'])
     emergency.unlink(missing_ok=True)
     summary=summarize(receipts,interrupted=interrupted,registry_unavailable=unavailable)
-    if (contract or {}).get('scope','').startswith('engineering-replay') or (contract or {}).get('scope') in {'engineering-hardware','engineering-native-capacity','engineering-coschedule','engineering-model-sizing','engineering-soak','engineering-pilot'}:
+    if (contract or {}).get('scope','').startswith('engineering-replay') or (contract or {}).get('scope') in {'engineering-hardware','engineering-native-capacity','engineering-coschedule','engineering-model-sizing','engineering-soak','engineering-pilot','engineering-pilot-calibration'}:
         summary['scope']=contract['scope']
-    if (contract or {}).get('scope')=='engineering-pilot':
+    if (contract or {}).get('scope') in {'engineering-pilot','engineering-pilot-calibration'}:
         result=receipts.get('study.report',{}).get('observations',{}).get('result',{})
         summary['engineering']=result.get('primary_plumbing','BLOCKED')
         summary['research']='NOT_EXECUTED'

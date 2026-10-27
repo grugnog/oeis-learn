@@ -19,12 +19,12 @@ def options(config):
     value=config['options']
     if set(value)!={'seconds','memory_ceiling','render_node','purpose','ordinal','worker_seconds','image','interrupted'}:
         raise ValueError('closed pilot role options required')
-    if value['purpose'] not in ('preflight','longrun') or type(value['ordinal']) is not int:
+    if value['purpose'] not in ('preflight','longrun','calibration') or type(value['ordinal']) is not int:
         raise ValueError('explicit pilot purpose/ordinal required')
     from .identity import number
     number(value['seconds'],positive=True);number(value['memory_ceiling'],positive=True);number(value['worker_seconds'])
     if value['seconds']>43200 or not 0<=value['ordinal']<=5:raise ValueError('finite pilot role bound required')
-    if value['purpose']=='preflight' and value['ordinal']>2:raise ValueError('three preflight snapshots only')
+    if value['purpose'] in ('preflight','calibration') and value['ordinal']>2:raise ValueError('three preflight snapshots only')
     return value
 
 
@@ -73,7 +73,9 @@ def train(inputs,output,config):
     from oeis_learn.fresh.bigint_worker import train as worker
     from oeis_learn.fresh.bigint_state import CheckpointStore
     from oeis_learn.synthesis.state import ExperimentContract
-    opt=options(config);m,recipe,examples=visible_work(inputs,config)
+    opt=options(config)
+    if opt['purpose']=='calibration':raise ValueError('calibration cannot train or resume')
+    m,recipe,examples=visible_work(inputs,config)
     if (inputs/'truth.json').exists() or (inputs/'private').exists():raise ValueError('hidden data cannot enter pilot learner')
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     cfg=settings(m,recipe,config)
@@ -132,26 +134,38 @@ def generate(inputs,output,config):
     if len(rows)!=296 or len({r['id'] for r in rows})!=296:raise ValueError('complete296-row control roster required')
     if any(set(r)-{'id','indices','values','horizon_indices','family','strata'} or len(r['values'])!=20 for r in rows):
         raise ValueError('visible-only generator prompts required')
-    encoder,decoder,counts=_load_models(inputs,cfg)
+    if opt['purpose']=='calibration':
+        from .pilot_calibration import load_snapshot_models
+        encoder,decoder,counts=load_snapshot_models(inputs,cfg)
+    else:
+        if 'diagnostic_snapshot' in cfg:raise ValueError('diagnostic weights cannot authorize ordinary evaluation/resume')
+        encoder,decoder,counts=_load_models(inputs,cfg)
     from .model_sizes import PROFILES,parameters
     if counts['actual']!=parameters(PROFILES['m100']):raise ValueError('actual full104.5M model required')
     deadline=time.monotonic()+opt['seconds']-30;records={};controls={}
     from oeis_learn.fresh.pipeline_jobs import merge_boundary,JobLedger
     boundary=JobLedger().boundary(cfg['recipe']['pipeline'])
     from .pilot_evidence import Evidence
-    evidence=Evidence(output,rows)
+    if opt['purpose']=='calibration':
+        from .pilot_clocks import FullClockEvidence,POLICY
+        evidence=FullClockEvidence(output,rows,source=config['source'],work=cfg['pilot']['work'])
+    else:evidence=Evidence(output,rows)
     with evidence, client(cfg,output/'private/native') as synthesis:
         for split in SPLITS:
             batch=[r for r in rows if r['strata']['split']==split]
             # A frozen proportional share prevents a slow split borrowing another's allowance.
             allowance=(opt['seconds']-60)*len(batch)/296
             result=evaluate(encoder,decoder,batch,cfg['recipe'],synthesis,
-                deadline=min(deadline,time.monotonic()+allowance),diagnostic_attempts=dict(correct=8,shuffled=1,absent=1,template=8),evidence=evidence)
+                deadline=deadline if opt['purpose']=='calibration' else min(deadline,time.monotonic()+allowance),
+                diagnostic_attempts=dict(correct=8,shuffled=1,absent=1,template=8),evidence=evidence,
+                **(dict(evaluation_policy=POLICY) if opt['purpose']=='calibration' else {}))
             records.update({k:{n:r[n] for n in ('selections','arm_evidence','complete','family','strata')} for k,r in result['records'].items()})
             boundary=merge_boundary(boundary,result['pipeline_boundary']);controls[split]=result['controls']
     bounded_write(output/'selections.json',records,8<<20);write(output/'boundary.json',boundary);write(output/'controls.json',controls)
     return dict(status='COMPLETE',rows=len(records),checkpoint=cfg['checkpoint'],source=config['source'],
-        work=cfg['pilot']['work'],execution=execution_observation(),counts=counts['actual'])
+        work=cfg['pilot']['work'],execution=execution_observation(),counts=counts['actual'],
+        **(dict(clock_complete=evidence.clock_summary['cost_complete'],evaluation_policy=POLICY,
+            portfolios=evidence.clock_summary['expected_portfolios']) if opt['purpose']=='calibration' else {}))
 
 
 def score(inputs,output,config):
