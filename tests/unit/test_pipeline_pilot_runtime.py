@@ -59,7 +59,7 @@ def test_token_weighting_masks_padding_and_keeps_exact_match_distinct(device):
 
 
 @pytest.mark.parametrize('device',['cpu',pytest.param('cuda',marks=pytest.mark.gpu)])
-def test_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device):
+def test_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device,purpose='preflight'):
     import torch,os,shutil
     if device=='cuda' and not (torch.version.hip and torch.cuda.is_available()):
         if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':pytest.fail('actual HIP required')
@@ -73,7 +73,7 @@ def test_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
     run,inputs,settings,examples=_fixture(device,tmp_path)
     settings['pilot_training_ids']=['training']
-    settings['pilot']=configuration(source=digest('s'),work=digest('w'),purpose='preflight',ordinal=0,seconds=0,cadence_tokens=100000)
+    settings['pilot']=configuration(source=digest('s'),work=digest('w'),purpose=purpose,ordinal=0,seconds=0,cadence_tokens=100000)
     write(inputs/'settings.json',settings)
     with execution_context():first=train(inputs,tmp_path/'first')
     assert first['pilot']['complete'] and first['update']==0
@@ -85,7 +85,7 @@ def test_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device
     monkeypatch.setattr('oeis_learn.fresh.pilot_control.Control',FixtureControl)
     shutil.copytree(tmp_path/'first/checkpoints',inputs/'checkpoints')
     shutil.copyfile(tmp_path/'first/selected.json',inputs/'selected.json')
-    settings['pilot']=configuration(source=digest('s'),work=digest('w'),purpose='preflight',ordinal=1,seconds=900,cadence_tokens=100000)
+    settings['pilot']=configuration(source=digest('s'),work=digest('w'),purpose=purpose,ordinal=1,seconds=900,cadence_tokens=100000)
     write(inputs/'settings.json',settings)
     with execution_context():second=train(inputs,tmp_path/'second')
     assert second['pilot']['complete'] and second['update']==1
@@ -153,3 +153,9 @@ def test_calibration_loads_real_tensor_weights_without_resume(tmp_path,monkeypat
     assert all(torch.equal(d.state_dict()[k],v) for k,v in expected['decoder'].items())
     (tmp_path/'checkpoints').mkdir()
     with pytest.raises(ValueError,match='nonresumable'):load_snapshot_models(tmp_path,cfg)
+
+
+@pytest.mark.parametrize('device',['cpu',pytest.param('cuda',marks=pytest.mark.gpu)])
+def test_full_clock_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device):
+    from oeis_learn.pipeline_validation.longrun_contract import PURPOSE
+    test_pilot_actual_worker_state_and_metric_resume(tmp_path,monkeypatch,device,purpose=PURPOSE)

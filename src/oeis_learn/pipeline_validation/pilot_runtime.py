@@ -141,6 +141,11 @@ def generate(inputs,output,config):
     if len(rows)!=296 or len({r['id'] for r in rows})!=296:raise ValueError('complete296-row control roster required')
     if any(set(r)-{'id','indices','values','horizon_indices','family','strata'} or len(r['values'])!=20 for r in rows):
         raise ValueError('visible-only generator prompts required')
+    if opt['purpose']==PURPOSE:
+        from oeis_learn.fresh.pilot_control import parse
+        parse(cfg['pilot'])
+        if cfg['pilot']['purpose']!=PURPOSE or cfg['pilot']['source']!=config['source'] or cfg['pilot']['ordinal']!=opt['ordinal']:
+            raise ValueError('own full-state long-run snapshot required')
     if opt['purpose']=='calibration':
         from .pilot_calibration import load_snapshot_models
         encoder,decoder,counts=load_snapshot_models(inputs,cfg)
@@ -209,7 +214,7 @@ def recover(inputs,output,config):
     from oeis_learn.fresh.pipeline_profile import parameter_digest
     options(config)
     cfg=json.loads((inputs/'settings.json').read_text());parse(cfg['pilot'])
-    if cfg['pilot']['source']!=config['source'] or cfg['pilot']['purpose'] not in ('longrun',PURPOSE):raise ValueError('identical own pilot recovery only')
+    if cfg['pilot']['source']!=config['source'] or cfg['pilot']['purpose']!=config['options']['purpose'] or cfg['pilot']['purpose'] not in ('longrun',PURPOSE):raise ValueError('identical own pilot recovery only')
     pointer=json.loads((inputs/'checkpoints/latest.json').read_text())
     loaded=CheckpointStore(inputs/'checkpoints',ExperimentContract(**cfg['contract']),policies=cfg['recipe']['pipeline']).load(pointer)
     if loaded['ledger'].snapshot()!=cfg['ledger']:raise ValueError('recovered pilot debit changed')

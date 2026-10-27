@@ -10,11 +10,11 @@ CALIBRATION_SOURCE='sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e
 # Reviewed control-plane migration only. All model/decoder/native/data/build/lock
 # bytes remain identical. Unknown additions/changes invalidate reuse.
 MIGRATION_PATHS={
- 'scripts/foundation_local.py',
+ 'scripts/foundation_local.py','src/oeis_learn/cli/main.py',
  'src/oeis_learn/fresh/pilot_control.py',
  *('src/oeis_learn/pipeline_validation/'+n+'.py' for n in (
      'pilot','pilot_runtime','pilot_study','pilot_ledger','cli','adapters',
-     'longrun_contract','longrun_import','longrun_admission')),
+     'longrun_contract','longrun_import','longrun_admission','host_cli')),
  'src/oeis_learn/container_validation.py',
  'tests/unit/test_pipeline_pilot_longrun.py','tests/unit/test_pipeline_pilot_runtime.py',
  'specs/009-pipeline-throughput/contracts/long-run-pilot.md',
@@ -113,7 +113,9 @@ def inspect(calibration,producer,repo,*,engine):
         prefix='stages/calibration.session/'
         gen=prefix+'generate-'+str(i)+'/'
         score=prefix+'score-'+str(i)+'/'
-        records=read(gen+'selections.json');clocks=read(gen+'portfolio-clocks.json');attempts=read(gen+'attempt-index.json')
+        records=read(gen+'selections.json')
+        if set(records)!={p for ids in data['manifest']['roster'].values() for p in ids}:raise ValueError('calibration prompt population changed')
+        clocks=read(gen+'portfolio-clocks.json');attempts=read(gen+'attempt-index.json')
         models.add(clocks_audit(clocks,attempts,records))
         if dict(Counter(r['strata']['split'] for r in records.values()))!={k:SPEC[k] for k in SPLITS}:raise ValueError('frozen full split roster required')
         g=read(gen+'summary.json');s=read(score+'summary.json');boundary=read(gen+'boundary.json');row=cost['observations'][i]

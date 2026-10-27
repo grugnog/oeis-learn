@@ -130,7 +130,7 @@ class Study:
 
     def finalize(self,output,invocation,receipts):
         p=self.p
-        report=learning_report(p.manifest,json.loads((p.prepared/'prompts.json').read_text()),p.snapshots,purpose='longrun')
+        report=learning_report(p.manifest,json.loads((p.prepared/'prompts.json').read_text()),p.snapshots,purpose=p.purpose)
         from .pilot_runtime import bounded_write
         bounded_write(output/'learning.json',report,16<<20);bounded_write(output/'debits.json',self.ledger.value,40<<20)
         complete=len(p.snapshots)==6 and all(r['state']=='COMPLETE' for k,r in self.ledger.value['slots'].items() if k.startswith('pilot.'))

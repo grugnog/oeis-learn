@@ -81,7 +81,9 @@ def learning_report(prepared,prompts,snapshots,*,purpose):
             values[split]=dict(loss_gap=dev['loss']-training['loss'],token_accuracy_gap=dev['token_accuracy']-training['token_accuracy']) if (
                 training.get('complete') and dev.get('complete') and training.get('loss') is not None and dev.get('loss') is not None) else None
         gaps.append(dict(ordinal=point['ordinal'],tokens=point['tokens'],gaps=values))
-    return seal(dict(version='pipeline-pilot-learning-report/v1',profile=prepared.get('profile',PROFILE['identity']),purpose=purpose,
+    from .longrun_contract import PURPOSE,PROFILE as FULL_PROFILE
+    profile=FULL_PROFILE['identity'] if purpose==PURPOSE else prepared.get('profile',PROFILE['identity'])
+    return seal(dict(version='pipeline-pilot-learning-report/v1',profile=profile,purpose=purpose,
         metric='independently_verified_continuation100',series=series,
         actual_snapshots=[{k:v for k,v in s.items() if k!='outcomes'} for s in snapshots],
         teacher_forcing_gaps=gaps,training_panel_interpretation='Fixed32 examples; rolling bins describe the full sampled training stream.',
@@ -193,7 +195,14 @@ class PilotStages:
             projected_all_selected_scoring_seconds=max(scoring_seconds,1776*scored['selected_program_cost_seconds']),rows=scored['rows'],
             source=scored['source'],work=scored['work'],checkpoint=self.trainer['checkpoint']))
         self.calibrations.append(row)
-        point=dict(ordinal=ordinal,tokens=self.trainer['pilot']['state']['tokens'],updates=self.trainer['update'],
+        evaluation_cost={}
+        from .longrun_contract import full_clock
+        if full_clock(self.purpose):
+            clocks=json.loads((gen/'portfolio-clocks.json').read_text())
+            evaluation_cost=dict(policy=clocks['policy'],clock_receipt=clocks['identity'],
+                cost_complete=clocks['cost_complete'],unstarted_attempts=attempts['states'].get('UNSTARTED',0),
+                scientific_complete=scored['complete'])
+        point=dict(evaluation_cost=evaluation_cost,ordinal=ordinal,tokens=self.trainer['pilot']['state']['tokens'],updates=self.trainer['update'],
             examples=self.trainer['pilot']['state']['examples'],unique_examples=self.trainer['pilot']['state']['unique_examples'],
             unique_training_tokens=self.trainer['pilot']['state']['unique_tokens'],
             repeated_training_tokens=self.trainer['pilot']['state']['tokens']-self.trainer['pilot']['state']['unique_tokens'],

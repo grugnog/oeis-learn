@@ -16,6 +16,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
+    subparsers.add_parser(
+        "pipeline", help="Portable container pipeline validation, pilot admission and admitted execution."
+    )
+
     # Command 1: ingest
     ingest_p = subparsers.add_parser(
         "ingest",
@@ -916,8 +920,12 @@ def handle_list_runs(args: argparse.Namespace) -> int:
 
 def cli(args: Optional[List[str]] = None) -> int:
     """Main CLI entrypoint."""
+    argv = list(sys.argv[1:] if args is None else args)
+    if argv and argv[0] == "pipeline":
+        from oeis_learn.pipeline_validation.host_cli import main
+        return main(argv[1:])
     parser = build_parser()
-    parsed_args = parser.parse_args(args)
+    parsed_args = parser.parse_args(argv)
 
     if not parsed_args.command:
         parser.print_help()

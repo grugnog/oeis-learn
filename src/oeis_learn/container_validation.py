@@ -132,6 +132,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                 "tests/unit/test_pipeline_pilot_runtime.py::test_token_weighting_masks_padding_and_keeps_exact_match_distinct[cuda]",
                 "tests/unit/test_pipeline_pilot_runtime.py::test_pilot_actual_worker_state_and_metric_resume[cuda]",
                 "tests/unit/test_pipeline_pilot_runtime.py::test_calibration_loads_real_tensor_weights_without_resume[cuda]",
+                "tests/unit/test_pipeline_pilot_runtime.py::test_full_clock_pilot_actual_worker_state_and_metric_resume[cuda]",
             ]
             if gpu
             else sorted(set(bigint_cpu))

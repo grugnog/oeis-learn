@@ -1,7 +1,7 @@
 """Opt-in original-clock pilot authority; historical v1 decisions stay unchanged."""
 from copy import deepcopy
 import json
-from .identity import seal,digest,validate,reference
+from .identity import seal,digest,validate,reference,confined,file_hash
 from .pilot_contract import PROFILE as DATA_PROFILE,SPEC as DATA_SPEC,decision_payload
 from .pilot_clocks import POLICY
 
@@ -79,15 +79,26 @@ def parse_decision(record,*,root=None,source=None):
             if r['state']!='PASS':missing.append('qualification_receipts')
         if set(q['receipt_refs'])!=required:missing.append('qualification_receipts')
         if not missing:
+            actual_receipts={}
             for key,ref in q['receipt_refs'].items():
-                receipt=json.loads(reference(root,ref).read_text())
+                path=reference(root,ref);receipt=json.loads(path.read_text());actual_receipts[key]=receipt
                 if (seal(receipt)!=receipt or receipt.get('stage')!=key or receipt.get('state')!='PASS'
                     or receipt.get('identity')!=q['receipts'][key]['identity'] or receipt.get('binding',{}).get('source')!=record['source']):
                     missing.append('qualification_receipts')
+                if not receipt.get('files') or any(file_hash(confined(path.parent,name))!=sha for name,sha in receipt['files'].items()):
+                    missing.append('qualification_files')
+            if not missing:
+                for receipt in actual_receipts.values():
+                    if any(actual_receipts.get(k,{}).get('identity')!=h for k,h in receipt['prerequisites'].items() if k!='pilot.compatibility'):
+                        missing.append('qualification_prerequisites')
+                for target,image in q['image'].items():
+                    if actual_receipts['image.'+q['engine']+'.'+target]['observations']['result']['image']!=image:
+                        missing.append('qualified_image_binding')
         c=read('cost')
         if not valid_cost(c,source=record['source'],compatibility=compat['identity']):missing.append('exact_scope_cost')
         if (compat['engine']!=q['engine'] or compat['cpus']!=q['cpus'] or compat['resources']!=q['resources']
-            or compat['work']!=q['work'] or c.get('work')!=q['work']):missing.append('cost_work_binding')
+            or compat['work']!=q['work'] or c.get('work')!=q['work']
+            or c.get('calibration',{}).get('source')!=compat['calibration_source']):missing.append('cost_work_binding')
         # Never resolve private data until every public approval/qualification/cost gate passed.
         if not missing:
             prepared=read('prepared')
