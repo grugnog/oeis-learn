@@ -2341,5 +2341,23 @@
     "local_host_tests": 239,
     "K006": "partial_fixed_installed_CPU_and_full_cost_pending",
     "long_run_admitted": false
+  },
+  "pilot_calibration_035606Z": {
+    "review": "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T035606Z.md",
+    "source": "sha256:32e77120159d9ccb1203654dc7fcbc4967252623b30b7c2e7b7193a6c7a27fdf",
+    "actual_import": "PASS",
+    "cpu": "819 PASS",
+    "hip": "24 PASS",
+    "policy": "45 PASS",
+    "uid_operations": "FAIL_original60s_timeout_inspect125_masks_primary",
+    "calibration_session": "NOT_STARTED",
+    "cost": "UNKNOWN",
+    "root_engine_cause": "UNKNOWN",
+    "repair": "preserve primary failure, bounded inspect evidence and explicit reclaim acknowledgement",
+    "repair_source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+    "local_host_tests": 242,
+    "unchanged": "no retry, allowance expansion, science/model/data/default change",
+    "K006": "partial_target_import_and_qualification_reviewed_full_cost_unstarted",
+    "long_run_admitted": false
   }
 }

@@ -691,3 +691,15 @@ Production Python/data/clock/model/budgets are unchanged. K006 remains partial
 (actual import/old-source HIP reviewed; fixed installed CPU and full costs pending).
 Original87/9/15 and T110 pending remain; rerun only the same bounded calibration
 scope with the original213151Z inputs, not data generation/training/soak.
+
+
+### Second calibration target review: CPU passes; operations timeout preserved
+
+[035606Z review](validation/pilot-calibration-operator-20261027T035606Z.md) verifies
+152members, successful actual private import,819CPU/24HIP/45policy and primary
+retirement/workflow. UID export times out after60s without output; inspect exit125
+masks the primary failure. No calibration starts. Host launcher now preserves
+primary/fatal errors, bounded inspection diagnostics, and acknowledged cleanup;
+242host tests pass. The underlying engine stall remains UNKNOWN. No retry, larger
+clock, prerequisite bypass, science or default change. K006/T110 remain pending,
+original87/9/15; the same single command uses213151Z inputs and fresh output.

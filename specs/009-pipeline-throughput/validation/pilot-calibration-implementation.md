@@ -1,3 +1,9 @@
+**Latest target review:** [035606Z CPU/HIP success and UID timeout](pilot-calibration-operator-20261027T035606Z.md).
+The read-only test repair passed all819CPU cases. UID operations then timed out;
+no calibration started. Pull the diagnostic repair and use the same command below.
+It preserves primary errors and inspect details; the engine stall's cause remains
+unknown. No allowances, automatic retries or prerequisite bypasses are added.
+
 **Latest target review:** [030746Z import/HIP success and CPU fixture repair](pilot-calibration-operator-20261027T030746Z.md).
 The repair only moves test fixture outputs off read-only installed sources.
 Pull the current branch and use the same command below with a fresh output.
