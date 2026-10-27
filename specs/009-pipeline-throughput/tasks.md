@@ -674,7 +674,7 @@ none of these tasks repeat the passed corpus/native/training/soak work.
 - [X] 009:K002 Implement read-only source/receipt/private prepared-data/snapshot import checks; block missing or changed inputs before engine access, with no learner fallback.
 - [X] 009:K003 Add opt-in full-clock portfolio receipts and financial-versus-scientific completeness checks while preserving legacy semantics and native4s clocks.
 - [X] 009:K004 Integrate one calibration-only CLI/registry/DAG, actual saved-weight loading, isolated scoring, candidate cost report and failure archive; no training/corpus preparation.
-- [ ] 009:K005 Complete stdlib and pinned runtime counterexamples, source/task/binding/package checks; commit/push and publish one finite target command after all unblocked code work.
+- [X] 009:K005 Complete stdlib and pinned runtime counterexamples, source/task/binding/package checks; commit/push and publish one finite target command after all unblocked code work.
 - [ ] 009:K006 Review the target calibration archive and separately resolve cost/profile/long-run admission; no automatic research launch.
 
 New calibration runtime reopens T110 for its own affected-source qualification; the213151Z source closure remains accepted. Original counts87/9/15 until this new source is qualified. K002–K004 cover implemented/local scope; actual saved-file import and full-clock timing remain K006 target evidence.

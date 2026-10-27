@@ -71,7 +71,7 @@ class CalibrationStages:
         p.deadline=time.monotonic()+stage.seconds
         from oeis_learn.fresh.common import write as replace_json
         for snapshot in self.imported['snapshots']:
-            i=snapshot['ordinal'];raw=json.loads(snapshot['settings'].read_text())
+            i=snapshot['ordinal'];raw=snapshot['settings']
             cfg={k:raw[k] for k in ('recipe','contract','contract_sha256','pilot_prompts_sha256','pilot_truth_sha256','pilot','checkpoint')}
             cfg.update(device='cuda',diagnostic_snapshot={k:snapshot[k] for k in ('weights_sha256','pointer','original_source','ordinal')})
             cfg['diagnostic_snapshot']['evaluation_policy']=POLICY

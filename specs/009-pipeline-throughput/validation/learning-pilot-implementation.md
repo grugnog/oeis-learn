@@ -1,3 +1,8 @@
+**Current action:** [Run the saved-snapshot calibration](pilot-calibration-implementation.md).
+The scoped implementation is ready for one target invocation using the complete
+213151Z directory. Historical preflight commands below should not be repeated.
+No cache download, data generation, learner leg or hardware soak is needed.
+
 **Latest disposition:** [Updated preflight review](learning-pilot-operator-20261026T213151Z.md)
 passes current-source CPU/HIP, full corpus/native admission and training/restart.
 Long run is NO-GO because two exact-attempt cost observations are incomplete.

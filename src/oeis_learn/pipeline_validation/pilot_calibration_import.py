@@ -87,7 +87,7 @@ def inspect(root,repo,*,engine):
             or generation.get('counts')!=parameters(PROFILES['m100']) or generation.get('checkpoint')!=trainer['checkpoint']):
             raise ValueError('snapshot original actual-model evaluation changed')
         r=snapshot(confined(session,'private/snapshots/'+str(i)),i,trainer,audit,settings)
-        r['settings']=settings_path;snapshots.append(r)
+        r['settings']=settings;snapshots.append(r)
     public=seal(dict(version='pipeline-pilot-calibration-import/v1',producer_source=PRODUCER_SOURCE,work=m['identity'],
         producer_manifest=file_hash(root/'manifest.json'),qualification=qualification,mathematical_owners=owners,
         snapshots=[{k:v for k,v in r.items() if k not in ('path','settings')} for r in snapshots],

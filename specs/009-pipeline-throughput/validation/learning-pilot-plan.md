@@ -240,3 +240,10 @@ The current delivered code is the offline audit, not that new calibration
 protocol. Runtime source is deliberately unchanged so the successful target
 qualification remains valid. This section freezes the follow-up requirements;
 it does not claim those implementation or target tasks complete.
+
+
+The scoped requirements above are now implemented by K001–K005 under the separate
+[contract](../contracts/pilot-calibration.md) and [one-command handoff](pilot-calibration-implementation.md).
+The previous paragraph stating code is not yet delivered is historical planning
+context. Runtime defaults and historical readers retain their meanings. K006
+owns actual private-file/pinned/full-clock/cost evidence; no long run is admitted.

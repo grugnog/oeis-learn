@@ -1,3 +1,7 @@
+**Calibration implementation is ready:** [One saved-snapshot target handoff](validation/pilot-calibration-implementation.md)
+implements K001–K005. Current-source actual target checks/cost remain K006;
+T110 is reopened for the changed evaluator. Original counts87/9/15.
+
 **Current review:** [Updated pilot preflight](validation/learning-pilot-operator-20261026T213151Z.md)
 passes primary plumbing and full corpus/native feasibility; cost readiness is NO-GO.
 Use the [scoped follow-up](validation/learning-pilot-plan.md#scoped-calibration-follow-up).

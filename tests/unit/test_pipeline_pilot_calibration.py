@@ -135,3 +135,44 @@ class FailureRouting(unittest.TestCase):
             self.assertEqual(s['stages']['engine.podman']['state'],'BLOCKED')
             self.assertEqual(s['stages']['calibration.session']['state'],'BLOCKED')
             self.assertFalse(verify(out.with_suffix('.zip'))['omissions'])
+
+class CalibrationRouting(unittest.TestCase):
+    def test_session_uses_exact_three_saved_weights_without_training_or_hidden_generation(self):
+        import json
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation.pilot_calibration import CalibrationStages
+        from oeis_learn.pipeline_validation.identity import write,file_hash
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);prepared=root/'prepared';prepared.mkdir();(prepared/'private').mkdir()
+            (prepared/'prompts.json').write_text('[]');(prepared/'private/truth.json').write_text('{}')
+            work=digest('work');source=digest('source');calls=[]
+            snapshots=[]
+            for i in range(3):
+                weight=root/('weight-'+str(i));weight.write_bytes(bytes([i]))
+                settings=dict(recipe={},contract={},contract_sha256=digest('contract'),pilot={'work':work},
+                    pilot_prompts_sha256=file_hash(prepared/'prompts.json'),pilot_truth_sha256=file_hash(prepared/'private/truth.json'),checkpoint={'ordinal':i})
+                snapshots.append(dict(ordinal=i,path=weight,settings=settings,pointer=settings['checkpoint'],
+                    weights_sha256=file_hash(weight),original_source=digest('producer')))
+            def invoke(output,label,mode,files,*,seconds,ordinal):
+                calls.append((mode,ordinal));cfg=json.loads(files['settings.json'].read_text())
+                target=output/label;target.mkdir(parents=True)
+                if mode=='pilot-generate':
+                    self.assertEqual(set(files),{'settings.json','weights.pt','prompts.json'})
+                    self.assertEqual(cfg['diagnostic_snapshot']['ordinal'],ordinal)
+                    self.assertEqual(file_hash(files['weights.pt']),snapshots[ordinal]['weights_sha256'])
+                    write(target/'selections.json',{})
+                    clocks=seal(dict(cost_complete=True,expected_portfolios=1184))
+                    write(target/'portfolio-clocks.json',clocks);write(target/'boundary.json',dict(active=0,reserved=0))
+                    return dict(clock_complete=True),target
+                self.assertEqual(mode,'pilot-score')
+                self.assertEqual(set(files),{'settings.json','selections.json','truth.json'})
+                self.assertNotIn('diagnostic_snapshot',cfg)
+                return dict(complete=False,rows=296,source=source,work=work,selected_program_cost_seconds=.1),target
+            p=SimpleNamespace(invoke=invoke)
+            a=SimpleNamespace(pilot=p)
+            stages=CalibrationStages(a);stages.imported=dict(prepared=prepared,manifest={'identity':work},snapshots=snapshots)
+            output=root/'out';output.mkdir()
+            result=stages(SimpleNamespace(id='calibration.session',seconds=31000),output)
+            self.assertEqual(result['learner_updates'],0);self.assertEqual(result['reference_generated'],0)
+            self.assertEqual(calls,[(mode,i) for i in range(3) for mode in ('pilot-generate','pilot-score')])
+            self.assertTrue(all(r['complete'] and not r['scientific_complete'] for r in stages.observations))

@@ -29,6 +29,8 @@ def main(args, root, host_factory):
     args.engine=primary
     engines=[primary]
     mode=args.engines or contract['engines']
+    if contract['scope']=='engineering-pilot-calibration' and mode!='selected':
+        raise ValueError('saved-snapshot calibration registers only the selected engine')
     other='podman' if primary=='docker' else 'docker'
     if mode=='both' or mode=='available' and shutil.which(other):
         engines.append(other)
