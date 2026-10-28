@@ -3,6 +3,7 @@ from collections import Counter,defaultdict
 import json
 from pathlib import Path
 import statistics
+import stat
 import zipfile
 from .identity import confined,file_hash,seal,write
 
@@ -12,8 +13,18 @@ class Evidence:
         from .bundle import verify
         from .reuse import validate_import
         self.path=Path(path);self.zip=None
-        if self.path.is_dir():self.manifest=validate_import(self.path)
+        if self.path.is_symlink():raise ValueError('regular evidence root required')
+        if self.path.is_dir():
+            index=confined(self.path,'manifest.json')
+            if index.stat().st_size>4<<20:raise ValueError('bounded evidence inventory required')
+            provisional=json.loads(index.read_text())
+            if len(provisional['members'])>4096 or sum(r['bytes'] for r in provisional['members'])>512<<20:raise ValueError('bounded public evidence required')
+            self.manifest=validate_import(self.path)
         else:
+            with zipfile.ZipFile(self.path) as archive:
+                info=archive.infolist()
+                if len(info)>4097 or sum(i.file_size for i in info)>512<<20:raise ValueError('bounded public archive required')
+                if any(Path(i.filename).is_absolute() or '..' in Path(i.filename).parts or stat.S_ISLNK(i.external_attr>>16) for i in info):raise ValueError('unsafe public archive member')
             self.manifest=verify(self.path);self.zip=zipfile.ZipFile(self.path)
         self.inventory={r['path']:r for r in self.manifest['members']}
         if len(self.inventory)>4096 or sum(r['bytes'] for r in self.inventory.values())>512<<20:raise ValueError('bounded diagnostic evidence required')
@@ -88,5 +99,5 @@ def collect(reader,output):
         interpretation='Historical finite-budget evidence; missing remains unresolved. No new semantic score, admission or causal claim.',
         training=False,automatic_run_authorized=False))
     from .pilot_runtime import bounded_write
-    bounded_write(output/'collected.json',result,64<<20)
+    bounded_write(output/'collected.json',result,16<<20)
     return dict(available_milestones=len(milestones),missing_milestones=missing,producer_source=result['producer_source'])

@@ -63,4 +63,72 @@ class Diagnostics(unittest.TestCase):
         models=m.parser().parse_args(['pilot-diagnose','models','--run','old','--admission','admit','--inputs','producer','--output','fresh'])
         self.assertEqual(models.snapshots,[0,1,2,3,4,5]);self.assertEqual(models.device,'hip')
 
+
+class Failures(unittest.TestCase):
+    def test_snapshot_refuses_unbound_record_or_nonregular_weights(self):
+        from tests.unit.test_pipeline_pilot_calibration import SnapshotBindings
+        from oeis_learn.pipeline_validation.diagnostics_import import snapshot
+        for kind in ('pointer','record','contract','symlink'):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);trainer,audit,settings=SnapshotBindings().fixture(root)
+                audit['contract']=settings['contract_sha256'];trainer['final_parameter_digest']=digest('parameters')
+                if kind=='pointer':trainer['checkpoint']=dict(trainer['checkpoint'],sha256=digest('other'))
+                elif kind=='contract':audit['contract']=digest('other')
+                elif kind=='record':
+                    p=root/'checkpoint.json';d=json.loads(p.read_text());d['record']['binding']['weights']=digest('other');p.write_text(json.dumps(d))
+                else:
+                    p=root/'weights.pt';p.rename(root/'outside.pt');p.symlink_to(root/'outside.pt')
+                with self.assertRaises(ValueError):snapshot(root,0,trainer,audit)
+
+    def test_models_failure_exports_and_never_initializes_engine(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation.diagnostics import main
+        from oeis_learn.pipeline_validation.bundle import verify
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for name in ('.specify/memory/constitution.md','specs/007-experiment-foundation/validation/adoption.md','specs/007-experiment-foundation/validation/review-inputs.json','specs/007-experiment-foundation/tasks.md'):
+                p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('{}')
+            args=SimpleNamespace(operation='models',device='hip',snapshots=[0,2,5],training_rows=128,spectra=False,
+                engine='podman',output='output',run='missing',inputs='missing',admission='missing',max_seconds=None,scope_report=False)
+            def fake(self,stage,out):
+                if stage.adapter!='host':raise AssertionError('engine reached despite missing import')
+                return {}
+            with patch('oeis_learn.pipeline_validation.adapters.Adapters.__call__',fake):
+                result=main(args,root,lambda *_:self.fail('engine initialized'))
+            self.assertEqual(result,1)
+            summary=json.loads((root/'output/summary.json').read_text())
+            self.assertEqual(summary['stages']['engine.podman']['state'],'BLOCKED')
+            self.assertEqual(summary['stages']['study.report']['state'],'PASS')
+            self.assertFalse(verify(root/'output.zip')['omissions'])
+
+    def test_registry_device_bounds_and_no_training_adapters(self):
+        from oeis_learn.pipeline_validation.diagnostics import registry
+        from oeis_learn.pipeline_validation.diagnostics_contract import plan
+        from oeis_learn.pipeline_validation.registry import resolve
+        for device in ('cpu','hip'):
+            p=plan(operation='models',device=device);stages=registry(p,'podman')
+            self.assertEqual(len(resolve(stages,'all-ready')),len(stages))
+            self.assertLessEqual(sum(s.seconds for s in stages)+1200,p['budgets']['global_seconds'])
+            self.assertFalse(any(s.adapter in ('pilot-train','pilot-prepare','calibration-session') for s in stages))
+            self.assertEqual(any(s.adapter=='hip' for s in stages),device=='hip')
+        self.assertEqual([s.id for s in registry(plan(operation='collect'),'podman')],['diagnostics.collect'])
+
+    def test_row_summary_preserves_split_family_and_token_weighting(self):
+        from oeis_learn.pipeline_validation.diagnostics import summarize_rows
+        rows=[dict(id='a',split='training',family='f',stage='A',tokens=1,loss_sum=1,correct_tokens=1,exact_program=True,entropy_sum=0),
+            dict(id='b',split='parameter_development',family='f',stage='A',tokens=3,loss_sum=9,correct_tokens=0,exact_program=False,entropy_sum=3)]
+        result=summarize_rows(rows)
+        self.assertEqual(result['all']['loss'],2.5)
+        self.assertEqual(result['split:training|family:f']['loss'],1)
+        self.assertEqual(result['split:parameter_development|family:f']['loss'],3)
+
+    def test_unsafe_archive_rejected_before_any_materialization(self):
+        import zipfile
+        from oeis_learn.pipeline_validation.diagnostics_collect import Evidence
+        with tempfile.TemporaryDirectory() as folder:
+            p=Path(folder)/'unsafe.zip'
+            with zipfile.ZipFile(p,'w') as z:z.writestr('../escape','payload')
+            with self.assertRaisesRegex(ValueError,'unsafe'):Evidence(p)
+
 if __name__=='__main__':unittest.main()

@@ -62,8 +62,15 @@ Global model invocation28800s includes shared14400s image-build allowance,
 CPU/HIP checks, import/collection/report and1200s cleanup/archive reserve. Explicit
 lower-only wall caps and fresh invocations preserve failed/partial diagnostics.
 Collect cap600s. Default transient16GiB, mandatory reserve16MiB, free floor5GiB,
-logs8MiB, per-role row evidence64MiB, archive512MiB/4097members. One owning compute
+logs8MiB, per-role row evidence32MiB, archive512MiB/4097members. One owning compute
 role uses the measured workstation90 envelope and declared peak/headroom.
 Missing devices, finite values, incompatible inputs or acknowledged cleanup fail
 closed. Report generation remains independent to archive failures and missing rows.
 No automatic image/cache cleanup or network data fetching.
+
+Evidence worksheet: six roles each reserve32MiB per-example rows,2MiB tensor
+comparisons,2MiB matched controls,1MiB activation summaries and2MiB resource
+samples (234MiB total). Collection16MiB, final report16MiB, other core20MiB,
+optional128MiB, emergency16MiB and1MiB inventory stay below512MiB. Bounds are
+checked on serialized bytes; exceeding mandatory output caps fails rather than
+dropping required rows.

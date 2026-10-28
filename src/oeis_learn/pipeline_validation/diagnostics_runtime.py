@@ -96,7 +96,7 @@ def row_metrics(logits,targets,pad):
 class Activations:
     def __init__(self,encoder,decoder):
         import torch
-        self.handles=[];self.rows=defaultdict(lambda:dict(calls=0,elements=0,sum=0.,squares=0.,zeros=0,maximum_absolute=0.));self.prefix='unset'
+        self.handles=[];self.rows=defaultdict(lambda:dict(calls=0,elements=0,sum=0.,squares=0.,zeros=0,maximum_absolute=0.));self.prefix='unset';self.vectors=defaultdict(list)
         def callback(name):
             def hook(module,inputs,output):self.add(name,output[0] if isinstance(output,tuple) else output)
             return hook
@@ -106,12 +106,23 @@ class Activations:
                     self.handles.append(module.register_forward_hook(callback(group+'.'+name)))
     def add(self,name,value):
         if not hasattr(value,'detach'):return
+        if name=='memory':self.vectors[self.prefix].append(value.detach().mean(1).float().cpu())
         s=tensor_summary(value);r=self.rows[self.prefix+'|'+name];n=s['elements'];r['calls']+=1;r['elements']+=n
         r['sum']+=(s['mean'] or 0)*n;r['squares']+=s['norm']**2;r['zeros']+=(s['zero_fraction'] or 0)*n
         r['maximum_absolute']=max(r['maximum_absolute'],abs(s['minimum'] or 0),abs(s['maximum'] or 0))
     def close(self):
         for handle in self.handles:handle.remove()
         self.handles=[]
+    def representation_report(self):
+        import torch
+        result={}
+        for mode,parts in self.vectors.items():
+            values=torch.cat(parts);norms=values.norm(dim=1,keepdim=True);normalized=values/norms.clamp_min(1e-12)
+            n=len(values);gram=normalized@normalized.T
+            result[mode]=dict(rows=n,mean_feature_variance=float(values.var(0,unbiased=False).mean()),
+                mean_off_diagonal_cosine=float((gram.sum()-gram.diag().sum())/(n*(n-1))) if n>1 else None,
+                zero_norm_rows=int(norms.eq(0).sum()),interpretation='pooled memory observations; similarity alone is not proof of collapse')
+        return result
     def report(self):
         return {k:dict(calls=r['calls'],elements=r['elements'],mean=r['sum']/r['elements'],
             rms=math.sqrt(r['squares']/r['elements']),zero_fraction=r['zeros']/r['elements'],maximum_absolute=r['maximum_absolute'])
@@ -146,21 +157,24 @@ def evaluate_rows(encoder,decoder,rows,*,device,mode='correct',shuffled=None,dea
                 spelling=codec.ID_TO_TOKEN.get(token,'<unknown>')
                 kind='integer' if token in codec.DIGIT_IDS or token in (codec.INT_ID,codec.TERM_ID,codec.NEG_ID) else 'control_or_operator'
                 categories[kind]+=1
-            result.append(dict(id=r['id'],family=r['family'],stage=r.get('stage'),mode=mode,**m))
+            result.append(dict(id=r['id'],family=r['family'],stage=r.get('stage'),mode=mode,target_identity=digest(r['tokens']),**m))
     return result,dict(categories)
 
 
-def paired_controls(rows):
+def paired_controls(rows,expected_ids=None):
     index=defaultdict(dict)
     for r in rows:
+        if r['mode'] not in ('correct','shuffled','absent'):raise ValueError('unknown matched conditioning mode')
         if r['mode'] in index[r['id']]:raise ValueError('duplicate matched diagnostic row')
         index[r['id']][r['mode']]=r
+    expected=set(index) if expected_ids is None else set(expected_ids)
+    if not set(index)<=expected:raise ValueError('matched row outside frozen population')
     result={}
     for mode in ('shuffled','absent'):
         pairs=[(r['correct'],r[mode]) for r in index.values() if 'correct' in r and mode in r]
         tokens=sum(a['tokens'] for a,b in pairs)
-        if any(a['tokens']!=b['tokens'] for a,b in pairs):raise ValueError('matched target normalization changed')
-        result[mode]=dict(complete_pairs=len(pairs),unresolved_pairs=len(index)-len(pairs),tokens=tokens,
+        if any(a['tokens']!=b['tokens'] or a.get('target_identity')!=b.get('target_identity') for a,b in pairs):raise ValueError('matched target normalization changed')
+        result[mode]=dict(complete_pairs=len(pairs),unresolved_pairs=len(expected)-len(pairs),tokens=tokens,
             mean_per_example_loss_increase=sum(b['loss_sum']/b['tokens']-a['loss_sum']/a['tokens'] for a,b in pairs)/len(pairs) if pairs else None,
             token_weighted_loss_increase=sum(b['loss_sum']-a['loss_sum'] for a,b in pairs)/tokens if tokens else None,
             interpretation='teacher-forced input intervention on identical canonical targets; not semantic continuation accuracy')
@@ -169,6 +183,7 @@ def paired_controls(rows):
 
 @sizing_execution
 def run(inputs,output,config):
+    began=time.monotonic()
     import torch,gc
     from oeis_learn.fresh.bigint_worker import models
     from oeis_learn.fresh.pipeline_profile import parameter_digest
@@ -177,23 +192,33 @@ def run(inputs,output,config):
     from .diagnostics_contract import parse,populations
     from .model_sizes import PROFILES,parameters
     from .pilot_runtime import bounded_write
+    torch.set_num_threads(2)
+    if torch.get_num_interop_threads()!=1:torch.set_num_interop_threads(1)
     opt=config['options'];device='cuda' if opt['purpose']=='diagnostics-hip' else 'cpu'
     if opt['purpose'] not in ('diagnostics-hip','diagnostics-cpu') or opt['worker_seconds'] or opt['interrupted']:raise ValueError('read-only diagnostic role required')
     if any((inputs/n).exists() for n in ('checkpoints','optimizer','truth.json','private')):raise ValueError('forbidden diagnostic mount')
     settings=json.loads((inputs/'diagnostics.json').read_text());plan=parse(settings['plan']);ordinal=opt['ordinal']
     if plan['device']!=('hip' if device=='cuda' else 'cpu') or ordinal not in plan['snapshots']:raise ValueError('frozen diagnostic device/ordinal changed')
-    m=json.loads((inputs/'prepared.json').read_text());recipe=json.loads((inputs/'recipe.json').read_text());validate_effective(recipe)
+    m=json.loads((inputs/'prepared.json').read_text())
+    from .identity import validate
+    from .pilot_contract import PROFILE as DATA_PROFILE,SPEC
+    from .pilot_calibration_import import PRODUCER_SOURCE
+    validate(m,{'version','source','profile','recipe','roster','audit','files'},'pipeline-pilot-inputs/v3')
+    if m['source']!=PRODUCER_SOURCE or m['profile']!=DATA_PROFILE['identity']:raise ValueError('original generic data profile/source required')
+    recipe=json.loads((inputs/'recipe.json').read_text());validate_effective(recipe)
     if m['identity']!=settings['work'] or file_hash(inputs/'examples.json')!=m['files']['examples.json']['sha256'] or digest(recipe)!=m['recipe']:
         raise ValueError('frozen diagnostic data/recipe changed')
-    examples=learner_view(json.loads((inputs/'examples.json').read_text()));population=populations(examples,m['roster'],training_rows=plan['training_rows'])
+    examples=learner_view(json.loads((inputs/'examples.json').read_text()))
+    if {k:len(v) for k,v in examples.items()}!={k:SPEC[k] for k in examples}:raise ValueError('full original generic corpus required')
+    population=populations(examples,m['roster'],training_rows=plan['training_rows'])
     if population!=settings['populations']:raise ValueError('diagnostic population changed')
     for label in ('weights','initial','previous'):
         if file_hash(inputs/(label+'.pt'))!=settings[label]['weights_sha256']:raise ValueError('saved diagnostic tensor changed')
     current=read_tensors(inputs/'weights.pt');initial=read_tensors(inputs/'initial.pt');previous=read_tensors(inputs/'previous.pt')
-    deadline=time.monotonic()+opt['seconds']-30
+    deadline=began+opt['seconds']-30
     comparisons=tensor_comparisons(current,initial,previous,spectra=plan['spectra'],deadline=deadline)
     bounded_write(output/'tensor-comparisons.json',seal(dict(version='pipeline-diagnostic-tensors/v1',ordinal=ordinal,
-        previous_ordinal=settings['previous']['ordinal'],initial_ordinal=0,tensors=comparisons)),8<<20)
+        previous_ordinal=settings['previous']['ordinal'],initial_ordinal=0,tensors=comparisons)),2<<20)
     del initial,previous;gc.collect()
     encoder,decoder,counts=models(recipe,device)
     if counts['actual']!=parameters(PROFILES['m100']):raise ValueError('actual full-size diagnostic model required')
@@ -205,7 +230,8 @@ def run(inputs,output,config):
     index={r['id']:dict(r,split=split) for split,rows in examples.items() for r in rows}
     shuffled={pid:index[target] for pid,target in population['shuffled'].items()}
     from .pilot_data import labels
-    strata={pid:labels(row) for pid,row in index.items()}
+    from oeis_learn.fresh.bigint_diagnostics import strata as program_strata
+    strata={pid:{**labels(row),**program_strata(row)} for pid,row in index.items()}
     all_rows=[];matched=[];error_counts={};hook=None
     activation_completed={}
     with torch.inference_mode():
@@ -226,12 +252,12 @@ def run(inputs,output,config):
     expected=len(population['correct']);seen={r['id'] for r in correct}
     # Compact scalar row stream; no full source, targets, logits or activations.
     payload=''.join(json.dumps(r,sort_keys=True,allow_nan=False)+'\n' for r in all_rows)
-    if len(payload.encode())>64<<20:raise ValueError('diagnostic row stream exceeds64MiB')
+    if len(payload.encode())>32<<20:raise ValueError('diagnostic row stream exceeds32MiB')
     (output/'per-example.jsonl').write_text(payload)
     bounded_write(output/'matched-controls.json',seal(dict(version='pipeline-diagnostic-controls/v1',rows=matched,
-        pairs=paired_controls(matched),expected_rows=3*len(population['matched']))),4<<20)
-    bounded_write(output/'activations.json',seal(dict(version='pipeline-diagnostic-activations/v1',summaries=hook.report(),
-        expected_rows_per_mode=len(population['activation']),completed_rows=activation_completed,interpretation='scalar forward observations; no causal localization claim')),4<<20)
+        pairs=paired_controls(matched,population['matched']),expected_rows=3*len(population['matched']))),2<<20)
+    bounded_write(output/'activations.json',seal(dict(version='pipeline-diagnostic-activations/v1',summaries=hook.report(),representations=hook.representation_report(),
+        expected_rows_per_mode=len(population['activation']),completed_rows=activation_completed,interpretation='scalar forward observations; no causal localization claim')),1<<20)
     complete=len(seen)==expected and len(matched)==3*len(population['matched']) and all(n==len(population['activation']) for n in activation_completed.values())
     return dict(status='COMPLETE' if complete else 'PARTIAL',work=settings['work'],source=config['source'],ordinal=ordinal,
         execution=execution_observation(),device=device,counts=counts['actual'],parameter_digest_before=before,parameter_digest_after=after,
