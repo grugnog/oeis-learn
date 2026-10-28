@@ -770,3 +770,13 @@ Docker, original comparisons/adoption/final gates and J006 remain open. No new
 HIP run is requested.
 
 - [ ] 009:J007 Clarify the generic engineering summary versus explicit pilot admission verdict in `src/oeis_learn/pipeline_validation/runner.py`; retain separate engineering execution, reviewed admission and research execution statuses without changing authority checks or historical documents.
+
+## Read-only post-run diagnostics
+
+- [ ] 009:D001 Freeze versioned diagnostic CLI/scope, immutable input bindings, deterministic populations, isolation/finite budgets and output semantics in `contracts/pilot-diagnostics.md` and `src/oeis_learn/pipeline_validation/diagnostics_contract.py`.
+- [ ] 009:D002 Add stdlib contract/import/collection/failure/partial/archive tests in `tests/unit/test_pipeline_diagnostics.py` before implementation; preserve private data and historical authority.
+- [ ] 009:D003 Implement verified public artifact collection and private saved-weight/visible-data import in `diagnostics_collect.py` and `diagnostics_import.py`, with no engine access before missing/changed input rejection.
+- [ ] 009:D004 Implement bounded read-only per-example/matched-conditioning, activation/weight summaries and paired reporting in `diagnostics_runtime.py`; prove unchanged parameters, explicit missing denominators, actual checkpoint loading and no optimizer/hidden mounts.
+- [ ] 009:D005 Integrate `pilot-diagnose collect|models` with the main/portable CLI, existing image/role/resource/supervision/bundle owners, and serial snapshot DAG in `diagnostics.py`; register pinned CPU/HIP fixtures in the same model invocation.
+- [ ] 009:D006 Complete host and authored pinned counterexamples, current binding/source/package/command checks, task updates and periodic PR commits; publish one finite command/archive handoff after unblocked code work. Actual target diagnostic results remain separate.
+- [ ] 009:D007 Review the supplied target diagnostic archive, preserving missing measurements and limits on mechanistic/causal claims; no automatic learning-regime decision or run.

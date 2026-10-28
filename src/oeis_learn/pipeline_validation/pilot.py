@@ -109,7 +109,7 @@ class PilotStages:
         from .soak import peak
         measured=observe();measured['limits'].append(host.policy['memory_bytes'])
         policy=resolve(**measured,profile='workstation90')
-        gpu=mode in ('pilot-train','pilot-generate');reservation=reserve(policy,peak(16) if gpu else 32<<30)
+        gpu=mode in ('pilot-train','pilot-generate') or mode=='pilot-diagnostics' and self.purpose=='diagnostics-hip';reservation=reserve(policy,peak(16) if gpu else 32<<30)
         if reservation['reserved_bytes']>.9*policy['ceiling_bytes']:raise CapabilityError('pilot requires ten percent unreserved memory')
         if host.policy['cpus']<6:raise CapabilityError('two Torch and four native equivalents required')
         source=root/'private'/('input-'+label);source.mkdir(parents=True)

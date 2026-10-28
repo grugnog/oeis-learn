@@ -553,3 +553,12 @@ Independent review of the supplied admission evidence now closes009:T086 and
 pending/15research held. Detailed audit metadata remain private. Supplemental
 L014 execution is complete and L015 strategy decision remains open; independent
 Docker and all original research/adoption/final restrictions are unchanged.
+
+### Post-run diagnostic implementation
+
+Implement [read-only pilot diagnostics](contracts/pilot-diagnostics.md) through the
+main CLI. Deliver stdlib collection first, then verified saved-weight import,
+bounded per-example/matched-conditioning/weight/activation probes, integrated
+current-package CPU/HIP fixtures and one operator archive. Preserve the completed
+study and qualified computational dependencies; no training, fresh corpus,
+semantic reclassification, expired-attempt retry or strategy switch occurs.
