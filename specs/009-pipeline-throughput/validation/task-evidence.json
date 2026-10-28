@@ -3,8 +3,8 @@
   "source_evidence": "specs/009-pipeline-throughput/validation/long-run-local-evidence.json",
   "meaning": "Checkboxes follow the task scope. Implementation/local success is distinct from pinned runtime, actual HIP, engine qualification and admitted scientific execution.",
   "counts": {
-    "complete": 87,
-    "pending_runtime": 9,
+    "complete": 89,
+    "pending_runtime": 7,
     "blocked_research": 15
   },
   "layout_variations": {
@@ -1300,10 +1300,10 @@
     {
       "task": "T086",
       "description": "[US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 5,
-      "implementation_disposition": "Main-CLI v3 admission/run/recovery command, original measured warm projection35h13m, separate preparation planning observation23m27s and finite12h/48h caps published. Current target handoff and prerequisites still await actual reviewed admission bundle.",
-      "blocking_reason": "Single new target archive must establish full corpus feasibility, current-source runtime and exact-schedule cost/admission. No missing-cost waiver or automatic long run.",
+      "implementation_disposition": "Independent local admission review validates required current source/package/CPU/native/HIP/policy/operations, exact authority/cost/data/image compatibility and binding to the completed pilot. Detailed run-derived evidence remains private; no new execution requested.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/carryover.md",
         "specs/009-pipeline-throughput/quickstart.md",
@@ -1323,7 +1323,9 @@
         "specs/009-pipeline-throughput/validation/learning-pilot-implementation.md",
         "specs/009-pipeline-throughput/validation/learning-pilot-operator-20261026T124145Z.json",
         "specs/009-pipeline-throughput/validation/learning-pilot-cost-repair-local-evidence.json",
-        "specs/009-pipeline-throughput/validation/long-run-implementation.md"
+        "specs/009-pipeline-throughput/validation/long-run-implementation.md",
+        "specs/009-pipeline-throughput/validation/pilot_admission_review.py",
+        "specs/009-pipeline-throughput/validation/long-run-review.md"
       ]
     },
     {
@@ -1605,10 +1607,10 @@
     {
       "task": "T110",
       "description": "Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.",
-      "status": "pending_runtime",
+      "status": "complete",
       "phase": 0,
-      "implementation_disposition": "Main-CLI full-clock v3 implementation passes253stdlib tests and current source/package-layout/binding checks. Prior141405Z source3b084306824CPU/24HIP/calibration closure retained. New current pinned CPU/HIP/operations must pass in pilot-admit.",
-      "blocking_reason": "New affected source qualification pending through the combined main-CLI admission invocation.",
+      "implementation_disposition": "Independent local admission review validates required current source/package/CPU/native/HIP/policy/operations, exact authority/cost/data/image compatibility and binding to the completed pilot. Detailed run-derived evidence remains private; no new execution requested.",
+      "blocking_reason": null,
       "evidence": [
         "specs/009-pipeline-throughput/validation/implementation-closeout.md",
         "specs/009-pipeline-throughput/validation/replay-operator-20261024T172754Z.json",
@@ -1666,7 +1668,9 @@
         "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.md",
         "specs/009-pipeline-throughput/validation/pilot-calibration-operator-20261027T141405Z.json",
         "specs/009-pipeline-throughput/validation/long-run-local-evidence.json",
-        "specs/009-pipeline-throughput/validation/long-run-implementation.md"
+        "specs/009-pipeline-throughput/validation/long-run-implementation.md",
+        "specs/009-pipeline-throughput/validation/pilot_admission_review.py",
+        "specs/009-pipeline-throughput/validation/long-run-review.md"
       ]
     },
     {
@@ -2419,9 +2423,14 @@
     "L015": "STRATEGY_DECISION_PENDING",
     "evidence": "specs/009-pipeline-throughput/validation/long-run-review.md",
     "detailed_audit": "Retained privately; not published to GitHub",
-    "separate_admission_evidence": "Independent review pending; no rerun requested",
+    "separate_admission_evidence": "COMPLETE_LOCAL_INDEPENDENT_REVIEW",
     "J006": "PENDING_COMPACT_PUBLIC_IDENTITY_EXPORT_CORRECTION",
-    "original_counts_unchanged": true,
-    "automatic_run_authorized": false
+    "original_counts_unchanged": false,
+    "automatic_run_authorized": false,
+    "closed_original_tasks": [
+      "T086",
+      "T110"
+    ],
+    "J007": "PENDING_ADMISSION_SUMMARY_PRESENTATION_CLARIFICATION"
   }
 }

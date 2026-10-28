@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all four [contracts](contracts/), [carryover.md](carryover.md), [quickstart.md](quickstart.md), constitution v2.0.0.
 
-**Status**: [Primary engineering soak PASS](validation/soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](validation/hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks87 complete/9 engineering pending/15 research held for the new long-run runtime source; accepted earlier-source closures remain recorded below. No default, learning or multi-day execution is inferred.
+**Status**: [Primary engineering soak PASS](validation/soak-operator-20261025T232558Z.md): both hour-long windows and full-state restart pass at unchanged runtime source d5c6de02. The workable experimental setting is104.5M/training16/inference16/native4/ordinary. Independent Docker remains pending; no repeat primary soak or size/batch ladder is requested. [Remaining work and next preparation](validation/hardware-readiness-next.md) retains the7.36% between-leg slowdown trigger and7.546/8GiB storage watchpoint. Original tasks89 complete/7 engineering pending/15 research held after reviewing the admission and completed pilot. Earlier-source closures remain recorded below; no default adoption or new research execution follows.
 
 **Current execution sequence:** [Long-run sequence-learning pilot preparation](validation/learning-pilot-plan.md), following the accepted soak in [plan.md](plan.md). Supplemental009:S001–S012 below record implementation and reviewed evidence by their individual scopes. All original task IDs/counts and historical producer-bound results retain their meanings. The initial combined HIP command/archive is now accepted for primary engineering. Further loops require a concrete blocker; do not repeat the primary soak for documentation or independent Docker.
 **Organization**: Shared setup/foundations precede story work. Delivery phases **1–6 retain the approved plan and CLI numbering** rather than renumbering them to match the generic template's setup phases. Phase 1 contains the US1 MVP and US2 measurement foundations; US2 continues in phase 2; US3 spans phases 3–4; US4 owns phase 5 and US5 phase 6. Each story has an independent acceptance boundary below.
@@ -309,7 +309,7 @@
 - [X] T083 [US4] Run gate/forecast/operations fixture suites and record results in `specs/009-pipeline-throughput/validation/phase-5-local.md`; verify engineering execution cannot train/resume T096, expose final data or treat a positive cost estimate as a study decision.
 - [ ] T084 [US4] Collect/review one combined current-source arithmetic/fitting/containment/HIP/operations run with Docker and Podman coverage, importing only compatible receipts where necessary; retain `specs/009-pipeline-throughput/validation/phase-5-qualification.json` and explicit missing-capability blockers rather than treating one engine as both.
 - [X] T085 [US4] Publish source-bound engineering/cost decisions and the retained small-value 13.29–13.40x gap/>5x review-trigger disposition in `specs/009-pipeline-throughput/validation/phase-5-report.md`; review 008:T089–092 dependencies, close only evidenced T094/T097/T098 portions and retain T095's old scoped decision and T096's original negative result.
-- [ ] T086 [US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.
+- [X] T086 [US4] Reconcile `specs/009-pipeline-throughput/carryover.md`, `specs/009-pipeline-throughput/validation/task-evidence.json` and `specs/009-pipeline-throughput/quickstart.md` against phase-5 evidence; give one next ready validation/study-preparation handoff with measured expected cost, finite limits and archive path while keeping unadmitted research pending.
 
 ## Phase 6 — US5: Admitted controlled research (P3)
 
@@ -359,7 +359,7 @@
 ## Cross-cutting closeout
 
 - [X] T109 [P] Review documentation/command examples in `specs/009-pipeline-throughput/quickstart.md` and `README.md` against implemented CLI behavior, preserving one all-ready engineering command and one command per admitted research batch; explain only genuine capability/decision boundaries that require another invocation.
-- [ ] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
+- [X] T110 Perform final affected-source contract/packaging checks through the consolidated registry in `src/oeis_learn/pipeline_validation/registry.py`; update `specs/009-pipeline-throughput/validation/task-evidence.json` for new changes only, avoid redundant hardware reruns when closures remain compatible, and do not wait for PR CI.
 - [X] T111 Publish final implementation handoff in `specs/009-pipeline-throughput/validation/implementation-closeout.md` with code/test status, remaining target-machine and research tasks, the exact next copy-pastable command, measured expected range/hard limits and resulting archive; never describe pending gates as completed.
 
 ## Dependencies and execution order
@@ -756,3 +756,17 @@ independent review of the separately referenced admission evidence; no new run
 is requested. Original counts87/9/15 and all other research gates stay unchanged.
 
 - [ ] 009:J006 Give the compact public worker result an explicit sealed version in `src/oeis_learn/pipeline_validation/pilot_runtime.py`, retaining the original full-state result identity explicitly; add regression fixtures and preserve historical readers/identities. This export-format correction does not authorize another experiment.
+
+## Admission evidence review complete
+
+The existing admission archive was independently revalidated against the exact
+completed-run decision/ledger, public prepared manifest and retained calibration.
+Required source/package/image/CPU/native/HIP/policy/operations and explicit
+authority/cost/compatibility prerequisites pass. Reusable local verification is
+provided by `validation/pilot_admission_review.py`; detailed results remain private.
+T086 and T110 now close at this exact scope. Original counts89complete/7engineering
+pending/15research held. L014 remains complete; L015 strategy decision, independent
+Docker, original comparisons/adoption/final gates and J006 remain open. No new
+HIP run is requested.
+
+- [ ] 009:J007 Clarify the generic engineering summary versus explicit pilot admission verdict in `src/oeis_learn/pipeline_validation/runner.py`; retain separate engineering execution, reviewed admission and research execution statuses without changing authority checks or historical documents.

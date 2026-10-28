@@ -545,3 +545,11 @@ Actual execution L014 is complete; its detailed audit remains private. The next
 strategy decision L015 is still pending. No original research comparison, default
 adoption or final-exposure gate closes, and no new experiment starts automatically.
 The public review utility can independently audit an operator-supplied archive.
+
+### Admission evidence reconciled
+
+Independent review of the supplied admission evidence now closes009:T086 and
+009:T110 at their applicable scopes. Original task counts are89complete/7engineering
+pending/15research held. Detailed audit metadata remain private. Supplemental
+L014 execution is complete and L015 strategy decision remains open; independent
+Docker and all original research/adoption/final restrictions are unchanged.

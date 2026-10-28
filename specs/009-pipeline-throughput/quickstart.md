@@ -1,3 +1,7 @@
+> Admission evidence has now been independently reviewed against the completed
+> pilot. T086/T110 are complete. The next learning-regime decision remains open;
+> no repeat run or calibration is requested.
+
 > The pilot execution is complete. Earlier admission/run commands are historical,
 > not an automatic continuation. Review the next study decision before a new run.
 

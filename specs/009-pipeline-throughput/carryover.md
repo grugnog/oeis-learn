@@ -114,3 +114,11 @@ still depends on J001–J005. Long execution and its result analysis stay unstar
 Supplemental009:L014 actual execution is complete; L015 strategy decision remains
 pending. Detailed run evidence remains private. No original008 task or research
 comparison/adoption/final gate is completed by this supplemental status update.
+
+### Admission evidence reconciled
+
+Independent review of the supplied admission evidence now closes009:T086 and
+009:T110 at their applicable scopes. Original task counts are89complete/7engineering
+pending/15research held. Detailed audit metadata remain private. Supplemental
+L014 execution is complete and L015 strategy decision remains open; independent
+Docker and all original research/adoption/final restrictions are unchanged.
