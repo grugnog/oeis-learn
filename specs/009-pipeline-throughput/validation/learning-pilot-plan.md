@@ -254,3 +254,10 @@ The scoped requirements above are now implemented by K001–K005 under the separ
 The previous paragraph stating code is not yet delivered is historical planning
 context. Runtime defaults and historical readers retain their meanings. K006
 owns actual private-file/pinned/full-clock/cost evidence; no long run is admitted.
+
+### Completed pilot review
+
+Actual execution L014 is complete; its detailed audit remains private. The next
+strategy decision L015 is still pending. No original research comparison, default
+adoption or final-exposure gate closes, and no new experiment starts automatically.
+The public review utility can independently audit an operator-supplied archive.

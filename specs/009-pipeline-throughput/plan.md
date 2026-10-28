@@ -538,3 +538,10 @@ CPU/HIP/package/operations gates are combined into the admission invocation.
 Its explicit approval can produce an exact decision, followed by separately
 invoked phase6 full-state fresh learning. Actual target qualification (T110),
 long execution (L014) and scientific review (L015) remain distinct.
+
+### Completed pilot review
+
+Actual execution L014 is complete; its detailed audit remains private. The next
+strategy decision L015 is still pending. No original research comparison, default
+adoption or final-exposure gate closes, and no new experiment starts automatically.
+The public review utility can independently audit an operator-supplied archive.

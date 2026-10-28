@@ -593,7 +593,7 @@ The user now requests a long-run learning evaluation, estimates of benefit from 
 - [X] 009:L011 Register one consolidated preparation CLI/DAG/archive through existing phase/study adapters, sharing images/inputs and reusing only compatible evidence; retain every failed/unstarted task and explicit missing Docker capability.
 - [X] 009:L012 Finish all unblocked implementation/local/source/binding/package checks, commit/push periodically and publish one actual finite workstation command/archive handoff with measured expected costs; do not wait for PR CI.
 - [X] 009:L013 Review the single new target archive; close only evidenced original portions, freeze a complete costed long-run command or no-go, and avoid repeat qualification/soak/size ladders without a concrete affected-scope defect.
-- [ ] 009:L014 Execute only a subsequently explicitly admitted fresh pilot within its immutable allowance; publish all fixed-checkpoint actual sequence/control/completeness/cost outcomes, including negative or interrupted runs.
+- [X] 009:L014 Execute only a subsequently explicitly admitted fresh pilot within its immutable allowance; publish all fixed-checkpoint actual sequence/control/completeness/cost outcomes, including negative or interrupted runs.
 - [ ] 009:L015 Review demonstrated learning, data/overfitting limits and conditional further-compute estimates; make the subsequent same-regime-versus-curriculum decision without automatically running another study.
 
 Implementation/local scope is complete for L003/L005–L011; authored pinned CPU/HIP fixtures and the registered30-minute restart session are not target results. L004 remains open for actual full-corpus/native feasibility. L012 has all unblocked implementation/local/commit/finite-command work delivered, but its new-scope measured expected-cost clause awaits this first consolidated target archive. L013 awaits its review; L014/L015 await subsequent explicit admission/execution/results. See [handoff](validation/learning-pilot-implementation.md) and [local evidence](validation/learning-pilot-local-evidence.json). T011 closes for its completed fault catalog; T110 reopens for changed runtime source. Original counts remain87 complete/9 engineering pending/15 research held, now with remaining engineering tasks T034/T041/T059/T060/T062/T073/T084/T086/T110. Accepted hardware evidence and old-source T110 closure remain intact. T086 stays open until the complete measured long-run command/archive handoff exists; original research thresholds and008:T096 remain unchanged.
@@ -745,3 +745,14 @@ counts87complete/9engineering pending/15research held. T086 retains its actual
 current-source/expected-cost-review clause until the new target handoff is reviewed.
 L014/L015 remain open; no actual long run or strategy/default/final promotion occurs.
 No repeat calibration/reference/data/hardware ladder/soak is requested.
+
+## Completed pilot review
+
+Actual pilot execution/publication009:L014 is complete. The detailed audit is
+retained privately; [public review/tool status](validation/long-run-review.md)
+contains no run-derived paths, hashes or resource observations. L015 remains
+open for the user’s subsequent strategy decision. T110/T086 still require
+independent review of the separately referenced admission evidence; no new run
+is requested. Original counts87/9/15 and all other research gates stay unchanged.
+
+- [ ] 009:J006 Give the compact public worker result an explicit sealed version in `src/oeis_learn/pipeline_validation/pilot_runtime.py`, retaining the original full-state result identity explicitly; add regression fixtures and preserve historical readers/identities. This export-format correction does not authorize another experiment.

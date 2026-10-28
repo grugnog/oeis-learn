@@ -108,3 +108,9 @@ T093deferred and T096negative remain unchanged; candidate cost/pass is not any
 original scientific study or adoption comparison. T086's reconciliation is updated
 here and in quickstart/task evidence, but its next complete long-profile command
 still depends on J001–J005. Long execution and its result analysis stay unstarted.
+
+## Completed pilot review
+
+Supplemental009:L014 actual execution is complete; L015 strategy decision remains
+pending. Detailed run evidence remains private. No original008 task or research
+comparison/adoption/final gate is completed by this supplemental status update.

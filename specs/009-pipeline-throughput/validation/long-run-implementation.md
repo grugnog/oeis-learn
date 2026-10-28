@@ -1,3 +1,6 @@
+> Historical handoff: the pilot execution is complete. Detailed audit data remain
+> private. No repeat run or calibration is requested by the status update.
+
 # Full-clock learning-pilot implementation and handoff
 
 Implemented009:J001–J005 in [the v3 contract](../contracts/long-run-pilot.md).

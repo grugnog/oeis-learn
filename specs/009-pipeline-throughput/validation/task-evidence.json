@@ -2413,5 +2413,15 @@
     ],
     "long_run_admitted": false,
     "automatic_run_authorized": false
+  },
+  "longrun_completion_review": {
+    "L014": "COMPLETE_ACTUAL_EXECUTION",
+    "L015": "STRATEGY_DECISION_PENDING",
+    "evidence": "specs/009-pipeline-throughput/validation/long-run-review.md",
+    "detailed_audit": "Retained privately; not published to GitHub",
+    "separate_admission_evidence": "Independent review pending; no rerun requested",
+    "J006": "PENDING_COMPACT_PUBLIC_IDENTITY_EXPORT_CORRECTION",
+    "original_counts_unchanged": true,
+    "automatic_run_authorized": false
   }
 }

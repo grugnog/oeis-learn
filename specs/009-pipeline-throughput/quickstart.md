@@ -1,3 +1,6 @@
+> The pilot execution is complete. Earlier admission/run commands are historical,
+> not an automatic continuation. Review the next study decision before a new run.
+
 > Current long-run preparation: use the main-program [full-clock v3 admission and
 > execution handoff](validation/long-run-implementation.md). It preserves the accepted
 > calibration and performs current checks through `oeis-learn pipeline pilot-admit`;
