@@ -149,3 +149,8 @@ Typed `pipeline-study-gate/v1` records contain scope,state,source,image,resource
 Durable reservations live under `run-state/pipeline-studies`, keyed by decision ID, and are written before dispatch. Unknown work stays charged. Work units count updates, teacher rows, candidate services and scoring events according to `studies.validate_recipe`; this is a mixed-work ceiling, not CPU seconds. Nonfinal interrupted arms do not restart under a fresh output. Only an identical final plan with predeclared smaller attempt reservations may finish within its remaining cumulative allowance. No manifest authorizes automatic twelve-hour-plus training.
 
 See the [operator](contracts/operator.md), [scheduling](contracts/scheduling.md), [comparisons](contracts/comparisons.md), [research](contracts/research-gates.md) contracts and [carryover register](carryover.md). Target evidence must be reviewed before checking the corresponding runtime or research tasks.
+
+Read-only saved-pilot diagnostics are available through the main CLI
+`oeis-learn pipeline pilot-diagnose collect|models`; see the
+[single-invocation handoff](validation/pilot-diagnostics-implementation.md).
+The model operation includes current CPU/HIP checks and returns one archive.

@@ -60,7 +60,9 @@ def inspect(run,admission,producer,repo,plan):
             if receipt.get('state')!='PASS' or receipt.get('identity')!=q['receipts'][key]['identity']:raise ValueError('producer qualification missing')
         current=collect_snapshot(repo);changes=compatible_source(proof['current_snapshot'],current)
         if digest(proof['current_snapshot'])!=PRODUCER_SOURCE:raise ValueError('original source closure changed')
-        prepared=confined(producer,'stages/pilot.prepare/prepare/private/prepared');m=check(prepared)
+        prepared=confined(producer,'stages/pilot.prepare/prepare/private/prepared')
+        for name in ('prepared.json','recipe.json','examples.json','prompts.json'):confined(prepared,name)
+        m=check(prepared)
         if (m!=p.read('stages/pilot.prepare/prepared-index.json') or m['identity']!=q['work']
             or file_hash(prepared/'prepared.json')!=d['prepared']['sha256']):raise ValueError('original prepared corpus changed')
         examples=learner_view(json.loads((prepared/'examples.json').read_text()))

@@ -47,7 +47,8 @@ shuffled inputs and the existing one-valid-token absent marker against identical
 canonical targets, batch16, numerical policy and token normalization. These are
 teacher-forced interventions, not new100-index continuation scores. Report paired
 loss/accuracy differences. Hidden/evaluation outcomes never alter data/snapshot
-selection. Activation statistics use a fixed deterministic64-row panel with scalar
+selection. Small matched/activation panels precede the larger loss census; held-out
+rows precede training rows, preserving useful partial evidence. Activation statistics use a fixed deterministic64-row panel with scalar
 summaries per transformer block/memory/logits; no full activation retention.
 Weight summaries compare every state tensor against initialization and the
 previous selected milestone: finite/zero fraction, norms, cosine, maximum change,

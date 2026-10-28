@@ -154,7 +154,6 @@ def evaluate_rows(encoder,decoder,rows,*,device,mode='correct',shuffled=None,dea
             # Export counts by token category, never raw targets/prompt values.
             valid=tokens[i,1:].ne(codec.PAD_ID);wrong=predictions[i].ne(tokens[i,1:])&valid
             for token in tokens[i,1:][wrong].tolist():
-                spelling=codec.ID_TO_TOKEN.get(token,'<unknown>')
                 kind='integer' if token in codec.DIGIT_IDS or token in (codec.INT_ID,codec.TERM_ID,codec.NEG_ID) else 'control_or_operator'
                 categories[kind]+=1
             result.append(dict(id=r['id'],family=r['family'],stage=r.get('stage'),mode=mode,target_identity=digest(r['tokens']),**m))
@@ -177,6 +176,7 @@ def paired_controls(rows,expected_ids=None):
         result[mode]=dict(complete_pairs=len(pairs),unresolved_pairs=len(expected)-len(pairs),tokens=tokens,
             mean_per_example_loss_increase=sum(b['loss_sum']/b['tokens']-a['loss_sum']/a['tokens'] for a,b in pairs)/len(pairs) if pairs else None,
             token_weighted_loss_increase=sum(b['loss_sum']-a['loss_sum'] for a,b in pairs)/tokens if tokens else None,
+            token_accuracy_change=sum(b['correct_tokens']-a['correct_tokens'] for a,b in pairs)/tokens if tokens and all('correct_tokens' in a and 'correct_tokens' in b for a,b in pairs) else None,
             interpretation='teacher-forced input intervention on identical canonical targets; not semantic continuation accuracy')
     return result
 
@@ -235,8 +235,6 @@ def run(inputs,output,config):
     all_rows=[];matched=[];error_counts={};hook=None
     activation_completed={}
     with torch.inference_mode():
-        correct,errors=evaluate_rows(encoder,decoder,[index[k] for k in population['correct']],device=device,deadline=deadline)
-        all_rows.extend(dict(r,split=index[r['id']]['split'],strata=strata[r['id']]) for r in correct);error_counts['correct']=errors
         for mode in ('correct','shuffled','absent'):
             values,errors=evaluate_rows(encoder,decoder,[index[k] for k in population['matched']],device=device,mode=mode,shuffled=shuffled,deadline=deadline)
             matched.extend(values);error_counts['matched:'+mode]=errors
@@ -247,6 +245,11 @@ def run(inputs,output,config):
                 observed,_=evaluate_rows(encoder,decoder,[index[k] for k in population['activation']],device=device,mode=mode,shuffled=shuffled,deadline=deadline,hook=hook)
                 activation_completed[mode]=len(observed)
         finally:hook.close()
+        # Complete the small interventions first. Give development rows priority
+        # over the larger training census if the original role clock expires.
+        ordered=sorted(population['correct'],key=lambda k:(index[k]['split']=='training',k))
+        correct,errors=evaluate_rows(encoder,decoder,[index[k] for k in ordered],device=device,deadline=deadline)
+        all_rows.extend(dict(r,split=index[r['id']]['split'],strata=strata[r['id']]) for r in correct);error_counts['correct']=errors
     after=parameter_digest(encoder,decoder)
     if after!=before:raise RuntimeError('read-only diagnostic modified parameters')
     expected=len(population['correct']);seen={r['id'] for r in correct}

@@ -114,6 +114,28 @@ class Failures(unittest.TestCase):
             self.assertEqual(any(s.adapter=='hip' for s in stages),device=='hip')
         self.assertEqual([s.id for s in registry(plan(operation='collect'),'podman')],['diagnostics.collect'])
 
+    def test_snapshot_role_mounts_only_visible_inputs_and_three_tensor_files(self):
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation.diagnostics import Diagnostics
+        from oeis_learn.pipeline_validation.diagnostics_contract import plan
+        from oeis_learn.pipeline_validation.registry import Stage
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);captured={}
+            def invoke(output,label,mode,files,**options):
+                captured.update(label=label,mode=mode,files=files,options=options)
+                return {'status':'COMPLETE'},output
+            pilot=SimpleNamespace(invoke=invoke)
+            owner=Diagnostics(SimpleNamespace(),root,plan(operation='models',snapshots=[2,5]),SimpleNamespace(pilot=pilot))
+            owner.imported=dict(prepared=root/'prepared',manifest={'identity':digest('work')},populations={},
+                snapshots={i:dict(path=root/(str(i)+'.pt'),descriptor={},ordinal=i,weights_sha256=digest(str(i))) for i in (0,2,5)})
+            result=owner(Stage('diagnostics.snapshot-5',4,seconds=1800,adapter='diagnostics-model'),root/'output')
+            self.assertEqual(result['stage_state'],'PASS')
+            self.assertEqual(pilot.purpose,'diagnostics-hip')
+            self.assertEqual(captured['mode'],'pilot-diagnostics')
+            self.assertEqual(set(captured['files']),{'prepared.json','examples.json','recipe.json','diagnostics.json','weights.pt','initial.pt','previous.pt'})
+            self.assertEqual(captured['files']['previous.pt'],root/'2.pt')
+            self.assertEqual(captured['files']['initial.pt'],root/'0.pt')
+
     def test_row_summary_preserves_split_family_and_token_weighting(self):
         from oeis_learn.pipeline_validation.diagnostics import summarize_rows
         rows=[dict(id='a',split='training',family='f',stage='A',tokens=1,loss_sum=1,correct_tokens=1,exact_program=True,entropy_sum=0),

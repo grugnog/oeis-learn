@@ -773,10 +773,21 @@ HIP run is requested.
 
 ## Read-only post-run diagnostics
 
-- [ ] 009:D001 Freeze versioned diagnostic CLI/scope, immutable input bindings, deterministic populations, isolation/finite budgets and output semantics in `contracts/pilot-diagnostics.md` and `src/oeis_learn/pipeline_validation/diagnostics_contract.py`.
-- [ ] 009:D002 Add stdlib contract/import/collection/failure/partial/archive tests in `tests/unit/test_pipeline_diagnostics.py` before implementation; preserve private data and historical authority.
-- [ ] 009:D003 Implement verified public artifact collection and private saved-weight/visible-data import in `diagnostics_collect.py` and `diagnostics_import.py`, with no engine access before missing/changed input rejection.
-- [ ] 009:D004 Implement bounded read-only per-example/matched-conditioning, activation/weight summaries and paired reporting in `diagnostics_runtime.py`; prove unchanged parameters, explicit missing denominators, actual checkpoint loading and no optimizer/hidden mounts.
-- [ ] 009:D005 Integrate `pilot-diagnose collect|models` with the main/portable CLI, existing image/role/resource/supervision/bundle owners, and serial snapshot DAG in `diagnostics.py`; register pinned CPU/HIP fixtures in the same model invocation.
-- [ ] 009:D006 Complete host and authored pinned counterexamples, current binding/source/package/command checks, task updates and periodic PR commits; publish one finite command/archive handoff after unblocked code work. Actual target diagnostic results remain separate.
+- [X] 009:D001 Freeze versioned diagnostic CLI/scope, immutable input bindings, deterministic populations, isolation/finite budgets and output semantics in `contracts/pilot-diagnostics.md` and `src/oeis_learn/pipeline_validation/diagnostics_contract.py`.
+- [X] 009:D002 Add stdlib contract/import/collection/failure/partial/archive tests in `tests/unit/test_pipeline_diagnostics.py` before implementation; preserve private data and historical authority.
+- [X] 009:D003 Implement verified public artifact collection and private saved-weight/visible-data import in `diagnostics_collect.py` and `diagnostics_import.py`, with no engine access before missing/changed input rejection.
+- [X] 009:D004 Implement bounded read-only per-example/matched-conditioning, activation/weight summaries and paired reporting in `diagnostics_runtime.py`; prove unchanged parameters, explicit missing denominators, actual checkpoint loading and no optimizer/hidden mounts.
+- [X] 009:D005 Integrate `pilot-diagnose collect|models` with the main/portable CLI, existing image/role/resource/supervision/bundle owners, and serial snapshot DAG in `diagnostics.py`; register pinned CPU/HIP fixtures in the same model invocation.
+- [X] 009:D006 Complete host and authored pinned counterexamples, current binding/source/package/command checks, task updates and periodic PR commits; publish one finite command/archive handoff after unblocked code work. Actual target diagnostic results remain separate.
 - [ ] 009:D007 Review the supplied target diagnostic archive, preserving missing measurements and limits on mechanistic/causal claims; no automatic learning-regime decision or run.
+
+
+D001–D006 are complete for implementation, host validation and command handoff.
+The [saved-pilot diagnostic handoff](validation/pilot-diagnostics-implementation.md)
+provides one main-CLI invocation covering existing artifact collection, current
+CPU/HIP checks and all saved-model probes. All264 stdlib host tests pass; source
+compatibility and standalone installed-layout inventory checks pass. Collection
+was exercised against a retained public archive. Pinned actual-model CPU/HIP
+fixtures are authored and included in that invocation; their execution and
+interpretation remain D007, which is open. Original counts89/7/15, prior source
+qualification, L015 and J006/J007 remain unchanged. No new training is authorized.
