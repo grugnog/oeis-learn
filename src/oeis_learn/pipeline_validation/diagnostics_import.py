@@ -39,7 +39,7 @@ def snapshot(root,ordinal,trainer,audit):
         or p.stat().st_size>512<<20 or file_hash(p)!=expected or expected!=audit['payload_hashes']['weights']
         or record['binding']['weights']!=expected or record['binding']['contract']!=audit['contract']):
         raise ValueError('snapshot bytes/pointer/audit/contract changed')
-    return dict(ordinal=ordinal,path=p,descriptor=d,weights_sha256=expected,parameter_digest=trainer['final_parameter_digest'])
+    return dict(ordinal=ordinal,path=p,descriptor=d,pointer=pointer,weights_sha256=expected,parameter_digest=trainer['final_parameter_digest'])
 
 
 def selected_snapshot(run,trainer,audit):

@@ -40,7 +40,7 @@ def main(args,root,host_factory):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .closures import dependency_closure
     contract=diagnostic_plan(operation='models',snapshots=[0],training_rows=32)
-    contract.update(version='pipeline-followup-study/v1',training=True,profiles=[profile(a,args.tokens,args.seed) for a in ('uniform','family_balanced','decay')])
+    contract.update(version='pipeline-followup-study/v1',scope='pilot-followup-study',operation='train',training=True,profiles=[profile(a,args.tokens,args.seed) for a in ('uniform','family_balanced','decay')])
     contract['budgets'].update(global_seconds=129600,phase_seconds={'1':3600,'2':1800,'4':110000,'5':300})
     from .pilot_clocks import DRAIN
     contract['evaluation_policy']=DRAIN

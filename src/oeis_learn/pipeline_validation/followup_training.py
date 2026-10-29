@@ -52,6 +52,7 @@ def run(inputs,output,config):
         deadline=began+min(policy['seconds'],opt['seconds'])-60
         groups=defaultdict(list)
         for row in examples['training']:groups[row['family']].append(row)
+        token_limit=False
         tokens=updates=0;next_validation=policy['validation_tokens'];best=float('inf');history=[]
         checkpoint=output/'private';checkpoint.mkdir(parents=True,exist_ok=True)
         def save(label):
@@ -73,7 +74,8 @@ def run(inputs,output,config):
         while time.monotonic()<deadline and tokens<policy['max_tokens']:
             batch=sample(examples['training'],rng,policy['batch'],policy['arm'],groups)
             count=sum(len(r['tokens']) for r in batch)
-            if tokens+count>policy['max_tokens']:break
+            if tokens+count>policy['max_tokens']:
+                token_limit=True;break
             if policy['arm']=='decay':
                 lr=policy['learning_rate']*(.1+.9*(1+math.cos(math.pi*tokens/policy['max_tokens']))/2)
                 for group in optimizer.param_groups:group['lr']=lr
@@ -84,6 +86,6 @@ def run(inputs,output,config):
         write(output/'weights.json',seal(dict(profile=policy,work=cfg['work'],source=config['source'],tokens=tokens,updates=updates,
             best_weights=file_hash(checkpoint/'best-weights.pt'),latest_weights=file_hash(checkpoint/'latest-weights.pt'),
             resume=False,final_access='SEALED')))
-        return dict(status='COMPLETE' if policy['max_tokens']-tokens<16*1024 else 'PARTIAL',source=config['source'],work=cfg['work'],
+        return dict(status='COMPLETE' if token_limit or tokens==policy['max_tokens'] else 'PARTIAL',source=config['source'],work=cfg['work'],
             training=True,resume=False,tokens=tokens,updates=updates,execution=execution_observation(),parameter_digest=parameter_digest(encoder,decoder))
     return execute()
