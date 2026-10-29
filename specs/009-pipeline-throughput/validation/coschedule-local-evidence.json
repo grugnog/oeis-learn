@@ -1,0 +1,63 @@
+{
+  "version": "pipeline-coschedule-local-evidence/v1",
+  "source": "sha256:eb57cb0b2279dbea1430f9a8dd88e2e548c60417aaef36a996563412d40ac02a",
+  "source_entries": 713,
+  "manifest": "sha256:d2521c8a1ab45bb4858b85f41eccb0097b102e13bac86f6932320cee4eae1c4c",
+  "host_tests": 154,
+  "new_host_tests": 18,
+  "public_cli": {
+    "exit_code": 3,
+    "reason": "local Podman unavailable",
+    "archive_sha256": "sha256:a83e30f9b32cb56bbd80698631f7814d4ce099e99fbaf090fc0ad8ec77b1cbaf",
+    "manifest": "sha256:a8026d36c596a9b064a41782eb17f3f89540cca0f8d4455972663ee0d1497b35",
+    "listed_members": 29,
+    "all20_study_slots": "UNSTARTED",
+    "summary": {
+      "cap_seconds": 86400.0,
+      "cleanup_archive_reserve_seconds": 1200,
+      "elapsed_seconds": 4.921628451000288,
+      "engineering": "PARTIAL",
+      "feature_complete": false,
+      "historical": {
+        "008:T093": "DEFERRED",
+        "008:T096": "NEGATIVE 7730/14400 seconds"
+      },
+      "learning": "NOT_ADMITTED",
+      "long_run_admission": "NOT_ADMITTED",
+      "phase_consumed_seconds": {
+        "1": 4.865652319999754,
+        "4": 0.004325575999700959
+      },
+      "portability": "PENDING",
+      "research": "NOT_EXECUTED",
+      "scope": "engineering-coschedule",
+      "selected_scope": "PARTIAL",
+      "unavailable": [],
+      "version": "pipeline-summary/v1"
+    }
+  },
+  "verification": [
+    "18 new host cases cover closed DAG and phase budget,all20 slots,full-work/source/mode/resource gating,complete negative and partial outcomes",
+    "serial versus deliberate overlap,one GPU owner,unique144 native jobs,peer cancellation and one shared five-second failure drain",
+    "GPU resource failures propagate globally; partial repeatability cannot produce favorable subset statistics",
+    "actual host adapter graph has one shared compute-container quota; complete simulated graph exports one verified archive",
+    "actual public stdlib CLI and exact713-entry source closure verified",
+    "compileall and git diff --check pass"
+  ],
+  "runtime": {
+    "cpu": "Real packaged-native eight-cycle fixture authored/registered; not executed locally",
+    "hip": "Real tiny-model HIP/native serial/overlap fixture authored/registered in a fresh bounded fixture process; not executed locally",
+    "scope": "Operator run must qualify actual fresh supervised GPU subprocesses and full native corpus",
+    "dependencies": "No host dependencies installed"
+  },
+  "foundation": {
+    "implementation": "sha256:b2bacf56234059527c6125b75322e4d44fb27db830dd4ef7cf4395c05ec0e25e",
+    "dispositions": 68,
+    "full_007_complete": false
+  },
+  "authority": {
+    "optimization_adoption": false,
+    "research_cost_admission": false,
+    "learning": "HELD"
+  }
+}

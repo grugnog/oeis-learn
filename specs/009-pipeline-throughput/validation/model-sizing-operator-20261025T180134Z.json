@@ -1,0 +1,2435 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-model-sizing-20261025T180134Z.zip",
+  "archive_sha256": "sha256:02306e7d77637af302361d064e39fd4bae94e221527f1a4a7d687918f36cbd93",
+  "archive_bytes": 7130107,
+  "uncompressed_bytes": 22261227,
+  "manifest": "sha256:a1bfb71a39a8338e1ee25b665d55ba5b5aaaf6396bd9ef221d7f984c179af91f",
+  "verified_members": 1198,
+  "verified_stage_files": 1089,
+  "producer": "56f61564b0b504b9aa5ffc3273bb73974ebaf87e",
+  "source": "sha256:735ede18987edb3d48eeab8c6d9001ec10a5f63c6f0d6581304702acc44d5f15",
+  "source_entries": 720,
+  "exact_source_match": true,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 1411.2537179749925,
+    "engineering": "PASS",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 326.0738325251732,
+      "2": 325.9165207010228,
+      "4": 325.0467546058353
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-model-sizing",
+    "selected_scope": "PASS",
+    "unavailable": [],
+    "version": "pipeline-summary/v1"
+  },
+  "stage_receipts": {
+    "cpu.podman.semantic": {
+      "identity": "sha256:cf5b06c41b65017978572259b783964091e8842f26576bbad75a10dd3a5673f6",
+      "state": "PASS",
+      "reason": ""
+    },
+    "engine.podman": {
+      "identity": "sha256:ca40ae641bf99b67acc1a374f7dd348536cc629fbd65a2851a719b837ca3baf7",
+      "state": "PASS",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "identity": "sha256:3835878e1af1944bbad4fa2bb07e29708ac51be6561e77545b8cdc5a60df5848",
+      "state": "PASS",
+      "reason": ""
+    },
+    "host.contracts": {
+      "identity": "sha256:d99872a7d9aeac24ab1e9d0cd2677773e8e454940f031b143221a1feaebb7b66",
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "identity": "sha256:b08b0bea066fdca887a8acebb8ce7ccc91e6926294a566d699ab01717bfb91a9",
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "identity": "sha256:ef75fb21c62b18a498bf555f4beeec4debb6415b06ed653e6714d41aef956c05",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.calibration-0": {
+      "identity": "sha256:63a8d4dd221de2ca6681dd1a8beb23ca86f351b5b02d69a82de7b2ea8f96e372",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.calibration-1": {
+      "identity": "sha256:d1292d6b0ef90fcf5de81ba7eda3573a5f5509f69e37840d86b0106ccfc8b01d",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.calibration-2": {
+      "identity": "sha256:625bfc32c497a08c937da85512373738b215515d12e18c391170639edf473493",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.cold": {
+      "identity": "sha256:007648d16bba71e5ed5095caf4283f1aeb9460bf9ccfeec8ec85f406dccc4493",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.reference": {
+      "identity": "sha256:b8eb05ca7c0bec58761736c3e4ba21f228d4617eff8d79ea0b6a99dea5de2294",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.warmup": {
+      "identity": "sha256:286f0d5dbd375c538cd3a3b435bef2b1aa871e0a6ee283f7e3d9ee0c687f1808",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.calibration-0": {
+      "identity": "sha256:f226902ea365e4bc3d8c012a691bc125fdd77d4e49e3d76bc2b8686e74fef77d",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.calibration-1": {
+      "identity": "sha256:05455ba86efc3c8dfa27d8afe447b0985aa80734679ff508e6d396fdaea32d50",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.calibration-2": {
+      "identity": "sha256:cd5dd60a470833ccb00c0532f7564dadfc06b782e0d50a96f9bfe0c633210d24",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.cold": {
+      "identity": "sha256:b5a29b2b4e3e16a7d731f0bc407ad66584fd5cf3ce84662c838cbe149812f99e",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.reference": {
+      "identity": "sha256:6073fb93976312167028089af6f4de9d1f762a5c626525f41d15ff6c002b02d1",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.warmup": {
+      "identity": "sha256:0c5b6fde5d1c21224a1c887b0e69ee516162421c011acc2535368326d2b0ddfd",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.calibration-0": {
+      "identity": "sha256:018584853293a769d5156c20e19b4552478dca2590d8e6d3be361336b651465f",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.calibration-1": {
+      "identity": "sha256:abbf1eaca02620ffe35712f1f5203d85d9b2f4e4b465ecef7acc4dfb44b50f19",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.calibration-2": {
+      "identity": "sha256:de8d53c58f949e70067382133cc953f895e3edbc5fcb42c7b3aa2f530d9c3f79",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.cold": {
+      "identity": "sha256:ef0a0222fcc49530c946c55539a54ab8ae7d443155822e677864e49ff3908265",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.reference": {
+      "identity": "sha256:cd4f6b580e0d5960dba771deb429dc8d5c5e97ae6772c13799025e31fc0e028a",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.warmup": {
+      "identity": "sha256:1425007ad48031bf320c044c1ce0d910a08e85237757370f0d1add18c6aa5da2",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.prepare": {
+      "identity": "sha256:457d4cb4ed2db9955998850c576be8b8f724cd7621c013312c7f1ea796081993",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.report": {
+      "identity": "sha256:accdc0243a07c1b42036a3e1882cf6fc31dfa8b807719befdd391fad30966822",
+      "state": "PASS",
+      "reason": ""
+    }
+  },
+  "qualification": {
+    "host": 170,
+    "cpu_junit_cases": 692,
+    "hip_junit_cases": 20,
+    "cpu": 692,
+    "cpu_subtests": 31,
+    "cpu_deselected": 1,
+    "hip": 20,
+    "mandatory_skips": 0
+  },
+  "execution": {
+    "version": "pipeline-sizing-execution/v1",
+    "mha_fastpath": false,
+    "sdpa_backends": [
+      "math"
+    ],
+    "float32_matmul": "highest",
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "deterministic_algorithms": true,
+    "deterministic_warn_only": false,
+    "dtype": "torch.float32",
+    "identity": "sha256:a0f8b1b950e1b762393cc1b4012c9a052d02b03770f5f08197808183ae518d67"
+  },
+  "profiles": {
+    "m8": {
+      "parameters": {
+        "encoder": 3859904,
+        "decoder": 4258390,
+        "total": 8118294,
+        "active": 8118294
+      },
+      "profile": {
+        "version": "pipeline-model-size/v1",
+        "name": "m8",
+        "width": 256,
+        "heads": 4,
+        "encoder_layers": 4,
+        "decoder_layers": 4,
+        "ff": 1024,
+        "precision": "float32",
+        "backend": "eager",
+        "seed": 20261016,
+        "identity": "sha256:6aacf23bc5d390bfdd93067f17474fd9f447c36a4e638b207206e439b4eb45d0"
+      },
+      "reference": "sha256:a039e1b35e6a35d7d2cf926d3a7acb468f9b742d6d5aea5cf69bb4c48964b68a",
+      "trials": [
+        {
+          "trial": "cold",
+          "timings": {
+            "generation_b32": 6.2827060259878635,
+            "generation_b8": 15.187158643035218,
+            "native_b32": 0.00033818488009274006,
+            "native_b8": 0.0030035939998924732,
+            "training": 2.664398429915309,
+            "validation": 0.16807401296682656
+          },
+          "training_tokens_per_second": 5764.903562298014,
+          "updates_per_second": 12.010215754787529,
+          "validation_rows_per_second": 190.39231250054087,
+          "generation": {
+            "decoded": 0,
+            "decoded_per_whole_minute": 0.0,
+            "emitted_tokens": 13536,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 1077.242826897321,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 445.6396459059696,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "grammar_dead_end": 64
+          },
+          "decoded_sources": {},
+          "initial_parameters": "sha256:5edce954743be0577b2fe682761703e5fe98a57c073636be22970860001c6be6",
+          "trained_parameters": "sha256:2d5255bfc65d80c931a0bbaf6146c4d63ae946c7eb79e0610bc2e61c8472eeaf",
+          "role_peak_upper_bytes": 2630262784,
+          "machine_peak_upper_bytes": 10339606528,
+          "cpu_equivalents": 1.0181826614142166,
+          "gpu_busy_percent_mean": 33.37931034482759,
+          "gpu_busy_percent_max": 56.0,
+          "samples": 29,
+          "memory_stat_peaks": {
+            "anon": 1128935424,
+            "file": 213831680,
+            "kernel": 18358272,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315129856,
+            "file": 196608
+          },
+          "memory_stat_last": {
+            "anon": 1128935424,
+            "file": 213831680
+          },
+          "host_seconds_through_cleanup": 30.028039473108947,
+          "cleanup_seconds": 0.1919495020993054
+        },
+        {
+          "trial": "warmup",
+          "timings": {
+            "generation_b32": 6.25078606698662,
+            "generation_b8": 15.253457001876086,
+            "native_b32": 0.00032248697243630886,
+            "native_b8": 0.003962869057431817,
+            "training": 2.645179859828204,
+            "validation": 0.16883392096497118
+          },
+          "training_tokens_per_second": 5806.788503598233,
+          "updates_per_second": 12.097476049162985,
+          "validation_rows_per_second": 189.53537190337005,
+          "generation": {
+            "decoded": 0,
+            "decoded_per_whole_minute": 0.0,
+            "emitted_tokens": 13536,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 1082.7438225321825,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 443.7026963243529,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "grammar_dead_end": 64
+          },
+          "decoded_sources": {},
+          "initial_parameters": "sha256:5edce954743be0577b2fe682761703e5fe98a57c073636be22970860001c6be6",
+          "trained_parameters": "sha256:df30fca20c02600a01e52d91d00905f517123400facdfa407f89cf8ef1fcf8d3",
+          "role_peak_upper_bytes": 2628231168,
+          "machine_peak_upper_bytes": 10329956352,
+          "cpu_equivalents": 1.0192999978083324,
+          "gpu_busy_percent_mean": 33.275862068965516,
+          "gpu_busy_percent_max": 57.0,
+          "samples": 29,
+          "memory_stat_peaks": {
+            "anon": 1128747008,
+            "file": 212332544,
+            "kernel": 18440192,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315006976,
+            "file": 11661312
+          },
+          "memory_stat_last": {
+            "anon": 1128747008,
+            "file": 210546688
+          },
+          "host_seconds_through_cleanup": 30.140257698949426,
+          "cleanup_seconds": 0.15810556197538972
+        },
+        {
+          "trial": "calibration-0",
+          "timings": {
+            "generation_b32": 6.303750982973725,
+            "generation_b8": 15.315599397057667,
+            "native_b32": 0.00031247898004949093,
+            "native_b8": 0.002838312881067395,
+            "training": 2.5910689930897206,
+            "validation": 0.16912541794590652
+          },
+          "training_tokens_per_second": 5928.05519303597,
+          "updates_per_second": 12.350114985491604,
+          "validation_rows_per_second": 189.20869724168224,
+          "generation": {
+            "decoded": 0,
+            "decoded_per_whole_minute": 0.0,
+            "emitted_tokens": 13536,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 1073.6464714866117,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 441.9023914467379,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "grammar_dead_end": 64
+          },
+          "decoded_sources": {},
+          "initial_parameters": "sha256:5edce954743be0577b2fe682761703e5fe98a57c073636be22970860001c6be6",
+          "trained_parameters": "sha256:df30fca20c02600a01e52d91d00905f517123400facdfa407f89cf8ef1fcf8d3",
+          "role_peak_upper_bytes": 2618580992,
+          "machine_peak_upper_bytes": 10285576192,
+          "cpu_equivalents": 1.0199065748849323,
+          "gpu_busy_percent_mean": 33.241379310344826,
+          "gpu_busy_percent_max": 58.0,
+          "samples": 29,
+          "memory_stat_peaks": {
+            "anon": 1128820736,
+            "file": 202350592,
+            "kernel": 18419712,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315015168,
+            "file": 2756608
+          },
+          "memory_stat_last": {
+            "anon": 1128820736,
+            "file": 202350592
+          },
+          "host_seconds_through_cleanup": 30.096094731008634,
+          "cleanup_seconds": 0.15037697996012866
+        },
+        {
+          "trial": "calibration-1",
+          "timings": {
+            "generation_b32": 6.258816777030006,
+            "generation_b8": 15.204054477158934,
+            "native_b32": 0.00030940305441617966,
+            "native_b8": 0.0028940439224243164,
+            "training": 2.58839112194255,
+            "validation": 0.1692293230444193
+          },
+          "training_tokens_per_second": 5934.188179594954,
+          "updates_per_second": 12.36289204082282,
+          "validation_rows_per_second": 189.09252500880504,
+          "generation": {
+            "decoded": 0,
+            "decoded_per_whole_minute": 0.0,
+            "emitted_tokens": 13536,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 1081.3545500866405,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 445.1444192184113,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "grammar_dead_end": 64
+          },
+          "decoded_sources": {},
+          "initial_parameters": "sha256:5edce954743be0577b2fe682761703e5fe98a57c073636be22970860001c6be6",
+          "trained_parameters": "sha256:2d5255bfc65d80c931a0bbaf6146c4d63ae946c7eb79e0610bc2e61c8472eeaf",
+          "role_peak_upper_bytes": 2616934400,
+          "machine_peak_upper_bytes": 10276876288,
+          "cpu_equivalents": 1.0208692423684522,
+          "gpu_busy_percent_mean": 33.724137931034484,
+          "gpu_busy_percent_max": 57.0,
+          "samples": 29,
+          "memory_stat_peaks": {
+            "anon": 1128869888,
+            "file": 199819264,
+            "kernel": 18395136,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315092992,
+            "file": 937984
+          },
+          "memory_stat_last": {
+            "anon": 1128869888,
+            "file": 199819264
+          },
+          "host_seconds_through_cleanup": 30.06653587706387,
+          "cleanup_seconds": 0.16081582615152
+        },
+        {
+          "trial": "calibration-2",
+          "timings": {
+            "generation_b32": 6.257790360134095,
+            "generation_b8": 15.129961743019521,
+            "native_b32": 0.00031918101012706757,
+            "native_b8": 0.00281896791420877,
+            "training": 2.5836204360239208,
+            "validation": 0.16936393501237035
+          },
+          "training_tokens_per_second": 5945.145728773678,
+          "updates_per_second": 12.385720268278495,
+          "validation_rows_per_second": 188.94223258135045,
+          "generation": {
+            "decoded": 0,
+            "decoded_per_whole_minute": 0.0,
+            "emitted_tokens": 13536,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 1081.5319163000806,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 0,
+              "decoded_per_whole_minute": 0.0,
+              "emitted_tokens": 6768,
+              "emitted_tokens_per_generation_second": 447.32433002499414,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "grammar_dead_end": 64
+          },
+          "decoded_sources": {},
+          "initial_parameters": "sha256:5edce954743be0577b2fe682761703e5fe98a57c073636be22970860001c6be6",
+          "trained_parameters": "sha256:df30fca20c02600a01e52d91d00905f517123400facdfa407f89cf8ef1fcf8d3",
+          "role_peak_upper_bytes": 2616152064,
+          "machine_peak_upper_bytes": 10238136320,
+          "cpu_equivalents": 1.0202444778812207,
+          "gpu_busy_percent_mean": 33.41379310344828,
+          "gpu_busy_percent_max": 58.0,
+          "samples": 29,
+          "memory_stat_peaks": {
+            "anon": 1128828928,
+            "file": 199340032,
+            "kernel": 18419712,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315117568,
+            "file": 393216
+          },
+          "memory_stat_last": {
+            "anon": 1128828928,
+            "file": 199340032
+          },
+          "host_seconds_through_cleanup": 29.875114699825644,
+          "cleanup_seconds": 0.15148732485249639
+        }
+      ],
+      "calibration_medians": {
+        "training_tokens_per_second": 5934.188179594954,
+        "updates_per_second": 12.36289204082282,
+        "validation_rows_per_second": 189.09252500880504,
+        "host_seconds_through_cleanup": 30.06653587706387,
+        "cpu_equivalents": 1.0202444778812207,
+        "gpu_busy_percent_mean": 33.41379310344828,
+        "generation_b32": 6.258816777030006,
+        "generation_b8": 15.204054477158934,
+        "native_b32": 0.00031247898004949093,
+        "native_b8": 0.002838312881067395,
+        "training": 2.58839112194255,
+        "validation": 0.1692293230444193
+      },
+      "role_peak_upper_bytes": 2630262784
+    },
+    "m32": {
+      "parameters": {
+        "encoder": 14998208,
+        "decoder": 16905302,
+        "total": 31903510,
+        "active": 31903510
+      },
+      "profile": {
+        "version": "pipeline-model-size/v1",
+        "name": "m32",
+        "width": 512,
+        "heads": 8,
+        "encoder_layers": 4,
+        "decoder_layers": 4,
+        "ff": 2048,
+        "precision": "float32",
+        "backend": "eager",
+        "seed": 20261016,
+        "identity": "sha256:5f907a2ac73f8344c1e3b53fa03897de1ac2fbe69c9874ccfd4115ef6cb78cc0"
+      },
+      "reference": "sha256:5c663a5482d7f12747b5d9f1f90d47d1fc61264d904a3279ddaf21e750e9992a",
+      "trials": [
+        {
+          "trial": "cold",
+          "timings": {
+            "generation_b32": 0.5365113439038396,
+            "generation_b8": 0.7360992939211428,
+            "native_b32": 1.622357837157324,
+            "native_b8": 1.5471936571411788,
+            "training": 3.583504204172641,
+            "validation": 0.19436325714923441
+          },
+          "training_tokens_per_second": 4286.307235837698,
+          "updates_per_second": 8.929806741328536,
+          "validation_rows_per_second": 164.64017154965674,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 307.05231633395636,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.52615816697818,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 835.0242825066832,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.52615816697818,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 608.6135439874414,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:8cf8e2b1bd6f74e60e114dc48c7857eec16397eaf4b8d832fc28da30e6a57647",
+          "trained_parameters": "sha256:3583c235cc58038d6e412bc49d399a4369591db43917113a533d650cdb19a97e",
+          "role_peak_upper_bytes": 3579580416,
+          "machine_peak_upper_bytes": 12129124352,
+          "cpu_equivalents": 1.758882991848038,
+          "gpu_busy_percent_mean": 31.846153846153847,
+          "gpu_busy_percent_max": 77.0,
+          "samples": 13,
+          "memory_stat_peaks": {
+            "anon": 1314656256,
+            "file": 221802496,
+            "kernel": 20332544,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315015168,
+            "file": 5341184
+          },
+          "memory_stat_last": {
+            "anon": 1309270016,
+            "file": 221802496
+          },
+          "host_seconds_through_cleanup": 14.188527354039252,
+          "cleanup_seconds": 0.1485100870486349
+        },
+        {
+          "trial": "warmup",
+          "timings": {
+            "generation_b32": 0.5433719090651721,
+            "generation_b8": 0.7427741601131856,
+            "native_b32": 1.7788850241340697,
+            "native_b8": 1.5584854260087013,
+            "training": 3.6627709469757974,
+            "validation": 0.20648793107829988
+          },
+          "training_tokens_per_second": 4193.546422192229,
+          "updates_per_second": 8.736555046233812,
+          "validation_rows_per_second": 154.9727377909833,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 300.3316171130357,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 150.16580855651785,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 824.4813405439899,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 150.16580855651785,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 603.1442988427771,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:8cf8e2b1bd6f74e60e114dc48c7857eec16397eaf4b8d832fc28da30e6a57647",
+          "trained_parameters": "sha256:651bf75ebafcae4d2f484a067b4641dac5e4868c2e599060847312291d40db7d",
+          "role_peak_upper_bytes": 3561705472,
+          "machine_peak_upper_bytes": 12126240768,
+          "cpu_equivalents": 1.6930878489099535,
+          "gpu_busy_percent_mean": 33.07692307692308,
+          "gpu_busy_percent_max": 78.0,
+          "samples": 13,
+          "memory_stat_peaks": {
+            "anon": 1314533376,
+            "file": 201691136,
+            "kernel": 20316160,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315035648,
+            "file": 5111808
+          },
+          "memory_stat_last": {
+            "anon": 1314271232,
+            "file": 201691136
+          },
+          "host_seconds_through_cleanup": 14.534095257986337,
+          "cleanup_seconds": 0.16543386108241975
+        },
+        {
+          "trial": "calibration-0",
+          "timings": {
+            "generation_b32": 0.5366827170364559,
+            "generation_b8": 0.7400231501087546,
+            "native_b32": 1.6068092081695795,
+            "native_b8": 1.5512769110500813,
+            "training": 3.6996310378890485,
+            "validation": 0.20859315898269415
+          },
+          "training_tokens_per_second": 4151.765363273678,
+          "updates_per_second": 8.649511173486829,
+          "validation_rows_per_second": 153.4086743595214,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 303.5476149491655,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 151.77380747458275,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 834.7576431636203,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 151.77380747458275,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 605.3864665371095,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:8cf8e2b1bd6f74e60e114dc48c7857eec16397eaf4b8d832fc28da30e6a57647",
+          "trained_parameters": "sha256:651bf75ebafcae4d2f484a067b4641dac5e4868c2e599060847312291d40db7d",
+          "role_peak_upper_bytes": 3562799104,
+          "machine_peak_upper_bytes": 12074811392,
+          "cpu_equivalents": 1.7443402006389053,
+          "gpu_busy_percent_mean": 33.23076923076923,
+          "gpu_busy_percent_max": 78.0,
+          "samples": 13,
+          "memory_stat_peaks": {
+            "anon": 1315700736,
+            "file": 202895360,
+            "kernel": 20291584,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315019264,
+            "file": 3534848
+          },
+          "memory_stat_last": {
+            "anon": 1311526912,
+            "file": 202895360
+          },
+          "host_seconds_through_cleanup": 14.359988547861576,
+          "cleanup_seconds": 0.15616078209131956
+        },
+        {
+          "trial": "calibration-1",
+          "timings": {
+            "generation_b32": 0.5457449681125581,
+            "generation_b8": 0.7416357879992574,
+            "native_b32": 1.5849783248268068,
+            "native_b8": 1.529320850968361,
+            "training": 3.6404432160779834,
+            "validation": 0.20938502810895443
+          },
+          "training_tokens_per_second": 4219.266470676621,
+          "updates_per_second": 8.790138480576294,
+          "validation_rows_per_second": 152.82850110633822,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 306.6137727613569,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.30688638067846,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 820.8962540678917,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.30688638067846,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 604.0700937701358,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:8cf8e2b1bd6f74e60e114dc48c7857eec16397eaf4b8d832fc28da30e6a57647",
+          "trained_parameters": "sha256:651bf75ebafcae4d2f484a067b4641dac5e4868c2e599060847312291d40db7d",
+          "role_peak_upper_bytes": 3591700480,
+          "machine_peak_upper_bytes": 12177444864,
+          "cpu_equivalents": 1.774790501006612,
+          "gpu_busy_percent_mean": 32.76923076923077,
+          "gpu_busy_percent_max": 79.0,
+          "samples": 13,
+          "memory_stat_peaks": {
+            "anon": 1340477440,
+            "file": 209768448,
+            "kernel": 20320256,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315023360,
+            "file": 11898880
+          },
+          "memory_stat_last": {
+            "anon": 1340477440,
+            "file": 207941632
+          },
+          "host_seconds_through_cleanup": 14.336665506009012,
+          "cleanup_seconds": 0.1626415099017322
+        },
+        {
+          "trial": "calibration-2",
+          "timings": {
+            "generation_b32": 0.5416419899556786,
+            "generation_b8": 0.7448185321409255,
+            "native_b32": 1.6145216629374772,
+            "native_b8": 1.5291873670648783,
+            "training": 3.592180288862437,
+            "validation": 0.1944282299373299
+          },
+          "training_tokens_per_second": 4275.95464727194,
+          "updates_per_second": 8.90823884848321,
+          "validation_rows_per_second": 164.58515314527406,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 306.68819763210297,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.34409881605148,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 827.1146039409886,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 153.34409881605148,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 601.4887931322778,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:8cf8e2b1bd6f74e60e114dc48c7857eec16397eaf4b8d832fc28da30e6a57647",
+          "trained_parameters": "sha256:3583c235cc58038d6e412bc49d399a4369591db43917113a533d650cdb19a97e",
+          "role_peak_upper_bytes": 3608924160,
+          "machine_peak_upper_bytes": 12113227776,
+          "cpu_equivalents": 1.7568515294189135,
+          "gpu_busy_percent_mean": 31.692307692307693,
+          "gpu_busy_percent_max": 77.0,
+          "samples": 13,
+          "memory_stat_peaks": {
+            "anon": 1339555840,
+            "file": 222433280,
+            "kernel": 20275200,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315015168,
+            "file": 5611520
+          },
+          "memory_stat_last": {
+            "anon": 1224290304,
+            "file": 222433280
+          },
+          "host_seconds_through_cleanup": 14.245590734994039,
+          "cleanup_seconds": 0.1421854579821229
+        }
+      ],
+      "calibration_medians": {
+        "training_tokens_per_second": 4219.266470676621,
+        "updates_per_second": 8.790138480576294,
+        "validation_rows_per_second": 153.4086743595214,
+        "host_seconds_through_cleanup": 14.336665506009012,
+        "cpu_equivalents": 1.7568515294189135,
+        "gpu_busy_percent_mean": 32.76923076923077,
+        "generation_b32": 0.5416419899556786,
+        "generation_b8": 0.7416357879992574,
+        "native_b32": 1.6068092081695795,
+        "native_b8": 1.529320850968361,
+        "training": 3.6404432160779834,
+        "validation": 0.20859315898269415
+      },
+      "role_peak_upper_bytes": 3608924160
+    },
+    "m100": {
+      "parameters": {
+        "encoder": 47652288,
+        "decoder": 56844374,
+        "total": 104496662,
+        "active": 104496662
+      },
+      "profile": {
+        "version": "pipeline-model-size/v1",
+        "name": "m100",
+        "width": 768,
+        "heads": 12,
+        "encoder_layers": 6,
+        "decoder_layers": 6,
+        "ff": 3072,
+        "precision": "float32",
+        "backend": "eager",
+        "seed": 20261016,
+        "identity": "sha256:f1374f2c3c2d23ff068273e4d6a8e1facccfe2aa0847e465f90ccf9b13a957b6"
+      },
+      "reference": "sha256:fe60dbbb67b5e35b664b927c25cf0afcff19529ac05a0cb7148e76dc76cbd6df",
+      "trials": [
+        {
+          "trial": "cold",
+          "timings": {
+            "generation_b32": 0.7630959220696241,
+            "generation_b8": 1.0947485740762204,
+            "native_b32": 1.5559030680451542,
+            "native_b8": 1.623880892060697,
+            "training": 7.393910771002993,
+            "validation": 0.3721447268035263
+          },
+          "training_tokens_per_second": 2077.3850910181322,
+          "updates_per_second": 4.327885606287775,
+          "validation_rows_per_second": 85.9880516777936,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 206.9704393558609,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.48521967793044,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 587.0821570962673,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.48521967793044,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 409.2263836726483,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+          "trained_parameters": "sha256:8f8d12616a598f79af841088d8eb94b323dd99a42a9b31da836a41a9b107d0ba",
+          "role_peak_upper_bytes": 6319763456,
+          "machine_peak_upper_bytes": 17529032704,
+          "cpu_equivalents": 1.735726342741818,
+          "gpu_busy_percent_mean": 48.1578947368421,
+          "gpu_busy_percent_max": 93.0,
+          "samples": 19,
+          "memory_stat_peaks": {
+            "anon": 1316667392,
+            "file": 223903744,
+            "kernel": 20361216,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315052032,
+            "file": 8728576
+          },
+          "memory_stat_last": {
+            "anon": 1316667392,
+            "file": 223903744
+          },
+          "host_seconds_through_cleanup": 20.260971372947097,
+          "cleanup_seconds": 0.15453491010703146
+        },
+        {
+          "trial": "warmup",
+          "timings": {
+            "generation_b32": 0.7312844099942595,
+            "generation_b8": 1.0761433010920882,
+            "native_b32": 1.5617976561188698,
+            "native_b8": 1.6549135560635477,
+            "training": 7.057388443034142,
+            "validation": 0.3258713718969375
+          },
+          "training_tokens_per_second": 2176.4424792517675,
+          "updates_per_second": 4.534255165107849,
+          "validation_rows_per_second": 98.19825477066011,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 211.18828737471523,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 105.59414368735762,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 612.6207449212773,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 105.59414368735762,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 416.3014345258314,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+          "trained_parameters": "sha256:e56a6c3f169ce4eab63d4c7b792440b3df16f8a85b670aa2fdb0045478e8ece7",
+          "role_peak_upper_bytes": 6324523008,
+          "machine_peak_upper_bytes": 17551273984,
+          "cpu_equivalents": 1.657885928771551,
+          "gpu_busy_percent_mean": 49.166666666666664,
+          "gpu_busy_percent_max": 93.0,
+          "samples": 18,
+          "memory_stat_peaks": {
+            "anon": 1313226752,
+            "file": 232955904,
+            "kernel": 20307968,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 316825600,
+            "file": 17072128
+          },
+          "memory_stat_last": {
+            "anon": 1219915776,
+            "file": 231071744
+          },
+          "host_seconds_through_cleanup": 19.961604847805575,
+          "cleanup_seconds": 0.1502165941055864
+        },
+        {
+          "trial": "calibration-0",
+          "timings": {
+            "generation_b32": 0.7047166870906949,
+            "generation_b8": 1.1143647248391062,
+            "native_b32": 1.5507311520632356,
+            "native_b8": 1.5964016569778323,
+            "training": 7.4493714740965515,
+            "validation": 0.316811639117077
+          },
+          "training_tokens_per_second": 2061.9189220742733,
+          "updates_per_second": 4.295664420988069,
+          "validation_rows_per_second": 101.00639007197105,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 207.5546804729263,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.77734023646315,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 635.7164633769255,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.77734023646315,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 402.02277585974645,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+          "trained_parameters": "sha256:e56a6c3f169ce4eab63d4c7b792440b3df16f8a85b670aa2fdb0045478e8ece7",
+          "role_peak_upper_bytes": 6320992256,
+          "machine_peak_upper_bytes": 17572954112,
+          "cpu_equivalents": 1.700616967089572,
+          "gpu_busy_percent_mean": 45.578947368421055,
+          "gpu_busy_percent_max": 92.0,
+          "samples": 19,
+          "memory_stat_peaks": {
+            "anon": 1316118528,
+            "file": 227549184,
+            "kernel": 20332544,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315183104,
+            "file": 16031744
+          },
+          "memory_stat_last": {
+            "anon": 1313763328,
+            "file": 227549184
+          },
+          "host_seconds_through_cleanup": 20.29494686401449,
+          "cleanup_seconds": 0.16095206118188798
+        },
+        {
+          "trial": "calibration-1",
+          "timings": {
+            "generation_b32": 0.713562801014632,
+            "generation_b8": 1.0886863470077515,
+            "native_b32": 1.557033380959183,
+            "native_b8": 1.5611548509914428,
+            "training": 7.013795431004837,
+            "validation": 0.3238844322040677
+          },
+          "training_tokens_per_second": 2189.9697747243017,
+          "updates_per_second": 4.562437030675628,
+          "validation_rows_per_second": 98.80067338289966,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 213.73992811632948,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 106.86996405816474,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 627.835418778807,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 106.86996405816474,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 411.50511461021404,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+          "trained_parameters": "sha256:e56a6c3f169ce4eab63d4c7b792440b3df16f8a85b670aa2fdb0045478e8ece7",
+          "role_peak_upper_bytes": 6303264768,
+          "machine_peak_upper_bytes": 17629605888,
+          "cpu_equivalents": 1.6998538019244482,
+          "gpu_busy_percent_mean": 49.166666666666664,
+          "gpu_busy_percent_max": 92.0,
+          "samples": 18,
+          "memory_stat_peaks": {
+            "anon": 1313452032,
+            "file": 214831104,
+            "kernel": 20418560,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315060224,
+            "file": 18976768
+          },
+          "memory_stat_last": {
+            "anon": 1300389888,
+            "file": 213569536
+          },
+          "host_seconds_through_cleanup": 19.7739261649549,
+          "cleanup_seconds": 0.16242027119733393
+        },
+        {
+          "trial": "calibration-2",
+          "timings": {
+            "generation_b32": 0.8623128980398178,
+            "generation_b8": 1.0872264720965177,
+            "native_b32": 1.5695164948701859,
+            "native_b8": 1.5894986239727587,
+            "training": 7.343084953026846,
+            "validation": 0.38221306703053415
+          },
+          "training_tokens_per_second": 2091.763897361497,
+          "updates_per_second": 4.3578414528364515,
+          "validation_rows_per_second": 83.72293560922027,
+          "generation": {
+            "decoded": 64,
+            "decoded_per_whole_minute": 206.65031321173768,
+            "emitted_tokens": 896,
+            "scheduled": 64,
+            "started": 64,
+            "verified": 0,
+            "verified_per_whole_minute": 0.0
+          },
+          "batch_generation": {
+            "32": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.32515660586884,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 519.5329920477582,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            },
+            "8": {
+              "decoded": 32,
+              "decoded_per_whole_minute": 103.32515660586884,
+              "emitted_tokens": 448,
+              "emitted_tokens_per_generation_second": 412.05766369550753,
+              "scheduled": 32,
+              "started": 32,
+              "verified": 0,
+              "verified_per_whole_minute": 0.0
+            }
+          },
+          "failures": {
+            "COMPLETE": 64
+          },
+          "decoded_sources": {
+            "( program ( return ( int -1 ) ) )": 64
+          },
+          "initial_parameters": "sha256:c195f85de6f6c04aef2351b9c63fa033f6037a9f7f21eac435479056f3eb8e59",
+          "trained_parameters": "sha256:8f8d12616a598f79af841088d8eb94b323dd99a42a9b31da836a41a9b107d0ba",
+          "role_peak_upper_bytes": 6302691328,
+          "machine_peak_upper_bytes": 17589481472,
+          "cpu_equivalents": 1.7342050687163468,
+          "gpu_busy_percent_mean": 47.73684210526316,
+          "gpu_busy_percent_max": 92.0,
+          "samples": 19,
+          "memory_stat_peaks": {
+            "anon": 1315057664,
+            "file": 214310912,
+            "kernel": 20357120,
+            "shmem": 98304
+          },
+          "memory_stat_first": {
+            "anon": 315064320,
+            "file": 16797696
+          },
+          "memory_stat_last": {
+            "anon": 1312727040,
+            "file": 211079168
+          },
+          "host_seconds_through_cleanup": 20.392120762960985,
+          "cleanup_seconds": 0.15314465598203242
+        }
+      ],
+      "calibration_medians": {
+        "training_tokens_per_second": 2091.763897361497,
+        "updates_per_second": 4.3578414528364515,
+        "validation_rows_per_second": 98.80067338289966,
+        "host_seconds_through_cleanup": 20.29494686401449,
+        "cpu_equivalents": 1.700616967089572,
+        "gpu_busy_percent_mean": 47.73684210526316,
+        "generation_b32": 0.713562801014632,
+        "generation_b8": 1.0886863470077515,
+        "native_b32": 1.557033380959183,
+        "native_b8": 1.5894986239727587,
+        "training": 7.343084953026846,
+        "validation": 0.3238844322040677
+      },
+      "role_peak_upper_bytes": 6324523008
+    }
+  },
+  "model_selection": "NOT_DECIDED",
+  "optimization_adoption": false,
+  "research_cost_admission": false,
+  "parity": {
+    "records": 84,
+    "mismatched": 0,
+    "max_absolute_error": 7.510185241699219e-06,
+    "boundaries": [
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m8.encoder",
+        "shape": [
+          2,
+          3,
+          256
+        ],
+        "max_absolute_error": 0.0
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m8.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 4.76837158203125e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m8.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 6.556510925292969e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m8.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 4.991888999938965e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m32.encoder",
+        "shape": [
+          2,
+          3,
+          512
+        ],
+        "max_absolute_error": 0.0
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m32.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 3.5762786865234375e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m32.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.152557373046875e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m32.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.152557373046875e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m100.encoder",
+        "shape": [
+          2,
+          3,
+          768
+        ],
+        "max_absolute_error": 0.0
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m100.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 3.5762786865234375e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m100.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/cpu.podman.semantic/bigint-cpu-regressions/gpu/model-sizing-cpu/parity.jsonl",
+        "label": "m100.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 5.960464477539062e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m8.encoder",
+        "shape": [
+          2,
+          3,
+          256
+        ],
+        "max_absolute_error": 2.86102294921875e-06
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m8.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m8.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.152557373046875e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m8.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m32.encoder",
+        "shape": [
+          2,
+          3,
+          512
+        ],
+        "max_absolute_error": 3.6954879760742188e-06
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m32.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 8.046627044677734e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m32.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m32.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m100.encoder",
+        "shape": [
+          2,
+          3,
+          768
+        ],
+        "max_absolute_error": 3.933906555175781e-06
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m100.decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.238719940185547e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m100.decoder.p8",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/hip.preflight/bigint-gpu-regressions/gpu/model-sizing-cuda/parity.jsonl",
+        "label": "m100.decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.6093254089355469e-06
+      },
+      {
+        "file": "stages/sizing.m8.cold/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          256
+        ],
+        "max_absolute_error": 2.9802322387695312e-06
+      },
+      {
+        "file": "stages/sizing.m8.cold/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/sizing.m8.cold/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.cold/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.152557373046875e-07
+      },
+      {
+        "file": "stages/sizing.m8.warmup/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          256
+        ],
+        "max_absolute_error": 3.5762786865234375e-06
+      },
+      {
+        "file": "stages/sizing.m8.warmup/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/sizing.m8.warmup/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.warmup/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-0/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          256
+        ],
+        "max_absolute_error": 3.5762786865234375e-06
+      },
+      {
+        "file": "stages/sizing.m8.calibration-0/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-0/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-0/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-1/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          256
+        ],
+        "max_absolute_error": 2.9802322387695312e-06
+      },
+      {
+        "file": "stages/sizing.m8.calibration-1/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-1/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-1/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.152557373046875e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-2/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          256
+        ],
+        "max_absolute_error": 3.5762786865234375e-06
+      },
+      {
+        "file": "stages/sizing.m8.calibration-2/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 7.748603820800781e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-2/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m8.calibration-2/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.cold/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          512
+        ],
+        "max_absolute_error": 5.0067901611328125e-06
+      },
+      {
+        "file": "stages/sizing.m32.cold/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.cold/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.cold/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.warmup/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          512
+        ],
+        "max_absolute_error": 7.510185241699219e-06
+      },
+      {
+        "file": "stages/sizing.m32.warmup/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.warmup/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m32.warmup/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-0/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          512
+        ],
+        "max_absolute_error": 7.510185241699219e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-0/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.calibration-0/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-0/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-1/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          512
+        ],
+        "max_absolute_error": 7.510185241699219e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-1/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.calibration-1/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-1/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-2/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          512
+        ],
+        "max_absolute_error": 5.0067901611328125e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-2/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m32.calibration-2/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m32.calibration-2/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.1920928955078125e-06
+      },
+      {
+        "file": "stages/sizing.m100.cold/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          768
+        ],
+        "max_absolute_error": 6.198883056640625e-06
+      },
+      {
+        "file": "stages/sizing.m100.cold/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.430511474609375e-06
+      },
+      {
+        "file": "stages/sizing.m100.cold/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/sizing.m100.cold/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m100.warmup/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          768
+        ],
+        "max_absolute_error": 5.7220458984375e-06
+      },
+      {
+        "file": "stages/sizing.m100.warmup/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m100.warmup/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/sizing.m100.warmup/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m100.calibration-0/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          768
+        ],
+        "max_absolute_error": 5.7220458984375e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-0/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-0/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-0/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m100.calibration-1/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          768
+        ],
+        "max_absolute_error": 5.7220458984375e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-1/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.3113021850585938e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-1/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-1/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      },
+      {
+        "file": "stages/sizing.m100.calibration-2/role/parity.jsonl",
+        "label": "encoder",
+        "shape": [
+          2,
+          20,
+          768
+        ],
+        "max_absolute_error": 6.198883056640625e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-2/role/parity.jsonl",
+        "label": "decoder.p1",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.430511474609375e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-2/role/parity.jsonl",
+        "label": "decoder.p32",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 1.0728836059570312e-06
+      },
+      {
+        "file": "stages/sizing.m100.calibration-2/role/parity.jsonl",
+        "label": "decoder.p128",
+        "shape": [
+          2,
+          1,
+          86
+        ],
+        "max_absolute_error": 9.5367431640625e-07
+      }
+    ]
+  },
+  "native": {
+    "independently_completed_jobs": 640,
+    "exactly_once_consumed_jobs": 640,
+    "max_admission_dispatch_seconds": 0.003788611851632595,
+    "max_admission_completion_seconds": 0.40690389182418585,
+    "remaining_active": 0,
+    "remaining_reserved": 0
+  },
+  "telemetry": {
+    "samples": 303,
+    "collector_errors": 0,
+    "max_cleanup_seconds": 0.1919495020993054,
+    "ceiling_bytes": 120744574976,
+    "caveat": "one-Hz whole-role samples mix setup/parity/updates/validation/generation/native/export; neither training-only GPU duty nor sustained memory stability is established; cgroup memory.stat categories are not additive with driver residency"
+  },
+  "isolation_audits": [
+    {
+      "stage": "sizing.m100.calibration-0",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m100.calibration-1",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m100.calibration-2",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m100.cold",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m100.reference",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m100.warmup",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.calibration-0",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.calibration-1",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.calibration-2",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.cold",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.reference",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m32.warmup",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.calibration-0",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.calibration-1",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.calibration-2",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.cold",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.reference",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    },
+    {
+      "stage": "sizing.m8.warmup",
+      "memory_ceiling_bytes": 120744574976,
+      "cpu_equivalents": 16.0,
+      "read_only_root": true,
+      "isolation": "PASS"
+    }
+  ],
+  "producer_ci": [
+    {
+      "id": 40218403831,
+      "name": "Foundation review validation (phases 7\u201311)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 40218403968,
+      "name": "Container and native acceptance",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

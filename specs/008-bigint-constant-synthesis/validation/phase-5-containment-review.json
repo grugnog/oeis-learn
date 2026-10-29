@@ -1,0 +1,275 @@
+{
+  "version": "phase5-containment-review/v1",
+  "review_date": "2026-10-21",
+  "head_sha": "46f33bd55448d19376a8eb6dbe0e887aabc7bdba",
+  "workflow_run_id": 39693058662,
+  "qualified": false,
+  "T091": "COMPLETE for the recorded implementation; later source changes need new matching evidence before promotion",
+  "engines": [
+    {
+      "engine": "docker",
+      "artifact_id": 12390361979,
+      "archive_sha256": "sha256:92a0eb53c710c08a7436d2babadd3a218f155d2463f1e763914e17969fedb6dd",
+      "junit_sha256": "sha256:7cdda1be103ad11d6f4e3fa8faf02b108ddd106ae3a627fd5b53b457b7552115",
+      "inspect_sha256": "sha256:870b8a4a43e6030d3fd77947907f66d9729d3d69152ba92904529eb19cc1568e",
+      "cleanup_sha256": "sha256:8e35ccf7736006f957ae9f44b67c13eb4f7a1cf22879c2f5573dbd9ab171afdf",
+      "tests": 64,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "image": "sha256:01edd32a2241398dfa275f14332687b99083b227e20e795ba24c67d06e9f257e",
+      "cleanup": {
+        "seconds": 0.015570706999824324,
+        "allowance_seconds": 5,
+        "within_bound": true
+      },
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "binds": [
+        {
+          "destination": "/work/output",
+          "writable": true
+        }
+      ],
+      "artifacts": {
+        "build_sha256": "sha256:60ac7f9eb89178d774a693761f7a703b81a4f33f32d94505ffb73b1dd035104b",
+        "worker_sha256": "sha256:de26134870e67e21380a3cc5d9b8ccb20409ea68a27ca5de5bc425b09f3f8cb6",
+        "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+        "native": {
+          "backend": "rust",
+          "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+          "consume_fuel": true,
+          "execution_threads": 1,
+          "source_sha256": "sha256:69f87f6f07148a64e7ed2ff385d5d31bd35d02045eb59193aa2cae5dd75a6189",
+          "wasmtime": "20.0.2"
+        },
+        "locks": {
+          "oeis_bigint_runtime": {
+            "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              }
+            ]
+          },
+          "oeis_synthesis_core": {
+            "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              },
+              {
+                "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                "name": "wasmtime",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "20.0.2"
+              },
+              {
+                "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                "name": "z3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.21.1"
+              },
+              {
+                "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                "name": "z3-src",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "501.0.1"
+              },
+              {
+                "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                "name": "z3-sys",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.13.1"
+              }
+            ]
+          },
+          "oeis_wasm_evaluator": {
+            "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              },
+              {
+                "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+                "name": "pyo3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.20.3"
+              },
+              {
+                "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                "name": "wasmtime",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "20.0.2"
+              },
+              {
+                "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                "name": "z3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.21.1"
+              },
+              {
+                "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                "name": "z3-src",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "501.0.1"
+              },
+              {
+                "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                "name": "z3-sys",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.13.1"
+              }
+            ]
+          }
+        },
+        "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+      }
+    },
+    {
+      "engine": "podman",
+      "artifact_id": 12389149231,
+      "archive_sha256": "sha256:c21ab2a4d378baa19f473e2dc7829e61ca900a442e7bbb4650f6f0a69d8002b7",
+      "junit_sha256": "sha256:407ea5bb928feed10e3ee5c8549ec694bc34060bd7124c2010695de6d3231709",
+      "inspect_sha256": "sha256:3a20f0c16462398e04b751b5fb6e76f18bac9e254d773a5e7aacf01f087f462e",
+      "cleanup_sha256": "sha256:3a293b4ed86a42b5316acd686356439d1f62e5ed245460d80ad37d3c407a3473",
+      "tests": 64,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+      "image": "sha256:01edd32a2241398dfa275f14332687b99083b227e20e795ba24c67d06e9f257e",
+      "cleanup": {
+        "seconds": 0.048828259000060825,
+        "allowance_seconds": 5,
+        "within_bound": true
+      },
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "binds": [
+        {
+          "destination": "/work/output",
+          "writable": true
+        }
+      ],
+      "artifacts": {
+        "build_sha256": "sha256:60ac7f9eb89178d774a693761f7a703b81a4f33f32d94505ffb73b1dd035104b",
+        "worker_sha256": "sha256:de26134870e67e21380a3cc5d9b8ccb20409ea68a27ca5de5bc425b09f3f8cb6",
+        "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+        "native": {
+          "backend": "rust",
+          "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+          "consume_fuel": true,
+          "execution_threads": 1,
+          "source_sha256": "sha256:69f87f6f07148a64e7ed2ff385d5d31bd35d02045eb59193aa2cae5dd75a6189",
+          "wasmtime": "20.0.2"
+        },
+        "locks": {
+          "oeis_bigint_runtime": {
+            "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              }
+            ]
+          },
+          "oeis_synthesis_core": {
+            "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              },
+              {
+                "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                "name": "wasmtime",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "20.0.2"
+              },
+              {
+                "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                "name": "z3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.21.1"
+              },
+              {
+                "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                "name": "z3-src",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "501.0.1"
+              },
+              {
+                "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                "name": "z3-sys",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.13.1"
+              }
+            ]
+          },
+          "oeis_wasm_evaluator": {
+            "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+            "tuple": [
+              {
+                "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                "name": "dashu-int",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.6.2"
+              },
+              {
+                "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+                "name": "pyo3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.20.3"
+              },
+              {
+                "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                "name": "wasmtime",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "20.0.2"
+              },
+              {
+                "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                "name": "z3",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.21.1"
+              },
+              {
+                "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                "name": "z3-src",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "501.0.1"
+              },
+              {
+                "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                "name": "z3-sys",
+                "source": "registry+https://github.com/rust-lang/crates.io-index",
+                "version": "0.13.1"
+              }
+            ]
+          }
+        },
+        "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+      }
+    }
+  ],
+  "prior_host_and_fault_injection_review": "phase-5-execution-review.json",
+  "original_T096": "NEGATIVE; unchanged",
+  "promotion": "BLOCKED"
+}

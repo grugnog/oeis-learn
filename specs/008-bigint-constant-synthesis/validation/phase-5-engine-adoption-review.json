@@ -1,0 +1,536 @@
+{
+  "version": "phase5-engine-adoption-review/v1",
+  "review_date": "2026-10-22",
+  "archive": "008-engine-adoption-20261022T212023Z.zip",
+  "archive_sha256": "sha256:89fb0c9ece3070be69d7d5e0cb8de7a11933f3c4eb81f31b629c1e1fd1d5ed85",
+  "manifest_files_verified": 27,
+  "omissions": [],
+  "status": "CPU_ADOPTION_PASS",
+  "qualified": false,
+  "source_sha256": "sha256:e667c4d1b831dd984297f9bb71fe49c8142cfb4fc431dda7441d9381d7447b47",
+  "image": "sha256:e4e2359f3ba7333b24d4dcdf2ea76753eff0e46099f76ea8c863b33d82bbf223",
+  "engine_policy": {
+    "manifest": {
+      "version": "bigint-engine-policy/v2",
+      "wasmtime": "20.0.2",
+      "consume_fuel": true,
+      "epoch_interruption": true,
+      "wasm_threads": false,
+      "parallel_compilation": false,
+      "static_memory_maximum_size": 0,
+      "static_memory_guard_size": 0,
+      "dynamic_memory_guard_size": 0,
+      "dynamic_memory_reserved_for_growth": 65536
+    },
+    "sha256": "sha256:5f83f13c2e58d767835f4aef303201b7ff6e72d6cd3f271c97665547a9f004cb"
+  },
+  "artifacts": {
+    "engine_policy": {
+      "manifest": {
+        "version": "bigint-engine-policy/v2",
+        "wasmtime": "20.0.2",
+        "consume_fuel": true,
+        "epoch_interruption": true,
+        "wasm_threads": false,
+        "parallel_compilation": false,
+        "static_memory_maximum_size": 0,
+        "static_memory_guard_size": 0,
+        "dynamic_memory_guard_size": 0,
+        "dynamic_memory_reserved_for_growth": 65536
+      },
+      "sha256": "sha256:5f83f13c2e58d767835f4aef303201b7ff6e72d6cd3f271c97665547a9f004cb"
+    },
+    "build_sha256": "sha256:eb33ac605849f4611c8452bd864adcaaa251d71e5987a58e32838c2a6fef0f18",
+    "worker_sha256": "sha256:b7b39d82dc3085328869ed32163ae11307b71b49150c80ea360c7f53edcd7056",
+    "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+    "native": {
+      "backend": "rust",
+      "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+      "consume_fuel": true,
+      "execution_threads": 1,
+      "source_sha256": "sha256:cd7d130fde745b81c0a46da293fc2fa9a72be01be96ab16433a6edfdecb8f34e",
+      "wasmtime": "20.0.2"
+    },
+    "locks": {
+      "oeis_bigint_runtime": {
+        "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          }
+        ]
+      },
+      "oeis_synthesis_core": {
+        "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      },
+      "oeis_wasm_evaluator": {
+        "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+        "tuple": [
+          {
+            "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+            "name": "dashu-int",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.6.2"
+          },
+          {
+            "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+            "name": "pyo3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.20.3"
+          },
+          {
+            "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+            "name": "wasmtime",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "20.0.2"
+          },
+          {
+            "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+            "name": "z3",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.21.1"
+          },
+          {
+            "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+            "name": "z3-src",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "501.0.1"
+          },
+          {
+            "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+            "name": "z3-sys",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "version": "0.13.1"
+          }
+        ]
+      }
+    },
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+  },
+  "measurement_binary_sha256": "sha256:fa8ef401c486a0f08cf1c39081a2d9ccbb1492644031c0ee6d440d420e0787a3",
+  "report_sha256": "sha256:d2a6fe6ae2cfba14467fed7fab27983f92a06b1f1d641d461798c293fca0a377",
+  "benchmark_file_sha256": "sha256:fd482277edc534c8c4f412a5b009d2aea27167dd4babc72aaa15557c4b582376",
+  "groups": {
+    "arithmetic": {
+      "tests": 334,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "sha256": "sha256:31507b873ed8b68820774e51c7d009e7a8fbce4c92610f813d57956a3c566805"
+    },
+    "fitting": {
+      "tests": 37,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "sha256": "sha256:78546c980ec6c53a6092c5197276ffb4610ea008e6d8d2d8d00c168287434978"
+    },
+    "containment": {
+      "tests": 64,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "sha256": "sha256:2f131894583430a24ec8f3d9dce7fe523c1cc69b7f7102acc0dedd2519dd7d9d"
+    }
+  },
+  "configuration_identities": {
+    "zero": "sha256:29482e7109dd13e00e9fad2e1f81b9d7a0ea633cefe91df9a99cc73dd26fb4ad",
+    "reserved": "sha256:96a4ca4ca0657d4694a10ed13353377114dad7265fddeb4d4ddf290ed533fce6"
+  },
+  "rows": 75,
+  "profiled_control_pairs": 450,
+  "cross_setting_groups": 225,
+  "all_comparisons_recomputed": true,
+  "independent_expected_value_hashes_verified": true,
+  "outcomes_per_setting": {
+    "zero": {
+      "ok": 213,
+      "aggregate_fuel": 3,
+      "integer_limit": 9
+    },
+    "reserved": {
+      "ok": 213,
+      "aggregate_fuel": 3,
+      "integer_limit": 9
+    }
+  },
+  "selected_rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "ordinary_warm": {
+        "zero": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.0004713785,
+            "p95_seconds": 0.000486506
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.022693836,
+            "p95_seconds": 0.022893089
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.0231652145,
+            "p95_seconds": 0.023379595
+          }
+        },
+        "reserved": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.00043967150000000005,
+            "p95_seconds": 0.000442286
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.0041651295,
+            "p95_seconds": 0.004179085
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.004604801,
+            "p95_seconds": 0.004621371
+          }
+        }
+      },
+      "execution_speedup": 5.448530711950252,
+      "first_byte_warm": {
+        "zero": {
+          "samples": 2,
+          "median_seconds": 0.016559002,
+          "p95_seconds": 0.016617585
+        },
+        "reserved": {
+          "samples": 2,
+          "median_seconds": 0.00025650550000000003,
+          "p95_seconds": 0.00030478300000000004
+        }
+      },
+      "observer_ratios": {
+        "zero": 1.002267267640429,
+        "reserved": 1.0439659799293155
+      },
+      "retained": {
+        "prepare": {
+          "samples": 2,
+          "median_seconds": 0.001380951958708465,
+          "p95_seconds": 0.0013961349613964558
+        },
+        "execution": {
+          "samples": 2,
+          "median_seconds": 0.00031336606480181217,
+          "p95_seconds": 0.0003139120526611805
+        },
+        "small_value_slowdown": 13.291578022764618,
+        "ratio_basis": "ordinary-control",
+        "investigation_required": true
+      },
+      "production_phases": {
+        "literal_decode": 4.1099999999999996e-07,
+        "store_setup": 8.374100000000002e-05,
+        "clock_start": 0.0010762335,
+        "guest_init": 0.0007265795,
+        "input_load": 0.0005023100000000002,
+        "link_instantiate": 0.00022743349999999998,
+        "compute": 2.97205e-05,
+        "serialize": 8.983850000000002e-05,
+        "clock_stop": 0.00101114,
+        "store_drop": 0.000517447
+      }
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "ordinary_warm": {
+        "zero": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.000438945,
+            "p95_seconds": 0.000439231
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.021880443,
+            "p95_seconds": 0.0218898
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.022319388,
+            "p95_seconds": 0.022329031
+          }
+        },
+        "reserved": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.000461531,
+            "p95_seconds": 0.000484483
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.004220186000000001,
+            "p95_seconds": 0.00422489
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.004681717,
+            "p95_seconds": 0.004699965
+          }
+        }
+      },
+      "execution_speedup": 5.1847105791071755,
+      "first_byte_warm": {
+        "zero": {
+          "samples": 2,
+          "median_seconds": 0.015920267000000002,
+          "p95_seconds": 0.015974097000000003
+        },
+        "reserved": {
+          "samples": 2,
+          "median_seconds": 0.000256324,
+          "p95_seconds": 0.000274928
+        }
+      },
+      "observer_ratios": {
+        "zero": 1.0005604548317417,
+        "reserved": 1.0419038402572776
+      },
+      "retained": {
+        "prepare": {
+          "samples": 2,
+          "median_seconds": 0.001362522947601974,
+          "p95_seconds": 0.0013827199582010508
+        },
+        "execution": {
+          "samples": 2,
+          "median_seconds": 0.0003149333642795682,
+          "p95_seconds": 0.00031735794618725777
+        },
+        "small_value_slowdown": 13.400250588418816,
+        "ratio_basis": "ordinary-control",
+        "investigation_required": true
+      },
+      "production_phases": {
+        "literal_decode": 3.1099999999999997e-07,
+        "store_setup": 8.441249999999997e-05,
+        "clock_start": 0.001130784,
+        "guest_init": 0.0007256284999999998,
+        "input_load": 0.000498846,
+        "link_instantiate": 0.000225789,
+        "compute": 2.8939000000000002e-05,
+        "serialize": 8.773200000000007e-05,
+        "clock_stop": 0.0010018945,
+        "store_drop": 0.0005273425000000002
+      }
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 100,
+      "ordinary_warm": {
+        "zero": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.000425145,
+            "p95_seconds": 0.000431997
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.029606297,
+            "p95_seconds": 0.029838215
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.030031442,
+            "p95_seconds": 0.030270212
+          }
+        },
+        "reserved": {
+          "prepare_seconds": {
+            "samples": 2,
+            "median_seconds": 0.0004257305,
+            "p95_seconds": 0.000427248
+          },
+          "execution_seconds": {
+            "samples": 2,
+            "median_seconds": 0.0119312075,
+            "p95_seconds": 0.011932605
+          },
+          "total_seconds": {
+            "samples": 2,
+            "median_seconds": 0.012356938000000001,
+            "p95_seconds": 0.012357058
+          }
+        }
+      },
+      "execution_speedup": 2.4814166546009697,
+      "first_byte_warm": {
+        "zero": {
+          "samples": 2,
+          "median_seconds": 0.015808662,
+          "p95_seconds": 0.015813237000000004
+        },
+        "reserved": {
+          "samples": 2,
+          "median_seconds": 0.0003443620000000001,
+          "p95_seconds": 0.00034730200000000007
+        }
+      },
+      "observer_ratios": {
+        "zero": 0.9871776602119475,
+        "reserved": 1.0171371590008806
+      },
+      "retained": {
+        "excluded": true,
+        "reason": "outside declared shared add/sub constant subset"
+      },
+      "production_phases": {
+        "literal_decode": 8e-08,
+        "store_setup": 9.065e-05,
+        "clock_start": 0.0010926950000000003,
+        "guest_init": 0.0007459835000000001,
+        "input_load": 0.0020748825000000007,
+        "link_instantiate": 0.0002294585,
+        "compute": 0.0011363814999999998,
+        "serialize": 0.004686904499999998,
+        "clock_stop": 0.0014025794999999995,
+        "store_drop": 0.0005943134999999999
+      }
+    }
+  ],
+  "warm_slower_rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 1,
+      "reserved_over_zero": 1.3107674914159697
+    },
+    {
+      "case": "add-4096--1",
+      "batch": 1,
+      "reserved_over_zero": 1.060081024640311
+    },
+    {
+      "case": "generated-cancellation",
+      "batch": 1,
+      "reserved_over_zero": 2.0549585217390094
+    }
+  ],
+  "rss_range_bytes": {
+    "zero": {
+      "min": 18714624,
+      "max": 20180992
+    },
+    "reserved": {
+      "min": 18251776,
+      "max": 19030016
+    }
+  },
+  "cleanup": {
+    "arithmetic": {
+      "seconds": 0.03955832286737859,
+      "allowance_seconds": 5,
+      "within_bound": true
+    },
+    "fitting": {
+      "seconds": 0.037526629865169525,
+      "allowance_seconds": 5,
+      "within_bound": true
+    },
+    "containment": {
+      "seconds": 0.03854996105656028,
+      "allowance_seconds": 5,
+      "within_bound": true
+    },
+    "runtime-profile": {
+      "seconds": 0.03751558507792652,
+      "allowance_seconds": 5,
+      "within_bound": true
+    }
+  },
+  "isolation": {
+    "arithmetic": {
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "GPU_devices": [],
+      "bind_destinations": [
+        "/work/output"
+      ]
+    },
+    "fitting": {
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "GPU_devices": [],
+      "bind_destinations": [
+        "/work/output"
+      ]
+    },
+    "containment": {
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "GPU_devices": [],
+      "bind_destinations": [
+        "/work/output"
+      ]
+    },
+    "runtime-profile": {
+      "network": "none",
+      "readonly_root": true,
+      "privileged": false,
+      "GPU_devices": [],
+      "bind_destinations": [
+        "/work/output"
+      ]
+    }
+  },
+  "limitations": [
+    "Two warm samples per row do not settle single-term performance or timing uncertainty.",
+    "Podman CPU evidence only; no new Docker or HIP execution is claimed.",
+    "Small-value production execution still exceeds the retained backend by more than5x; T094 review and complete-workload cost measurement remain open.",
+    "Expected integer-limit and aggregate-fuel outcomes are exclusions, not successful throughput measurements."
+  ],
+  "observed_first_calls_per_setting": {
+    "zero": 8670,
+    "reserved": 8670
+  },
+  "interpretation": "CPU adoption regressions pass and prior batch100 speedup reproduces. Clock start/stop now account for about48% of profiled small add/cancel execution; code creates and joins a deadline thread per term. This identifies a focused next investigation, not measured savings from a different timer design. Preserve deadlines, fresh stores, fuel, cleanup and concurrent-engine isolation.",
+  "T094": "OPEN",
+  "T096": "Original negative outcome and consumed attempt unchanged",
+  "promotion": "BLOCKED"
+}

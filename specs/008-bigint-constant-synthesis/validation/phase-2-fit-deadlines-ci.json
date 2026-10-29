@@ -1,0 +1,67 @@
+{
+  "version": "native-fit-deadlines-ci/v1",
+  "reviewed_date": "2026-10-21",
+  "qualified": false,
+  "scope": "Focused native deadline correction; no full Phase5 qualification, training or hidden scoring",
+  "workflow_run_id": 39684406792,
+  "head_sha": "bc51f7a93047a228eb3e0aa1e11300bf809c7210",
+  "merge_sha": "10bcb195ac21888523fd916cf7ca3213fd25b189",
+  "image": "ghcr.io/grugnog/oeis-learn@sha256:396d8d3e07e362693b20d9915c8ac95684cf5f0a7c9878f7d560507e5d777897",
+  "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+  "native": {
+    "job_id": 119516757397,
+    "artifact_id": 12386570652,
+    "archive_sha256": "sha256:e697f14db6b752f7fe6e4c588fee551d1ba94605e9d844aa5d3cb4ee7c578066",
+    "core_tests_sha256": "sha256:482c7d6a3b57e1570defa98576e47e64038550439b0158928f8577b6338ca7bc",
+    "tests_passed": 20,
+    "failed": 0,
+    "ignored": 0,
+    "new_deadline_regressions": [
+      "expired_request_does_no_search_or_production",
+      "early_sat_survives_search_deadline_and_stays_provisional",
+      "unknown_without_an_earlier_model_never_runs_production",
+      "late_production_cannot_supply_an_assignment",
+      "nested_deadlines_never_extend_the_caller_or_native_ceiling",
+      "eight_assignments_prove_ambiguity_without_a_ninth_check",
+      "one_model_still_requires_a_blocking_check"
+    ]
+  },
+  "fitting": {
+    "job_id": 119516757435,
+    "artifact_id": 12386435309,
+    "archive_sha256": "sha256:a05d2a54c42913bdff035cd8c4570e9d58f8536bdf7e61524078719cf3a4c93f",
+    "junit_sha256": "sha256:8368a750c89f5c5fcf1243755a7645776400fddfa88703acd3fe30b75cac6507",
+    "tests_passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "observed_case": {
+      "name": "test_observed_candidate_returns_native_status_and_worker_stays_healthy",
+      "seconds": 1.942,
+      "assertions": "Native complete status and healthy worker; a fit is not required"
+    },
+    "artifacts": {
+      "build_sha256": "sha256:60ac7f9eb89178d774a693761f7a703b81a4f33f32d94505ffb73b1dd035104b",
+      "worker_sha256": "sha256:de26134870e67e21380a3cc5d9b8ccb20409ea68a27ca5de5bc425b09f3f8cb6",
+      "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308"
+    }
+  },
+  "ci_followup": {
+    "failed_jobs": [
+      119515152436,
+      119516757398,
+      119516757491
+    ],
+    "failure": "Same stale current-dispositions implementation binding in CPU regression and both portable engines",
+    "repair": "Refresh only current traceability metadata; preserve all68 item/task dispositions and historical template",
+    "new_implementation_sha256": "sha256:a99cb9b79050dea0fe11d9092c3b9e0a132937e2865c63c859713c79b80d6d22",
+    "local_tests": {
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "junit_sha256": "sha256:03ab54bb75542b6b16515f66f7de38f960ad9ce24cd9bdb2cdacf9d0d0e7bbf7"
+    },
+    "portable_engine_rerun": "pending pushed CI; no local engine"
+  },
+  "hip_executed": false,
+  "original_T096": "NEGATIVE; unchanged"
+}

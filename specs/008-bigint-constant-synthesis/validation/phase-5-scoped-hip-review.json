@@ -1,0 +1,999 @@
+{
+  "version": "phase5-scoped-hip-review/v1",
+  "review_date": "2026-10-21",
+  "reviewed_archive": "008-phase5-scoped-20261021T115212Z.zip",
+  "archive_sha256": "sha256:b15803424100514bb6c35f9026958895abe4e141dd62ed95912a41af37156902",
+  "tested_commit": "085bfece4563ebd23e7bde68f99c027114668d96",
+  "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+  "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+  "decision": {
+    "status": "DIVERSE32_ADMITTED",
+    "qualified": false,
+    "completed_task": "T095",
+    "admitted_scope": "diverse32",
+    "admitted_next_task": "T096",
+    "seed": 20261016,
+    "learnability_run": false,
+    "transfer_screen_admitted": false,
+    "reason": "Reviewed exact scoped p95 projection fits80% of the preregistered finite budget and aggregate role ceilings fit the full budget.",
+    "remaining_tasks": [
+      "T089",
+      "T090",
+      "T091",
+      "T093",
+      "T094",
+      "T096",
+      "T097",
+      "T098"
+    ]
+  },
+  "verification": {
+    "zip_crc": "PASS",
+    "verified_files": 24,
+    "mismatches": 0,
+    "omissions": [],
+    "files": [
+      {
+        "path": "summary.json",
+        "bytes": 383690,
+        "sha256": "sha256:988016b3f7fbc9f8da0316908a3544ae8c4444a66bd87e9096de3b2583469567"
+      },
+      {
+        "path": "check-command/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "check-command/stdout.log",
+        "bytes": 84,
+        "sha256": "sha256:49d958c613ce736150494ceb64cf211f45124f305efd2b2cfd1d869c846b15cb"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/gpu/encoder-update.json",
+        "bytes": 364,
+        "sha256": "sha256:3f91234ad6481740a07e2f9ae9f6ccb8a11e9cf3bc909302023320292f317dca"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/receipt.json",
+        "bytes": 537,
+        "sha256": "sha256:01804e77503895fe75be2ca41f891d5e5d968f66ab3328c9ddb9663faa590b2c"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/results.xml",
+        "bytes": 1500,
+        "sha256": "sha256:62e50650cc698be1f9b3bd90cc262ace3c54db1766746ede2185f33c8fd84c8f"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "gpu/bigint-gpu-regressions/stdout.log",
+        "bytes": 1809,
+        "sha256": "sha256:a92eabb5e1991039be21ead4bbb38cd3395cab96bfc0377b38b1e8e436143c9a"
+      },
+      {
+        "path": "gpu/environment/receipt.json",
+        "bytes": 328,
+        "sha256": "sha256:a5a493f06e75918681c88b6b279abd7f29b3a9864bf81a0763e696e115ecee3a"
+      },
+      {
+        "path": "gpu/environment/stderr.log",
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "gpu/environment/stdout.log",
+        "bytes": 364,
+        "sha256": "sha256:8a8b3f9d9a58a64db86223be5057bb18e15384f2e428b0f9a078d222974d5aea"
+      },
+      {
+        "path": "gpu/validation.json",
+        "bytes": 1039,
+        "sha256": "sha256:808d7211c007a851a148e6b6e41f002b67165bda8da979ee8028c04aa029d44b"
+      },
+      {
+        "path": "performance/benchmark.json",
+        "bytes": 338403,
+        "sha256": "sha256:0a7d8fc662e9b9a41b299bbe0914526fe1e4e6bcaadf2fdc715a9e0836284685"
+      },
+      {
+        "path": "performance/cleanup.json",
+        "bytes": 88,
+        "sha256": "sha256:b15b0f82a228194db067178c6d735f6087ce047e15d35a88f098f7f97aa2cd78"
+      },
+      {
+        "path": "performance/container-inspect.json",
+        "bytes": 15910,
+        "sha256": "sha256:77642f63f9f9e4a86c7a3194e8411a6fbcf9645efe8b34814405b5735cd4de3f"
+      },
+      {
+        "path": "performance/cost-diverse32.json",
+        "bytes": 14302,
+        "sha256": "sha256:8d98b8238ce0ba6338d9a15b8eaa6b08446230471fdddcd81a0666a84fefb5b8"
+      },
+      {
+        "path": "performance/cost-transfer-screen.json",
+        "bytes": 2692,
+        "sha256": "sha256:ecb472552b07bd371ecea1b3f05d4aa0457d26ff365bad031da004eabfe73ae9"
+      },
+      {
+        "path": "performance/measured-diverse32-recipe.yaml",
+        "bytes": 7883,
+        "sha256": "sha256:61563bdeeae6c0b101cfe536f08ff108dd7de6eb297063603ffd2b496673673a"
+      },
+      {
+        "path": "performance/measurement-config.yaml",
+        "bytes": 3677,
+        "sha256": "sha256:eb4e888b783597f789543f6b6d4484ad5834bb04080c6b2682b0ae7e47969756"
+      },
+      {
+        "path": "performance/neural-partial.json",
+        "bytes": 53320,
+        "sha256": "sha256:20dc47870278ddb25ffe8f258077a5a544fdafc3a64db8e0db1db3c3ab613614"
+      },
+      {
+        "path": "performance/partial.json",
+        "bytes": 233559,
+        "sha256": "sha256:3530a8264506c295bf1f85d931f9acb9a445e6f45414a9ec453e09a216e22f83"
+      },
+      {
+        "path": "performance/shapes.json",
+        "bytes": 599,
+        "sha256": "sha256:33de805c0ebac9a49d06ff2586181312eafd78a5aee6ac48acff3ff96eb55722"
+      },
+      {
+        "path": "performance/stderr.log",
+        "bytes": 1315,
+        "sha256": "sha256:3be8222f7726c93bf3585108e46632e29c7d8df5c4a1a581aca4153da88129fe"
+      },
+      {
+        "path": "performance/stdout.log",
+        "bytes": 3363,
+        "sha256": "sha256:c0d18b17faa6343045b1ce43f9e0805cc01fedec2b403b15155fee12f2df8e64"
+      }
+    ],
+    "benchmark_report_sha256": "sha256:27f281a3341881caa832fadb64739d6bff0e3537fc32a3c397c2c59adee01094",
+    "source_binding": "PASS",
+    "runtime_reservation_recomputation": "PASS",
+    "admitted_recipe_revalidated": "PASS",
+    "measurement_config_matches_preregistration": true,
+    "p95_recomputation": "PASS"
+  },
+  "prepared_shape": {
+    "prepared_sha256": "sha256:a33ad96a68cc7f335368998df9a406393697530da11ad6380ee19c53f5197baf",
+    "split_sha256": "sha256:6b86396a0ed40e6235dec15c68a919d71d5a6b68cbe797576b30a667af24fb95",
+    "counts": {
+      "parameter_development": 128,
+      "structural_development": 128,
+      "training": 512
+    },
+    "tiny_count": 32,
+    "exclusions": {
+      "generic": {
+        "split shortfall": 3
+      },
+      "oeis": {
+        "observed prefix/shift overlap": 110
+      }
+    },
+    "native_admitted": true,
+    "stages": {
+      "A": 85,
+      "B": 553,
+      "C": 40,
+      "D": 90
+    },
+    "max_input_bits": 92,
+    "max_tokens": 93
+  },
+  "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+  "runtime": {
+    "engine": "podman",
+    "engine_version": "5.8.6",
+    "memory_bytes": 17179869184,
+    "cpus": 4,
+    "render_node": "/dev/dri/renderD128",
+    "coordinator_sha256": "sha256:4721faec563ed6f1eb08287ec207710706f3554087b402f947a9c98f939d79af",
+    "adapter_sha256": "sha256:e2ae1d8ee03ddc4ee545762ca257273ab03d69dc8996eb07eae067888ef0d8e6",
+    "workers": 4,
+    "cpu_memory_bytes": 12884901888,
+    "free_disk_floor_bytes": 5368709120,
+    "host_free_memory_bytes": 1073741824
+  },
+  "gpu": {
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "encoder_update": {
+      "device": "AMD Radeon Graphics",
+      "hip": "7.2.53211-e1a6bc5663",
+      "before_sha256": "f2737f4711ab0e954abb5ba41a1761e9c4953eb5e00b93207b7a5afea62c444c",
+      "after_sha256": "bd6d772ddc593f4a55ab13f99d75216645a6fe5f9fb61ed2980cd46756889dd7",
+      "widths": [
+        256,
+        512,
+        1024,
+        4096
+      ],
+      "difference_bits": 4097,
+      "finite": true,
+      "updated": true
+    },
+    "environment": "{'torch': '2.9.1+rocm7.2.1.gitff65f5bc', 'hip': '7.2.53211-e1a6bc5663', 'native_worker': True, 'devices': [\"_CudaDeviceProperties(name='AMD Radeon Graphics', major=11, minor=5, gcnArchName='gfx1151', total_memory=114688MB, multi_processor_count=20, uuid=58580000-0000-0000-0000-000000000000, pci_bus_id=102, pci_device_id=0, pci_domain_id=0, L2_cache_size=2MB)\"]}"
+  },
+  "measurement_protocol": "fixed-state-batched/v2",
+  "frozen_states": [
+    {
+      "calibration": 3,
+      "updates": 15,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5"
+    },
+    {
+      "calibration": 5,
+      "updates": 25,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654"
+    }
+  ],
+  "generation_groups": [
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "correct",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "correct",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "shuffled",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "shuffled",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "absent",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 3,
+      "parameters_sha256": "sha256:f783b857abd8505e453f776380f3c73476c59b27c3213aaceeb3bedeed741df5",
+      "mode": "absent",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "correct",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "correct",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "shuffled",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "shuffled",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "absent",
+      "temperature": 0,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    },
+    {
+      "calibration": 5,
+      "parameters_sha256": "sha256:14d18235f03ecd826539d2f483b53057316e9b5c77034350eb2f5d925da51654",
+      "mode": "absent",
+      "temperature": 0.8,
+      "batch_size": 8,
+      "parity": true,
+      "weights_unchanged": true,
+      "deadline_complete": true
+    }
+  ],
+  "costs": {
+    "training_p95": 0.07947838609106839,
+    "teacher_forcing_p95": 0.0063332790159620345,
+    "checkpoint_p95": 0.20595124107785523,
+    "generation_p95": 17.739852778846398,
+    "generation_batch_p95": 31.686877780826762,
+    "generation_batch_size": 8,
+    "fit_p95": 0.22528757411055267,
+    "reference_p95": 0.004577744984999299,
+    "hidden_scoring_p95": 0.2618573670319463
+  },
+  "cost_receipts": {
+    "diverse32": {
+      "version": "scoped-preflight/v1",
+      "scope": "diverse32",
+      "status": "PASS",
+      "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+      "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+      "profile_sha256": "sha256:126e6cfbd52c9404ef035fbfd5629151a780193e2a23a43a5d14daeffc36e171",
+      "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+      "schedule_sha256": "sha256:cddae0c10db442773713d1734e435b35231c8033b494aeacbd441c9ef1851d64",
+      "recipe_sha256": "sha256:5f52131d40ce5c276d2039298c3e0d9555861b79138e6b7ba288834b63349e85",
+      "projection": {
+        "version": "scoped-cost/v1",
+        "scope": "diverse32",
+        "workload": {
+          "periodic_prompts": 32,
+          "end_screen_prompts": 32,
+          "end_groups": [
+            32
+          ],
+          "teacher_forcing_prompts": 256,
+          "periodic_attempts": 1,
+          "attempts": 8,
+          "controls": [
+            "correct",
+            "shuffled",
+            "absent",
+            "template"
+          ],
+          "generation_rounds": 24,
+          "fitting_rounds": 32,
+          "raw_rounds": 3,
+          "hidden_rounds": 6,
+          "checkpoints_per_validation": 2
+        },
+        "phases": {
+          "training": 238.43515827320516,
+          "periodic_synthesis": 4274.479112381609,
+          "full_development_loss": 48.639582842588425,
+          "end_screen_generation": 3041.940266959369,
+          "end_screen_fitting": 235.38208675384521,
+          "end_screen_raw": 25.138307235066844,
+          "end_screen_hidden": 50.27661447013369,
+          "checkpoint": 12.357074464671314
+        },
+        "p95": {
+          "training_p95": 0.07947838609106839,
+          "teacher_forcing_p95": 0.0063332790159620345,
+          "generation_p95": 17.739852778846398,
+          "fit_p95": 0.22528757411055267,
+          "reference_p95": 0.004577744984999299,
+          "hidden_scoring_p95": 0.2618573670319463,
+          "checkpoint_p95": 0.20595124107785523,
+          "generation_batch_p95": 31.686877780826762,
+          "generation_batch_size": 8
+        },
+        "projected_seconds": 7926.64820338049,
+        "budget": 14400,
+        "reserve_fraction": 0.2,
+        "within_budget": true,
+        "scheduled_validations": 30,
+        "cadence": 100,
+        "updates": 3000,
+        "end_screen_prompts": 32,
+        "omitted_prompts": 0,
+        "generation_batch_size": 8,
+        "role_reservations": [
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          196,
+          4134,
+          68
+        ],
+        "reserved_seconds": 10082
+      },
+      "scoring_data": false,
+      "measured_recipe": {
+        "path": "measured-diverse32-recipe.yaml",
+        "recipe": {
+          "version": "bigint-bootstrap/v1",
+          "data": {
+            "cache": "tmp-oeis-bulk",
+            "revision": null,
+            "seed": 20261016,
+            "max_records": 5000,
+            "max_download_bytes": 21474836480,
+            "free_disk_floor_bytes": 5368709120,
+            "generator": "bigint-connected/v1",
+            "variants": 16,
+            "max_families": 4096,
+            "training": 512,
+            "parameter_development": 128,
+            "structural_development": 128,
+            "oeis_development": 8,
+            "oeis_final": 8
+          },
+          "execution": {
+            "language": "bigint-body/v1",
+            "codec": "bigint-codec/v1",
+            "runtime": "bigint-wasm/v1",
+            "resources": {
+              "input_bits": 4096,
+              "literal_bits": 4096,
+              "intermediate_bits": 16384,
+              "output_bytes": 2048,
+              "arena_entries": 65536,
+              "arena_bytes": 33554432,
+              "memory_bytes": 67108864,
+              "term_fuel": 10000000,
+              "aggregate_fuel": 100000000,
+              "reference_steps": 1000000,
+              "aggregate_reference_steps": 50000000,
+              "control_max": 65536,
+              "loop_iterations": 1024,
+              "aggregate_loop_iterations": 65536,
+              "ast_nodes": 4096,
+              "source_bytes": 65536,
+              "nesting": 32,
+              "bigint_locals": 16,
+              "control_locals": 8,
+              "bool_locals": 8,
+              "term_seconds": 2.0,
+              "evaluation_seconds": 30.0,
+              "cleanup_seconds": 5.0
+            },
+            "artifacts": {
+              "build_sha256": "sha256:edc5c40457958657588d656470fa81d6d59fb3b1ea85d073b51b9e1d0ef40206",
+              "worker_sha256": "sha256:468be264addfa6c8d9f4c3fa79aaf2420c1dba73def162fc30d90d8c83559011",
+              "guest_sha256": "sha256:57c4ff352dd813a101bae2bb5c149168fd5f2c362c1c44481fc0320ba6c68308",
+              "native": {
+                "backend": "rust",
+                "binary_sha256": "sha256:d882e3daed69c9c146c801b4cd9386b76a2fc135e086242b32851a66dc9b9d16",
+                "consume_fuel": true,
+                "execution_threads": 1,
+                "source_sha256": "sha256:117d5f6c0462e9ba0ca5f4859aa0873a0f1cb9cfd494510f8c4f898ddc371766",
+                "wasmtime": "20.0.2"
+              },
+              "locks": {
+                "oeis_bigint_runtime": {
+                  "sha256": "sha256:4d65be63b69440bbbc47400ea3c564eaf4ed70f419112b46f7720209330057fc",
+                  "tuple": [
+                    {
+                      "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                      "name": "dashu-int",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.6.2"
+                    }
+                  ]
+                },
+                "oeis_synthesis_core": {
+                  "sha256": "sha256:cb849263837efca3e25f6e221f2a0648624178c19a73df5bcddc8ac8146853cb",
+                  "tuple": [
+                    {
+                      "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                      "name": "dashu-int",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.6.2"
+                    },
+                    {
+                      "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                      "name": "wasmtime",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "20.0.2"
+                    },
+                    {
+                      "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                      "name": "z3",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.21.1"
+                    },
+                    {
+                      "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                      "name": "z3-src",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "501.0.1"
+                    },
+                    {
+                      "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                      "name": "z3-sys",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.13.1"
+                    }
+                  ]
+                },
+                "oeis_wasm_evaluator": {
+                  "sha256": "sha256:399d88b3c68a66c9698ef3279eea0b415980e2fa09687e46da3e5a77a7477a49",
+                  "tuple": [
+                    {
+                      "checksum": "64a0490b40a6a3f6427970035f17f76fd59c01d3cd9f9140809672863a0d64c8",
+                      "name": "dashu-int",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.6.2"
+                    },
+                    {
+                      "checksum": "53bdbb96d49157e65d45cc287af5f32ffadd5f4761438b527b055fb0d4bb8233",
+                      "name": "pyo3",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.20.3"
+                    },
+                    {
+                      "checksum": "4af5cb32045daee8476711eb12b8b71275c2dd1fc7a58cc2a11b33ce9205f6a2",
+                      "name": "wasmtime",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "20.0.2"
+                    },
+                    {
+                      "checksum": "83c8c28827f094697c982c88a730ef2511b5cb551f86f532a0bba2723178a37a",
+                      "name": "z3",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.21.1"
+                    },
+                    {
+                      "checksum": "d2e57700cfcb9a61cfe1cf2fdf4df1977773e3a8994827f3e4d0bf93283301a4",
+                      "name": "z3-src",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "501.0.1"
+                    },
+                    {
+                      "checksum": "1343ed2cd33696498898195eb63613ef7891d9353bbc33ddc87d0292c6e3b1e6",
+                      "name": "z3-sys",
+                      "source": "registry+https://github.com/rust-lang/crates.io-index",
+                      "version": "0.13.1"
+                    }
+                  ]
+                }
+              },
+              "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)"
+            }
+          },
+          "inputs": {
+            "profile": "hybrid-chunks/v1",
+            "primes": [
+              3,
+              5,
+              7,
+              11,
+              13,
+              17,
+              19,
+              23,
+              29,
+              31,
+              37,
+              41,
+              43,
+              47,
+              53,
+              59
+            ],
+            "max_valuation": 32,
+            "use_film": true,
+            "summary_tokens": false,
+            "mask": {
+              "magnitude": true,
+              "modular": true,
+              "difference": true,
+              "exact_bytes": true
+            },
+            "ablation_mode": "post_training"
+          },
+          "model": {
+            "d_model": 256,
+            "heads": 4,
+            "encoder_layers": 4,
+            "decoder_layers": 4,
+            "ff": 1024,
+            "precision": "float32",
+            "attention": "eager",
+            "token_scale": 1,
+            "position_scale": 16,
+            "dropout": 0,
+            "seed": 20261016
+          },
+          "learning": {
+            "target_view": "literal",
+            "learning_rate": 0.0001,
+            "batch_size": 8,
+            "max_updates": 3000,
+            "validation_every": 100,
+            "patience": 8,
+            "min_improvement": 1,
+            "curriculum": false,
+            "replay": false,
+            "representation_comparison": true,
+            "replay_capacity": 4096,
+            "replay_fraction": 0.25,
+            "earlier_fraction": 0.25,
+            "advancement_threshold": 0.8,
+            "advancement_coverage": 0.95,
+            "advancement_validations": 2,
+            "cost_preflight": {
+              "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+              "profile_sha256": "sha256:126e6cfbd52c9404ef035fbfd5629151a780193e2a23a43a5d14daeffc36e171",
+              "scoring_data": false,
+              "costs": {
+                "training_p95": 0.07947838609106839,
+                "teacher_forcing_p95": 0.0063332790159620345,
+                "checkpoint_p95": 0.20595124107785523,
+                "generation_p95": 17.739852778846398,
+                "generation_batch_p95": 31.686877780826762,
+                "generation_batch_size": 8,
+                "fit_p95": 0.22528757411055267,
+                "reference_p95": 0.004577744984999299,
+                "hidden_scoring_p95": 0.2618573670319463
+              },
+              "fixture_sha256": "sha256:e6f68e8379d0436b19d5c84f8dfc297a1ab280f24b4922e38421b73b5ee6947b",
+              "scope": "diverse32",
+              "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+              "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+              "schedule_sha256": "sha256:cddae0c10db442773713d1734e435b35231c8033b494aeacbd441c9ef1851d64"
+            }
+          },
+          "fitting": {
+            "profile": "native-fitting/v1",
+            "disabled": false,
+            "max_parameters": 8,
+            "max_assignments": 8,
+            "coefficient_bits": 4096,
+            "bounds": [
+              16,
+              64,
+              256,
+              1024,
+              4096
+            ],
+            "native_seconds": 2,
+            "reference_seconds": 2,
+            "service_limits": {
+              "max_inflight_batches": 1,
+              "max_pending_batches": 8,
+              "max_pending_bytes": 33554432,
+              "result_cache_max_entries": 4096,
+              "result_cache_max_bytes": 67108864,
+              "compiled_cache_max_entries": 32,
+              "compiled_cache_max_bytes": 67108864,
+              "disk_cache_max_entries": 256,
+              "disk_cache_max_bytes": 536870912
+            }
+          },
+          "search": {
+            "attempts": 8,
+            "greedy": 1,
+            "stochastic": 7,
+            "tokens": 1024,
+            "seconds": 60,
+            "beam": null
+          },
+          "evaluation": {
+            "visible": 20,
+            "horizon": 100,
+            "periodic_panel": 32,
+            "primary_transfer_metric": "continuation_accuracy_100",
+            "portfolio": "exact_equal_budget",
+            "controls": [
+              "correct",
+              "shuffled",
+              "absent",
+              "template"
+            ],
+            "final_access": "sealed",
+            "hidden_seconds": 30,
+            "coverage": 0.95,
+            "family_resamples": 2000,
+            "paired_seeds": [
+              20261016,
+              20261017,
+              20261018
+            ]
+          },
+          "track": {
+            "kind": "generic_only",
+            "foundation": null,
+            "assisted_manifest": null
+          },
+          "archive": {
+            "max_alternatives": 8,
+            "max_bytes": 536870912
+          },
+          "budgets": {
+            "preparation_seconds": 7200,
+            "training_seconds": 14400,
+            "cleanup_seconds": 5,
+            "ledger": "debit-before-work/v1"
+          },
+          "reporting": {
+            "bundle_bytes": 67108864,
+            "core_reserve_bytes": 8388608,
+            "max_examples": 8,
+            "detail_chunk_bytes": 1048576,
+            "max_core_bytes": 8388608
+          },
+          "identity": "sha256:560df5bd317e8d85573e491a152d071100d0d323bb03ccb9a2dd54741401aeed"
+        },
+        "scope": "diverse32",
+        "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+        "qualification": "bounded cost estimate, not transfer evidence"
+      },
+      "receipt_sha256": "sha256:0af2a464f2f3eb1afb86355c5b29ba2526f7ca766e536a6bd52bf596c7b6f6ee"
+    },
+    "transfer-screen": {
+      "version": "scoped-preflight/v1",
+      "scope": "transfer-screen",
+      "status": "BLOCKED",
+      "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+      "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+      "profile_sha256": "sha256:126e6cfbd52c9404ef035fbfd5629151a780193e2a23a43a5d14daeffc36e171",
+      "shape_sha256": "sha256:ac3f5574146440488af81cebe01be046d6bc70e3b8ea84ea53ef0cd7a4f20430",
+      "schedule_sha256": "sha256:684ad396e20ad0f390576a7a050ce24f85933a6bb24add9f4ea8ec55d5caac0a",
+      "recipe_sha256": "sha256:d33650161d9af07378809433b56c82d70862a2a4b6804c699d96376ed8888560",
+      "projection": {
+        "version": "scoped-cost/v1",
+        "scope": "transfer-screen",
+        "workload": {
+          "periodic_prompts": 96,
+          "end_screen_prompts": 256,
+          "end_groups": [
+            128,
+            128
+          ],
+          "teacher_forcing_prompts": 256,
+          "periodic_attempts": 1,
+          "attempts": 8,
+          "controls": [
+            "correct",
+            "shuffled",
+            "absent",
+            "template"
+          ],
+          "generation_rounds": 24,
+          "fitting_rounds": 32,
+          "raw_rounds": 3,
+          "hidden_rounds": 6,
+          "checkpoints_per_validation": 2
+        },
+        "phases": {
+          "training": 238.43515827320516,
+          "periodic_synthesis": 2564.687467428966,
+          "full_development_loss": 9.727916568517685,
+          "end_screen_generation": 24335.522135674953,
+          "end_screen_fitting": 1883.0566940307617,
+          "end_screen_raw": 201.10645788053475,
+          "end_screen_hidden": 402.2129157610695,
+          "checkpoint": 2.4714148929342628
+        },
+        "p95": {
+          "training_p95": 0.07947838609106839,
+          "teacher_forcing_p95": 0.0063332790159620345,
+          "generation_p95": 17.739852778846398,
+          "fit_p95": 0.22528757411055267,
+          "reference_p95": 0.004577744984999299,
+          "hidden_scoring_p95": 0.2618573670319463,
+          "checkpoint_p95": 0.20595124107785523,
+          "generation_batch_p95": 31.686877780826762,
+          "generation_batch_size": 8
+        },
+        "projected_seconds": 29637.220160510944,
+        "budget": 7200,
+        "reserve_fraction": 0.2,
+        "within_budget": false,
+        "scheduled_validations": 6,
+        "cadence": 500,
+        "updates": 3000,
+        "end_screen_prompts": 256,
+        "omitted_prompts": 0,
+        "generation_batch_size": 8,
+        "role_reservations": [
+          592,
+          592,
+          592,
+          592,
+          592,
+          592,
+          16518,
+          257,
+          16518,
+          257
+        ],
+        "reserved_seconds": 37102
+      },
+      "scoring_data": false,
+      "reason": "measured transfer-screen cost 29637.220s exceeds 80% budget 5760.000s",
+      "receipt_sha256": "sha256:f07ab47dea9ec4d1a69bcfc69f23689db319abeedc27b52da1d8095e2ce40f7a"
+    }
+  },
+  "admitted_recipe_sha256": "sha256:560df5bd317e8d85573e491a152d071100d0d323bb03ccb9a2dd54741401aeed",
+  "preregistration": "phase-5-scoped-preregistration.json",
+  "measurement_case_count": 75,
+  "resource_exclusions": [
+    {
+      "case": "generated-16384",
+      "batch": 100,
+      "samples": [
+        {
+          "reason": "aggregate_fuel",
+          "coverage": 82
+        },
+        {
+          "reason": "aggregate_fuel",
+          "coverage": 82
+        },
+        {
+          "reason": "aggregate_fuel",
+          "coverage": 82
+        }
+      ]
+    }
+  ],
+  "slowdown_investigations": [
+    {
+      "case": "shared-small-add",
+      "batch": 1,
+      "ratio": 28.258742674989648
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 20,
+      "ratio": 61.34788797802135
+    },
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "ratio": 73.8063117090055
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 1,
+      "ratio": 46.76664528710556
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 20,
+      "ratio": 61.32937324113296
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "ratio": 71.64761971733304
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 1,
+      "ratio": 31.40788746712651
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 20,
+      "ratio": 57.86469828637674
+    },
+    {
+      "case": "shared-add-64",
+      "batch": 100,
+      "ratio": 70.75231305100311
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 1,
+      "ratio": 44.881667001309665
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 20,
+      "ratio": 60.64526250775117
+    },
+    {
+      "case": "shared-add-128",
+      "batch": 100,
+      "ratio": 71.59486136138304
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 1,
+      "ratio": 23.244564648997184
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 20,
+      "ratio": 61.92322987868436
+    },
+    {
+      "case": "shared-add-255",
+      "batch": 100,
+      "ratio": 70.66338880835035
+    }
+  ],
+  "containment": {
+    "readonly_rootfs": true,
+    "network": "none",
+    "no_new_privileges": true,
+    "mount_destinations": [
+      "/work/output"
+    ],
+    "cleanup": {
+      "seconds": 0.055818679044023156,
+      "allowance_seconds": 5,
+      "within_bound": true
+    }
+  },
+  "limits": "Timing/parity fixtures are non-scoring synthetic calibration, not learned accuracy or the T096 result. Small-value slowdown investigation, both-engine qualification and actual matched-checkpoint rescue remain open.",
+  "review_sha256": "sha256:66c3622f43769d3ea3c53fecacf7a98f4091c8b635fda82034004b2054e21607"
+}

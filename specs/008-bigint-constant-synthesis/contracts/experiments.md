@@ -16,7 +16,7 @@ For parameter-dev, reserve variants within training families while keeping detec
 
 | Study | Fixed controls | Changed factor / report |
 | --- | --- | --- |
-| Existing checkpoint rescue | Same checkpoint, prompts, decoded candidates and old numerical semantics | Original vs eligible-literal fitting; supported fraction, rescue rate, continuation, cost; unsupported legacy candidates remain explicit |
+| Existing checkpoint rescue — T093 user-deferred2026-10-22 | Optional historical comparison, outside current Phase5 completion; no model conversion required | Read-only implementation/compatibility retained; no executed result claimed |
 | Literal vs parameterized bootstrap | Same generic behaviors/structures/splits, small backbone, chosen input profile, optimization and seeds | Representation and fitting; raw/fitted scores, token/parameter counts and realized compute |
 | Curriculum and replay | Winning or inconclusive representation decision explicitly frozen | Enable curriculum first, then verified replay as a separate recorded comparison, not an unlabelled joint intervention |
 | Generic-only vs assisted | Same generic foundation checkpoint and downstream budgets | Reviewed mathematical demonstrations; shared foundation cost, lineage and transfer on excluded families/compositions |
@@ -33,6 +33,23 @@ Qualification first estimates complete scheduled diagnostic and end-of-run cost 
 Raw evaluation uses complete grammar-constrained generation with no fitting. Same-candidate rescue fits precisely those raw complete candidates. Equal-budget evaluation separately compares portfolios under a shared total cost: default 60 seconds per prompt including generation, fitting and visible verification; at most eight candidates, one greedy plus seven seeded stochastic, 1,024-token cap each. Beam search is opt-in with explicit budget reallocation, not additional free attempts. Decoder-only time and fitting/reference time are separately recorded. Hidden scoring has a separate fixed budget and cannot rerank candidates.
 
 For every split report total eligible N, attempted, complete evidence count, success count/N, resource/unsupported/invalid counts and exact exclusions before freezing N. All incomplete evaluation cases remain unsuccessful in the fixed-denominator score and also appear as incomplete coverage. Training selection uses synthetic visible-fit scores on the fixed full diagnostic set, then complete teacher-forced loss and smaller update as deterministic ties. Hidden continuation scores are reporting-only and never select a checkpoint or advance curriculum. Do not choose a checkpoint evaluated on an easier completed subset.
+
+The T096 diagnostic follow-up makes coverage evidence explicit per arm. Raw and
+same-candidate rescue refer only to the first greedy attempt; the equal-budget
+and conditioning/template arms retain their own scheduled portfolios. Record
+generation, fitting/admission and scoring separately. A sealed selection has
+complete scoring evidence only when production and reference both return all100
+values; an expired scoring deadline cannot inherit generation completeness.
+With no selected candidate, a completed arm may have a conclusive negative
+outcome (for example unsupported fitting or scoped UNSAT), but incomplete
+decoding, unstarted required attempts, unknown fitting and resource exhaustion
+remain incomplete. Other controls cannot supply or remove this evidence.
+Later unused attempts cannot invalidate an independently completed100-index
+score for the already sealed selection. Legacy records without per-arm evidence
+are explicitly unattributed; their historical assessments are not overwritten.
+This clarifies evidence accounting without changing selection or promotion
+thresholds. Compact stage receipts for every prompt precede sampled verbose
+examples in exports; any bounded-detail omission remains explicit.
 
 The Phase 5 scheduling follow-up groups up to eight visible prompts for each
 compatible decoder call. Each prompt keeps the same greedy/seven stochastic

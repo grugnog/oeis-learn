@@ -1,0 +1,73 @@
+{
+  "version": "pipeline-learning-pilot-existing-evidence/v1",
+  "authority": "Read-only post-hoc development evidence; no scientific execution, checkpoint promotion or historical status change.",
+  "archive": {
+    "name": "009-soak-20261025T232558Z.zip",
+    "sha256": "sha256:54c1d61f95d081950dff30c40b51d60563c71c7a833274f7579b1cbb2be21b9a",
+    "verified": true
+  },
+  "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+  "runtime_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "training_examples": 512,
+  "observations": [
+    {
+      "leg": 0,
+      "paths": {
+        "validation": "stages/soak.persistent/leg-0/fresh-evidence/validation.json",
+        "progress": "stages/soak.persistent/leg-0/fresh-evidence/progress.json",
+        "checkpoint": "stages/soak.persistent/leg-0/fresh-evidence/checkpoint-audit.json"
+      },
+      "cumulative_updates": 7424,
+      "last_training_batch_loss": 3.535369978635572e-05,
+      "data_order_epoch_counter": 232,
+      "development_teacher_forcing": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 1.7310499288141727
+      },
+      "visible_panel": {
+        "accuracy": 0.0,
+        "complete": 0,
+        "coverage": 0.0,
+        "denominator": 96,
+        "metric": "visible_fit_accuracy_20",
+        "panel_sha256": "sha256:bd412bea36651999084e2171d77d8d6f17043d2ed399e23145a772a5e791edb3",
+        "success": 0
+      }
+    },
+    {
+      "leg": 1,
+      "paths": {
+        "validation": "stages/soak.persistent/role/resumed-evidence/validation.json",
+        "progress": "stages/soak.persistent/role/resumed-evidence/progress.json",
+        "checkpoint": "stages/soak.persistent/role/resumed-evidence/checkpoint-audit.json"
+      },
+      "cumulative_updates": 14646,
+      "last_training_batch_loss": 9.287057878282212e-07,
+      "data_order_epoch_counter": 458,
+      "development_teacher_forcing": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 2.1484569795429707
+      },
+      "visible_panel": {
+        "accuracy": 0.46875,
+        "complete": 64,
+        "coverage": 0.6666666666666666,
+        "denominator": 96,
+        "metric": "visible_fit_accuracy_20",
+        "panel_sha256": "sha256:bd412bea36651999084e2171d77d8d6f17043d2ed399e23145a772a5e791edb3",
+        "success": 45
+      }
+    }
+  ],
+  "development_loss_relative_change": 0.24112941156742695,
+  "interpretation": "Overfitting/data-adequacy warning, not a causal conclusion or independent continuation score. Last-batch loss is not a full training average. Epoch counters are observed counters; partial epochs differ.",
+  "visible_curve_comparable": false,
+  "visible_curve_reason": "Different incomplete visible-panel coverage; no full independent hidden scoring in archive.",
+  "actual_model_continuation100": "UNKNOWN_NOT_MEASURED",
+  "extrapolation_from_two_points": "UNRELIABLE_NOT_PERFORMED",
+  "repeat_completed_soak": false
+}

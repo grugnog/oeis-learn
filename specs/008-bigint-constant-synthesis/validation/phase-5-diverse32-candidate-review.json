@@ -1,0 +1,97 @@
+{
+  "version": "phase5-diverse32-candidate-review/v1",
+  "review_date": "2026-10-21",
+  "archives": {
+    "collection.zip": {
+      "sha256": "sha256:dcd1f92b9b3a8cdb41cdd0048c390d7aec6e91c1dda0e7defef5cee3d4138de1",
+      "files_verified": 11,
+      "crc": "PASS",
+      "inventory": "PASS"
+    },
+    "replay-20261021T212653Z.zip": {
+      "sha256": "sha256:eec5327bcb2620ee5ea0faf366afbf32a38ed59bfe1f5dbbdc8fe59fe34a3e86",
+      "files_verified": 9,
+      "crc": "PASS",
+      "inventory": "PASS"
+    }
+  },
+  "parent_contract_sha256": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+  "parent_checkpoint_identity_sha256": "sha256:9b244ad7966a560523cdbf2f1e116284f6398c053e7e27eafcf9aefc3006871f",
+  "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+  "runtime_sha256": "sha256:4ee128978b8677c7959ca4b1f05d861af121d93944dd9355e28895cf624f5694",
+  "prompt_id": "sha256:02aa8138af680017900e08e7c01148a4128583e1d0778195d05f4119c337b6b9",
+  "original_source_sha256": "sha256:05ea2da779ad3ec86715690023bc4b5f42e5cb0f3b342255cd8d76e65bd0e746",
+  "original_rescue_selection_present": false,
+  "original_raw_success": true,
+  "original_equal_budget_success": true,
+  "matching_published_utility_commit": "2ab3a2858e555cc75cf8a4098454222e77c68d0d",
+  "executed_utility_sha256": "sha256:8fb760b6fc66ca55ae29d45d247b6af44bb469f2b8336acf3c1297a77a1f4fdc",
+  "exact_git_revision_reported": null,
+  "replay": {
+    "same_image": true,
+    "same_runtime": true,
+    "raw_visible_verified": true,
+    "seed": 75271729,
+    "outcome": "resource_exhausted",
+    "reason": "incomplete worker result",
+    "admitted": 0,
+    "elapsed_seconds": 2.2127675418742,
+    "host_status": "COMPLETED",
+    "host_cleanup_seconds": 0.05807257816195488,
+    "host_debited_seconds": 75,
+    "nested_work_debited_seconds": 30,
+    "budget_note": "The30-second work reservation is nested inside75 host seconds; do not add them."
+  },
+  "cached_same_candidate": {
+    "cache_key": "sha256:f33b420644e14bc5b71f5e267e937658f712c2f7a814656bbe15bfeca1f3829e",
+    "matched_seed": 75271731,
+    "attempt_position": 2,
+    "conditioning_mode": null,
+    "native_seconds": 0.121639461,
+    "coefficient_bits": 16,
+    "uniqueness": "multiple",
+    "native_assignments": 8,
+    "independently_checked_visible_assignments": 8,
+    "polynomial_coefficients": {
+      "constant": -15,
+      "linear": 11,
+      "quadratic": 1
+    },
+    "checks": "Independent parsing, final substitution/admission and arithmetic at100 indices; no hidden target or new continuation score."
+  },
+  "decision": {
+    "original_T096_outcome": "NEGATIVE",
+    "promotion": "BLOCKED",
+    "failure_stage": "generation/fitting: no rescue candidate was sealed before scoring",
+    "exact_worker_failure_reason": "not retained by original client",
+    "inference": "Bounded fitting/worker behaviour, with solver-seed variability plausible; deadline vs RSS/protocol failure remains unresolved.",
+    "next_action": "one traced visible-only replay with original image/seed/limits",
+    "training_required": false,
+    "hip_required": false
+  },
+  "reviewer_source_sha256": "sha256:d15476ed8c725a1ab13e6455a1e03f31793b15b0c4e099c41f193747a7cd38ee",
+  "reviewer_validation": {
+    "passed": 68,
+    "skipped": [
+      {
+        "name": "tests.integration.test_synthesis_worker.test_real_packaged_native_fit_and_execute",
+        "reason": "requires qualification image"
+      },
+      {
+        "name": "tests.integration.test_bigint_workflow.test_integrated_device_checkpoint_update[cuda]",
+        "reason": "actual HIP required"
+      },
+      {
+        "name": "tests.integration.test_bigint_workflow.test_selection_scoring_is_independent_of_private_truth",
+        "reason": "native integration image required"
+      },
+      {
+        "name": "tests.integration.test_bigint_workflow.test_native_prepared_archive_has_full_matched_private_views",
+        "reason": "native preparation integration required"
+      }
+    ],
+    "junit_sha256": "sha256:a6d61f2ffaaff7126a71e5f5f3f31aee8e1690f5770cb79333c6831077a83076",
+    "native_or_HIP_execution": false
+  },
+  "review_sha256": "sha256:7aba2185846c5cbc264341c9e91ec8f9723d00aaad6931cfc0a2a4f754823d78"
+}

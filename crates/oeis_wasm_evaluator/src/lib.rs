@@ -195,9 +195,15 @@ fn synthesis_dependency_smoke() -> String {
     oeis_synthesis_core::dependency_smoke()
 }
 
+#[pyfunction]
+fn synthesis_engine_policy() -> String {
+    oeis_synthesis_core::runtime::production_engine_policy().to_string()
+}
+
 #[pymodule]
 fn oeis_wasm_evaluator(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synthesis_dependency_smoke, m)?)?;
+    m.add_function(wrap_pyfunction!(synthesis_engine_policy, m)?)?;
     m.add_class::<ExecutionResult>()?;
     m.add_class::<NativeModule>()?;
     m.add_class::<LogicalModule>()?;

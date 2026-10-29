@@ -1,0 +1,196 @@
+{
+  "version": "pipeline-pilot-calibration-target-review/v1",
+  "archive_sha256": "sha256:e1700c18691cc4aed7c4e837950f9809faeda8025b7d1548fd78b98667880372",
+  "source": "sha256:32e77120159d9ccb1203654dc7fcbc4967252623b30b7c2e7b7193a6c7a27fdf",
+  "inventory": {
+    "total_members": 152,
+    "payloads": 151,
+    "omissions": [],
+    "hash_mismatches": []
+  },
+  "elapsed_seconds": 1485.4181947179604,
+  "stages": {
+    "calibration.import": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "calibration.report": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "calibration.session": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: pilot.operations.podman"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "pilot.operations.podman": {
+      "state": "FAIL",
+      "reason": "CalledProcessError: Command '['/run/current-system/sw/bin/podman', 'inspect', 'oeis-pipeline-4cadb6a2c20249a78cee7c33b772a326']' returned non-zero exit status 125."
+    },
+    "policy.compare": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "study.report": {
+      "state": "PASS",
+      "reason": ""
+    }
+  },
+  "tests": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "819",
+        "time": "296.543",
+        "timestamp": "2026-10-27T03:57:29.769350+00:00",
+        "hostname": "5c10054afa95"
+      }
+    ],
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "123",
+        "time": "42.234",
+        "timestamp": "2026-10-27T04:02:29.748735+00:00",
+        "hostname": "f379ce2a4bd5"
+      }
+    ],
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "9",
+        "tests": "1115",
+        "time": "286.888",
+        "timestamp": "2026-10-27T04:03:15.024375+00:00",
+        "hostname": "f4293b820c74"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "24",
+        "time": "325.417",
+        "timestamp": "2026-10-27T04:14:11.426282+00:00",
+        "hostname": "4f4fe2a2cd17"
+      }
+    ],
+    "stages/policy.compare/role/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "45",
+        "time": "10.029",
+        "timestamp": "2026-10-27T04:19:39.510138+00:00",
+        "hostname": "b54de7817eae"
+      }
+    ]
+  },
+  "uid_launch": {
+    "process": {
+      "cleanup_failure": null,
+      "elapsed_seconds": 60.258055140962824,
+      "failure": "TimeoutError: external deadline: ['/run/current-system/sw/bin/podman', 'run', '--name', 'oeis-pipeline-4cadb6a2c20249a78cee7c33b772a326', '--pull=never', '--network=none', '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges', '--memory=120744574976', '--memory-swap=120744574976', '--cpus=16', '--pids-limit=512', '--ipc=private', '--shm-size=1g', '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=2147483648,mode=1777', '--tmpfs', '/run:rw,nosuid,nodev,size=16m,mode=755', '--workdir', '/opt/oeis-build', '--user', '12345:12345', '--userns=keep-id:uid=12345,gid=12345', '--group-add=keep-groups', '--mount', 'type=bind,src=/home/owen/workspace/oies-learn/tmp-validation/009-pilot-calibration-20261027T035606Z/stages/pilot.operations.podman/input,dst=/work/input,readonly', '--mount', 'type=bind,src=/home/owen/workspace/oies-learn/tmp-validation/009-pilot-calibration-20261027T035606Z/stages/pilot.operations.podman/arbitrary-uid,dst=/work/output', '--env', 'TMPDIR=/work/output/.runtime/tmp', '--env', 'TMP=/work/output/.runtime/tmp', '--env', 'TEMP=/work/output/.runtime/tmp', '--env', 'HOME=/work/output/.runtime/home', '--env', 'XDG_CACHE_HOME=/work/output/.runtime/cache', '--env', 'PYTHONPATH=/opt/oeis-build/src:/opt/oeis-build', '--env', 'OMP_NUM_THREADS=2', '--env', 'OEIS_EXPECTED_PIPELINE_DEVICES={}', '--entrypoint', 'python', 'sha256:b6f106fa074306ec2c8858ca1fd6cd49009d2736d3d5378856bda945b2bc466f', '-c', \"import json,os,time,errno,shutil\\nfrom pathlib import Path\\nfrom oeis_learn.tracking.pipeline_profile import device_view\\nfrom oeis_learn.pipeline_validation.identity import write as write_json\\nfrom oeis_learn.pipeline_validation.bundle import pack,verify\\nfrom oeis_learn.pipeline_validation.recovery import minimal_archive\\nfrom unittest.mock import patch\\nout=Path('/work/output')\\ndef write(path,value):\\n result=write_json(path,value)\\n path.chmod(0o644)\\n return result\\n# Only this disposable fixture publishes foreign-UID files for the host reader.\\n# Never inherit a host-private077 umask into its public export proof.\\nos.umask(0o022)\\npaths=[]\\nfor path in (out.parent,out):\\n try:\\n  info=path.stat();paths.append(dict(path=str(path),mode=oct(info.st_mode&0o777),uid=info.st_uid,gid=info.st_gid))\\n except OSError as exc:paths.append(dict(path=str(path),error=str(exc)))\\nmaps={}\\nfor kind in ('uid_map','gid_map'):\\n try:maps[kind]=Path('/proc/self',kind).read_text().strip()\\n except OSError as exc:maps[kind]=str(exc)\\nprint(json.dumps(dict(uid=os.getuid(),gid=os.getgid(),mount_permissions=paths,id_maps=maps)),flush=True)\\nwrite(out/'devices.json',device_view())\\nassert os.getuid()==12345\\nif True:\\n # A workspace may legitimately inherit a project/setgid group. Owner UID is\\n # the portable write-access invariant; retain observed group IDs in diagnostics.\\n assert out.stat().st_uid==os.getuid()\\nreadonly=False\\ntry:(Path('/work/input')/'forbidden').write_text('forbidden')\\nexcept OSError as exc:readonly=exc.errno in (errno.EROFS,errno.EACCES,errno.EPERM)\\nassert readonly\\nwrite(out/'ready.json',{'uid':os.getuid(),'input_readonly':readonly,'owner_mapped':True,'id_maps':maps})\\nif False:time.sleep(120)\\nelse:\\n root=out/'export-case';root.mkdir(mode=0o777)\\n write(root/'summary.json',{'selected_scope':'FAIL','stages':{},'fixture':True})\\n write(root/'invocation.json',{'fixture':True})\\n # ENOSPC is injected in this owned export only, never by filling the host disk.\\n with patch('oeis_learn.pipeline_validation.bundle.zipfile.ZipFile',side_effect=OSError(errno.ENOSPC,'fixture full disk')):\\n  try:pack(root,mandatory=['summary.json'],cap=16<<20)\\n  except OSError as exc:assert exc.errno==errno.ENOSPC\\n  else:raise RuntimeError('expected export failure missing')\\n archive,summary=minimal_archive(root,contract={},binding={'fixture':'UID export'},receipts={},error='expected ENOSPC',cap=16<<20)\\n manifest=verify(archive);assert manifest['summary_state']=='FAIL'\\n proof=out/'failure-export-evidence';proof.mkdir(mode=0o777);proof.chmod(0o777)\\n for name in ('summary.json','export-failure.json','stage-index.json'):\\n  shutil.copyfile(summary.parent/name,proof/name)\\n  (proof/name).chmod(0o644)\\n archive.unlink();shutil.rmtree(root)\\nwrite(out/'uid-export.json',{'uid':os.getuid(),'readonly_input':readonly,'expected_failed_export_verified':True,'manifest':manifest['identity'],'healthy':True,'owner_mapped':True})\\n\"]",
+      "logging": "opening prefix plus final tail within one per-stream cap",
+      "omitted_bytes": {
+        "stderr": 0,
+        "stdout": 0
+      },
+      "outcome": "FAIL",
+      "returncode": -9
+    },
+    "cleanup": {
+      "allowance_seconds": 5,
+      "seconds": 0.7985041139181703,
+      "within_bound": true
+    },
+    "timing": {
+      "allowance_seconds": 60,
+      "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+      "seconds_through_cleanup": 61.08513275394216
+    },
+    "stdout_bytes": 0,
+    "stderr_bytes": 0
+  },
+  "cause": "UID fixture exceeded original60s deadline with no output/attestation. Subsequent inspect exit125 masked primary TimeoutError. Underlying engine cause UNKNOWN.",
+  "calibration_snapshots": 0,
+  "cost": "UNKNOWN",
+  "long_run_admitted": false,
+  "repair": {
+    "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+    "source_entries": 761,
+    "source_delta": {
+      "scripts/profile_bigint_pipeline.py": {
+        "old": "sha256:9fcd90d8a81a07ff7abb51c3cbb0b53b7e02f6d29ea673c26edc7fb59ac22556",
+        "new": "sha256:65ad3831a5de6979ffbd0111d98ccf74ff7893829f384a65696b5aff2f306960"
+      },
+      "tests/unit/test_pipeline_soak.py": {
+        "old": "sha256:52dabfd2e34e2d5b39707e10e5a5bc45eadb51c7edcd7984c712337c24c8f92e",
+        "new": "sha256:e0b9d8f950aa8860606d824d2c2df4c866ec585dfea7ba9bf4d06a5b71e5be1d"
+      }
+    },
+    "changes": [
+      "preserve primary launch/fatal errors when inspect is unavailable",
+      "archive bounded inspect stderr/stdout/error context and INCOMPLETE isolation",
+      "retain explicit reclaim acknowledgement instead of overwriting it"
+    ],
+    "unchanged": [
+      "no automatic retries",
+      "UID60s allowance",
+      "original five-second shared cleanup",
+      "all scientific/model/data/native/generation clocks and budgets"
+    ],
+    "tests": {
+      "scoped_passed": 31,
+      "host_passed": 242,
+      "host_seconds": 12.988,
+      "target_pinned": "PENDING"
+    },
+    "next": "one existing calibration command with original213151Z inputs, fresh output and all failures retained",
+    "host_log_sha256": "sha256:7495923fb227988a03b7862b37e34afb845f0cf422970bd1f706685eae031b5e",
+    "engine_stall_cause": "UNKNOWN_NOT_FIXED_BY_DIAGNOSTIC_REPAIR"
+  }
+}

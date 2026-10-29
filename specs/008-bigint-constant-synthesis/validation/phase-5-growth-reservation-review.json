@@ -1,0 +1,194 @@
+{
+  "version": "phase5-growth-reservation-review/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "archive": "008-growth-reservation-20261022T182623Z.zip",
+  "archive_sha256": "sha256:5c3ea1b1a11a6920d48034d7f50a91599a7da8cc29cc6db9f8942fa42c77758e",
+  "manifest_files_verified": 9,
+  "manifest_omissions": [],
+  "report_sha256": "sha256:13f7355368b58b93881a343a67c348e07a53f1de97fe4f1f3a6a52dd9adc12ef",
+  "source_sha256": "sha256:0c9ac2081de4b5d3ab99da416f5c61973887eadce9d53bd4deab7b6db141e070",
+  "image": "sha256:c655d968104c9fef880040e3bebf9fd05a346190e830eec3d216a606a66b7b8d",
+  "measurement_binary_sha256": "sha256:5be52287da0a0fc39620ef0b0e7b7b74d7a1f313969fe53f520c7079f88c7b1a",
+  "configurations": 75,
+  "profiled_control_pairs": 450,
+  "cross_setting_groups": 225,
+  "ordinary_profiled_and_cross_setting_results_match": true,
+  "independent_expected_value_hashes_verified": true,
+  "all_profile_input_growth_summaries_recomputed": true,
+  "configuration_identities": {
+    "zero": "sha256:3aabb31ab8c23402fa99a885a8f4bf8410ab0e6adb7d61da64674bf462bdcf2f",
+    "reserved": "sha256:f093135509c43d5ecce5b0ba6d7ff7ba806f9e5ca1da70f737f713b8ac5ca5bb"
+  },
+  "process_order": "zero-first/reserved-first alternates across all75 corpus rows",
+  "outcomes_per_setting": {
+    "ok": 213,
+    "aggregate_fuel": 3,
+    "integer_limit": 9
+  },
+  "observed_first_calls_per_setting": 8670,
+  "memory_request_evidence": "Each setting still has one allowed64KiB request during every first byte, identical17-page initial memory, no denials/failure callbacks and no later growth during input. Reservation changes mapping capacity, not visible memory or requests.",
+  "selected_rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "ordinary_execution_seconds": {
+        "zero": 0.021936362,
+        "reserved": 0.0041638249999999995
+      },
+      "ordinary_total_seconds": {
+        "zero": 0.02237181,
+        "reserved": 0.004592947
+      },
+      "execution_speedup": 5.268319874154174,
+      "total_speedup": 4.870905325056004,
+      "first_us_per_term": {
+        "zero": 159.5234100000001,
+        "reserved": 2.6588249999999993
+      },
+      "store_drop_seconds": {
+        "zero": 0.0021498815,
+        "reserved": 0.0005113585000000001
+      },
+      "guest_init_seconds": {
+        "zero": 0.0008115675000000001,
+        "reserved": 0.0007159610000000002
+      },
+      "observer_ratios": {
+        "zero": 1.0011942499854807,
+        "reserved": 1.0396092535108945
+      },
+      "reserved_vs_retained_execution_ratio": 13.415248539664173
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "ordinary_execution_seconds": {
+        "zero": 0.022384969499999997,
+        "reserved": 0.0042796564999999995
+      },
+      "ordinary_total_seconds": {
+        "zero": 0.0228274155,
+        "reserved": 0.004710316
+      },
+      "execution_speedup": 5.230552849276571,
+      "total_speedup": 4.846259889994641,
+      "first_us_per_term": {
+        "zero": 161.23600500000006,
+        "reserved": 3.095865
+      },
+      "store_drop_seconds": {
+        "zero": 0.0021249725,
+        "reserved": 0.0005281905000000001
+      },
+      "guest_init_seconds": {
+        "zero": 0.0008367794999999999,
+        "reserved": 0.0007306035
+      },
+      "observer_ratios": {
+        "zero": 0.9854107015870627,
+        "reserved": 1.0230859649600386
+      },
+      "reserved_vs_retained_execution_ratio": 13.65422614333259
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 100,
+      "ordinary_execution_seconds": {
+        "zero": 0.029688179,
+        "reserved": 0.012044121
+      },
+      "ordinary_total_seconds": {
+        "zero": 0.0301096815,
+        "reserved": 0.012457053499999999
+      },
+      "execution_speedup": 2.464951904750874,
+      "total_speedup": 2.417078926409042,
+      "first_us_per_term": {
+        "zero": 160.89987499999998,
+        "reserved": 3.117025
+      },
+      "store_drop_seconds": {
+        "zero": 0.0022859285,
+        "reserved": 0.0006272040000000001
+      },
+      "guest_init_seconds": {
+        "zero": 0.0008473760000000002,
+        "reserved": 0.0007444154999999996
+      },
+      "observer_ratios": {
+        "zero": 1.0075480210490513,
+        "reserved": 1.0133748241154337
+      }
+    }
+  ],
+  "warm_slower_rows": [
+    {
+      "case": "shared-add-255",
+      "batch": 1,
+      "reserved_over_zero": 2.156358015041773,
+      "observer_ratios": {
+        "zero": 1.0112631710255597,
+        "reserved": 0.6718388902395089
+      }
+    },
+    {
+      "case": "add-64-1",
+      "batch": 1,
+      "reserved_over_zero": 1.134765236152845,
+      "observer_ratios": {
+        "zero": 1.087806293396548,
+        "reserved": 0.508441796890938
+      }
+    },
+    {
+      "case": "add-64--1",
+      "batch": 1,
+      "reserved_over_zero": 1.3283772060986072,
+      "observer_ratios": {
+        "zero": 0.7327077211288701,
+        "reserved": 0.41345416793802237
+      }
+    }
+  ],
+  "rss_range_bytes": {
+    "zero": {
+      "min": 18767872,
+      "max": 20185088
+    },
+    "reserved": {
+      "min": 18468864,
+      "max": 19202048
+    }
+  },
+  "rss_caveat": "Per-process Linux VmHWM includes compilation/JIT and both observations, not aggregate RSS or guest-only allocation. Some individual reserved rows have slightly higher RSS; the maximum across this corpus is lower.",
+  "cleanup": {
+    "seconds": 0.0399413809645921,
+    "allowance_seconds": 5,
+    "within_bound": true
+  },
+  "isolation": {
+    "network": "none",
+    "readonly_root": true,
+    "privileged": false,
+    "GPU_devices": [],
+    "binds": [
+      {
+        "destination": "/work/output",
+        "writable": true
+      }
+    ]
+  },
+  "interpretation": "Strong controlled evidence that zero growth reservation causes substantial avoidable relocation/copy lifecycle overhead on this CPU/platform. Small batch100 ordinary execution improves5.23-5.27x, total4.85-4.87x. First byte falls from about160us to2.7-3.1us/term; teardown also gets cheaper, explaining gains beyond the earlier first-call-only bound. No direct copy-time measurement or universal hardware/end-to-end speedup is claimed.",
+  "limitations": [
+    "Two warm samples/row; three batch1 rows are slower, up to2.16x, with material observer/order variation; single-term behavior is not settled",
+    "Benchmark source executes successfully, but no standalone native regression-suite receipt is included",
+    "Reserved small batch100 still takes13.4-13.7x retained execution; >5x investigation remains open",
+    "Generated16384 batch100 still reaches aggregate_fuel at82 completed terms in both settings and remains excluded"
+  ],
+  "next_step": "Recommend focused adoption of64KiB as an explicitly identified production engine policy, retaining zero as a comparison control and running native/container cap/fuel/failure/isolation regressions before declaring it qualified. Preserve the remaining slowdown review; any neural/end-to-end claims need source-bound HIP evidence.",
+  "production_policy_changed": false,
+  "T094": "OPEN",
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED"
+}

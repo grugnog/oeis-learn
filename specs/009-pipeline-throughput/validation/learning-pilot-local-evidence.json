@@ -1,0 +1,159 @@
+{
+  "version": "pipeline-learning-pilot-local-evidence/v1",
+  "date": "2026-10-26",
+  "status": "CODE_LOCAL_COMPLETE_TARGET_PENDING",
+  "branch": "009-pipeline-throughput",
+  "pr": 60,
+  "code_producer": "99aa527efc53b6e552c966c05d6f90a3042e1568",
+  "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+  "source_entries": 749,
+  "profile": "sha256:ff938541defe91cc9121937afe377526325c22c04e2ea97decb4254484aa6b17",
+  "manifest": "sha256:956e978ab8bb8135125f69e23df650f4ca6cec85e7f9eff15b766cbf13e5f79a",
+  "foundation_implementation": "sha256:608187cc38acb9657f67779a958b22e41cb92e3a94632b4f32d51b7d45e93c05",
+  "host_tests": {
+    "tests": 220,
+    "failures": 0,
+    "errors": 0,
+    "dependencies": "stdlib only; no host packages installed"
+  },
+  "public_cli": {
+    "command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_learning_pilot.json --max-seconds 86400 --output tmp-validation/009-learning-pilot-local-20261026T010100Z",
+    "exit_code": 3,
+    "state": "PARTIAL",
+    "elapsed_seconds": 9.804664716999469,
+    "stage_counts": {
+      "BLOCKED": 15,
+      "PARTIAL": 2,
+      "PASS": 3
+    },
+    "engine_blockers": {
+      "engine.docker": "docker: docker CLI is unavailable; select an installed container engine",
+      "engine.podman": "podman: podman CLI is unavailable; select an installed container engine"
+    },
+    "readiness": {
+      "automatic_run_authorized": false,
+      "cost": "UNKNOWN",
+      "final_access": "SEALED",
+      "identity": "sha256:f84af71540da97506eb42546640a9dd050605494f85227400f43d629a3fee333",
+      "learning_success_threshold": null,
+      "long_run_admitted": false,
+      "original_adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+      "portability": "PENDING",
+      "primary_plumbing": "BLOCKED",
+      "readiness": "BLOCKED",
+      "snapshots": 0,
+      "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+      "version": "pipeline-pilot-preflight-report/v1",
+      "work": "sha256:c315584a837deeed4097b1dde96edf1f4385fa3bcc5f010398b0a061b3316e79"
+    }
+  },
+  "archive": {
+    "path": "tmp-validation/009-learning-pilot-local-20261026T010100Z.zip",
+    "sha256": "sha256:6fdc737cad1a99c37802ce630c34b3ec7fe27bc4b3a06b7b455b904db5d1aad0",
+    "bytes": 3386062,
+    "members": 57,
+    "identity": "sha256:288ac1c48dafab615a921f5b966f8cbbfbd697e60841c4edc9169dde8cb30a21",
+    "verified": true,
+    "omissions": []
+  },
+  "local_archive_probe": {
+    "scope": "Synthetic stdlib source/filesystem fixture only; not target cost/admission",
+    "observations": [
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 27,
+        "fixture": true,
+        "identity": "sha256:a6442fa288e6df536f66c63c0121300e145b6b7564e50fdb987c21863694ec14",
+        "members": 4096,
+        "ordinal": 0,
+        "seconds": 2.086723414999142,
+        "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+        "version": "pipeline-pilot-archive-observation/v1"
+      },
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 27,
+        "fixture": true,
+        "identity": "sha256:0a4dc83309311970df9aa41c467bab6ab74d35c63d17567769fafccce24838b3",
+        "members": 4096,
+        "ordinal": 1,
+        "seconds": 1.9721204649995343,
+        "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+        "version": "pipeline-pilot-archive-observation/v1"
+      },
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 27,
+        "fixture": true,
+        "identity": "sha256:a34c0e29c930a0137d5726147047a4c680adfaac2ccd0704613af5b85a4c9056",
+        "members": 4096,
+        "ordinal": 2,
+        "seconds": 2.157295023000188,
+        "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+        "version": "pipeline-pilot-archive-observation/v1"
+      }
+    ]
+  },
+  "static_graph": {
+    "stages": 19,
+    "non_image_phase_reservations_seconds": {
+      "1": 10380,
+      "5": 11760,
+      "2": 600,
+      "3": 600,
+      "4": 28800
+    },
+    "maximum_declared_reservation_seconds": 84000,
+    "global_seconds": 86400
+  },
+  "checks": [
+    "Old v1/v2 recipe/input readers and limits retained; v3 exact seed/data/model/solver/optimizer policy closed",
+    "Source/image/data/authority/cost gates before private prepared resolution",
+    "Archive fault catalog, mandatory member cap and serialized pretty-JSON/event stream byte bounds",
+    "No hidden continuation in learner/generator mounts; CPU scoring excludes learner/model state",
+    "All planned attempts and zero-success/invalid/missing-control outcomes remain explicit",
+    "Original monotonic/category allowance persists; late and unacknowledged roles cannot become successful recovery",
+    "Full-denominator paired losses/gains, conditioning/strata/families, overfitting and changed-coverage UNKNOWN scenarios",
+    "Token weighting, actual v3 count and full-state CPU/HIP fixtures authored and registered; not executed here",
+    "Current foundation binding, syntax, JSON, links/task counts, requirements16/16 and no extension hooks"
+  ],
+  "public_evidence_bound": {
+    "worksheet_bytes": 408944640,
+    "emergency_reserve_bytes": 16777216,
+    "zip_cap_bytes": 536870912,
+    "limitations": "Runtime mandatory byte/member checks still fail rather than omit required evidence; worksheet is not a target storage observation"
+  },
+  "original_tasks": {
+    "complete": 87,
+    "pending_runtime": 9,
+    "blocked_research": 15,
+    "closed": [
+      "T011"
+    ],
+    "reopened_current_source": [
+      "T110"
+    ]
+  },
+  "target_pending": [
+    "Full32768+128+128 corpus feasibility and33024 production admissions",
+    "Actual current pinned CPU/native/HIP/package/device/operations fixtures",
+    "Actual fifteen-plus-fifteen-minute104.5M optimizer/checkpoint restart",
+    "Three full296-row generation/control/isolated-scoring observations and target archive costs",
+    "Exact-scope measured long-run forecast/admission review"
+  ],
+  "long_run": {
+    "admitted": false,
+    "executed": false,
+    "proposed_seconds": 172800,
+    "learner_role_seconds": 86400,
+    "rows": 1776,
+    "arm_outcomes": 10656,
+    "cost": "UNKNOWN",
+    "final_access": "SEALED"
+  },
+  "ci": "New PR CI not awaited",
+  "limitations": "Host fixtures/export and synthetic archive timings do not qualify actual HIP, larger-corpus feasibility, later-model costs or learned capability."
+}

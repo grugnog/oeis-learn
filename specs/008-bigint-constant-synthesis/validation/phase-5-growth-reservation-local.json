@@ -1,0 +1,70 @@
+{
+  "version": "phase5-growth-reservation-local/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "source_sha256": "sha256:0c9ac2081de4b5d3ab99da416f5c61973887eadce9d53bd4deab7b6db141e070",
+  "files": {
+    ".github/workflows/foundation.yml": "sha256:85e2fd724e9ac7233084f41879c330027ee7b974aa1f14e889213ab8679edebb",
+    "crates/oeis_synthesis_core/src/runtime.rs": "sha256:0dbbdba1c980fed9423da85f49256a43343d0ca3aba8a67b6abd7424f0b216ea",
+    "crates/oeis_synthesis_core/src/runtime/host_lookup_tests.rs": "sha256:b9b135e5957e8c5b95b2a57c8593e181ae09aa5bffbb86121a3250d6e98fe55b",
+    "crates/oeis_synthesis_core/examples/benchmark_runtime.rs": "sha256:f86505aae577628744d568d26f40571b9cebf22301d68089e00d1f724fabe706",
+    "scripts/benchmark_bigint.py": "sha256:56441b65a5638f57c990ebdd5805a92d72aed7fbe28086205bcd01f4db48a3c3",
+    "scripts/qualify_bigint_phase2.py": "sha256:2750f21524d4a646ce2fd5dd4d21e01b8167d17c3ce52145035c6dc59b3500a7",
+    "scripts/qualify_bigint_phase5.py": "sha256:b0aec740f7f10a6bf83463713b0c8b65f91973c049ff71a30971e7d6ebba2b34",
+    "tests/unit/test_bigint_growth_reservation.py": "sha256:eba657159e7941f727bf0fc787e4e0f4efa127aad0648288c3d43ac997aedc3d",
+    "tests/contract/test_bigint_performance.py": "sha256:d4616c1af535c9e8b7781e98b0510e1e33dda38e2fe3b3b78e73d35ecd2a7a5c"
+  },
+  "python": "3.12.14",
+  "red_test": "New growth_comparison_summary fixture failed with AttributeError before implementation.",
+  "tests": {
+    "passed": 187,
+    "failure": 0,
+    "error": 0,
+    "skipped": 7,
+    "junit_sha256": "sha256:682afc89a0eaf7e3f3b461a3caafc1a325e71c5b30a9c71ccf46b8e4c20b0038",
+    "skipped_reason": "Five historical packaged-native modes and two growth-comparison ordering modes require the pinned qualification image; mandatory in shared CI."
+  },
+  "checks": {
+    "ruff_F_E9": "PASS",
+    "formatting": "PASS",
+    "whitespace": "PASS",
+    "stdlib_only_host_help": "PASS",
+    "GPU_scope_rejected_before_engine": "PASS",
+    "spec_kit_prerequisites": "PASS",
+    "checklists": "16/16",
+    "extension_hooks": "none",
+    "workflow_yaml": "PASS",
+    "bash_run_blocks": 9,
+    "embedded_python": "PASS",
+    "documented_command": "PASS",
+    "mocked_routes": "Docker/Podman x containment/runtime-profile (four routes),600s for profiling; no actual engine execution"
+  },
+  "actual_execution": {
+    "Rust_compile": false,
+    "native_regressions": false,
+    "new_growth_comparison": false,
+    "Docker": false,
+    "Podman": false,
+    "HIP": false
+  },
+  "controls": {
+    "production_spare_growth_bytes": 0,
+    "qualification_spare_growth_bytes": 65536,
+    "visible_memory_caps_changed": false,
+    "guest_calls_changed": false,
+    "guest_bytes_changed": false,
+    "worker_option_added": false,
+    "processes": "separate per setting per corpus row",
+    "identities": "explicit canonical engine configuration plus comparison/source/image/binary/semantic-resource binding",
+    "native_raw_capture_cap_bytes": 4194304
+  },
+  "pending": [
+    "New-source native compilation and memory-cap/fuel regressions",
+    "Actual zero/64KiB ordinary/lifecycle/first-byte/RSS comparison and observer distortion",
+    "T093 retained matched weights; T094 remaining measurements; T097/T098 operations and promotion gates"
+  ],
+  "performance_claim": "NONE for new control; production remains zero until reviewed comparison/adoption decision.",
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED",
+  "new_CI": "not polled or awaited"
+}

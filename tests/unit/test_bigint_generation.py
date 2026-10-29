@@ -96,7 +96,8 @@ def test_incomplete_sampler_row_mapping_is_rejected(monkeypatch):
         sample_batch(None, [GenerationRequest(torch.zeros(1, 2, 8), 17, 0, time.monotonic() + 1)])
 
 
-def test_production_controls_preserve_prompt_and_attempt_denominators(monkeypatch):
+@pytest.mark.parametrize('fit_outcome,fit_complete', [('unsat_in_scope', True), ('unknown', False), ('resource_exhausted', False)])
+def test_production_controls_preserve_prompt_and_attempt_denominators(monkeypatch, fit_outcome, fit_complete):
     from oeis_learn.fresh.bigint_diagnostics import generate
     from oeis_learn.fresh.bigint_config import defaults
     from oeis_learn.decoder import sampler, bigint_codec as codec
@@ -125,7 +126,7 @@ def test_production_controls_preserve_prompt_and_attempt_denominators(monkeypatc
             return {"outcome": "failure"}
 
         def fit(self, *a, **kw):
-            return {"outcome": "no_solution", "admitted": []}
+            return {"outcome": fit_outcome, "admitted": [], "complete": fit_complete}
 
     monkeypatch.setattr(sampler, "WatProgramSampler", Sampler)
     rows = [
@@ -141,7 +142,7 @@ def test_production_controls_preserve_prompt_and_attempt_denominators(monkeypatc
     )
     assert set(result["records"]) == {r["id"] for r in rows}
     for record in result["records"].values():
-        assert record["complete"]
+        assert record["complete"] is fit_complete
         assert set(record["details"]) == {"correct", "shuffled", "absent", "template"}
         assert all(len(arm["details"]) == 8 for arm in record["details"].values())
     assert all(size in (8, 2) for _, _, size in calls)

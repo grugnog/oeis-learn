@@ -36,7 +36,7 @@ pub fn dispatch(raw:&[u8],retained:&mut dyn ExecutionBackend)->Result<serde_json
     let path=std::env::var("OEIS_BIGINT_WASM").unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
     let bytes=std::fs::read(path).map_err(|e|e.to_string())?;
     let binary=std::fs::read(std::env::current_exe().map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-    let runtime_id=digest(serde_json::to_string(&json!({"guest_sha256":digest(&bytes),"binary_sha256":digest(&binary),"profile":language_profile})).unwrap().as_bytes());
+    let runtime_id=crate::runtime::execution_identity(&digest(&bytes),&digest(&binary),language_profile);
     let output=if language_profile==retained.profile(){
         if operation=="fit"{
             fit::fit(source,indices,values,&envelope.limits,&candidate.abstraction_policy,envelope.request.seed,deadline,&runtime_id,&envelope.reference_sha256,language_profile,|source,indices,_|retained.execute(source,indices))
@@ -50,7 +50,7 @@ pub fn dispatch(raw:&[u8],retained:&mut dyn ExecutionBackend)->Result<serde_json
         "fit"=>{
             let mut runtime=BigintRuntime::new(&bytes)?;
             fit::fit(source,indices,values,&envelope.limits,&candidate.abstraction_policy,envelope.request.seed,deadline,&runtime_id,&envelope.reference_sha256,language_profile,|source,indices,limits|{
-                let result=runtime.evaluate(source,indices,limits);if result.outcome=="ok"{Ok(result.values)}else{Err(result.reason.unwrap_or("runtime_failure".into()))}
+                let result=runtime.evaluate_after_setup(source,indices,limits);if result.outcome=="ok"{Ok(result.values)}else{Err(result.reason.unwrap_or("runtime_failure".into()))}
             })
         },
         "replay_unsat"=>{match evidence::replay(source,indices,values,&envelope.limits,envelope.evidence.as_ref().ok_or("missing_evidence")?,deadline){Ok(outcome)=>json!({"outcome":outcome}),Err(reason)=>json!({"outcome":if reason=="verification_failure"{"verification_failure"}else{"resource_exhausted"},"reason":reason})}},

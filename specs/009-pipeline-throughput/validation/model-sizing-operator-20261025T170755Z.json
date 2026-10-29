@@ -1,0 +1,284 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-model-sizing-20261025T170755Z.zip",
+  "archive_sha256": "sha256:a54c7dc75bacb548f66cafaf5502bfe9f65648839f51a8d68600842bff371378",
+  "archive_bytes": 4719424,
+  "manifest": "sha256:e9b50d8052f8f9cd3a9bdb68cb6fc5c892fa69a121344e0110662121ee39bf66",
+  "verified_members": 159,
+  "producer": "6135575cf3e5181f1ed58b6b3e907feaf6c48c63",
+  "source": "sha256:ddc4d496011e12175a49453b25af45e434dce4ba4a5887b85f1405d90b635042",
+  "source_entries": 719,
+  "exact_source_match": true,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 1049.8730517139193,
+    "engineering": "FAIL",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 328.0241545548197,
+      "2": 318.95377892185934,
+      "4": 0.016586401034146547
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-model-sizing",
+    "selected_scope": "FAIL",
+    "unavailable": [],
+    "version": "pipeline-summary/v1"
+  },
+  "qualification": {
+    "host": 165,
+    "cpu": 687,
+    "cpu_subtests": 30,
+    "cpu_junit_cases": 717,
+    "cpu_deselected": 1,
+    "hip_pass": 19,
+    "hip_fail": 1,
+    "mandatory_skips": 0
+  },
+  "stage_receipts": {
+    "host.contracts": {
+      "identity": "sha256:ef777715dd9541df144c2ac04eea327504d3fadcf38c7f96c3d806480c571e88",
+      "state": "PASS",
+      "reason": ""
+    },
+    "engine.podman": {
+      "identity": "sha256:6ec8b3304950ee3799f6b3d64e01650167e119e13b30ecbeb90646dfef3be163",
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "identity": "sha256:a716d8a4b657445fcf30ca87610df3994d172506c333c48a33a5f44c7e22d032",
+      "state": "PASS",
+      "reason": ""
+    },
+    "cpu.podman.semantic": {
+      "identity": "sha256:8a1bab704ccecf9387aee063b01acc26ca8f97db8e53227fa319246a76f9b153",
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "identity": "sha256:a64e9695d6f07d81c7d2ae6a693766ea8b165ef562703d7d9930fea84a9ad7da",
+      "state": "PASS",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "identity": "sha256:93ceb283757a202ac88f191f30806593c8ac17aa4f9050071a8265b4801db10c",
+      "state": "FAIL",
+      "reason": "RuntimeError: bigint-gpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-model-sizing-20261025T170755Z/stages/hip.preflight/bigint-gpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-model-sizing-20261025T170755Z/stages/hip.preflight/bigint-gpu-regressions/stdout.log"
+    },
+    "sizing.prepare": {
+      "identity": "sha256:9144f2d4bc54c45b2b1398e78146398c91bbdfbbf4c2b34f2fff7cc7090d545b",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.reference": {
+      "identity": "sha256:7d727d8471e019245e7e61f7af7768cd09a1aca8ba106c1ed8e0413ea2735f8e",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m32.reference": {
+      "identity": "sha256:5a67e5e7e3a35573f147548be92954a360dc4657c08ad32cf06070c6cfef5ea7",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m100.reference": {
+      "identity": "sha256:7423e2ccbcc818f12b399b2f011cb941b46900d1036dc75ff74a8a4f32a52b9c",
+      "state": "PASS",
+      "reason": ""
+    },
+    "sizing.m8.cold": {
+      "identity": "sha256:4fbbd69e58f69bf10fa67d3d986276106eaed8be117a56303e881337b8682ef3",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: hip.preflight"
+    },
+    "sizing.m8.warmup": {
+      "identity": "sha256:7292b1b27cf2c284386e607640571fe96a0ba4ea19d1d50f8ac83080cd0425a5",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m8.cold,hip.preflight"
+    },
+    "sizing.m8.calibration-0": {
+      "identity": "sha256:9a842538a2c19af3d67e334eb5933f8679870f4c69464ec602452ea15b15fc6b",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m8.warmup,hip.preflight"
+    },
+    "sizing.m8.calibration-1": {
+      "identity": "sha256:5e3757f0b5733f148d88fedd25f4f42debc24b51fa38bc8840a7bc0ef143556e",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m8.calibration-0,hip.preflight"
+    },
+    "sizing.m8.calibration-2": {
+      "identity": "sha256:724b6073c438316d5518e58df7a5dd1d5f2fcdb2e271907ae75ba9f99de88cb5",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m8.calibration-1,hip.preflight"
+    },
+    "sizing.m32.cold": {
+      "identity": "sha256:1b97e4ee579b6fdf630544177fc0b8a412d79015dc40428029d24d579a20788d",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: hip.preflight"
+    },
+    "sizing.m32.warmup": {
+      "identity": "sha256:b94bf19f6a063d9080aad6e3740d33a26ddcb94d7b31634213522d87401fdec9",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m32.cold,hip.preflight"
+    },
+    "sizing.m32.calibration-0": {
+      "identity": "sha256:474f903846dc2678708b427f4d8f3772e94404f8553ae548baca67e9a38e6aff",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m32.warmup,hip.preflight"
+    },
+    "sizing.m32.calibration-1": {
+      "identity": "sha256:c7c984e5f9543dd584700aae3e6924e583a7b81e4262a92b2ece4cb15773f614",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m32.calibration-0,hip.preflight"
+    },
+    "sizing.m32.calibration-2": {
+      "identity": "sha256:1870c921ae31f0743efca3dc297f26c69488deee2582950894a7646f8fdbf188",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m32.calibration-1,hip.preflight"
+    },
+    "sizing.m100.cold": {
+      "identity": "sha256:9b43954ce7f51e6447d127cc4b8ce2c3431b1f2d569063c43f661d301438d508",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: hip.preflight"
+    },
+    "sizing.m100.warmup": {
+      "identity": "sha256:06f990549695ce1e9ad4a3f77169861f8e71fdb8e399c81b3dd461e7a080c266",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m100.cold,hip.preflight"
+    },
+    "sizing.m100.calibration-0": {
+      "identity": "sha256:dfa9bd46c6b2122ab816ab13fd607ae3ef187f2ea32b6cee94be33da7f7ee868",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m100.warmup,hip.preflight"
+    },
+    "sizing.m100.calibration-1": {
+      "identity": "sha256:a31a02050a4068ab5a3eeeb57a4a6fbf504659c112218352315a70cf3fed8846",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m100.calibration-0,hip.preflight"
+    },
+    "sizing.m100.calibration-2": {
+      "identity": "sha256:78fd7a6b440a9d82303d9a3ea21b018ccf24c4fff522e885cb60d807a9de9dc1",
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: sizing.m100.calibration-1,hip.preflight"
+    },
+    "sizing.report": {
+      "identity": "sha256:5b8d4d93d4281f45ca6ff436d6f3bac2be849360a2863157bf5c4eaa4e7c25d4",
+      "state": "INCONCLUSIVE",
+      "reason": ""
+    }
+  },
+  "cpu_references": {
+    "m8": {
+      "identity": "sha256:f6fcf6c21d454bcbab1fef3c4b73510a28f8a7c0b121cc67d85c9ef1ce200d66",
+      "counts": {
+        "active": 8118294,
+        "decoder": 4258390,
+        "encoder": 3859904,
+        "total": 8118294
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 126844444672,
+          "current": 396783616,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7316631552,
+        "qualified": true,
+        "role_peak_upper_bytes": 396783616,
+        "samples": 2,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "seconds_through_role": 0.8862765959929675
+    },
+    "m32": {
+      "identity": "sha256:5aeeedf52aa46c7461e85cde4ac566571710f146eea582c194859df1d1905c4a",
+      "counts": {
+        "active": 31903510,
+        "decoder": 16905302,
+        "encoder": 14998208,
+        "total": 31903510
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 126544044032,
+          "current": 606953472,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7617032192,
+        "qualified": true,
+        "role_peak_upper_bytes": 606953472,
+        "samples": 2,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "seconds_through_role": 0.944124290952459
+    },
+    "m100": {
+      "identity": "sha256:4dd9fc80f99a2878e7efb14d9aec3ef03f929e6fee24cfe7f9e0909d75073a26",
+      "counts": {
+        "active": 104496662,
+        "decoder": 56844374,
+        "encoder": 47652288,
+        "total": 104496662
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 126349586432,
+          "current": 1222209536,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7811489792,
+        "qualified": true,
+        "role_peak_upper_bytes": 1222209536,
+        "samples": 3,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "seconds_through_role": 1.3689205178525299
+    }
+  },
+  "failure": {
+    "test": "tests/integration/test_bigint_gpu.py::test_actual_hip_all_sizing_profiles_update_cache_and_generation",
+    "component": "first m8 encoder memory CPU/HIP comparison; no later profiles or performance work executed",
+    "shape": [
+      2,
+      3,
+      256
+    ],
+    "mismatched": 340,
+    "total": 1536,
+    "max_absolute_error": 0.0003997683525085449,
+    "max_relative_error": 0.05308759585022926,
+    "atol": 2e-05,
+    "rtol": 0.0002,
+    "observed_backend": "torch._transformer_encoder_layer_fwd; memory-efficient attention warning",
+    "interpretation": "Implicit fused encoder dispatch violates declared sizing eager policy; a causal explanation for the numerical mismatch remains a hypothesis until corrected actual-HIP execution."
+  },
+  "timing_slots": {
+    "total": 15,
+    "started": 0,
+    "blocked": 15
+  },
+  "meaning": "Retain source-matched CPU constructor/reference evidence and failing HIP prerequisite. No model sizing throughput, memory-capacity selection, learned-quality/default/research or long-run admission."
+}

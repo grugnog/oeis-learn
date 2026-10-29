@@ -1,0 +1,14 @@
+{
+  "version": "pipeline-phase-review/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "operator_review": "operator-20261024T141450Z-review.json",
+  "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+  "stage": {
+    "state": "BLOCKED",
+    "identity": "sha256:b52028c804ff5339a21fa99169859bd3cf09ab284917e3b7dab5cda9e64aa0b2",
+    "reason": "failed/missing prerequisites: baseline.calibration"
+  },
+  "cpu_decoder_cases": 26,
+  "hip_suite_cases": 15,
+  "decision": "No adoption; paired inference unstarted; numerical fixture passes do not imply speedup"
+}

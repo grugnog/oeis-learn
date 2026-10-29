@@ -1,30 +1,40 @@
 """Visible-only generation/selection and separately mounted finite scoring."""
 
-from collections import Counter, defaultdict
 import time
-from .conditioning_controls import condition_memory, derangement
-from .synthesis_policy import Portfolio, select_visible, rescue_identity, transfer_success
-from .candidate_archive import retain_alternatives
-from .template_baseline import template_bank
+from collections import Counter, defaultdict
+
 from oeis_learn.synthesis.admission import VisiblePrompt, admit, reference_identity, source_identity
 from oeis_learn.synthesis.contracts import canonical_integer, identity
-from oeis_learn.synthesis.reference import evaluate as reference_evaluate
 from oeis_learn.synthesis.discovery_status import validate_discovery
+from oeis_learn.synthesis.reference import evaluate as reference_evaluate
+
+from .candidate_archive import retain_alternatives
+from .conditioning_controls import condition_memory, derangement
+from .synthesis_policy import Portfolio, rescue_identity, select_visible, transfer_success
+from .template_baseline import template_bank
+
+
+def _status(complete, outcome, reason=None):
+    return dict(complete=bool(complete), outcome=outcome, reason=reason)
 
 
 def _raw(client, source, prompt, deadline):
     production = client.execute(source, prompt.indices, deadline=deadline)
     if production.get("outcome") != "ok":
-        return None
+        return None, _status(False, "production_failure", production.get("reason"))
     reference = reference_evaluate(
         source, prompt.indices, client.limits, deadline=min(deadline, time.monotonic() + 2)
     )
     if reference.outcome != "ok":
-        return None
+        return None, _status(False, "reference_failure", reference.reason)
+    if len(production.get("values", [])) != len(prompt.indices) or reference.coverage != len(
+        prompt.indices
+    ):
+        return None, _status(False, "partial_visible_evidence")
     if list(reference.values) != production["values"]:
         raise RuntimeError("raw production/reference disagreement; reopen Phase2 qualification")
     if list(reference.values) != list(prompt.values):
-        return None
+        return None, _status(True, "visible_mismatch")
     record = dict(
         outcome="assignment_found",
         source=source,
@@ -51,14 +61,55 @@ def _raw(client, source, prompt, deadline):
         limits=client.limits,
         deadline=deadline,
     )
-    return (
+    if result.outcome == "verification_failure":
+        raise RuntimeError("raw independent admission disagreement")
+    found = (
         dict(record, verification=result.verification)
         if result.outcome == "verified_solution"
         else None
     )
+    return found, _status(found is not None, result.outcome, result.reason)
 
 
-def _seal(items, prompt, *, cost):
+def _arm_evidence(details, expected, *, raw=False):
+    """An absent selection is resolved only by this arm's own completed work."""
+    generation = [item["generation"] for item in details]
+    fitting = [item["raw" if raw else "fitting"] for item in details]
+    complete = len(details) == expected and all(item["complete"] for item in generation + fitting)
+    failure = next((item for item in generation + fitting if not item["complete"]), None)
+    reason = (
+        (failure["reason"] or failure["outcome"])
+        if failure
+        else ("attempts_unstarted" if len(details) != expected else fitting[-1]["outcome"])
+    )
+    return dict(
+        complete=complete,
+        reason=reason,
+        generation=dict(
+            expected=expected,
+            attempted=len(details),
+            completed=sum(item["complete"] for item in generation),
+        ),
+        fitting=dict(
+            required=not raw,
+            completed=sum(item["complete"] for item in fitting),
+            outcomes=[item["outcome"] for item in fitting],
+        ),
+    )
+
+
+def compact_attempts(details):
+    """No tokens, hidden values, native assignment payloads or unbounded traces."""
+    return [
+        {
+            key: item[key]
+            for key in ("position", "seed", "source_sha256", "generation", "raw", "fitting")
+        }
+        for item in details
+    ]
+
+
+def _seal(items, prompt, *, cost, selection='visible-only/v1', snapshot=None, policies=None):
     chosen = select_visible(
         [
             dict(
@@ -67,13 +118,20 @@ def _seal(items, prompt, *, cost):
                 verified=True,
                 visible_count=20,
                 cost=r.get("_cost", cost),
+                **(dict(attempt_ordinal=r['_attempt_ordinal'], job_id=r['_job_id'],
+                    provenance=dict(prompt=prompt.sha256,snapshot=snapshot,policies=policies,
+                        original_source_sha256=r['original_source_sha256'],
+                        transformed_source_sha256=source_identity(r['transformed_source']),
+                        assignment=r['assignment'],verification=identity(r['verification'])))
+                    if selection == 'visible-only/v2' else {}),
             )
             for r in items
-        ]
+        ], policy=selection
     )
     if chosen is None:
         return None
-    record = next(r for r in items if r["source_sha256"] == chosen["source_sha256"])
+    record = next(r for r in items if r['source_sha256'] == chosen['source_sha256']
+        and (selection == 'visible-only/v1' or r['_job_id'] == chosen['job_id']))
     return dict(
         selected=chosen,
         verification=record["verification"],
@@ -87,7 +145,7 @@ def _seal(items, prompt, *, cost):
 
 def _template_candidate(position):
     """Serialize the frozen template through the same codec as generated sources."""
-    from oeis_learn.decoder.bigint_codec import encode_body, decode_body
+    from oeis_learn.decoder.bigint_codec import decode_body, encode_body
 
     tokens = encode_body(template_bank()["sources"][position])
     return decode_body(tokens), tokens
@@ -104,8 +162,19 @@ def _portfolio(
     attempt_count=8,
     template=False,
     compare_cache=False,
+    mode='correct',
+    prompt_ordinal=0,
+    snapshot=None,
+    portfolio_seconds=60,
+    evidence=None,
+    evaluation_policy=None,
 ):
     from oeis_learn.decoder.sampler import WatProgramSampler
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
+        if evaluation_policy!=POLICY or portfolio_seconds!=60 or ATTEMPTS.get(mode)!=attempt_count:
+            raise ValueError('registered full-clock portfolio required')
+
     from .bigint_program_identity import structural_identity
 
     prompt = VisiblePrompt(tuple(row["indices"]), tuple(row["values"]))
@@ -113,9 +182,14 @@ def _portfolio(
     policy = Portfolio(
         start=start,
         seed=recipe["model"]["seed"] + int(identity(row["id"])[7:14], 16),
-        beam=recipe["search"]["beam"],
+        beam=recipe["search"]["beam"],seconds=portfolio_seconds,
     )
+    scope_deadline = deadline
     deadline = min(deadline, policy.deadline)
+    pipeline = recipe.get('pipeline')
+    selection = 'visible-only/v2' if pipeline else 'visible-only/v1'
+    if pipeline and snapshot is None:
+        snapshot = model_snapshot(None, decoder)
     fitted = []
     raw = []
     rescued = []
@@ -127,6 +201,8 @@ def _portfolio(
             incomplete = True
             break
         attempt = policy.begin(now=time.monotonic())
+        if evidence:
+            evidence(row['id'],mode,position,'STARTED',{'seed':attempt['seed']})
         source = ""
         complete = False
         tokens = []
@@ -177,46 +253,127 @@ def _portfolio(
             source=source if complete else "",
             outcome="incomplete",
             generation_batch_size=1 if template else result["generation_batch_size"],
+            generation_batch_id=None if template else result.get("generation_batch_id"),
+            position=position,
+            seed=attempt["seed"] % 2**32,
+            source_sha256=source_identity(source) if complete else None,
+            generation=_status(
+                complete,
+                "decoded" if complete else "generation_incomplete",
+                None if template or complete else result.get("failure"),
+            ),
+            raw=_status(False, "not_attempted"),
+            fitting=_status(False, "not_attempted"),
         )
         details.append(detail)
+        if evidence:
+            evidence(row['id'],mode,position,'GENERATED',dict(tokens=len(tokens),source_sha256=detail['source_sha256'],generation_seconds=generated,complete=complete))
         if not complete:
+            if evidence:evidence(row['id'],mode,position,'INCOMPLETE',{'reason':'generation incomplete'})
             incomplete = True
             continue
-        if position == 0 and not template:
-            found = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
-            if found:
-                raw.append(found)
+        from .pipeline_jobs import logical_job, NativeRequest
+        contract_identity=recipe.get('identity',identity(recipe))
+        if evaluation_policy is not None:contract_identity=identity(dict(recipe=contract_identity,evaluation_policy=evaluation_policy))
+        job = logical_job(contract=contract_identity,snapshot=snapshot,
+            mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
+            method=attempt['method'],seed=attempt['seed'])
+        def native_work():
+            from contextlib import nullcontext
+            affinity = getattr(getattr(client,'worker',None),'affinity',None)
+            with affinity(prompt_ordinal) if affinity else nullcontext():
+                if evidence:native_clock['dispatched']=time.monotonic()
+                raw_found, raw_status = (None, detail['raw'])
+                if position == 0 and not template:
+                    raw_found, raw_status = _raw(client, source, prompt, service_deadline if pipeline else min(deadline,time.monotonic()+4))
+                fit_started = time.monotonic()
+                if recipe['fitting']['disabled']:
+                    found, status = _raw(client,source,prompt,service_deadline if pipeline else min(deadline,time.monotonic()+4))
+                    fit_result = dict(outcome='raw_only',admitted=[found] if found else [],complete=status['complete'],reason=status['reason'])
+                else:
+                    fit_result = client.fit(source,prompt,
+                        policy='none' if '(param.get ' in source else 'eligible-literals/v1',
+                        deadline=service_deadline if pipeline else min(deadline,time.monotonic()+4),seed=attempt['seed']%2**32)
+                if evidence:native_clock['completed']=time.monotonic()
+                return raw_found, raw_status, fit_result, time.monotonic()-fit_started
         fitting_start = time.monotonic()
-        if recipe["fitting"]["disabled"]:
-            found = _raw(client, source, prompt, min(deadline, time.monotonic() + 4))
-            fit = dict(outcome="raw_only", admitted=[found] if found else [])
+        service_deadline = min(deadline,fitting_start+4)
+        native_clock=dict(admitted=fitting_start,deadline=service_deadline)
+        if pipeline:
+            def expired_native():
+                reason='native/reference service deadline; late candidate excluded'
+                return (None,_status(False,'resource_exhausted',reason),
+                    dict(outcome='resource_exhausted',admitted=[],complete=False,reason=reason),
+                    time.monotonic()-fitting_start)
+            found, detail['raw'], fit, fit_elapsed = yield NativeRequest(job,prompt_ordinal,
+                min(deadline,fitting_start+4),native_work,
+                cancel=getattr(getattr(client,'worker',None),'cancel_all',None),on_expired=expired_native)
         else:
-            fit = client.fit(
-                source,
-                prompt,
-                policy="none" if "(param.get " in source else "eligible-literals/v1",
-                deadline=min(deadline, time.monotonic() + 4),
-                seed=attempt["seed"] % 2**32,
-            )
+            found, detail['raw'], fit, fit_elapsed = native_work()
+        if evidence:
+            native_clock['owner_observed']=time.monotonic()
+        if found:
+            found.update(_attempt_ordinal=position,_job_id=job['job_id'])
+            raw.append(found)
         for admitted in fit["admitted"]:
-            admitted["_cost"] = generated + time.monotonic() - fitting_start
+            admitted["_cost"] = generated + (time.monotonic() - fitting_start if pipeline else fit_elapsed)
             admitted["_original_source"] = source
+            admitted['_attempt_ordinal'] = position
+            admitted['_job_id'] = job['job_id']
+        detail["native_seconds"]=time.monotonic()-fitting_start
+        import re
+        detail['native_kind']='nonlinear' if any(re.search(r'\(mul\s+\(param.get[^)]*\)\s+\(param.get',r.get('transformed_source','')) for r in fit['admitted']) else 'other'
         detail.update(
             outcome=fit["outcome"], native=fit.get("native"), fit_cache=fit.get("metrics")
         )
+        native = fit.get("native") or {}
+        detail["fitting"] = _status(
+            fit.get(
+                "complete",
+                fit["outcome"]
+                in {
+                    "verified_solution",
+                    "raw_only",
+                    "unsupported",
+                    "unsat_in_scope",
+                    "invalid_source",
+                },
+            ),
+            fit["outcome"],
+            fit.get("reason") or native.get("reason"),
+        )
+        detail["fitting"].update(
+            {
+                key: native.get(key)
+                for key in ("phase", "completed_bounds", "coefficient_bits", "uniqueness")
+            }
+        )
+        detail["fitting"]["admission"] = fit.get("admission", [])
         if fit["outcome"] == "verification_failure":
             raise RuntimeError("independent admission disagreement")
-        if fit["outcome"] in {"unknown", "resource_exhausted"}:
+        if fit["outcome"] in {"unknown", "resource_exhausted"} or not detail['fitting']['complete']:
             incomplete = True
+        if evidence:
+            detail['fitting'].update(clock=native_clock,job_id=job['job_id'])
+            evidence(row['id'],mode,position,'COMMITTED' if detail['fitting']['complete'] else 'INCOMPLETE',
+                dict(raw=detail['raw'],fitting=detail['fitting'],fit_seconds=fit_elapsed))
         fitted.extend(fit["admitted"])
         if position == 0 and not template:
             for record in fit["admitted"]:
                 rescue_identity(source_identity(source), record["original_source_sha256"])
             rescued.extend(fit["admitted"])
-    cost = time.monotonic() - start
+    finished = time.monotonic()
+    cost = finished - start
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import clock_record
+        evidence.portfolio(row['id'],mode,clock_record(prompt=row['id'],mode=mode,snapshot=snapshot,
+            start=start,scope_deadline=scope_deadline,finish=finished,expected=attempt_count,
+            started=len(details),terminal=len(details)))
     distinct = {}
     for r in fitted:
-        if r["source_sha256"] not in distinct or r["_cost"] < distinct[r["source_sha256"]]["_cost"]:
+        previous = distinct.get(r['source_sha256'])
+        if previous is None or ((r['_attempt_ordinal'], r['_job_id']) < (previous['_attempt_ordinal'], previous['_job_id'])
+            if pipeline else r['_cost'] < previous['_cost']):
             distinct[r["source_sha256"]] = r
     archive = (
         retain_alternatives(
@@ -231,26 +388,32 @@ def _portfolio(
                     track=recipe["track"]["kind"],
                     profile="bigint-body/v1",
                     assignment=r["assignment"],
+                    **(dict(attempt_ordinal=r['_attempt_ordinal'],job_id=r['_job_id']) if pipeline else {}),
                 )
                 for r in distinct.values()
-            ]
+            ], policy='structure-pareto/v2' if pipeline else 'structure-pareto/v1'
         )
         if fitted
         else dict(retained=[], omitted=[])
     )
     return dict(
-        raw=_seal(raw, prompt, cost=cost),
-        rescue=_seal(rescued, prompt, cost=cost),
-        equal_budget=_seal(fitted, prompt, cost=cost),
+        raw=_seal(raw, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
+        rescue=_seal(rescued, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
+        equal_budget=_seal(fitted, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         complete=not incomplete and len(details) == attempt_count,
         elapsed_seconds=cost,
         details=details,
         archive=archive,
         cache_parity=parity,
+        arm_evidence=dict(
+            raw=_arm_evidence(details[:1], 1, raw=True),
+            rescue=_arm_evidence(details[:1], 1),
+            equal_budget=_arm_evidence(details, attempt_count),
+        ),
     )
 
 
-def _drive_portfolios(decoder, generators):
+def _drive_portfolios(decoder, generators, *, batch_size=8, ledger=None, deadline_policy='production60/v1',capacity_qualified=False):
     """Interleave decoding only. Fitting/admission remain serial and prompt-local."""
     from oeis_learn.decoder.bigint_generation import GENERATION_BATCH_SIZE, sample_batch
 
@@ -267,16 +430,33 @@ def _drive_portfolios(decoder, generators):
         advance(index, generator, first=True)
     while pending:
         # Greedy and stochastic distributions never share a sampling call.
+        from .pipeline_jobs import NativeRequest
+        native = next((p for p in pending if isinstance(p[2], NativeRequest)), None)
+        if native is not None:
+            pending.remove(native)
+            index, generator, request = native
+            if ledger is not None:
+                ledger.reserve(request.job,deadline=request.deadline,work=1)
+            if time.monotonic()>=request.deadline:
+                if ledger is not None:ledger.cancel(request.job['job_id'],'queued native deadline',started=False)
+                value=request.expired()
+            else:
+                value=request.operation()
+                observed=time.monotonic()
+                eligible=ledger.publish(request.job['job_id'],value,observed=observed) if ledger is not None else observed<request.deadline
+                if not eligible:value=request.expired()
+            advance(index, generator, value)
+            continue
         first = pending[0][2]
         group = [
             p
             for p in pending
             if p[2].temperature == first.temperature
             and p[2].memory.shape[1:] == first.memory.shape[1:]
-        ][:GENERATION_BATCH_SIZE]
+        ][:batch_size]
         selected = {p[0] for p in group}
         pending[:] = [p for p in pending if p[0] not in selected]
-        sampled = sample_batch(decoder, [p[2] for p in group])
+        sampled = sample_batch(decoder, [p[2] for p in group], **(dict(batch_size=batch_size,deadline_policy=deadline_policy,**({'capacity_qualified':True} if capacity_qualified else {})) if batch_size != 8 or deadline_policy!='production60/v1' else {}))
         for (index, generator, _), value in zip(group, sampled):
             advance(index, generator, value)
     return results
@@ -289,9 +469,34 @@ def portfolio(decoder, memory, row, recipe, client, **kwargs):
 
 
 def generate(
-    encoder, decoder, rows, recipe, client, *, deadline, periodic=False, compare_cache=False
+    encoder,
+    decoder,
+    rows,
+    recipe,
+    client,
+    *,
+    deadline,
+    periodic=False,
+    compare_cache=False,
+    diagnostic_attempts=None,
+    portfolio_seconds=60,
+    evidence=None,
+    evaluation_policy=None,
 ):
     import torch
+
+    if portfolio_seconds not in (60,180):
+        raise ValueError('registered diagnostic portfolio ceiling required')
+    if evaluation_policy is not None:
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
+        if (evaluation_policy!=POLICY or diagnostic_attempts!=ATTEMPTS or portfolio_seconds!=60
+            or periodic or not recipe.get('pipeline') or not callable(getattr(evidence,'portfolio',None))):
+            raise ValueError('explicit full-clock pilot calibration required')
+    scope_start = time.monotonic()
+    if diagnostic_attempts is not None and (
+        periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
+    ):
+        raise ValueError("only the explicit reduced pipeline diagnostic portfolio is supported")
 
     if any(len(r["values"]) != 20 or len(r["indices"]) != 20 for r in rows):
         raise ValueError("only20 visible terms enter generation")
@@ -309,7 +514,14 @@ def generate(
     mapping = derangement(ids, recipe["model"]["seed"]) if not periodic else {}
     order = [ids.index(mapping[k]) for k in ids] if mapping else None
     modes = ["correct"] if periodic else ["correct", "shuffled", "absent", "template"]
-    records = {r["id"]: dict(selections={}, complete=True) for r in rows}
+    pipeline = recipe.get('pipeline')
+    snapshot = model_snapshot(encoder,decoder) if pipeline else None
+    if pipeline:
+        decoder.cache_bookkeeping = pipeline['bookkeeping']
+    records = {r["id"]: dict(selections={}, arm_evidence={}, complete=True) for r in rows}
+    allocation = max(0,deadline-scope_start)/max(1,len(modes)*len(rows))
+    group_cursor = 0
+    boundaries = []
     for mode in modes:
         controlled = (
             None
@@ -322,13 +534,19 @@ def generate(
 
         # A group spends one shared slice of the remaining global budget. Every
         # prompt also retains Portfolio's original sixty-second ceiling.
-        size = 1 if mode == "template" else GENERATION_BATCH_SIZE
+        size = (min(8,pipeline['workers']) if mode == 'template' else pipeline['batch_size']) if pipeline else 1 if mode == "template" else GENERATION_BATCH_SIZE
         for offset in range(0, len(rows), size):
             group = rows[offset : offset + size]
             remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - offset
             now = time.monotonic()
             allowance = max(0, (deadline - now) * len(group) / max(1, remaining))
-            until = min(deadline, now + allowance, now + 60)
+            if evaluation_policy is not None:
+                until = deadline
+            elif pipeline:
+                group_cursor += len(group)
+                until = min(deadline,scope_start+group_cursor*allocation,now+portfolio_seconds)
+            else:
+                until = min(deadline, now + allowance, now + portfolio_seconds)
             generators = [
                 _portfolio(
                     decoder,
@@ -337,26 +555,59 @@ def generate(
                     recipe,
                     client,
                     deadline=until,
-                    attempt_count=1 if periodic else 8,
+                    attempt_count=(
+                        diagnostic_attempts[mode] if diagnostic_attempts else 1 if periodic else 8
+                    ),
                     template=mode == "template",
                     compare_cache=compare_cache and mode == "correct" and i < 3,
+                    **(dict(mode=mode,prompt_ordinal=i,snapshot=snapshot) if pipeline else dict(mode=mode) if evidence else {}),
+                    **(dict(evidence=evidence) if evidence else {}),
+                    **(dict(evaluation_policy=evaluation_policy) if evaluation_policy else {}),
+                    **(dict(portfolio_seconds=portfolio_seconds) if portfolio_seconds != 60 else {}),
                 )
                 for i, row in enumerate(group, offset)
             ]
-            for row, result in zip(group, _drive_portfolios(decoder, generators)):
+            if pipeline and pipeline['overlap']:
+                from .pipeline_scheduler import drive
+                from functools import partial
+                from oeis_learn.decoder.bigint_generation import sample_batch
+                outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
+                    lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],
+                    sample=partial(sample_batch,batch_size=pipeline['batch_size'],capacity_qualified=bool(pipeline.get('capacity_qualification')),bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
+                # drive returns only after every native task has positively quiesced.
+                for value in outcomes:
+                    value['pipeline_boundary'] = boundary
+            else:
+                if pipeline:
+                    from .pipeline_jobs import JobLedger
+                    ledger = JobLedger()
+                    outcomes = _drive_portfolios(decoder,generators,batch_size=pipeline['batch_size'],ledger=ledger,capacity_qualified=bool(pipeline.get('capacity_qualification')),deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1')
+                    boundary = ledger.boundary(pipeline)
+                else:
+                    outcomes = _drive_portfolios(decoder,generators,**(dict(deadline_policy='fixed-work180/v1') if portfolio_seconds==180 else {}))
+            if pipeline:
+                boundaries.append(boundary)
+            for row, result in zip(group, outcomes):
                 record = records[row["id"]]
                 record["complete"] &= result["complete"]
                 if mode == "correct":
                     record["selections"].update(
                         {key: result[key] for key in ("raw", "rescue", "equal_budget")}
                     )
+                    record["arm_evidence"].update(result["arm_evidence"])
                 else:
                     record["selections"][mode] = result["equal_budget"]
+                    record["arm_evidence"][mode] = result["arm_evidence"]["equal_budget"]
                 record.setdefault("details", {})[mode] = result
                 record["family"] = row.get("family", row["id"])
                 record["strata"] = row.get("strata", strata(row))
+    if pipeline and evidence and model_snapshot(encoder,decoder)!=snapshot:
+        raise RuntimeError('generation mutated its frozen model snapshot')
     return dict(
         records=records,
+        **(dict(pipeline_boundary=__import__('oeis_learn.pipeline_validation.identity',fromlist=['seal']).seal(dict(
+            version='pipeline-boundary/v1',policies=pipeline,frontier=sorted({j for b in boundaries for j in b['frontier']}),
+            consumed=sum(b['consumed'] for b in boundaries),active=0,reserved=0))) if pipeline else {}),
         controls=dict(
             derangement=mapping,
             sha256=identity(mapping),
@@ -373,10 +624,16 @@ def score(selections, truth, client, *, deadline):
         record = selections.get(key)
         outcomes[key] = {}
         for mode in ("raw", "rescue", "equal_budget", "shuffled", "absent", "template"):
+            scoring_start=time.monotonic()
             chosen = record.get("selections", {}).get(mode) if record else None
+            evidence = record.get("arm_evidence", {}).get(mode) if record else None
             success = False
             complete = False
+            scoring = _status(False, "not_attempted")
+            reason = "selection_record_missing" if record is None else "legacy_arm_evidence_missing"
             if chosen is not None and time.monotonic() < deadline:
+                from .synthesis_policy import validate_selection_envelope
+                validate_selection_envelope(chosen)
                 expected_prompt = identity(
                     dict(indices=target["indices"][:20], values=target["values"][:20])
                 )
@@ -411,14 +668,50 @@ def score(selections, truth, client, *, deadline):
                 success = transfer_success(
                     chosen["selected"], target["indices"], target["values"], p, r
                 )
-                complete = p["outcome"] == r["outcome"] == "ok"
+                complete = (
+                    p["outcome"] == r["outcome"] == "ok"
+                    and len(p["values"]) == len(r["values"]) == len(target["indices"]) == 100
+                )
                 if complete and p["values"] != r["values"]:
                     raise RuntimeError("production/reference full-horizon disagreement")
-            elif record is not None:
-                complete = record["complete"]
+                reason = (
+                    "success"
+                    if success
+                    else "continuation_mismatch"
+                    if complete
+                    else "scoring_incomplete"
+                )
+                scoring = dict(
+                    complete=complete,
+                    outcome=reason,
+                    reason=None,
+                    production=dict(
+                        outcome=p["outcome"],
+                        reason=production.get("reason"),
+                        coverage=len(p["values"]),
+                    ),
+                    reference=dict(
+                        outcome=r["outcome"], reason=reference.reason, coverage=len(r["values"])
+                    ),
+                )
+            elif chosen is not None:
+                reason = "scoring_deadline"
+                scoring = _status(False, "not_attempted", "deadline")
+            elif evidence is not None:
+                complete = evidence["complete"] is True
+                reason = evidence["reason"]
+                scoring = _status(complete, "no_selected_candidate", reason)
+            scoring["elapsed_seconds"]=time.monotonic()-scoring_start
             counts[mode]["success"] += success
             counts[mode]["complete"] += complete
-            outcomes[key][mode] = dict(success=success, complete=complete)
+            outcomes[key][mode] = dict(
+                success=success,
+                complete=complete,
+                reason=reason,
+                candidate_sha256=chosen["selected"]["source_sha256"] if chosen else None,
+                upstream=evidence,
+                scoring=scoring,
+            )
     strata_counts = {}
     for key, record in selections.items():
         for dimension, band in record.get("strata", {}).items():
@@ -442,6 +735,7 @@ def score(selections, truth, client, *, deadline):
                 accuracy=v["success"] / v["denominator"] if v["denominator"] else 0.0,
                 verified_admissions=True,
                 disagreement=False,
+                reasons=dict(Counter(row[k]["reason"] for row in outcomes.values())),
             )
             for k, v in counts.items()
         },
@@ -493,3 +787,18 @@ def strata(row):
         ),
         complexity="loop" if "(loop " in source else "branch" if "(if " in source else "expression",
     )
+
+
+
+def model_snapshot(encoder,decoder):
+    import hashlib
+    h=hashlib.sha256()
+    for label,model in [('encoder',encoder),('decoder',decoder)]:
+        if model is None:
+            continue
+        for name,tensor in sorted(model.state_dict().items()):
+            raw=tensor.detach().cpu().contiguous().numpy().tobytes()
+            header=(label+'\0'+name+'\0'+str(tensor.dtype)+'\0'+str(tuple(tensor.shape))).encode()
+            h.update(len(header).to_bytes(8,'big'));h.update(header)
+            h.update(len(raw).to_bytes(8,'big'));h.update(raw)
+    return 'sha256:'+h.hexdigest()

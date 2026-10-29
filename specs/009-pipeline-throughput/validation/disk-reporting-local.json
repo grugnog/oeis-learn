@@ -1,0 +1,13 @@
+{
+  "version": "pipeline-local-evidence/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "stdlib_tests": 89,
+  "exit_code": 3,
+  "selected_scope": "PARTIAL",
+  "engineering": "BLOCKED",
+  "portability": "PENDING",
+  "archive_manifest": "sha256:8c69c7c0c1bed2789004e04f0bd7cfb3210b117b0f6e558aa03496dcb53d9f7e",
+  "archive_sha256": "sha256:00aa042f522ee1a6ceaa82286351cd18277f5b2a10795667eb3e60f32af536b8",
+  "archive_verified_members": 43,
+  "interpretation": "Actual stdlib public CLI; no local engine/Torch/HIP qualification."
+}

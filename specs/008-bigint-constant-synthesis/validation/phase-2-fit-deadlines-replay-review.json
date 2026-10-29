@@ -1,0 +1,162 @@
+{
+  "version": "native-fit-deadlines-replay-review/v1",
+  "review_date": "2026-10-21",
+  "qualified": false,
+  "archive": {
+    "name": "008-fit-deadlines-replay-20261021T225952Z.zip",
+    "sha256": "sha256:45e8de943bc1b4658460fabcece2e766d1c8b03ba2827a4a28567ba7d429f59d",
+    "crc": "PASS",
+    "inventory": "PASS",
+    "verified_files": 9
+  },
+  "prior_review": {
+    "path": "phase-5-diverse32-deadline-review.json",
+    "sha256": "sha256:b139941bc843b2203dc2cff63aad7bb7557ebd13ab07bbad9773d50c8c06c1b2"
+  },
+  "case_sha256": "sha256:698ed142269d0b53340c6bbee5516359474243423ecda8e62a64ca938e0c948b",
+  "parent_contract_sha256": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+  "parent_image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+  "image": "sha256:f075138b03041eb8282419c1548416ecaee23b674a38d648af8bfde577e6fa24",
+  "runtime_sha256": "sha256:d732175672a37ec18a239efbcba5e976d9c5e414f66830a1cc2c0bc05d88a484",
+  "qualification": {
+    "archive": "008-fit-deadlines-20261021T221541Z(2).zip",
+    "archive_sha256": "sha256:b6221a65e61c31e76470feb17e6c1371ba7892382d1dde581145560c2f1f7f36",
+    "verified_files": 7,
+    "engine": "podman",
+    "source_sha256": "sha256:942afe05c9cbe3ba95f839ed071ca7a44855b1222d2e0b03d82f0c39eeeef562",
+    "fitting_tests": {
+      "tests": 37,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0,
+      "sha256": "sha256:033c92ded7804dbf2aab9171dabfc98d596c03c6a052920c3c5b08d8cb7763dc"
+    },
+    "same_image": true,
+    "worker_guest_runtime_binding": "PASS"
+  },
+  "analysis_identity": "sha256:c01dbe2b4a9b9aff18a252dbb62e00a80e55576a12ab393fb7b42e75ef6d29c1",
+  "worker_analysis_identity": "sha256:c97fdce2b0b137a503688fae7dcc9eb0d04f4175d29e8dd7101b7350c2272fcb",
+  "utility_sha256": "sha256:4348e5a0b97e66d7b6355e5e5102fff5007bb458b3078c97d85c67c6f54b0c12",
+  "case_and_parent_bindings": "PASS",
+  "greedy_seed": 75271729,
+  "abstraction_policy": "eligible-literals/v1",
+  "same_image_as_original": false,
+  "same_runtime_as_original": false,
+  "raw_visible_verified": true,
+  "fitting": {
+    "outcome": "verified_solution",
+    "reason": null,
+    "native_outcome": "assignment_found",
+    "native_seconds": 1.30762734,
+    "production_checked_assignments": 5,
+    "independently_admitted": 5,
+    "fresh_review_reference_admissions": 5,
+    "coverage_per_assignment": 20,
+    "assignment_parameters": [
+      {
+        "p0": "11",
+        "p1": "0",
+        "p2": "0",
+        "p3": "-15"
+      },
+      {
+        "p0": "11",
+        "p1": "-1",
+        "p2": "-1",
+        "p3": "-16"
+      },
+      {
+        "p0": "11",
+        "p1": "-2",
+        "p2": "-1",
+        "p3": "-17"
+      },
+      {
+        "p0": "11",
+        "p1": "-2",
+        "p2": "-2",
+        "p3": "-19"
+      },
+      {
+        "p0": "11",
+        "p1": "-21840",
+        "p2": "-3",
+        "p3": "-65535"
+      }
+    ],
+    "algebraic_consistency": "Every assignment has p0=11 and p1*p2+p3=-15; final source shape retains n^2+11*n-15. No additional scored indices.",
+    "uniqueness": "multiple",
+    "searches": [
+      {
+        "assignments": 5,
+        "checks": 6,
+        "coefficient_bits": 16,
+        "outcome": "resource_exhausted",
+        "reason": "canceled",
+        "uniqueness": "multiple"
+      }
+    ],
+    "timing": {
+      "native_allowance_seconds": 1.828718178,
+      "policy": "native-fit-deadlines/v1",
+      "production_reserve_seconds": 0.457179544,
+      "response_reserve_seconds": 0.091435908,
+      "search_allowance_seconds": 1.280102726
+    }
+  },
+  "fit_worker": {
+    "allowance_seconds": 1.9998608969617635,
+    "complete": true,
+    "elapsed_seconds": 1.479676601011306,
+    "generation": 0,
+    "metrics": {
+      "batches": 2,
+      "queue_wait_seconds": 3.290991298854351e-05,
+      "restarts": 0,
+      "rss_peak_bytes": 104103936,
+      "rss_unavailable_reason": null,
+      "stderr_bytes": 0,
+      "stderr_tail": ""
+    },
+    "operation": "fit",
+    "outcome": "ok",
+    "reason": null,
+    "results_count": 1,
+    "unstarted_count": 0
+  },
+  "comparison": {
+    "original_image_fit_seconds": 2.007613776018843,
+    "original_image_fit_complete": false,
+    "original_image_fit_results": 0,
+    "current_fit_seconds": 1.479676601011306,
+    "current_fit_complete": true,
+    "current_fit_results": 1,
+    "note": "Same bound visible candidate/seed/policy/resources; different native implementation and image. This is diagnostic evidence, not an exact replay of original queue/cache timing."
+  },
+  "replay_seconds": 2.199450117070228,
+  "host_cleanup_seconds": 0.3056349898688495,
+  "ledger": {
+    "host_reserved_seconds": 75,
+    "nested_work_seconds": 30,
+    "combined_reservation_seconds": 75,
+    "refund_seconds": 0,
+    "completed": true
+  },
+  "decision": {
+    "focused_reproduced_case": "RESOLVED in this current-image replay",
+    "diagnostic_and_reliability_pass": "COMPLETE for the identified deadline failure",
+    "additional_same_case_replay_needed": false,
+    "expanded_solver_spec_needed": false,
+    "new_training_authorized": false,
+    "HIP_needed_for_this_fix": false,
+    "original_T096": "NEGATIVE; unchanged",
+    "promotion": "BLOCKED pending remaining Phase5 gates"
+  },
+  "limitations": [
+    "One visible-only diagnostic replay does not establish32/32 qualification, hidden continuation success or structural generalization.",
+    "The original run lacks its exact native phase trace; the old diagnostic reproduced its worker deadline class.",
+    "Enumeration remained resource-exhausted after five SAT assignments. These were production-checked and independently admitted; no model was read from UNKNOWN.",
+    "Host and worker analysis identities are separately randomized by the published utility; case, parent and image bindings connect them."
+  ],
+  "review_sha256": "sha256:74b5298aab96a99d445fbac937b4dfd81c34f7dd7816e4b0f4c69ed1a1e04a40"
+}

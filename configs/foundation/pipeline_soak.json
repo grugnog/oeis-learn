@@ -1,0 +1,57 @@
+{
+  "authority": {
+    "disposable_updates": true,
+    "final": false,
+    "operations_fixtures": true,
+    "resume": false,
+    "training": false
+  },
+  "budgets": {
+    "archive_seconds": 900,
+    "build_per_engine_seconds": 14400,
+    "cleanup_seconds": 300,
+    "global_seconds": 86400,
+    "mandatory_reserve_bytes": 16777216,
+    "phase_seconds": {
+      "1": 3600,
+      "2": 10800,
+      "3": 7200,
+      "4": 18000,
+      "5": 14400
+    },
+    "stream_bytes": 8388608,
+    "trace_bytes": 134217728,
+    "transient_bytes": 8589934592,
+    "zip_bytes": 536870912
+  },
+  "comparisons": [
+    "training-batch8-16-32/v1"
+  ],
+  "engines": "both",
+  "excluded_authorities": [
+    "training",
+    "resume",
+    "T096_retry",
+    "assisted_data",
+    "final"
+  ],
+  "identity": "sha256:2a7b43361f2713ffc1f573c1b29ef97cf81964c652976f6b72dab0e8759a8344",
+  "input_refs": [],
+  "phases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "resource_policy": "workstation90",
+  "reuse_refs": [],
+  "scope": "engineering-soak",
+  "source": {},
+  "stage_registry_version": "pipeline-soak-registry/v1",
+  "version": "pipeline-soak-validation/v1",
+  "weights_ref": null,
+  "workloads": [
+    "full-partition-soak/v1"
+  ]
+}

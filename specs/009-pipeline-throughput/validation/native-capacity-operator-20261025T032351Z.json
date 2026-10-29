@@ -1,0 +1,150 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-native-capacity-20261025T032351Z.zip",
+  "archive_sha256": "sha256:6667de427ccea856abb32ad6b8498cf37efa91ac7a2cf00c2f7a16bb8be5d442",
+  "archive_bytes": 1312310,
+  "manifest": "sha256:5d03011e1bdd2c73547e0721950355963db0b7014fde3f433aea887816ed1ef0",
+  "verified_members": 49,
+  "producer": "e8b89cf67be372adabee59c729a32671d3ad3bfa",
+  "source": "sha256:723ac9742b7ff09c2e43325d59a2508ddf645b3c6e2d59367c6b25b54bc16564",
+  "source_entries": 709,
+  "exact_source_match": true,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 382.1354160811752,
+    "engineering": "FAIL",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 305.6802358198911,
+      "3": 0.0037265229038894176
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-native-capacity",
+    "selected_scope": "FAIL",
+    "unavailable": [],
+    "version": "pipeline-summary/v1"
+  },
+  "stage_receipts": {
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:3cd17c8d547be1d1fb54ed8406cb32d4e87bcdf6befb7f2e90d14436efe5f0a9",
+      "reason": ""
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:d0b48931615a54cc315d4eb7f801950e2a8aca1d648cfcf37746181a0d3c2984",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:730c912d1de1fd08a6057bce07776b1299f8e96fcf53b1b864e5b6b2a931ca19",
+      "reason": ""
+    },
+    "cpu.podman.semantic": {
+      "state": "FAIL",
+      "identity": "sha256:a6f2a2746eaf19e0536402eeaa714ab92ae004889eb241f3aa3f0e31b517f6c1",
+      "reason": "RuntimeError: bigint-cpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-native-capacity-20261025T032351Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-native-capacity-20261025T032351Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stdout.log"
+    },
+    "native.capacity": {
+      "state": "BLOCKED",
+      "identity": "sha256:a7cb63db8ea95601962919241d3fc704a427757d6961253c8b779090e6562ddd",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "native.capacity.report": {
+      "state": "PASS",
+      "identity": "sha256:8f31bef6cd2ae7e2307bba1eaceb60929d7c7d92f88cc5a85aefa956dc391efc",
+      "reason": ""
+    }
+  },
+  "qualification": {
+    "host": 134,
+    "cpu_passed": 652,
+    "cpu_failed": 1,
+    "cpu_deselected": 1,
+    "cpu_subtests_passed": 14,
+    "junit_cases": 653,
+    "failures": [
+      {
+        "name": "test_real_native_slot_waves_preserve_full_corpus_and_clocks[1]",
+        "classname": "tests.integration.test_synthesis_worker",
+        "message": "KeyError: 'workers'"
+      }
+    ]
+  },
+  "measured_roles": 0,
+  "planned_unstarted_slots": 18,
+  "interpretation": "Qualification fixture assertion failed after serial native semantics/clocks passed; native comparisons never dispatched. No worker selection, gain or learning/default admission.",
+  "ci_review": {
+    "producer": "e8b89cf67be372adabee59c729a32671d3ad3bfa",
+    "workflows": [
+      {
+        "id": 40157945940,
+        "conclusion": "failure"
+      },
+      {
+        "id": 40157945849,
+        "conclusion": "failure"
+      }
+    ],
+    "failures": [
+      {
+        "job_id": 121063939555,
+        "cause": "foundation disposition serializer mismatch"
+      },
+      {
+        "job_id": 121063939557,
+        "cause": "foundation disposition serializer mismatch"
+      },
+      {
+        "job_id": 121063939584,
+        "cause": "serial fixture assumed pooled metrics"
+      },
+      {
+        "job_id": 121063939638,
+        "cause": "serial fixture assumed pooled metrics"
+      },
+      {
+        "job_id": 121063939649,
+        "cause": "serial fixture assumed pooled metrics"
+      },
+      {
+        "job_id": 121063378626,
+        "cause": "foundation disposition serializer mismatch"
+      }
+    ],
+    "containment_artifacts": [
+      {
+        "id": 12584618755,
+        "cases": 68,
+        "passed": 67,
+        "failed": 1,
+        "failure": "test_real_native_slot_waves_preserve_full_corpus_and_clocks[1]: KeyError: workers"
+      },
+      {
+        "id": 12585568642,
+        "cases": 68,
+        "passed": 67,
+        "failed": 1,
+        "failure": "test_real_native_slot_waves_preserve_full_corpus_and_clocks[1]: KeyError: workers"
+      }
+    ],
+    "incorrect_007_binding": "sha256:a6f39313ac555b01ad7522a3e75b4f5368b65d0b1ede5ec1e1621da41b9c544f",
+    "actual_007_binding": "sha256:052fa2df91bb615f1e20780995593d035cd53e6cb8e17c687987aac357e0df9e",
+    "meaning": "Already-completed producer CI reviewed; new CI not awaited. All six failed jobs traced to two validation issues."
+  },
+  "repair": {
+    "commit": "95fc98d318b6dff7fd103c4b727d6ac3bbfb4211",
+    "runtime_python_changed": false,
+    "fixture": "Check retained serial metrics for1 and explicit slots/counts for2/4; preserve actual activity,18 distinct prompts,assignments,clocks and debits.",
+    "serializer": "Refresh disposition using actual foundation canonical/implementation functions with ensure_ascii=False; all68 dispositions and incomplete acceptance unchanged.",
+    "host_regressions": "Actual factory/stat shape and actual foundation serializer checks reproduce both failures before repair."
+  }
+}

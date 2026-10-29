@@ -58,7 +58,7 @@ RUN mkdir -p /opt/oeis-build/crates/oeis_wasm_evaluator/src && echo '// Dependen
 # Real sources replace the inert cache seed and are always compiled/tested.
 FROM native-dependencies AS synthesis-build
 COPY crates /opt/oeis-build/crates
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY tests/fixtures/bigint /opt/oeis-build/tests/fixtures/bigint
 COPY docker/dev/build-synthesis.sh /opt/oeis-setup/build-synthesis.sh
 RUN mkdir -p /opt/oeis-build-info && bash /opt/oeis-setup/build-synthesis.sh
@@ -89,14 +89,16 @@ COPY --from=native-dependencies /opt/oeis-native-target /opt/oeis-native-target
 COPY crates /opt/oeis-build/crates
 COPY Dockerfile rustfmt.toml /opt/oeis-build/
 COPY docker/dev/build-native.sh docker/dev/build-native-wheel.sh docker/dev/build-synthesis.sh docker/dev/install.sh /opt/oeis-build/docker/dev/
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY src/oeis_learn/sandbox/preamble.wat /opt/oeis-build/src/oeis_learn/sandbox/preamble.wat
 RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 
 FROM qualification-native AS qualification
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 COPY . /opt/oeis-build
-RUN bash /opt/oeis-build/docker/dev/build-native.sh
+# Runtime-created mount parents can inherit a private umask. The parent must be
+# searchable by arbitrary numeric role UIDs; bind mounts retain their own modes.
+RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV CARGO_TARGET_DIR=/opt/oeis-native-target \
     PYTHONPATH=/opt/oeis-build/src OMP_NUM_THREADS=2
 WORKDIR /opt/oeis-build
@@ -123,14 +125,14 @@ COPY --from=native-dependencies /opt/oeis-native-target /opt/oeis-native-target
 COPY crates /opt/oeis-build/crates
 COPY Dockerfile rustfmt.toml /opt/oeis-build/
 COPY docker/dev/build-native.sh docker/dev/build-native-wheel.sh docker/dev/build-synthesis.sh docker/dev/install.sh /opt/oeis-build/docker/dev/
-COPY src/oeis_learn/synthesis/records.schema.json /opt/oeis-build/src/oeis_learn/synthesis/records.schema.json
+COPY src/oeis_learn/synthesis/records.schema.json src/oeis_learn/synthesis/engine-policy.json /opt/oeis-build/src/oeis_learn/synthesis/
 COPY src/oeis_learn/sandbox/preamble.wat /opt/oeis-build/src/oeis_learn/sandbox/preamble.wat
 RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 
 FROM gpu-native AS gpu
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 COPY . /opt/oeis-build
-RUN bash /opt/oeis-build/docker/dev/build-native.sh
+RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV PYTHONPATH=/workspace/src
 WORKDIR /workspace
 # The host wrapper supplies each command and its explicit mounts.

@@ -1,0 +1,355 @@
+{
+  "version": "phase5-diverse32-review/v1",
+  "review_date": "2026-10-21",
+  "reviewed_archive": "008-phase5-diverse32-20261021T160815Z.zip",
+  "archive_sha256": "sha256:3a29304a50c92f29cb41776fd42572f1b206471e0179cb1fd48d5394d5daad23",
+  "source_sha256": "sha256:9c97818583e9050e0752417c343546f19ef6462e1b85c0b85cb1c0c819962542",
+  "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+  "decision": {
+    "task": "T096",
+    "task_complete": true,
+    "outcome": "NEGATIVE",
+    "memorization_gate": false,
+    "promotion": "BLOCKED",
+    "qualified": false,
+    "reason": "31/32 correct rescue continuations meets the success count, but31/32 complete rescue evidence fails the frozen32/32 completeness criterion; greedy termination passes32/32.",
+    "fresh_attempt_authorized": false,
+    "resume_authorized": false,
+    "final_access": "sealed"
+  },
+  "verification": {
+    "zip_crc": "PASS",
+    "outer_files": 15,
+    "outer_manifest": {
+      "files": [
+        {
+          "path": "summary.json",
+          "bytes": 23899,
+          "sha256": "sha256:b77e4f610a166baa1da6b2468b1c59fce1cb048b327b9fb4e9d8adb17d73ac78"
+        },
+        {
+          "path": "learnability-run/summary.json",
+          "bytes": 10174,
+          "sha256": "sha256:13336cb4d0b7911c009ea1e4d0a55a426245f14bb244e28265ece5d5ade19119"
+        },
+        {
+          "path": "check-command/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "check-command/stdout.log",
+          "bytes": 84,
+          "sha256": "sha256:49d958c613ce736150494ceb64cf211f45124f305efd2b2cfd1d869c846b15cb"
+        },
+        {
+          "path": "learnability-command/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "learnability-command/stdout.log",
+          "bytes": 34407,
+          "sha256": "sha256:44d295c93bf306f3b5931610716d0ba13352096af3cd0f36ffacd3d5afe88cb7"
+        },
+        {
+          "path": "learnability-run/checkpoint-identity.json",
+          "bytes": 604,
+          "sha256": "sha256:9b244ad7966a560523cdbf2f1e116284f6398c053e7e27eafcf9aefc3006871f"
+        },
+        {
+          "path": "learnability-run/comparison.json",
+          "bytes": 23690,
+          "sha256": "sha256:f1573b2d56f990e6b4e0f1c4dae48716d422cc502a9beb302121471047ae6536"
+        },
+        {
+          "path": "learnability-run/run.json",
+          "bytes": 8654,
+          "sha256": "sha256:68cd522866426685cc3da043152a9e97e7f16a3fe38fb5d7b9616df6612cb77d"
+        },
+        {
+          "path": "learnability-run/status.json",
+          "bytes": 195,
+          "sha256": "sha256:5c432ffa6d087f7989bacd7bdc19ba984f020e6c0fb11047484aef433c6d970f"
+        },
+        {
+          "path": "learnability.zip",
+          "bytes": 62905,
+          "sha256": "sha256:fdb5060ad40505500fbe6fefe89bc14c76688384667eb6820309905ff6723055"
+        },
+        {
+          "path": "measured-recipe.yaml",
+          "bytes": 9955,
+          "sha256": "sha256:3a7fbf5e458d22cbd065750c96d04cb35e7d375e87eb94facb7261182b154358"
+        },
+        {
+          "path": "pack-command/stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "pack-command/stdout.log",
+          "bytes": 264,
+          "sha256": "sha256:affddb1182159f49fd73a6e1183b19c1cc23a704e62147603fde0774f57abd9f"
+        },
+        {
+          "path": "reviewed-benchmark.json",
+          "bytes": 338403,
+          "sha256": "sha256:0a7d8fc662e9b9a41b299bbe0914526fe1e4e6bcaadf2fdc715a9e0836284685"
+        }
+      ],
+      "omissions": []
+    },
+    "inner_files": 16,
+    "inner_manifest": {
+      "complete_core": true,
+      "core_reserve_bytes": 8388608,
+      "excluded": [
+        "private inputs",
+        "truth",
+        "weights",
+        "final outcomes before authorization"
+      ],
+      "included": {
+        "budget.json": {
+          "bytes": 1569,
+          "sha256": "sha256:922d87c8fbbb440da1d410298836dc8bf819d2017323b92ba125f2d2994714c4"
+        },
+        "checkpoint-identity.json": {
+          "bytes": 604,
+          "sha256": "sha256:9b244ad7966a560523cdbf2f1e116284f6398c053e7e27eafcf9aefc3006871f"
+        },
+        "comparison.json": {
+          "bytes": 23690,
+          "sha256": "sha256:f1573b2d56f990e6b4e0f1c4dae48716d422cc502a9beb302121471047ae6536"
+        },
+        "details/0-tiny-06b570c6fff0fea3fc0b34de2c52300cb83f4ade328e97fa631e1a709e8acce5.json": {
+          "bytes": 50258,
+          "sha256": "sha256:04485bcda0785813a3c6250c03917aff8de343b3cb73488b678e6084e9df9a2a"
+        },
+        "details/0-tiny-09fccda4d5988a363c82e4b6214a3ee88a6e505662777de0d0bcc66b4a9b5e2b.json": {
+          "bytes": 53296,
+          "sha256": "sha256:4424a883321160b7ce9d0b40979c5b3af17125f03e0c257cd2c029e2dbbce0b4"
+        },
+        "details/0-tiny-445e3e6cdf7dd033f4a57e8ec45b268fec73ffcc4cd9fbdf9d72b61aceaf2c88.json": {
+          "bytes": 111202,
+          "sha256": "sha256:13faef753720ee38fa1f4fbec92505cf3b9671a1c7afc8482565024251fa6673"
+        },
+        "details/0-tiny-5cdda3227969914e7d65fe7625e85c0f7e8ea857c8aaaca6b8f651874f5c4227.json": {
+          "bytes": 102797,
+          "sha256": "sha256:876c6220784dcb54d79870d1dc783921e89640a1d25edb8b7884fc74c3cf3216"
+        },
+        "details/0-tiny-6eb8db02ac9d0c9e626395cd009da51b79f5509d270120662c30123f35c84c54.json": {
+          "bytes": 58905,
+          "sha256": "sha256:6398158b4c95f4b4ba089d277f03fbf869a78ad2b97900795d24181eedabd1ff"
+        },
+        "details/0-tiny-942565cfba2aabf11fb9d3282d34d1b64a2131dd88817b5bf831f80dd9c29114.json": {
+          "bytes": 80296,
+          "sha256": "sha256:968706e0b72b9e3d2a42f5e5e5fa21d8f064701f7e704d25699678fa8933363b"
+        },
+        "details/0-tiny-d73a888d74e8bf9423c895933612a4a44fe064a34f6f1aa1e7072941422188b6.json": {
+          "bytes": 104821,
+          "sha256": "sha256:d2414d6e9fa2339c71219aac1ae864a19e2570d647660483603dceee1b0a14c8"
+        },
+        "details/0-tiny-fba064a7e7be750eed88f2e39119576d4e92c4e41f40358cb10c981108c8aa7c.json": {
+          "bytes": 56546,
+          "sha256": "sha256:3b7cb2ba48ffec1c7c178feea8a6737251655dae7f01b87c812fef015439a6bf"
+        },
+        "input-manifest.json": {
+          "bytes": 1785,
+          "sha256": "sha256:be2e6be95ca320e54542a10d4bd5914ef25a4183f3691b35c24848071f0bde70"
+        },
+        "lineage.json": {
+          "bytes": 419,
+          "sha256": "sha256:d70e2644ddc57117e5e3d55d9e4289ff8885a4f3d5944ca340c51368048cfd37"
+        },
+        "run.json": {
+          "bytes": 8654,
+          "sha256": "sha256:68cd522866426685cc3da043152a9e97e7f16a3fe38fb5d7b9616df6612cb77d"
+        },
+        "status.json": {
+          "bytes": 195,
+          "sha256": "sha256:5c432ffa6d087f7989bacd7bdc19ba984f020e6c0fb11047484aef433c6d970f"
+        },
+        "summary.json": {
+          "bytes": 10174,
+          "sha256": "sha256:13336cb4d0b7911c009ea1e4d0a55a426245f14bb244e28265ece5d5ade19119"
+        }
+      },
+      "max_bytes": 67108864,
+      "omitted": [],
+      "version": "bigint-bundle/v1"
+    },
+    "source_image_recipe_preflight_bindings": "PASS",
+    "contract_identity": "PASS",
+    "budget_ledger": "PASS",
+    "aggregate_counts_recomputed_from_32_prompt_observations": "PASS",
+    "gate_recomputed": "BLOCKED",
+    "pack_complete_core": true
+  },
+  "preflight_review": "phase-5-scoped-hip-review.json",
+  "preflight_report_sha256": "sha256:0a7d8fc662e9b9a41b299bbe0914526fe1e4e6bcaadf2fdc715a9e0836284685",
+  "recipe_sha256": "sha256:560df5bd317e8d85573e491a152d071100d0d323bb03ccb9a2dd54741401aeed",
+  "contract_sha256": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+  "seed": 20261016,
+  "completed_updates": 1800,
+  "checkpoint": {
+    "codec_sha256": "sha256:615ae83785d3aec8063ef016fc04ad28213ba68cd75403fe01115f55e0c8289d",
+    "contract_sha256": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+    "input_sha256": "sha256:98fa9513bb720cefeb8e26fb5f21653c081659da3cf663a03b9ad734c400e69b",
+    "latest": {
+      "path": "state-bf3a5288ed9a47a1a37437a5520bd8d8/checkpoint.json",
+      "sha256": "sha256:e1a3ad7b7b0197fd8aea0c0d6ee633dcc477e7e1447f3fb9509d38502cf91116"
+    },
+    "selected": {
+      "path": "state-89584496de3042908b30727696e5585d/checkpoint.json",
+      "sha256": "sha256:b1c3213b3db3610630194a0076f67e075383d4aa7e03efa825a7648135797b62"
+    },
+    "update": 1800
+  },
+  "hardware": {
+    "device": "cuda",
+    "hip": "7.2.53211-e1a6bc5663",
+    "memory_bytes": 120259084288,
+    "name": "AMD Radeon Graphics",
+    "torch": "2.9.1+rocm7.2.1.gitff65f5bc"
+  },
+  "input_identity": "sha256:346c41e735789cc6e42886503052c86f1b6654a07cb8c466ada5d34b01ef8b92",
+  "split_sha256": "sha256:6b86396a0ed40e6235dec15c68a919d71d5a6b68cbe797576b30a667af24fb95",
+  "counts": {
+    "parameter_development": 128,
+    "structural_development": 128,
+    "training": 512
+  },
+  "controls": {
+    "absent": {
+      "accuracy": 0.09375,
+      "complete": 3,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 3,
+      "verified_admissions": true
+    },
+    "equal_budget": {
+      "accuracy": 1.0,
+      "complete": 32,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 32,
+      "verified_admissions": true
+    },
+    "raw": {
+      "accuracy": 0.9375,
+      "complete": 30,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 30,
+      "verified_admissions": true
+    },
+    "rescue": {
+      "accuracy": 0.96875,
+      "complete": 31,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 31,
+      "verified_admissions": true
+    },
+    "shuffled": {
+      "accuracy": 0.125,
+      "complete": 4,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 4,
+      "verified_admissions": true
+    },
+    "template": {
+      "accuracy": 0.0,
+      "complete": 0,
+      "denominator": 32,
+      "disagreement": false,
+      "success": 0,
+      "verified_admissions": true
+    }
+  },
+  "generation_metrics": {
+    "ambiguous": 111,
+    "attempts": 904,
+    "cache_comparisons": 0,
+    "cache_equal": 0,
+    "denominator": 32,
+    "elapsed_seconds": 5248.530564660206,
+    "greedy_terminated": 32,
+    "legal": 808,
+    "terminated": 808,
+    "visible_fit20": 32
+  },
+  "accounted_cost": {
+    "budget_seconds": 14400,
+    "debited_seconds": 7730.0,
+    "remaining_seconds": 6670.0,
+    "training_roles": 18,
+    "training_role_seconds": 196,
+    "training_debit_seconds": 3528,
+    "generation_debit_seconds": 4134,
+    "scorer_debit_seconds": 68,
+    "all_roles_completed": true,
+    "refund_seconds": 0,
+    "wall_time_seconds": null,
+    "note": "Ledger reservations are the accounted cost, not measured wall time. The generation elapsed field sums per-prompt/conditioning work and is not role wall time."
+  },
+  "lineage": {
+    "assistance": [],
+    "excluded_groups": [],
+    "exposed_groups": [],
+    "foundation": "sha256:b1c3213b3db3610630194a0076f67e075383d4aa7e03efa825a7648135797b62",
+    "foundation_cost": 7730.0,
+    "incremental_cost": 0,
+    "origin": "random_generic",
+    "parent": null,
+    "root": "sha256:72c09f4663c296aaa5de373a13b7db60bdf260bbaebdf97b0613838bacc77553",
+    "sha256": "sha256:c05f01794eb9e3e6ac8092581f7bf603ba4f0ebdb0fe0f3ff281e8fc39c4fe1a",
+    "track": "generic_only"
+  },
+  "incomplete_rescue_prompts": {
+    "sha256:02aa8138af680017900e08e7c01148a4128583e1d0778195d05f4119c337b6b9": {
+      "family": "sha256:ebc51632e11b5c7f6e6f490188c6aa6994e7c677da65a8df3d7da8295cc25c53",
+      "outcomes": {
+        "absent": {
+          "complete": false,
+          "success": false
+        },
+        "equal_budget": {
+          "complete": true,
+          "success": true
+        },
+        "raw": {
+          "complete": true,
+          "success": true
+        },
+        "rescue": {
+          "complete": false,
+          "success": false
+        },
+        "shuffled": {
+          "complete": false,
+          "success": false
+        },
+        "template": {
+          "complete": false,
+          "success": false
+        }
+      }
+    }
+  },
+  "example_detail_records": 8,
+  "limits": [
+    "Actual weights are intentionally excluded; checkpoint manifest identity is recorded without deserializing weights.",
+    "The one incomplete rescue prompt is outside the eight retained detailed examples. Its full failure cause cannot be recovered from this bounded bundle alone.",
+    "The producer pending list still includes T095, which was already closed by the reviewed preflight; that stale list does not reopen T095.",
+    "Raw/rescue/equal-budget remain distinct gates. Equal-budget32/32 cannot replace greedy-plus-fitting completeness.",
+    "Private scoring truth is excluded; review independently aggregates sealed per-prompt observations without reexecuting hidden continuations."
+  ],
+  "matching_executable_source_commit": "085bfece4563ebd23e7bde68f99c027114668d96",
+  "exact_git_revision_reported": null,
+  "review_sha256": "sha256:36b1f54ae4fc8f93794694feadf4fdea3cd18261d0b4896d67689fcb3c9c067f"
+}

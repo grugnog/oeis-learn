@@ -1,0 +1,128 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-20261024T035922Z.zip",
+  "archive_sha256": "sha256:434bbca447971a5a69ef0a68eff8a53404837e20eb20fb807808a01959cdde09",
+  "archive_bytes": 2831626,
+  "archive_members": 107,
+  "manifest_identity": "sha256:ef63de510cee86abc1a4fe4dbb9618d6a18f9de1d75a574c6c8adcf69fdbaed8",
+  "integrity": "PASS",
+  "source": "sha256:a2e19add9656ff3417b710f93773216e8d65e6bf3c794c048fd671449f0b1ad0",
+  "producer_commit": "322f8532f0c59e88bb943edb2f5c5c6a00a92ab2",
+  "elapsed_seconds": 843.3702239380218,
+  "selected_scope": "FAIL",
+  "engineering": "FAIL",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "stages": {
+    "baseline.calibration": {
+      "state": "BLOCKED",
+      "identity": "sha256:15739092139a1fbbc9fa743b6200f6312f21201b12d591ee886d1101e54d882c",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "cost.diverse32": {
+      "state": "BLOCKED",
+      "identity": "sha256:7acd0257ce90f3d1c7d74abd5f2e85e297232869cb397408b0dd48218090f18b",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "cost.transfer": {
+      "state": "BLOCKED",
+      "identity": "sha256:b6b12057749d6b0415c746cc9d800cc00c8d6316bb05b1c7736566ec6fd5f099",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:03139878b04cf6680bb0c1711b27f0efc1a151c47db098005959f04d1cf366fc",
+      "reason": ""
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:4b581b9faf46d6ad9b4d8e3e8853f7d347ba880d94528d40c49e7ceeec445029",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "BLOCKED",
+      "identity": "sha256:0654642811864f01385c2234a3a5d226bc7700211672f94161798410c1a65790",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:23ffa0191e9df6f79d4ece4198fe51e9d43b452a8c0b1faf9bd1a21526f97aa9",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "state": "FAIL",
+      "identity": "sha256:1932a9a7363c82b8c0b83322038c17466bd3aec20aa17676ae7c0958d25b6276",
+      "reason": "ResourceBreach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:84a17bd65943b45f6613b0e2018590036a07f3e2c7519845b0370592f114cbd3",
+      "reason": ""
+    },
+    "inference.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:6158ac2b7f161289bbade608b1a8d0b3d54c506213cf675f34eb9c53efe6a44a",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "native.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:711af775d1fd402eb24155f1ecdabe1447df9379abf6ac334c4ab51b8909d5ae",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:373d3abbd9cd6138ac3796aa5ccd6895e6b52bc01175fa154b0c22d2153568e3",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "identity": "sha256:93f19582d1b5274cd42920f4632b3eb91e34dc34660dc27ecc4b2629086b6bc2",
+      "reason": ""
+    },
+    "overlap.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:e75cc29fa547aaba0979a143a6a0836a5e95982cfb732b6aeec9a98a82909683",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "policy.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:3aa443b4a724eeca6aa751963777a58c97e1abdb354d53cfce58dd16fef4b358",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    },
+    "qualification": {
+      "state": "BLOCKED",
+      "identity": "sha256:b509d548399d069834fb6771878dab4d2a87d00b456896037910a7891e43e32c",
+      "reason": "global resource/audit breach: invocation transient/trace/free-space reserve exhausted"
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 600,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "failures": 0,
+      "errors": 0,
+      "skips": 9
+    }
+  },
+  "disk_stop": {
+    "breach": "invocation transient/trace/free-space reserve exhausted",
+    "cap_bytes": 8589934592,
+    "free_reserve_bytes": 16777216,
+    "peak_bytes": 162878178,
+    "trace_cap_bytes": 134217728,
+    "trace_peak_bytes": 0,
+    "version": "pipeline-disk-observation/v1"
+  },
+  "interpretation": "Free-space branch inferred from all other cap observations being below their limits. Actual free bytes and storage consumer are absent from this historical report. GPU image built but inspection stopped; HIP/calibration/comparisons/costs not run. No cap increase or cache deletion."
+}

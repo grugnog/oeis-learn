@@ -1,0 +1,67 @@
+{
+  "version": "phase5-diverse32-worker-deadline-review/v1",
+  "review_date": "2026-10-21",
+  "archive": {
+    "name": "replay-traced-20261021T214004Z.zip",
+    "sha256": "sha256:d0344dfaf576affca67708c8a91acd564df5272a981cfb032a24ce82dece0168",
+    "crc": "PASS",
+    "inventory": "PASS",
+    "verified_files": 9
+  },
+  "prior_review": "phase-5-diverse32-candidate-review.json",
+  "prior_review_sha256": "sha256:7aba2185846c5cbc264341c9e91ec8f9723d00aaad6931cfc0a2a4f754823d78",
+  "case_sha256": "sha256:698ed142269d0b53340c6bbee5516359474243423ecda8e62a64ca938e0c948b",
+  "parent_contract_sha256": "sha256:27a57fc69c74f882d7380c78ae54b9ddad9f276ba6ae34f9f6d8f0da3badbe3f",
+  "image": "sha256:33c356249558cb31197ad4285db6223c13a423548661bb624f3e12889af9099f",
+  "runtime_sha256": "sha256:4ee128978b8677c7959ca4b1f05d861af121d93944dd9355e28895cf624f5694",
+  "matching_published_utility_commit": "0fb4df8e83a3d2d553effe07c93b1c32a093066b",
+  "utility_sha256": "sha256:4348e5a0b97e66d7b6355e5e5102fff5007bb458b3078c97d85c67c6f54b0c12",
+  "exact_git_revision_reported": null,
+  "greedy_seed_from_bound_case": 75271729,
+  "raw_visible_verified": true,
+  "fit_worker": {
+    "allowance_seconds": 1.9998548161238432,
+    "complete": false,
+    "elapsed_seconds": 2.007613776018843,
+    "generation": 1,
+    "metrics": {
+      "batches": 2,
+      "queue_wait_seconds": 3.335997462272644e-05,
+      "restarts": 1,
+      "rss_peak_bytes": 105639936,
+      "rss_unavailable_reason": null,
+      "stderr_bytes": 0,
+      "stderr_tail": ""
+    },
+    "operation": "fit",
+    "outcome": "resource_exhausted",
+    "reason": "deadline",
+    "results_count": 0,
+    "unstarted_count": 1
+  },
+  "replay_elapsed_seconds": 2.2088249479420483,
+  "host_cleanup_seconds": 0.10039741196669638,
+  "ledger": {
+    "host_reserved_seconds": 75,
+    "nested_work_seconds": 30,
+    "combined_reservation_seconds": 75,
+    "refund_seconds": 0
+  },
+  "decision": {
+    "replay_failure": "worker deadline",
+    "memory_limit_triggered": false,
+    "protocol_failure_reported": false,
+    "original_T096_outcome": "NEGATIVE",
+    "promotion": "BLOCKED",
+    "more_same_case_replay_needed": false,
+    "new_training_needed": false,
+    "HIP_needed": false
+  },
+  "limitations": [
+    "Original T096 did not retain its worker reason; this establishes the failure class in the bound diagnostic replay, not an exact historical phase trace.",
+    "No native result returned; the precise solver/enumeration/verification phase at cutoff is unavailable.",
+    "The RSS metric is a cumulative observed worker peak, not total container memory or the configured RSS allowance."
+  ],
+  "next_scope": "Phase2 review of bounded fitting and response-delivery time within the existing parent allowance; no solver/ranking/gate changes in this evidence update",
+  "review_sha256": "sha256:e68610860d7764b175cc14f470e5239ae0792ec5d23fc34313796c3fc1420d46"
+}

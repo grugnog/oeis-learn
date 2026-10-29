@@ -1,0 +1,111 @@
+{
+  "archive": {
+    "name": "009-learning-pilot-preflight-20261026T142043Z.zip",
+    "sha256": "sha256:c76854c011b4c357ec72f216bc26994a0e605cf3d879c29bda1f984c58fcdba1",
+    "members": 211,
+    "omissions": 0
+  },
+  "source": "sha256:8976b7b032124c2a223ab7a75ac040faf948472bef2960d6f101e9454dafa2a2",
+  "source_entries": 749,
+  "bound_files": 133,
+  "receipt_count": 20,
+  "states": {
+    "cpu.docker.semantic": "BLOCKED",
+    "cpu.podman.semantic": "PASS",
+    "engine.docker": "PARTIAL",
+    "engine.podman": "PASS",
+    "hip.preflight": "PASS",
+    "host.contracts": "REUSED",
+    "image.docker.qualification": "BLOCKED",
+    "image.podman.gpu": "PASS",
+    "image.podman.qualification": "PASS",
+    "operations.docker.retirement": "BLOCKED",
+    "operations.docker.workflow": "BLOCKED",
+    "operations.podman.retirement": "PASS",
+    "operations.podman.workflow": "PASS",
+    "pilot.operations.docker": "BLOCKED",
+    "pilot.operations.podman": "PASS",
+    "pilot.prepare": "FAIL",
+    "pilot.report": "PASS",
+    "pilot.session": "BLOCKED",
+    "policy.compare": "PASS",
+    "study.report": "PASS"
+  },
+  "elapsed_seconds": 5737.296109542949,
+  "tests": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 793,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 9
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "stages/policy.compare/role/results.xml": {
+      "tests": 45,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "version": "pipeline-pilot-operator-review/v1",
+  "source_matches_producer": true,
+  "total_zip_members": 212,
+  "cpu_passes": 752,
+  "cpu_subtests": 41,
+  "hip_passes": 23,
+  "failure": {
+    "stage": "pilot.prepare",
+    "message": "full pilot corpus shortfall; no duplicate padding or fallback",
+    "raw_counters": 262144,
+    "eligible": 262144,
+    "reference_progress_seconds": 2551.9433123,
+    "role_seconds": 4134.0661812,
+    "checkpoint_reasons": "NOT_RETAINED_BY_OLD_PRODUCER",
+    "native_admissions_started": false,
+    "session_started": false
+  },
+  "diagnosis": {
+    "status": "LOCAL_REPRODUCTION_NOT_TARGET_TRACE",
+    "sample_rows": 8192,
+    "legacy_split_shortfall": {
+      "training": 136,
+      "parameter_development": 34
+    },
+    "cause": "Legacy selection computed transitive overlap components over unused candidates; bridge candidates may unnecessarily exclude actual selected examples."
+  },
+  "repair": {
+    "selection_policy": "selected-disjoint-windows/v1",
+    "inputs": "pipeline-pilot-inputs/v2",
+    "private_reference_cache": "bounded semantic-bound original-counter prefix; explicit reuse only",
+    "native": "all33024 selected sources still require fresh exact100-index production/reference agreement",
+    "progress": "counts/rejections/phase at most10s apart during selection; parent preparation deadline retained",
+    "codec": "same typed grammar, one complete parse rather than replaying every prefix"
+  },
+  "learning": "NOT_STARTED_NO_RESULT",
+  "cost": "UNKNOWN_NO_FULL296_ROSTER_OBSERVATIONS",
+  "long_run_admitted": false,
+  "accepted_previous_soak": "UNCHANGED_NO_REPEAT",
+  "original_task_counts": {
+    "complete": 87,
+    "engineering_pending": 9,
+    "research_held": 15
+  },
+  "missing_docker": "Independent Docker unavailable; Podman alias is not a second independent engine"
+}

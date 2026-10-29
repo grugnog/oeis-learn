@@ -1,0 +1,53 @@
+{
+  "version": "pipeline-soak-closeout-local/v1",
+  "runtime_source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "source_entries": 731,
+  "runtime_unchanged": true,
+  "review": "soak-operator-20261025T232558Z.json",
+  "verification": {
+    "archive_integrity": "PASS:994 listed members,803 receipt-bound public files,38 sealed receipts/prerequisite links",
+    "task_checkbox_ledger_paths": "PASS",
+    "changed_document_links_and_json": "PASS",
+    "source_compatibility": "exact snapshot unchanged",
+    "checklists": [
+      {
+        "file": "requirements.md",
+        "total": 16,
+        "checked": 16,
+        "unchecked": 0
+      }
+    ],
+    "post_implement_hooks": "none registered (.specify/extensions.yml absent)"
+  },
+  "counts": {
+    "complete": 87,
+    "pending_runtime": 9,
+    "blocked_research": 15
+  },
+  "closed_original_tasks": [
+    "T025",
+    "T026",
+    "T031",
+    "T064",
+    "T069",
+    "T075",
+    "T076",
+    "T078",
+    "T085",
+    "T110"
+  ],
+  "remaining_original_engineering": [
+    "T011",
+    "T034",
+    "T041",
+    "T059",
+    "T060",
+    "T062",
+    "T073",
+    "T084",
+    "T086"
+  ],
+  "test_execution": "No new runtime code or host suite rerun. Actual target pinned CPU/HIP/operations results retained at producer466863f; local review used stdlib integrity/consistency checks only.",
+  "repeat_primary_soak": false,
+  "ci_waited": false
+}

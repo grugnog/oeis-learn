@@ -1,0 +1,391 @@
+{
+  "version": "pipeline-phase-review/v2",
+  "authority": "Derivative review index; immutable producer receipts remain in uploaded archive. Documentation is not a new qualification run.",
+  "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+  "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "archive": {
+    "name": "009-soak-20261025T232558Z.zip",
+    "sha256": "sha256:54c1d61f95d081950dff30c40b51d60563c71c7a833274f7579b1cbb2be21b9a",
+    "bytes": 12982101,
+    "members": 994,
+    "omissions": [],
+    "verified": true
+  },
+  "operator_review": "soak-operator-20261025T232558Z.json",
+  "primary_engineering_readiness": "PASS",
+  "portability": "PENDING_REAL_DOCKER",
+  "selected_scope": "PARTIAL",
+  "images": {
+    "qualification": "sha256:c7ae1dc3281493492023c531185dbb9718cdf19b67bc2f039a35525d3e21bcbd",
+    "gpu": "sha256:2e40c916657634405d2bf2c380e8c53b57e2ac108b7aee149fa1a08a147b3244"
+  },
+  "qualification_summary": {
+    "cpu_tests": 721,
+    "cpu_subtests": 33,
+    "hip_tests": 21,
+    "workflow_tests": 1106,
+    "workflow_skips": 9,
+    "retirement_tests": 123,
+    "policy_tests": 45
+  },
+  "stages": {
+    "cpu.docker.semantic": {
+      "state": "BLOCKED",
+      "identity": "sha256:492843f06950d9b0236173ab254df57008c7f8dc3a717e8dda0c72d824b792ff",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:ceaf705a2ff12e4aaa6cdaf2123b91501577ab5d11f52438e0da6fee06819d21",
+      "reason": ""
+    },
+    "engine.docker": {
+      "state": "PARTIAL",
+      "identity": "sha256:0db7f7856b5be230b36af2f1202b9a3aab3abf38b5adadf89dfd020ae0a413a4",
+      "reason": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:1a6aff4e2901b58f1da4b45d0c45744327c3cc9c9b9838d965f9bd4ab7dc95a4",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:5be1e7644777949f4d50d39b3b6afa6e6892edfcd4c8dd4adcc8a49a89257c14",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:1c45a713c5c6efbe77d7a588fc393f69d63c504bc103207bea41d4e538268e46",
+      "reason": ""
+    },
+    "image.docker.qualification": {
+      "state": "BLOCKED",
+      "identity": "sha256:eca741284f5334d9be0cf414d7581d2f3788aa52503c508824c46132c7718c63",
+      "reason": "failed/missing prerequisites: engine.docker"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:811c77066bb1e216fb24aeba6b5d92501e359de1ebf05c6ccdae58240ff04e18",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:002cb0cd0afd6bff097d0537c77821edb76eb54fcecc1bed79def78f12743839",
+      "reason": ""
+    },
+    "native.compare": {
+      "state": "PASS",
+      "identity": "sha256:8f9c5ee46c2b441d42fc0a289c42f03d58f28b726acf2824ea421550a0d8be73",
+      "reason": ""
+    },
+    "operations.docker.retirement": {
+      "state": "BLOCKED",
+      "identity": "sha256:165aaa04b703c63175302e555766582c2d6479a1e26c2b1fe00d92b3ce239a3e",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "operations.docker.workflow": {
+      "state": "BLOCKED",
+      "identity": "sha256:a622f0434bbe97b14767e8b65eedcaef3c6dd22b6ee030b1398bfb3eb4e9aa44",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:d803a9be0f3a52ea0085121752d9b51894b07a7279fa4c6e30f85250343e0cd7",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "identity": "sha256:aa5278ea1def340b8013fd43b2d070d2cb81b47380f12b245fbf065ce56c5346",
+      "reason": ""
+    },
+    "policy.compare": {
+      "state": "PASS",
+      "identity": "sha256:be69c9cff4b9954338d11c4fc448a5eb7fa70291f9edda0b07566ff1da98d20f",
+      "reason": ""
+    },
+    "soak.b16.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:7ffda87a34cdb8372db60073ba16a5ef49f96d163939389d276f7c5179450cef",
+      "reason": ""
+    },
+    "soak.b16.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:0760014c097471619803b4d0387c5f1d07bc5a22af8ceec4188d318b974522f2",
+      "reason": ""
+    },
+    "soak.b16.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:67223966372938dcc54e928f1170dd5cef5bbc30ec809ee6d17ca78d87e36e64",
+      "reason": ""
+    },
+    "soak.b16.warmup": {
+      "state": "PASS",
+      "identity": "sha256:e3618165873dc3689eab7445e2b50ad72dfd02521f5ff981446ed0bceda764ed",
+      "reason": ""
+    },
+    "soak.b32.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:cd244af24a4b92bbe4052ad791a4739904b937e172dec436bff669fa4b7338ee",
+      "reason": ""
+    },
+    "soak.b32.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:527eee83ab3a94c7b332dba7be1be0f59f2f7fd90f0f8514ee84a4a5ef083e58",
+      "reason": ""
+    },
+    "soak.b32.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:7ef078d9d7da1e7ca73296ea201441a48732b4cfad5d7f0b18101bb8ea5c1472",
+      "reason": ""
+    },
+    "soak.b32.warmup": {
+      "state": "PASS",
+      "identity": "sha256:aeb7a46c56bc48e5de4f02e7e79397ee167f6268b1ce3b1ba2c8d8851af58d28",
+      "reason": ""
+    },
+    "soak.b8.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:44c2c19920c7077ba384a3d7d221ef8f0f5e43408e3ea41395bee7be3ac24e77",
+      "reason": ""
+    },
+    "soak.b8.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:bda9df80a63462347e1694324cce90b51d7c7c8d55bffb7901b01fb2ebac6916",
+      "reason": ""
+    },
+    "soak.b8.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:936e89b2192112925f1e42b0eb52216dce1927f5874ae50b58c0efab6ba6fcbb",
+      "reason": ""
+    },
+    "soak.b8.warmup": {
+      "state": "PASS",
+      "identity": "sha256:42391c27ee7f41b9c2f7f3f8c40140180ed4291111ebd8d1c49b836597587e44",
+      "reason": ""
+    },
+    "soak.freeze": {
+      "state": "PASS",
+      "identity": "sha256:6ff5c6d435433069afb5c179d3e6ea7fb72a98efa578c6d7bff860e58daaa876",
+      "reason": ""
+    },
+    "soak.joint": {
+      "state": "PASS",
+      "identity": "sha256:ca30815b842baab8729d3942de11123e2b7e2f3422396841409fffe26daa5b82",
+      "reason": ""
+    },
+    "soak.observation": {
+      "state": "PASS",
+      "identity": "sha256:5333cb908aa10a69d036b2401ab95d1089e66b5ffd74826a995d5e2345c898d5",
+      "reason": ""
+    },
+    "soak.operations.docker": {
+      "state": "BLOCKED",
+      "identity": "sha256:172abc51d649e1c87417e1413f7f994568a7befcce3d8b3b6adb240cf636b60d",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "soak.operations.podman": {
+      "state": "PASS",
+      "identity": "sha256:439eca6c12fa1d60170d4cf4a96995b4af6680a473a3e281f88b44c51bbdd43a",
+      "reason": ""
+    },
+    "soak.parity": {
+      "state": "PASS",
+      "identity": "sha256:61f031a71552e9cfd86fb1541cf9f391fc8e558651590b9ec0677c28bda54826",
+      "reason": ""
+    },
+    "soak.persistent": {
+      "state": "PASS",
+      "identity": "sha256:b44adc52a4b9475bc8a0cb135f4e572ad09e43b9aeb6a4a591ebe2d9f77514df",
+      "reason": ""
+    },
+    "soak.prepare": {
+      "state": "PASS",
+      "identity": "sha256:0b304926b9cf848bf9051220e76fe4bb932cb8f0ccfd50cc2007d40cd2e47a46",
+      "reason": ""
+    },
+    "soak.reference": {
+      "state": "PASS",
+      "identity": "sha256:307a204f9d23bf4ef1bc56180d0cc2a56a58d8c8724ed8771de4199c40099763",
+      "reason": ""
+    },
+    "soak.report": {
+      "state": "PASS",
+      "identity": "sha256:4c0c9030223212adb338b7228ebde0d469791c00253e82adf822cd97fa13e32d",
+      "reason": ""
+    },
+    "soak.scorer": {
+      "state": "PASS",
+      "identity": "sha256:86f2e29d162633575e625b2ab1b6a1c5195554fb4e2fd36306e4d8f1bdce3ad1",
+      "reason": ""
+    }
+  },
+  "prior_index": {
+    "sha256": "sha256:5598f1a08f192a7ffc431b2e0fc319c200749495dbea647e010a6a810a9c272c",
+    "retrievable_at": "https://github.com/grugnog/oeis-learn/blob/466863f7edd2633760893eb4bcb06005690f2278/specs/009-pipeline-throughput/validation/phase-1-operator.json",
+    "record": {
+      "version": "pipeline-operator-review/v1",
+      "archive": "009-20261023T232536Z.zip",
+      "archive_sha256": "sha256:943df1c9432fddf0b0e5826d4a10cdf73df8dab38856258d2f8e7ccd6b4debe2",
+      "archive_bytes": 9688496,
+      "archive_members": 507,
+      "manifest_identity": "sha256:1b98675e382177372e2ac848a236816ee1554f6d56219602cfd2c652b8764b5d",
+      "integrity": "PASS",
+      "producer_commit": "f7ecc720f5cada14820add0d74d099b6d3a038e4",
+      "source": "sha256:a36ac23965bf07da59b02c3d32dd33110d1fd4c767434b2578d14d154ef5aec1",
+      "source_match": "exact full snapshot match to clean producer checkout before repairs",
+      "elapsed_seconds": 1765.04919019714,
+      "selected_scope": "FAIL",
+      "engineering": "BLOCKED",
+      "portability": "PENDING",
+      "feature_complete": false,
+      "learning": "NOT_ADMITTED",
+      "research": "NOT_EXECUTED",
+      "long_run_admission": "NOT_ADMITTED",
+      "stages": {
+        "baseline.calibration": {
+          "state": "FAIL",
+          "identity": "sha256:7af1617b844716db6d85da3333c9f6ab64770d535d5e7c2aaaa347e193bbf6b9"
+        },
+        "cost.diverse32": {
+          "state": "FAIL",
+          "identity": "sha256:7097c22cf8df4401cd8b09f32fcbf5f071b88aedbf33042e2d28fc374041541d"
+        },
+        "cost.transfer": {
+          "state": "FAIL",
+          "identity": "sha256:302aa746600af93b52f1fea602f2b2f3ed6590d57c22418c5a2a7e475a35bd30"
+        },
+        "cpu.docker.semantic": {
+          "state": "BLOCKED",
+          "identity": "sha256:aa30ded5fbea9e41d04d4c2b6df0e62014331c98a0fca1fccbe7aa12f72e542b"
+        },
+        "cpu.podman.semantic": {
+          "state": "PASS",
+          "identity": "sha256:5b86d7efbec52757749b400556d55f16bacaa97ff21f12f53872cbc65263501b"
+        },
+        "engine.docker": {
+          "state": "PARTIAL",
+          "identity": "sha256:304e18f0f09e72d6d6b6bd1e98729733d2ca38d5d6fac2574888c6b100c0ac4b"
+        },
+        "engine.podman": {
+          "state": "PASS",
+          "identity": "sha256:8c0fd86f28601ba26fbf9636619263792a8b4e4b8baa81c69647cadac1780580"
+        },
+        "hip.preflight": {
+          "state": "PASS",
+          "identity": "sha256:5ce30292acb5850a27fcc636156f69fda4203016b66bdf2dd00f796e5cbdb95b"
+        },
+        "host.contracts": {
+          "state": "PASS",
+          "identity": "sha256:e85be110398993eccde5dc78bf8808e3aacba48040f9d7915d219721db5a6f2e"
+        },
+        "image.docker.qualification": {
+          "state": "BLOCKED",
+          "identity": "sha256:a362894735afb953a752b6302fd89a2af7bfd5004da8a51e87d03ecf316d127f"
+        },
+        "image.podman.gpu": {
+          "state": "PASS",
+          "identity": "sha256:babf029aef2949f2d2f8cdbe9253a9f72cf5b149bad82acdc8d1ff62219df9c6"
+        },
+        "image.podman.qualification": {
+          "state": "PASS",
+          "identity": "sha256:744d3dbbd1547b23cfa25856197e6aede58435640755fde0b3aff7fe42fdb30d"
+        },
+        "inference.compare": {
+          "state": "BLOCKED",
+          "identity": "sha256:039b728f06700d1ef42597397c3bcbdfa5b260df69a8fb0961e41893868c85a1"
+        },
+        "native.compare": {
+          "state": "INCONCLUSIVE",
+          "identity": "sha256:bbe6c19895c516f039e6cd27285206426b6cf9f5a3fc68b12e72585f3bacafe2"
+        },
+        "operations.docker.retirement": {
+          "state": "BLOCKED",
+          "identity": "sha256:e5841eecccc364067c3e64e94486d47833df3bb95a6114fa7325dabcfcbbb471"
+        },
+        "operations.docker.workflow": {
+          "state": "BLOCKED",
+          "identity": "sha256:6f0904c5079b1182cad879042d9647226e5b432e596f63808d843314d9647beb"
+        },
+        "operations.podman.retirement": {
+          "state": "PASS",
+          "identity": "sha256:891d82806598af15b5f294d967ff88c22dc0d66dd45feca024e2483768093ac3"
+        },
+        "operations.podman.workflow": {
+          "state": "PASS",
+          "identity": "sha256:60bc5684e88566b873bbaab4e5b6a61b02b4ee0c0843c99a81d028716fde6646"
+        },
+        "overlap.compare": {
+          "state": "BLOCKED",
+          "identity": "sha256:49055d98a551c99fbd6d948473e88ce9e2b8b1b5efb0bd87f4b4f9834a85ce63"
+        },
+        "policy.compare": {
+          "state": "PASS",
+          "identity": "sha256:3c68ce47a50f56312abed1e3662805811c794368e3746d9693cce6448c802a7e"
+        },
+        "qualification": {
+          "state": "PASS",
+          "identity": "sha256:f8db90b277616e0ea1bc58ec611198922bda0827f75fb280b6fc5f4078001695"
+        }
+      },
+      "junit": {
+        "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "tests": 593
+        },
+        "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "tests": 123
+        },
+        "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+          "failure": 0,
+          "error": 0,
+          "skipped": 9,
+          "tests": 1115
+        },
+        "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "tests": 14
+        },
+        "stages/policy.compare/role/results.xml": {
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "tests": 43
+        }
+      },
+      "blockers": [
+        "CPU/CUDA comparison in diagnostic checkpoint roundtrip",
+        "local native expiry aborted transfer cost scope",
+        "Docker reported no usable memory resource",
+        "native exploration inconclusive; serial baseline retained"
+      ],
+      "interpretation": "Producer evidence retained. Repairs invalidate affected source closures; no speedup, study admission or final exposure claimed.",
+      "cold_baseline_attempts": {
+        "scheduled": 576,
+        "decoded": 376,
+        "generation_deadline": 32,
+        "unstarted_parent_deadline": 168,
+        "complete_prompt_count": 0,
+        "prompt_denominator": 32,
+        "interpretation": "Checkpoint repair does not establish a completed calibration subset. Keep original workload and limits; an empty subset is INCONCLUSIVE, with dependent timing comparisons unstarted."
+      }
+    }
+  },
+  "scope_boundaries": {
+    "primary_hardware": "PASS",
+    "portability": "PENDING_REAL_DOCKER",
+    "original_adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+    "full_cost": "UNKNOWN",
+    "learned_quality": "NOT_ASSESSED",
+    "long_run_authority": "NOT_ADMITTED",
+    "checkpoint_authority": "engineering own-state recovery only; not research resume"
+  },
+  "repeat_primary_soak": false
+}

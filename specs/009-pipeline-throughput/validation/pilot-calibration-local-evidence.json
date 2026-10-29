@@ -1,0 +1,61 @@
+{
+  "version": "pipeline-pilot-calibration-local-evidence/v1",
+  "source": "sha256:47c47e090ae462891dfbf3f1b2cca66feea694d064adfd4053e1e646db2a9bfb",
+  "source_entries": 761,
+  "host_tests": {
+    "passed": 239,
+    "seconds": 12.72,
+    "scope": "stdlib; pinned runtime tests not installed or claimed executed"
+  },
+  "checks": [
+    "SpecKit prerequisites pass; requirements16/16; no extension hooks",
+    "closed calibration manifest and scope report pass",
+    "real public producer source/math-owner/qualification checks pass through missing private input",
+    "three actual public checkpoint contracts match reconstructed original source/image/data bindings",
+    "snapshot byte/record/pointer/contract/missing/symlink counterexamples reject",
+    "original-clock exhaustion, parent-cut, missing/duplicate clocks and unresolved science are distinct",
+    "three-snapshot routing isolates generator weights from CPU hidden truth; zero learner/reference calls",
+    "legacy authority rejects new candidate costs; missing clocks UNKNOWN; over-budget remains OVER_BUDGET",
+    "syntax/JSON/link/task-count/diff checks pass"
+  ],
+  "public_cli": {
+    "path": "tmp-validation/009-calibration-final-local-negative",
+    "elapsed_seconds": 13.285492573999363,
+    "archive": "sha256:da686b198a9613d59e7d0a15427a69f055678aa69cd49c7942a1fe1879736616",
+    "total_members": 42,
+    "omissions": 0,
+    "expected_failure": "Only public producer files are available locally; private prepared data absent.",
+    "stages": {
+      "calibration.import": "FAIL",
+      "calibration.report": "PASS",
+      "calibration.session": "BLOCKED",
+      "cpu.podman.semantic": "BLOCKED",
+      "engine.podman": "BLOCKED",
+      "hip.preflight": "BLOCKED",
+      "host.contracts": "PASS",
+      "image.podman.gpu": "BLOCKED",
+      "image.podman.qualification": "BLOCKED",
+      "operations.podman.retirement": "BLOCKED",
+      "operations.podman.workflow": "BLOCKED",
+      "pilot.operations.podman": "BLOCKED",
+      "policy.compare": "BLOCKED",
+      "study.report": "PASS"
+    },
+    "engine_access": false,
+    "readiness": "BLOCKED",
+    "cost": "UNKNOWN"
+  },
+  "original_counts": {
+    "complete": 87,
+    "engineering_pending": 9,
+    "research_held": 15
+  },
+  "pending": [
+    "actual private saved-file import",
+    "current pinned CPU/native/HIP/operations",
+    "three complete full-clock costs",
+    "subsequent long-run profile/authority review"
+  ],
+  "handoff": "specs/009-pipeline-throughput/validation/pilot-calibration-implementation.md",
+  "long_run_admitted": false
+}

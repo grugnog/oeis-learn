@@ -49,7 +49,7 @@ class HybridEncoder(TriStreamEncoder):
 class ChunkHybridEncoder(TriStreamEncoder):
     """Explicit width-extensible profile; historical HybridEncoder stays intact."""
 
-    def __init__(self, *, dropout=0.0, group_mask=None, ablation_mode="post_training", **kwargs):
+    def __init__(self, *, dropout=0.0, group_mask=None, ablation_mode="post_training", model_profile=None, **kwargs):
         from .large_integer_features import PRIMES
         from .integer_chunks import ChunkEncoder
 
@@ -65,13 +65,21 @@ class ChunkHybridEncoder(TriStreamEncoder):
             enable_summary_tokens=False,
             input_profile="hybrid-chunks/v1",
         )
+        # Production callers retain the frozen256 profile. Only the separately
+        # registered hardware constructor supplies an exact explicit size record.
+        if model_profile is not None:
+            from oeis_learn.pipeline_validation.model_sizes import validate_profile
+            shape=validate_profile(model_profile)
+            if dropout != 0:raise ValueError('sizing uses unchanged dropout0')
+            fixed.update(d_model=shape['width'],n_heads=shape['heads'],
+                n_encoder_layers=shape['encoder_layers'],d_ff=shape['ff'])
         for key, value in kwargs.items():
             if key in fixed and value != fixed[key]:
                 raise ValueError(f"hybrid-chunks/v1 requires frozen {key}")
         fixed.update(kwargs)
         super().__init__(dropout=dropout, **fixed)
-        self.chunk_encoder = ChunkEncoder(dropout=dropout)
-        self.byte_gate = nn.Parameter(torch.full((256,), -2.0))
+        self.chunk_encoder = ChunkEncoder(dropout=dropout, d_model=self.d_model)
+        self.byte_gate = nn.Parameter(torch.full((self.d_model,), -2.0))
         from .ablation import InputMask
 
         self.group_mask = group_mask or InputMask()

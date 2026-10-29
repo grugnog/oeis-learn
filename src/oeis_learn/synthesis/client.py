@@ -15,6 +15,18 @@ from .admission import VisiblePrompt, admit, reference_identity, source_identity
 MAX_FRAME = 4 * 1024**2
 
 
+def _incomplete(response, **payload):
+    outcome = response.get("outcome")
+    return dict(
+        outcome=outcome
+        if outcome in {"verification_failure", "resource_exhausted"}
+        else "resource_exhausted",
+        reason=response.get("reason") or "incomplete worker result",
+        transport=response.get("failures", []),
+        **payload,
+    )
+
+
 def encoded(value):
     parts = []
     size = 0
@@ -131,13 +143,16 @@ class SynthesisClient:
         )
         with binary.open("rb") as handle:
             binary_hash = "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
-        result = identity(
-            dict(
-                binary_sha256=binary_hash,
-                guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
-                profile=profile,
-            )
+        manifest = dict(
+            binary_sha256=binary_hash,
+            guest_sha256="sha256:" + hashlib.sha256(guest.read_bytes()).hexdigest(),
+            profile=profile,
         )
+        if profile == "bigint-body/v1":
+            from .engine_policy import production_policy
+
+            manifest["engine_policy_sha256"] = identity(production_policy())
+        result = identity(manifest)
         self.runtime_identities[profile] = result
         return result
 
@@ -170,6 +185,7 @@ class SynthesisClient:
         results = []
         unstarted = []
         complete = True
+        failures = []
         for batch in batches(rows):
             request = dict(
                 protocol="synthesis-worker/v1",
@@ -193,7 +209,25 @@ class SynthesisClient:
             results.extend(response["results"])
             unstarted.extend(response["unstarted"])
             complete &= response["complete"]
-        return dict(results=results, unstarted=unstarted, complete=complete)
+            if not response["complete"]:
+                failures.append(
+                    {
+                        key: response.get(key)
+                        for key in ("outcome", "reason", "generation", "metrics")
+                    }
+                )
+        failure = next(
+            (row for row in failures if row["outcome"] == "verification_failure"),
+            failures[0] if failures else {},
+        )
+        return dict(
+            results=results,
+            unstarted=unstarted,
+            complete=complete,
+            failures=failures,
+            outcome=failure.get("outcome", "ok"),
+            reason=failure.get("reason"),
+        )
 
     def execute(self, source, indices, *, profile="bigint-body/v1", deadline=None):
         response = self.request(
@@ -203,11 +237,7 @@ class SynthesisClient:
             profile=profile,
             deadline=deadline,
         )
-        return (
-            response["results"][0]
-            if response["results"]
-            else dict(outcome="resource_exhausted", values=[], reason="worker incomplete")
-        )
+        return response["results"][0] if response["results"] else _incomplete(response, values=[])
 
     def fit(
         self,
@@ -233,10 +263,14 @@ class SynthesisClient:
                 profile=profile,
                 policy=policy,
                 solver="native-fitting/v1",
+                cache_completion="qualified-shortlist/v2",
                 seed=seed,
             )
         )
         native = self.caches.get(key)
+        complete_search = native is not None and native.get('_cache_completion') == 'qualified-shortlist/v2'
+        if not complete_search:
+            native = None
         if native is None:
             response = self.request(
                 "fit",
@@ -253,9 +287,15 @@ class SynthesisClient:
             native = (
                 response["results"][0]
                 if response["results"]
-                else dict(
-                    outcome="resource_exhausted", assignments=[], reason="incomplete worker result"
-                )
+                else _incomplete(response, assignments=[])
+            )
+            complete_search = (
+                response.get('complete') is True
+                and native.get('outcome') == 'assignment_found'
+                and native.get('reason') is None
+                and native.get('uniqueness') in {'unique_in_scope', 'multiple'}
+                and all(row.get('outcome') in {'assignment_found','unsat_in_scope'} and row.get('reason') is None
+                        for row in native.get('searches', []))
             )
         if (
             not isinstance(native, dict)
@@ -271,6 +311,7 @@ class SynthesisClient:
                 reason="malformed provisional shortlist",
             )
         verified = []
+        admission = []
         for item in native.get("assignments", [])[:8]:
             if item.get("original_source_sha256") != source_identity(source):
                 return dict(
@@ -282,16 +323,27 @@ class SynthesisClient:
             result = admit(
                 item, prompt, runtime_sha256=runtime, limits=self.limits, deadline=deadline
             )
+            admission.append(
+                dict(
+                    source_sha256=item.get("source_sha256"),
+                    outcome=result.outcome,
+                    reason=result.reason,
+                )
+            )
             if result.outcome == "verified_solution":
                 verified.append(
                     dict(item, verification=result.verification, outcome="verified_solution")
                 )
             elif result.outcome == "verification_failure":
                 return dict(
-                    outcome="verification_failure", native=native, admitted=[], reason=result.reason
+                    outcome="verification_failure",
+                    native=native,
+                    admitted=[],
+                    reason=result.reason,
+                    admission=admission,
                 )
-        if verified:
-            self.caches.put(key, native)
+        if verified and complete_search and time.monotonic() < deadline:
+            self.caches.put(key, dict(native, _cache_completion='qualified-shortlist/v2'))
         return dict(
             outcome="verified_solution"
             if verified
@@ -300,5 +352,17 @@ class SynthesisClient:
             else "resource_exhausted",
             native=native,
             admitted=verified,
+            complete=bool(complete_search and time.monotonic() < deadline) if verified else native['outcome'] in {'unsupported','unsat_in_scope','invalid_source'},
+            admission=admission,
+            reason=None
+            if verified
+            else next(
+                (
+                    row["reason"] or row["outcome"]
+                    for row in admission
+                    if row["outcome"] != "verified_solution"
+                ),
+                native.get("reason"),
+            ),
             metrics=self.caches.metrics(),
         )

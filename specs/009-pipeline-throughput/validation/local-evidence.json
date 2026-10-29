@@ -1,0 +1,151 @@
+{
+  "version": "pipeline-local-evidence/v1",
+  "command": [
+    "python3",
+    "-S",
+    "scripts/foundation_run.py",
+    "--engine",
+    "docker",
+    "validate",
+    "--suite",
+    "pipeline",
+    "--phase",
+    "all-ready",
+    "--engines",
+    "both",
+    "--max-seconds",
+    "3600",
+    "--output",
+    "tmp-validation/009-local-closeout"
+  ],
+  "exit_code": 3,
+  "source": "sha256:aa6681a493fcc355804085f9862207f70693d5731e08f4bbd4d9d9a5f3cc1e2d",
+  "stdlib_tests": 80,
+  "host_state": "PASS",
+  "selected_scope": "PARTIAL",
+  "engineering": "BLOCKED",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "summary_sha256": "sha256:42c1a7ae69a5ab05443355fbc20406031a96cdef909dd444081f9c6b77d88ec8",
+  "archive_sha256": "sha256:27bcc56a272cf5a0abd285aefd232e4a2664a5162b524a8e880a0a7a3b77814b",
+  "archive_verified_members": 54,
+  "capabilities": {
+    "docker": "unavailable",
+    "podman": "unavailable",
+    "torch": "unavailable",
+    "cargo": "unavailable",
+    "actual_hip": "not run"
+  },
+  "stages": {
+    "baseline.calibration": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.docker.semantic,hip.preflight",
+      "identity": "sha256:f0d750e43e385834620bf3060e6a0273df2e44b162bc40627bfea6e8145e27e3"
+    },
+    "cost.diverse32": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.docker.semantic,hip.preflight",
+      "identity": "sha256:ad59980a79c74b823531fe87059e60d8ebe42c2c7ef2b1eafcbe076e8074859a"
+    },
+    "cost.transfer": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.docker.semantic,hip.preflight",
+      "identity": "sha256:370e3c34073015f76fa1a31cfb84ef1c31317dbaafd79debf9fea8ae647181f9"
+    },
+    "cpu.docker.semantic": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "identity": "sha256:e24e711df416a90f79132ef88d5d64048798d69cde4e769a9416b089f78d701f"
+    },
+    "cpu.podman.semantic": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.podman.qualification",
+      "identity": "sha256:9bb7fb07bbd3c2458b59c9360240b7d74f4e6f0cf4cb2b40c81d1ce09b953883"
+    },
+    "engine.docker": {
+      "state": "PARTIAL",
+      "reason": "docker: docker CLI is unavailable; select an installed container engine",
+      "identity": "sha256:0eb81b43844192446150a95345c4e115ac7c077440b5edd073d83fb66b65ac4d"
+    },
+    "engine.podman": {
+      "state": "PARTIAL",
+      "reason": "podman: podman CLI is unavailable; select an installed container engine",
+      "identity": "sha256:7738543c7bb4289156ed9a32f9d25f77543ff69bc521b858f2bda68ff0bf783d"
+    },
+    "hip.preflight": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.docker.gpu",
+      "identity": "sha256:64eb93adbd9394e60e25c2a4e13412737f084089683998d172b2bbc2a3bc91a1"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "reason": "",
+      "identity": "sha256:5853817976ae99dd95924946668ec28bd9c234d411fbe81e8f3e676289dd9b9c"
+    },
+    "image.docker.gpu": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: engine.docker",
+      "identity": "sha256:96e1c0ef7f192f6bd3a0099eb05e8de961ca14b68a936bea71a00ac400d66536"
+    },
+    "image.docker.qualification": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: engine.docker",
+      "identity": "sha256:604af4cb27c6f1895be47b61d799f854a380669770acb467763b40af81fdf76d"
+    },
+    "image.podman.qualification": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: engine.podman",
+      "identity": "sha256:0348941ddb356016a435a18bdd5f098ad6481a2bf0bd4461fdec539b5e2bea85"
+    },
+    "inference.compare": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: baseline.calibration",
+      "identity": "sha256:e98a8c55467d7d340ab472f5ef3323fee8ef0ebca74ac1997fe455febd2073b6"
+    },
+    "native.compare": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: policy.compare",
+      "identity": "sha256:6dd2ce3f70471322a2d7d5afa92f3a89eb2808ebf47a06bff92451195e9c9fed"
+    },
+    "operations.docker.retirement": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "identity": "sha256:89165921e5a9a9c60d7cadd9923c6cf891ae52d62b7c8251ffb25df4f4fa994a"
+    },
+    "operations.docker.workflow": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "identity": "sha256:cf6729339c315863651b0984badc70f83b2b22aabfa71bde433662161c749372"
+    },
+    "operations.podman.retirement": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.podman.qualification",
+      "identity": "sha256:e626b79365e66c7d40d2158c7c83e585e58b53c5d4ce6819042fa4c8be2f3c19"
+    },
+    "operations.podman.workflow": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: image.podman.qualification",
+      "identity": "sha256:4ad1d037922719c6a2fae8ce518d7848d8fe2bf061b5d1075747ad22102244d6"
+    },
+    "overlap.compare": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: baseline.calibration,policy.compare,native.compare",
+      "identity": "sha256:bb71c475a3499a3cb4357854d099fc47050599cf0bc2025f7724d1a89de49633"
+    },
+    "policy.compare": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.docker.semantic",
+      "identity": "sha256:467e2c81ea9907b81a325129c1ea8bf74a3c39505b78a03802a55a16ecb9c7dd"
+    },
+    "qualification": {
+      "state": "PASS",
+      "reason": "",
+      "identity": "sha256:3d26fcfec8d36dcbb689e5bfd1766a50c3670730f10f6dc3373a3f91008a2f7e"
+    }
+  },
+  "interpretation": "Actual stdlib invocation and local artifact verification only; no runtime, HIP, performance or research qualification.",
+  "retained_host_evidence": {
+    "local-host-receipt.json": "sha256:56961fa13ffeee791cbfdf462bc8c5c015990bbb76dfce52451cb8a3b685210b",
+    "local-host-tests.txt": "sha256:918ea6c774971e013d9758ec5fb5eaaf7207d7ef270ddab4a379abb786129146"
+  }
+}

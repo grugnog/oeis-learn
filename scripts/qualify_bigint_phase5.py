@@ -3,6 +3,7 @@
 
 Default runs CPU/native/retirement and measurements. --gpu additionally requires
 actual HIP and measures the production model. New outputs preserve earlier runs.
+--fitting-only runs fitting/admission regressions without data or GPU work.
 No Phase 6 screen or final-cohort evaluation is scheduled.
 """
 
@@ -29,7 +30,18 @@ GROUPS = {
         "tests/unit/test_bigint_encoder.py",
         "tests/integration/test_native_phase7.py",
         "tests/unit/test_bigint_benchmark.py",
+        "tests/unit/test_bigint_runtime_profile.py",
+        "tests/unit/test_bigint_host_lookups.py",
+        "tests/unit/test_bigint_input_load_profile.py",
+        "tests/unit/test_bigint_first_byte.py",
+        "tests/unit/test_bigint_growth_reservation.py",
+        "tests/unit/test_bigint_engine_policy.py",
         "tests/unit/test_bigint_generation.py",
+        "tests/unit/test_pipeline_profile.py",
+        "tests/unit/test_bigint_diagnostic_evidence.py",
+        "tests/unit/test_bigint_diagnostic_collector.py",
+        "tests/unit/test_bigint_cost_scopes.py",
+        "tests/unit/test_bigint_scoped_runner.py",
         "tests/contract/test_bigint_performance.py",
     ],
     "fitting": [
@@ -44,6 +56,7 @@ GROUPS = {
     "containment": [
         "tests/integration/test_synthesis_worker.py",
         "tests/integration/test_bigint_workflow.py",
+        "tests/unit/test_bigint_soak.py",
         "tests/unit/test_synthesis_service_limits.py",
         "tests/unit/test_synthesis_state.py",
         "tests/contract/test_bigint_workflow.py",
@@ -269,26 +282,9 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
 
 def shape_manifest(inputs):
     """Read only public prepared records; never read a scoring/private payload."""
-    inputs = Path(inputs)
-    prepared = json.loads((inputs / "prepared.json").read_text())
-    examples = json.loads((inputs / "examples.json").read_text())
-    rows = [r for rs in examples["views"]["concrete"].values() for r in rs]
-    return dict(
-        prepared_sha256=sha(inputs / "prepared.json"),
-        split_sha256=prepared["split_sha256"],
-        counts=prepared["counts"],
-        tiny_count=len(examples["tiny_ids"]),
-        exclusions=prepared["exclusions"],
-        native_admitted=prepared["native_admitted"],
-        stages={stage: sum(r["stage"] == stage for r in rows) for stage in ("A", "B", "C", "D")},
-        max_input_bits=max(abs(int(v)).bit_length() for r in rows for v in r["values"]),
-        max_tokens=max(
-            len(r["tokens"])
-            for view in examples["views"].values()
-            for rs in view.values()
-            for r in rs
-        ),
-    )
+    from oeis_learn.fresh.cost_policy import prepared_shape
+
+    return prepared_shape(inputs)
 
 
 def main():
@@ -304,6 +300,36 @@ def main():
     p.add_argument("--output", required=True)
     p.add_argument("--gpu", action="store_true")
     p.add_argument(
+        "--engine-adoption-only",
+        action="store_true",
+        help="CPU arithmetic/fitting/containment plus production/zero comparison; no data or training",
+    )
+    p.add_argument(
+        "--profile-input-load",
+        action="store_true",
+        help="nested transfer timings; requires CPU --runtime-profile-only",
+    )
+    p.add_argument(
+        "--compare-host-lookups",
+        action="store_true",
+        help="add the pre-cache ordinary CPU baseline; requires --runtime-profile-only",
+    )
+    p.add_argument(
+        "--compare-memory-growth",
+        action="store_true",
+        help="qualification-only zero/64KiB comparison; requires runtime-profile-only and profile-input-load",
+    )
+    p.add_argument(
+        "--runtime-profile-only",
+        action="store_true",
+        help="paired CPU execution-stage profiling;600seconds work, archive and no dataset/neural/fitting work",
+    )
+    p.add_argument(
+        "--fitting-only",
+        action="store_true",
+        help="target CPU native fitting/admission; archive results without measurements or training",
+    )
+    p.add_argument(
         "--performance-only",
         action="store_true",
         help="target HIP parity and measured cost with existing inputs; never train",
@@ -317,20 +343,77 @@ def main():
         action="store_true",
         help="fetch pinned bulk data and prepare complete paired inputs",
     )
-    p.add_argument("--config", default="configs/foundation/bigint_smoke.yaml")
+    p.add_argument("--config")
+    p.add_argument("--cost-scope", choices=("diverse32", "transfer-screen"), default="diverse32")
     p.add_argument(
         "--learnability",
         action="store_true",
-        help="after HIP/data/cost gates, run the registered bounded diverse32 gate",
+        help="retired: use run_bigint_diverse32.py with a reviewed scoped preflight",
     )
     p.add_argument("--inside", choices=tuple(GROUPS), help=argparse.SUPPRESS)
     args = p.parse_args()
+    if args.engine_adoption_only:
+        if (
+            args.gpu
+            or args.inside
+            or args.runtime_profile_only
+            or args.fitting_only
+            or args.performance_only
+            or args.inputs
+            or args.prepare
+            or args.checkpoint_run
+            or args.learnability
+            or args.compare_host_lookups
+            or args.config
+        ):
+            p.error(
+                "--engine-adoption-only excludes GPU, other scopes, inputs/preparation, checkpoints and training"
+            )
+        args.profile_input_load = True
+        args.compare_memory_growth = True
+    if args.compare_memory_growth and (
+        not (args.runtime_profile_only or args.engine_adoption_only)
+        or not args.profile_input_load
+        or args.compare_host_lookups
+        or args.inside
+    ):
+        p.error(
+            "--compare-memory-growth requires isolated CPU --runtime-profile-only --profile-input-load"
+        )
+    if args.profile_input_load and (
+        not (args.runtime_profile_only or args.engine_adoption_only) or args.inside
+    ):
+        p.error("--profile-input-load requires the CPU --runtime-profile-only scope")
+    if args.compare_host_lookups and (not args.runtime_profile_only or args.inside):
+        p.error("--compare-host-lookups requires the CPU --runtime-profile-only scope")
     if args.inside:
         return inside(args.output, args.inside)
-    if args.learnability and not args.gpu:
-        p.error("--learnability requires --gpu; CPU fallback prohibited")
+    args.config = args.config or (
+        "configs/foundation/bigint_smoke_phase5.yaml"
+        if args.cost_scope == "diverse32"
+        else "configs/foundation/bigint_literal_screen.yaml"
+    )
+    if args.learnability:
+        p.error(
+            "review the scoped preflight first; use scripts/run_bigint_diverse32.py --reviewed-preflight PATH"
+        )
+    if args.runtime_profile_only and (
+        args.gpu
+        or args.performance_only
+        or args.fitting_only
+        or args.inputs
+        or args.prepare
+        or args.checkpoint_run
+    ):
+        p.error(
+            "--runtime-profile-only excludes GPU, other scopes, inputs, preparation and checkpoints"
+        )
     if args.inputs and args.prepare:
         p.error("choose existing --inputs or --prepare")
+    if args.fitting_only and (
+        args.gpu or args.performance_only or args.inputs or args.prepare or args.checkpoint_run
+    ):
+        p.error("--fitting-only excludes GPU, measurements, inputs, preparation and checkpoints")
     if args.performance_only and (
         not args.gpu or not args.inputs or args.learnability or args.prepare or args.checkpoint_run
     ):
@@ -351,13 +434,26 @@ def main():
         status="FAIL",
         qualified=False,
         gpu_requested=args.gpu,
-        scope="performance-only" if args.performance_only else "full",
+        compare_host_lookups=args.compare_host_lookups,
+        profile_input_load=args.profile_input_load,
+        **({"compare_memory_growth": True} if args.compare_memory_growth else {}),
+        scope=(
+            "engine-adoption-only"
+            if args.engine_adoption_only
+            else "runtime-profile-only"
+            if args.runtime_profile_only
+            else "fitting-only"
+            if args.fitting_only
+            else "performance-only"
+            if args.performance_only
+            else "full"
+        ),
         stages={},
         engine=args.engine,
         pending={
             "T091": "both Docker and Podman evidence required; this invocation tests one engine",
             "T092": "actual HIP on eventual image required",
-            "T093": "actual matched checkpoint not supplied",
+            "T093": "DEFERRED by user; outside current Phase5 gate",
             "T094": "actual neural measurements and any >5x slowdown review required",
             "T095": "complete paired dataset and matching non-scoring cost preflight required",
             "T096": "diverse32 training gate not run",
@@ -366,6 +462,12 @@ def main():
         },
     )
     report["expected_source_sha256"] = identity(collect_snapshot(ROOT))
+    if args.engine_adoption_only:
+        from oeis_learn.synthesis.engine_policy import production_policy
+
+        report["expected_engine_policy"] = dict(
+            manifest=production_policy(), sha256=identity(production_policy())
+        )
     if args.performance_only:
         report["pending"].update(
             {
@@ -373,13 +475,22 @@ def main():
                 "T090": "fitting qualification not rerun in targeted scope",
             }
         )
+    if args.fitting_only:
+        report["pending"]["T089"] = "arithmetic not rerun in targeted fitting scope"
     code = 1
     try:
         host = Host(args)
         image = host.ensure()
         report.update(image=image, runtime=host.policy["runtime"], engine=host.engine.name)
         write(output / "summary.json", report)
-        for group in () if args.performance_only else GROUPS:
+        groups = (
+            ()
+            if args.runtime_profile_only or args.performance_only
+            else ("fitting",)
+            if args.fitting_only
+            else GROUPS
+        )
+        for group in groups:
             stage = output / group
             container_stage(
                 host,
@@ -393,16 +504,65 @@ def main():
                     "--output",
                     "/work/output",
                 ],
+                seconds=3000 if args.engine_adoption_only else 3600,
             )
             result = json.loads((stage / "summary.json").read_text())
+            report["stages"][group] = result
+            write(output / "summary.json", report)
+            if (
+                args.engine_adoption_only
+                and result.get("artifacts", {}).get("engine_policy")
+                != report["expected_engine_policy"]
+            ):
+                raise RuntimeError("group engine policy mismatch: " + group)
             if result.get("status") != "PASS":
                 raise RuntimeError("mandatory group failed: " + group)
             if result.get("source_sha256") != report["expected_source_sha256"]:
                 raise RuntimeError(
                     "image source differs from this checkout; rebuild the current source"
                 )
-            report["stages"][group] = result
-            write(output / "summary.json", report)
+        if args.runtime_profile_only or args.engine_adoption_only:
+            if args.runtime_profile_only:
+                report["pending"].update(
+                    T089="arithmetic not rerun in runtime profiling scope",
+                    T090="fitting not rerun in runtime profiling scope",
+                )
+            stage = output / "runtime-profile"
+            container_stage(
+                host,
+                image,
+                stage,
+                [
+                    "python",
+                    "scripts/benchmark_bigint.py",
+                    "--runtime-profile",
+                    *(["--compare-host-lookups"] if args.compare_host_lookups else []),
+                    *(["--profile-input-load"] if args.profile_input_load else []),
+                    *(["--compare-memory-growth"] if args.compare_memory_growth else []),
+                    "--output",
+                    "/work/output",
+                ],
+                seconds=600,
+            )
+            result = json.loads((stage / "benchmark.json").read_text())
+            report["stages"]["runtime-profile"] = result
+            if args.compare_memory_growth and result.get("compare_memory_growth") is not True:
+                raise RuntimeError("requested memory growth comparison evidence missing")
+            if args.profile_input_load and result.get("profile_input_load") is not True:
+                raise RuntimeError("requested nested input-load evidence missing")
+            if args.compare_host_lookups and result.get("compare_host_lookups") is not True:
+                raise RuntimeError("requested host lookup comparison evidence missing")
+            if result.get("status") != "PASS":
+                raise RuntimeError("runtime profiling failed; inspect stage report and logs")
+            if result.get("source_sha256") != report["expected_source_sha256"]:
+                raise RuntimeError(
+                    "profiling image source differs from this checkout; rebuild current source"
+                )
+            report["status"] = "PASS"
+            return 0
+        if args.fitting_only:
+            report["status"] = "PASS"
+            return 0  # finally publishes the bounded archive, including on failure.
         if not args.performance_only:
             validate(host, "bigint-retirement", output / "retirement")
             report["stages"]["retirement"] = json.loads(
@@ -453,6 +613,8 @@ def main():
             "/work/output",
             "--config",
             "/work/output/measurement-config.yaml",
+            "--cost-scope",
+            args.cost_scope,
         ]
         if args.gpu:
             validate(host, "bigint-gpu", output / "gpu")
@@ -475,51 +637,9 @@ def main():
                 "review measured >5x small-value execution slowdowns before long runs"
             )
         if inputs and performance.get("preflight_eligible"):
-            report["pending"].pop("T095")
-        if args.learnability:
-            if not inputs or not performance.get("preflight_eligible"):
-                raise RuntimeError(
-                    "learnability blocked: complete prepared data and passing measured HIP preflight required"
-                )
-            run = output / "learnability-run"
-            launch(
-                [
-                    *public,
-                    "learnability",
-                    "--config",
-                    relative(str(output / "performance/measured-recipe.yaml")),
-                    "--inputs",
-                    relative(str(inputs)),
-                    "--view",
-                    "diverse",
-                    "--seed",
-                    "20261016",
-                    "--run",
-                    relative(str(run)),
-                ],
-                output / "learnability-command",
-                seconds=7500,
+            report["pending"]["T095"] = (
+                "matching scoped receipt passed; review both scope receipts and preregistration before closing T095"
             )
-            launch(
-                [
-                    *public,
-                    "pack",
-                    "--run",
-                    relative(str(run)),
-                    "--output",
-                    relative(str(output / "learnability.zip")),
-                ],
-                output / "pack-command",
-                seconds=300,
-            )
-            report["stages"]["learnability"] = dict(
-                run=relative(str(run)),
-                checkpoint=json.loads((run / "checkpoint-identity.json").read_text()),
-                summary=json.loads((run / "summary.json").read_text()),
-            )
-            report["pending"].pop("T096")
-            passed = report["stages"]["learnability"]["summary"].get("memorization_gate") is True
-            report["gates"] = dict(learnability="PASS" if passed else "FAIL")
         if args.checkpoint_run:
             launch(
                 [
@@ -541,9 +661,7 @@ def main():
                 seconds=3600,
             )
             report["pending"].pop("T093")
-        negative = report.get("gates", {}).get("learnability") == "FAIL" or (
-            args.performance_only and not performance.get("preflight_eligible")
-        )
+        negative = bool(args.gpu and inputs and not performance.get("preflight_eligible"))
         report["status"] = "BLOCKED" if negative else "PASS"
         code = 2 if negative else 0
     except BaseException as exc:

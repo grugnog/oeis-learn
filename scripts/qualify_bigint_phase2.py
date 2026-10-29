@@ -36,6 +36,14 @@ CPU_TESTS = [
     "tests/unit/test_synthesis_provenance.py",
     "tests/unit/test_synthesis_archive.py",
     "tests/unit/test_bigint_qualification.py",
+    "tests/unit/test_bigint_diagnostic_evidence.py",
+    "tests/unit/test_bigint_diagnostic_collector.py",
+    "tests/unit/test_bigint_runtime_profile.py",
+    "tests/unit/test_bigint_host_lookups.py",
+    "tests/unit/test_bigint_input_load_profile.py",
+    "tests/unit/test_bigint_first_byte.py",
+    "tests/unit/test_bigint_growth_reservation.py",
+    "tests/unit/test_bigint_engine_policy.py",
 ]
 
 

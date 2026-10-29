@@ -1,44 +1,198 @@
 # Quickstart: Validation and Bounded Research
 
-Phases 3 and 4 are complete at their recorded source/image identities.
-Phase 5 tooling is available in PR #58. Current-source HIP passes9/9; the
-complete transfer-screen cost projection fails its initial budget, while the
-diverse32 cost receipt, CPU/native partitions, matched-checkpoint diagnostic and
-learnability outcome remain pending. See [the Phase 5 gate table and cost
-scope decision](validation/phase-5.md).
-Sections 3–7 remain acceptance/research instructions. Training requires matching
-measured cost preflight and the preceding gates. No long run is auto-authorized.
+Phase 5 code is available in [PR #59](https://github.com/grugnog/oeis-learn/pull/59).
+The recorded scoped HIP preflight is reviewed: T092 remains PASS and
+T095 and T096 are complete. The single seed20261016 diverse32 attempt finished
+with a negative result:31/32 rescue correctness and31/32 complete evidence,
+versus the frozen32/32 completeness requirement. Promotion remains BLOCKED. See
+[the gate table](validation/phase-5.md) and [budget registration](validation/screen-preflight.md).
+
+## Corrected HIP profile reviewed — next focused experiment
+
+The [2026-10-23 rerun review](validation/phase-5-pipeline-profile-rerun-review.json)
+verifies all280 manifest file hashes, source/image/manifest identities, five
+actual-GPU trace exports and all three Podman isolation/cleanup audits. Preflight
+and isolated CPU scoring complete. W005 is complete as an evidence review; no
+identical full rerun is needed. Earlier
+[device/trace failures](validation/phase-5-pipeline-profile-review.json) and
+[host import failure](validation/phase-5-pipeline-profile-stdlib-review.json)
+remain preserved separately.
+
+The diagnostic remains PARTIAL: each arm requests576 attempts, starts560 and
+completes545 generations. The original deadline leaves16 attempts unstarted;
+15 started generations stop on token cap, grammar dead end or deadline. The
+500 disposable updates and256-row validation complete in each arm with matching
+block parameter/loss hashes. Scoring reports32/32 rescue and equal-budget success,
+30/32 raw,4/32 shuffled,0/32 absent/template in both arms; shuffled evidence is
+complete for28/32. These are diagnostic synthetic-training results. They do not
+replace the original negative T096 or admit another learning attempt.
+
+Within the observed321.99s portfolio, decoding takes162.63s (50.51%), native
+request/response148.08s (45.99%), and other work11.28s. CPU consumption averages
+0.98 core-equivalents out of16 allowed. Sampled GPU busy averages31.44% during
+decoding and5.26% during native requests. Cgroup memory peaks at1.68GiB under a
+16GiB role limit, with no observed OOM/throttling events. These are diagnostic
+phase shares, not whole-training percentages; native spans include fitting,
+compilation, production execution and IPC, not just WASM.
+
+**Recommended next experiment:** compare one cached-decoder bookkeeping change
+under fixed-input HIP execution. The later-token trace records224 `nonzero`
+operations and7168 GPU kernels in eight steps; its host steps span140ms while
+kernel interval union is18ms. Repeated boolean GPU indexing in the cache is a
+concrete candidate for reducing small launches and transfers. Trace overhead and
+duplicate ROCTracer flow warnings prevent treating these numbers as baseline
+utilization or a proven speedup. Preserve attention math, weights, grammar,
+seeds, batch8, active/finished-row semantics and deadlines. Reuse cache parity,
+invalidation/reordering and mixed-length tests, then compare completed ordinary
+HIP work and selection hashes with one bounded explanatory trace. This experiment
+is proposed, not implemented by this evidence review.
+
+The idle CPU capacity also justifies a later1-versus4 native-worker/overlap pilot.
+That needs an explicit deterministic selection/order, deadline and aggregate
+memory design before scheduling changes. Neither16 free cores nor46% native wall
+proves a particular parallel speedup. T094/T097/T098 remain open; T093 is deferred.
+
+### Optional full-profile reproduction
+
+The existing harness remains available for reproduction or another engine. No
+new full run is needed to review the attached archive. Use fresh output paths:
+
+```bash
+python3 scripts/profile_bigint_pipeline.py --engine podman \
+  --run tmp-validation/008-phase5-diverse32-20261021T160815Z/learnability-run \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-pipeline-hip-rerun-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Adjust parent/data paths if moved; leave `--image` unset for the current source.
+`--engine docker` uses Docker. Build time is separate from the90minute bound.
+Keep the32 prompts, batch8, serial native requests, two PyTorch threads,16-CPU
+allowance and finite portfolio limits. Share the sibling ZIP even for PARTIAL or
+FAIL. Never overwrite the prior output or treat reproduction as qualification.
+
+## Completed CPU adoption and reproduction
+
+The [updated Podman adoption run](validation/phase-5-engine-adoption-review.json)
+now passes334 arithmetic,37 fitting and64 containment tests with no skips,
+plus75 comparison rows. Source/image/policy, all27 archive entries and all450
+paired observations/225 cross-setting groups verify. CPU adoption does not need
+another identical Podman run. The command below remains for reproduction or
+Docker evidence. T094 stays open for the13–14x retained gap, uncertain batch1
+behavior and eventual-image whole-workload costs. Timer start/stop remains an identified native cost. The reviewed whole-pipeline
+result above now prioritizes cached-decoder bookkeeping before further isolated
+WASM/timer work; no safeguards or training admission change.
+
+The [reviewed comparison](validation/phase-5-growth-reservation-review.json)
+verified450 paired observations and225 cross-setting groups. At batch100,
+64KiB spare growth capacity improves small-add/cancel execution5.27/5.23x;
+results, fuel, coverage, failures and visible memory/growth requests match.
+Three batch1 rows are slower, and the retained execution gap remains13–14x.
+These measurements justify adoption, without establishing universal latency or
+HIP/end-to-end gains.
+
+Production now uses explicit `bigint-engine-policy/v2`. Its shared manifest hash
+is bound into bigint runtime/build identities, caches, prepared inputs and
+checkpoint contracts. Rebuild the current image; do not silently resume an old
+contract or reinterpret the consumed negative T096 attempt under new artifacts.
+No new training or hidden scoring is scheduled by this change.
+
+To reproduce CPU arithmetic, native fitting, containment and the comparison:
+
+```bash
+adopt_out="tmp-validation/008-engine-adoption-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase5.py --engine podman \
+  --engine-adoption-only --output "$adopt_out"
+```
+
+Share `$adopt_out.zip`, including partial/failed results. Use a fresh output
+prefix and `--engine docker` for Docker evidence. The helper builds/reuses the
+current source-bound image, then runs each of the three CPU groups with a3000s
+bound and the same25-case1/20/100 comparison with a600s bound. Building is
+outside these work limits; every container retains5s cleanup and the existing
+offline/read-only/output-only audited launch. No data, weights, GPU or fitting
+search on actual OEIS prompts is needed; fitting tests use bounded fixtures.
+A PASS is scoped CPU evidence with `qualified:false`, not full Phase5 promotion.
+
+The current comparison reports production64KiB at top level and the complete
+zero-reservation qualification report under `memory_growth.zero`. Both have
+explicit engine/policy hashes. V1 archives retain their original opposite
+production/control meanings; new collection requires v2. Guest bytes, fresh
+stores, visible caps, fuel and failure semantics remain fixed. Review ordinary
+prepare/execute/total, first-byte/lifecycle times, observer distortion and
+per-process VmHWM; RSS includes compilation/JIT and both observations rather
+than aggregate or guest-only allocation. The last native report and completed
+settings survive later failure under the existing bounded archive policy.
+
+For measurement alone, retain the existing `--runtime-profile-only
+--profile-input-load --compare-memory-growth` scope. `--compare-host-lookups`
+is a separate study. Shared CI covers arithmetic, fitting, containment and the
+comparison using the existing image; do not wait for it after pushing.
+
+HIP is not needed for this CPU engine qualification. When collecting the eventual
+image's actual-HIP regression receipt for the remaining Phase5 device gate:
+
+```bash
+hip_out="tmp-validation/008-engine-adoption-hip-$(date -u +%Y%m%dT%H%M%SZ)"
+python3 scripts/qualify_bigint_phase2.py --engine podman --gpu --output "$hip_out"
+python3 -m zipfile -c "$hip_out.zip" "$hip_out"
+```
+
+This optional device regression uses the new image and synthetic fixtures,
+without datasets, weights or training qualification. It is not an end-to-end
+throughput measurement. T094/T098 and the other remaining gates stay open;
+original negative T096 and promotion block are preserved.
 
 ## Phase 5 qualification runner
 
-For the current fixed-state timing/batching follow-up, first run the targeted
-measurement with existing inputs; see [protocol and reviewed hardware evidence](validation/phase-5-generation.md):
+The registered diverse32 attempt is consumed and finalized; do not repeat its
+training or resume it. Its [reviewed result](validation/phase-5-diverse32-review.json)
+retains the checkpoint, all controls and the debited ledger. The commands below
+document the completed procedure and tooling; any new learning experiment needs
+a separate reviewed registration rather than reusing this attempt.
+
+The latest reviewed preflight is
+`tmp-validation/008-phase5-scoped-20261021T115212Z`. Reuse that directory for the
+learning command below while source/image/prepared data are unchanged. The
+following measurement command is available when a new preflight is needed.
+
+For the targeted cost follow-up, reuse the already checked inputs. This runs
+actual HIP regression/parity checks and fixed-state measurements, writes
+independent diverse32 and transfer-screen receipts, and launches no learning:
 
 ```bash
+phase5_preflight="tmp-validation/008-phase5-scoped-$(date -u +%Y%m%dT%H%M%SZ)"
 python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --performance-only \
+  --cost-scope diverse32 --config configs/foundation/bigint_smoke_phase5.yaml \
   --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
-  --output "tmp-validation/008-phase5-batched-$(date -u +%Y%m%dT%H%M%SZ)"
+  --output "$phase5_preflight"
 ```
 
-It launches no learnability run. Share the resulting ZIP, including a BLOCKED
-cost outcome, before proceeding to the full conditional runner below.
+Share the resulting ZIP, including a BLOCKED outcome. Review the diverse32
+receipt and preregistered 14,400-second budget before running the next command.
+A passing diverse32 receipt cannot admit the transfer screen.
+
+For the already reviewed result, use
+`phase5_preflight=tmp-validation/008-phase5-scoped-20261021T115212Z`.
 
 ```bash
-python3 scripts/qualify_bigint_phase5.py --engine podman --gpu --prepare --learnability \
-  --output tmp-validation/008-phase5-hip-001
+python3 scripts/run_bigint_diverse32.py --engine podman \
+  --reviewed-preflight "$phase5_preflight/performance/benchmark.json" \
+  --inputs tmp-validation/008-phase5-hip-20261020T202907Z/inputs \
+  --output "tmp-validation/008-phase5-diverse32-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
-This command is retained as the intended integrated flow, but do not run its
-learnability stage until T095 implements the `diverse32` receipt and a reviewed
-finite budget is frozen in a new recipe identity. It runs qualified CPU/native/
-retirement and actual HIP suites, prepares/checks the complete paired dataset,
-measures non-scoring costs and conditionally runs the registered diverse32 gate.
-A failed scope-matching cost gate stops before training. Omit the preparation and
-learnability flags for hardware/performance only, or substitute `--inputs PATH`
-for existing prepared data. Choose a new suffix for retries.
-It always writes a bounded result ZIP; share that ZIP after completion/failure.
-Use `--engine docker` if appropriate. The full runner and per-stage details are
-in [validation/phase-5.md](validation/phase-5.md).
+The second command reuses the reviewed image/costs, checks inputs, claims exactly
+one seed20261016 attempt and archives learning/pack results even on failure.
+Keep the reviewed directory in `phase5_preflight` if starting another shell.
+A negative outcome preserves all thresholds and blocks promotion; an interrupted
+attempt must resume its original run/ledger. See [learnability.md](validation/learnability.md).
+
+For full CPU/native/retirement/containment qualification rather than the targeted
+follow-up, omit `--performance-only`; use `--prepare` instead of `--inputs PATH`
+only when new preparation is necessary. Use a fresh output for measurement
+retries. Both Docker and Podman evidence is required for T091. The former
+integrated `--learnability` flag now directs users to the separate reviewed step.
+Commands and archive details are in [phase-5.md](validation/phase-5.md).
 
 ## Phase 2 qualification available now
 
@@ -117,18 +271,19 @@ Expected: pinned bulk snapshot cache, paired concrete/parameterized generic reco
 
 ## 4. Diverse tiny synthesis gate
 
-```bash
-# Run only after T095 records the scoped receipt and revised config identity.
-python3 scripts/foundation_run.py --engine podman learnability \
-  --config configs/foundation/bigint_smoke.yaml \
-  --inputs tmp-bigint-inputs-001 --view diverse \
-  --max-updates 3000 --budget-seconds REVISED_SECONDS \
-  --seed 20261016 --run runs/bigint-tiny-001
-python3 scripts/foundation_run.py --engine podman pack \
-  --run runs/bigint-tiny-001 --output tmp-analysis/bigint-tiny-001.zip
-```
+Use the two-step Phase 5 commands above with the reviewed measured recipe.
+The original `bigint_smoke.yaml` remains a historical 7,200-second registration;
+`bigint_smoke_phase5.yaml` is the explicit 14,400-second resource revision.
+Do not bypass receipt binding through CLI budget overrides. The unchanged gate
+requires at least 31/32 independently correct greedy-plus-fitting continuations,
+32/32 complete coverage and 32/32 greedy termination, with explicit raw,
+shuffled, absent and template results. Negative results retain useful bundles
+and block promotion. Passing does not establish held-out structural transfer.
 
-The smoke recipe resolves to the same explicit view/update/time values shown above; contradictory CLI/config values must fail rather than silently override. Expected: at least31/32 independently correct greedy-plus-fitting continuations with complete coverage and explicit raw/shuffled/absent/template results. Failure should produce a useful bundle and stop promotion; passing does not yet establish held-out structural transfer.
+For the completed negative T096 attempt, use the [read-only evidence collector
+and bounded visible-candidate replay](validation/phase-5-diagnostic-followup.md#collect-and-replay-the-original-failed-prompt).
+Those commands reuse the original image, require no GPU or rebuild, and create
+separate diagnostic archives without resuming training or changing its result.
 
 ## 5. Three matched literal/parameterized screens
 

@@ -7,6 +7,38 @@ from oeis_learn.fresh.bigint_inputs import visible_record
 from oeis_learn.fresh.bigint_bundle import pack
 
 
+def test_pipeline_checkpoint_restores_complete_state_and_rejects_policy_change(tmp_path):
+    import random
+    import torch
+    from oeis_learn.fresh.pipeline_jobs import JobLedger, logical_job
+    cfg=resolve(dict(version='bigint-bootstrap/v1'))
+    run=DurableRun.create(tmp_path/'run',cfg,
+        dict(identity='sha256:'+'1'*64,split_sha256='sha256:'+'2'*64),
+        image='sha256:'+'3'*64,device='cpu')
+    run.start('interrupted',10)
+    run.finish('interrupted','interrupted')
+    jobs=JobLedger()
+    job=logical_job(contract='c',snapshot='s',mode='m',arm='a',prompt_id='p',attempt_ordinal=0,method='x',seed=1)
+    jobs.reserve(job,deadline=10,work=4);jobs.cancel(job['job_id'])
+    policies={'workers':2}
+    states=dict(weights={'value':torch.tensor([1.])},optimizer={'step':7,'momentum':torch.tensor([2.])},
+        rng={'python':random.getstate(),'torch':torch.get_rng_state()},data_order={'cursor':7},
+        selection={'selected':'same','pipeline_boundary':jobs.boundary(policies)},
+        curriculum={'stage':'B','practice':['A']},replay={'tokens':[1,2,3]})
+    store=CheckpointStore(tmp_path/'checkpoints',run.contract,policies=policies)
+    saved=store.save(states,run.ledger,state='interrupted')
+    loaded=store.load(saved)
+    assert loaded['ledger'].remaining==run.ledger.remaining
+    assert torch.equal(loaded['states']['optimizer']['momentum'],states['optimizer']['momentum'])
+    assert torch.equal(loaded['states']['rng']['torch'],states['rng']['torch'])
+    for key in ('data_order','selection','curriculum','replay'):
+        assert loaded['states'][key]==states[key]
+    with pytest.raises(ValueError,match='policy'):
+        CheckpointStore(tmp_path/'checkpoints',run.contract,policies={'workers':4}).load(saved)
+    with pytest.raises(ValueError,match='complete checkpoint'):
+        store.save({'weights':states['weights']},run.ledger)
+
+
 def test_visible_view_never_exports_continuations_or_rebases_indices():
     row = dict(
         id="sample",
@@ -484,6 +516,10 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                     {r["id"]: dict(selections={}, complete=True) for r in rows},
                 )
                 write(out / "archive-manifest.json", dict(fixture=True))
+                write(
+                    out / "evidence/chunk-0000.json",
+                    {r["id"]: dict(stage="generation") for r in rows},
+                )
                 return dict(
                     files={
                         "selections/chunk-0000.json": inventory(out)["selections/chunk-0000.json"]
@@ -503,7 +539,12 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                 out / "outcomes.json",
                 {
                     key: {
-                        mode: dict(success=False, complete=True)
+                        mode: dict(
+                            success=False,
+                            complete=True,
+                            reason="fixture_no_selection",
+                            upstream=dict(complete=True, reason="fixture_no_selection"),
+                        )
                         for mode in (
                             "raw",
                             "rescue",
@@ -516,6 +557,7 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
                     for key in truth
                 },
             )
+            write(out / "evidence/chunk-0000.json", {key: dict(stage="scoring") for key in truth})
             return dict(
                 metric="continuation_accuracy_100",
                 portfolio="exact_equal_budget",
@@ -537,3 +579,8 @@ def test_host_analysis_mounts_visible_and_scoring_views_separately(tmp_path, mon
     assert len(launches) == 4 and (run.root / "budget.json").read_bytes() == before
     assert read(tmp_path / "child/status.json")["status"] == "completed"
     assert read(tmp_path / "child/analysis.json")["parent"] == run.contract.sha256
+    assert len(list((tmp_path / "child/details").glob("000-evidence-*.json"))) == 4
+    comparison = read(tmp_path / "child/comparison.json")
+    for rows in comparison["observations"].values():
+        for row in rows.values():
+            assert set(row["outcomes"]["rescue"]) == {"success", "complete", "reason"}

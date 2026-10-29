@@ -101,3 +101,25 @@ def construct_bigint_models(*, mask=None, ablation_mode="post_training", device=
             position_scale=16,
         )
     return encoder.to(device), decoder.to(device), encoder.ablation_report()
+
+
+def construct_sizing_models(profile, *, device='cpu'):
+    """Fresh hardware fixture; never reads/resizes a trained checkpoint."""
+    import torch
+    from oeis_learn.pipeline_validation.model_sizes import validate_profile,parameters
+    from oeis_learn.encoder.hybrid import ChunkHybridEncoder
+    from oeis_learn.decoder.wat_decoder import WatTransformerDecoder
+    from oeis_learn.decoder import bigint_codec as codec
+    p=validate_profile(profile)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(p['seed'])
+        encoder=ChunkHybridEncoder(model_profile=p)
+        torch.random.default_generator.manual_seed(p['seed'] ^ 0xDEC0DE)
+        decoder=WatTransformerDecoder(vocab_size=codec.FOUNDATION_VOCAB_SIZE,codec_sha256=codec.codec_digest(),
+            d_model=p['width'],n_heads=p['heads'],n_decoder_layers=p['decoder_layers'],d_ff=p['ff'],
+            dropout=0,max_seq_len=1024,pad_idx=codec.PAD_ID,position_style='sinusoidal',
+            attention_backend='eager',input_version='decoder-inputs/v1',token_scale=1,position_scale=16)
+    counts=dict(encoder=sum(v.numel() for v in encoder.parameters()),decoder=sum(v.numel() for v in decoder.parameters()))
+    counts.update(total=sum(counts.values()),active=sum(v.numel() for m in (encoder,decoder) for v in m.parameters() if v.requires_grad))
+    if counts!=parameters(p):raise RuntimeError('actual sizing parameter count differs from prospective shape')
+    return encoder.to(device),decoder.to(device),counts

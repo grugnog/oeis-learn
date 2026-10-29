@@ -1,5 +1,13 @@
 # Tasks: Exact Bigint and Parameterized Sequence Synthesis
 
+> **Forward ownership — 2026-10-23:** [Spec 009](../009-pipeline-throughput/spec.md)
+> carries the remaining performance, operations, qualification and gated research
+> work. Its [carryover register](../009-pipeline-throughput/carryover.md) accounts
+> for every unchecked task and the explicit sequencing revisions. Transfer does
+> not complete these tasks or rewrite their historical evidence: T093 stays
+> deferred, T096 stays negative, and current-source research admission stays gated.
+
+
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [algorithm-phase.md](algorithm-phase.md), [contracts/](contracts/), [quickstart.md](quickstart.md).
 
 **Prerequisites**: Read those documents, repository `AGENTS.md` and `.specify/memory/constitution.md` before implementation. Tests are required by the specification and constitution. This document creates work; unchecked tasks are not implementation or qualification evidence.
@@ -195,9 +203,9 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
 
 **Entry**: T088 passes. These tasks execute integrated algorithms and calibrate explicit resource/config values; any new numerical, solver, encoder or decision policy reopens Phase 2. Actual engine/GPU access is an external gate, never fabricated.
 
-- [ ] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
-- [ ] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
-- [ ] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
+- [X] T089 [US1] Run frozen arithmetic, independent differential, codec and signed-256 compatibility suites through the qualification image; record exact source/image/runtime/compiler/lock hashes and zero-disagreement results in `specs/008-bigint-constant-synthesis/validation/arithmetic.md`.
+- [X] T090 [US2] Run native affine/SMT/scoped replay and all admission counterexamples, including large coefficients and partial/unknown outcomes; publish `specs/008-bigint-constant-synthesis/validation/fitting.md` with supported subset, bounds and provisional-versus-verified evidence.
+- [X] T091 [US3] Run resource/interruption/restart, queue/cache pressure (count-first, byte-first, oversized entries, cancellation and disk-full/partial writes), role-isolation and ledger fault-injection suites under clean Docker and Podman; record deadline/cleanup bounds, healthy recovery, exact resume and socket/network/mount audits in `specs/008-bigint-constant-synthesis/validation/containment.md`; list any unavailable engine explicitly as pending.
 - [X] T092 [US1] Run actual ROCm tests from `tests/integration/test_bigint_gpu.py` via `validate --suite bigint-gpu`; record device and changed weights, finite4096-bit inputs/4097-bit differences, deterministic cached/full decoding and no CPU fallback in `specs/008-bigint-constant-synthesis/validation/gpu.md`, or give the user the exact quickstart command and leave this task unchecked.
   Reviewed Phase 5 run `008-phase5-batched-20261021T001809Z`:9 actual HIP tests
   passed with zero failures/errors/skips, including changed finite encoder
@@ -206,10 +214,24 @@ This closes the entry gate; Phase 5 must bind its own eventual source/image.
   [review receipt](validation/phase-5-batched-hip-review.json) and
   [device evidence](validation/gpu.md). Overall Phase 5 remains BLOCKED on cost
   and the other pending gates.
-- [ ] T093 [US2] Evaluate identified existing matched-run checkpoints through the retained-profile raw/exact paired diagnostic before parameterized training; record hashes, same-candidate rescue, unsupported fraction, continuation and fitting/reference cost in `specs/008-bigint-constant-synthesis/validation/checkpoint-rescue.md`; missing weights require an explicit evidence blocker, not substitution with canonical programs.
+- [ ] T093 [US2] **DEFERRED by user, 2026-10-22; outside the current Phase 5 completion gate.** Historical retained-model raw/exact comparison may be revisited separately if useful. Preserve its read-only diagnostic implementation and compatibility tests; do not convert or require historical weights for the from-scratch path. No checkpoint evaluation is claimed. See `validation/checkpoint-rescue.md`.
 - [ ] T094 [US1] Add and run the measurement-only harness `scripts/benchmark_bigint.py` for shared supported old/new small values and legal64/256/512/1024/4096-bit supplied values; construct up-to16,384-bit intermediate operands/results through supported operations from legal inputs, distinguish expected-overflow timings and identify any separately pinned wider-input benchmark-only profile; separate compile/execute/solve/reference/generation/training time, cold/warm batch behavior and resource coverage, recording results in `specs/008-bigint-constant-synthesis/validation/performance.md`; investigate >5x median small-value slowdown without weakening semantics.
-- [ ] T095 [US4] Preserve the measured full transfer-screen cost result, then implement and run scope-identified p95 preflights for `diverse32` and the later complete transfer screen via `scripts/foundation_run.py`; each receipt must use its exact periodic panel, end-of-run prompts, attempts, controls, cadence and reserve. Record complete512/128/128 counts, diverse32 composition, exclusions and both scope identities in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`. A passing diverse32 receipt may admit only T096; it cannot qualify the transfer screen. Preregister a finite measured budget/cadence/portfolio revision before training, without changing denominators or success thresholds.
-- [ ] T096 [US4] After the diverse32-specific T095 receipt and its revised finite budget are reviewed and frozen, execute exactly one diverse32 memorization gate and raw/shuffled/absent/template controls from `configs/foundation/bigint_smoke.yaml`; record realized cost, complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`. Failure blocks promotion; it does not authorize threshold changes or the later transfer screen.
+- [X] T095 [US4] Preserve the measured full transfer-screen cost result, then implement and run scope-identified p95 preflights for `diverse32` and the later complete transfer screen via `scripts/foundation_run.py`; each receipt must use its exact periodic panel, end-of-run prompts, attempts, controls, cadence and reserve. Record complete512/128/128 counts, diverse32 composition, exclusions and both scope identities in `specs/008-bigint-constant-synthesis/validation/screen-preflight.md`. A passing diverse32 receipt may admit only T096; it cannot qualify the transfer screen. Preregister a finite measured budget/cadence/portfolio revision before training, without changing denominators or success thresholds.
+  Reviewed `008-phase5-scoped-20261021T115212Z`: all24 archived file hashes,
+  nine HIP tests, twelve fixed-state parity/deadline groups and source/image/
+  recipe/shape bindings pass. Diverse32 projects7,926.648s within11,520s
+  (80% of the preregistered14,400s), with10,082s of debited role ceilings.
+  The independent transfer scope remains BLOCKED at29,637.220s versus5,760s.
+  See [review receipt](validation/phase-5-scoped-hip-review.json).
+- [X] T096 [US4] After the diverse32-specific T095 receipt and its revised finite budget are reviewed and frozen, execute exactly one diverse32 memorization gate and raw/shuffled/absent/template controls from the revised `configs/foundation/bigint_smoke_phase5.yaml` registration (original `bigint_smoke.yaml` preserved); record realized cost, complete coverage, termination, 31/32 verified greedy-plus-fitting continuation gate and selected checkpoint in `specs/008-bigint-constant-synthesis/validation/learnability.md`. Failure blocks promotion; it does not authorize threshold changes or the later transfer screen.
+  Reviewed `008-phase5-diverse32-20261021T160815Z`: single seed20261016 run
+  completed1800 updates; all15 outer and16 nested bundle hashes verify.
+  Rescue31/32 correct meets the success threshold, but31/32 complete evidence
+  fails the frozen32/32 coverage gate; greedy termination passes32/32.
+  Raw30/32, equal-budget32/32, shuffled4/32, absent3/32, template0/32.
+  Debited7,730s of14,400s, no refund; selected checkpoint and sealed final
+  access recorded in [the review](validation/phase-5-diverse32-review.json).
+  T096 is complete as a negative research outcome; promotion stays BLOCKED.
 - [ ] T097 [US3] Exercise every supported quickstart command, clean retirement suite and normal/interrupted/bundle-cap exports; update `specs/008-bigint-constant-synthesis/quickstart.md` with verified commands and record mandatory artifact completeness, workspace persistence and historical reader results in `validation/operations.md`.
 - [ ] T098 Record immutable qualification identities and all Phase 5 pass/fail/pending gates in `specs/008-bigint-constant-synthesis/validation/phase-5.md`; permit controlled screens only after required runtime, isolation, real-GPU, cost and learnability gates pass, and return algorithm defects to the Phase 2 owner.
 
@@ -217,12 +239,95 @@ Phase 5 implementation and per-task execution gates are recorded in
 [validation/phase-5.md](validation/phase-5.md). The measurement-only harness,
 portable CPU/HIP/data/cost/tiny runner, result archives and shared-image CI
 partitions are implemented. T092 is closed by reviewed current-source HIP
-execution. T089–T091 and T093–T098 remain unchecked. The current receipt is a
-valid failed full transfer-screen estimate, but it overstates the distinct
-32-prompt memorization workload and cannot decide T096 admission. T095 now owns
-scope-specific cost receipts and a reviewed finite budget revision before the
-single T096 run. The remaining engine/checkpoint/operations reviews are pending.
+execution. T095 is closed by reviewed current-source HIP receipts: diverse32
+admitted exactly the registered T096 attempt; transfer-screen remains
+over budget and unadmitted. T096 is complete with a reviewed negative outcome
+that blocks promotion. T089/T090 are closed by reviewed current-implementation CI artifacts:184
+arithmetic and37 fitting cases with zero failures/errors/skips. T091 is closed by the subsequent verified Docker/Podman inspect and cleanup
+artifacts in [the containment review](validation/phase-5-containment-review.json).
+T093 is now explicitly deferred by the user; T094 and T097–T098 remain open; see [the execution review](validation/phase-5-execution-review.json).
+PR #59 implements both receipts, shared coordinator reservations, the
+14,400-second preregistration and the reviewed single-attempt runner. The
+new-source native validation and remaining checkpoint/slowdown/operations reviews are pending; the consumed
+T096 attempt is not retried or resumed to alter its result.
 Missing evidence is not permission to substitute fixtures or lower gates.
+
+**T096 diagnostic follow-up (user-authorized, 2026-10-21)**: completeness
+semantics return to the Phase 2 T043/T047/T058 ownership boundary. The scoped
+[D001–D005 work and validation](validation/phase-5-diagnostic-followup.md) repair
+per-arm evidence, preserve every prompt's compact trace and supply read-only
+collection plus separately budgeted visible candidate replay. T096's original
+negative assessment and consumed attempt remain unchanged. This does not
+close the other Phase 5 execution gates or authorize another training attempt.
+The subsequent [traced candidate replay](validation/phase-5-diverse32-deadline-review.json)
+confirms a two-second worker deadline in the bound replay. Collection and
+failure-class diagnosis are complete; future native budget/response-delivery
+work returns to Phase 2 and does not reinterpret the original negative outcome.
+The user-authorized [F001–F005 deadline correction](validation/phase-2-fit-deadlines.md)
+implements internal production/response reserves and removes the redundant ninth
+solver check. Reviewed CI artifacts now close its focused N001/N002 native
+execution gates: 20 Rust core tests and 37 packaged fitting cases pass. This
+does not change historical T036/T058 receipts or close the remaining Phase 5
+gates. The current disposition binding was refreshed after its stale hash
+failed the general CPU and both public-engine CLI suites. Completed run39686633400
+now passes both public-engine reruns; exact receipts and remaining containment
+audit gaps are recorded in [the execution review](validation/phase-5-execution-review.json).
+The subsequent [user Podman validation and exact visible replay](validation/phase-2-fit-deadlines-replay-review.json)
+verify all 37 fitting cases and five independently admitted assignments for the
+original candidate/seed. Fit delivery completes within the original two-second
+allowance with no restart, resolving the reproduced case. The diagnostic pass
+is complete; no training, HIP run or new synthesis spec is required for this fix.
+The original negative T096 result and remaining Phase 5 gates stay unchanged.
+
+**T094 profiling follow-up (2026-10-21)**: opt-in paired CPU phase profiling,
+strict parity/accounting checks, partial failure retention, a600second audited
+host/CI role and bounded archives are implemented. P001–P005 in
+[performance.md](validation/performance.md#opt-in-phase-profiler-implementation)
+are complete as implementation tasks; native compilation/execution and actual
+phase/observer-cost review remain pending. T094 stays unchecked. No production
+optimization, HIP request or training retry is implied.
+
+**T094 whole-pipeline profiling follow-up (2026-10-22)**: W001–W004 in
+[the reviewed profile plan](validation/phase-5-pipeline-profile-plan.md) are
+implemented: immutable weights-only child inputs, paired fixed-state updates,
+reduced visible portfolios,1Hz resource sampling, bounded CPU/HIP traces,
+separate truth-mounted CPU scoring, observer checks, partial schedule projection,
+standalone timeline and capped archives. The quickstart supplies one portable
+Podman/Docker command. Actual HIP collection/review W005 remains pending;
+T094/T097/T098 stay open. T093 is deferred; original negative T096 is preserved.
+
+**T094 first-profile harness correction (2026-10-22)**: R001–R003 in the
+[profile plan](validation/phase-5-pipeline-profile-plan.md#harness-correction-and-approved-rerun--2026-10-22)
+are implemented. The exact40MiB Kineto export failure is reproduced on CPU;
+scheduled recording narrows active data while preserving replay caps and partial
+files. Actual role-visible device identities supplement rootless Podman inspect
+metadata. An audited HIP/representative-trace preflight stops before the paired
+benchmark on either failure. The user approved a fresh full diagnostic rerun;
+no recovery/resume mechanism or parallel scheduler was added. Actual corrected
+Podman/HIP evidence remains pending W005; T094/T097/T098 stay open.
+
+**T094 host portability correction (2026-10-23)**: R004 in the profile plan
+fixes the next rerun's pre-container YAML import failure. The legacy run manager
+is loaded only on demand; no host dependency is added. A complete host path with
+fake execution and real auditing/reporting/archive passes under `python -S`;
+the regression reproduced the original error before the fix. All100 focused
+tests pass, including existing YAML-backed run-manager behavior. The
+[archive/local review](validation/phase-5-pipeline-profile-stdlib-review.json)
+claims no new GPU measurements. Actual corrected HIP collection/review remains
+pending W005, with all global task dispositions unchanged.
+
+**T094 corrected HIP pipeline review (2026-10-23)**: W005 in the
+[profile plan](validation/phase-5-pipeline-profile-plan.md#reviewed-corrected-hip-collection--2026-10-23)
+is complete. The [source-bound review](validation/phase-5-pipeline-profile-rerun-review.json)
+verifies280 manifest files, five actual-GPU trace exports, all three role
+isolation/cleanup audits and complete CPU scoring. Work remains PARTIAL at the
+original deadlines:560/576 attempts started per arm,545 generations complete.
+Observed portfolio decoding/native request wall shares are50.51%/45.99%, with
+about one of16 allowed CPU-equivalents active. Proposed next work targets cached
+decoder bookkeeping under a bounded HIP comparison; production code/scheduling
+are unchanged. Partial work,16 differing paired attempts and projection/trace
+limits are disclosed. T094/T097/T098 remain unchecked; diagnostic32/32 rescue
+success cannot replace negative T096 or admit another learning attempt.
 
 ## Phase 6: Controlled research and longer-run readiness
 
@@ -258,7 +363,7 @@ Phase 2 order is runtime/reference/codec/encoder → native fitting/admission �
 | Story | Depends on | Independently testable delivery | Full acceptance |
 | --- | --- | --- | --- |
 | US1 P1 | Phase 1 | T025 CPU arithmetic/input library, no trained model required | T089/T092/T094; exact values, limits, historical compatibility and actual-device updates |
-| US2 P1 | US1 execution/reference | T036 native fitting against fixed candidates, no training required | T090/T093; independently verified fits, scope/ambiguity and checkpoint rescue evidence |
+| US2 P1 | US1 execution/reference | T036 native fitting against fixed candidates, no training required | T090; independently verified fits and scope/ambiguity. Historical checkpoint rescue T093 is user-deferred. |
 | US3 P1 | Qualified US1/US2 plus T038 state rules | T080 portable CPU workflow | T088/T091/T097; one installed fitter, recovery/resume and useful exports |
 | US4 P2 | US1/US2, US3 production path | T052 deterministic data/policies and ablation interfaces | T095/T096/T100–T105; complete matched evidence, sealed final study and explicit negative/promotion outcome |
 | US5 P2 | US2 admission, US4 grouping, US3 artifacts | T055–T057 fixture-based lineage/archive policies | T103/T105/T106; reviewed assisted lineage, gated final access and separate discovery evidence; reviewed data availability may block research |
@@ -284,7 +389,7 @@ Native mathematical suites, Python regressions and portable container tests may 
 | Requirement | Implementation tasks | Acceptance evidence |
 | --- | --- | --- |
 | FR-001–003, FR-013–015 | T011–T025, T067–T068 | T089/T091/T092/T094; SC-001–003/009 |
-| FR-004–006, FR-016–017 | T026–T036, T061–T062, T069–T070 | T090/T093; SC-001/002 |
+| FR-004–006, FR-016–017 | T026–T036, T061–T062, T069–T070 | T090; SC-001/002. T093 historical-model comparison is user-deferred. |
 | FR-018 | T015/T018/T034/T043/T047/T066/T067/T071 | T079/T089/T091/T101; exact20/100 scope and hidden isolation |
 | FR-007, FR-019–023 | T041–T052, T067/T071–T074 | T095/T096/T099–T102; SC-004/007–009 |
 | FR-008–009, FR-024–025 | T037–T038/T053–T057, T064–T066/T075–T076 | T079/T099/T103/T105/T106; lineage, sealed-to-exposed final study and discovery audit |
@@ -317,3 +422,102 @@ All nine success criteria are covered. Numerical/resource limits and required fi
 
 Phase counts are 10 / 48 / 22 / 8 / 10 / 9. Eleven test-writing tasks have conditional parallel opportunities. **Task-generation validation**: All 107 tasks are unchecked, sequentially numbered and path-bearing; story labels, six phase boundaries, relative document links and requirement/success-criterion coverage are audited. The subsequent cross-artifact review and resolution of its five findings are recorded in [analyze-remediation.md](validation/analyze-remediation.md). These checks validate the design/task documents only; implementation and runtime qualification remain pending.
 
+
+## Focused Phase 5 runtime follow-up — 2026-10-22
+
+The uploaded CPU profile is reviewed in
+[phase-5-runtime-profile-review.json](validation/phase-5-runtime-profile-review.json).
+Input loading dominates the shared-small batch100 rows. The bounded Phase2 host
+adapter change and frozen comparison are L001–L004 in
+[phase-2-host-lookups.md](validation/phase-2-host-lookups.md). This does not
+change T096's negative result, close T094 before new evidence, or admit Phase6.
+
+**T094 input-load attribution (2026-10-22)**: the uploaded lookup comparison
+is recorded in [phase-5-host-lookups-review.json](validation/phase-5-host-lookups-review.json).
+Wide values benefit, but small-value fixed overhead remains. Observation-only
+I001–I004 in [phase-5-input-load.md](validation/phase-5-input-load.md) split that
+phase without changing production policies or the original negative T096.
+
+**T094 first-byte attribution (2026-10-22)**: the reviewed nested input profile
+is recorded in [phase-5-input-load-review.json](validation/phase-5-input-load-review.json).
+B001–B004 in [phase-5-first-byte.md](validation/phase-5-first-byte.md) measure the
+first byte and existing limiter events without changing memory/execution policy.
+T094 remains open and the original negative T096 is unchanged.
+
+B001–B004 implementation and available checks are complete; the new-source
+native regressions and first-call/growth hypothesis remain pending CPU evidence.
+See [phase-5-first-byte-local.json](validation/phase-5-first-byte-local.json).
+No Phase5 qualification gate is closed by synthetic observation tests.
+
+
+**T094 reviewed first-byte evidence (2026-10-22)**:
+[phase-5-first-byte-review.json](validation/phase-5-first-byte-review.json)
+verifies225 pairs and one allowed64KiB request in every one of8670 observed first
+calls. First calls account for99.85% of small-case byte transfer. A controlled,
+separately identified growth-reservation comparison is next; production policy,
+T094's unchecked state, negative T096 and promotion block remain unchanged.
+
+**T094 bounded growth-reservation comparison (2026-10-22)**: G001–G004 in
+[phase-5-growth-reservation.md](validation/phase-5-growth-reservation.md) freeze
+separate-process zero/64KiB qualification controls. Production remains zero;
+semantic/resource gates and negative T096 are unchanged.
+
+G001–G004 implementation and available checks are complete. The qualification-only
+zero/64KiB comparison is runnable; production remains zero. Actual new-source
+native execution/comparison and any adoption remain pending. See
+[phase-5-growth-reservation-local.json](validation/phase-5-growth-reservation-local.json).
+T094 stays unchecked and no learning attempt is launched.
+
+
+**T094 reviewed growth comparison (2026-10-22)**:
+[phase-5-growth-reservation-review.json](validation/phase-5-growth-reservation-review.json)
+verifies450 detailed/ordinary pairs and225 cross-setting groups. A64KiB spare
+reservation improves small batch100 ordinary execution5.23–5.27x with identical
+results/fuel/failures and no corpus-level peak-RSS increase. Focused explicitly
+identified production adoption plus native/container regression qualification is
+recommended; this review changes no production setting. T094 stays unchecked:
+reserved execution remains13.4–13.7x retained and batch1 behavior is not settled.
+
+**T094 production engine adoption (2026-10-22)**: A001–A004 in
+[phase-5-engine-adoption.md](validation/phase-5-engine-adoption.md) adopt the
+reviewed64KiB setting with explicit engine identity, retain zero qualification
+control and require new-source regression evidence. No past receipt is relabelled.
+
+A001–A004 implementation and available checks are complete. Production now uses
+explicit `bigint-engine-policy/v2` (64KiB), with policy-bound runtime/build
+identities and a zero-reservation qualification control. CPU adoption scope and
+optional eventual-image HIP regression commands are in quickstart. New-source
+native/container execution and remaining T094 measurements are pending;
+[phase-5-engine-adoption-local.json](validation/phase-5-engine-adoption-local.json)
+distinguishes local checks from qualification. Original negative T096 is unchanged.
+
+The [first adoption-run failure review](validation/phase-5-engine-adoption-failure-review.json)
+preserves333 passing arithmetic cases and34/37 passing fitting cases. The three
+failures exposed a stale qualification-fixture identity, corrected with a
+regression for bigint policy binding and retained-profile compatibility.
+Local checks pass226 cases with15 native/artifact/benchmark skips. Corrected-image
+fitting, containment and comparison remain pending a fresh CPU adoption run;
+T094 stays unchecked, and no training/HIP retry is implied.
+
+**T094 corrected-source CPU adoption review (2026-10-22)**:
+[the reviewed Podman archive](validation/phase-5-engine-adoption-review.json)
+passes334 arithmetic/37 fitting/64 containment tests with zero skips. All27
+archive entries, source/image/policy identities,450 detailed/ordinary pairs and
+225 cross-setting groups verify. CPU adoption's regression/comparison step is
+complete for that source/image. T094 remains unchecked for the retained
+13.29–13.40x small batch100 gap, uncertain batch1 behavior and whole-workload
+costs. Deadline timer lifecycle is the next focused investigation; no new design,
+HIP/Docker result, training retry or promotion is inferred.
+
+**User scope decision — 2026-10-22**: defer T093 historical-model comparison.
+It is not a missing-weights blocker for completing current Phase5 or training
+from scratch. The checkbox remains unchecked to distinguish deferral from a
+passed experiment. T097 excludes execution of this deferred comparison while
+retained readers/compatibility tests remain supported. Historical review JSON
+and earlier pending lists retain their original meaning. T094 and T097/T098,
+negative T096 and the unadmitted transfer screen remain separate.
+
+The next performance work is planned in
+[the whole-pipeline profiling plan](validation/phase-5-pipeline-profile-plan.md).
+This turn changes scope/documents only; no profiler, training or hardware run
+has started and no new attempt is admitted.

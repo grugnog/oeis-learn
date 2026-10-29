@@ -17,13 +17,21 @@ class GenerationRequest:
     max_length: int = 1024
 
 
-def sample_batch(decoder, requests):
+def sample_batch(decoder, requests, *, batch_size=8, deadline_policy="production60/v1", bookkeeping=None, capacity_qualified=False):
     """Decode at most eight compatible requests; no deadline or seed is renewed."""
     import torch
     from .sampler import WatProgramSampler
 
-    if not 1 <= len(requests) <= GENERATION_BATCH_SIZE:
-        raise ValueError("one to eight generation requests required")
+    if batch_size not in (1,8,16,32) or not 1 <= len(requests) <= batch_size:
+        raise ValueError("registered generation batch1/8/16 required")
+    if batch_size==32 and capacity_qualified is not True:
+        raise ValueError('batch32 requires measured capacity admission')
+    if deadline_policy not in ('production60/v1','fixed-work180/v1'):
+        raise ValueError('unknown deadline policy')
+    if bookkeeping is not None:
+        if bookkeeping not in ('baseline','hoisted/v1'):
+            raise ValueError('unknown decoder choice')
+        decoder.cache_bookkeeping = bookkeeping
     first = requests[0]
     for request in requests:
         if (
@@ -44,7 +52,7 @@ def sample_batch(decoder, requests):
         ):
             raise ValueError("compatible visible memories, seeds, temperatures and caps required")
     start = time.monotonic()
-    deadline = min(start + 60, *(request.deadline for request in requests))
+    deadline = min(start + (60 if deadline_policy == 'production60/v1' else 180), *(request.deadline for request in requests))
     sampler = WatProgramSampler(
         decoder,
         max_length=first.max_length,
@@ -83,12 +91,15 @@ def sample_batch(decoder, requests):
             for i in range(len(requests))
         ]
     elapsed = time.monotonic() - start
+    from oeis_learn.synthesis.contracts import identity
+    batch_id=identity(dict(seeds=[r.seed for r in requests],temperature=first.temperature,tokens=first.max_length))
     return [
         dict(
             source=r.source if r.complete else "",
             complete=r.complete,
             tokens=list(r.tokens[1:]),
             generation_seconds=elapsed,
+            generation_batch_id=batch_id,
             generation_batch_size=len(requests),
             failure=getattr(r, "failure", None),
         )

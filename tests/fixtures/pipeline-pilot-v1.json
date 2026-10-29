@@ -1,0 +1,380 @@
+{
+  "profile": {
+    "version": "pipeline-learning-pilot-profile/v1",
+    "spec": {
+      "training": 32768,
+      "parameter_development": 128,
+      "structural_development": 128,
+      "training_panel": 32,
+      "oeis_development": 8,
+      "batch": 16,
+      "workers": 4,
+      "seed": 20261016,
+      "max_updates": 1048576,
+      "max_tokens": 1073741824,
+      "max_validations": 4096,
+      "max_training_bins": 4096,
+      "max_attempt_events": 100000,
+      "attempt_event_bytes": 2048,
+      "max_source_counters": 262144,
+      "evaluation_rows": 1776,
+      "scoring_outcomes": 10656,
+      "snapshot_hours": [
+        0,
+        1.5,
+        3,
+        6,
+        12,
+        24
+      ],
+      "transient_bytes": 17179869184,
+      "durable_bytes": 34359738368,
+      "reservations": {
+        "learner": 86400,
+        "evaluation": 28800,
+        "qualification": 3600,
+        "setup": 3600,
+        "cleanup": 900,
+        "archive": 900,
+        "safety": 48600
+      }
+    },
+    "training": 32768,
+    "batch": 16,
+    "curriculum": false,
+    "replay": false,
+    "assisted": false,
+    "final": false,
+    "precision": "float32",
+    "initialization": "fresh_random",
+    "selection": "visible-only/v2",
+    "extrapolation": "conditional-backtested/v1",
+    "identity": "sha256:ff938541defe91cc9121937afe377526325c22c04e2ea97decb4254484aa6b17"
+  },
+  "recipe": {
+    "version": "bigint-bootstrap/v3",
+    "data": {
+      "cache": "tmp-oeis-bulk",
+      "revision": null,
+      "seed": 20261016,
+      "max_records": 5000,
+      "max_download_bytes": 21474836480,
+      "free_disk_floor_bytes": 5368709120,
+      "generator": "bigint-connected/v1",
+      "variants": 16,
+      "max_families": 16384,
+      "training": 32768,
+      "parameter_development": 128,
+      "structural_development": 128,
+      "oeis_development": 8,
+      "oeis_final": 8
+    },
+    "execution": {
+      "language": "bigint-body/v1",
+      "codec": "bigint-codec/v1",
+      "runtime": "bigint-wasm/v1",
+      "resources": {
+        "input_bits": 4096,
+        "literal_bits": 4096,
+        "intermediate_bits": 16384,
+        "output_bytes": 2048,
+        "arena_entries": 65536,
+        "arena_bytes": 33554432,
+        "memory_bytes": 67108864,
+        "term_fuel": 10000000,
+        "aggregate_fuel": 100000000,
+        "reference_steps": 1000000,
+        "aggregate_reference_steps": 50000000,
+        "control_max": 65536,
+        "loop_iterations": 1024,
+        "aggregate_loop_iterations": 65536,
+        "ast_nodes": 4096,
+        "source_bytes": 65536,
+        "nesting": 32,
+        "bigint_locals": 16,
+        "control_locals": 8,
+        "bool_locals": 8,
+        "term_seconds": 2.0,
+        "evaluation_seconds": 30.0,
+        "cleanup_seconds": 5.0
+      },
+      "artifacts": null
+    },
+    "inputs": {
+      "profile": "hybrid-chunks/v1",
+      "primes": [
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29,
+        31,
+        37,
+        41,
+        43,
+        47,
+        53,
+        59
+      ],
+      "max_valuation": 32,
+      "use_film": true,
+      "summary_tokens": false,
+      "mask": {
+        "magnitude": true,
+        "modular": true,
+        "difference": true,
+        "exact_bytes": true
+      },
+      "ablation_mode": "post_training"
+    },
+    "model": {
+      "d_model": 768,
+      "heads": 12,
+      "encoder_layers": 6,
+      "decoder_layers": 6,
+      "ff": 3072,
+      "precision": "float32",
+      "attention": "eager",
+      "token_scale": 1,
+      "position_scale": 16,
+      "dropout": 0,
+      "seed": 20261016
+    },
+    "learning": {
+      "target_view": "literal",
+      "learning_rate": 0.0001,
+      "batch_size": 16,
+      "max_updates": 1048576,
+      "validation_every": 500,
+      "patience": 8,
+      "min_improvement": 1,
+      "curriculum": false,
+      "replay": false,
+      "representation_comparison": true,
+      "replay_capacity": 4096,
+      "replay_fraction": 0.25,
+      "earlier_fraction": 0.25,
+      "advancement_threshold": 0.8,
+      "advancement_coverage": 0.95,
+      "advancement_validations": 2,
+      "cost_preflight": null
+    },
+    "fitting": {
+      "profile": "native-fitting/v1",
+      "disabled": false,
+      "max_parameters": 8,
+      "max_assignments": 8,
+      "coefficient_bits": 4096,
+      "bounds": [
+        16,
+        64,
+        256,
+        1024,
+        4096
+      ],
+      "native_seconds": 2,
+      "reference_seconds": 2,
+      "service_limits": {
+        "max_inflight_batches": 1,
+        "max_pending_batches": 8,
+        "max_pending_bytes": 33554432,
+        "result_cache_max_entries": 4096,
+        "result_cache_max_bytes": 67108864,
+        "compiled_cache_max_entries": 32,
+        "compiled_cache_max_bytes": 67108864,
+        "disk_cache_max_entries": 256,
+        "disk_cache_max_bytes": 536870912
+      }
+    },
+    "search": {
+      "attempts": 8,
+      "greedy": 1,
+      "stochastic": 7,
+      "tokens": 1024,
+      "seconds": 60,
+      "beam": null
+    },
+    "evaluation": {
+      "visible": 20,
+      "horizon": 100,
+      "periodic_panel": 32,
+      "primary_transfer_metric": "continuation_accuracy_100",
+      "portfolio": "exact_equal_budget",
+      "controls": [
+        "correct",
+        "shuffled",
+        "absent",
+        "template"
+      ],
+      "final_access": "sealed",
+      "hidden_seconds": 30,
+      "coverage": 0.95,
+      "family_resamples": 2000,
+      "paired_seeds": [
+        20261016,
+        20261017,
+        20261018
+      ]
+    },
+    "track": {
+      "kind": "generic_only",
+      "foundation": null,
+      "assisted_manifest": null
+    },
+    "archive": {
+      "max_alternatives": 8,
+      "max_bytes": 536870912
+    },
+    "budgets": {
+      "preparation_seconds": 9000,
+      "training_seconds": 86400,
+      "cleanup_seconds": 5,
+      "ledger": "debit-before-work/v1"
+    },
+    "reporting": {
+      "bundle_bytes": 67108864,
+      "core_reserve_bytes": 8388608,
+      "max_examples": 8,
+      "detail_chunk_bytes": 1048576,
+      "max_core_bytes": 8388608
+    },
+    "model_profile": {
+      "version": "pipeline-model-size/v1",
+      "name": "m100",
+      "width": 768,
+      "heads": 12,
+      "encoder_layers": 6,
+      "decoder_layers": 6,
+      "ff": 3072,
+      "precision": "float32",
+      "backend": "eager",
+      "seed": 20261016,
+      "identity": "sha256:f1374f2c3c2d23ff068273e4d6a8e1facccfe2aa0847e465f90ccf9b13a957b6"
+    },
+    "pilot_profile": {
+      "version": "pipeline-learning-pilot-profile/v1",
+      "spec": {
+        "training": 32768,
+        "parameter_development": 128,
+        "structural_development": 128,
+        "training_panel": 32,
+        "oeis_development": 8,
+        "batch": 16,
+        "workers": 4,
+        "seed": 20261016,
+        "max_updates": 1048576,
+        "max_tokens": 1073741824,
+        "max_validations": 4096,
+        "max_training_bins": 4096,
+        "max_attempt_events": 100000,
+        "attempt_event_bytes": 2048,
+        "max_source_counters": 262144,
+        "evaluation_rows": 1776,
+        "scoring_outcomes": 10656,
+        "snapshot_hours": [
+          0,
+          1.5,
+          3,
+          6,
+          12,
+          24
+        ],
+        "transient_bytes": 17179869184,
+        "durable_bytes": 34359738368,
+        "reservations": {
+          "learner": 86400,
+          "evaluation": 28800,
+          "qualification": 3600,
+          "setup": 3600,
+          "cleanup": 900,
+          "archive": 900,
+          "safety": 48600
+        }
+      },
+      "training": 32768,
+      "batch": 16,
+      "curriculum": false,
+      "replay": false,
+      "assisted": false,
+      "final": false,
+      "precision": "float32",
+      "initialization": "fresh_random",
+      "selection": "visible-only/v2",
+      "extrapolation": "conditional-backtested/v1",
+      "identity": "sha256:ff938541defe91cc9121937afe377526325c22c04e2ea97decb4254484aa6b17"
+    },
+    "pipeline": {
+      "version": "pipeline-policy/v1",
+      "selection": "visible-only/v2",
+      "archive": "structure-pareto/v2",
+      "workers": 4,
+      "overlap": true,
+      "lookahead": 1,
+      "batch_size": 16,
+      "bookkeeping": "hoisted/v1",
+      "measurement": "ordinary"
+    },
+    "identity": "sha256:7a27cb289f06798753ebf0c02b6ca4828c90c1877f364330e0075fc1028c77fe"
+  },
+  "manifest": {
+    "authority": {
+      "disposable_updates": true,
+      "final": false,
+      "operations_fixtures": true,
+      "resume": false,
+      "training": false
+    },
+    "budgets": {
+      "archive_seconds": 900,
+      "build_per_engine_seconds": 14400,
+      "cleanup_seconds": 300,
+      "global_seconds": 86400,
+      "mandatory_reserve_bytes": 16777216,
+      "phase_seconds": {
+        "1": 10800,
+        "2": 1200,
+        "3": 1200,
+        "4": 28800,
+        "5": 12000
+      },
+      "stream_bytes": 8388608,
+      "trace_bytes": 134217728,
+      "transient_bytes": 17179869184,
+      "zip_bytes": 536870912,
+      "free_disk_reserve_bytes": 5368709120,
+      "bundle_members": 4097
+    },
+    "comparisons": [],
+    "engines": "both",
+    "excluded_authorities": [
+      "training",
+      "resume",
+      "T096_retry",
+      "assisted_data",
+      "final"
+    ],
+    "input_refs": [],
+    "phases": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "resource_policy": "workstation90",
+    "reuse_refs": [],
+    "scope": "engineering-pilot",
+    "source": {},
+    "stage_registry_version": "pipeline-pilot-registry/v1",
+    "version": "pipeline-pilot-validation/v1",
+    "weights_ref": null,
+    "workloads": [
+      "learning-pilot-preflight/v1"
+    ],
+    "identity": "sha256:956e978ab8bb8135125f69e23df650f4ca6cec85e7f9eff15b766cbf13e5f79a"
+  }
+}

@@ -1,0 +1,469 @@
+{
+  "archive_sha256": "8c8f0b8f17603361fa013607cc4a4cb88bd76576d3a74444aaa8a0247f44fa1d",
+  "automatic_run_authorized": false,
+  "cost_status": "UNKNOWN",
+  "diagnostic_is_admissible_forecast": false,
+  "diagnostic_only_incomplete_evaluation_envelope_seconds": 31122,
+  "elapsed_seconds": 14507.199562637135,
+  "engineering": "PASS",
+  "inventory": {
+    "hash_mismatches": 0,
+    "omissions": 0,
+    "payloads": 391
+  },
+  "long_run_admitted": false,
+  "observations": [
+    {
+      "active": 0,
+      "by_mode": {
+        "absent": {
+          "INCOMPLETE": 296
+        },
+        "correct": {
+          "INCOMPLETE": 592,
+          "UNSTARTED": 1776
+        },
+        "shuffled": {
+          "INCOMPLETE": 296
+        },
+        "template": {
+          "COMMITTED": 2368
+        }
+      },
+      "by_split": {
+        "oeis_development": {
+          "COMMITTED": 64,
+          "INCOMPLETE": 32,
+          "UNSTARTED": 48
+        },
+        "parameter_development": {
+          "COMMITTED": 1024,
+          "INCOMPLETE": 512,
+          "UNSTARTED": 768
+        },
+        "structural_development": {
+          "COMMITTED": 1024,
+          "INCOMPLETE": 512,
+          "UNSTARTED": 768
+        },
+        "training_panel": {
+          "COMMITTED": 256,
+          "INCOMPLETE": 128,
+          "UNSTARTED": 192
+        }
+      },
+      "cost_complete": false,
+      "ordinal": 0,
+      "reserved": 0,
+      "states": {
+        "COMMITTED": 2368,
+        "INCOMPLETE": 1184,
+        "UNSTARTED": 1776
+      },
+      "unresolved_arm_reasons": {
+        "grammar_dead_end": 1424,
+        "token_cap_without_eos": 56
+      }
+    },
+    {
+      "active": 0,
+      "by_mode": {
+        "absent": {
+          "COMMITTED": 99,
+          "INCOMPLETE": 197
+        },
+        "correct": {
+          "COMMITTED": 435,
+          "INCOMPLETE": 1933
+        },
+        "shuffled": {
+          "COMMITTED": 183,
+          "INCOMPLETE": 113
+        },
+        "template": {
+          "COMMITTED": 2368
+        }
+      },
+      "by_split": {
+        "oeis_development": {
+          "COMMITTED": 135,
+          "INCOMPLETE": 9
+        },
+        "parameter_development": {
+          "COMMITTED": 1322,
+          "INCOMPLETE": 982
+        },
+        "structural_development": {
+          "COMMITTED": 1299,
+          "INCOMPLETE": 1005
+        },
+        "training_panel": {
+          "COMMITTED": 329,
+          "INCOMPLETE": 247
+        }
+      },
+      "cost_complete": true,
+      "ordinal": 1,
+      "reserved": 0,
+      "states": {
+        "COMMITTED": 3085,
+        "INCOMPLETE": 2243
+      },
+      "unresolved_arm_reasons": {
+        "deadline": 16,
+        "grammar_dead_end": 5,
+        "native/reference service deadline; late candidate excluded": 399,
+        "owner_deadline": 81,
+        "queue_deadline": 284,
+        "resource_exhausted:deadline": 7,
+        "resource_exhausted:timeout": 100
+      }
+    },
+    {
+      "active": 0,
+      "by_mode": {
+        "absent": {
+          "INCOMPLETE": 296
+        },
+        "correct": {
+          "COMMITTED": 464,
+          "INCOMPLETE": 1777,
+          "UNSTARTED": 127
+        },
+        "shuffled": {
+          "COMMITTED": 184,
+          "INCOMPLETE": 112
+        },
+        "template": {
+          "COMMITTED": 2368
+        }
+      },
+      "by_split": {
+        "oeis_development": {
+          "COMMITTED": 72,
+          "INCOMPLETE": 56,
+          "UNSTARTED": 16
+        },
+        "parameter_development": {
+          "COMMITTED": 1289,
+          "INCOMPLETE": 952,
+          "UNSTARTED": 63
+        },
+        "structural_development": {
+          "COMMITTED": 1330,
+          "INCOMPLETE": 955,
+          "UNSTARTED": 19
+        },
+        "training_panel": {
+          "COMMITTED": 325,
+          "INCOMPLETE": 222,
+          "UNSTARTED": 29
+        }
+      },
+      "cost_complete": false,
+      "ordinal": 2,
+      "reserved": 0,
+      "states": {
+        "COMMITTED": 3016,
+        "INCOMPLETE": 2185,
+        "UNSTARTED": 127
+      },
+      "unresolved_arm_reasons": {
+        "deadline": 41,
+        "grammar_dead_end": 144,
+        "native/reference service deadline; late candidate excluded": 473,
+        "owner_deadline": 121,
+        "queue_deadline": 240,
+        "resource_exhausted:deadline": 1,
+        "resource_exhausted:timeout": 117
+      }
+    }
+  ],
+  "portability": "PENDING",
+  "preparation": {
+    "available_reference_counters": 524288,
+    "elapsed_seconds": 6486.862753255991,
+    "eligible": 524288,
+    "exclusions": {},
+    "native_admitted": 33024,
+    "phase": "complete",
+    "reference_cache": {
+      "binding": "sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87",
+      "bytes": 262085317,
+      "count": 524288,
+      "index_sha256": "sha256:bf352f37583f2cc0b982b0b55073c4ca8a93beb348d50ab70e017fbb2613012b",
+      "migration": null
+    },
+    "reference_provenance": {
+      "authority": "RAW_REFERENCE_ONLY",
+      "binding": "sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87",
+      "identity": "sha256:4688bffa57eeb46fc2237ed36971169219f50b2407af548499f2d86244c4ebb5",
+      "index_sha256": "sha256:bf352f37583f2cc0b982b0b55073c4ca8a93beb348d50ab70e017fbb2613012b",
+      "input_binding": "sha256:e4e9f60b2ad7855cbb2bb535e8054271331d4e2124b13629219ea69cec291a87",
+      "origin": {
+        "cost_status": "UNKNOWN_TOTAL_LOCAL_REFERENCE_PREPARATION",
+        "elapsed_seconds": 58.4623033150001,
+        "provenance": "Locally computed independent generic reference; original generator/seed/resources; not native/HIP execution. A few local reference deadline interruptions were retried before saving their batch. No target timing or qualification claim.",
+        "receipt": "sha256:ad862d308b4c2abecc27e868d8fc834c49330c015c61eaa32b4f7d63f21671a7",
+        "source": "sha256:821d3956bd3d37757ff7a8920ac8d56ae064b4ab0866aa5f6e9d2d4ad8b25818"
+      },
+      "producer": "sha256:2061473e1b8b7cbe8969068e9868018e978ffac4cd9dbe7440a099743c48a768",
+      "receipt": "sha256:ad862d308b4c2abecc27e868d8fc834c49330c015c61eaa32b4f7d63f21671a7",
+      "state": "PARTIAL",
+      "version": "pipeline-pilot-reference-provenance/v2"
+    },
+    "reused_reference_counters": 524288,
+    "sampled": 524288,
+    "selection_attempts": [
+      {
+        "audit": {
+          "behavior_counts": {
+            "parameter_development": {
+              "constant": 4,
+              "offset_only": 0
+            },
+            "structural_development": {
+              "constant": 0,
+              "offset_only": 0
+            },
+            "training": {
+              "constant": 720,
+              "offset_only": 37
+            }
+          },
+          "candidate_families": 11865,
+          "candidate_rows": 524288,
+          "counts": {
+            "parameter_development": 128,
+            "structural_development": 128,
+            "training": 32768
+          },
+          "phase": "complete",
+          "policy": "selected-disjoint-windows/v1",
+          "qualified_families": 8918,
+          "rejections": {
+            "overlap": 380409
+          },
+          "required": {
+            "parameter_development": 128,
+            "structural_development": 128,
+            "training": 32768
+          },
+          "selected_families": {
+            "parameter_development": 128,
+            "structural_development": 18,
+            "training": 2146
+          },
+          "stages": {
+            "parameter_development": {
+              "A": 3,
+              "B": 68,
+              "D": 57
+            },
+            "structural_development": {
+              "A": 128
+            },
+            "training": {
+              "A": 1643,
+              "B": 18248,
+              "C": 10516,
+              "D": 2361
+            }
+          },
+          "unused_candidates_are_not_group_bridges": true
+        },
+        "counter": 524288,
+        "status": "COMPLETE"
+      }
+    ],
+    "selection_progress": {
+      "behavior_counts": {
+        "parameter_development": {
+          "constant": 4,
+          "offset_only": 0
+        },
+        "structural_development": {
+          "constant": 0,
+          "offset_only": 0
+        },
+        "training": {
+          "constant": 720,
+          "offset_only": 37
+        }
+      },
+      "candidate_families": 11865,
+      "candidate_rows": 524288,
+      "counts": {
+        "parameter_development": 128,
+        "structural_development": 128,
+        "training": 32768
+      },
+      "phase": "complete",
+      "policy": "selected-disjoint-windows/v1",
+      "qualified_families": 8918,
+      "rejections": {
+        "overlap": 380409
+      },
+      "required": {
+        "parameter_development": 128,
+        "structural_development": 128,
+        "training": 32768
+      },
+      "selected_families": {
+        "parameter_development": 128,
+        "structural_development": 18,
+        "training": 2146
+      },
+      "stages": {
+        "parameter_development": {
+          "A": 3,
+          "B": 68,
+          "D": 57
+        },
+        "structural_development": {
+          "A": 128
+        },
+        "training": {
+          "A": 1643,
+          "B": 18248,
+          "C": 10516,
+          "D": 2361
+        }
+      },
+      "unused_candidates_are_not_group_bridges": true
+    },
+    "source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+    "status": "COMPLETE",
+    "version": "pipeline-pilot-preparation/v2"
+  },
+  "receipts": {
+    "cpu.docker.semantic": {
+      "identity": "sha256:16e6607083c06cb9552c967a69cab66d14b650e2a89faa0d1fabfb4b8cdc776c",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "state": "BLOCKED"
+    },
+    "cpu.podman.semantic": {
+      "identity": "sha256:09a8fbb74ed2f754d122dc37954c3a19ba85cab44f05afac3bf1c6d6e61f13f1",
+      "reason": "",
+      "state": "PASS"
+    },
+    "engine.docker": {
+      "identity": "sha256:1633d9bb6d6775f2043c0dd70d51ecc7853d7dbdf2478bf6214457fd0202f7ff",
+      "reason": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence",
+      "state": "PARTIAL"
+    },
+    "engine.podman": {
+      "identity": "sha256:9ba4b8781b19371281141d1c7dcc96fee3dd47dd6bdbb94f134288b794036481",
+      "reason": "",
+      "state": "PASS"
+    },
+    "hip.preflight": {
+      "identity": "sha256:810d9257d327e65eb45266c917d79c6c30b86d6bc2cd5c4ac15d864f636137e3",
+      "reason": "",
+      "state": "PASS"
+    },
+    "host.contracts": {
+      "identity": "sha256:80536be25bb6d94ce94029f32fdde2b5b5c23d53d490ac8c9d87da960982bd8a",
+      "reason": "",
+      "state": "PASS"
+    },
+    "image.docker.qualification": {
+      "identity": "sha256:6a9c7e42134cf6d3cd62551348524fecfec395d2d907d85a56fac35e47aec1a0",
+      "reason": "failed/missing prerequisites: engine.docker",
+      "state": "BLOCKED"
+    },
+    "image.podman.gpu": {
+      "identity": "sha256:a65271421ff0cbe9864fcbf4176cc46e9361dcc7df9e184c070f2288cd773011",
+      "reason": "",
+      "state": "PASS"
+    },
+    "image.podman.qualification": {
+      "identity": "sha256:2f7c459cbd2f95230c2cb7007f95d1aed0345374899dcccdf9f3ac924d20ff34",
+      "reason": "",
+      "state": "PASS"
+    },
+    "operations.docker.retirement": {
+      "identity": "sha256:3666c5a1e0cd856fdf41e135f802f8bf6b8ab7f841fc6f4aa492fc9c87d3b018",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "state": "BLOCKED"
+    },
+    "operations.docker.workflow": {
+      "identity": "sha256:7de000829a1325cc79e7a8c1e5cef8cd74dee367e4ced9ca1eb111f5f64f3d98",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "state": "BLOCKED"
+    },
+    "operations.podman.retirement": {
+      "identity": "sha256:1a69b2d6a74cdc2dc5a9f42f9a2489053b2b630ecb38284255e114cb0bfd2ea3",
+      "reason": "",
+      "state": "PASS"
+    },
+    "operations.podman.workflow": {
+      "identity": "sha256:afc7afa4d41aa581d9cdc138ce0d94052c54896ef44d23733eb01015a6aeeaa9",
+      "reason": "",
+      "state": "PASS"
+    },
+    "pilot.operations.docker": {
+      "identity": "sha256:8e53bc256f73252cb2c7a9897029dac79bfd29b3dac4f357f6ab4a2ef1a84b0a",
+      "reason": "failed/missing prerequisites: image.docker.qualification",
+      "state": "BLOCKED"
+    },
+    "pilot.operations.podman": {
+      "identity": "sha256:06cff00b39e2496edd20a8074c1fdf41bd5c0ded3f5128f483484ccc2e9fe67f",
+      "reason": "",
+      "state": "PASS"
+    },
+    "pilot.prepare": {
+      "identity": "sha256:9aa8f173824de9fe42fe59618a8518549abda19bbf45917160fa8b8ba8d9bedd",
+      "reason": "",
+      "state": "PASS"
+    },
+    "pilot.report": {
+      "identity": "sha256:50072f8b6e1121d3314a2737b61cef55ec31092716a668d087889e48b1ba7d38",
+      "reason": "",
+      "state": "PASS"
+    },
+    "pilot.session": {
+      "identity": "sha256:0da37809d2798b2700794087060b4e84af7a0c5f418e054c3106fcfd45faba3b",
+      "reason": "",
+      "state": "PASS"
+    },
+    "policy.compare": {
+      "identity": "sha256:7499f549e5344167261ac714bd8ebe698ad88fb641eaa4cee140308aff7adcff",
+      "reason": "",
+      "state": "PASS"
+    },
+    "study.report": {
+      "identity": "sha256:a82d10a385874cf13334d52ed57e9df292364a36514e0c03c37e90e6fe0f367a",
+      "reason": "",
+      "state": "PASS"
+    }
+  },
+  "snapshots": [
+    {
+      "effective_token_epochs": 0.0,
+      "learner_role_seconds": 0.0,
+      "ordinal": 0,
+      "tokens": 0,
+      "unique_examples": 0,
+      "updates": 0
+    },
+    {
+      "effective_token_epochs": 1.2026742106539698,
+      "learner_role_seconds": 905.8357627140358,
+      "ordinal": 1,
+      "tokens": 2390048,
+      "unique_examples": 32768,
+      "updates": 2463
+    },
+    {
+      "effective_token_epochs": 2.2989989322077737,
+      "learner_role_seconds": 1812.9876783359796,
+      "ordinal": 2,
+      "tokens": 4568750,
+      "unique_examples": 32768,
+      "updates": 4710
+    }
+  ],
+  "source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+  "version": "pipeline-pilot-offline-review/v1"
+}

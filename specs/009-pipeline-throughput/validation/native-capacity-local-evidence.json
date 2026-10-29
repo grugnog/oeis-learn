@@ -1,0 +1,55 @@
+{
+  "version": "pipeline-native-capacity-local-evidence/v1",
+  "source": "sha256:723ac9742b7ff09c2e43325d59a2508ddf645b3c6e2d59367c6b25b54bc16564",
+  "source_entries": 709,
+  "host_tests": 134,
+  "new_host_tests": 11,
+  "public_cli": {
+    "exit_code": 3,
+    "reason": "Podman unavailable in local environment",
+    "summary": {
+      "cap_seconds": 86400.0,
+      "cleanup_archive_reserve_seconds": 1200,
+      "elapsed_seconds": 4.5543790270000954,
+      "engineering": "PARTIAL",
+      "feature_complete": false,
+      "historical": {
+        "008:T093": "DEFERRED",
+        "008:T096": "NEGATIVE 7730/14400 seconds"
+      },
+      "learning": "NOT_ADMITTED",
+      "long_run_admission": "NOT_ADMITTED",
+      "phase_consumed_seconds": {
+        "1": 4.513207224000098,
+        "3": 0.00422887499985336
+      },
+      "portability": "PENDING",
+      "research": "NOT_EXECUTED",
+      "scope": "engineering-native-capacity",
+      "selected_scope": "PARTIAL",
+      "unavailable": [],
+      "version": "pipeline-summary/v1"
+    },
+    "archive_sha256": "sha256:3f3f11c78cdbf99b6762b1d90e0d55dd20a7407e9535c6988c4513bd33d26ce5",
+    "manifest": "sha256:d8ee68661a60ac84ba40feb3f2e9b3436be0cb84e12cfd857cdebdd9806362ab",
+    "listed_members": 23,
+    "all18_undispatched_slots": "UNSTARTED"
+  },
+  "verification": [
+    "host authority, fixed full18-row work, clock/owner/debit custody, two independent finite worker hypotheses, no favorable incomplete ratio",
+    "changed child, partial baseline/candidate, semantics mismatch, global resource/interrupt evidence",
+    "actual runner simulated complete CPU graph and verified archive",
+    "actual public stdlib CLI missing-engine archive verified",
+    "compileall and git diff --check pass"
+  ],
+  "runtime": {
+    "cpu_native": "Three real packaged-worker1/2/4 fixtures authored/registered; not executed locally",
+    "hip": "Not selected or required by this CPU-only scope",
+    "dependencies": "No host dependencies installed"
+  },
+  "authority": {
+    "optimization_adoption": false,
+    "research_cost_admission": false,
+    "learning": "HELD"
+  }
+}

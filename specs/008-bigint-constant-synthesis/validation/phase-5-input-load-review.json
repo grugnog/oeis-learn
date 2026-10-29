@@ -1,0 +1,69 @@
+{
+  "version": "phase5-input-load-review/v1",
+  "review_date": "2026-10-22",
+  "qualified": false,
+  "archive": "008-input-load-20261022T125014Z.zip",
+  "archive_sha256": "sha256:77a7a0e0cff773e6b3da4905c71484d498858ad5b3e4bde1f3faf3be18ea21f6",
+  "source_sha256": "sha256:0b8554a8d4d896c31a28050842d8eeaa0e5fd1a6a249c5ac57448bb4e75a154f",
+  "image": "sha256:6ddf6ef0a745e97cf27346ee2c2934f7c93998a152d72c1a2b52cb2c671ba13d",
+  "review_basis": "Read-only verification already performed in this conversation: archive CRC and all seven manifest entry hashes, report identity, source binding, independent output hashes and parent/nested accounting. Raw upload was no longer present after workspace reset and was not re-read this turn.",
+  "configurations": 75,
+  "paired_samples": 225,
+  "all_results_match": true,
+  "results": {
+    "ok": 213,
+    "integer_limit": 9,
+    "aggregate_fuel": 3
+  },
+  "selected_rows": [
+    {
+      "case": "shared-small-add",
+      "batch": 100,
+      "ordinary_seconds": 0.0218695695,
+      "byte_transfer_seconds": 0.015893201,
+      "byte_calls_per_term": 3,
+      "input_load_fraction": 0.9834764372563969,
+      "observer_ratio": 0.9971538534400507
+    },
+    {
+      "case": "shared-small-cancel",
+      "batch": 100,
+      "ordinary_seconds": 0.0217306115,
+      "byte_transfer_seconds": 0.015887672,
+      "byte_calls_per_term": 3,
+      "input_load_fraction": 0.982721940515083,
+      "observer_ratio": 1.0008616416523761
+    },
+    {
+      "case": "full-mul-4096",
+      "batch": 100,
+      "ordinary_seconds": 0.0297688905,
+      "byte_transfer_seconds": 0.01754987,
+      "byte_calls_per_term": 512,
+      "input_load_fraction": 0.9749245872191497,
+      "observer_ratio": 1.0151689563304351
+    }
+  ],
+  "cleanup": {
+    "seconds": 0.03882702789269388,
+    "allowance_seconds": 5,
+    "within_bound": true
+  },
+  "isolation": {
+    "network": "none",
+    "readonly_root": true,
+    "privileged": false,
+    "GPU_devices": [],
+    "binds": [
+      {
+        "destination": "/work/output",
+        "writable": true
+      }
+    ]
+  },
+  "interpretation": "The byte loop accounts for about98.3% of small-case input loading. Three calls cost158.9us per term versus175.5us for512 calls. Fixed first-use/term work is plausible; allocation or memory growth is not yet established.",
+  "resource_exclusion": "generated16384-bit batch100 completes82 terms then aggregate_fuel, on all three samples",
+  "T094": "OPEN: first-byte and limiter-event observation next",
+  "T096": "NEGATIVE unchanged",
+  "promotion": "BLOCKED"
+}
