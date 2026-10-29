@@ -42,6 +42,20 @@ def snapshot(root,ordinal,trainer,audit):
     return dict(ordinal=ordinal,path=p,descriptor=d,weights_sha256=expected,parameter_digest=trainer['final_parameter_digest'])
 
 
+def selected_snapshot(run,trainer,audit):
+    """Verify the public selected pointer against retained checkpoint/weight bytes."""
+    checkpoint_root=confined(run,'stages/pilot.train-5/train-5/private/trainer/checkpoints')
+    pointer=trainer['selected'];record_path=confined(checkpoint_root,pointer['path'])
+    if file_hash(record_path)!=pointer['sha256']:raise ValueError('selected checkpoint pointer changed')
+    record=json.loads(record_path.read_text());weights=record['files']['weights']
+    path=confined(checkpoint_root,weights['path'])
+    if (record['binding']['contract']!=audit['contract'] or record['binding']['weights']!=weights['sha256']
+        or path.stat().st_size>512<<20 or file_hash(path)!=weights['sha256']):
+        raise ValueError('selected weight/contract binding changed')
+    return dict(ordinal=6,path=path,weights_sha256=weights['sha256'],parameter_digest=None,
+        pointer=pointer,selection='producer retained selected checkpoint; parameter digest measured during probe')
+
+
 def inspect(run,admission,producer,repo,plan):
     from .diagnostics_collect import Evidence
     from .longrun_contract import requirements,valid_cost,PROFILE
@@ -86,19 +100,7 @@ def inspect(run,admission,producer,repo,plan):
             snapshots[i]=s
         if 6 in selected:
             role='stages/pilot.train-5/train-5/'
-            trainer=r.read(role+'trainer.json');audit=r.read(role+'checkpoint-audit.json')
-            pointer=trainer['selected']
-            checkpoint_root=confined(run,role+'private/trainer/checkpoints')
-            record_path=confined(checkpoint_root,pointer['path'])
-            if file_hash(record_path)!=pointer['sha256']:raise ValueError('selected checkpoint pointer changed')
-            record=json.loads(record_path.read_text())
-            weights=record['files']['weights']
-            path=confined(checkpoint_root,weights['path'])
-            if (record['binding']['contract']!=audit['contract'] or record['binding']['weights']!=weights['sha256']
-                or path.stat().st_size>512<<20 or file_hash(path)!=weights['sha256']):
-                raise ValueError('selected weight/contract binding changed')
-            snapshots[6]=dict(ordinal=6,path=path,weights_sha256=weights['sha256'],parameter_digest=None,
-                pointer=pointer,selection='producer retained selected checkpoint; parameter digest measured during probe')
+            snapshots[6]=selected_snapshot(run,r.read(role+'trainer.json'),r.read(role+'checkpoint-audit.json'))
         public=seal(dict(version='pipeline-pilot-diagnostics-import/v1',source=digest(current),producer_source=PRODUCER_SOURCE,
             work=m['identity'],study=d['identity'],producer_manifests={k:v.manifest['identity'] for k,v in [('run',r),('admission',a),('data',p)]},
             changed_diagnostic_dependencies=changes,populations=population,

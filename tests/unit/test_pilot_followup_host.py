@@ -57,4 +57,42 @@ class FollowupTests(unittest.TestCase):
             self.assertTrue(report['cost_complete'])
             self.assertEqual(report['policy'],DRAIN)
 
+    def test_selected_checkpoint_hashes_and_contract(self):
+        from oeis_learn.pipeline_validation.diagnostics_import import selected_snapshot
+        from oeis_learn.pipeline_validation.identity import file_hash
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);folder=root/'stages/pilot.train-5/train-5/private/trainer/checkpoints'
+            state=folder/'state-test';state.mkdir(parents=True)
+            weight=state/'weights.pt';weight.write_bytes(b'bound weights only')
+            record=dict(files=dict(weights=dict(path='state-test/weights.pt',sha256=file_hash(weight))),
+                binding=dict(weights=file_hash(weight),contract='contract'))
+            checkpoint=state/'checkpoint.json';checkpoint.write_text(json.dumps(record))
+            trainer=dict(selected=dict(path='state-test/checkpoint.json',sha256=file_hash(checkpoint)))
+            self.assertEqual(selected_snapshot(root,trainer,dict(contract='contract'))['ordinal'],6)
+            with self.assertRaises(ValueError):selected_snapshot(root,trainer,dict(contract='other'))
+            weight.write_bytes(b'tampered')
+            with self.assertRaises(ValueError):selected_snapshot(root,trainer,dict(contract='contract'))
+
+    def test_native_priority_drains_before_more_decoding(self):
+        import time
+        from types import SimpleNamespace
+        from oeis_learn.fresh.pipeline_jobs import logical_job,NativeRequest
+        from oeis_learn.fresh.pipeline_scheduler import drive
+        completed=[];calls=[]
+        def worker(i):
+            yield SimpleNamespace(temperature=0,memory=SimpleNamespace(shape=(1,1,1)))
+            job=logical_job(contract='c',snapshot='s',mode='correct',arm='fit',prompt_id=str(i),attempt_ordinal=0,method='test',seed=i)
+            def operation():
+                time.sleep(.01);completed.append(i);return i
+            value=yield NativeRequest(job,i,time.monotonic()+5,operation)
+            self.assertEqual(value,i)
+            yield SimpleNamespace(temperature=0,memory=SimpleNamespace(shape=(1,1,1)))
+            return i
+        def decode(decoder,requests):
+            calls.append(len(completed))
+            if len(calls)>1:self.assertEqual(len(completed),2)
+            return [None]*len(requests)
+        result,boundary=drive(None,[worker(0),worker(1)],workers=1,batch_size=8,sample=decode,native_priority=True)
+        self.assertEqual(result,[0,1]);self.assertEqual(boundary['active'],0)
+
 if __name__=='__main__':unittest.main()
