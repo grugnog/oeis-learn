@@ -116,6 +116,8 @@ def _stages(host, suite, output, *, external_seconds=None):
         ]
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
         bigint_cpu += [
+            "tests/unit/test_pilot_followup.py",
+            "tests/unit/test_pilot_followup_host.py",
             "tests/contract/test_native_fitting.py",
             "tests/integration/test_synthesis_worker.py",
             "tests/unit/test_synthesis_service_limits.py",

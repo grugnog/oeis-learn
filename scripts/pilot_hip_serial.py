@@ -32,6 +32,7 @@ def main(argv=None):
     parser.add_argument('--skip-training',action='store_true')
     parser.add_argument('--dry-run',action='store_true')
     args=parser.parse_args(argv)
+    if not all(0<=seed<2**32 for seed in args.seeds):parser.error('seed outside 0..2**32-1')
     if len(set(args.seeds))!=len(args.seeds):parser.error('seed roster must be unique')
     root=Path(__file__).resolve().parents[1]
     for name in ('run','admission','inputs','output'):
