@@ -21,7 +21,6 @@ class Study(Diagnostics):
         data['snapshots'][ordinal]=dict(path=target/'private/best-weights.pt',weights_sha256=weights['best_weights'])
         from .followup_evaluation import evaluate
         evaluation=evaluate(self,output,ordinal)
-        write(output/'evaluation.json',evaluation)
         return dict(stage_state='PASS' if result['status']=='COMPLETE' else 'PARTIAL',result=result,evaluation=evaluation)
 
     def finalize(self,output,invocation,receipts):

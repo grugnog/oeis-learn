@@ -12,6 +12,61 @@ from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN,attempts,c
 
 
 class FollowupTests(unittest.TestCase):
+    def test_evaluation_handoff_and_training_stage_write_each_record_once(self):
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation.identity import write,file_hash
+        from oeis_learn.pipeline_validation.followup_evaluation import evaluate,report
+        from oeis_learn.pipeline_validation.followup_study import Study
+        from oeis_learn.pipeline_validation.registry import Stage
+        arms=('raw','rescue','equal_budget','shuffled','absent','template')
+        for training in (False,True):
+            with self.subTest(training=training),tempfile.TemporaryDirectory() as d:
+                root=Path(d);prepared=root/'prepared'
+                write(prepared/'recipe.json',{})
+                source=root/'weights.pt';source.write_bytes(b'original weights')
+                snapshots={2:dict(path=source,weights_sha256=file_hash(source),pointer={})}
+                calls=[]
+                def invoke(output,label,mode,files,**kwargs):
+                    target=output/label;target.mkdir()
+                    cfg=json.loads(files['study.json' if mode=='pilot-followup-train' else 'settings.json'].read_text())
+                    calls.append((mode,files,cfg))
+                    if mode=='pilot-followup-train':
+                        weight=target/'private/best-weights.pt';weight.parent.mkdir();weight.write_bytes(b'new weights')
+                        write(target/'weights.json',dict(best_weights=file_hash(weight)))
+                        return dict(status='COMPLETE'),target
+                    if mode=='pilot-generate':
+                        self.assertNotIn('truth.json',files)
+                        self.assertNotIn('pilot_selections_sha256',cfg)
+                        write(target/'selections.json',dict(a=dict(strata=dict(split='parameter_development'))))
+                        return dict(clock_complete=True),target
+                    self.assertEqual(mode,'pilot-score')
+                    self.assertNotIn('weights.pt',files)
+                    self.assertEqual(cfg['pilot_selections_sha256'],file_hash(files['selections.json']))
+                    self.assertEqual(cfg['pilot_truth_sha256'],file_hash(files['truth.json']))
+                    write(target/'outcomes.json',dict(a={arm:dict(success=False,complete=True,reason='visible_mismatch') for arm in arms}))
+                    return dict(complete=True),target
+                write(prepared/'private/truth.json',{})
+                pilot=SimpleNamespace(invoke=invoke)
+                args=SimpleNamespace(tokens=25000000,seed=1)
+                owner=Study(args,root,dict(evaluation_policy=MATCHED,snapshots=[2]),SimpleNamespace(pilot=pilot))
+                owner.imported=dict(prepared=prepared,manifest=dict(identity='work',files={
+                    'prompts.json':dict(sha256='prompts'),'private/truth.json':dict(sha256=file_hash(prepared/'private/truth.json'))}),
+                    contract='contract',snapshots=snapshots)
+                output=root/'stages/diagnostics.snapshot-2'
+                if training:
+                    result=owner(Stage('followup.uniform',4,adapter='followup-train'),output)
+                    self.assertEqual(result['stage_state'],'PASS')
+                else:
+                    result=evaluate(owner,output,2)
+                    self.assertTrue(result['scientific_complete'])
+                    self.assertEqual(report(owner,root/'report',root,{})['evaluation'],'COMPLETE')
+                generation=json.loads((output/'private/generation-settings.json').read_text())
+                scoring=json.loads((output/'private/scoring-settings.json').read_text())
+                self.assertNotIn('pilot_selections_sha256',generation)
+                self.assertIn('pilot_selections_sha256',scoring)
+                self.assertEqual(json.loads((output/'evaluation.json').read_text())['groups']['parameter_development|raw']['denominator'],1)
+                self.assertEqual(len(calls),3 if training else 2)
+
     def test_serial_helper_surfaces_child_failure(self):
         import contextlib
         import importlib.util

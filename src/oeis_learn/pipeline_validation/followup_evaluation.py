@@ -16,10 +16,11 @@ def evaluate(owner,output,ordinal):
         followup_policy=owner.contract['evaluation_policy'],
         pilot_prompts_sha256=data['manifest']['files']['prompts.json']['sha256'],
         pilot_truth_sha256=data['manifest']['files']['private/truth.json']['sha256'])
-    descriptor=output/'private/settings.json';write(descriptor,cfg)
+    descriptor=output/'private/generation-settings.json';write(descriptor,cfg)
     generated,gen=p.invoke(output,'generate-'+str(ordinal),'pilot-generate',
         {'settings.json':descriptor,'weights.pt':snapshot['path'],'prompts.json':p.prepared/'prompts.json'},seconds=9000,ordinal=ordinal)
-    cfg['pilot_selections_sha256']=file_hash(gen/'selections.json');write(descriptor,cfg)
+    cfg['pilot_selections_sha256']=file_hash(gen/'selections.json')
+    descriptor=output/'private/scoring-settings.json';write(descriptor,cfg)
     scored,score=p.invoke(output,'score-'+str(ordinal),'pilot-score',
         {'settings.json':descriptor,'selections.json':gen/'selections.json','truth.json':p.prepared/'private/truth.json'},seconds=1500,ordinal=ordinal)
     outcomes=json.loads((score/'outcomes.json').read_text())
