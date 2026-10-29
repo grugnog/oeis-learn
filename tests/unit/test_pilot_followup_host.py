@@ -29,6 +29,93 @@ class FollowupTests(unittest.TestCase):
             self.assertIn(str(log),stderr.getvalue())
             self.assertEqual(log.read_text().strip(),'actual qualification failure')
 
+    def test_actual_portfolios_accept_every_registered_policy(self):
+        import time
+        from oeis_learn.fresh.bigint_diagnostics import _portfolio
+        from oeis_learn.decoder.bigint_generation import GenerationRequest
+        from oeis_learn.fresh.pipeline_jobs import NativeRequest
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY
+        from oeis_learn.synthesis.contracts import ResourceProfile
+        class Client:
+            limits=ResourceProfile()
+            def execute(self,source,indices,**kwargs):
+                return dict(outcome='ok',values=list(indices))
+            def fit(self,source,prompt,**kwargs):
+                return dict(outcome='unsat_in_scope',admitted=[],complete=True)
+        row=dict(id='a',indices=list(map(str,range(20))),values=['7']*20)
+        recipe=dict(model=dict(seed=1),search=dict(beam=None),fitting=dict(disabled=False),pipeline=dict(workers=1))
+        source=decode_body(encode_body('(program (return $index))'))
+        for policy in (POLICY,MATCHED,DRAIN):
+            with self.subTest(policy=policy), tempfile.TemporaryDirectory() as d:
+                evidence=FullClockEvidence(d,[row],source='source',work='work',policy=policy)
+                for mode,count in attempts(policy).items():
+                    gen=_portfolio(None,None,row,recipe,Client(),deadline=time.monotonic()+60,
+                        attempt_count=count,template=mode=='template',mode=mode,snapshot='snapshot',
+                        evidence=evidence,evaluation_policy=policy)
+                    value=None;native=0
+                    while True:
+                        try:request=gen.send(value)
+                        except StopIteration as stop:
+                            self.assertTrue(stop.value['complete']);break
+                        if isinstance(request,GenerationRequest):
+                            value=dict(source=source,complete=True,tokens=encode_body(source),generation_seconds=0.,generation_batch_size=1)
+                        else:
+                            self.assertIsInstance(request,NativeRequest);native+=1;value=request.operation()
+                    self.assertEqual(native,count+(policy!=POLICY and mode!='template'))
+                evidence.finish()
+                self.assertTrue(evidence.clock_summary['cost_complete'])
+        for policy,mode,count,seconds in [(MATCHED,'shuffled',1,60),(DRAIN,'correct',8,180),('unknown','correct',8,60)]:
+            gen=_portfolio(None,None,row,recipe,Client(),deadline=time.monotonic()+60,mode=mode,
+                attempt_count=count,portfolio_seconds=seconds,evaluation_policy=policy)
+            with self.assertRaises(ValueError):next(gen)
+
+    def test_isolated_raw_evidence_survives_expired_fit(self):
+        import time
+        from oeis_learn.fresh.bigint_diagnostics import _portfolio
+        from oeis_learn.decoder.bigint_generation import GenerationRequest
+        from oeis_learn.fresh.pipeline_jobs import NativeRequest
+        from oeis_learn.synthesis.contracts import ResourceProfile
+        class Client:
+            limits=ResourceProfile()
+            def execute(self,source,indices,**kwargs):return dict(outcome='ok',values=list(indices))
+            def runtime_identity(self,profile):return 'sha256:'+'1'*64
+        row=dict(id='a',indices=list(map(str,range(20))),values=list(map(str,range(20))))
+        recipe=dict(model=dict(seed=1),search=dict(beam=None),fitting=dict(disabled=False),pipeline=dict(workers=1))
+        source=decode_body(encode_body('(program (return $index))'))
+        for policy in (MATCHED,DRAIN):
+            with tempfile.TemporaryDirectory() as d:
+                evidence=FullClockEvidence(d,[row],source='s',work='w',policy=policy)
+                gen=_portfolio(None,None,row,recipe,Client(),deadline=time.monotonic()+60,mode='correct',
+                    attempt_count=8,snapshot='s',evidence=evidence,evaluation_policy=policy)
+                value=None
+                while True:
+                    try:request=gen.send(value)
+                    except StopIteration as stop:result=stop.value;break
+                    if isinstance(request,GenerationRequest):
+                        value=dict(source=source,complete=True,tokens=encode_body(source),generation_seconds=0.,generation_batch_size=1)
+                    else:
+                        self.assertIsInstance(request,NativeRequest)
+                        value=request.operation() if request.job['arm']=='raw' else request.expired()
+                self.assertFalse(result['complete'])
+                self.assertTrue(result['arm_evidence']['raw']['complete'])
+                self.assertIsNotNone(result['raw'])
+                self.assertFalse(result['arm_evidence']['equal_budget']['complete'])
+
+    def test_serial_start_step_uses_new_output_and_keeps_original_numbers(self):
+        import contextlib,importlib.util,io
+        from unittest.mock import patch
+        path=Path(__file__).resolve().parents[2]/'scripts/pilot_hip_serial.py'
+        spec=importlib.util.spec_from_file_location('pilot_hip_serial',path)
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);helper.__file__=str(root/'scripts/pilot_hip_serial.py');seen=[]
+            argv=['--run','r','--admission','a','--inputs','p','--output','out','--start-step','4']
+            with patch.object(helper,'run_command',side_effect=lambda cmd,cwd,log:(seen.append(log.name) or 0)),contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(helper.main(argv),0)
+                with self.assertRaises(FileExistsError):helper.main(argv)
+            self.assertEqual(seen,['4.log','5.log','6.log'])
+            self.assertEqual(json.loads((root/'out/execution-plan.json').read_text())['skipped_steps'],[1,2,3])
+
     def test_codec_dispatch(self):
         for source in template_bank()['sources']:
             self.assertEqual(fitting_policy(decode_body(encode_body(source))),'none')

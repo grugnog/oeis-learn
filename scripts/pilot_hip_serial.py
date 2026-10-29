@@ -48,6 +48,7 @@ def main(argv=None):
     parser.add_argument('--seeds',type=int,nargs='+',default=[20261016])
     parser.add_argument('--skip-training',action='store_true')
     parser.add_argument('--dry-run',action='store_true')
+    parser.add_argument('--start-step',type=int,default=1,help='start at this command number in a new output directory; invocations still requalify current source')
     args=parser.parse_args(argv)
     if not all(0<=seed<2**32 for seed in args.seeds):parser.error('seed outside 0..2**32-1')
     if len(set(args.seeds))!=len(args.seeds):parser.error('seed roster must be unique')
@@ -56,12 +57,16 @@ def main(argv=None):
         value=Path(getattr(args,name))
         if value.is_absolute() or '..' in value.parts:parser.error('workspace-relative paths required')
     queue=commands(args)
+    if not 1<=args.start_step<=len(queue):parser.error('start-step outside command roster')
     if args.dry_run:
-        print(json.dumps(queue,indent=2));return 0
+        print(json.dumps(queue[args.start_step-1:],indent=2));return 0
     target=root/args.output
     target.mkdir(parents=True,exist_ok=False)
     (target/'commands.json').write_text(json.dumps(queue,indent=2)+'\n')
+    (target/'execution-plan.json').write_text(json.dumps(dict(start_step=args.start_step,skipped_steps=list(range(1,args.start_step)),
+        interpretation='earlier commands omitted by operator; no qualification receipt reused'),indent=2)+'\n')
     for i,command in enumerate(queue):
+        if i+1<args.start_step:continue
         print('Running',i+1,'of',len(queue),flush=True)
         code=run_command(command,root,target/(str(i+1)+'.log'))
         if code:

@@ -169,11 +169,9 @@ def _portfolio(
     evidence=None,
     evaluation_policy=None,
 ):
-    from oeis_learn.decoder.sampler import WatProgramSampler
     if evaluation_policy is not None:
-        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS,attempts
-        if evaluation_policy!=POLICY or portfolio_seconds!=60 or ATTEMPTS.get(mode)!=attempt_count:
-            raise ValueError('registered full-clock portfolio required')
+        from oeis_learn.pipeline_validation.pilot_clocks import validate_portfolio
+        validate_portfolio(evaluation_policy,mode,attempt_count,portfolio_seconds)
 
     from .bigint_program_identity import structural_identity
 
@@ -225,6 +223,7 @@ def _portfolio(
             if time.monotonic() >= deadline:
                 source, complete = "", False
             if compare_cache and position == 0 and complete:
+                from oeis_learn.decoder.sampler import WatProgramSampler
                 uncached = WatProgramSampler(
                     decoder,
                     max_length=1024,

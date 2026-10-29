@@ -13,7 +13,13 @@ def attempts(policy):
     raise ValueError('unknown evaluation policy')
 
 
+def validate_portfolio(policy,mode,count,seconds):
+    if seconds!=60 or type(count) is not int or attempts(policy).get(mode)!=count:
+        raise ValueError('registered full-clock portfolio required')
+
+
 def clock_record(*,prompt,mode,snapshot,start,scope_deadline,finish,expected,started,terminal,policy=POLICY):
+    validate_portfolio(policy,mode,expected,60)
     for x in (start,scope_deadline,finish):number(x)
     if (mode not in ATTEMPTS or type(expected) is not int or expected!=attempts(policy)[mode]
         or any(type(x) is not int for x in (started,terminal)) or not 0<=terminal<=started<=expected or finish<start):
