@@ -5,10 +5,12 @@ from .identity import seal,digest,write
 
 
 class Evidence:
-    def __init__(self,output,rows):
+    def __init__(self,output,rows,attempts=None):
         self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True);self.events=0;self.bytes=0
+        roster=attempts or dict(correct=8,shuffled=1,absent=1,template=8)
+        self.capacity=sum(roster.values())*len(rows)*3
         self.jobs={(r['id'],mode,i):'UNSTARTED' for r in rows for mode,n in
-            [('correct',8),('shuffled',1),('absent',1),('template',8)] for i in range(n)}
+            roster.items() for i in range(n)}
 
     def __call__(self,prompt,mode,attempt,event,payload):
         key=(prompt,mode,attempt)
@@ -17,7 +19,7 @@ class Evidence:
         allowed={'UNSTARTED':{'STARTED'},'STARTED':{'GENERATED'},'GENERATED':{'COMMITTED','INCOMPLETE'}}
         if event not in allowed.get(old,set()):raise ValueError('duplicate/out-of-order pilot evidence')
         self.jobs[key]=event;self.events+=1
-        if self.events>15984:raise ValueError('registered pilot event capacity exceeded')
+        if self.events>self.capacity:raise ValueError('registered pilot event capacity exceeded')
         compact={k:payload[k] for k in ('source_sha256','complete','seed','generation_seconds','fit_seconds') if k in payload}
         tokens=payload.get('tokens',[])
         if type(tokens) is int:
@@ -32,7 +34,7 @@ class Evidence:
         raw=json.dumps(row,sort_keys=True,allow_nan=False)+'\n'
         if len(raw.encode())>2048:raise ValueError('pilot event byte capacity exceeded')
         self.bytes+=len(raw.encode())
-        if self.bytes>16<<20:raise ValueError('pilot mandatory event stream exceeded16MiB')
+        if self.bytes>32<<20:raise ValueError('pilot mandatory event stream exceeded16MiB')
         with (self.output/'attempts.jsonl').open('a') as stream:stream.write(raw)
 
     def __enter__(self):return self

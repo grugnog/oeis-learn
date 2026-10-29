@@ -11,7 +11,7 @@ import time
 from oeis_learn.fresh.pipeline_jobs import NativeRequest,JobLedger
 
 
-def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None,ledger=None):
+def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None,ledger=None,native_priority=False):
     if workers not in (1,2,4) or lookahead not in (1,2) or batch_size not in (1,8,16,32):
         raise ValueError('unregistered scheduler capacity')
     if sample is None:
@@ -72,7 +72,7 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
                 thread.start();cursor=(i+1)%len(generators)
             # At most two batches of staged candidate records, tighter native bound wins.
             pending_native=sum(isinstance(r,NativeRequest) for r in ready.values())
-            if pending_native<lookahead*batch_size:
+            if pending_native<lookahead*batch_size and not (native_priority and (active or pending_native)):
                 decode=[i for i in order if i in ready and not isinstance(ready[i],NativeRequest)]
                 if decode:
                     first=ready[decode[0]]
