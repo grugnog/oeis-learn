@@ -7,6 +7,23 @@ import subprocess
 import sys
 
 
+def run_command(command,root,log_path):
+    """Retain the full log and expose failures without a wrapper traceback."""
+    print('Command:',json.dumps(command),flush=True)
+    print('Log:',log_path,flush=True)
+    with log_path.open('w') as log:
+        result=subprocess.run(command,cwd=root,stdout=log,stderr=subprocess.STDOUT,check=False)
+    if result.returncode:
+        print('Command failed with exit status',result.returncode,file=sys.stderr)
+        with log_path.open('rb') as log:
+            log.seek(0,2)
+            log.seek(max(0,log.tell()-65536))
+            tail=log.read().decode('utf-8',errors='replace').splitlines()[-100:]
+        print('\n'.join(tail),file=sys.stderr)
+        print('Full log:',log_path,file=sys.stderr)
+    return result.returncode
+
+
 def commands(args):
     base=[sys.executable,'scripts/foundation_run.py','--engine',args.engine]
     common=['--run',args.run,'--admission',args.admission,'--inputs',args.inputs]
@@ -46,8 +63,11 @@ def main(argv=None):
     (target/'commands.json').write_text(json.dumps(queue,indent=2)+'\n')
     for i,command in enumerate(queue):
         print('Running',i+1,'of',len(queue),flush=True)
-        with (target/(str(i+1)+'.log')).open('w') as log:
-            subprocess.run(command,cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+        code=run_command(command,root,target/(str(i+1)+'.log'))
+        if code:
+            (target/'failure.json').write_text(json.dumps(dict(step=i+1,command=command,returncode=code,
+                log=str(i+1)+'.log'),indent=2)+'\n')
+            return code if code>0 else 128-code
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

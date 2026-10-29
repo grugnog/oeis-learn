@@ -12,6 +12,23 @@ from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN,attempts,c
 
 
 class FollowupTests(unittest.TestCase):
+    def test_serial_helper_surfaces_child_failure(self):
+        import contextlib
+        import importlib.util
+        import io
+        import sys
+        path=Path(__file__).resolve().parents[2]/'scripts/pilot_hip_serial.py'
+        spec=importlib.util.spec_from_file_location('pilot_hip_serial',path)
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);log=root/'1.log';stderr=io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(stderr):
+                code=helper.run_command([sys.executable,'-c',"print('actual qualification failure');raise SystemExit(7)"],root,log)
+            self.assertEqual(code,7)
+            self.assertIn('actual qualification failure',stderr.getvalue())
+            self.assertIn(str(log),stderr.getvalue())
+            self.assertEqual(log.read_text().strip(),'actual qualification failure')
+
     def test_codec_dispatch(self):
         for source in template_bank()['sources']:
             self.assertEqual(fitting_policy(decode_body(encode_body(source))),'none')
