@@ -1,0 +1,57 @@
+{
+  "version": "pipeline-native-capacity-fix-local-evidence/v1",
+  "source": "sha256:4534bfdc83f9faf7132830a4d281c55fb8e6c52f129f2f4e3339fcbe7504308c",
+  "source_entries": 709,
+  "host_tests": 136,
+  "new_regressions": 2,
+  "source_fix_commit": "95fc98d318b6dff7fd103c4b727d6ac3bbfb4211",
+  "runtime_python_changed": false,
+  "foundation_implementation": "sha256:052fa2df91bb615f1e20780995593d035cd53e6cb8e17c687987aac357e0df9e",
+  "dispositions": 68,
+  "full_007_complete": false,
+  "public_cli": {
+    "exit_code": 3,
+    "reason": "local Podman unavailable",
+    "archive_sha256": "sha256:f18827be0d83b8e719db9d109c9eb648d637c0079fef863869fb56b3804368fa",
+    "manifest": "sha256:5d1337e28234f5d9f152d46b9513c129091f128fab6485fe0c33320ff0ebe0eb",
+    "listed_members": 23,
+    "all18_undispatched_slots": "UNSTARTED",
+    "summary": {
+      "cap_seconds": 86400.0,
+      "cleanup_archive_reserve_seconds": 1200,
+      "elapsed_seconds": 4.41443049199998,
+      "engineering": "PARTIAL",
+      "feature_complete": false,
+      "historical": {
+        "008:T093": "DEFERRED",
+        "008:T096": "NEGATIVE 7730/14400 seconds"
+      },
+      "learning": "NOT_ADMITTED",
+      "long_run_admission": "NOT_ADMITTED",
+      "phase_consumed_seconds": {
+        "1": 4.374416554999982,
+        "3": 0.003899887000017088
+      },
+      "portability": "PENDING",
+      "research": "NOT_EXECUTED",
+      "scope": "engineering-native-capacity",
+      "selected_scope": "PARTIAL",
+      "unavailable": [],
+      "version": "pipeline-summary/v1"
+    }
+  },
+  "checks": [
+    "Both targeted regressions fail before repair and pass after repair",
+    "Real WorkerPool factory1/2/4 shapes checked with synthetic counters; no host native process launched",
+    "Actual foundation canonical and implementation functions executed in stdlib isolation",
+    "Complete136-test public host suite passes",
+    "bundle.verify and exact source closure match",
+    "compileall and git diff --check pass"
+  ],
+  "target": "Corrected CPU/native qualification and all original performance slots pending; no new runtime/HIP execution claimed",
+  "authority": {
+    "optimization_adoption": false,
+    "research_cost_admission": false,
+    "learning": "HELD"
+  }
+}

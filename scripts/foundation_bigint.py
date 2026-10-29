@@ -104,7 +104,7 @@ def _foundation(recipe, workspace):
     return root, record, dict(selected=selected, lineage=lineage, ancestry=files)
 
 
-def execute(host, args, *, coordinator_factory=None):
+def execute(host, args, *, coordinator_factory=None, archive=True):
     import signal
 
     previous = signal.getsignal(signal.SIGTERM)
@@ -114,12 +114,12 @@ def execute(host, args, *, coordinator_factory=None):
 
     signal.signal(signal.SIGTERM, cancelled)
     try:
-        return _execute(host, args, coordinator_factory=coordinator_factory)
+        return _execute(host, args, coordinator_factory=coordinator_factory, archive=archive)
     finally:
         signal.signal(signal.SIGTERM, previous)
 
 
-def _execute(host, args, *, coordinator_factory=None):
+def _execute(host, args, *, coordinator_factory=None, archive=True):
     from foundation_host import Coordinator
     from foundation_local import ROOT, relative, state_path
 
@@ -753,7 +753,8 @@ def _execute(host, args, *, coordinator_factory=None):
             )
         except BaseException:
             if (
-                analysis is not None
+                archive
+                and analysis is not None
                 and operation in {"evaluate", "diagnose"}
                 and (analysis / "run.json").exists()
             ):
@@ -775,7 +776,7 @@ def _execute(host, args, *, coordinator_factory=None):
                         analysis / "comparison.json",
                         dict(status="unavailable", reason="interrupted"),
                     )
-            if run is not None and operation in {"train", "learnability", "resume"}:
+            if archive and run is not None and operation in {"train", "learnability", "resume"}:
                 run.finalize(
                     "interrupted",
                     dict(reason="interrupted; inspect role logs", roles=str(job / "roles")),
@@ -786,7 +787,8 @@ def _execute(host, args, *, coordinator_factory=None):
                 coordinator.close()
             host.engine.cleanup(token)
             if (
-                analysis is not None
+                archive
+                and analysis is not None
                 and operation in {"evaluate", "diagnose"}
                 and (analysis / "summary.json").exists()
             ):
@@ -795,7 +797,7 @@ def _execute(host, args, *, coordinator_factory=None):
                     ROOT / "tmp-analysis" / (analysis.name + ".zip"),
                     max_bytes=recipe["reporting"]["bundle_bytes"],
                 )
-            if run is not None and operation in {"train", "learnability", "resume"}:
+            if archive and run is not None and operation in {"train", "learnability", "resume"}:
                 for name in ("checkpoint-identity.json", "comparison.json"):
                     if not (destination / name).exists():
                         write(

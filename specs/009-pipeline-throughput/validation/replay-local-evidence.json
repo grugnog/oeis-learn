@@ -1,0 +1,30 @@
+{
+  "version": "pipeline-local-evidence/v1",
+  "source": "sha256:69807d38ae62e91406f1d02e9afa284302156ba89cf3d26ebf27ff9f5808a20f",
+  "stdlib_tests": 99,
+  "exit_code": 3,
+  "scope": "engineering-replay",
+  "selected_scope": "PARTIAL",
+  "engineering": "PARTIAL",
+  "portability": "PENDING",
+  "manifest": "sha256:f926e07ce9c9d9220bdca8f8fde268708804383c163855d0c6ef476355ffa914",
+  "archive_manifest": "sha256:31567e2b871433b0f631403c75a6d2b5b1001bf40142b220d4c5e9784ca90aae",
+  "archive_sha256": "sha256:9acaae96c6c4f63b78b0b0c3722084b295b08dc472ce2113ea810923010453a0",
+  "archive_verified_members": 37,
+  "stages": {
+    "cpu.podman.semantic": "BLOCKED",
+    "engine.podman": "PARTIAL",
+    "hip.preflight": "BLOCKED",
+    "host.contracts": "PASS",
+    "image.podman.gpu": "BLOCKED",
+    "image.podman.qualification": "BLOCKED",
+    "replay.calibration-0": "BLOCKED",
+    "replay.calibration-1": "BLOCKED",
+    "replay.calibration-2": "BLOCKED",
+    "replay.cold": "BLOCKED",
+    "replay.reference": "BLOCKED",
+    "replay.report": "INCONCLUSIVE",
+    "replay.warmup": "BLOCKED"
+  },
+  "interpretation": "Actual public stdlib CLI. Engines unavailable; no local Torch/native/HIP execution. Runtime fixtures authored/registered, earlier CI exposed inference-tensor reference bug now corrected to no_grad, and validation of the corrected CPU/HIP path remains pending."
+}

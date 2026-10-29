@@ -1,0 +1,713 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-20261024T141450Z.zip",
+  "archive_sha256": "sha256:128fe920fd9fd478ef53cff60a5ab5d470bf9bb3e13b8318ace525dd28139eae",
+  "archive_bytes": 8248378,
+  "archive_members": 334,
+  "manifest_identity": "sha256:65e32fb90854e493ee7f983f9dbeb272dfd33d59f087f4111d1fae55b418af7d",
+  "integrity": "PASS",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "source_match": "exact current checkout snapshot and all 689 dependency-closure entries",
+  "producer_commit": "61562151cee6a2e37cceaf1b404078b4adeaeb2c",
+  "elapsed_seconds": 2819.5015165270306,
+  "selected_scope": "PARTIAL",
+  "engineering": "PASS",
+  "portability": "PENDING",
+  "feature_complete": false,
+  "learning": "NOT_ADMITTED",
+  "research": "NOT_EXECUTED",
+  "long_run_admission": "NOT_ADMITTED",
+  "stages": {
+    "baseline.calibration": {
+      "state": "INCONCLUSIVE",
+      "identity": "sha256:14baebebab6022736ce294c840bfa9de1e357366ac489f5b28c78ba03d12234b",
+      "reason": ""
+    },
+    "cost.diverse32": {
+      "state": "INCONCLUSIVE",
+      "identity": "sha256:d1a43b994623e61fc75e5c52cda91361297ee85905ca8e93e15a72d98ef1cc9a",
+      "reason": ""
+    },
+    "cost.transfer": {
+      "state": "INCONCLUSIVE",
+      "identity": "sha256:10bd75c44a9d6576c1f30fa63f3744d40352e2955a3d8a6e76e6a94a129507f3",
+      "reason": ""
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:479b48b47cf166bce74bd731a91312d87da5c0b7a103c1c616e14539e1c2ec17",
+      "reason": ""
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:0c5abfc7669a116c3d4fc15f9c04484c9671ed28218a8d7aee0d8bf4709ef129",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:7b26d2329f4f8c6de9559658be764a2e65a54617bc2194e590e584e8fb3381a7",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:b9c90f8c52e307ffca002128e73a21d5eec2752b57e6eed0eb68e010912f926f",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:3b4fc03cdfdf970d5bfdd5d48f2b6c41b517c0163d383ab0602d9132ffcf5205",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:8c93f599d5a49f444b7bec76794f39957967aa91e8888eed5a0fb1dbfca1a142",
+      "reason": ""
+    },
+    "inference.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:b52028c804ff5339a21fa99169859bd3cf09ab284917e3b7dab5cda9e64aa0b2",
+      "reason": "failed/missing prerequisites: baseline.calibration"
+    },
+    "native.compare": {
+      "state": "PASS",
+      "identity": "sha256:6579843f40a45bf06d8656cf5d61c45ae06069ffe9eb525fdc49447577cb6652",
+      "reason": ""
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:b229d6d2c4ec7f876967f7f9e518eba30582eb159511eaccc259a3ab3a1708ee",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "identity": "sha256:76089d2ee5671c2abd64b58107936b6342035c803e3e746dea72e3a3ee5cf738",
+      "reason": ""
+    },
+    "overlap.compare": {
+      "state": "BLOCKED",
+      "identity": "sha256:23c8e4a4f33a1925a0c40ca50b593c8a7ccdc798d9ddcecf5f1cf3f2e7ace533",
+      "reason": "failed/missing prerequisites: baseline.calibration"
+    },
+    "policy.compare": {
+      "state": "PASS",
+      "identity": "sha256:6a981e1604253d8d16564cd8c022ee4bc259a96316b044c63b379708220266f9",
+      "reason": ""
+    },
+    "qualification": {
+      "state": "PASS",
+      "identity": "sha256:47401ed7dc9e53a39f105542afa3a4b5c5adfe04c2b713bc146a54e8195f08b7",
+      "reason": ""
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests": 602,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests": 123,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests": 1115,
+      "failures": 0,
+      "errors": 0,
+      "skips": 9
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "stages/policy.compare/role/results.xml": {
+      "tests": 45,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    }
+  },
+  "junit_module_counts": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "tests.contract.test_bigint_build": 6,
+      "tests.contract.test_bigint_contracts": 22,
+      "tests.contract.test_bigint_language": 29,
+      "tests.contract.test_bigint_performance": 7,
+      "tests.contract.test_bigint_workflow": 8,
+      "tests.contract.test_native_fitting": 11,
+      "tests.integration.test_bigint_decoding": 26,
+      "tests.integration.test_bigint_runtime": 25,
+      "tests.integration.test_bigint_workflow": 11,
+      "tests.integration.test_synthesis_worker": 12,
+      "tests.unit.test_bigint_benchmark": 8,
+      "tests.unit.test_bigint_bootstrap_data": 5,
+      "tests.unit.test_bigint_ci_regressions": 14,
+      "tests.unit.test_bigint_cost_scopes": 19,
+      "tests.unit.test_bigint_diagnostic_collector": 14,
+      "tests.unit.test_bigint_diagnostic_evidence": 12,
+      "tests.unit.test_bigint_encoder": 14,
+      "tests.unit.test_bigint_engine_policy": 13,
+      "tests.unit.test_bigint_first_byte": 27,
+      "tests.unit.test_bigint_generation": 9,
+      "tests.unit.test_bigint_growth_reservation": 29,
+      "tests.unit.test_bigint_host_lookups": 18,
+      "tests.unit.test_bigint_input_load_profile": 20,
+      "tests.unit.test_bigint_learning_policy": 11,
+      "tests.unit.test_bigint_phase5": 20,
+      "tests.unit.test_bigint_qualification": 2,
+      "tests.unit.test_bigint_reference": 16,
+      "tests.unit.test_bigint_runtime_profile": 37,
+      "tests.unit.test_bigint_scoped_runner": 11,
+      "tests.unit.test_bigint_search_policy": 3,
+      "tests.unit.test_hybrid_ablation": 4,
+      "tests.unit.test_pipeline_attempts.AttemptOutcomes": 2,
+      "tests.unit.test_pipeline_benchmarks.FiniteBenchmarks": 4,
+      "tests.unit.test_pipeline_bundle.Bundle": 2,
+      "tests.unit.test_pipeline_cache.PipelineCache": 3,
+      "tests.unit.test_pipeline_comparisons.Comparisons": 2,
+      "tests.unit.test_pipeline_contracts.Contracts": 7,
+      "tests.unit.test_pipeline_disk.DiskBounds": 4,
+      "tests.unit.test_pipeline_memory.MemoryAccounting": 2,
+      "tests.unit.test_pipeline_native_measurements.NativeMeasurementRoster": 1,
+      "tests.unit.test_pipeline_native_pool.NativePool": 2,
+      "tests.unit.test_pipeline_native_pool.ProcessSlots": 4,
+      "tests.unit.test_pipeline_overlap.Overlap": 5,
+      "tests.unit.test_pipeline_overlap_metrics.OverlapMetrics": 2,
+      "tests.unit.test_pipeline_policy.Policy": 8,
+      "tests.unit.test_pipeline_profile": 38,
+      "tests.unit.test_pipeline_qualification.Qualification": 5,
+      "tests.unit.test_pipeline_resources.Resources": 7,
+      "tests.unit.test_pipeline_reuse.Reuse": 3,
+      "tests.unit.test_pipeline_role_failures.RoleFailures": 1,
+      "tests.unit.test_pipeline_studies.Studies": 11,
+      "tests.unit.test_pipeline_study_batch.StudyBatches": 3,
+      "tests.unit.test_pipeline_supervision.Supervision": 5,
+      "tests.unit.test_pipeline_validation.Validation": 4,
+      "tests.unit.test_pipeline_workloads.WorkloadStrata": 2,
+      "tests.unit.test_synthesis_archive": 2,
+      "tests.unit.test_synthesis_provenance": 3,
+      "tests.unit.test_synthesis_service_limits": 3,
+      "tests.unit.test_synthesis_state": 4
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "tests.contract.test_solver_retirement": 9,
+      "tests.contract.test_native_fitting": 11,
+      "tests.contract.test_constant_solver_contract": 2,
+      "tests.contract.test_symbolic_grounding_contract": 2,
+      "tests.integration.test_symbolic_grounding_pipeline": 2,
+      "tests.integration.test_recurrence_grounding": 2,
+      "tests.integration.test_foundation_discovery": 40,
+      "tests.integration.test_foundation_repair_gate": 7,
+      "tests.unit.test_constant_solver": 4,
+      "tests.unit.test_smt_constant_solver": 5,
+      "tests.unit.test_dixon_diophantine_solver": 11,
+      "tests.unit.test_mersenne61_filter": 2,
+      "tests.unit.test_foundation_grounding": 5,
+      "tests.unit.test_elite_buffer_replay": 3,
+      "tests.unit.test_retirement_callers": 18
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "tests.contract.test_foundation_artifacts": 73,
+      "tests.contract.test_foundation_cli": 4,
+      "tests.contract.test_foundation_conformance": 6,
+      "tests.contract.test_foundation_discovery_cli": 2,
+      "tests.contract.test_foundation_learning_cli": 4,
+      "tests.contract.test_foundation_qualified": 29,
+      "tests.contract.test_foundation_qualified_cli": 6,
+      "tests.integration.test_bootstrap_admission": 1,
+      "tests.integration.test_foundation_bootstrap": 10,
+      "tests.integration.test_foundation_discovery": 40,
+      "tests.integration.test_foundation_evaluation": 13,
+      "tests.integration.test_foundation_execution": 23,
+      "tests.integration.test_foundation_finalization": 6,
+      "tests.integration.test_foundation_legacy_artifacts": 4,
+      "tests.integration.test_foundation_native_optimizer": 7,
+      "tests.integration.test_foundation_overflow_diagnostics": 5,
+      "tests.integration.test_foundation_proof_boundary": 7,
+      "tests.integration.test_foundation_qualified_resume": 2,
+      "tests.integration.test_foundation_repair_gate": 7,
+      "tests.integration.test_foundation_resources": 9,
+      "tests.integration.test_foundation_resume": 8,
+      "tests.integration.test_fresh_lifecycle": 8,
+      "tests.integration.test_fresh_preparation": 4,
+      "tests.unit.test_bootstrap_bundle": 6,
+      "tests.unit.test_bootstrap_decoder_inputs": 10,
+      "tests.unit.test_bootstrap_diagnostics": 17,
+      "tests.unit.test_bootstrap_models": 3,
+      "tests.unit.test_bootstrap_workflow": 29,
+      "tests.unit.test_connected_sampler": 6,
+      "tests.unit.test_container_runtime": 12,
+      "tests.unit.test_container_storage": 11,
+      "tests.unit.test_container_validation": 7,
+      "tests.unit.test_extended_fresh": 14,
+      "tests.unit.test_foundation_admission": 19,
+      "tests.unit.test_foundation_archive_curriculum": 3,
+      "tests.unit.test_foundation_cache": 17,
+      "tests.unit.test_foundation_ci_images": 24,
+      "tests.unit.test_foundation_cleanup": 9,
+      "tests.unit.test_foundation_codec": 89,
+      "tests.unit.test_foundation_cohort": 6,
+      "tests.unit.test_foundation_config": 29,
+      "tests.unit.test_foundation_config_metrics": 7,
+      "tests.unit.test_foundation_decisions": 13,
+      "tests.unit.test_foundation_extended_wat": 47,
+      "tests.unit.test_foundation_gpu_allocator": 9,
+      "tests.unit.test_foundation_grounding": 5,
+      "tests.unit.test_foundation_handoff": 24,
+      "tests.unit.test_foundation_host_monitor": 7,
+      "tests.unit.test_foundation_integer_features": 12,
+      "tests.unit.test_foundation_learning_gate": 12,
+      "tests.unit.test_foundation_legacy_wrappers": 8,
+      "tests.unit.test_foundation_local": 22,
+      "tests.unit.test_foundation_measurement": 8,
+      "tests.unit.test_foundation_models": 3,
+      "tests.unit.test_foundation_phase10_integration": 18,
+      "tests.unit.test_foundation_phase13_inputs": 5,
+      "tests.unit.test_foundation_phase2_regressions": 10,
+      "tests.unit.test_foundation_policy": 5,
+      "tests.unit.test_foundation_pool": 7,
+      "tests.unit.test_foundation_preflight_identity": 23,
+      "tests.unit.test_foundation_provenance": 6,
+      "tests.unit.test_foundation_reference": 75,
+      "tests.unit.test_foundation_resource_guard": 4,
+      "tests.unit.test_foundation_roles": 9,
+      "tests.unit.test_foundation_run_provenance": 10,
+      "tests.unit.test_foundation_runtime_threads": 1,
+      "tests.unit.test_foundation_sampler": 6,
+      "tests.unit.test_foundation_search": 2,
+      "tests.unit.test_foundation_self_training": 2,
+      "tests.unit.test_foundation_source_policy": 7,
+      "tests.unit.test_foundation_storage": 32,
+      "tests.unit.test_foundation_structural_splits": 3,
+      "tests.unit.test_foundation_symbolic": 17,
+      "tests.unit.test_foundation_task_inventory": 12,
+      "tests.unit.test_foundation_trace": 3,
+      "tests.unit.test_foundation_worker_handles": 5,
+      "tests.unit.test_fresh_admission_shards": 12,
+      "tests.unit.test_fresh_bulk": 25,
+      "tests.unit.test_fresh_cli": 14,
+      "tests.unit.test_fresh_input_sealing": 15,
+      "tests.unit.test_fresh_traps": 2,
+      "tests.unit.test_fresh_workflow": 14,
+      "tests.test_dev_images": 4,
+      "tests.integration.test_foundation_gpu": 1
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "tests.integration.test_bigint_gpu": 14,
+      "tests.integration.test_bigint_workflow": 1
+    },
+    "stages/policy.compare/role/results.xml": {
+      "tests.unit.test_pipeline_policy.Policy": 8,
+      "tests.unit.test_pipeline_native_pool.NativePool": 2,
+      "tests.unit.test_pipeline_native_pool.ProcessSlots": 4,
+      "tests.unit.test_pipeline_overlap.Overlap": 5,
+      "tests.integration.test_bigint_decoding": 26
+    }
+  },
+  "neural": {
+    "baseline.calibration": {
+      "identity": "sha256:275427c96ab91a332958f968f342de1b11067e286421be959d7189b2cd8c854b",
+      "status": "PARTIAL",
+      "attempted": 408,
+      "scheduled_attempts": 576,
+      "complete_ids": [],
+      "updates": 500,
+      "validation": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 0.8365185111761093
+      },
+      "seconds": 148.870100364089,
+      "timings": {
+        "checkpoint": 0.2664542018901557,
+        "decode.mixed": 2.067155612166971,
+        "decode.short": 2.067155612166971,
+        "generation_native": 111.53023301507346,
+        "native.nonlinear": 0.8333947719074786,
+        "updates": 34.355321284150705,
+        "validation": 1.9545228781644255
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 125532864512,
+          "current": 1584566272,
+          "driver": 1054904320,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 9750777856,
+        "qualified": true,
+        "role_peak_upper_bytes": 2639470592,
+        "samples": 151,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_counts": [
+        {
+          "outcome": "decoded",
+          "reason": null,
+          "count": 376
+        },
+        {
+          "outcome": "generation_incomplete",
+          "reason": "deadline",
+          "count": 32
+        },
+        {
+          "outcome": "unstarted",
+          "reason": "parent deadline",
+          "count": 168
+        }
+      ]
+    },
+    "cost.diverse32": {
+      "identity": "sha256:5a7b41d0c3ff5c2b34fd21412094e4c54bf4739a6417ca1b5c3689cb938d826f",
+      "status": "PARTIAL",
+      "attempted": 552,
+      "scheduled_attempts": 1024,
+      "complete_ids": [],
+      "updates": 500,
+      "validation": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 0.8365185111761093
+      },
+      "seconds": 237.45767972781323,
+      "timings": {
+        "checkpoint": 0.9173769589979202,
+        "decode.mixed": 2.0003405020106584,
+        "decode.short": 2.0003405020106584,
+        "generation_native": 199.624740133062,
+        "native.nonlinear": 0.9616591581143439,
+        "updates": 34.2407548839692,
+        "validation": 1.8668690859340131
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 125537787904,
+          "current": 1550790656,
+          "driver": 1054908416,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 10215137280,
+        "qualified": true,
+        "role_peak_upper_bytes": 2605699072,
+        "samples": 240,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_counts": [
+        {
+          "outcome": "decoded",
+          "reason": null,
+          "count": 456
+        },
+        {
+          "outcome": "generation_incomplete",
+          "reason": "deadline",
+          "count": 96
+        },
+        {
+          "outcome": "unstarted",
+          "reason": "parent deadline",
+          "count": 472
+        }
+      ]
+    },
+    "cost.transfer": {
+      "identity": "sha256:253ee4e79dd3919fa8aac644fd4820c8202e8af3f0a7161f409cffb0ee412f5d",
+      "status": "PARTIAL",
+      "attempted": 2891,
+      "scheduled_attempts": 8192,
+      "complete_ids": [],
+      "updates": 500,
+      "validation": {
+        "attempted": 256,
+        "complete": true,
+        "denominator": 256,
+        "loss": 0.8365185111761093
+      },
+      "seconds": 243.46775807393715,
+      "timings": {
+        "checkpoint": 0.2799244208727032,
+        "decode.mixed": 1.5651507689617574,
+        "decode.short": 1.5651507689617574,
+        "generation_native": 206.55927982297726,
+        "updates": 34.35897900699638,
+        "validation": 1.3436613180674613
+      },
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 125434908672,
+          "current": 1583763456,
+          "driver": 1050566656,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 9823797248,
+        "qualified": true,
+        "role_peak_upper_bytes": 2634330112,
+        "samples": 246,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_counts": [
+        {
+          "outcome": "generation_incomplete",
+          "reason": "deadline",
+          "count": 443
+        },
+        {
+          "outcome": "unstarted",
+          "reason": "parent deadline",
+          "count": 5301
+        },
+        {
+          "outcome": "decoded",
+          "reason": null,
+          "count": 2448
+        }
+      ]
+    }
+  },
+  "native_trials": {
+    "stages/native.compare/role/calibration-1/trial.json": {
+      "identity": "sha256:06a7d24e3bd89efd8e306f93bbc75b95a65b690b4e4a25e87051d81a667dc7c4",
+      "complete": false,
+      "seconds": 4.505599985131994,
+      "workers": 1,
+      "completed": 12,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "identity-512",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-2",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-4096-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "affine",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    },
+    "stages/native.compare/role/cold/trial.json": {
+      "identity": "sha256:9a2df12e4136f7f0b60386e783f0bc711640dff7a6142d296941cc8f4915f516",
+      "complete": true,
+      "seconds": 3.57186669902876,
+      "workers": 1,
+      "completed": 18,
+      "denominator": 18,
+      "incomplete": []
+    },
+    "stages/native.compare/role/calibration-0/trial.json": {
+      "identity": "sha256:fae32095a92823dc4443bb676305b42b776c503ba43ca825d9f78f01c360836a",
+      "complete": false,
+      "seconds": 4.638160922797397,
+      "workers": 1,
+      "completed": 12,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "identity-512",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-2",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-512-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "cancel-1024-4",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "affine",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    },
+    "stages/native.compare/role/calibration-2/trial.json": {
+      "identity": "sha256:6538df6013002731ae2cd97f9a33af37ff3fd199fd2b6357e651b66db5cee67f",
+      "complete": true,
+      "seconds": 3.9729329110123217,
+      "workers": 1,
+      "completed": 18,
+      "denominator": 18,
+      "incomplete": []
+    },
+    "stages/native.compare/role/warmup/trial.json": {
+      "identity": "sha256:b622fe365a3d30d272480970ea9ab42464bb73eb0793146a1703556625acb241",
+      "complete": false,
+      "seconds": 3.97840673616156,
+      "workers": 1,
+      "completed": 16,
+      "denominator": 18,
+      "incomplete": [
+        {
+          "id": "nonlinear",
+          "outcome": "resource_exhausted"
+        },
+        {
+          "id": "no-fit",
+          "outcome": "resource_exhausted"
+        }
+      ]
+    }
+  },
+  "native_component": {
+    "comparison": {
+      "candidate_runs": 0,
+      "identity": "sha256:16c36ca4d4803197d681f296dadb65685398c5b65cab7b9f4a630aade2968698",
+      "reason": "exactly three complete baseline-only calibration receipts required",
+      "resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 127534235648,
+          "current": 23986176,
+          "driver": null,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 6633709568,
+        "qualified": true,
+        "role_peak_upper_bytes": 69898240,
+        "samples": 22,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "seconds_through_role": 20.747412414988503,
+      "selected_workers": 1,
+      "status": "INCONCLUSIVE",
+      "version": "pipeline-role-result/v1"
+    },
+    "component": {
+      "comparison": "sha256:16c36ca4d4803197d681f296dadb65685398c5b65cab7b9f4a630aade2968698",
+      "disposition": "RETAIN_SERIAL_BASELINE",
+      "identity": "sha256:ee09dd1cbe184cd79a0b15370b558746dfa3a3773e96b83e6e48f1020dd9737c",
+      "production_adoption": false,
+      "reason": "native report retained in full; joint correctness, resource and five-pair confirmation remain independently mandatory",
+      "version": "pipeline-native-component/v1",
+      "workers": 1
+    }
+  },
+  "costs": {
+    "cost.diverse32": {
+      "authority": "scoped forecast only; separate reviewed study decision required",
+      "envelopes": {},
+      "forecast": {
+        "budget": 7200,
+        "identity": "sha256:c275a64c672a1e4f07e9cb04637ebe98676988c7cbdb93cfa7871f1714fd3d9b",
+        "missing": [
+          "checkpoint_p95",
+          "cleanup",
+          "export",
+          "fit_p95",
+          "generation_p95",
+          "hidden_scoring_p95",
+          "reference_p95",
+          "startup",
+          "teacher_forcing_p95",
+          "training_p95"
+        ],
+        "projected_seconds": null,
+        "reason": "unknown complete-schedule components",
+        "scope": "diverse32",
+        "version": "pipeline-scoped-cost/v1",
+        "within_budget": false
+      },
+      "identity": "sha256:029218cb69d23c4715e33213078c70b4c4fb09815c3c4b1e00697f0b8c743e99",
+      "missing": [
+        "complete full-denominator independent scoring",
+        "full frozen diverse32 controls",
+        "representative complete material production strata",
+        "three complete exact-scope baseline observations"
+      ],
+      "observations": [
+        "sha256:12fbd90bf5869345cf171f7373130993bc7cbf7c33548894ffbd3fe70f3f6f77"
+      ],
+      "scope": "diverse32",
+      "stage_state": "INCONCLUSIVE",
+      "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+      "version": "pipeline-cost-observations/v1"
+    },
+    "cost.transfer": {
+      "authority": "scoped forecast only; separate reviewed study decision required",
+      "envelopes": {},
+      "forecast": {
+        "budget": 7200,
+        "identity": "sha256:a8e54ab7e8cc5d6349e92913ad810ded40edcf7621ace98bea810832a4f3a555",
+        "missing": [
+          "checkpoint_p95",
+          "cleanup",
+          "export",
+          "fit_p95",
+          "generation_p95",
+          "hidden_scoring_p95",
+          "reference_p95",
+          "startup",
+          "teacher_forcing_p95",
+          "training_p95"
+        ],
+        "projected_seconds": null,
+        "reason": "unknown complete-schedule components",
+        "scope": "transfer-screen",
+        "version": "pipeline-scoped-cost/v1",
+        "within_budget": false
+      },
+      "identity": "sha256:37ed3b8c48df06808cfe6b1d4d7a1bb18afe308074266c26dbe91ccd42ab22b3",
+      "missing": [
+        "identical source, weights, policies, resources and completed work",
+        "three complete exact-scope baseline observations"
+      ],
+      "observations": [],
+      "scope": "transfer-screen",
+      "stage_state": "INCONCLUSIVE",
+      "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+      "version": "pipeline-cost-observations/v1"
+    }
+  },
+  "transfer_host_process": {
+    "outcome": "FAIL",
+    "elapsed_seconds": 245.16464113583788,
+    "returncode": 0,
+    "cleanup_failure": null
+  },
+  "minimum_free_bytes": 664204681216,
+  "interpretation": "Selected current-source Podman prerequisite engineering gates pass. Overall selected scope remains PARTIAL. Calibration/costs are INCONCLUSIVE; inference/joint unstarted. Retain serial baseline and no optimization adoption; no larger-budget retry or research execution authorized by this review."
+}

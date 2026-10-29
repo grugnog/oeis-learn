@@ -1,0 +1,111 @@
+{
+  "source": "sha256:fcfbb37256bdc75f7c85ac13be29195ac315f77d72e2fff846640c2f521143c4",
+  "source_entries": 767,
+  "profile": "sha256:a0f0213518fcc9404903b691dbd48c2bd35a7e4637a3b0643a3159f486b2f670",
+  "host_tests": {
+    "tests": 253,
+    "failures": 0,
+    "dependencies": "stdlib only"
+  },
+  "accepted_calibration_source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+  "compatible_changed_paths": {
+    "scripts/foundation_local.py": {
+      "producer": "sha256:657451a8dfcabdf80faf239e696a5735c771dc599bb97f58039b9998ee977f64",
+      "current": "sha256:59e581349d3a1a00e292cb54d2ae42cb582047c6b51704f80ebd6fe3b267564e"
+    },
+    "specs/009-pipeline-throughput/contracts/long-run-pilot.md": {
+      "producer": null,
+      "current": "sha256:6e3929632191eb68716ed68caa98ddc2a2b01fae94f60e6e4c810c55e53bf3bc"
+    },
+    "src/oeis_learn/cli/main.py": {
+      "producer": "sha256:f9c551a7d1eff08e02fe6848886b3a79cadc060948f9640625855088dffc366f",
+      "current": "sha256:23f58d68212a6e7ed7b04d07541917fe951d921f81178a59dc71b267cd6c27e1"
+    },
+    "src/oeis_learn/container_validation.py": {
+      "producer": "sha256:2702408bb76fc573ca4f25f1080f77cdc49fb5c05d9f8782d81fc42b2e85e5fe",
+      "current": "sha256:49894f7b56c404c8b1f0e33630925df6cf57f606a33a96bbdcce3c3a39ab9e15"
+    },
+    "src/oeis_learn/fresh/pilot_control.py": {
+      "producer": "sha256:36ddfce5c68347d229b4966decb6e980cbe2541ea1cb56f4bb8b7225706b376f",
+      "current": "sha256:753507daed1d0a24dd39634b56b95cc953ba583c38afc082edb97718bb4e9397"
+    },
+    "src/oeis_learn/pipeline_validation/adapters.py": {
+      "producer": "sha256:e456acfe3b58040bdd831e20f8d9586d80f58bce2c6076391ece57f2010f5bfc",
+      "current": "sha256:df43f802353aa45565b0caaa24a91df254e19f28989f832e1bde4b4b26416646"
+    },
+    "src/oeis_learn/pipeline_validation/cli.py": {
+      "producer": "sha256:2152820169aab993175443610ae5e93c645286c646118e4ab0054e46b7ab8aeb",
+      "current": "sha256:4ee75435cf4cf2d6c24191e86917064ec02ec80f956891fd2c994ef97152039f"
+    },
+    "src/oeis_learn/pipeline_validation/host_cli.py": {
+      "producer": null,
+      "current": "sha256:da3a72bb6f06d32f69485dfa097b8b7540924df0c19e1ed4dfedf6a068ae6331"
+    },
+    "src/oeis_learn/pipeline_validation/longrun_admission.py": {
+      "producer": null,
+      "current": "sha256:2aff4bc936f9409418dd360e9c67dc64dc72da11fb45b6cab0ac221b9270e907"
+    },
+    "src/oeis_learn/pipeline_validation/longrun_contract.py": {
+      "producer": null,
+      "current": "sha256:7e44bc347ce47b8a3ac72b9abf7aae7c262d5d18cf5d1c03aa35d4e4c3e9eae9"
+    },
+    "src/oeis_learn/pipeline_validation/longrun_import.py": {
+      "producer": null,
+      "current": "sha256:0aef07012f3ca5620a25f382e3a72a07782ad9571346b472a866a4c5cd857861"
+    },
+    "src/oeis_learn/pipeline_validation/pilot.py": {
+      "producer": "sha256:4e5fce6c5210eb689cf1fb131779d5cc28c067fb915f715db1bc712ec6f706ea",
+      "current": "sha256:ddde28aae094a78e6cc4d086bf15a06a4082643bb9992bdeaa00fdea5c371939"
+    },
+    "src/oeis_learn/pipeline_validation/pilot_ledger.py": {
+      "producer": "sha256:96df32810288c62ba6333e9902caba601140c08aa3bedc18ef012742b226c198",
+      "current": "sha256:6c222c4f753d1cae4524849c875627d78130479b7c16e8867ecb4ca34579c85e"
+    },
+    "src/oeis_learn/pipeline_validation/pilot_runtime.py": {
+      "producer": "sha256:147b358b198eb0f026a01a04e8c25d6b180fee012b2d88c805d7e2d0dbb33e22",
+      "current": "sha256:794ddd18b1ddf0a3c0caa3ac4f11c009a2312b50bdbe28bb45b00f3bfd1a2210"
+    },
+    "src/oeis_learn/pipeline_validation/pilot_study.py": {
+      "producer": "sha256:6eaea9603f1d6905b1d5cbd73e876fc64b5e2f28092dc4c7d8238905b8a545d3",
+      "current": "sha256:bd3305c65459459ebef4fecf33293556eb48259333736df14725d4bf24bc9470"
+    },
+    "tests/unit/test_pipeline_pilot_longrun.py": {
+      "producer": null,
+      "current": "sha256:f7d848132a8984743d2c37cc8d6c96c51de1e8365ec9cef973567c8da5015be2"
+    },
+    "tests/unit/test_pipeline_pilot_runtime.py": {
+      "producer": "sha256:18238aae44c3d2d978b08260bcd5f7f1f3f929eadcbf1315b56473b3771b9272",
+      "current": "sha256:b2211c6f4b33500e567e7b5543977272602415a8486d75d13a9aabaf8b728d2f"
+    }
+  },
+  "full_clock_portfolios_audited": 3552,
+  "original_cost_projection_seconds": 126780,
+  "local_cost_migration": "PASS; illustrative compatibility hash only, not authority",
+  "packaged_source_inventory": "PASS; standalone installed-layout reproduction, not an image/wheel build",
+  "main_cli_missing_private_gate": "PASS; nonzero failure archive, no engine/admission/training",
+  "target_cpu_hip": "PENDING; included in pilot-admit invocation",
+  "long_run_admitted": false,
+  "automatic_run_authorized": false,
+  "version": "pipeline-longrun-implementation-local/v1",
+  "date": "2026-10-27",
+  "status": "IMPLEMENTED_LOCAL_PASS_TARGET_GATES_PENDING",
+  "cli_source": "sha256:fcfbb37256bdc75f7c85ac13be29195ac315f77d72e2fff846640c2f521143c4",
+  "host_elapsed_seconds": 13.174,
+  "local_output": "tmp-validation/009-longrun-admission-local-20261027",
+  "main_cli": "PYTHONPATH=src python3 -m oeis_learn.cli.main pipeline",
+  "contract": "specs/009-pipeline-throughput/contracts/long-run-pilot.md",
+  "handoff": "specs/009-pipeline-throughput/validation/long-run-implementation.md",
+  "supplemental_tasks": {
+    "009:J001": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+    "009:J002": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+    "009:J003": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+    "009:J004": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF",
+    "009:J005": "COMPLETE_IMPLEMENTATION_LOCAL_HANDOFF"
+  },
+  "original_pending": "T110 reopened for changed runtime; earlier 3b084306 target closure remains recorded",
+  "original_counts": {
+    "complete": 87,
+    "pending_runtime": 9,
+    "blocked_research": 15
+  }
+}

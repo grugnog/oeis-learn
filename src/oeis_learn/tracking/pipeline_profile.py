@@ -150,7 +150,7 @@ class Recorder:
     MAX_EVENTS = 20000
     MAX_SAMPLES = 5402
 
-    def __init__(self, output, *, instrumented, render_node=None):
+    def __init__(self, output, *, instrumented, render_node=None, host_counters=True, sample_bytes=None):
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.instrumented = instrumented
@@ -167,6 +167,8 @@ class Recorder:
         self.started = time.monotonic()
         self.overflow = 0
         self.collector_error = None
+        self.host_counters=host_counters
+        self.sample_bytes=sample_bytes
 
     def capacity(self):
         cg = self.cgroup
@@ -192,6 +194,8 @@ class Recorder:
                 "power1_average": "microwatts; may include APU CPU",
             },
             ancestor_quota_reason="container-visible limits only; host ancestor restrictions may be hidden",
+            host_counters=self.host_counters,
+            sample_bytes=self.sample_bytes,
         )
 
     def snapshot(self):
@@ -223,13 +227,14 @@ class Recorder:
             processes=proc_tree(),
             gpu=gpu or None,
             gpu_reason=None if gpu else "no readable mapped counters",
-            host_cpu=read_text("/proc/stat"),
+            host_cpu=read_text("/proc/stat") if self.host_counters else None,
             host_memory=read_text("/proc/meminfo"),
-            host_load=read_text("/proc/loadavg"),
+            host_load=read_text("/proc/loadavg") if self.host_counters else None,
             cgroup={
                 name: read_text(cg / name) if cg else None
                 for name in (
                     "cpu.stat",
+                    "memory.stat",
                     "memory.current",
                     "memory.peak",
                     "memory.events",
@@ -249,7 +254,12 @@ class Recorder:
                 try:
                     row = self.snapshot()
                     row["sample_lateness_seconds"] = max(0, time.monotonic() - due)
-                    handle.write(json.dumps(row, allow_nan=False) + "\n")
+                    payload=json.dumps(row, allow_nan=False)+"\n"
+                    if self.sample_bytes is not None and len(payload.encode())>self.sample_bytes:
+                        self.collector_error='telemetry sample exceeds prospective byte cap'
+                        self.ready.set()
+                        return
+                    handle.write(payload)
                     handle.flush()
                     self.samples += 1
                 except (OSError, ValueError, IndexError) as exc:

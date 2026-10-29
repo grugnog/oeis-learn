@@ -1,0 +1,119 @@
+# Full-scale engineering soak v1
+
+Prospective scope `pipeline-soak-validation/v1`, registry `pipeline-soak-registry/v1`,
+engineering-soak phases1–5. It grants disposable diagnostic updates and recovery
+of this fresh engineering state only. Existing training/resume/T096-retry/final/
+assistance authority remains denied. No producer performance or research outcome
+is inferred. All fields and the static work roster are closed and content-addressed.
+
+Use the explicit m100104,496,662-parameter profile, full approved visible training
+partition (at least512 records) and full parameter/structural development partitions
+(at least128 each), exact input/source/profile/initialization hashes, original
+FP32 math execution policy, original optimizer/LR and no curriculum/replay change.
+No private/final values or trained parent weights are mounted. The completed8M
+parent is lineage and input compatibility evidence only. Every row/count/token/
+length stratum binds the full-partition manifest; no sizing128/32 truncation.
+
+Training batches8/16/32 each run one excluded warmup and exactly three complete
+calibrations from the same fresh weights and fixed two-pass full-training workload,
+with full validation. Each has270s of worker work,300s role supervision and330s
+external startup/drain/cleanup bounds. Select maximum
+median complete token rate; choose the smallest batch within5% of best. Preserve
+all incomplete/failed/unstarted arms. Batch differences are hardware costs, not
+learning-quality or transparent optimizer equivalence. A resource breach stops
+compute globally, rather than retrying a smaller batch after an unsafe failure.
+
+Two3600s persistent work windows share600s for initial/final checkpoint, controlled
+stop/restart and cleanup inside one7800s parent. Persist the parent's absolute
+monotonic deadline in its immutable lease and retain remaining work/budget on
+restart. A new process gets no new allowance. Work limits49152 updates,128 periodic
+cycles and32768 logical jobs are independent ceilings, not extra duration. Reaching
+a ceiling early yields partial sustained coverage. Cadence is eight full-training
+passes in actual nonpadding training tokens. Every planned record has a terminal
+state and no job crosses an update/checkpoint boundary unaccounted.
+
+There are96 fixed real prompts per periodic cycle (32 per partition), one correct-
+conditioning attempt each, at most12288 attempted prompts and216 diagnostic native
+jobs. STARTED/GENERATED/terminal events have a36864-event/2048-byte-line hard bound
+(72MiB). The second leg's cumulative evidence copy makes the public upper bound
+144MiB, without assuming compression. Oversized mandatory evidence fails explicitly.
+Every leg must traverse the complete training partition, finish at least one fully
+dispatched diagnostic/validation/checkpoint cycle and perform real parameter updates.
+Grammar rejects and original deadline outcomes are retained; missing prompts never
+count as a complete roster. These hardware minima do not require verified programs.
+
+The existing trainer/CheckpointStore own updates, optimizer/RNG/data/selection/
+curriculum/replay and checkpoint publication. Retain latest/selected plus at most
+one staging generation; include all serialization/cache/ledger/input/evidence
+costs in admission and the8GiB transient cap. Checkpoints/raw native responses stay
+private. Per-operation gates/trace/log/ZIP limits remain unchanged. Full source/
+image/contract/shape mismatch rejects recovery. Numerical tolerance stays2e-5/
+2e-4 on actual HIP, with greedy/token/source/independent admission checks.
+
+The three-generation tensor/checkpoint/cache/input reservation is5909363480 bytes,
+below8GiB with evidence headroom. The conservative live-state upper bounds before
+headroom are26429342400/40924857024/69915886272 bytes for training batches8/16/32;
+joint long-sequence stress reserves the batch32 bound. Admission also requires
+known current availability, at least10% unreserved capacity and the unchanged
+ancestor/engine/90%-physical ceiling. Actual observations must stay inside the
+frozen selected-batch bound. Allocator counters are never added as another pool.
+
+One command orchestrates all ready applicable CPU/HIP/native/operator prerequisites,
+references, finite branch decisions, real generation/native work, checkpoint/restart,
+whole-window observations and one verified ZIP. Timing competitors stay serial;
+named GPU/native overlap uses one16CPU/90%-memory role with Torch2/1 and native1.
+Native stress pulses use the retained18-case corpus, at most12 bursts under4s
+admission-through-owner clocks; their counts never become generated successes.
+Real generation retains production60s/group and1024 tokens and current batch guards.
+Pulse slots are fixed at each leg's600s intervals. Long generation can leave slots
+UNSTARTED; they are neither caught up nor renewed. At least one complete pulse in
+each leg is required for coexistence readiness. The read-only GPU probe runs on
+the learner thread while the native peer works, then drains before the next update.
+
+Overhead above5% chooses ordinary-primary timing with a separately reserved
+observational segment. Mandatory watchdogs stay active. Report matched five-minute
+windows, component/whole-role work counts, anon/file/device/cgroup accounting and
+checkpoint/launch/cleanup costs. More than10% matched steady throughput decline or
+growth outside the frozen live-state bound prevents sustained-readiness PASS;
+missing comparable windows/sensors are inconclusive. Zero generated successes does
+not fail a hardware run, but unexercised natural paths are explicitly reported.
+Use steady five-minute bins1–10 in each leg, excluding the declared settling/drain
+bins0/11. Compare first/last two bins with target-length mixtures matched within5%.
+Record a5% decline as an investigation trigger and fail the sustained rate gate at
+greater than10%. Mandatory1Hz resource auditing remains active in ordinary mode;
+optional richer instrumentation alone is subject to the overhead fallback.
+
+Both engines run CPU/installed-workflow/retirement checks and an arbitrary-numeric-
+UID/read-only-input/export/ENOSPC-recovery/interrupted-role/healthy-next-role fixture.
+Only disposable fixture directories permit the second UID. ENOSPC is injected into
+the owned exporter, never by filling the host filesystem. After the GPU parent is
+drained, a separate CPU-only scorer checks public identity/constant programs against
+the independent evaluator at100 indices. This is an isolation/correctness fixture,
+not hidden scientific scoring or a measured full-control schedule. A missing
+secondary engine leaves portability pending while primary work stays independent.
+Images explicitly provide searchable0755 `/work` mount parents; the disposable
+UID fixture explicitly chmods0644 public files rather than trusting umask/default
+ACL inheritance. Rootless Podman's requested numeric UID/GID maps to the invoking
+host owner with `--userns=keep-id:uid=UID,gid=GID`; changing `--user` alone is not
+an owner mapping. The role verifies container ownership and the host verifies the
+exported file's actual host UID. Literal-UID engines retain that explicit label.
+This qualifies arbitrary numeric container users, not foreign subordinate-host-UID
+filesystem access. No host account, ownership or ACL changes are made. See the
+[official mapping contract](https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode).
+The fixture records parent/output modes and UID/GID maps before its first write.
+Primary UID operations must pass before full-data preparation/candidate timings;
+a failure cannot consume the batch roster merely because that branch is independent.
+
+The closed both-engine graph has38 stages. Non-image reservations by phases1–5
+are1440/5820/3600/12600/11340 seconds, all within the original phase caps. Builds
+share14400s per engine (at most two), rather than a new allowance per image.
+Primary correctness/recovery requires parity, joint state recovery and isolated
+scorer evidence. Sustained operation, portability, default adoption and complete
+scientific costs have independent verdicts; none is implied by another PASS.
+
+All owning phase/global bounds remain: phase4 joint3600+observation1200+soak7800+
+conditional confirmation/report5400=18000s; full two-engine reservation84000s within
+86400s. No borrowed phase/prompt clocks, extra favorable trials or automatic model
+fallback. Original equivalent-work five-pair adoption, complete scoped-cost80%
+admission, scientific decisions and final-cohort gates remain separate. An
+ineligible comparison retains baseline/INCONCLUSIVE, never a default change.

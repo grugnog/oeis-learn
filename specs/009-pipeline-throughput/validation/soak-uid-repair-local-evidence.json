@@ -1,0 +1,50 @@
+{
+  "version": "pipeline-soak-uid-repair-local-evidence/v1",
+  "status": "REPAIR_CODE_LOCAL_COMPLETE_TARGET_PENDING",
+  "repair_producer": "b850276ccaf8ef809fd804ce2d1a5d281dc73514",
+  "source": "sha256:1f3bba2634ac7a12d64e09afc214f772f4af55696f9dd7816ed0a24c8baf7fc3",
+  "source_entries": 731,
+  "foundation_implementation": "sha256:8fe9fdb3dbc01a8aa665e13c75096664e6446e889878a06dcdeeb3c391036054",
+  "host_tests": {
+    "tests": 192,
+    "failures": 0,
+    "errors": 0
+  },
+  "public_cli": {
+    "exit_code": 3,
+    "selected_scope": "PARTIAL",
+    "stages": {
+      "BLOCKED": 34,
+      "PARTIAL": 2,
+      "PASS": 1,
+      "INCONCLUSIVE": 1
+    },
+    "elapsed_seconds": 9.293261393999956,
+    "engines": "both unavailable; no host dependencies installed"
+  },
+  "archive": {
+    "path": "tmp-validation/009-soak-uid-repair-local.zip",
+    "sha256": "sha256:b154c7d6097b34d4bbb90102787ae5af0691fbdee5609cbdeb5b8792f01939ba",
+    "bytes": 5855748,
+    "members": 88,
+    "omissions": [],
+    "verified": true
+  },
+  "regressions": {
+    "foreign_uid_public_export_under_umask077": "reproduced unreadable files before fix; passes after explicit fixture022; actual recovery archive verified and removed",
+    "input_readonly": "simulated only in host fixture; real engine check remains required",
+    "image_parent_permissions": "pinned CPU image check registered; actual repaired image/rootless UID not executed here",
+    "operations_gate": "actual host graph verifies UID failure blocks preparation/timing and still exports report/archive",
+    "excluded_symlinks": "reproduced private/pytest omission metadata before fix; private trees now excluded while public unsafe links remain explicit"
+  },
+  "prior_collection": "specs/009-pipeline-throughput/validation/soak-operator-20261025T211131Z.json",
+  "new_target_required": "real foreign UID/rootless permissions, current pinned qualification and unstarted joint/stress/soak/scorer stages; one command/ZIP",
+  "runtime": "NOT_EXECUTED_HERE",
+  "learning": "NOT_ADMITTED",
+  "default": "RETAIN_BASELINE",
+  "original_counts": {
+    "complete": 77,
+    "pending_runtime": 19,
+    "blocked_research": 15
+  }
+}

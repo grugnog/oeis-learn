@@ -81,15 +81,17 @@ class GrowingPosition(nn.Module):
 
 
 class ChunkEncoder(nn.Module):
-    def __init__(self, *, dropout=0.0):
+    def __init__(self, *, dropout=0.0, d_model=256):
         super().__init__()
+        if type(d_model) is not int or d_model not in (256,512,768):
+            raise ValueError('registered chunk projection width required')
         self.byte_embedding = nn.Embedding(256, 4)
         self.chunk_projection = nn.Linear(33, 64)
         self.position = GrowingPosition()
         self.transformer = nn.TransformerEncoderLayer(
             64, 4, 256, dropout=dropout, activation="gelu", batch_first=True, norm_first=True
         )
-        self.projection = nn.Linear(132, 256)
+        self.projection = nn.Linear(132, d_model)
 
     def pool(self, raw, lengths):
         shape = raw.shape

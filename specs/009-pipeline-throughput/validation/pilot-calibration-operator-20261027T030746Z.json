@@ -1,0 +1,348 @@
+{
+  "version": "pipeline-pilot-calibration-target-review/v1",
+  "archive_sha256": "sha256:d82c07ad2ec94ac39f23ec1699cccddf9019be805253412236da19f8a2b0cbda",
+  "source": "sha256:47c47e090ae462891dfbf3f1b2cca66feea694d064adfd4053e1e646db2a9bfb",
+  "inventory": {
+    "total_members": 170,
+    "payloads": 169,
+    "omissions": [],
+    "hash_mismatches": []
+  },
+  "elapsed_seconds": 1422.0834140849765,
+  "stages": {
+    "calibration.import": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "calibration.report": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "calibration.session": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic,policy.compare"
+    },
+    "cpu.podman.semantic": {
+      "state": "FAIL",
+      "reason": "RuntimeError: bigint-cpu-regressions failed; inspect /home/owen/workspace/oies-learn/tmp-validation/009-pilot-calibration-20261027T030746Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stderr.log and /home/owen/workspace/oies-learn/tmp-validation/009-pilot-calibration-20261027T030746Z/stages/cpu.podman.semantic/bigint-cpu-regressions/stdout.log"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "pilot.operations.podman": {
+      "state": "PASS",
+      "reason": ""
+    },
+    "policy.compare": {
+      "state": "BLOCKED",
+      "reason": "failed/missing prerequisites: cpu.podman.semantic"
+    },
+    "study.report": {
+      "state": "PASS",
+      "reason": ""
+    }
+  },
+  "tests": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "1",
+        "skipped": "0",
+        "tests": "819",
+        "time": "295.031",
+        "timestamp": "2026-10-27T03:09:13.021428+00:00",
+        "hostname": "2a0cf1f7f7c6"
+      }
+    ],
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "123",
+        "time": "42.391",
+        "timestamp": "2026-10-27T03:14:11.473045+00:00",
+        "hostname": "af74b63093ac"
+      }
+    ],
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "9",
+        "tests": "1115",
+        "time": "286.725",
+        "timestamp": "2026-10-27T03:14:56.187869+00:00",
+        "hostname": "83245d3bc8e7"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "24",
+        "time": "325.205",
+        "timestamp": "2026-10-27T03:24:53.783061+00:00",
+        "hostname": "3fc32a6bb667"
+      }
+    ]
+  },
+  "failures": [
+    {
+      "test": {
+        "classname": "tests.unit.test_pipeline_pilot_calibration.FailureRouting",
+        "name": "test_missing_private_producer_blocks_engines_and_still_archives",
+        "time": "0.001"
+      },
+      "reason": "self = <tests.unit.test_pipeline_pilot_calibration.FailureRouting testMethod=test_missing_private_producer_blocks_engines_and_still_archives>\n\n    def test_missing_private_producer_blocks_engines_and_still_archives(self):\n        import json\n        from types import SimpleNamespace\n        from oeis_learn.pipeline_validation.pilot_calibration import manifest,registry\n        from oeis_learn.pipeline_validation.adapters import Adapters\n        from oeis_learn.pipeline_validation.runner import execute\n        from oeis_learn.pipeline_validation.bundle import verify\n        root=Path(__file__).resolve().parents[2]\n>       with tempfile.TemporaryDirectory(prefix='tmp-calibration-',dir=root) as tmp:\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\ntests/unit/test_pipeline_pilot_calibration.py:118: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/usr/local/lib/python3.12/tempfile.py:886: in __init__\n    self.name = mkdtemp(suffix, prefix, dir)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nsuffix = '', prefix = 'tmp-calibration-', dir = PosixPath('/opt/oeis-build')\n\n    def mkdtemp(suffix=None, prefix=None, dir=None):\n        \"\"\"User-callable function to create and return a unique temporary\n        directory.  The return value is the pathname of the directory.\n    \n        Arguments are as for mkstemp, except that the 'text' argument is\n        not accepted.\n    \n        The directory is readable, writable, and searchable only by the\n        creating user.\n    \n        Caller is responsible for deleting the directory when done with it.\n        \"\"\"\n    \n        prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)\n    \n        names = _get_candidate_names()\n        if output_type is bytes:\n            names = map(_os.fsencode, names)\n    \n        for seq in range(TMP_MAX):\n            name = next(names)\n            file = _os.path.join(dir, prefix + name + suffix)\n            _sys.audit(\"tempfile.mkdtemp\", file)\n            try:\n>               _os.mkdir(file, 0o700)\nE               OSError: [Errno 30] Read-only file system: '/opt/oeis-build/tmp-calibration-z4j6cwkh'\n\n/usr/local/lib/python3.12/tempfile.py:384: OSError"
+    }
+  ],
+  "import_proof": {
+    "authority": "weights-only evaluation; never learner resume",
+    "identity": "sha256:4ce3f33bc016c8f421e084ccb86eb1958fe69bc6be444ef41c9fa7917fd38c06",
+    "mathematical_owners": [
+      "crates/oeis_bigint_runtime/Cargo.lock",
+      "crates/oeis_bigint_runtime/Cargo.toml",
+      "crates/oeis_bigint_runtime/src/lib.rs",
+      "crates/oeis_synthesis_core/Cargo.lock",
+      "crates/oeis_synthesis_core/Cargo.toml",
+      "crates/oeis_synthesis_core/examples/benchmark_runtime.rs",
+      "crates/oeis_synthesis_core/examples/dependency_smoke.rs",
+      "crates/oeis_synthesis_core/examples/runtime_probe.rs",
+      "crates/oeis_synthesis_core/src/affine.rs",
+      "crates/oeis_synthesis_core/src/bin/certificate_solver.rs",
+      "crates/oeis_synthesis_core/src/cache.rs",
+      "crates/oeis_synthesis_core/src/dependence.rs",
+      "crates/oeis_synthesis_core/src/diagnostic.rs",
+      "crates/oeis_synthesis_core/src/evidence.rs",
+      "crates/oeis_synthesis_core/src/fit.rs",
+      "crates/oeis_synthesis_core/src/fit_budget.rs",
+      "crates/oeis_synthesis_core/src/language.rs",
+      "crates/oeis_synthesis_core/src/lib.rs",
+      "crates/oeis_synthesis_core/src/lowering.rs",
+      "crates/oeis_synthesis_core/src/parameters.rs",
+      "crates/oeis_synthesis_core/src/protocol.rs",
+      "crates/oeis_synthesis_core/src/retained.rs",
+      "crates/oeis_synthesis_core/src/runtime.rs",
+      "crates/oeis_synthesis_core/src/runtime/host_lookup_tests.rs",
+      "crates/oeis_synthesis_core/src/smt.rs",
+      "crates/oeis_synthesis_core/src/substitute.rs",
+      "crates/oeis_synthesis_core/src/symbolic.rs",
+      "crates/oeis_synthesis_core/src/transport.rs",
+      "crates/oeis_synthesis_core/src/value.rs",
+      "crates/oeis_synthesis_core/tests/fit_deadlines.rs",
+      "crates/oeis_synthesis_core/tests/fitting.rs",
+      "crates/oeis_synthesis_core/tests/runtime_contract.rs",
+      "crates/oeis_synthesis_core/tests/runtime_profiling.rs",
+      "crates/oeis_wasm_evaluator/Cargo.lock",
+      "crates/oeis_wasm_evaluator/Cargo.toml",
+      "crates/oeis_wasm_evaluator/build.rs",
+      "crates/oeis_wasm_evaluator/examples/synthesis_core_test_driver.rs",
+      "crates/oeis_wasm_evaluator/src/bin/synthesis_worker.rs",
+      "crates/oeis_wasm_evaluator/src/engine.rs",
+      "crates/oeis_wasm_evaluator/src/lib.rs",
+      "crates/oeis_wasm_evaluator/src/sandbox.rs",
+      "crates/oeis_wasm_evaluator/src/synthesis_adapter.rs",
+      "crates/oeis_wasm_evaluator/tests/phase7.rs",
+      "src/oeis_learn/data/__init__.py",
+      "src/oeis_learn/data/benchmark.py",
+      "src/oeis_learn/data/bigint_programs.py",
+      "src/oeis_learn/data/bootstrap_programs.py",
+      "src/oeis_learn/data/dataset.py",
+      "src/oeis_learn/data/generic_programs.py",
+      "src/oeis_learn/data/ingest.py",
+      "src/oeis_learn/data/lz_complexity.py",
+      "src/oeis_learn/data/models.py",
+      "src/oeis_learn/data/preprocessing.py",
+      "src/oeis_learn/data/program_admission.py",
+      "src/oeis_learn/data/program_pool.py",
+      "src/oeis_learn/data/real_data_loader.py",
+      "src/oeis_learn/data/sampler_factory.py",
+      "src/oeis_learn/data/schema.py",
+      "src/oeis_learn/data/structural_splits.py",
+      "src/oeis_learn/data/symbolic_definitions.py",
+      "src/oeis_learn/data/synthetic_generator.py",
+      "src/oeis_learn/data/transforms.py",
+      "src/oeis_learn/synthesis/__init__.py",
+      "src/oeis_learn/synthesis/admission.py",
+      "src/oeis_learn/synthesis/client.py",
+      "src/oeis_learn/synthesis/contracts.py",
+      "src/oeis_learn/synthesis/discovery_status.py",
+      "src/oeis_learn/synthesis/engine-policy.json",
+      "src/oeis_learn/synthesis/engine_policy.py",
+      "src/oeis_learn/synthesis/evidence.py",
+      "src/oeis_learn/synthesis/fitting.py",
+      "src/oeis_learn/synthesis/historical.py",
+      "src/oeis_learn/synthesis/records.schema.json",
+      "src/oeis_learn/synthesis/reference.py",
+      "src/oeis_learn/synthesis/reference_parser.py",
+      "src/oeis_learn/synthesis/replay.py",
+      "src/oeis_learn/synthesis/retired-fingerprints.json",
+      "src/oeis_learn/synthesis/retirement.py",
+      "src/oeis_learn/synthesis/service_policy.py",
+      "src/oeis_learn/synthesis/state.py",
+      "src/oeis_learn/synthesis/worker_pool.py",
+      "src/oeis_learn/pipeline_validation/pilot_data.py",
+      "src/oeis_learn/pipeline_validation/pilot_selection.py",
+      "src/oeis_learn/pipeline_validation/pilot_contract.py",
+      "src/oeis_learn/pipeline_validation/pilot_recipe.py",
+      "src/oeis_learn/decoder/bigint_codec.py",
+      "src/oeis_learn/fresh/bigint_config.py",
+      "src/oeis_learn/fresh/bigint_splits.py"
+    ],
+    "prepared_native_readmission": false,
+    "producer_manifest": "sha256:e423eeb9a67dc27ef60a0e2a5d91796172229955a81883ddb446e5d13c47b3f1",
+    "producer_source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+    "qualification": {
+      "cpus": 16,
+      "engine": "podman",
+      "identity": "sha256:655b62db332e458148a7ec07efc2e94d3d690212411bea9271e498e9bbb7c9c6",
+      "image": {
+        "gpu": "sha256:d526beae23af49cb22e59f25a23862e2c6848558951ee4e099612169e43be5f8",
+        "qualification": "sha256:190ebd65005d11a7ecc77b1ed839b4732355ffd77ed604fda7b2ff1bfe627e1a"
+      },
+      "profile": "sha256:35cb4b55a3bbca99720b803e7c642c7ce563a59859b3c5c596f6928a0bcc25bc",
+      "receipts": {
+        "cpu.podman.semantic": {
+          "identity": "sha256:09a8fbb74ed2f754d122dc37954c3a19ba85cab44f05afac3bf1c6d6e61f13f1",
+          "state": "PASS"
+        },
+        "hip.preflight": {
+          "identity": "sha256:810d9257d327e65eb45266c917d79c6c30b86d6bc2cd5c4ac15d864f636137e3",
+          "state": "PASS"
+        },
+        "host.contracts": {
+          "identity": "sha256:80536be25bb6d94ce94029f32fdde2b5b5c23d53d490ac8c9d87da960982bd8a",
+          "state": "PASS"
+        },
+        "operations.podman.retirement": {
+          "identity": "sha256:1a69b2d6a74cdc2dc5a9f42f9a2489053b2b630ecb38284255e114cb0bfd2ea3",
+          "state": "PASS"
+        },
+        "operations.podman.workflow": {
+          "identity": "sha256:afc7afa4d41aa581d9cdc138ce0d94052c54896ef44d23733eb01015a6aeeaa9",
+          "state": "PASS"
+        },
+        "pilot.operations.podman": {
+          "identity": "sha256:06cff00b39e2496edd20a8074c1fdf41bd5c0ded3f5128f483484ccc2e9fe67f",
+          "state": "PASS"
+        },
+        "pilot.prepare": {
+          "identity": "sha256:9aa8f173824de9fe42fe59618a8518549abda19bbf45917160fa8b8ba8d9bedd",
+          "state": "PASS"
+        },
+        "pilot.session": {
+          "identity": "sha256:0da37809d2798b2700794087060b4e84af7a0c5f418e054c3106fcfd45faba3b",
+          "state": "PASS"
+        },
+        "policy.compare": {
+          "identity": "sha256:7499f549e5344167261ac714bd8ebe698ad88fb641eaa4cee140308aff7adcff",
+          "state": "PASS"
+        }
+      },
+      "required": [
+        "cpu.podman.semantic",
+        "hip.preflight",
+        "host.contracts",
+        "operations.podman.retirement",
+        "operations.podman.workflow",
+        "pilot.operations.podman",
+        "pilot.prepare",
+        "pilot.session",
+        "policy.compare"
+      ],
+      "resources": "sha256:898da523fb56c6e3dfe7a487c7be5f97f30817f82a1e76f3de7522c46787bedc",
+      "source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+      "state": "PASS",
+      "version": "pipeline-pilot-qualification/v1",
+      "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+    },
+    "snapshots": [
+      {
+        "ordinal": 0,
+        "original_source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+        "pointer": {
+          "path": "state-39e84d624c184fa8a7668ec372068ccd/checkpoint.json",
+          "sha256": "sha256:d538caa5b0341a1a2a2367ea3fd721098389da205b49b1e2bfdb041cd6dd3863"
+        },
+        "weights_sha256": "sha256:94c08692e84ea85dacf272a1ee09a52675bc5e7faf862e05320c84257b0fcee8"
+      },
+      {
+        "ordinal": 1,
+        "original_source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+        "pointer": {
+          "path": "state-0c7a36b1e77045cda654acaba07452c5/checkpoint.json",
+          "sha256": "sha256:e53696f344f977f9e70445737d408ab3353dc1d5b0da2800a13bb33dfe768b91"
+        },
+        "weights_sha256": "sha256:1b51707c46c0095471eee49e23bec2bcac5550938b91daa0c20ebcbf67efdf01"
+      },
+      {
+        "ordinal": 2,
+        "original_source": "sha256:2b57e82976f9aaa322c105e0180edffcb38bda3141e32749652e554dcffbb043",
+        "pointer": {
+          "path": "state-de52c490d43f4117b7b7e2e58d9ab299/checkpoint.json",
+          "sha256": "sha256:314c29224f62de7c2e620bca313c367bd5e4da686c87936f2239fc9dd71d7b2c"
+        },
+        "weights_sha256": "sha256:6d69506e257c8f14d02419c64a711f1c1de7a0039c9a605194b73d64dd8848f0"
+      }
+    ],
+    "version": "pipeline-pilot-calibration-import/v1",
+    "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+  },
+  "calibration_snapshots": 0,
+  "cost": "UNKNOWN",
+  "long_run_admitted": false,
+  "repair": {
+    "source": "sha256:32e77120159d9ccb1203654dc7fcbc4967252623b30b7c2e7b7193a6c7a27fdf",
+    "source_entries": 761,
+    "source_delta": {
+      "tests/unit/test_pipeline_pilot_calibration.py": {
+        "old": "sha256:f8bd933ce588e2793064f40132b72eea176d7b9730e82a80e980edd6c2e7c8ba",
+        "new": "sha256:00b64c3f6567d1a306f749a67258b16ed4e59afcd76db08a1febdb2bb4f440f8"
+      }
+    },
+    "runtime_python_changed": false,
+    "scope": "test fixture uses a writable synthetic repository in the platform temporary directory",
+    "readonly_reproduction": "Legacy fixture raises EROFS when checkout directory creation is denied; corrected fixture passes, including failure reporting.",
+    "local_tests": {
+      "host_passed": 239,
+      "host_seconds": 38.508,
+      "calibration_passed": 9,
+      "readonly_source_reproduction": "PASS",
+      "installed_cpu": "PENDING"
+    },
+    "next": "Same one-command saved-snapshot calibration; inputs remain the complete213151Z producer; fresh output required.",
+    "readonly_log_sha256": "sha256:b7d94c52edf733c1649e2e0a7a8038e84706de95803e7732ac184e48fc8feb93",
+    "host_log_sha256": "sha256:71b4fb5ab28d107e7c30b6e0b23744a4f9f30d348c93cc4ee2905858df5747f2"
+  }
+}

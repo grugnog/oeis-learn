@@ -39,9 +39,15 @@ def models(recipe, device):
     from oeis_learn.experiments.bootstrap_models import construct_bigint_models
 
     mask = InputMask(**recipe["inputs"]["mask"])
-    encoder, decoder, counts = construct_bigint_models(
-        mask=mask, ablation_mode=recipe["inputs"]["ablation_mode"], device=device
-    )
+    if recipe['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'}:
+        from oeis_learn.experiments.bootstrap_models import construct_sizing_models
+        encoder,decoder,actual=construct_sizing_models(recipe['model_profile'],device=device)
+        counts=dict(encoder_parameters=actual['encoder'],total_parameters=actual['total'],
+            active_parameters=actual['active'],trainable_parameters=actual['active'],actual=actual)
+    else:
+        encoder, decoder, counts = construct_bigint_models(
+            mask=mask, ablation_mode=recipe["inputs"]["ablation_mode"], device=device
+        )
     if recipe["inputs"]["profile"] == "tri-stream/v1":
         from oeis_learn.encoder.tri_stream_encoder import TriStreamEncoder
 
@@ -75,15 +81,23 @@ def models(recipe, device):
 
 
 def client(settings, output):
+    from dataclasses import replace
+    limits = ServiceLimits(**settings['recipe']['fitting']['service_limits'])
+    pipeline = settings['recipe'].get('pipeline')
+    if pipeline:
+        limits = replace(limits, max_inflight_batches=pipeline['workers'])
+        if pipeline.get('cache_capacity')=='expanded/v1':
+            limits=replace(limits,result_cache_max_entries=32768,result_cache_max_bytes=512<<20,
+                disk_cache_max_entries=2048,disk_cache_max_bytes=4<<30)
     return SynthesisClient(
         settings["contract_sha256"],
         limits=ResourceProfile(**settings["recipe"]["execution"]["resources"]),
-        service_limits=ServiceLimits(**settings["recipe"]["fitting"]["service_limits"]),
+        service_limits=limits,
         cache_root=Path(output) / "native-cache",
     )
 
 
-def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
+def _batch_loss(encoder, decoder, rows, device, *, optimizer=None, timer=None, observe=True, learning_metrics=False):
     import torch
 
     from oeis_learn.decoder import bigint_codec as codec
@@ -98,14 +112,15 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
         tokens[i, : len(ids)] = torch.tensor(ids, device=device)
     if optimizer is not None:
         return supervised_step(
-            encoder, decoder, optimizer, sequences, tokens, device=device, pad_id=codec.PAD_ID
+            encoder, decoder, optimizer, sequences, tokens, device=device, pad_id=codec.PAD_ID,
+            timer=timer,observe=observe,learning_metrics=learning_metrics
         )
     from oeis_learn.rl.policy import trajectory_mean
     from oeis_learn.rl.token_loss import token_cross_entropy
 
     with torch.no_grad():
         logits = teacher_forced_logits(
-            encoder, decoder, sequences, tokens, device=device, pad_id=codec.PAD_ID
+            encoder, decoder, sequences, tokens, device=device, pad_id=codec.PAD_ID,timer=timer
         )
         value = trajectory_mean(
             token_cross_entropy(logits, tokens[:, 1:]), tokens[:, 1:].ne(codec.PAD_ID)
@@ -113,7 +128,7 @@ def _batch_loss(encoder, decoder, rows, device, *, optimizer=None):
     return float(value)
 
 
-def validation_loss(encoder, decoder, rows, device, *, deadline):
+def validation_loss(encoder, decoder, rows, device, *, deadline, measure=None,timer=None):
     encoder.eval()
     decoder.eval()
     total = 0.0
@@ -122,7 +137,9 @@ def validation_loss(encoder, decoder, rows, device, *, deadline):
         if time.monotonic() >= deadline:
             break
         batch = rows[i : i + 8]
-        total += _batch_loss(encoder, decoder, batch, device) * len(batch)
+        began=time.monotonic()
+        total += _batch_loss(encoder, decoder, batch, device,**(dict(timer=timer) if timer is not None else {})) * len(batch)
+        if measure is not None:measure(time.monotonic()-began,len(batch))
         done += len(batch)
     return dict(
         loss=total / done if done else None,
@@ -145,12 +162,30 @@ def periodic_panels(examples, scope):
 
 
 def train(inputs, output):
+    """Apply the explicit v2 numeric policy to the complete worker lifetime."""
+    settings=read(Path(inputs)/'settings.json')
+    from contextlib import nullcontext
+    from oeis_learn.pipeline_validation.sizing_execution import execution_context
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else nullcontext():
+        return _train(inputs,output)
+
+
+def _train(inputs, output):
     import numpy as np
     import torch
 
     inputs, output = Path(inputs), Path(output)
     settings = read(inputs / "settings.json")
     recipe = settings["recipe"]
+    engineering=settings.get('engineering')
+    pilot=settings.get('pilot')
+    if pilot and engineering:raise ValueError('pilot and historical engineering controls cannot mix')
+    if (recipe['version'] in {'bigint-bootstrap/v3','bigint-bootstrap/v4'}) != bool(pilot) and not settings.get('fixture'):raise ValueError('pilot recipe requires explicit bounded pilot authority')
+    if engineering:
+        from .engineering import parse as parse_engineering
+        parse_engineering(engineering,fixture=bool(settings.get('fixture')))
+        if recipe['version']!='bigint-bootstrap/v2' and not settings.get('fixture'):
+            raise ValueError('explicit sized engineering recipe required')
     examples = read(inputs / "examples.json")
     if identity(examples) != settings["examples_sha256"]:
         raise ValueError("learner view changed")
@@ -167,7 +202,13 @@ def train(inputs, output):
         raise ValueError("visible-only learner data required")
     contract = ExperimentContract(**settings["contract"])
     ledger = BudgetLedger.restore(settings["ledger"])
+    if contract.sha256!=settings['contract_sha256']:raise ValueError('worker contract identity mismatch')
     encoder, decoder, counts = models(recipe, settings["device"])
+    if engineering and not engineering['resume'] and not settings.get('fixture'):
+        initial=inputs/'initial.pt'
+        if file_hash(initial)!=settings.get('initial_weights_sha256'):raise ValueError('frozen initial weights mismatch')
+        weights=torch.load(initial,map_location='cpu',weights_only=True)
+        encoder.load_state_dict(weights['encoder']);decoder.load_state_dict(weights['decoder']);del weights
     optimizer = torch.optim.AdamW(
         [p for module in (encoder, decoder) for p in module.parameters() if p.requires_grad],
         lr=recipe["learning"]["learning_rate"],
@@ -198,10 +239,16 @@ def train(inputs, output):
         )
     else:
         selection["panels"] = {split: [r["id"] for r in group] for split, group in examples.items()}
-    if (inputs / "checkpoints/latest.json").exists():
-        shutil.copytree(inputs / "checkpoints", output / "checkpoints", dirs_exist_ok=True)
+    restore_root=output if engineering and engineering['resume'] else inputs
+    if engineering and engineering['resume'] and not (restore_root/'checkpoints/latest.json').exists():
+        raise ValueError('complete engineering restart checkpoint missing')
+    if (restore_root / "checkpoints/latest.json").exists():
+        if restore_root!=output:
+            shutil.copytree(restore_root / "checkpoints", output / "checkpoints", dirs_exist_ok=True)
         pointer = read(output / "checkpoints/latest.json")
-        restored = CheckpointStore(output / "checkpoints", contract).load(pointer)
+        restored = CheckpointStore(output / "checkpoints", contract,policies=recipe.get('pipeline')).load(pointer)
+        if (engineering or pilot) and restored['ledger'].snapshot()!=ledger.snapshot():
+            raise ValueError('engineering restart must retain exact cumulative ledger')
         states = restored["states"]
         if any(
             key not in ledger.records or ledger.records[key]["debit"] != row["debit"]
@@ -222,8 +269,8 @@ def train(inputs, output):
         curriculum = Curriculum.restore(states["curriculum"])
         replay = SynthesisReplay.restore(states["replay"])
         stopping = Stopping.restore(selection["stopping"])
-        if (inputs / "selected.json").exists():
-            selection["best_checkpoint"] = read(inputs / "selected.json")
+        if (restore_root / "selected.json").exists():
+            selection["best_checkpoint"] = read(restore_root / "selected.json")
     elif settings.get("foundation"):
         parent = settings["foundation"]
         parent_contract = ExperimentContract(**parent["record"]["contract"])
@@ -234,13 +281,38 @@ def train(inputs, output):
         decoder.load_state_dict(restored["states"]["weights"]["decoder"])
         # Warm initialization only: optimizer, RNG, data order and budget are this branch's.
     deadline = time.monotonic() + settings["seconds"]
-    store = CheckpointStore(output / "checkpoints", contract)
+    control=None;timer=None
+    if engineering:
+        from .engineering import Control
+        from .pipeline_profile import parameter_digest
+        from oeis_learn.tracking.foundation_metrics import PhaseTimer
+        engineering_initial=parameter_digest(encoder,decoder)
+        control=Control(settings,selection,output,minimum_examples=len(rows))
+        deadline=min(deadline,control.deadline)
+        timer=PhaseTimer(settings['device'],synchronized=False)
+    if pilot:
+        from .pilot_control import Control as PilotControl
+        from .pipeline_profile import parameter_digest
+        from oeis_learn.tracking.foundation_metrics import PhaseTimer
+        engineering_initial=parameter_digest(encoder,decoder)
+        control=PilotControl(settings,selection,output,minimum_examples=len(rows))
+        timer=PhaseTimer(settings['device'],synchronized=False)
+        # Work deadline excludes final validation/checkpoint reserve.
+        deadline=min(deadline,control.deadline)
+    batch_size=control.batch_size if control else recipe['learning']['batch_size']
+    store = CheckpointStore(output / "checkpoints", contract, policies=recipe.get('pipeline'))
+    if recipe.get('pipeline') and 'pipeline_boundary' not in selection:
+        from .pipeline_jobs import JobLedger
+        selection['pipeline_boundary'] = JobLedger().boundary(recipe['pipeline'])
     metrics = []
     pointer = None
     early = False
+    successful=False
 
     def save():
         nonlocal pointer
+        saved_at=time.monotonic()
+        if control:control.checkpoint(selection)
         order["rng"] = order_rng.get_state()
         selection["stopping"] = stopping.snapshot()
         states = dict(
@@ -267,6 +339,7 @@ def train(inputs, output):
         write(output / "selected.json", chosen)
         selection["best_checkpoint"] = chosen
         store.prune(chosen)
+        if control:control.component('checkpoint',time.monotonic()-saved_at,checkpoints=1)
         write(
             output / "checkpoint-identity.json",
             dict(
@@ -279,6 +352,24 @@ def train(inputs, output):
             ),
         )
 
+    def pilot_validation():
+        from .pilot_metrics import validation
+        measured=validation(encoder,decoder,examples,settings['device'],deadline=time.monotonic()+90,timer=timer,training_ids=settings['pilot_training_ids'])
+        if not all(r['complete'] for r in measured.values()):raise TimeoutError('full pilot teacher-forcing validation incomplete')
+        dev=[measured[k] for k in ('parameter_development','structural_development')]
+        loss=sum(r['loss_sum'] for r in dev)/sum(r['tokens'] for r in dev)
+        if loss<selection.get('pilot_best_loss',float('inf')):
+            selection['pilot_best_loss']=loss;selection['selected_update']=order['completed']
+        item=dict(ordinal=control.cfg['ordinal'],update=order['completed'],tokens=control.state['tokens'],splits=measured)
+        selection['evaluations'].append(dict(update=order['completed'],loss=loss))
+        selection.setdefault('pilot_validations',[]).append(item)
+        if len(selection['evaluations'])>4096:raise ValueError('pilot validation journal exhausted')
+        import json
+        if len((json.dumps(selection['pilot_validations'],sort_keys=True,indent=2,allow_nan=False)+'\n').encode())>8<<20:
+            raise ValueError('cumulative pilot validation journal exceeds8MiB')
+        write(output/'pilot-validation.json',item)
+        return item
+
     try:
         with client(settings, output) as synthesis:
             target = min(
@@ -286,7 +377,8 @@ def train(inputs, output):
                 order["completed"]
                 + settings.get("update_limit", recipe["learning"]["validation_every"]),
             )
-            while order["completed"] < target and time.monotonic() < deadline:
+            if control:target=1048576 if pilot else 49152
+            while order["completed"] < target and time.monotonic() < deadline and (control is None or control.wants_update(order['completed'])):
                 from .tuning import permutation
 
                 pool = list(range(len(rows)))
@@ -307,16 +399,16 @@ def train(inputs, output):
                         for _ in range(recipe["learning"]["batch_size"] - count)
                     ]
                 else:
-                    if order["cursor"] + recipe["learning"]["batch_size"] > len(
+                    if (order['cursor']>=len(order['permutation']) if control else order["cursor"] + batch_size > len(
                         order["permutation"]
-                    ):
+                    )):
                         order["permutation"] = permutation(
-                            rows, order_rng, recipe["learning"]["batch_size"]
+                            rows, order_rng, batch_size
                         )
                         order["cursor"] = 0
                         order["epoch"] += 1
                     chosen = order["permutation"][
-                        order["cursor"] : order["cursor"] + recipe["learning"]["batch_size"]
+                        order["cursor"] : order["cursor"] + batch_size
                     ]
                     order["cursor"] += len(chosen)
                 batch = [rows[i] for i in chosen]
@@ -325,13 +417,19 @@ def train(inputs, output):
                     batch = [
                         dict(index[r["target"]], tokens=r["tokens"]) for r in augmented
                     ] + batch[len(augmented) :]
+                if pilot and control.state["tokens"]+sum(len(r["tokens"]) for r in batch)>(1<<30):break
                 encoder.train()
                 decoder.train()
+                update_started=time.monotonic()
                 record = _batch_loss(
-                    encoder, decoder, batch, settings["device"], optimizer=optimizer
+                    encoder, decoder, batch, settings["device"], optimizer=optimizer,
+                    **(dict(timer=timer,observe=False,learning_metrics=bool(pilot)) if control else {})
                 )
                 order["completed"] += 1
-                metrics.append(
+                if pilot:
+                    tm=record['token_metrics'];control.last_loss=tm['loss_sum']/tm['tokens'];control.last_metrics=tm
+                if control:control.update(batch,time.monotonic()-update_started)
+                else:metrics.append(
                     dict(
                         update=order["completed"],
                         loss=record["loss"],
@@ -342,23 +440,62 @@ def train(inputs, output):
                     output / "progress.json",
                     dict(update=order["completed"], last_loss=record["loss"]),
                 )
-                if (
+                if control and control.pulse_due():
+                    from oeis_learn.pipeline_validation.soak_native import pulse
+                    def gpu_probe():
+                        import math
+                        began=time.monotonic();encoder.eval();decoder.eval()
+                        value=_batch_loss(encoder,decoder,rows[:8],settings['device'],timer=timer,observe=False)
+                        if not math.isfinite(value):raise FloatingPointError('nonfinite read-only probe')
+                        control.component('gpu_readonly_probe',time.monotonic()-began,rows=min(8,len(rows)))
+                    pulse(synthesis,control,selection,recipe,deadline,gpu_probe=gpu_probe)
+                if (control.cycle_due() if control else (
                     order["completed"] % recipe["learning"]["validation_every"] == 0
                     or order["completed"] == recipe["learning"]["max_updates"]
-                ):
+                )):
+                    if pilot:
+                        pilot_validation()
+                        control.cycled()
+                        save()
+                        continue
                     from .diagnostics import evaluate_bigint as generate
-
+                    validation_started=time.monotonic()
                     loss = validation_loss(
                         encoder,
                         decoder,
                         examples["parameter_development"] + examples["structural_development"],
                         settings["device"],
                         deadline=deadline,
+                        **(dict(timer=timer) if control else {})
                     )
+                    if control:
+                        control.component('validation',time.monotonic()-validation_started,rows=loss['attempted'])
+                        if not loss['complete']:raise TimeoutError('complete full-development validation required')
                     panel = [index[k] for ids in selection["panels"].values() for k in ids]
+                    if control:
+                        write(output/f"cycle-plan-{control.state['cycles']}.json",dict(
+                            version='pipeline-soak-cycle/v1',cycle=control.state['cycles'],
+                            prompts=[r['id'] for r in panel],mode='correct',attempts_per_prompt=1,
+                            maximum_body_tokens=1024,maximum_prompt_seconds=60,snapshot_update=order['completed']))
+                    generation_started=time.monotonic()
                     diagnostic = generate(
-                        encoder, decoder, panel, recipe, synthesis, deadline=deadline, periodic=True
+                        encoder, decoder, panel, recipe, synthesis, deadline=min(deadline,time.monotonic()+900) if control else deadline, periodic=True,
+                        **(dict(evidence=control.evidence) if control else {})
                     )
+                    if control:
+                        details=[item for r in diagnostic['records'].values() for d in r['details'].values() for item in d['details']]
+                        control.component('generation_native',time.monotonic()-generation_started,scheduled=len(panel),started=len(details),
+                            unstarted=len(panel)-len(details),decoded=sum(d['generation']['complete'] for d in details),
+                            emitted_tokens=sum(len(d['tokens']) for d in details),
+                            native_started=sum(d['fitting']['outcome']!='not_attempted' for d in details),
+                            native_complete=sum(d['fitting']['complete'] for d in details),
+                            visible_verified=sum(bool(r['selections'].get('rescue') or r['selections'].get('raw')) for r in diagnostic['records'].values()))
+                        # Grammar/deadline outcomes are legitimate terminal attempts;
+                        # undispatched prompts cannot establish a complete cycle.
+                        control.cycled(complete=len(details)==len(panel))
+                    if recipe.get('pipeline'):
+                        from .pipeline_jobs import merge_boundary
+                        selection['pipeline_boundary'] = merge_boundary(selection['pipeline_boundary'],diagnostic['pipeline_boundary'])
                     visible = score_panel(
                         tuple(r["id"] for r in panel),
                         {
@@ -417,7 +554,7 @@ def train(inputs, output):
                             curriculum.observe(report, update=order["completed"])
                     if recipe["learning"]["replay"]:
                         admit_replay(replay, rows, diagnostic, synthesis, deadline)
-                    early = stopping.observe(visible["success"])
+                    early = False if control else stopping.observe(visible["success"])
                     write(
                         output / "validation.json",
                         dict(visible=visible, teacher_forcing=loss, panels=selection["panels"]),
@@ -427,8 +564,18 @@ def train(inputs, output):
                         break
             if selection["selected_update"] is None:
                 selection["selected_update"] = order["completed"]
+            if control and not pilot and control.cfg['mode'] in {'batch','observation'}:
+                validation_started=time.monotonic()
+                loss=validation_loss(encoder,decoder,examples['parameter_development']+examples['structural_development'],settings['device'],deadline=deadline,timer=timer)
+                control.component('validation',time.monotonic()-validation_started,rows=loss['attempted'])
+                if not loss['complete']:raise TimeoutError('complete batch-arm validation required')
+            if pilot:pilot_validation()
+            successful=True
     finally:
-        save()
+        if control:
+            engineering_result=control.finish(completed=successful)
+        if control is None or successful:save()
+        if control:write(output/('pilot.json' if pilot else 'engineering.json'),engineering_result)
     write(
         output / "metrics.json",
         dict(
@@ -440,6 +587,10 @@ def train(inputs, output):
             early_stop=early,
         ),
     )
+    if control:
+        engineering_final=parameter_digest(encoder,decoder)
+        if engineering_final==engineering_initial and control.state['updates']>control.start_updates:
+            raise RuntimeError('engineering updates did not change actual parameters')
     return dict(
         update=order["completed"],
         checkpoint=pointer,
@@ -448,6 +599,10 @@ def train(inputs, output):
         counts=counts,
         final_access="sealed",
         fixture=bool(settings.get("fixture")),
+        **(dict(**({'pilot':read(output/'pilot.json')} if pilot else {'engineering':read(output/'engineering.json')}),initial_parameter_digest=engineering_initial,
+            final_parameter_digest=engineering_final,
+            torch_threads=dict(intraop=torch.get_num_threads(),interop=torch.get_num_interop_threads()),
+            execution=__import__('oeis_learn.pipeline_validation.sizing_execution',fromlist=['execution_observation']).execution_observation()) if control else {}),
     )
 
 
@@ -456,7 +611,7 @@ def _load_models(inputs, settings):
 
     encoder, decoder, counts = models(settings["recipe"], settings["device"])
     contract = ExperimentContract(**settings["contract"])
-    store = CheckpointStore(Path(inputs) / "checkpoints", contract)
+    store = CheckpointStore(Path(inputs) / "checkpoints", contract,policies=settings['recipe'].get('pipeline'))
     loaded = store.load(settings["checkpoint"])
     encoder.load_state_dict(loaded["states"]["weights"]["encoder"])
     decoder.load_state_dict(loaded["states"]["weights"]["decoder"])
@@ -477,6 +632,14 @@ def _load_models(inputs, settings):
 
 
 def generate(inputs, output):
+    settings=read(Path(inputs)/'settings.json')
+    from contextlib import nullcontext
+    from oeis_learn.pipeline_validation.sizing_execution import execution_context
+    with execution_context() if settings['recipe']['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else nullcontext():
+        return _generate(inputs,output)
+
+
+def _generate(inputs, output):
     from .diagnostics import evaluate_bigint as synthesize
 
     inputs, output = Path(inputs), Path(output)
@@ -543,17 +706,18 @@ def generate(inputs, output):
     )
     for row in rows:
         record = result["records"][row["id"]]
-        from .candidate_archive import retain_alternatives
+        from .candidate_archive import retain_alternatives, duplicate_key
 
         merged = {}
         for value in record["details"].values():
             for alternative in value["archive"]["retained"]:
                 if (
                     alternative["id"] not in merged
-                    or alternative["cost"] < merged[alternative["id"]]["cost"]
+                    or (duplicate_key(alternative) < duplicate_key(merged[alternative['id']]) if settings['recipe'].get('pipeline')
+                        else alternative["cost"] < merged[alternative["id"]]["cost"])
                 ):
                     merged[alternative["id"]] = alternative
-        body = retain_alternatives(list(merged.values()))
+        body = retain_alternatives(list(merged.values()),policy='structure-pareto/v2' if settings['recipe'].get('pipeline') else 'structure-pareto/v1')
         body["portfolio_omissions"] = {
             mode: value["archive"]["omitted"] for mode, value in record["details"].items()
         }

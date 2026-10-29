@@ -1,0 +1,70 @@
+{
+  "version": "pipeline-phase-review/v1",
+  "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+  "operator_review": "operator-20261024T141450Z-review.json",
+  "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+  "stage": {
+    "state": "INCONCLUSIVE",
+    "identity": "sha256:14baebebab6022736ce294c840bfa9de1e357366ac489f5b28c78ba03d12234b",
+    "reason": ""
+  },
+  "cold": {
+    "identity": "sha256:275427c96ab91a332958f968f342de1b11067e286421be959d7189b2cd8c854b",
+    "status": "PARTIAL",
+    "attempted": 408,
+    "scheduled_attempts": 576,
+    "complete_ids": [],
+    "updates": 500,
+    "validation": {
+      "attempted": 256,
+      "complete": true,
+      "denominator": 256,
+      "loss": 0.8365185111761093
+    },
+    "seconds": 148.870100364089,
+    "timings": {
+      "checkpoint": 0.2664542018901557,
+      "decode.mixed": 2.067155612166971,
+      "decode.short": 2.067155612166971,
+      "generation_native": 111.53023301507346,
+      "native.nonlinear": 0.8333947719074786,
+      "updates": 34.355321284150705,
+      "validation": 1.9545228781644255
+    },
+    "resources": {
+      "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+      "breach": null,
+      "ceiling_bytes": 120744574976,
+      "last": {
+        "available": 125532864512,
+        "current": 1584566272,
+        "driver": 1054904320,
+        "limit": 120744574976,
+        "physical": 134161076224
+      },
+      "machine_peak_upper_bytes": 9750777856,
+      "qualified": true,
+      "role_peak_upper_bytes": 2639470592,
+      "samples": 151,
+      "version": "pipeline-memory-observation/v1"
+    },
+    "generation_counts": [
+      {
+        "outcome": "decoded",
+        "reason": null,
+        "count": 376
+      },
+      {
+        "outcome": "generation_incomplete",
+        "reason": "deadline",
+        "count": 32
+      },
+      {
+        "outcome": "unstarted",
+        "reason": "parent deadline",
+        "count": 168
+      }
+    ]
+  },
+  "decision": "INCONCLUSIVE; no complete subset; comparison candidates unstarted"
+}

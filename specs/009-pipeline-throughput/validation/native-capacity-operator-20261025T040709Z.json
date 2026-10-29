@@ -1,0 +1,1566 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-native-capacity-20261025T040709Z.zip",
+  "archive_sha256": "sha256:5449f91f92665a6be42060ab3521f21ecf6363e2888f725a76e2f93de70dc7b2",
+  "archive_bytes": 3256466,
+  "manifest": "sha256:7f94598a8f5597c838d2ca31b7424761034d7e39da1c86651d3745c337d35b21",
+  "verified_members": 517,
+  "producer": "176ecc9e2f5a9ff83107d4d74dd8ecc65505cdbe",
+  "source": "sha256:4534bfdc83f9faf7132830a4d281c55fb8e6c52f129f2f4e3339fcbe7504308c",
+  "source_entries": 709,
+  "exact_source_match": true,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 436.08660632395186,
+    "engineering": "PASS",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 305.5758076380007,
+      "3": 54.012832403881475
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-native-capacity",
+    "selected_scope": "PASS",
+    "unavailable": [],
+    "version": "pipeline-summary/v1"
+  },
+  "qualification": {
+    "host": 136,
+    "cpu": 655,
+    "cpu_deselected": 1,
+    "subtests": 17,
+    "hip": "not selected; CPU-only scope"
+  },
+  "stage_receipts": {
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:6094232bffcaa8482688a74505bdea62a429d63bc4ff259a5b066f63f39a8259"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:5b4d1a86a3e37490298797816e24ebc121c2571ae27868ab92808bd805a44309"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:3e6019281404fd0ff3904ec0260016ac5623a3ff8d567345f77b8ffc24ece328"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:91d0fa2ff78a888d1aa6b2d489d1f97a59e6677f15caefba779bfa7ab46ff64f"
+    },
+    "native.capacity": {
+      "state": "PASS",
+      "identity": "sha256:83ac5973ddcb1c9eb7ad10c69026da7183601bdb9d4d81342a23369b8ebc084d"
+    },
+    "calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:7098c0e86965cd2b6ec17a650b9068951a9590824519f068c4c12cdc8eae7950"
+    },
+    "w4-pair1-B": {
+      "state": "PASS",
+      "identity": "sha256:028d3fb88f6a1cf67f4bc54d19f9e5689f3a80a9df8f79948f8952562ff28e6b"
+    },
+    "w4-pair0-B": {
+      "state": "PASS",
+      "identity": "sha256:47b26e7995d1121e5945ec26e8da0fd915136a95e36993374e2e6cc44e9a76c6"
+    },
+    "w2-warmup": {
+      "state": "PASS",
+      "identity": "sha256:d102422a829a4513b9476f5e5f9f141648d822cab15608f4a5bbd6b1d389738e"
+    },
+    "w2-pair1-B": {
+      "state": "PASS",
+      "identity": "sha256:7287772f912ce67e1f5cc54d6808d575c1370d6b5b5a17ef5615d31e5dde9154"
+    },
+    "observed-w1": {
+      "state": "PASS",
+      "identity": "sha256:f84d38251ee7539247f9f6359351abc5da2e35b3d7e1f6da8325740f25ddd572"
+    },
+    "w4-pair0-A": {
+      "state": "PASS",
+      "identity": "sha256:ebc7607cddc8d838e5c6e214b539a08c2e6b420664e10a9d8a5f68e570518112"
+    },
+    "cold": {
+      "state": "PASS",
+      "identity": "sha256:6fa3fbdaafd03d09b71552c85d9f68a693b32524097c668e747f3a7e4d1f6b0b"
+    },
+    "calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:30604b9cf9c533c061a8661d374e590f44ac30ec8b63ff76442852a66f71c34c"
+    },
+    "calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:1e76d88bb8ae2fb4dd40f1b25ced11b78ba344315227d7e1daf8b9398d3a37bd"
+    },
+    "w4-pair1-A": {
+      "state": "PASS",
+      "identity": "sha256:0cb31e2bd21b6d6b2125fe78f6045759aeae6d2c2965aca9782b17f18ea6a017"
+    },
+    "warmup": {
+      "state": "PASS",
+      "identity": "sha256:eb4260e00aeb3c9b1a5ea74df250f3cbe92825a8f91e4d5d1292c9e32756b6b5"
+    },
+    "w2-pair0-B": {
+      "state": "PASS",
+      "identity": "sha256:b60bf46fb42cc39206de028b6fed01a2ce7cd887e1d99331dbceab930022b36e"
+    },
+    "w2-pair1-A": {
+      "state": "PASS",
+      "identity": "sha256:107eabca55d050bc5300d3a934cbb19de0d2831bfd3d4ffd9a23a6c2548e5549"
+    },
+    "queued-diagnostic": {
+      "state": "PASS",
+      "identity": "sha256:59ca13601d8bee96ddb0a68ba011abc32eaaf3959a6c0346fa031de288521301"
+    },
+    "w4-warmup": {
+      "state": "PASS",
+      "identity": "sha256:1234f9e3e530c0ab542486fb53cb62f7ba0d4276c3f65e0429e14445f3dfb8a0"
+    },
+    "w2-pair0-A": {
+      "state": "PASS",
+      "identity": "sha256:f1d6476c91ccfd08a16a1f609aff3d97e8d629674e0368a971a8925dd7490b1a"
+    },
+    "observed-w4": {
+      "state": "PASS",
+      "identity": "sha256:d6fcd44abfa00fd041054e5b915c446774449a8c92492160621361bb9d1411fc"
+    },
+    "native.capacity.report": {
+      "state": "PASS",
+      "identity": "sha256:1d2faae8723685ddc68408533feeda6764489304e127c8f3aa31b172ca136eec"
+    }
+  },
+  "child": {
+    "admission": "slot-waves/v1",
+    "baselines": {
+      "calibration-0": "sha256:30604b9cf9c533c061a8661d374e590f44ac30ec8b63ff76442852a66f71c34c",
+      "calibration-1": "sha256:7098c0e86965cd2b6ec17a650b9068951a9590824519f068c4c12cdc8eae7950",
+      "calibration-2": "sha256:1e76d88bb8ae2fb4dd40f1b25ced11b78ba344315227d7e1daf8b9398d3a37bd",
+      "cold": "sha256:6fa3fbdaafd03d09b71552c85d9f68a693b32524097c668e747f3a7e4d1f6b0b",
+      "warmup": "sha256:eb4260e00aeb3c9b1a5ea74df250f3cbe92825a8f91e4d5d1292c9e32756b6b5"
+    },
+    "calibration": {
+      "baseline_receipts": [
+        "sha256:30604b9cf9c533c061a8661d374e590f44ac30ec8b63ff76442852a66f71c34c",
+        "sha256:7098c0e86965cd2b6ec17a650b9068951a9590824519f068c4c12cdc8eae7950",
+        "sha256:1e76d88bb8ae2fb4dd40f1b25ced11b78ba344315227d7e1daf8b9398d3a37bd"
+      ],
+      "calibration_count": 3,
+      "cold_runs": 1,
+      "confirmation_order": [
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ],
+      "identity": "sha256:5c7ed84eed68c5f89d2a005050e26c99b9f83f62e421e9594e5c1c2593de1c0f",
+      "parent": "sha256:bb5842d686e649a58dee2fa2875cdae294ce99892d0a3eedb23dca613291a43a",
+      "reservation_seconds": 30,
+      "rule": "sha256:6513a75fbadb66c8bdfeaa14dacc4991b34dbe8ec0673d93bc35e2f7ff4cdcfa",
+      "version": "pipeline-calibration/v1",
+      "warmups": 1,
+      "workload": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3"
+    },
+    "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+    "decision_rule": "two ordinary AB/BA pairs; both gains>=5%; fastest eligible median, fewer workers within5%; no adoption",
+    "identity": "sha256:adef33ebbc142ef07eca0187e9e2e5aad1da45045024966511e0593c04fc6168",
+    "interpretation": "fixed18-row native CPU capacity screen; no production/default/pipeline/research/learning admission",
+    "memory_ceiling": 120744574976,
+    "parent": "sha256:bb5842d686e649a58dee2fa2875cdae294ce99892d0a3eedb23dca613291a43a",
+    "primary_measurement": "ordinary/v1",
+    "service_seconds": 4,
+    "slots": [
+      "w2-warmup",
+      "w2-pair0-A",
+      "w2-pair0-B",
+      "w2-pair1-B",
+      "w2-pair1-A",
+      "w4-warmup",
+      "w4-pair0-A",
+      "w4-pair0-B",
+      "w4-pair1-B",
+      "w4-pair1-A",
+      "observed-w1",
+      "observed-w4"
+    ],
+    "source": "sha256:4534bfdc83f9faf7132830a4d281c55fb8e6c52f129f2f4e3339fcbe7504308c",
+    "version": "pipeline-native-capacity-child/v1",
+    "workers": [
+      2,
+      4
+    ],
+    "semantics": {
+      "rows": 18,
+      "canonical_digest": "sha256:4ab6e1b389b95b3dc57977103df77814cd814a72a1554ba0515fa50a66c99751",
+      "artifact": "stages/native.capacity/role/comparison-contract.json"
+    }
+  },
+  "report": {
+    "child": "sha256:adef33ebbc142ef07eca0187e9e2e5aad1da45045024966511e0593c04fc6168",
+    "comparisons": [
+      {
+        "candidate_median": 1.9370104251429439,
+        "child": "sha256:adef33ebbc142ef07eca0187e9e2e5aad1da45045024966511e0593c04fc6168",
+        "identity": "sha256:cd523bfde49b857805fe4573b7454fe9228e852a21efbc67a53aab9caa0fc749",
+        "missing": [],
+        "optimization_adoption": false,
+        "pairs": [
+          {
+            "baseline_rows_per_second": 5.084081517265963,
+            "baseline_seconds": 3.5404625080991536,
+            "candidate_rows_per_second": 8.864302775154263,
+            "candidate_seconds": 2.03061655908823,
+            "gain": 0.4264544379602957,
+            "order": "AB",
+            "pair": 0
+          },
+          {
+            "baseline_rows_per_second": 5.095279269667597,
+            "baseline_seconds": 3.532681732904166,
+            "candidate_rows_per_second": 9.764542746239037,
+            "candidate_seconds": 1.8434042911976576,
+            "gain": 0.47818557385801586,
+            "order": "BA",
+            "pair": 1
+          }
+        ],
+        "research_cost_admission": false,
+        "status": "COMPLETE",
+        "supported": true,
+        "version": "pipeline-native-capacity-comparison/v1",
+        "workers": 2
+      },
+      {
+        "candidate_median": 1.2607927820645273,
+        "child": "sha256:adef33ebbc142ef07eca0187e9e2e5aad1da45045024966511e0593c04fc6168",
+        "identity": "sha256:1413ae2c434f5552dee57b76d81310b7ec8debfb7598597db0ad13ffdbe72bdb",
+        "missing": [],
+        "optimization_adoption": false,
+        "pairs": [
+          {
+            "baseline_rows_per_second": 3.7462963302576124,
+            "baseline_seconds": 4.804745384026319,
+            "candidate_rows_per_second": 12.791851736947194,
+            "candidate_seconds": 1.407145765144378,
+            "gain": 0.7071341657723376,
+            "order": "AB",
+            "pair": 0
+          },
+          {
+            "baseline_rows_per_second": 5.06663012120236,
+            "baseline_seconds": 3.552657203981653,
+            "candidate_rows_per_second": 16.15161269042896,
+            "candidate_seconds": 1.1144397989846766,
+            "gain": 0.6863080970109741,
+            "order": "BA",
+            "pair": 1
+          }
+        ],
+        "research_cost_admission": false,
+        "status": "COMPLETE",
+        "supported": true,
+        "version": "pipeline-native-capacity-comparison/v1",
+        "workers": 4
+      }
+    ],
+    "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+    "failure": null,
+    "identity": "sha256:8eebbea549df3f7f2c6c837dce44268ed0ab2cef7057b5d5e879c76c53794248",
+    "interpretation": "fixed18-row native CPU capacity screen; no production/default/pipeline/research/learning admission",
+    "observation_policy": "ordinary scored trials; observed-only1/4 follow-ups excluded; CPU telemetry overhead uncalibrated",
+    "optimization_adoption": false,
+    "parent": "sha256:bb5842d686e649a58dee2fa2875cdae294ce99892d0a3eedb23dca613291a43a",
+    "research_cost_admission": false,
+    "selected_workers": 4,
+    "slots": {
+      "calibration-0": {
+        "reason": "",
+        "receipt": "sha256:30604b9cf9c533c061a8661d374e590f44ac30ec8b63ff76442852a66f71c34c",
+        "state": "PASS"
+      },
+      "calibration-1": {
+        "reason": "",
+        "receipt": "sha256:7098c0e86965cd2b6ec17a650b9068951a9590824519f068c4c12cdc8eae7950",
+        "state": "PASS"
+      },
+      "calibration-2": {
+        "reason": "",
+        "receipt": "sha256:1e76d88bb8ae2fb4dd40f1b25ced11b78ba344315227d7e1daf8b9398d3a37bd",
+        "state": "PASS"
+      },
+      "cold": {
+        "reason": "",
+        "receipt": "sha256:6fa3fbdaafd03d09b71552c85d9f68a693b32524097c668e747f3a7e4d1f6b0b",
+        "state": "PASS"
+      },
+      "observed-w1": {
+        "reason": "",
+        "receipt": "sha256:f84d38251ee7539247f9f6359351abc5da2e35b3d7e1f6da8325740f25ddd572",
+        "state": "PASS"
+      },
+      "observed-w4": {
+        "reason": "",
+        "receipt": "sha256:d6fcd44abfa00fd041054e5b915c446774449a8c92492160621361bb9d1411fc",
+        "state": "PASS"
+      },
+      "queued-diagnostic": {
+        "reason": "",
+        "receipt": "sha256:59ca13601d8bee96ddb0a68ba011abc32eaaf3959a6c0346fa031de288521301",
+        "state": "PASS"
+      },
+      "w2-pair0-A": {
+        "reason": "",
+        "receipt": "sha256:f1d6476c91ccfd08a16a1f609aff3d97e8d629674e0368a971a8925dd7490b1a",
+        "state": "PASS"
+      },
+      "w2-pair0-B": {
+        "reason": "",
+        "receipt": "sha256:b60bf46fb42cc39206de028b6fed01a2ce7cd887e1d99331dbceab930022b36e",
+        "state": "PASS"
+      },
+      "w2-pair1-A": {
+        "reason": "",
+        "receipt": "sha256:107eabca55d050bc5300d3a934cbb19de0d2831bfd3d4ffd9a23a6c2548e5549",
+        "state": "PASS"
+      },
+      "w2-pair1-B": {
+        "reason": "",
+        "receipt": "sha256:7287772f912ce67e1f5cc54d6808d575c1370d6b5b5a17ef5615d31e5dde9154",
+        "state": "PASS"
+      },
+      "w2-warmup": {
+        "reason": "",
+        "receipt": "sha256:d102422a829a4513b9476f5e5f9f141648d822cab15608f4a5bbd6b1d389738e",
+        "state": "PASS"
+      },
+      "w4-pair0-A": {
+        "reason": "",
+        "receipt": "sha256:ebc7607cddc8d838e5c6e214b539a08c2e6b420664e10a9d8a5f68e570518112",
+        "state": "PASS"
+      },
+      "w4-pair0-B": {
+        "reason": "",
+        "receipt": "sha256:47b26e7995d1121e5945ec26e8da0fd915136a95e36993374e2e6cc44e9a76c6",
+        "state": "PASS"
+      },
+      "w4-pair1-A": {
+        "reason": "",
+        "receipt": "sha256:0cb31e2bd21b6d6b2125fe78f6045759aeae6d2c2965aca9782b17f18ea6a017",
+        "state": "PASS"
+      },
+      "w4-pair1-B": {
+        "reason": "",
+        "receipt": "sha256:028d3fb88f6a1cf67f4bc54d19f9e5689f3a80a9df8f79948f8952562ff28e6b",
+        "state": "PASS"
+      },
+      "w4-warmup": {
+        "reason": "",
+        "receipt": "sha256:1234f9e3e530c0ab542486fb53cb62f7ba0d4276c3f65e0429e14445f3dfb8a0",
+        "state": "PASS"
+      },
+      "warmup": {
+        "reason": "",
+        "receipt": "sha256:eb4260e00aeb3c9b1a5ea74df250f3cbe92825a8f91e4d5d1292c9e32756b6b5",
+        "state": "PASS"
+      }
+    },
+    "source": "sha256:4534bfdc83f9faf7132830a4d281c55fb8e6c52f129f2f4e3339fcbe7504308c",
+    "status": "COMPLETE",
+    "version": "pipeline-native-capacity-report/v1"
+  },
+  "trials": {
+    "queued-diagnostic": {
+      "identity": "sha256:e5a29275c4264a0ad8de8c3290603b07597043859624dd5b92b4af1d8b4018ac",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.5064225669484586,
+      "primary_seconds": null,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:8ecad2d97a27aa88620667cd70dc9e11dfc10473379ddf9f39c87f4619c07940",
+        "policies": {
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": null,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 4,
+        "queue_wait_seconds": 0.00045173289254307747,
+        "restarts": 0,
+        "rss_peak_bytes": 105041920,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "cold": {
+      "identity": "sha256:9340da821366308bf7b2a36ef4277793bc5753ad09b795e1b2bf2864ac807277",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.5857037231326103,
+      "primary_seconds": 3.595540933078155,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0010885801166296005,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 505,
+        "queue_wait_seconds": 0.00043335906229913235,
+        "restarts": 1,
+        "rss_peak_bytes": 103510016,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "warmup": {
+      "identity": "sha256:31567d953ff5f786e7c78f9cb139e19bf72ae91e7facf7326d6c1c0470046cde",
+      "workers": 1,
+      "complete": true,
+      "seconds": 5.201635145815089,
+      "primary_seconds": 5.211760850856081,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0009155150037258863,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 1006,
+        "queue_wait_seconds": 0.00048448960296809673,
+        "restarts": 1,
+        "rss_peak_bytes": 101679104,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "calibration-0": {
+      "identity": "sha256:0f1050de237fcc92c955a7956df9b3b3ddf7d5d9de0cccf36c1501a838c41e53",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.590456679929048,
+      "primary_seconds": 3.601027925964445,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0006380300037562847,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 1507,
+        "queue_wait_seconds": 0.00043814582750201225,
+        "restarts": 1,
+        "rss_peak_bytes": 101896192,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "calibration-1": {
+      "identity": "sha256:ccced48bb4031aef543b8a56a4d51e60425b16720809c28cec2a5b1ee23bec5a",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.6119646141305566,
+      "primary_seconds": 3.622605055104941,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0008451670873910189,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 2008,
+        "queue_wait_seconds": 0.00044124340638518333,
+        "restarts": 1,
+        "rss_peak_bytes": 101892096,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "calibration-2": {
+      "identity": "sha256:b10d01baa4a4f1ffa28a355552523bad35066d738540f2bedd08c7298ddace6e",
+      "workers": 1,
+      "complete": true,
+      "seconds": 4.059074848890305,
+      "primary_seconds": 4.0692247580736876,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.00117352488450706,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 2509,
+        "queue_wait_seconds": 0.0004534781910479069,
+        "restarts": 1,
+        "rss_peak_bytes": 102043648,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "w2-warmup": {
+      "identity": "sha256:2e061d973219e35f11fec6924eb919868ae4d9ca4bee0a1af7c2b30fa867d825",
+      "workers": 2,
+      "complete": true,
+      "seconds": 1.8478247220627964,
+      "primary_seconds": 1.8584203419741243,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0011236339341849089,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.00024718022905290127,
+        "restarts": 2,
+        "slots": [
+          {
+            "batches": 9,
+            "last_process_id": 3012,
+            "queue_wait_seconds": 0.00013342290185391903,
+            "restarts": 1,
+            "rss_peak_bytes": 100732928,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 3
+          },
+          {
+            "batches": 9,
+            "last_process_id": 3011,
+            "queue_wait_seconds": 0.00011375732719898224,
+            "restarts": 1,
+            "rss_peak_bytes": 60092416,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 2
+      },
+      "observations": null
+    },
+    "w2-pair0-A": {
+      "identity": "sha256:310e62dc21ac801eb406c168bf557de11077f007f5d6267527e1b6c5cf02994d",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.5300205880776048,
+      "primary_seconds": 3.5404625080991536,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0005828591529279947,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 3512,
+        "queue_wait_seconds": 0.000427907332777977,
+        "restarts": 1,
+        "rss_peak_bytes": 101847040,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 4
+      },
+      "observations": null
+    },
+    "w2-pair0-B": {
+      "identity": "sha256:b503f0b57da5377af18ad0941be0866dfe40f254db97e3183eb54756a543d909",
+      "workers": 2,
+      "complete": true,
+      "seconds": 2.020387985976413,
+      "primary_seconds": 2.03061655908823,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0013600429520010948,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.0002807572018355131,
+        "restarts": 2,
+        "slots": [
+          {
+            "batches": 9,
+            "last_process_id": 4015,
+            "queue_wait_seconds": 0.00014946702867746353,
+            "restarts": 1,
+            "rss_peak_bytes": 105373696,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 3
+          },
+          {
+            "batches": 9,
+            "last_process_id": 4014,
+            "queue_wait_seconds": 0.00013129017315804958,
+            "restarts": 1,
+            "rss_peak_bytes": 60170240,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 2
+      },
+      "observations": null
+    },
+    "w2-pair1-B": {
+      "identity": "sha256:138a5e317a7c31c4cfb75f21f781ef63de0de718ec7ddbdf394396dde4b65a40",
+      "workers": 2,
+      "complete": true,
+      "seconds": 1.8336376082152128,
+      "primary_seconds": 1.8434042911976576,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0008608249481767416,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.00024329009465873241,
+        "restarts": 2,
+        "slots": [
+          {
+            "batches": 9,
+            "last_process_id": 4517,
+            "queue_wait_seconds": 0.00012331386096775532,
+            "restarts": 1,
+            "rss_peak_bytes": 104083456,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 3
+          },
+          {
+            "batches": 9,
+            "last_process_id": 4516,
+            "queue_wait_seconds": 0.0001199762336909771,
+            "restarts": 1,
+            "rss_peak_bytes": 60174336,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 2
+      },
+      "observations": null
+    },
+    "w2-pair1-A": {
+      "identity": "sha256:9e119aa16cacd7d35a5ad688f95155d3faef85ca1a72e03113163720999257ac",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.5224885949864984,
+      "primary_seconds": 3.532681732904166,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0003901398740708828,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 5017,
+        "queue_wait_seconds": 0.00045015919022262096,
+        "restarts": 1,
+        "rss_peak_bytes": 101666816,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "w4-warmup": {
+      "identity": "sha256:88ded7e5b3a76d65267674f01da4cb43f4b7fb1115720eaa648c76cb2b23ce0d",
+      "workers": 4,
+      "complete": true,
+      "seconds": 1.2542831599712372,
+      "primary_seconds": 1.264770993962884,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.004486219026148319,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.00021267635747790337,
+        "restarts": 4,
+        "slots": [
+          {
+            "batches": 5,
+            "last_process_id": 5524,
+            "queue_wait_seconds": 7.140031084418297e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 101838848,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 2
+          },
+          {
+            "batches": 5,
+            "last_process_id": 5522,
+            "queue_wait_seconds": 5.9196725487709045e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59744256,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 5523,
+            "queue_wait_seconds": 4.8418063670396805e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59940864,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 5521,
+            "queue_wait_seconds": 3.366125747561455e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59281408,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 4
+      },
+      "observations": null
+    },
+    "w4-pair0-A": {
+      "identity": "sha256:602a57feaf149250456798dbf9a91361b36d8fc37878c034938a8f2c26095de5",
+      "workers": 1,
+      "complete": true,
+      "seconds": 4.794890510849655,
+      "primary_seconds": 4.804745384026319,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0011093979701399803,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 6022,
+        "queue_wait_seconds": 0.0005184118635952473,
+        "restarts": 1,
+        "rss_peak_bytes": 101363712,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "w4-pair0-B": {
+      "identity": "sha256:3f87dffd330d17af640e09d90488fa0a4d1e3dab3b30c0bf136c49b7375d6cb2",
+      "workers": 4,
+      "complete": true,
+      "seconds": 1.39706871798262,
+      "primary_seconds": 1.407145765144378,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.00330067309550941,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.00021261652000248432,
+        "restarts": 4,
+        "slots": [
+          {
+            "batches": 5,
+            "last_process_id": 6526,
+            "queue_wait_seconds": 7.096771150827408e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 101900288,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 2
+          },
+          {
+            "batches": 5,
+            "last_process_id": 6529,
+            "queue_wait_seconds": 5.465117283165455e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 60076032,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 2
+          },
+          {
+            "batches": 4,
+            "last_process_id": 6527,
+            "queue_wait_seconds": 4.254654049873352e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59887616,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 2
+          },
+          {
+            "batches": 4,
+            "last_process_id": 6528,
+            "queue_wait_seconds": 4.4451095163822174e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59367424,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 4
+      },
+      "observations": null
+    },
+    "w4-pair1-B": {
+      "identity": "sha256:beaecc2f8f77ea734b9f310bcd8063a1fd61576944e51e5e39e00ee97c4d6921",
+      "workers": 4,
+      "complete": true,
+      "seconds": 1.1043019120115787,
+      "primary_seconds": 1.1144397989846766,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0022213498596102,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.0001985742710530758,
+        "restarts": 4,
+        "slots": [
+          {
+            "batches": 5,
+            "last_process_id": 7033,
+            "queue_wait_seconds": 7.129227742552757e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 102809600,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 3
+          },
+          {
+            "batches": 5,
+            "last_process_id": 7030,
+            "queue_wait_seconds": 5.0893984735012054e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59858944,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 7031,
+            "queue_wait_seconds": 3.732694312930107e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59936768,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 7032,
+            "queue_wait_seconds": 3.906106576323509e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59322368,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 4
+      },
+      "observations": null
+    },
+    "w4-pair1-A": {
+      "identity": "sha256:a029e81407ec4e325fa9b696ce790128034b5335543b5161907593b3244efdf4",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.542492807842791,
+      "primary_seconds": 3.552657203981653,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.0008000349625945091,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 7531,
+        "queue_wait_seconds": 0.00043554138392210007,
+        "restarts": 1,
+        "rss_peak_bytes": 101044224,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": null
+    },
+    "observed-w1": {
+      "identity": "sha256:ea0bf11937f670a82ab221225adfe3949ef483b9c679c8f8fefb6266d035c040",
+      "workers": 1,
+      "complete": true,
+      "seconds": 3.535529180895537,
+      "primary_seconds": 3.5457597270142287,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.000821925001218915,
+      "metrics": {
+        "batches": 18,
+        "last_process_id": 8033,
+        "queue_wait_seconds": 0.00045660254545509815,
+        "restarts": 1,
+        "rss_peak_bytes": 101752832,
+        "stderr_bytes": 0,
+        "thread_policy": "one configurable native numerical thread",
+        "threads_peak": 3
+      },
+      "observations": {
+        "samples": 4,
+        "cpu_equivalents": 0.9482874151516355,
+        "telemetry": {
+          "samples": 4,
+          "missed": 0,
+          "collector_cpu_seconds": 0.005520239000000001,
+          "collector_native_tid": 8031,
+          "seconds": 3.551827273098752,
+          "event_overflow": 0,
+          "collector_error": null
+        },
+        "interpretation": "short1Hz whole-cgroup interval; not population confidence or CPU-only parent accounting"
+      }
+    },
+    "observed-w4": {
+      "identity": "sha256:6d464c0cf18ac12680b6b1e711496116433a6f65d15fee0821af682ad6beb53c",
+      "workers": 4,
+      "complete": true,
+      "seconds": 1.107842009048909,
+      "primary_seconds": 1.1179049101192504,
+      "boundary": {
+        "active": 0,
+        "consumed": 18,
+        "frontier": [
+          "sha256:00a987dbffd92d12f54381db1ec952e7231b2c43c5c4a9c53b18f6736a49e52a",
+          "sha256:183a397daa563cca8d15d46b310b3f738d3d6a21e544b67999448f4ca9d0fdff",
+          "sha256:1ae79d1d5ec3bd339ecbbe563c9207580c6a8308b1de1fba662ec764b5f7eaae",
+          "sha256:20f75b604f1f4daf9ef3405c022cde6fd926647849aa5aaaa9d209dde6a5ea04",
+          "sha256:23d0c5cfb73b77b7856829a7f460d411f062fe61f61f5e079fa443e458b59849",
+          "sha256:3456442e794215d8d1a37c721031e6a864866ef2206184e6a709da4ee7b8c5b4",
+          "sha256:3df23bb72712c359d7877447bd6e1a73a30a66ff92cf1cf6a693ca8e5ed49a5d",
+          "sha256:481f61e0c5ad6fdb7c90f4b4b122c55dac17125b6f1f2c638e6c9a9c1ab1d5c1",
+          "sha256:4e25a94e6084a1376ca1c0ea7d861c06c75b79c0021e7ee16d6ae554ad6956b4",
+          "sha256:4e7db419c1d6fd071d09e7380c24a4f8449bed527f5306e744c8fc04ffb59d92",
+          "sha256:6becaf289d75eb413a862f4e8fff3224d6d183bcc1c08ec925f20b14d37932c1",
+          "sha256:8d0c8c9f2fc68c12df325cdc6d9d77639d4a252dc06eb569f8d1fc44c0fe4b57",
+          "sha256:9461806ab7730c96280cc1fb5b3b1a0042749b6f4fc72a50e1a9e5f484c7288a",
+          "sha256:bf6bf18ea3d490d6e1687083822261815bdb43c63d163adb18f71c68e5ab9392",
+          "sha256:d4a15af71ae153e580829278c790df6b9ae54291de37edc3608dba199e5192cf",
+          "sha256:e6068835deab412a3d46aa04e29592b8278a7eec4b0162e2cf0bac949f898910",
+          "sha256:e90e3d25563236bd00549a4b7fe1673aecb4614940bd638b57e63a70cddd325b",
+          "sha256:f7b65e6588d2753554c1c5ab3f03f6a9c632c8564941e21195efbee366646e8c"
+        ],
+        "identity": "sha256:84b322fdf62f8686dfe25163bb2d046938d1f2e83d331a139ea70b8f7a21d33c",
+        "policies": {
+          "admission": "slot-waves/v1",
+          "corpus": "sha256:1bf25ff9433d470076a388fde2ef9160b3cd958653a49fd23c49f475519f09c3",
+          "selection": "visible-only/v2"
+        },
+        "reserved": 0,
+        "version": "pipeline-boundary/v1"
+      },
+      "max_admitted_to_dispatch_seconds": 0.003353690030053258,
+      "metrics": {
+        "batches": 18,
+        "queue_wait_seconds": 0.00020997296087443829,
+        "restarts": 4,
+        "slots": [
+          {
+            "batches": 5,
+            "last_process_id": 8538,
+            "queue_wait_seconds": 7.010693661868572e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 99401728,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 2
+          },
+          {
+            "batches": 5,
+            "last_process_id": 8539,
+            "queue_wait_seconds": 5.8747828006744385e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 60387328,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 8541,
+            "queue_wait_seconds": 3.406195901334286e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 60088320,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          },
+          {
+            "batches": 4,
+            "last_process_id": 8540,
+            "queue_wait_seconds": 4.705623723566532e-05,
+            "restarts": 1,
+            "rss_peak_bytes": 59596800,
+            "stderr_bytes": 0,
+            "thread_policy": "one configurable native numerical thread",
+            "threads_peak": 1
+          }
+        ],
+        "workers": 4
+      },
+      "observations": {
+        "samples": 2,
+        "cpu_equivalents": 3.269991186058765,
+        "telemetry": {
+          "samples": 2,
+          "missed": 0,
+          "collector_cpu_seconds": 0.0031245339999999996,
+          "collector_native_tid": 8533,
+          "seconds": 1.1231866250745952,
+          "event_overflow": 0,
+          "collector_error": null
+        },
+        "interpretation": "short1Hz whole-cgroup interval; not population confidence or CPU-only parent accounting"
+      }
+    }
+  },
+  "role_resources": {
+    "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+    "breach": null,
+    "ceiling_bytes": 120744574976,
+    "last": {
+      "available": 127136346112,
+      "current": 78045184,
+      "driver": null,
+      "limit": 120744574976,
+      "physical": 134161076224
+    },
+    "machine_peak_upper_bytes": 7031869440,
+    "qualified": true,
+    "role_peak_upper_bytes": 257986560,
+    "samples": 55,
+    "version": "pipeline-memory-observation/v1"
+  },
+  "cleanup": {
+    "allowance_seconds": 5,
+    "seconds": 0.10382920107804239,
+    "within_bound": true
+  },
+  "host_timing": {
+    "allowance_seconds": 4500,
+    "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+    "seconds_through_cleanup": 53.91531207598746
+  },
+  "checks": {
+    "wave_trials": 17,
+    "wave_jobs": 306,
+    "queued_diagnostic_jobs": 18,
+    "max_admitted_to_dispatch_seconds": 0.004486219026148319,
+    "clock_and_wave_order": "all17*18 strict owner/deadline/debit and previous-wave drain checks pass",
+    "events": "72 per wave trial;1224 total wave clock events;324 total result rows including queued diagnostic"
+  },
+  "meaning": "Accept finite full18-row native component screen and experimental4-worker selection; no production/pipeline/learning/default or research-cost admission."
+}

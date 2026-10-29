@@ -56,6 +56,7 @@ GROUPS = {
     "containment": [
         "tests/integration/test_synthesis_worker.py",
         "tests/integration/test_bigint_workflow.py",
+        "tests/unit/test_bigint_soak.py",
         "tests/unit/test_synthesis_service_limits.py",
         "tests/unit/test_synthesis_state.py",
         "tests/contract/test_bigint_workflow.py",

@@ -135,11 +135,38 @@ def _merge(base, patch, path="recipe"):
 
 
 def resolve(value, *, seed=None, artifacts=None):
-    if not isinstance(value, dict) or value.get("version") != "bigint-bootstrap/v1":
-        raise ValueError("bigint-bootstrap/v1 required")
+    if not isinstance(value, dict) or value.get("version") not in {"bigint-bootstrap/v1","bigint-bootstrap/v2","bigint-bootstrap/v3","bigint-bootstrap/v4"}:
+        raise ValueError("registered bigint-bootstrap version required")
     value = deepcopy(value)
+    pilot=value['version'] in ('bigint-bootstrap/v3','bigint-bootstrap/v4')
+    expanded=value['version']=='bigint-bootstrap/v4'
+    sized=value['version'] in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'}
+    pilot_profile=value.pop('pilot_profile',None)
+    if pilot:
+        from oeis_learn.pipeline_validation.pilot_contract import PROFILE,LEGACY_PROFILE
+        if pilot_profile!=(PROFILE if expanded else LEGACY_PROFILE):raise ValueError('explicit registered learning-pilot profile required')
+    elif pilot_profile is not None:raise ValueError('pilot profile cannot change old recipes')
+    shape=value.pop('model_profile',None)
+    if sized:
+        from oeis_learn.pipeline_validation.model_sizes import PROFILES
+        if shape!=PROFILES['m100']:raise ValueError('explicit registered104.5M profile required')
+    elif shape is not None:raise ValueError('v1 cannot reinterpret model shapes')
+    base=defaults()
+    if sized:
+        base['version']=value['version']
+        base['model'].update(d_model=768,heads=12,encoder_layers=6,decoder_layers=6,ff=3072)
+    if pilot:
+        base["data"].update(training=32768,max_families=32768 if expanded else 16384)
+        base["learning"].update(batch_size=16,max_updates=1048576)
+        base["budgets"].update(training_seconds=86400,preparation_seconds=9000)
     existing = value.pop("identity", None)
-    result = _merge(defaults(), value)
+    pipeline = value.pop('pipeline', None)
+    result = _merge(base, value)
+    if sized:result['model_profile']=shape
+    if pilot:result['pilot_profile']=pilot_profile
+    if pipeline is not None:
+        from .pipeline_jobs import validate_policy
+        result['pipeline'] = validate_policy(pipeline)
     if seed is not None:
         if "seed" in value.get("model", {}) and value["model"]["seed"] != seed:
             raise ValueError("conflicting explicit recipe/seed")
@@ -148,7 +175,7 @@ def resolve(value, *, seed=None, artifacts=None):
         if result["execution"]["artifacts"] not in (None, artifacts):
             raise ValueError("runtime artifact mismatch")
         result["execution"]["artifacts"] = deepcopy(artifacts)
-    baseline = defaults()
+    baseline = base
     for section, keys in {
         "data": [
             "generator",
@@ -252,9 +279,9 @@ def resolve(value, *, seed=None, artifacts=None):
     if result["learning"]["representation_comparison"] and result["learning"]["replay"]:
         raise ValueError("replay disabled in representation comparisons")
     if (
-        not 1 <= result["learning"]["max_updates"] <= 3000
-        or result["budgets"]["training_seconds"] > 14400
-        or result["budgets"]["preparation_seconds"] > 7200
+        not 1 <= result["learning"]["max_updates"] <= (1048576 if pilot else 3000)
+        or result["budgets"]["training_seconds"] > (86400 if pilot else 14400)
+        or result["budgets"]["preparation_seconds"] > (9000 if pilot else 7200)
     ):
         raise ValueError("bounded registered screen required")
     if (
@@ -266,7 +293,7 @@ def resolve(value, *, seed=None, artifacts=None):
     if result["archive"]["max_alternatives"] != 8 or result["learning"]["replay_capacity"] > 4096:
         raise ValueError("archive/replay cap exceeded")
     if (
-        result["data"]["max_families"] > 4096
+        result["data"]["max_families"] > (32768 if expanded else 16384 if pilot else 4096)
         or result["data"]["max_records"] > 10000
         or result["data"]["max_download_bytes"] > 100 << 30
         or any(result["data"][k] > 1000 for k in ("oeis_development", "oeis_final"))
@@ -275,6 +302,9 @@ def resolve(value, *, seed=None, artifacts=None):
     from oeis_learn.encoder.ablation import InputMask
 
     InputMask(**result["inputs"]["mask"])
+    if sized and (result['model']['seed']!=shape['seed'] or result['inputs']['profile']!='hybrid-chunks/v1'
+        or result['inputs']['mask']!=defaults()['inputs']['mask'] or result['inputs']['ablation_mode']!='post_training'):
+        raise ValueError('registered104.5M requires frozen seed/full hybrid features')
     if result["inputs"]["profile"] not in {"hybrid-chunks/v1", "tri-stream/v1"} or result["inputs"][
         "ablation_mode"
     ] not in {"post_training", "retrained"}:
@@ -313,10 +343,13 @@ def resolve(value, *, seed=None, artifacts=None):
         raise ValueError("bounded example/detail/archive caps required")
     if (
         result["learning"]["validation_every"] not in (100, 500)
-        or result["learning"]["batch_size"] != 8
+        or result["learning"]["batch_size"] != (16 if pilot else 8)
         or result["learning"]["learning_rate"] != 1e-4
     ):
         raise ValueError("registered LR1e-4, batch8 and100/500-update cadence required")
+    if pilot:
+        from oeis_learn.pipeline_validation.pilot_recipe import validate_effective
+        validate_effective(result)
     cost = result["learning"]["cost_preflight"]
     if cost is not None:
         from oeis_learn.synthesis.state import require_hash

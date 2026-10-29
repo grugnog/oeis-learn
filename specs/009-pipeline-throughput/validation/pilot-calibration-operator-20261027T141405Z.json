@@ -1,0 +1,1392 @@
+{
+  "archive_sha256": "sha256:295671de5b42292e5a9a11747d075b53b639c38a76b1ce1f44721879f30c96e4",
+  "cost": {
+    "archive_envelope_seconds": 70.62191913171891,
+    "archives": [
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 66306,
+        "fixture": true,
+        "identity": "sha256:5748b61a054e16adb28f93a2985cb0632ee891cff0b721896fff8a8bf6fb99b4",
+        "members": 4096,
+        "ordinal": 0,
+        "seconds": 1.1034751159604639,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "version": "pipeline-pilot-archive-observation/v1"
+      },
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 66306,
+        "fixture": true,
+        "identity": "sha256:5fc6607af0a8bd8adca1655926ba0d94dcd455483f158cbb8a50a61ee0bbd331",
+        "members": 4096,
+        "ordinal": 1,
+        "seconds": 1.09066103794612,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "version": "pipeline-pilot-archive-observation/v1"
+      },
+      {
+        "bytes": 16777332,
+        "complete": true,
+        "filesystem_device": 66306,
+        "fixture": true,
+        "identity": "sha256:3d540cb2ca061b07de441969b1779c2f88cf509cf166f00f32cfb649b3feb115",
+        "members": 4096,
+        "ordinal": 2,
+        "seconds": 1.0982080618850887,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "version": "pipeline-pilot-archive-observation/v1"
+      }
+    ],
+    "automatic_run_authorized": false,
+    "evaluation_policy": "portfolio-clock60/v1",
+    "evaluation_reservation_seconds": 36000,
+    "evaluation_seconds": 31380,
+    "generator_role_seconds": 4465,
+    "identity": "sha256:d5294f011ee05d04c6f0761d81573eaac745fa3f3e888e6286b87fc75054f3de",
+    "inclusive_seconds": 172800,
+    "limitation": "New policy candidate only; old long-run authority rejects it. Scientific incomplete outcomes stay unresolved.",
+    "long_run_admitted": false,
+    "observations": [
+      {
+        "checkpoint": {
+          "path": "state-39e84d624c184fa8a7668ec372068ccd/checkpoint.json",
+          "sha256": "sha256:d538caa5b0341a1a2a2367ea3fd721098389da205b49b1e2bfdb041cd6dd3863"
+        },
+        "clock_complete": true,
+        "clock_receipt": "sha256:b7024fbec4206069c3245dec6ad622ca910fb88510d44ce2cf6065e1df61d89f",
+        "complete": true,
+        "evaluation_policy": "portfolio-clock60/v1",
+        "generation_seconds": 2232.0183095480315,
+        "identity": "sha256:37f9ce616798a4d7d78d02b9734158d14d3243fe2eca20c1ea159a5faf9f7791",
+        "portfolios": 1184,
+        "projected_all_selected_scoring_seconds": 382.3054380901158,
+        "rows": 296,
+        "scientific_complete": false,
+        "scoring_seconds": 10.0256068110466,
+        "seconds": 2242.043916359078,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+      },
+      {
+        "checkpoint": {
+          "path": "state-0c7a36b1e77045cda654acaba07452c5/checkpoint.json",
+          "sha256": "sha256:e53696f344f977f9e70445737d408ab3353dc1d5b0da2800a13bb33dfe768b91"
+        },
+        "clock_complete": true,
+        "clock_receipt": "sha256:5975b90ad09de176411f5da5e7917b84993439c7059fa5d9fd315a465eb053a5",
+        "complete": true,
+        "evaluation_policy": "portfolio-clock60/v1",
+        "generation_seconds": 1136.1633787769824,
+        "identity": "sha256:afe19bb0c8600a9ef7cc179214652cdd5d315a92bfbbf04c06cb175ffb4bfd4b",
+        "portfolios": 1184,
+        "projected_all_selected_scoring_seconds": 378.3906246162951,
+        "rows": 296,
+        "scientific_complete": false,
+        "scoring_seconds": 26.959849481936544,
+        "seconds": 1163.123228258919,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+      },
+      {
+        "checkpoint": {
+          "path": "state-de52c490d43f4117b7b7e2e58d9ab299/checkpoint.json",
+          "sha256": "sha256:314c29224f62de7c2e620bca313c367bd5e4da686c87936f2239fc9dd71d7b2c"
+        },
+        "clock_complete": true,
+        "clock_receipt": "sha256:75e23341214e7fbd29ffab7790730d8b71beac4fbe2c59463a5d83f27c8dbfa7",
+        "complete": true,
+        "evaluation_policy": "portfolio-clock60/v1",
+        "generation_seconds": 1379.0148106340785,
+        "identity": "sha256:db71a569a60c832006c69d559c9a1cb3657d1a8e388fbdb7f436dc6c314dcc1c",
+        "portfolios": 1184,
+        "projected_all_selected_scoring_seconds": 372.70936369523406,
+        "rows": 296,
+        "scientific_complete": false,
+        "scoring_seconds": 31.81705411989242,
+        "seconds": 1410.8318647539709,
+        "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+        "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+      }
+    ],
+    "projected_seconds": 126780,
+    "safety_seconds": 41400,
+    "scorer_role_seconds": 765,
+    "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+    "status": "CANDIDATE_COST_ONLY",
+    "version": "pipeline-pilot-calibration-cost/v1",
+    "within_budget": true,
+    "work": "sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e"
+  },
+  "elapsed_seconds": 6227.518054104177,
+  "inventory": {
+    "hash_mismatches": [],
+    "omissions": [],
+    "total_members": 297
+  },
+  "limitations": [
+    "No new training in calibration.",
+    "Scientific incomplete outcomes are not converted to negatives.",
+    "Structural development is A-stage only; parameter development has no C-stage rows.",
+    "Fitted8-attempt equal-budget differs from1-attempt shuffled/absent; no sole conditioning attribution.",
+    "Costs reflect early checkpoints; later execution retains finite caps."
+  ],
+  "long_run_admitted": false,
+  "next": "Review versioned full-clock long profile and authority migration; no repeat calibration needed.",
+  "portability": "PENDING",
+  "primary_plumbing": "PASS",
+  "snapshots": [
+    {
+      "attempts": {
+        "COMMITTED": 2368,
+        "INCOMPLETE": 1189,
+        "UNSTARTED": 1771
+      },
+      "checkpoint": {
+        "path": "state-39e84d624c184fa8a7668ec372068ccd/checkpoint.json",
+        "sha256": "sha256:d538caa5b0341a1a2a2367ea3fd721098389da205b49b1e2bfdb041cd6dd3863"
+      },
+      "clock_identity": "sha256:b7024fbec4206069c3245dec6ad622ca910fb88510d44ce2cf6065e1df61d89f",
+      "generation_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 124400459776,
+          "current": 1209462784,
+          "driver": 1842397184,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 11911536640,
+        "qualified": true,
+        "role_peak_upper_bytes": 3219525632,
+        "samples": 2227,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_seconds": 2232.0183095480315,
+      "metrics": {
+        "oeis_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:equal_budget": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:raw": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:rescue": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:shuffled": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:template": {
+          "complete": 8,
+          "coverage": 1.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "parameter_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:equal_budget": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:raw": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:rescue": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:shuffled": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "structural_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:equal_budget": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:raw": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:rescue": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:shuffled": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "training_panel:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:equal_budget": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:raw": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:rescue": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:shuffled": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:template": {
+          "complete": 32,
+          "coverage": 1.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        }
+      },
+      "ordinal": 0,
+      "portfolios": 1184,
+      "scoring_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 127190827008,
+          "current": 65789952,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7078748160,
+        "qualified": true,
+        "role_peak_upper_bytes": 114880512,
+        "samples": 11,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "scoring_seconds": 10.0256068110466,
+      "snapshot": "sha256:2aa8c4cf65c32716dcc2b9a6ff3a6b36a1df1d1f2ea5249f52bb78025ac03395",
+      "terminations": {
+        "attempt_roster_terminal": 888,
+        "original_clock_exhausted": 296
+      },
+      "unresolved_reasons": {
+        "oeis_development:absent": {
+          "grammar_dead_end": 8
+        },
+        "oeis_development:equal_budget": {
+          "grammar_dead_end": 7,
+          "token_cap_without_eos": 1
+        },
+        "oeis_development:raw": {
+          "grammar_dead_end": 7,
+          "token_cap_without_eos": 1
+        },
+        "oeis_development:rescue": {
+          "grammar_dead_end": 7,
+          "token_cap_without_eos": 1
+        },
+        "oeis_development:shuffled": {
+          "grammar_dead_end": 7,
+          "token_cap_without_eos": 1
+        },
+        "parameter_development:absent": {
+          "grammar_dead_end": 128
+        },
+        "parameter_development:equal_budget": {
+          "grammar_dead_end": 123,
+          "token_cap_without_eos": 5
+        },
+        "parameter_development:raw": {
+          "grammar_dead_end": 123,
+          "token_cap_without_eos": 5
+        },
+        "parameter_development:rescue": {
+          "grammar_dead_end": 123,
+          "token_cap_without_eos": 5
+        },
+        "parameter_development:shuffled": {
+          "grammar_dead_end": 123,
+          "token_cap_without_eos": 5
+        },
+        "structural_development:absent": {
+          "grammar_dead_end": 128
+        },
+        "structural_development:equal_budget": {
+          "grammar_dead_end": 122,
+          "token_cap_without_eos": 6
+        },
+        "structural_development:raw": {
+          "grammar_dead_end": 122,
+          "token_cap_without_eos": 6
+        },
+        "structural_development:rescue": {
+          "grammar_dead_end": 122,
+          "token_cap_without_eos": 6
+        },
+        "structural_development:shuffled": {
+          "grammar_dead_end": 122,
+          "token_cap_without_eos": 6
+        },
+        "training_panel:absent": {
+          "grammar_dead_end": 32
+        },
+        "training_panel:equal_budget": {
+          "grammar_dead_end": 30,
+          "token_cap_without_eos": 2
+        },
+        "training_panel:raw": {
+          "grammar_dead_end": 30,
+          "token_cap_without_eos": 2
+        },
+        "training_panel:rescue": {
+          "grammar_dead_end": 30,
+          "token_cap_without_eos": 2
+        },
+        "training_panel:shuffled": {
+          "grammar_dead_end": 30,
+          "token_cap_without_eos": 2
+        }
+      }
+    },
+    {
+      "attempts": {
+        "COMMITTED": 3066,
+        "INCOMPLETE": 2262
+      },
+      "checkpoint": {
+        "path": "state-0c7a36b1e77045cda654acaba07452c5/checkpoint.json",
+        "sha256": "sha256:e53696f344f977f9e70445737d408ab3353dc1d5b0da2800a13bb33dfe768b91"
+      },
+      "clock_identity": "sha256:5975b90ad09de176411f5da5e7917b84993439c7059fa5d9fd315a465eb053a5",
+      "generation_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 124107907072,
+          "current": 1209360384,
+          "driver": 1840324608,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 12276756480,
+        "qualified": true,
+        "role_peak_upper_bytes": 3332845568,
+        "samples": 1135,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_seconds": 1136.1633787769824,
+      "metrics": {
+        "oeis_development:absent": {
+          "complete": 8,
+          "coverage": 1.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "oeis_development:equal_budget": {
+          "complete": 7,
+          "coverage": 0.875,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 1,
+          "upper": 0.125
+        },
+        "oeis_development:raw": {
+          "complete": 8,
+          "coverage": 1.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "oeis_development:rescue": {
+          "complete": 7,
+          "coverage": 0.875,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 1,
+          "upper": 0.125
+        },
+        "oeis_development:shuffled": {
+          "complete": 7,
+          "coverage": 0.875,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 1,
+          "upper": 0.125
+        },
+        "oeis_development:template": {
+          "complete": 8,
+          "coverage": 1.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "parameter_development:absent": {
+          "complete": 53,
+          "coverage": 0.4140625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.015625,
+          "success": 2,
+          "unresolved": 75,
+          "upper": 0.6015625
+        },
+        "parameter_development:equal_budget": {
+          "complete": 19,
+          "coverage": 0.1484375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.125,
+          "success": 16,
+          "unresolved": 109,
+          "upper": 0.9765625
+        },
+        "parameter_development:raw": {
+          "complete": 78,
+          "coverage": 0.609375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 50,
+          "upper": 0.390625
+        },
+        "parameter_development:rescue": {
+          "complete": 50,
+          "coverage": 0.390625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0546875,
+          "success": 7,
+          "unresolved": 78,
+          "upper": 0.6640625
+        },
+        "parameter_development:shuffled": {
+          "complete": 77,
+          "coverage": 0.6015625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.015625,
+          "success": 2,
+          "unresolved": 51,
+          "upper": 0.4140625
+        },
+        "parameter_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "structural_development:absent": {
+          "complete": 23,
+          "coverage": 0.1796875,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0625,
+          "success": 8,
+          "unresolved": 105,
+          "upper": 0.8828125
+        },
+        "structural_development:equal_budget": {
+          "complete": 24,
+          "coverage": 0.1875,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.1875,
+          "success": 24,
+          "unresolved": 104,
+          "upper": 1.0
+        },
+        "structural_development:raw": {
+          "complete": 82,
+          "coverage": 0.640625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 46,
+          "upper": 0.359375
+        },
+        "structural_development:rescue": {
+          "complete": 46,
+          "coverage": 0.359375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0390625,
+          "success": 5,
+          "unresolved": 82,
+          "upper": 0.6796875
+        },
+        "structural_development:shuffled": {
+          "complete": 77,
+          "coverage": 0.6015625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0390625,
+          "success": 5,
+          "unresolved": 51,
+          "upper": 0.4375
+        },
+        "structural_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "training_panel:absent": {
+          "complete": 15,
+          "coverage": 0.46875,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 17,
+          "upper": 0.53125
+        },
+        "training_panel:equal_budget": {
+          "complete": 10,
+          "coverage": 0.3125,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.25,
+          "success": 8,
+          "unresolved": 22,
+          "upper": 0.9375
+        },
+        "training_panel:raw": {
+          "complete": 19,
+          "coverage": 0.59375,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 13,
+          "upper": 0.40625
+        },
+        "training_panel:rescue": {
+          "complete": 13,
+          "coverage": 0.40625,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.125,
+          "success": 4,
+          "unresolved": 19,
+          "upper": 0.71875
+        },
+        "training_panel:shuffled": {
+          "complete": 20,
+          "coverage": 0.625,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 12,
+          "upper": 0.375
+        },
+        "training_panel:template": {
+          "complete": 32,
+          "coverage": 1.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        }
+      },
+      "ordinal": 1,
+      "portfolios": 1184,
+      "scoring_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 127148711936,
+          "current": 42565632,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7299522560,
+        "qualified": true,
+        "role_peak_upper_bytes": 91557888,
+        "samples": 28,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "scoring_seconds": 26.959849481936544,
+      "snapshot": "sha256:eb5ea50414782c2e291fb3ec2d1b49c67e507cacdb19147a2d4f3e9ce3df371e",
+      "terminations": {
+        "attempt_roster_terminal": 1184
+      },
+      "unresolved_reasons": {
+        "oeis_development:equal_budget": {
+          "resource_exhausted:timeout": 1
+        },
+        "oeis_development:rescue": {
+          "resource_exhausted:timeout": 1
+        },
+        "oeis_development:shuffled": {
+          "resource_exhausted:timeout": 1
+        },
+        "parameter_development:absent": {
+          "deadline": 2,
+          "owner_deadline": 17,
+          "queue_deadline": 43,
+          "resource_exhausted:timeout": 13
+        },
+        "parameter_development:equal_budget": {
+          "deadline": 2,
+          "grammar_dead_end": 2,
+          "native/reference service deadline; late candidate excluded": 69,
+          "owner_deadline": 5,
+          "queue_deadline": 22,
+          "resource_exhausted:timeout": 9
+        },
+        "parameter_development:raw": {
+          "native/reference service deadline; late candidate excluded": 50
+        },
+        "parameter_development:rescue": {
+          "native/reference service deadline; late candidate excluded": 50,
+          "owner_deadline": 1,
+          "queue_deadline": 20,
+          "resource_exhausted:timeout": 7
+        },
+        "parameter_development:shuffled": {
+          "owner_deadline": 13,
+          "queue_deadline": 30,
+          "resource_exhausted:timeout": 8
+        },
+        "structural_development:absent": {
+          "deadline": 6,
+          "owner_deadline": 21,
+          "queue_deadline": 59,
+          "resource_exhausted:timeout": 19
+        },
+        "structural_development:equal_budget": {
+          "grammar_dead_end": 3,
+          "native/reference service deadline; late candidate excluded": 64,
+          "owner_deadline": 3,
+          "queue_deadline": 29,
+          "resource_exhausted:timeout": 5
+        },
+        "structural_development:raw": {
+          "native/reference service deadline; late candidate excluded": 46
+        },
+        "structural_development:rescue": {
+          "native/reference service deadline; late candidate excluded": 46,
+          "owner_deadline": 4,
+          "queue_deadline": 22,
+          "resource_exhausted:timeout": 10
+        },
+        "structural_development:shuffled": {
+          "deadline": 1,
+          "owner_deadline": 10,
+          "queue_deadline": 30,
+          "resource_exhausted:timeout": 10
+        },
+        "training_panel:absent": {
+          "deadline": 1,
+          "owner_deadline": 5,
+          "queue_deadline": 9,
+          "resource_exhausted:timeout": 2
+        },
+        "training_panel:equal_budget": {
+          "native/reference service deadline; late candidate excluded": 16,
+          "queue_deadline": 3,
+          "resource_exhausted:timeout": 3
+        },
+        "training_panel:raw": {
+          "native/reference service deadline; late candidate excluded": 13
+        },
+        "training_panel:rescue": {
+          "native/reference service deadline; late candidate excluded": 13,
+          "queue_deadline": 4,
+          "resource_exhausted:timeout": 2
+        },
+        "training_panel:shuffled": {
+          "deadline": 2,
+          "owner_deadline": 3,
+          "queue_deadline": 5,
+          "resource_exhausted:timeout": 2
+        }
+      }
+    },
+    {
+      "attempts": {
+        "COMMITTED": 3060,
+        "INCOMPLETE": 2173,
+        "UNSTARTED": 95
+      },
+      "checkpoint": {
+        "path": "state-de52c490d43f4117b7b7e2e58d9ab299/checkpoint.json",
+        "sha256": "sha256:314c29224f62de7c2e620bca313c367bd5e4da686c87936f2239fc9dd71d7b2c"
+      },
+      "clock_identity": "sha256:75e23341214e7fbd29ffab7790730d8b71beac4fbe2c59463a5d83f27c8dbfa7",
+      "generation_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 124118585344,
+          "current": 1241231360,
+          "driver": 1840312320,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 12348444672,
+        "qualified": true,
+        "role_peak_upper_bytes": 3408449536,
+        "samples": 1377,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "generation_seconds": 1379.0148106340785,
+      "metrics": {
+        "oeis_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:equal_budget": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:raw": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:rescue": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 8,
+          "upper": 1.0
+        },
+        "oeis_development:shuffled": {
+          "complete": 4,
+          "coverage": 0.5,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 4,
+          "upper": 0.5
+        },
+        "oeis_development:template": {
+          "complete": 8,
+          "coverage": 1.0,
+          "denominator": 8,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "parameter_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "parameter_development:equal_budget": {
+          "complete": 25,
+          "coverage": 0.1953125,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.140625,
+          "success": 18,
+          "unresolved": 103,
+          "upper": 0.9453125
+        },
+        "parameter_development:raw": {
+          "complete": 34,
+          "coverage": 0.265625,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 94,
+          "upper": 0.734375
+        },
+        "parameter_development:rescue": {
+          "complete": 19,
+          "coverage": 0.1484375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0234375,
+          "success": 3,
+          "unresolved": 109,
+          "upper": 0.875
+        },
+        "parameter_development:shuffled": {
+          "complete": 90,
+          "coverage": 0.703125,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0546875,
+          "success": 7,
+          "unresolved": 38,
+          "upper": 0.3515625
+        },
+        "parameter_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "structural_development:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 128,
+          "upper": 1.0
+        },
+        "structural_development:equal_budget": {
+          "complete": 59,
+          "coverage": 0.4609375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.453125,
+          "success": 58,
+          "unresolved": 69,
+          "upper": 0.9921875
+        },
+        "structural_development:raw": {
+          "complete": 59,
+          "coverage": 0.4609375,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 69,
+          "upper": 0.5390625
+        },
+        "structural_development:rescue": {
+          "complete": 36,
+          "coverage": 0.28125,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0390625,
+          "success": 5,
+          "unresolved": 92,
+          "upper": 0.7578125
+        },
+        "structural_development:shuffled": {
+          "complete": 68,
+          "coverage": 0.53125,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.03125,
+          "success": 4,
+          "unresolved": 60,
+          "upper": 0.5
+        },
+        "structural_development:template": {
+          "complete": 128,
+          "coverage": 1.0,
+          "denominator": 128,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        },
+        "training_panel:absent": {
+          "complete": 0,
+          "coverage": 0.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 32,
+          "upper": 1.0
+        },
+        "training_panel:equal_budget": {
+          "complete": 9,
+          "coverage": 0.28125,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.21875,
+          "success": 7,
+          "unresolved": 23,
+          "upper": 0.9375
+        },
+        "training_panel:raw": {
+          "complete": 7,
+          "coverage": 0.21875,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 25,
+          "upper": 0.78125
+        },
+        "training_panel:rescue": {
+          "complete": 5,
+          "coverage": 0.15625,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0625,
+          "success": 2,
+          "unresolved": 27,
+          "upper": 0.90625
+        },
+        "training_panel:shuffled": {
+          "complete": 23,
+          "coverage": 0.71875,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.03125,
+          "success": 1,
+          "unresolved": 9,
+          "upper": 0.3125
+        },
+        "training_panel:template": {
+          "complete": 32,
+          "coverage": 1.0,
+          "denominator": 32,
+          "interpretation": "fixed-checkpoint incomplete-measurement bounds, not future-learning bounds",
+          "lower": 0.0,
+          "success": 0,
+          "unresolved": 0,
+          "upper": 0.0
+        }
+      },
+      "ordinal": 2,
+      "portfolios": 1184,
+      "scoring_resources": {
+        "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+        "breach": null,
+        "ceiling_bytes": 120744574976,
+        "last": {
+          "available": 127140732928,
+          "current": 27881472,
+          "driver": 173633536,
+          "limit": 120744574976,
+          "physical": 134161076224
+        },
+        "machine_peak_upper_bytes": 7287787520,
+        "qualified": true,
+        "role_peak_upper_bytes": 77455360,
+        "samples": 33,
+        "version": "pipeline-memory-observation/v1"
+      },
+      "scoring_seconds": 31.81705411989242,
+      "snapshot": "sha256:8f733ec080f86e74d8c1ab269464067bdc7623e814cfc2ef1875e2f9cfcf4244",
+      "terminations": {
+        "attempt_roster_terminal": 1114,
+        "original_clock_exhausted": 70
+      },
+      "unresolved_reasons": {
+        "oeis_development:absent": {
+          "owner_deadline": 4,
+          "resource_exhausted:timeout": 4
+        },
+        "oeis_development:equal_budget": {
+          "grammar_dead_end": 5,
+          "native/reference service deadline; late candidate excluded": 3
+        },
+        "oeis_development:raw": {
+          "grammar_dead_end": 3,
+          "native/reference service deadline; late candidate excluded": 5
+        },
+        "oeis_development:rescue": {
+          "grammar_dead_end": 3,
+          "native/reference service deadline; late candidate excluded": 5
+        },
+        "oeis_development:shuffled": {
+          "grammar_dead_end": 3,
+          "resource_exhausted:timeout": 1
+        },
+        "parameter_development:absent": {
+          "owner_deadline": 32,
+          "queue_deadline": 64,
+          "resource_exhausted:timeout": 32
+        },
+        "parameter_development:equal_budget": {
+          "deadline": 20,
+          "grammar_dead_end": 30,
+          "native/reference service deadline; late candidate excluded": 40,
+          "owner_deadline": 6,
+          "queue_deadline": 5,
+          "resource_exhausted:timeout": 2
+        },
+        "parameter_development:raw": {
+          "grammar_dead_end": 8,
+          "native/reference service deadline; late candidate excluded": 86
+        },
+        "parameter_development:rescue": {
+          "grammar_dead_end": 8,
+          "native/reference service deadline; late candidate excluded": 86,
+          "owner_deadline": 7,
+          "queue_deadline": 5,
+          "resource_exhausted:timeout": 3
+        },
+        "parameter_development:shuffled": {
+          "grammar_dead_end": 8,
+          "owner_deadline": 8,
+          "queue_deadline": 17,
+          "resource_exhausted:timeout": 5
+        },
+        "structural_development:absent": {
+          "owner_deadline": 32,
+          "queue_deadline": 64,
+          "resource_exhausted:timeout": 32
+        },
+        "structural_development:equal_budget": {
+          "deadline": 3,
+          "grammar_dead_end": 19,
+          "native/reference service deadline; late candidate excluded": 36,
+          "owner_deadline": 2,
+          "queue_deadline": 5,
+          "resource_exhausted:timeout": 4
+        },
+        "structural_development:raw": {
+          "grammar_dead_end": 8,
+          "native/reference service deadline; late candidate excluded": 61
+        },
+        "structural_development:rescue": {
+          "grammar_dead_end": 8,
+          "native/reference service deadline; late candidate excluded": 61,
+          "owner_deadline": 3,
+          "queue_deadline": 12,
+          "resource_exhausted:timeout": 8
+        },
+        "structural_development:shuffled": {
+          "deadline": 1,
+          "grammar_dead_end": 8,
+          "owner_deadline": 11,
+          "queue_deadline": 31,
+          "resource_exhausted:timeout": 9
+        },
+        "training_panel:absent": {
+          "owner_deadline": 8,
+          "queue_deadline": 16,
+          "resource_exhausted:timeout": 8
+        },
+        "training_panel:equal_budget": {
+          "deadline": 3,
+          "grammar_dead_end": 7,
+          "native/reference service deadline; late candidate excluded": 9,
+          "owner_deadline": 2,
+          "queue_deadline": 1,
+          "resource_exhausted:timeout": 1
+        },
+        "training_panel:raw": {
+          "grammar_dead_end": 4,
+          "native/reference service deadline; late candidate excluded": 21
+        },
+        "training_panel:rescue": {
+          "grammar_dead_end": 4,
+          "native/reference service deadline; late candidate excluded": 21,
+          "owner_deadline": 1,
+          "resource_exhausted:timeout": 1
+        },
+        "training_panel:shuffled": {
+          "grammar_dead_end": 4,
+          "queue_deadline": 4,
+          "resource_exhausted:timeout": 1
+        }
+      }
+    }
+  ],
+  "source": "sha256:3b08430642a0965c4843fac9086c3655d69d0afcc739d82c08c1e860a21aace5",
+  "stages": {
+    "calibration.import": "PASS",
+    "calibration.report": "PASS",
+    "calibration.session": "PASS",
+    "cpu.podman.semantic": "PASS",
+    "engine.podman": "PASS",
+    "hip.preflight": "PASS",
+    "host.contracts": "PASS",
+    "image.podman.gpu": "PASS",
+    "image.podman.qualification": "PASS",
+    "operations.podman.retirement": "PASS",
+    "operations.podman.workflow": "PASS",
+    "pilot.operations.podman": "PASS",
+    "policy.compare": "PASS",
+    "study.report": "PASS"
+  },
+  "test_counts": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "4a5f19193234",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "824",
+        "time": "296.524",
+        "timestamp": "2026-10-27T14:15:31.815632+00:00"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "ed205c479eac",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "24",
+        "time": "327.097",
+        "timestamp": "2026-10-27T14:30:43.593586+00:00"
+      }
+    ],
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "a43b4df9e07c",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "123",
+        "time": "42.186",
+        "timestamp": "2026-10-27T14:20:31.849657+00:00"
+      }
+    ],
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "91f67a9fe325",
+        "name": "pytest",
+        "skipped": "9",
+        "tests": "1115",
+        "time": "287.840",
+        "timestamp": "2026-10-27T14:21:16.115099+00:00"
+      }
+    ],
+    "stages/policy.compare/role/results.xml": [
+      {
+        "errors": "0",
+        "failures": "0",
+        "hostname": "682be666f21e",
+        "name": "pytest",
+        "skipped": "0",
+        "tests": "45",
+        "time": "10.086",
+        "timestamp": "2026-10-27T14:36:13.286776+00:00"
+      }
+    ]
+  },
+  "version": "pipeline-pilot-calibration-review/v1"
+}

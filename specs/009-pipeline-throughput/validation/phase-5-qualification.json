@@ -1,0 +1,397 @@
+{
+  "version": "pipeline-phase-review/v2",
+  "authority": "Derivative review index; immutable producer receipts remain in uploaded archive. Documentation is not a new qualification run.",
+  "producer": "466863f7edd2633760893eb4bcb06005690f2278",
+  "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "archive": {
+    "name": "009-soak-20261025T232558Z.zip",
+    "sha256": "sha256:54c1d61f95d081950dff30c40b51d60563c71c7a833274f7579b1cbb2be21b9a",
+    "bytes": 12982101,
+    "members": 994,
+    "omissions": [],
+    "verified": true
+  },
+  "operator_review": "soak-operator-20261025T232558Z.json",
+  "primary_engineering_readiness": "PASS",
+  "portability": "PENDING_REAL_DOCKER",
+  "selected_scope": "PARTIAL",
+  "images": {
+    "qualification": "sha256:c7ae1dc3281493492023c531185dbb9718cdf19b67bc2f039a35525d3e21bcbd",
+    "gpu": "sha256:2e40c916657634405d2bf2c380e8c53b57e2ac108b7aee149fa1a08a147b3244"
+  },
+  "qualification_summary": {
+    "cpu_tests": 721,
+    "cpu_subtests": 33,
+    "hip_tests": 21,
+    "workflow_tests": 1106,
+    "workflow_skips": 9,
+    "retirement_tests": 123,
+    "policy_tests": 45
+  },
+  "stages": {
+    "cpu.docker.semantic": {
+      "state": "BLOCKED",
+      "identity": "sha256:492843f06950d9b0236173ab254df57008c7f8dc3a717e8dda0c72d824b792ff",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:ceaf705a2ff12e4aaa6cdaf2123b91501577ab5d11f52438e0da6fee06819d21",
+      "reason": ""
+    },
+    "engine.docker": {
+      "state": "PARTIAL",
+      "identity": "sha256:0db7f7856b5be230b36af2f1202b9a3aab3abf38b5adadf89dfd020ae0a413a4",
+      "reason": "docker: docker returned Podman metadata; a compatibility command cannot provide independent Docker portability evidence"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:1a6aff4e2901b58f1da4b45d0c45744327c3cc9c9b9838d965f9bd4ab7dc95a4",
+      "reason": ""
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:5be1e7644777949f4d50d39b3b6afa6e6892edfcd4c8dd4adcc8a49a89257c14",
+      "reason": ""
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:1c45a713c5c6efbe77d7a588fc393f69d63c504bc103207bea41d4e538268e46",
+      "reason": ""
+    },
+    "image.docker.qualification": {
+      "state": "BLOCKED",
+      "identity": "sha256:eca741284f5334d9be0cf414d7581d2f3788aa52503c508824c46132c7718c63",
+      "reason": "failed/missing prerequisites: engine.docker"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:811c77066bb1e216fb24aeba6b5d92501e359de1ebf05c6ccdae58240ff04e18",
+      "reason": ""
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:002cb0cd0afd6bff097d0537c77821edb76eb54fcecc1bed79def78f12743839",
+      "reason": ""
+    },
+    "native.compare": {
+      "state": "PASS",
+      "identity": "sha256:8f9c5ee46c2b441d42fc0a289c42f03d58f28b726acf2824ea421550a0d8be73",
+      "reason": ""
+    },
+    "operations.docker.retirement": {
+      "state": "BLOCKED",
+      "identity": "sha256:165aaa04b703c63175302e555766582c2d6479a1e26c2b1fe00d92b3ce239a3e",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "operations.docker.workflow": {
+      "state": "BLOCKED",
+      "identity": "sha256:a622f0434bbe97b14767e8b65eedcaef3c6dd22b6ee030b1398bfb3eb4e9aa44",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "operations.podman.retirement": {
+      "state": "PASS",
+      "identity": "sha256:d803a9be0f3a52ea0085121752d9b51894b07a7279fa4c6e30f85250343e0cd7",
+      "reason": ""
+    },
+    "operations.podman.workflow": {
+      "state": "PASS",
+      "identity": "sha256:aa5278ea1def340b8013fd43b2d070d2cb81b47380f12b245fbf065ce56c5346",
+      "reason": ""
+    },
+    "policy.compare": {
+      "state": "PASS",
+      "identity": "sha256:be69c9cff4b9954338d11c4fc448a5eb7fa70291f9edda0b07566ff1da98d20f",
+      "reason": ""
+    },
+    "soak.b16.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:7ffda87a34cdb8372db60073ba16a5ef49f96d163939389d276f7c5179450cef",
+      "reason": ""
+    },
+    "soak.b16.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:0760014c097471619803b4d0387c5f1d07bc5a22af8ceec4188d318b974522f2",
+      "reason": ""
+    },
+    "soak.b16.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:67223966372938dcc54e928f1170dd5cef5bbc30ec809ee6d17ca78d87e36e64",
+      "reason": ""
+    },
+    "soak.b16.warmup": {
+      "state": "PASS",
+      "identity": "sha256:e3618165873dc3689eab7445e2b50ad72dfd02521f5ff981446ed0bceda764ed",
+      "reason": ""
+    },
+    "soak.b32.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:cd244af24a4b92bbe4052ad791a4739904b937e172dec436bff669fa4b7338ee",
+      "reason": ""
+    },
+    "soak.b32.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:527eee83ab3a94c7b332dba7be1be0f59f2f7fd90f0f8514ee84a4a5ef083e58",
+      "reason": ""
+    },
+    "soak.b32.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:7ef078d9d7da1e7ca73296ea201441a48732b4cfad5d7f0b18101bb8ea5c1472",
+      "reason": ""
+    },
+    "soak.b32.warmup": {
+      "state": "PASS",
+      "identity": "sha256:aeb7a46c56bc48e5de4f02e7e79397ee167f6268b1ce3b1ba2c8d8851af58d28",
+      "reason": ""
+    },
+    "soak.b8.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:44c2c19920c7077ba384a3d7d221ef8f0f5e43408e3ea41395bee7be3ac24e77",
+      "reason": ""
+    },
+    "soak.b8.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:bda9df80a63462347e1694324cce90b51d7c7c8d55bffb7901b01fb2ebac6916",
+      "reason": ""
+    },
+    "soak.b8.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:936e89b2192112925f1e42b0eb52216dce1927f5874ae50b58c0efab6ba6fcbb",
+      "reason": ""
+    },
+    "soak.b8.warmup": {
+      "state": "PASS",
+      "identity": "sha256:42391c27ee7f41b9c2f7f3f8c40140180ed4291111ebd8d1c49b836597587e44",
+      "reason": ""
+    },
+    "soak.freeze": {
+      "state": "PASS",
+      "identity": "sha256:6ff5c6d435433069afb5c179d3e6ea7fb72a98efa578c6d7bff860e58daaa876",
+      "reason": ""
+    },
+    "soak.joint": {
+      "state": "PASS",
+      "identity": "sha256:ca30815b842baab8729d3942de11123e2b7e2f3422396841409fffe26daa5b82",
+      "reason": ""
+    },
+    "soak.observation": {
+      "state": "PASS",
+      "identity": "sha256:5333cb908aa10a69d036b2401ab95d1089e66b5ffd74826a995d5e2345c898d5",
+      "reason": ""
+    },
+    "soak.operations.docker": {
+      "state": "BLOCKED",
+      "identity": "sha256:172abc51d649e1c87417e1413f7f994568a7befcce3d8b3b6adb240cf636b60d",
+      "reason": "failed/missing prerequisites: image.docker.qualification"
+    },
+    "soak.operations.podman": {
+      "state": "PASS",
+      "identity": "sha256:439eca6c12fa1d60170d4cf4a96995b4af6680a473a3e281f88b44c51bbdd43a",
+      "reason": ""
+    },
+    "soak.parity": {
+      "state": "PASS",
+      "identity": "sha256:61f031a71552e9cfd86fb1541cf9f391fc8e558651590b9ec0677c28bda54826",
+      "reason": ""
+    },
+    "soak.persistent": {
+      "state": "PASS",
+      "identity": "sha256:b44adc52a4b9475bc8a0cb135f4e572ad09e43b9aeb6a4a591ebe2d9f77514df",
+      "reason": ""
+    },
+    "soak.prepare": {
+      "state": "PASS",
+      "identity": "sha256:0b304926b9cf848bf9051220e76fe4bb932cb8f0ccfd50cc2007d40cd2e47a46",
+      "reason": ""
+    },
+    "soak.reference": {
+      "state": "PASS",
+      "identity": "sha256:307a204f9d23bf4ef1bc56180d0cc2a56a58d8c8724ed8771de4199c40099763",
+      "reason": ""
+    },
+    "soak.report": {
+      "state": "PASS",
+      "identity": "sha256:4c0c9030223212adb338b7228ebde0d469791c00253e82adf822cd97fa13e32d",
+      "reason": ""
+    },
+    "soak.scorer": {
+      "state": "PASS",
+      "identity": "sha256:86f2e29d162633575e625b2ab1b6a1c5195554fb4e2fd36306e4d8f1bdce3ad1",
+      "reason": ""
+    }
+  },
+  "prior_index": {
+    "sha256": "sha256:18fc425590cc8f5cf14e65cc539342f590490135a461eabecbbce5542dc67bfb",
+    "retrievable_at": "https://github.com/grugnog/oeis-learn/blob/466863f7edd2633760893eb4bcb06005690f2278/specs/009-pipeline-throughput/validation/phase-5-qualification.json",
+    "record": {
+      "version": "pipeline-phase-review/v1",
+      "source": "sha256:165655e5ad8299f5879d6af098f6fe584192d040bb73efa69c0d3df2d558546a",
+      "operator_review": "operator-20261024T141450Z-review.json",
+      "authority": "Review index only; original sealed producer receipts remain in the verified archive.",
+      "stage": {
+        "state": "PASS",
+        "identity": "sha256:47401ed7dc9e53a39f105542afa3a4b5c5adfe04c2b713bc146a54e8195f08b7",
+        "reason": ""
+      },
+      "producer_qualification_identity": "sha256:06703388e706d517c7c3b20ed924f97804a84ea261a0d8bb3c4224624b6ed9b8",
+      "engineering": "PASS",
+      "required": [
+        "cpu.podman.semantic",
+        "engine.podman",
+        "hip.preflight",
+        "host.contracts",
+        "image.podman.gpu",
+        "image.podman.qualification",
+        "operations.podman.retirement",
+        "operations.podman.workflow",
+        "policy.compare"
+      ],
+      "failures": {},
+      "portability": "PENDING",
+      "costs": {
+        "cost.diverse32": {
+          "authority": "scoped forecast only; separate reviewed study decision required",
+          "envelopes": {},
+          "forecast": {
+            "budget": 7200,
+            "identity": "sha256:c275a64c672a1e4f07e9cb04637ebe98676988c7cbdb93cfa7871f1714fd3d9b",
+            "missing": [
+              "checkpoint_p95",
+              "cleanup",
+              "export",
+              "fit_p95",
+              "generation_p95",
+              "hidden_scoring_p95",
+              "reference_p95",
+              "startup",
+              "teacher_forcing_p95",
+              "training_p95"
+            ],
+            "projected_seconds": null,
+            "reason": "unknown complete-schedule components",
+            "scope": "diverse32",
+            "version": "pipeline-scoped-cost/v1",
+            "within_budget": false
+          },
+          "identity": "sha256:029218cb69d23c4715e33213078c70b4c4fb09815c3c4b1e00697f0b8c743e99",
+          "missing": [
+            "complete full-denominator independent scoring",
+            "full frozen diverse32 controls",
+            "representative complete material production strata",
+            "three complete exact-scope baseline observations"
+          ],
+          "observations": [
+            "sha256:12fbd90bf5869345cf171f7373130993bc7cbf7c33548894ffbd3fe70f3f6f77"
+          ],
+          "scope": "diverse32",
+          "stage_state": "INCONCLUSIVE",
+          "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+          "version": "pipeline-cost-observations/v1"
+        },
+        "cost.transfer": {
+          "authority": "scoped forecast only; separate reviewed study decision required",
+          "envelopes": {},
+          "forecast": {
+            "budget": 7200,
+            "identity": "sha256:a8e54ab7e8cc5d6349e92913ad810ded40edcf7621ace98bea810832a4f3a555",
+            "missing": [
+              "checkpoint_p95",
+              "cleanup",
+              "export",
+              "fit_p95",
+              "generation_p95",
+              "hidden_scoring_p95",
+              "reference_p95",
+              "startup",
+              "teacher_forcing_p95",
+              "training_p95"
+            ],
+            "projected_seconds": null,
+            "reason": "unknown complete-schedule components",
+            "scope": "transfer-screen",
+            "version": "pipeline-scoped-cost/v1",
+            "within_budget": false
+          },
+          "identity": "sha256:37ed3b8c48df06808cfe6b1d4d7a1bb18afe308074266c26dbe91ccd42ab22b3",
+          "missing": [
+            "identical source, weights, policies, resources and completed work",
+            "three complete exact-scope baseline observations"
+          ],
+          "observations": [],
+          "scope": "transfer-screen",
+          "stage_state": "INCONCLUSIVE",
+          "variability": "twice the largest of exactly three observations; field names retain v1 reader compatibility, not a population p95 claim",
+          "version": "pipeline-cost-observations/v1"
+        }
+      },
+      "carryovers": {
+        "008:T093": {
+          "closure": "user deferred; no weight acquisition/conversion",
+          "disposition": "DEFERRED"
+        },
+        "008:T094": {
+          "closure": "current whole-pipeline performance, parity and retained arithmetic gap review",
+          "disposition": "PENDING"
+        },
+        "008:T097": {
+          "closure": "supported commands, interruption/resume, isolation and exports on both engines",
+          "disposition": "PENDING"
+        },
+        "008:T098": {
+          "closure": "all applicable current-source qualification identities and gate decisions",
+          "disposition": "PENDING"
+        },
+        "008:T099": {
+          "closure": "matched prospective contracts and fresh sealed cohort",
+          "disposition": "PENDING"
+        },
+        "008:T100": {
+          "closure": "all six matched representation arms and full controls",
+          "disposition": "PENDING"
+        },
+        "008:T101": {
+          "closure": "single registered transfer endpoint decision",
+          "disposition": "PENDING"
+        },
+        "008:T102": {
+          "closure": "separately admitted curriculum then replay",
+          "disposition": "PENDING"
+        },
+        "008:T103": {
+          "closure": "reviewed assistance inputs and matched comparison or explicit deferral",
+          "disposition": "PENDING"
+        },
+        "008:T104": {
+          "closure": "component sensitivity and separately selected matched retraining",
+          "disposition": "PENDING"
+        },
+        "008:T105": {
+          "closure": "immutable final plan and explicit authorized execution",
+          "disposition": "PENDING"
+        },
+        "008:T106": {
+          "closure": "evidence-backed discovery review after final results",
+          "disposition": "PENDING"
+        },
+        "008:T107": {
+          "closure": "evidence-backed longer-run go/no-go report",
+          "disposition": "PENDING"
+        }
+      },
+      "retained_arithmetic": {
+        "review_trigger": ">5x; review rather than weaken semantics",
+        "small_value_gap": "13.29\u201313.40x historical observation"
+      }
+    }
+  },
+  "scope_boundaries": {
+    "primary_hardware": "PASS",
+    "portability": "PENDING_REAL_DOCKER",
+    "original_adoption": "INCONCLUSIVE_RETAIN_BASELINE",
+    "full_cost": "UNKNOWN",
+    "learned_quality": "NOT_ASSESSED",
+    "long_run_authority": "NOT_ADMITTED",
+    "checkpoint_authority": "engineering own-state recovery only; not research resume"
+  },
+  "repeat_primary_soak": false
+}

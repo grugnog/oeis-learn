@@ -122,9 +122,20 @@ class DurableRun:
 class CheckpointStore:
     STATES = ("weights", "optimizer", "rng", "data_order", "selection", "curriculum", "replay")
 
-    def __init__(self, root, contract):
+    def __init__(self, root, contract, *, policies=None):
         self.root = Path(root)
         self.contract = contract
+        self.policies = policies
+
+    def _boundary(self, selection):
+        if self.policies is None:
+            return
+        from oeis_learn.pipeline_validation.identity import seal
+        boundary = selection.get('pipeline_boundary')
+        if (not isinstance(boundary, dict) or boundary.get('version') != 'pipeline-boundary/v1'
+            or seal(boundary) != boundary or boundary.get('policies') != self.policies
+            or boundary.get('active') != 0 or boundary.get('reserved') != 0):
+            raise ValueError('changed policy or unaccounted candidate work at checkpoint boundary')
 
     def save(self, states, ledger, *, state="active"):
         import io
@@ -132,6 +143,7 @@ class CheckpointStore:
 
         if set(states) != set(self.STATES):
             raise ValueError("complete checkpoint required")
+        self._boundary(states['selection'])
         generation = "state-" + uuid.uuid4().hex
         folder = self.root / generation
         files = {}
@@ -172,6 +184,7 @@ class CheckpointStore:
             if file_hash(file) != ref["sha256"] or ref["sha256"] != value["binding"][key]:
                 raise ValueError("checkpoint state artifact mismatch")
             states[key] = torch.load(file, map_location="cpu", weights_only=False)
+        self._boundary(states['selection'])
         return dict(states=states, ledger=ledger)
 
     def prune(self, selected=None):

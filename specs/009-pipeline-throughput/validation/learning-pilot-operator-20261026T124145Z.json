@@ -1,0 +1,131 @@
+{
+  "version": "pipeline-pilot-operator-review/v1",
+  "archive": {
+    "name": "009-learning-pilot-preflight-20261026T124145Z.zip",
+    "sha256": "sha256:8cff0e7fc93083596eb2dbd3da71ab4ecae7716d562dc5396f9e8bc7dd3e0ba0",
+    "bytes": 4130824,
+    "verified": true,
+    "members": 183,
+    "omissions": []
+  },
+  "source": "sha256:6b89b808f46f08deabe6d2287d6e5ade7767394cb7a73ffebaaf573416de6495",
+  "source_entries": 749,
+  "matches_previous_committed_runtime": true,
+  "prior_handoff_head": "0e3c560b7d2ca679626d1fe475f489513ee6b519",
+  "receipts": 20,
+  "bound_public_files": 107,
+  "stage_counts": {
+    "BLOCKED": 8,
+    "FAIL": 1,
+    "PARTIAL": 1,
+    "PASS": 10
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": {
+      "listed": 751,
+      "passed": 750,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "classname": "tests.unit.test_pipeline_pilot_runtime",
+          "name": "test_actual_v3_constructor_and_public_independent_cost_sentinels",
+          "time": "6.532"
+        }
+      ]
+    },
+    "stages/operations.podman.retirement/bigint-retirement-regressions/results.xml": {
+      "listed": 123,
+      "passed": 123,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": []
+    },
+    "stages/operations.podman.workflow/cpu-regressions/results.xml": {
+      "listed": 1115,
+      "passed": 1106,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 9,
+      "failures": []
+    },
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": {
+      "listed": 23,
+      "passed": 23,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failures": []
+    }
+  },
+  "images": {
+    "qualification": "sha256:65a0d0e0d514e140e0c2cae6144f50e22fcd9001b2b3afa74bc92d2d4c49f156",
+    "gpu": "sha256:3cbd826f1c96f6909357f44cd3bed978342f9e0f2b6d7bba71d91caead170423"
+  },
+  "elapsed_seconds": 1347.086252890993,
+  "selected_scope": "FAIL",
+  "primary_plumbing": "BLOCKED",
+  "readiness": "BLOCKED",
+  "cost": "UNKNOWN",
+  "snapshots": 0,
+  "confirmed_failure": {
+    "stage": "cpu.podman.semantic",
+    "test": "test_actual_v3_constructor_and_public_independent_cost_sentinels",
+    "test_seconds": 6.532,
+    "reason": "Returned complete=False; archive contains no per-case result, so exact failing program/resource reason is unknown.",
+    "facts": [
+      "Actual104496662 parameter-count assertions precede failed sentinel assertion",
+      "750 other CPU cases pass;41 additional subtests reported",
+      "23 actual HIP tests pass including pilot metric and full-state fixture",
+      "Retirement123 and installed operations1106 pass with9 explicit skips",
+      "Arbitrary UID/export/interruption/healthy-after-stop gate passes",
+      "Corpus preparation and pilot session never start"
+    ]
+  },
+  "diagnosis": {
+    "status": "INFERENCE_NOT_TARGET_CONFIRMED",
+    "candidate": "4096-bit degree4 cancellation may pass20-index visible admission yet exhaust production aggregate fuel over100 indices.",
+    "local_reference": "All five original goldens complete100 indices under the independent interpreter; this is not native proof.",
+    "limitation": "Original assertion discarded per-case failures. No native failure reason is invented."
+  },
+  "repair": {
+    "code_commit": "d174240d7f94ba7309694e1551016805738f2439",
+    "protocol": "pipeline-pilot-scoring-cost/v2",
+    "changed_source_files": [
+      "specs/009-pipeline-throughput/contracts/learning-pilot.md",
+      "src/oeis_learn/pipeline_validation/pilot_scoring_cost.py",
+      "tests/unit/test_pipeline_pilot.py",
+      "tests/unit/test_pipeline_pilot_runtime.py"
+    ],
+    "positive_cases": [
+      "identity",
+      "quadratic",
+      "branch",
+      "factorial",
+      "large-identity-4096",
+      "large-cancel-1024"
+    ],
+    "stress": "Original4096-bit degree4 retained; only full success or explicit term/aggregate fuel exhaustion with full independent reference is resolved. Unknown/transport/deadline/mismatch blocks.",
+    "scientific_coverage_rules": "UNCHANGED",
+    "old_failure_retained": true,
+    "native_repair_validation": "PENDING"
+  },
+  "task_disposition": {
+    "L004": "NO_CORPUS_EVIDENCE",
+    "L012": "MEASURED_COST_PENDING",
+    "L013": "FIRST_ARCHIVE_REVIEWED_NO_ADMISSION_CORRECTED_TARGET_PENDING",
+    "L014": "NOT_ADMITTED_NOT_EXECUTED",
+    "L015": "NO_LEARNING_RESULTS",
+    "T110": "PENDING_CORRECTED_SOURCE_QUALIFICATION",
+    "original_counts": {
+      "complete": 87,
+      "pending_runtime": 9,
+      "blocked_research": 15
+    }
+  },
+  "repeat_size_batch_or_two_hour_soak": false,
+  "long_run_admitted": false,
+  "final_access": "SEALED"
+}

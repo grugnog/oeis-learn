@@ -1,0 +1,2758 @@
+{
+  "version": "pipeline-operator-review/v1",
+  "archive": "009-replay-batching-20261024T203537Z.zip",
+  "archive_sha256": "sha256:b075bcee4348130494859e56110ad69c1c0318d0ae32d54b8e4d377b7786a5a5",
+  "archive_bytes": 4902384,
+  "manifest": "sha256:cfb090e77ba09dda7fbe0d2e1c8313793db95618a5dbc7b36c2a97484b3e2425",
+  "verified_members": 314,
+  "producer": "d74d30ea2a2ed4a2d768deb8319c40a4651c3b40",
+  "source": "sha256:10ea8ca7c2cc459cacdd9ec886e8ae198b9032b8bf725a98600d276c4e6912e4",
+  "source_entries": 701,
+  "exact_source_match": true,
+  "summary": {
+    "cap_seconds": 86400.0,
+    "cleanup_archive_reserve_seconds": 1200,
+    "elapsed_seconds": 1400.1453815989662,
+    "engineering": "PASS",
+    "feature_complete": false,
+    "historical": {
+      "008:T093": "DEFERRED",
+      "008:T096": "NEGATIVE 7730/14400 seconds"
+    },
+    "learning": "NOT_ADMITTED",
+    "long_run_admission": "NOT_ADMITTED",
+    "phase_consumed_seconds": {
+      "1": 288.9421290967148,
+      "2": 647.8914613735396
+    },
+    "portability": "PENDING",
+    "research": "NOT_EXECUTED",
+    "scope": "engineering-replay-batching",
+    "selected_scope": "PASS",
+    "version": "pipeline-summary/v1"
+  },
+  "stage_receipts": {
+    "cpu.podman.semantic": {
+      "state": "PASS",
+      "identity": "sha256:1f1eafa8de9b3404ed6c9563b3cea97315ed9b93440d9581b2c69a2511023ce8"
+    },
+    "engine.podman": {
+      "state": "PASS",
+      "identity": "sha256:b853be596386394394d563a4a4a27e7c7c94c55d3171071d356f21a5b634fc71"
+    },
+    "hip.preflight": {
+      "state": "PASS",
+      "identity": "sha256:a7440e13be103879aafbb94569a36a36a3b56d9ba51fd73ceb59a3b6391b345a"
+    },
+    "host.contracts": {
+      "state": "PASS",
+      "identity": "sha256:46c132ac060e8450c1b1daf93981a558c71c7485bf493ed415abc8674f65985d"
+    },
+    "image.podman.gpu": {
+      "state": "PASS",
+      "identity": "sha256:d668b30d8281c451e7d5b0316e68ed7a83bbdbfc0cf7718374e17811c776ccb0"
+    },
+    "image.podman.qualification": {
+      "state": "PASS",
+      "identity": "sha256:715e00be36535c5517188eda3c77ca07c6dbd824691960e65e21a5c0bfe1d70b"
+    },
+    "replay.calibration-0": {
+      "state": "PASS",
+      "identity": "sha256:3ab59f5dc142c6437b9fb5cc71e01513c4d1e8c916eb8b8e380f7f68634e09ff"
+    },
+    "replay.calibration-1": {
+      "state": "PASS",
+      "identity": "sha256:c3c1f67a5228b371d895562fca039204a50326306e59a4225ba8dc60dc2c1abc"
+    },
+    "replay.calibration-2": {
+      "state": "PASS",
+      "identity": "sha256:525309c2900d913e2f058f8da30617e0fe8269898e5ab60e79a9ca2acf89f539"
+    },
+    "replay.cold": {
+      "state": "PASS",
+      "identity": "sha256:790b6cb3645c93c4a7a2eddf0189f0ed441adce3b158e2b87cd60ee1f41d217c"
+    },
+    "replay.compare.freeze": {
+      "state": "PASS",
+      "identity": "sha256:834361665843d9924f094e4e537d5cfb8d64d966e5cdc5c8540cc7b3ad337632"
+    },
+    "replay.compare.pair0.A": {
+      "state": "PASS",
+      "identity": "sha256:a9071df0630ce2ef6733478eb4f778ee93372ea484f98fd51a760139eaf309ee"
+    },
+    "replay.compare.pair0.B": {
+      "state": "PASS",
+      "identity": "sha256:d9d6a91ee148ca10b893996e9d6c605c5ae8f337067ca1927cf0227b49fb1805"
+    },
+    "replay.compare.pair1.A": {
+      "state": "PASS",
+      "identity": "sha256:b5e1aa2565a401b71d07d9b34680951509e510289b3f9fe3fc2173403f77950f"
+    },
+    "replay.compare.pair1.B": {
+      "state": "PASS",
+      "identity": "sha256:c143f604d39a28030ad26ae94b3416e8e2fd92e9d2c55faec001c314d1c5082a"
+    },
+    "replay.compare.report": {
+      "state": "PASS",
+      "identity": "sha256:6003cc09e582e68966e9df72a7618d7d9f99dd1a74128e1d1b452bc0f7d470f4"
+    },
+    "replay.compare.warmup": {
+      "state": "PASS",
+      "identity": "sha256:cc5fb17d9ee1ac2aa8ec05f1556b52b42b83f0a2a61909ada1a3cb92b7fecda4"
+    },
+    "replay.reference": {
+      "state": "PASS",
+      "identity": "sha256:a81c5648b54d7975e2e1d3aff648643248639d08f88ec78ed2a504b8299ba987"
+    },
+    "replay.report": {
+      "state": "PASS",
+      "identity": "sha256:622b2989a70567f91cfd281b0033dffed9f70fb349d090d857b6c44f455c1c6f"
+    },
+    "replay.warmup": {
+      "state": "PASS",
+      "identity": "sha256:df52e7ba3bf794faef2c42a94e3bb62c9fba39df8a33ca0d1953718bccb7a9c1"
+    }
+  },
+  "junit": {
+    "stages/cpu.podman.semantic/bigint-cpu-regressions/results.xml": [
+      {
+        "tests": "629",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "280.421"
+      }
+    ],
+    "stages/hip.preflight/bigint-gpu-regressions/results.xml": [
+      {
+        "tests": "17",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "195.353"
+      }
+    ]
+  },
+  "reference": {
+    "contract": "sha256:fbe3fe588df41f614e7bfe23d0addc8b5824757bf74ce906584d18cb2ba5446c",
+    "expected": {
+      "r0.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f05d7177eef49e6b43133e5e33f45995451e076843f5a63d27171c511c4e1a78",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r0.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:736d03fd216b745f62537e05aaed922cdc93a0ec4d900c2230565be798555eb0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r0.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:54121a068633315cd351a012ed87a3bfec564e2366cd33b2fc738288892b2b16",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r0.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b0335860b62c41cd3a2335610fe702c06c451fb22379c759bd2dc2c60456f13c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r0.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ffee53b5f706812de5ae3ea0a6d48b5f2142b97bf0f896e85877fdc3c0d1138c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r1.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f197ecef756c9bd679e9d9b5618af1d9ed79a56722db8d87ff3a7aa0427c28ec",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r1.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f4cb723bc1f70af4d077e343408442a4768047984faf32ecb1e2c96087944df5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r1.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:1added249ad303da5254d77bfa318ed770a2d2831951777d9393112da55306c6",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r1.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3050ec9506ea4dab606e807e530f4b295ef0681da47c42720e46d8b45c6a32c3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r1.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b96cb0abf319422c211e0a0ceaf986bd5322a8cf7caeffec45ae92d7a3785d02",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r10.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7fa0e59d0186b735c4ef5322526559ed4886f7c565d3b42a81938691521c738d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r10.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:1363782e1baccc46059f8413a701152bb79b9dd127a2d9cf6b31d5b52e1ec756",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r10.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b46271164159b6c19667167e425d05be7d80925f1154c1d7eb024c08cfcac39a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r10.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e1dac7f12839406bc1529cda0450a6d238c0f5a7676a71b1440d1b0f1b103940",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r10.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:67b1af77fef62f23dcb6c55c0cb96ab713aac5f94c50dc1b5715f03378de3c3a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r11.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:cbd4cb5279905eb6d7813498a8643f241451d53b5b90ab22caa51f03b45a4f1d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r11.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d93e79c1ed7183a4c45160646596962edc670dddc2eb989a0ce1694a8ca79e0b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r11.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:83de799ba04173cf16c416a321c0b3187869cc69a5adfd97a4d1915232550558",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r11.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:342325b7fed3058fd0287f32a8bddb8a0cce0fd61f22644281649f48a3401ba2",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r11.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a2341d06312cecafab450c20678b0e611eec93c55fca53aeea4e59264a7db638",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r12.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2930472e0415405aedfb893b3e8e269f6586345abea47827c7504fd95f3658f5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r12.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:420c7fbaeb227c1050d9e199061a04fb4aca2e5d47f80f049500eedc9fa2533e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r12.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:741866ae0274239fe9dadbf9169a593ac730a14ca0a5ff1db688d345bc43dffb",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r12.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:db2d389c68a34d430717f98746fcc945113a3a3e73f0caa0eaf8d85191b47d28",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r12.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:dda216e3000d9124ae96e307d5c88dfe1ac57f82f1b120d1a90d46b81cbc1d7b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r13.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:51cec0c445898aa43140ac31ea38f43ddbf4e0f4a37d2489a8748aed2b4fe344",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r13.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5572c6ec81a1218406483822609892bc7935c89487afe3f7f2e1bbec846e69fb",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r13.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:94b0b2450b205dd319af3861a91c55fa6a4511f0a48bd1a51574eeb846da6ad8",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r13.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5feb41118256557ee234ec9422c454216ec209bf66e9f15c6b7aea7126f5c2f8",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r13.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:8ed4e73834ea4a8cafb5265fda9c1262b491ae5a399a4a81b6d0e2e118fd80f3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r14.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7238f5f18d08329f3688b9d75a43f7a728ee314ca8a6551a9b6ab668a95767da",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r14.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:40ee5f14fdb4dddec6825574e5971cab7403aa4d0338d485e29fb4d82a6dd99d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r14.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d3cc23d106f17313d27abf0062341967ad4f597be519ed17bf785761de1185e3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r14.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c84d7841431c57abe62a77a5fb5481d53f59b8b96f89a7138e3fe3c9f808da60",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r14.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7e0ed821b29cf0cb323893cea198f6e08badfea2d835781b85a65897e03e08de",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r15.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7fbff7c6d9bed2f140d0c48f7390c0713e1f1c64d222e4b6f2dea2d564c79fd0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r15.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7d94a6e537995a7bd199f879b1fdb219e1d98166eed46e1b3f667c49a1fd9501",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r15.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c2aee9b41ef7c6a60e7a0e6d221c72b00950288dc84ecdf83b785d8685cd4d07",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r15.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f37d5724df478c98ec225780b7d892836191cd9618cb5430e54234180a67f045",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r15.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e1345745675c5372256733a71aa7749b94f5d4b8ed43abff435a01afe4e94c62",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r16.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7cf9c21fc66dfbc06c5829abdf3bd0430f0502170d7d2d072d471b95077f478f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r16.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a2b3966d348a6facff84402100d849206a610ba23c3b844dd921dc154b6b0391",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r16.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:4d3a6b0ded45fd9227e73a41c9711ae48b67b80c1b54cf8d00dc53b9e9b4602b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r16.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:966d9ef80a9e739359d080abe346ba66b9077434d6ba6dee5cd91d7bd3445a6c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r16.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3ed8ae5796a657ed01a8a4e58f40286438e8711d87972753c6d8c0ba0865e424",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r17.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:41ef751893e4fe2e8325aaa14b99f7c3fa682b2659733ed5ee3e24bd4c4c2f37",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r17.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:52e1f81c15e5cfb431c80ecf1360fa54305e6d5c02e5d46a2d0fd65abc27b0d1",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r17.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:8cd85d6613faa776395c4ed4ee535c2449cc22e26fb98da81c32d83b87731625",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r17.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:84d727dd3f36851d36d7ea20b871a8b978dc0c9f9e4630c850c0841391fed0ac",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r17.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d131d5b7e65b48489319be5ffe4985a60ec49400c61a1af2a42525965a01a38f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r18.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3abc4b2990ef4536e1a3e48d238b1a7d6fc4dd05b36f9c5b8ca4cf38fb163045",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r18.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a037ff5f45007cb8e6d8ae8ef3528e6e79fd37f8556e9a403350cc3f11a2a2e8",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r18.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c4134f070c25d77b121df6ea4aa1f725afd501c084f34eea0131f817ac1a8510",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r18.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c9e57e51ec0e2cbaca9d688ab923ec24520bbc315e3a059cc6029e6d4de42b27",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r18.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:22221247bb4ea953a6e869ca4ba747c1f3b3fd3ae14e7a2cebc0b1b96162cb1b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r19.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:78145b110793fc5568088ad0df3686319eed606688d409d7ce7f66d51beec627",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r19.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5c1dfbbaf24ab616a35d51c3abdb9dc21cc29087ce15d82c3fb75de3bbe4e2d0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r19.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:97a1efabb8dc4798047075aeffad0d39ac86853812f8bd2d8d11dfd639d3e5c3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r19.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3c19275f00f5470c67ee6234b165f6b26ed290834a673d9963f450b5546bff7a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r19.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:128bbef99aa66e31063337d13db588a1bde19b0e0608aee22984874a0c6b4de6",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r2.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f7c6910716467edd38982d713c3a097ce95a76ba471d844900c02dfbdec67790",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r2.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:acbddd323252b74cfd817a4c0224c221a998a7f4efc09dff19c8992aba288eea",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r2.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b464ac89c7b031cbbc29340a8937959df4dd763958073a22cb3461cddd689a47",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r2.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:28471b492203531130d09bf714cbe6d4954696138caa1ffc8c7e15ac04438c4b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r2.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:0191556b1fbfb84efb1e500e2ea360350226474633607789311f030b3cc54f3a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r20.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7ff08c31676176d46e3cbc0a201887e34fd7562527c32c2b846e9f1df4ae9b02",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r20.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:06e2c5a4f6ce48bf1bc47a2046d73e8aa4b86dfcf1e03e153e4cbedd42f62512",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r20.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ca7925d58d299e569c0f65f26dd45c413cf85e99bcf8b5800aba76cd567e2c22",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r20.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:20918cd3a7a883d456aaf05f83b35c843e6562a8307b2e7d6537f136b1d8f6ef",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r20.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3a38e226a730c33cea93177c0dc33bafa742fbeaa952d7bb85c7cdf87e8c1e27",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r21.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ead502345a6e82c6867e8c922fad7b0dc84995c9a197dd019fe26ea5f51b985c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r21.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f254a0e2d58af6205b19f1d6e3db5aaa79aa5aa8fbc4a22aadc14eb5a04cb9c6",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r21.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ce763f978af6261d84984487a38b2007b33afde045bc0949581453519c77389a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r21.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a7957bd505b61cb560cb7b9faab0130d6f6a479456d6916c0932deaa6d64bb83",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r21.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:50f33a73e5a0275c944587fea5c5e76c03319ab800257b06c05a3e2b1c2f3fc9",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r22.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:129e96d463b310e21499f2b9100212b4761a9eed77f5cf1f8686723bad95456f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r22.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5cc8d7a8c6d68660c968e33410c2c29892d8435aabad9a6912bd1e8c8ad00249",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r22.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c7736ab60db0fbb49b1acd46c6921b3e0a0ec822adb939b5f95d72bcaa04c96b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r22.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:982439656a3572d6062644dd16e5c2d8382a36a5cb6c3676f589f0dc8205beb2",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r22.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:16f0d8906a4b3e9965d9c8765d478dc4159e0b7e3c8f766ff1580336892647ee",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r23.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3d9b62ca550c8ae4aef365d1d5eb976d0c171a655a26ae498cb1bacf73f2bb69",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r23.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:399dc2d263b1133a78e7201c5710f16203a0919cba5752e45d6275565e2f3a78",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r23.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:4fc13a8eb5a2635ba76a59f9ba4037e503d7fa94d51ee1fe7a73c08433ca5d3a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r23.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3b5a006508c07a4331f5fc78403d9c575271df31433e4c16b14de2e7a95dafb2",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r23.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d21d84bb772cbe9382563e07b5a5e29c5b54ce417713f1920b28b368a6c0ab73",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r24.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b1b908447c412cd86a49fa634cd46a31c96ba107fad2238f687ac279feeb3cde",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r24.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:cb216566f481d32d1556d86a2859b35ae314082a0ccf4e45d8a88de30e073d83",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r24.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:aa43ae24c58fdf0eda203cac7cd0953340bd557a3d8991847609846571fc16ce",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r24.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:95d3a3f7daccff1857fc7b1cd3659f9375f7a0783852f7cf6d72eb285389e370",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r24.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a8ddf1f9e8ad0200000c4c860e8608aae1d7e5149be3aa45b6b6cd2dfbdbc565",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r25.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2325b3523631a89d117285e41c7fca097f97623ac652e22d5fd57ef85458863e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r25.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c37bd0af6be839db3eaea41cfc45d0b29bc5d3c7035e6c9aa7466d4f27b31dcc",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r25.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d57615870a5672995b2572a7293d5fbfc274ee7c4223c1375838dd85874d518e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r25.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ec44a09829e8c861277c5dd40478efed791aae4feaded7cbe2f357b057b30f9a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r25.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:0c27fef98ab996740f6e29992aacab54edd2e1131b697ddd1831a552e5027d76",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r26.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:47b5a66ad0c23a5dc5879228edec2d395a406029eeb3d21fa65cf75c7f487551",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r26.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:55f96687becc0f9a193f18957f9403b3704d4d1cdc60d9c9b662cfa2d41b249c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r26.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2b6043c226cb733f6ba7ac0dee5246a02358ecbd438567e16e606de3d1ab5566",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r26.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6195f769feebf189837aea28e4196bc96dfb2be6ee91d601586f5b16eb6475b5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r26.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:37e0d70763857d493973eb0f7af1c9d7ee6092cc332adbc6605d0450102cbade",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r27.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:073e12f84414943db79b07059d6289a018c76e34ba499322e8d208822ad43d00",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r27.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d19fd1fc429e419a520d14b64183f44d5df79e7c63f4af204982a660115712f6",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r27.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2b79dd628fff3f120ec06504c1b020a56a9dd46f8fd83cff091a74ac06cb2a78",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r27.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:bd2476e4fd1055af84b4748cb713d3154713db83320901b34febd82fd7e8eb75",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r27.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:129d0d07f3e08455b7bbccbc77c9d4645911c6af01f6913318157fee1392de01",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r28.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:175ae889b23e20a2be8ae8dd1402b35e801e4a7cf7f3ccf026c81e5a611dfaf7",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r28.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2d5234b1ac7efdc36ba1456a9eada0779ccbdd4989f8bb7cd9641e5fc805e924",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r28.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:85230b7bbed77276fb6ef3194be8b6decbd56719a024e0dcddff80c9d0e7320f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r28.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e235aae46d0fc457b4fa3f4732b43e7719f005f60e762afafad22ccbb823944a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r28.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:55947b440a76822cd1a0162a74e3df6cce85a16a9a5a2c9aa8a7c175534c8266",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r29.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:76d78a5ee92eb680f967ea87fc9376260f53cfe810d2d80244c49ac1c20cf7b4",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r29.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:524a385963fb42dc8ca494ec682190feb08276daf826d356d20f43b14959a82c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r29.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c8a254806fe9b5c7e025e39d9c88b0c1d24fd42a08591b759db8f5143ff4194d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r29.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:fe99a464d18c4005873aef0d9c364408be09bec13f99872a25b1eaab9418685d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r29.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b59c2d0b9c7c78deaf3c33e829703575c5a4a3c2b297571c701c104025b993d5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r3.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7629db6b5a49903b62819fe857017cc86d87e42f7a52a51cf17bea42582ccc30",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r3.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:db5dc0700c48fea75d443ddf76c7275b4eca06215fd6e28a570af86a910525a1",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r3.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a052d6697ae9ad71f85338023986372285fc0fb8be7ea6d5b9f8cca368295c7a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r3.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f95cf0511532d90da88793d5e370e48259008c0d45640221a528992720d68c41",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r3.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ac1f2fad1250a5eb0cf33b7b0763facd3342579e56630f84302a439c0fff6098",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r30.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c721ac77a729d40b15f899aabdd68e7ac8a833f89956c2a312b87094ad2c006f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r30.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:be2f9289d359cf8744848a77e031ff01a49857fec8ef76f1a8e630b82db770d7",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r30.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d0a925d81b58567f831ae4ab882010c077cb1435e1f3f2d7a2765a7480c9089a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r30.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:678066f0d88575ad618816609ac3357532a73380250cf65ffa49420d04ba4961",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r30.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b79f25e37afe43d8226873f6b077e8ddf424438e3abbacb438f4a079f0d8c1c0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r31.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:bbf57961ad9fabc7e8e66ab3bad8e26e9a65e8be7c6cbe6ed560910c294dc8c7",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r31.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:35d89b93c4896b25569cf369f901c1e9e05b318734023691360ef18d62db0bd0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r31.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:87a8122cb47437a5f3bf22c88c242498c50c0d0a1f90151498419462c6d0596f",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r31.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e77f0de6ee437ab808629f47dbe2e4ea6517c87ff7ddf6f0dc0cf689b47ae985",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r31.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:1f4f762f2c1a90e6c5bb23cdc9451d479a3571db5cef58516b937d79668a7c21",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r4.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f9122e95b6ac2c9a1025c6a0c74319edd816c3c891c56cb8282de9c5d4e5c7b7",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r4.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:326ff4fe6c68f7e82511b7bdc6304bec8a45db39d8d0736e5509f8a2c80a163b",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r4.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:9837160982f24d5183b85b87d3798a01f2b799a1cc83aa57c2df8e572a1c8626",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r4.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6657c4cd7d42adcc5e85089b97ec9b19033ccc8fa6d863d53ab9afcfbf37928e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r4.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:9ee97e857c54fc304f68b5ac947f7b8aa89bf4f05455c064769093fee11ffe3d",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r5.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:437ce2836e35d3413c46b15adac615b0d86a3d95480e3b8ae68a59842dac669a",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r5.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6e4057394fadf1f8d5ecff6b276e65aba8e72cb24df59987fe899dd3d49bceac",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r5.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3bfe2c3678cf34779e24d0e503fde7a26b80eb94e87f7194d271406ba43ce8d5",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r5.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:2e807d3ec3438e296204990d560d6205ceae2f774827e1152a099909aa453b47",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r5.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:a3b720edaddd0d294d2876f97815e7b3e952e44c342fdb5ccd856e856a4d5e50",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r6.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b0cbb23b3f9b60c842a05be7cc316048a588aaa54b7fcbd0dee214ff5a631c4c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r6.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:7a052bf0c25ed10a581d6dfdfc7bb1ae2bb2d7b1fd5a2830823085c9e41617fd",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r6.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:8c8bb4085ec574e36b6a7d91b3068ce6ffd9ee9cc2d5a2cc860a72cb3e04b75c",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r6.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d2e7ed525b2257a96150fb208b88369ce930621eff653301898285c45ec25366",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r6.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ec5b4f9bd1b183f3d96a76c0cd1d1f16cb14586d469f0665c93e3a096e2f324e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r7.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:e42283c31c83fd93ee3d2c041bb8c595f07c61022fb5818b10f87c7e5e6346f3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r7.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:f4caea3555ea96d20aa30294b85d33156c9422dda0e5aa2c1c969123cf293ecc",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r7.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:c7cc46ee25ed2a61cf0907a98d2ab0a03efb72790806d54f2b7839fa2acc2206",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r7.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:882584fc9c66a153dc0507f80a63aa4e2874cadf07199265a010e7328a82e1e0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r7.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5548540057e7043c3e430b57d125d4935806fe56e1ab8fd569c7abbbaddb02c3",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r8.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:3f8da431a8dfc4871b81dbe0fb4fb776b911b0dbb19715e58c1353b9e6df62a8",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r8.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:faaebb22fcaf51c1e8bb6d2a43170c5cfdd46bbf4c6628267828452195839aca",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r8.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:98c529a6f82f7c4e34c4555ded370d253618edf435c5047afd0f4a611d219927",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r8.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:6217379b8a0f90c974dd8af2915274bb1f4338c4a64dff4eb512d04aa9921bc0",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r8.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:dce5e89a7ab8904f1d948a326ddd61ed35977c7fc85f0aa8e6fc74e0cf693467",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r9.p1": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:5427e892a710a4478944d67bbed7ac19346577df9df042e1fb0573c539ab3e8e",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r9.p1024": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:d2d4b1b2d9c0ca7f498272a0f8baa616396cd702c9e79dcca888b51b72d5d1dd",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r9.p128": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:ad1d07398279ebdcaba27d7124bf18bb73109a989c6905b233fa8dc9d699ddf6",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r9.p32": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:43517716bfa947e460df632d5ab8ab6137a409f4e56c37c7b937813d011d5072",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      },
+      "r9.p513": {
+        "dtype": "torch.float32",
+        "sha256": "sha256:b865e951a3e45d148bed99e11176e949f31c822e3564b4d42b2d5183daad5bd4",
+        "shape": [
+          1,
+          1,
+          86
+        ]
+      }
+    },
+    "identity": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+    "memory": {
+      "dtype": "torch.float32",
+      "sha256": "sha256:2de8620a5d22015bf35aca9f4118d2e24a4a36b940f16eb9aa6c1cf2ad5a78f3",
+      "shape": [
+        32,
+        20,
+        256
+      ]
+    },
+    "oracle": "CPU full-prefix dense logits for32 distinct frozen visible rows at five positions",
+    "payload": "sha256:d937c1687e53daf312b3d10f1dea0f99d3f1913e443be26043d75b76cc99af49",
+    "source": "sha256:10ea8ca7c2cc459cacdd9ec886e8ae198b9032b8bf725a98600d276c4e6912e4",
+    "version": "pipeline-replay-reference/v1",
+    "weights": "sha256:1e1da28dc15d17454dad9949e799a15bce3104b279c00b6c9fe0dc6ebfc83c78",
+    "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+  },
+  "child": {
+    "baseline_trials": {
+      "replay.calibration-0": "sha256:3ab59f5dc142c6437b9fb5cc71e01513c4d1e8c916eb8b8e380f7f68634e09ff",
+      "replay.calibration-1": "sha256:c3c1f67a5228b371d895562fca039204a50326306e59a4225ba8dc60dc2c1abc",
+      "replay.calibration-2": "sha256:525309c2900d913e2f058f8da30617e0fe8269898e5ab60e79a9ca2acf89f539",
+      "replay.cold": "sha256:790b6cb3645c93c4a7a2eddf0189f0ed441adce3b158e2b87cd60ee1f41d217c",
+      "replay.warmup": "sha256:df52e7ba3bf794faef2c42a94e3bb62c9fba39df8a33ca0d1953718bccb7a9c1"
+    },
+    "calibration": {
+      "baseline_receipts": [
+        "sha256:93ec6d8b15576e2da740f7bcea7dfd874afa13ebc7be02c1fc4765a07f82b43b",
+        "sha256:82eb90ffdae0040d0968694ba55de6fa4b3082f3aa5470ba2df92b435105e62f",
+        "sha256:d47bf0dfeeae54682a3efdb174704374795cc26ec85bfdf155a626628dce81aa"
+      ],
+      "calibration_count": 3,
+      "cold_runs": 1,
+      "confirmation_order": [
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ],
+      "identity": "sha256:f83fcfb250306ac683da2471219d5c987a3b11e029f5d375856ad1b7b9d71198",
+      "parent": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+      "reservation_seconds": 103,
+      "rule": "sha256:6513a75fbadb66c8bdfeaa14dacc4991b34dbe8ec0673d93bc35e2f7ff4cdcfa",
+      "version": "pipeline-calibration/v1",
+      "warmups": 1,
+      "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+    },
+    "capacity": {
+      "baseline_peak_bytes": 1798492160,
+      "candidate_peak_bytes": 8589934592,
+      "headroom_bytes": 1073741824,
+      "required_bytes": 9663676416
+    },
+    "identity": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+    "interpretation": "observational equal-work forced replay batching only; no pipeline/default/learning admission",
+    "limits": {
+      "component_seconds": 103,
+      "external_seconds": 163,
+      "internal_seconds": 133
+    },
+    "measurement": "aggregate1Hz/v1",
+    "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+    "resource_device": {
+      "ceiling_bytes": 120744574976,
+      "device": {
+        "hip": "7.2.53211-e1a6bc5663",
+        "name": "AMD Radeon Graphics"
+      }
+    },
+    "slots": [
+      {
+        "arm": "B",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "id": "replay.compare.warmup",
+        "pair": null,
+        "scored": false
+      },
+      {
+        "arm": "A",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "id": "replay.compare.pair0.A",
+        "pair": 0,
+        "scored": true
+      },
+      {
+        "arm": "B",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "id": "replay.compare.pair0.B",
+        "pair": 0,
+        "scored": true
+      },
+      {
+        "arm": "B",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "id": "replay.compare.pair1.B",
+        "pair": 1,
+        "scored": true
+      },
+      {
+        "arm": "A",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "id": "replay.compare.pair1.A",
+        "pair": 1,
+        "scored": true
+      }
+    ],
+    "source": "sha256:10ea8ca7c2cc459cacdd9ec886e8ae198b9032b8bf725a98600d276c4e6912e4",
+    "threads": {
+      "interop": 1,
+      "intraop": 2
+    },
+    "validation": "sha256:fbe3fe588df41f614e7bfe23d0addc8b5824757bf74ce906584d18cb2ba5446c",
+    "version": "pipeline-replay-batching-comparison/v1",
+    "weights": "sha256:1e1da28dc15d17454dad9949e799a15bce3104b279c00b6c9fe0dc6ebfc83c78",
+    "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+  },
+  "baseline_report": {
+    "authority": "observational equal-work forced replay batching only; no pipeline/default/learning admission",
+    "calibration": {
+      "baseline_receipts": [
+        "sha256:93ec6d8b15576e2da740f7bcea7dfd874afa13ebc7be02c1fc4765a07f82b43b",
+        "sha256:82eb90ffdae0040d0968694ba55de6fa4b3082f3aa5470ba2df92b435105e62f",
+        "sha256:d47bf0dfeeae54682a3efdb174704374795cc26ec85bfdf155a626628dce81aa"
+      ],
+      "calibration_count": 3,
+      "cold_runs": 1,
+      "confirmation_order": [
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ],
+      "identity": "sha256:f83fcfb250306ac683da2471219d5c987a3b11e029f5d375856ad1b7b9d71198",
+      "parent": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+      "reservation_seconds": 103,
+      "rule": "sha256:6513a75fbadb66c8bdfeaa14dacc4991b34dbe8ec0673d93bc35e2f7ff4cdcfa",
+      "version": "pipeline-calibration/v1",
+      "warmups": 1,
+      "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+    },
+    "identity": "sha256:68826f9eca0fe38a077e37e65ec7ae05852f9569899ef6a0c4517a81721c3052",
+    "missing": [],
+    "optimization_adoption": false,
+    "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+    "research_cost_admission": false,
+    "status": "COMPLETE",
+    "trials": {
+      "replay.calibration-0": "sha256:3ab59f5dc142c6437b9fb5cc71e01513c4d1e8c916eb8b8e380f7f68634e09ff",
+      "replay.calibration-1": "sha256:c3c1f67a5228b371d895562fca039204a50326306e59a4225ba8dc60dc2c1abc",
+      "replay.calibration-2": "sha256:525309c2900d913e2f058f8da30617e0fe8269898e5ab60e79a9ca2acf89f539",
+      "replay.cold": "sha256:790b6cb3645c93c4a7a2eddf0189f0ed441adce3b158e2b87cd60ee1f41d217c",
+      "replay.warmup": "sha256:df52e7ba3bf794faef2c42a94e3bb62c9fba39df8a33ca0d1953718bccb7a9c1"
+    },
+    "version": "pipeline-replay-batching-baseline/v1",
+    "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+  },
+  "comparison_report": {
+    "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+    "identity": "sha256:7cc536cc6b34fe48113a592dc401e7adb4960529f7149df71a16a88888fac0ed",
+    "interpretation": "observational equal-work forced replay batching only; no pipeline/default/learning admission",
+    "missing": [],
+    "optimization_adoption": false,
+    "paired_gain": {
+      "maximum": 0.4900320562301599,
+      "median": 0.48979573397791043,
+      "minimum": 0.489559411725661
+    },
+    "pairs": [
+      {
+        "baseline_seconds": 50.50215427391231,
+        "baseline_supplied_tokens_per_second": 648.8436081810243,
+        "candidate_seconds": 25.754479771014303,
+        "candidate_supplied_tokens_per_second": 1272.3223412526138,
+        "gain": 0.4900320562301599,
+        "order": "AB",
+        "pair": 0
+      },
+      {
+        "baseline_seconds": 50.38177001895383,
+        "baseline_supplied_tokens_per_second": 650.3939815467488,
+        "candidate_seconds": 25.71690032677725,
+        "candidate_supplied_tokens_per_second": 1274.181553127572,
+        "gain": 0.489559411725661,
+        "order": "BA",
+        "pair": 1
+      }
+    ],
+    "research_cost_admission": false,
+    "row_boundaries": 160,
+    "rows": 32,
+    "slots": [
+      {
+        "complete": true,
+        "reason": null,
+        "receipt": "sha256:cc5fb17d9ee1ac2aa8ec05f1556b52b42b83f0a2a61909ada1a3cb92b7fecda4",
+        "result": "sha256:1d45b7d02e920aea83a0d10ef3985e95b190d810d0e87f9715d79d710e4845da",
+        "slot": {
+          "arm": "B",
+          "batch_size": 16,
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.warmup",
+          "pair": null,
+          "scored": false
+        },
+        "state": "PASS",
+        "verified_seconds": 25.820065461099148
+      },
+      {
+        "complete": true,
+        "reason": null,
+        "receipt": "sha256:a9071df0630ce2ef6733478eb4f778ee93372ea484f98fd51a760139eaf309ee",
+        "result": "sha256:ada44b80ba29d018f262c637089225b79b55fbc53adf3066c83d1214e1af9daf",
+        "slot": {
+          "arm": "A",
+          "batch_size": 8,
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair0.A",
+          "pair": 0,
+          "scored": true
+        },
+        "state": "PASS",
+        "verified_seconds": 50.50215427391231
+      },
+      {
+        "complete": true,
+        "reason": null,
+        "receipt": "sha256:d9d6a91ee148ca10b893996e9d6c605c5ae8f337067ca1927cf0227b49fb1805",
+        "result": "sha256:6f2d4017aa8b44cf61cbe32ddf8421733e13385d7bd6c24d2ee735ab8d739311",
+        "slot": {
+          "arm": "B",
+          "batch_size": 16,
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair0.B",
+          "pair": 0,
+          "scored": true
+        },
+        "state": "PASS",
+        "verified_seconds": 25.754479771014303
+      },
+      {
+        "complete": true,
+        "reason": null,
+        "receipt": "sha256:c143f604d39a28030ad26ae94b3416e8e2fd92e9d2c55faec001c314d1c5082a",
+        "result": "sha256:5d3adf8d2d4bc7c05b609d79c63a8fc9f3ac184c74f723137825c06d7715aa5e",
+        "slot": {
+          "arm": "B",
+          "batch_size": 16,
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair1.B",
+          "pair": 1,
+          "scored": true
+        },
+        "state": "PASS",
+        "verified_seconds": 25.71690032677725
+      },
+      {
+        "complete": true,
+        "reason": null,
+        "receipt": "sha256:b5e1aa2565a401b71d07d9b34680951509e510289b3f9fe3fc2173403f77950f",
+        "result": "sha256:79192516cedcd229cfd0538ad6f9baf84d89d98a47bb043379647d458406b21d",
+        "slot": {
+          "arm": "A",
+          "batch_size": 8,
+          "bookkeeping": "hoisted/v1",
+          "id": "replay.compare.pair1.A",
+          "pair": 1,
+          "scored": true
+        },
+        "state": "PASS",
+        "verified_seconds": 50.38177001895383
+      }
+    ],
+    "status": "COMPLETE",
+    "supplied_tokens": 32768,
+    "version": "pipeline-replay-batching-report/v1"
+  },
+  "roles": {
+    "replay.cold": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "decode_seconds": 50.30381663609296,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:dac9b7a582e9e3382de22114873a9374248d9c06424aa289250d53630eac11a8",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126113968128,
+            "current": 1053773824,
+            "driver": 738668544,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8920481792,
+          "qualified": true,
+          "role_peak_upper_bytes": 1792479232,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 51.37048093089834,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.31792383384891,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 600,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 51.95917186210863
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.09225659701041877,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.08880305299999998,
+        "collector_native_tid": 9,
+        "seconds": 50.32118973787874,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.99993691616692,
+        "cpu_equivalents": 1.0086118125419845,
+        "gpu_busy_sample_mean": 35.76470588235294,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    },
+    "replay.warmup": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "decode_seconds": 50.31949532497674,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:168d9db01936c4ab946afd2655409d2003e665a4476483d5a2b112c1838c80ce",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126191022080,
+            "current": 1055145984,
+            "driver": 738672640,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8801751040,
+          "qualified": true,
+          "role_peak_upper_bytes": 1793818624,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 51.45322638587095,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.333563247928396,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 600,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 52.063379066996276
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.0879053680691868,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.08858715500000003,
+        "collector_native_tid": 9,
+        "seconds": 50.34065562719479,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.999758696882054,
+        "cpu_equivalents": 1.0091963504445196,
+        "gpu_busy_sample_mean": 35.84313725490196,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    },
+    "replay.calibration-0": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "decode_seconds": 50.372229835018516,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:93ec6d8b15576e2da740f7bcea7dfd874afa13ebc7be02c1fc4765a07f82b43b",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126228377600,
+            "current": 1052164096,
+            "driver": 738672640,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8754610176,
+          "qualified": true,
+          "role_peak_upper_bytes": 1791115264,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 51.45194220403209,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.38564238790423,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 600,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 52.41757834306918
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.13186820386908948,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.081559671,
+        "collector_native_tid": 9,
+        "seconds": 50.391796458978206,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.99985539005138,
+        "cpu_equivalents": 1.008280336147352,
+        "gpu_busy_sample_mean": 35.96078431372549,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    },
+    "replay.calibration-1": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "decode_seconds": 50.92335877311416,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:82eb90ffdae0040d0968694ba55de6fa4b3082f3aa5470ba2df92b435105e62f",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126175047680,
+            "current": 1059753984,
+            "driver": 738664448,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 8809095168,
+          "qualified": true,
+          "role_peak_upper_bytes": 1798492160,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 52.13358197105117,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.93714031018317,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 600,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 53.02115690195933
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.10738269705325365,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.081078238,
+        "collector_native_tid": 9,
+        "seconds": 50.94244459597394,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.99984535295516,
+        "cpu_equivalents": 1.0079590175576676,
+        "gpu_busy_sample_mean": 35.509803921568626,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    },
+    "replay.calibration-2": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "decode_seconds": 51.066999453119934,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:d47bf0dfeeae54682a3efdb174704374795cc26ec85bfdf155a626628dce81aa",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126115180544,
+            "current": 1051631616,
+            "driver": 738668544,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9179574272,
+          "qualified": true,
+          "role_peak_upper_bytes": 1791393792,
+          "samples": 54,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 52.14515203493647,
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 51.080522230127826,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 600,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 52.751762842061
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.09793514502234757,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 52,
+        "missed": 0,
+        "collector_cpu_seconds": 0.105784257,
+        "collector_native_tid": 9,
+        "seconds": 51.09203216410242,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 52,
+        "interval_seconds": 50.99983803112991,
+        "cpu_equivalents": 1.0102266789269356,
+        "gpu_busy_sample_mean": 36.76923076923077,
+        "gpu_busy_samples": 52,
+        "memory_busy_available": false
+      }
+    },
+    "replay.compare.warmup": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+        "decode_seconds": 25.804803550010547,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:1d45b7d02e920aea83a0d10ef3985e95b190d810d0e87f9715d79d710e4845da",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125840412672,
+            "current": 1070931968,
+            "driver": 784793600,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9154592768,
+          "qualified": true,
+          "role_peak_upper_bytes": 1855741952,
+          "samples": 28,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 26.977634015958756,
+        "slot": "replay.compare.warmup",
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 25.820065461099148,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 163,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 27.621933887014166
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.12832926586270332,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 26,
+        "missed": 0,
+        "collector_cpu_seconds": 0.056613661000000016,
+        "collector_native_tid": 9,
+        "seconds": 25.833810882875696,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 26,
+        "interval_seconds": 24.999841762939468,
+        "cpu_equivalents": 1.0123406875925864,
+        "gpu_busy_sample_mean": 44.03846153846154,
+        "gpu_busy_samples": 26,
+        "memory_busy_available": false
+      }
+    },
+    "replay.compare.pair0.A": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+        "decode_seconds": 50.48731274600141,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:ada44b80ba29d018f262c637089225b79b55fbc53adf3066c83d1214e1af9daf",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125965221888,
+            "current": 1051992064,
+            "driver": 738652160,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9396662272,
+          "qualified": true,
+          "role_peak_upper_bytes": 1790656512,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 51.53596518211998,
+        "slot": "replay.compare.pair0.A",
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.50215427391231,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 163,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 52.14431283483282
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.09845447493717074,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.079673765,
+        "collector_native_tid": 9,
+        "seconds": 50.509177228901535,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.999843067955226,
+        "cpu_equivalents": 1.0083682249057484,
+        "gpu_busy_sample_mean": 36.0,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    },
+    "replay.compare.pair0.B": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+        "decode_seconds": 25.73950319713913,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:6f2d4017aa8b44cf61cbe32ddf8421733e13385d7bd6c24d2ee735ab8d739311",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125772103680,
+            "current": 1051414528,
+            "driver": 784797696,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9184534528,
+          "qualified": true,
+          "role_peak_upper_bytes": 1836232704,
+          "samples": 28,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 26.78632716811262,
+        "slot": "replay.compare.pair0.B",
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 25.754479771014303,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 163,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 27.64052971289493
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.14701147004961967,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 26,
+        "missed": 0,
+        "collector_cpu_seconds": 0.05602817399999998,
+        "collector_native_tid": 9,
+        "seconds": 25.760080819949508,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 26,
+        "interval_seconds": 24.999826623825356,
+        "cpu_equivalents": 1.0130899458263751,
+        "gpu_busy_sample_mean": 44.0,
+        "gpu_busy_samples": 26,
+        "memory_busy_available": false
+      }
+    },
+    "replay.compare.pair1.B": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 16,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+        "decode_seconds": 25.701463956851512,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:5d3adf8d2d4bc7c05b609d79c63a8fc9f3ac184c74f723137825c06d7715aa5e",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 125645889536,
+            "current": 1051734016,
+            "driver": 784809984,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9667809280,
+          "qualified": true,
+          "role_peak_upper_bytes": 1836544000,
+          "samples": 28,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 26.755300463875756,
+        "slot": "replay.compare.pair1.B",
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 25.71690032677725,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 163,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 27.37517254287377
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.13369292905554175,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 26,
+        "missed": 0,
+        "collector_cpu_seconds": 0.04853217999999998,
+        "collector_native_tid": 9,
+        "seconds": 25.723171956837177,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 26,
+        "interval_seconds": 24.99984791711904,
+        "cpu_equivalents": 1.012910561854256,
+        "gpu_busy_sample_mean": 44.30769230769231,
+        "gpu_busy_samples": 26,
+        "memory_busy_available": false
+      }
+    },
+    "replay.compare.pair1.A": {
+      "result": {
+        "authority": "forced replay viability only; not generated-program, optimization or research admission",
+        "batch_size": 8,
+        "bookkeeping": "hoisted/v1",
+        "boundaries": 160,
+        "comparison": "sha256:76b20228ae2f10642021489ecce285fc3b086b14ba3b111d410dad0c6cb0e3f7",
+        "decode_seconds": 50.3667533909902,
+        "device": {
+          "hip": "7.2.53211-e1a6bc5663",
+          "name": "AMD Radeon Graphics"
+        },
+        "identity": "sha256:79192516cedcd229cfd0538ad6f9baf84d89d98a47bb043379647d458406b21d",
+        "measurement": "fresh role and fresh hoisted/v1 KV caches; decode through verification/export; setup/startup separately observed",
+        "reference": "sha256:617022087f60d12eabf83538f17167e6db46f9b2d93d0ab15561f0827e71bd0a",
+        "resources": {
+          "accounting": "conservative cgroup plus driver residency upper bound; allocator excluded",
+          "breach": null,
+          "ceiling_bytes": 120744574976,
+          "last": {
+            "available": 126127677440,
+            "current": 1050890240,
+            "driver": 738664448,
+            "limit": 120744574976,
+            "physical": 134161076224
+          },
+          "machine_peak_upper_bytes": 9386962944,
+          "qualified": true,
+          "role_peak_upper_bytes": 1789833216,
+          "samples": 53,
+          "version": "pipeline-memory-observation/v1"
+        },
+        "seconds_through_role": 51.45597785199061,
+        "slot": "replay.compare.pair1.A",
+        "status": "COMPLETE",
+        "torch_threads": {
+          "interop": 1,
+          "intraop": 2
+        },
+        "verified_seconds": 50.38177001895383,
+        "version": "pipeline-role-result/v1",
+        "workload": "sha256:6ae5dadc4b11ea40d87ad3193c77112019e0df3965dd5fbd189901c0f81396cf"
+      },
+      "host_timing": {
+        "allowance_seconds": 163,
+        "reason": "includes engine launch/inspect/cleanup; compare inspect State timestamps for container lifetime",
+        "seconds_through_cleanup": 52.10489058797248
+      },
+      "cleanup": {
+        "allowance_seconds": 5,
+        "seconds": 0.14681886788457632,
+        "within_bound": true
+      },
+      "isolation": {
+        "device_evidence": "role-character-devices",
+        "expected_devices": {
+          "/dev/dri/renderD128": {
+            "major": 226,
+            "minor": 128
+          },
+          "/dev/kfd": {
+            "major": 240,
+            "minor": 0
+          }
+        },
+        "status": "PASS",
+        "version": "pipeline-isolation-audit/v1"
+      },
+      "boundaries": 160,
+      "progress_events": 321,
+      "telemetry": {
+        "samples": 51,
+        "missed": 0,
+        "collector_cpu_seconds": 0.09563149700000004,
+        "collector_native_tid": 9,
+        "seconds": 50.391095022903755,
+        "event_overflow": 0,
+        "collector_error": null
+      },
+      "sample_summary": {
+        "samples": 51,
+        "interval_seconds": 49.99973812280223,
+        "cpu_equivalents": 1.0085957625646398,
+        "gpu_busy_sample_mean": 36.09803921568628,
+        "gpu_busy_samples": 51,
+        "memory_busy_available": false
+      }
+    }
+  },
+  "review": {
+    "receipt_seals": true,
+    "reports_recomputed": true,
+    "all_gpu_roles_complete": true,
+    "gpu_verified_row_boundaries": 1600,
+    "cpu_reference_row_boundaries": 160,
+    "progress_and_shapes_checked": true,
+    "limitations": [
+      "Private raw tensors excluded; role numerical verification is source-bound, not recomputed by this review.",
+      "Sampled device-level busy is not kernel occupancy or memory bandwidth.",
+      "Two exploratory pairs, uncalibrated telemetry overhead; no full-pipeline/default/research admission."
+    ]
+  },
+  "producer_ci": [
+    {
+      "id": 40129761265,
+      "conclusion": "success"
+    },
+    {
+      "id": 40129761192,
+      "conclusion": "success"
+    }
+  ]
+}

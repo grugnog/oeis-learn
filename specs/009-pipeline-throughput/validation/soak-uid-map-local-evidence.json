@@ -1,0 +1,45 @@
+{
+  "version": "pipeline-soak-uid-map-local-evidence/v1",
+  "status": "CODE_LOCAL_COMPLETE_TARGET_PENDING",
+  "runtime_producer": "c41578f0b4754879aec666491aadd99583b1d6ad",
+  "source": "sha256:d5c6de025d143a79c631d4ad5d9ebcb61035ccdc71b20009493ec1eaa9d11d26",
+  "source_entries": 731,
+  "foundation_implementation": "sha256:d800866baae1a365213f1472842290adae5c93891b3a59b028fd167ae2415fb4",
+  "host_tests": {
+    "tests": 194,
+    "failures": 0,
+    "errors": 0
+  },
+  "public_cli": {
+    "exit_code": 3,
+    "selected_scope": "PARTIAL",
+    "stages": {
+      "BLOCKED": 34,
+      "PARTIAL": 2,
+      "PASS": 1,
+      "INCONCLUSIVE": 1
+    }
+  },
+  "archive": {
+    "path": "tmp-validation/009-soak-uid-map-local.zip",
+    "sha256": "sha256:20ccd72b1655a9cdcef3328bb8c037cb8885b7e21bcd75aaf229fa66e0e6da09",
+    "bytes": 5856286,
+    "members": 88,
+    "omissions": [],
+    "verified": true
+  },
+  "regressions": [
+    "Observed container TMPDIR path-substitution failure reproduced before repair",
+    "Rootless numeric UID changes both --user and keep-id mapping; other security flags preserved",
+    "Private default public-file modes overridden explicitly; actual recovery/export fixture exercised",
+    "Missing attestation preserves original launch failure and fatal allocation ResourceBreach; cleanup acknowledged"
+  ],
+  "runtime": "Host simulations are not actual rootless owner mapping or HIP soak proof; registered in one target command",
+  "original_counts": {
+    "complete": 77,
+    "pending_runtime": 19,
+    "blocked_research": 15
+  },
+  "learning": "NOT_ADMITTED",
+  "default": "RETAIN_BASELINE"
+}

@@ -1,0 +1,93 @@
+{
+  "version": "pipeline-soak-local-evidence/v1",
+  "status": "CODE_LOCAL_COMPLETE_TARGET_PENDING",
+  "date": "2026-10-25",
+  "branch": "009-pipeline-throughput",
+  "pr": 60,
+  "source": "sha256:f35e2441869aa4c4fb03c531df1cc427c41af171516e0dbe8ab28b8fed501693",
+  "source_entries": 731,
+  "manifest": "sha256:2a7b43361f2713ffc1f573c1b29ef97cf81964c652976f6b72dab0e8759a8344",
+  "work_contract": "sha256:fd749611a6b2b727e5e2c309cd3f2dac21565ae2e70aaae7defe3ed9a25ec834",
+  "foundation_implementation": "sha256:4805933e8ff05014e15cf54b0856978f4e115570b67c26dba5db99c578f5fa27",
+  "host_tests": {
+    "tests": 190,
+    "failures": 0,
+    "errors": 0,
+    "dependencies": "stdlib only; no host packages installed"
+  },
+  "public_cli": {
+    "command": "python3 scripts/foundation_run.py --engine podman --cpus 16 validate --suite pipeline --phase all-ready --engines both --manifest configs/foundation/pipeline_soak.json --max-seconds 86400 --output tmp-validation/009-soak-local-20261025T224500Z",
+    "exit_code": 3,
+    "summary_state": "PARTIAL",
+    "soak_verdict": "INCONCLUSIVE",
+    "elapsed_seconds": 9.773301571000047,
+    "stages": {
+      "BLOCKED": 34,
+      "PARTIAL": 2,
+      "PASS": 1,
+      "INCONCLUSIVE": 1
+    },
+    "engine_blockers": {
+      "podman": "podman: podman CLI is unavailable; select an installed container engine",
+      "docker": "docker: docker CLI is unavailable; select an installed container engine"
+    }
+  },
+  "archive": {
+    "path": "tmp-validation/009-soak-local-20261025T224500Z.zip",
+    "sha256": "sha256:44660a5d04c5e873858caed1ee7a27ddd896f8ba42693cc35031dec91ca63ec7",
+    "bytes": 5855241,
+    "members": 88,
+    "identity": "sha256:4591e3b575b7699b31b7c5f3de469037df5ab530039f01e9807ed013c79bc37d",
+    "verified": true,
+    "omissions": []
+  },
+  "static_graph": {
+    "stages": 38,
+    "non_image_phase_reservations_seconds": {
+      "1": 1440,
+      "2": 5820,
+      "3": 3600,
+      "4": 12600,
+      "5": 11340
+    },
+    "global_seconds": 86400,
+    "declared_reservation_ceiling_seconds": 84000
+  },
+  "checks": [
+    "closed authority/profile/data/lease/role options",
+    "full host adapter graph and serial branch selection with explicitly fake roles",
+    "same lease and private state across two container invocations",
+    "all planned steady windows and failed/missing cases",
+    "no completed-cycle credit for unstarted prompts",
+    "missed pulse slots remain unstarted without catchup",
+    "GPU probe on owner thread with drained native peer",
+    "OOM event remains fatal after memory usage falls",
+    "mandatory failure evidence excludes tensors",
+    "initial weights copied across distinct bind mounts",
+    "partial scope cannot adopt defaults or admit learning",
+    "original package gates retained; actual pinned CPU/HIP fixtures registered"
+  ],
+  "earlier_available_ci": {
+    "producer": "09fee7c1b0cfb0bcc95d7008f0f89b6f96a17a45",
+    "foundation": {
+      "run": 40230616795,
+      "conclusion": "success"
+    },
+    "container_native": {
+      "run": 40230616817,
+      "completed_jobs": 12,
+      "all_completed_jobs": "success",
+      "unawaited_job": "podman-build"
+    },
+    "qualifies_current_source": false
+  },
+  "original_counts": {
+    "complete": 77,
+    "pending_runtime": 19,
+    "blocked_research": 15
+  },
+  "runtime": "NOT_EXECUTED_HERE; pinned CPU/native/HIP/both-engine checks included in the one target command",
+  "learning": "NOT_ADMITTED",
+  "default": "RETAIN_BASELINE",
+  "limits": "Host simulations and earlier-source CI are not current-source actual runtime or sustained HIP evidence"
+}

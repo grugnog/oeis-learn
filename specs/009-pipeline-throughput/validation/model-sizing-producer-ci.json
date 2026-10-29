@@ -1,0 +1,119 @@
+{
+  "version": "pipeline-producer-ci-review/v1",
+  "producer": "6135575cf3e5181f1ed58b6b3e907feaf6c48c63",
+  "checks": [
+    {
+      "id": 121234590878,
+      "name": "bigint-qualification (containment, docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590878"
+    },
+    {
+      "id": 121234590870,
+      "name": "bigint-qualification (containment, podman)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590870"
+    },
+    {
+      "id": 121234590843,
+      "name": "bigint-qualification (performance, docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590843"
+    },
+    {
+      "id": 121234590804,
+      "name": "bigint-qualification (runtime-profile, docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590804"
+    },
+    {
+      "id": 121234590792,
+      "name": "bigint-preparation (contracts)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590792"
+    },
+    {
+      "id": 121234590774,
+      "name": "bigint-qualification (arithmetic, docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590774"
+    },
+    {
+      "id": 121234590735,
+      "name": "bigint-qualification (fitting, docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590735"
+    },
+    {
+      "id": 121234590721,
+      "name": "portable-engines (docker)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590721"
+    },
+    {
+      "id": 121234590652,
+      "name": "bigint-preparation (native)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590652"
+    },
+    {
+      "id": 121234590638,
+      "name": "portable-engines (podman)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590638"
+    },
+    {
+      "id": 121234590614,
+      "name": "native-qualification",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590614"
+    },
+    {
+      "id": 121234590590,
+      "name": "podman-build",
+      "conclusion": null,
+      "status": "in_progress",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121234590590"
+    },
+    {
+      "id": 121233714564,
+      "name": "image / build",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803102/job/121233714564"
+    },
+    {
+      "id": 121233561978,
+      "name": "cpu-regressions",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803098/job/121233561978"
+    },
+    {
+      "id": 121233561943,
+      "name": "cpu-acceptance (input-diagnostics)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803098/job/121233561943"
+    },
+    {
+      "id": 121233561883,
+      "name": "cpu-acceptance (quickstart)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/grugnog/oeis-learn/actions/runs/40214803098/job/121233561883"
+    }
+  ],
+  "interpretation": "Inspected available producer state once: fifteen completed successes, one in-progress Podman build, no failed check reported. Build and new publication CI not awaited. Actual target HIP failure remains authoritative for sizing."
+}

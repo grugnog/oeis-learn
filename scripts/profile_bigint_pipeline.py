@@ -54,7 +54,7 @@ def workload():
     )
 
 
-def prepare(run, inputs, output, *, image, source, render_node):
+def prepare(run, inputs, output, *, image, source, render_node, scope='diverse32', replay=False, sizing=False,soak=False):
     """Select only approved visible data and the selected checkpoint's weights."""
     parent = read(run / "run.json")
     if parent.get("version") != "bigint-run/v1" or parent.get("final_access") != "sealed":
@@ -92,9 +92,16 @@ def prepare(run, inputs, output, *, image, source, render_node):
     examples = read(example_file)
     view = "concrete" if recipe["learning"]["target_view"] == "literal" else "parameterized"
     learner = examples["views"][view]
-    ids = examples["tiny_ids"]
-    byid = {r["id"]: r for r in learner["training"]}
-    if len(ids) != 32 or len(set(ids)) != 32 or any(k not in byid for k in ids):
+    if soak:
+        from oeis_learn.pipeline_validation.soak import prepare_inputs
+        return prepare_inputs(recipe,learner,output,source=source,image=image,
+            parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
+    if scope not in ('diverse32','transfer-screen'):raise ValueError('unknown pipeline cost scope')
+    selected_rows=learner['training'] if scope=='diverse32' else learner['parameter_development']+learner['structural_development']
+    ids=examples['tiny_ids'] if scope=='diverse32' else [r['id'] for r in selected_rows]
+    byid={r['id']:r for r in selected_rows}
+    expected=32 if scope=='diverse32' else 256
+    if len(ids) != expected or len(set(ids)) != expected or any(k not in byid for k in ids):
         raise ValueError("complete diverse32 training panel required")
     prompts = [
         {k: byid[key][k] for k in ("id", "indices", "values", "horizon_indices", "family")}
@@ -102,6 +109,17 @@ def prepare(run, inputs, output, *, image, source, render_node):
     ]
     if len({byid[k]["family"] for k in ids}) < 4:
         raise ValueError("diverse panel requires at least four structures")
+    if replay:
+        if scope!='diverse32':raise ValueError('replay uses only the frozen visible training panel')
+        if replay=='ladder/v1':
+            from oeis_learn.pipeline_validation.hardware_ladder import prepare_inputs
+        elif replay=='batching/v1':
+            from oeis_learn.pipeline_validation.replay_batching import prepare_inputs
+        elif replay is True:
+            from oeis_learn.pipeline_validation.replay import prepare_inputs
+        else:raise ValueError('registered replay preparation mode required')
+        return prepare_inputs(recipe,prompts,weights,output,image=image,source=source,render_node=render_node,
+            parent=parent['contract_sha256'],parent_checkpoint=selected,data=prepared['identity'])
     training = [
         {k: r[k] for k in ("id", "indices", "values", "tokens")} for r in learner["training"][:128]
     ]
@@ -112,6 +130,12 @@ def prepare(run, inputs, output, *, image, source, render_node):
     ]
     if len(training) != 128 or len(validation) != 256:
         raise ValueError("complete128/256 synthetic update/validation records required")
+    if sizing:
+        if replay or scope!='diverse32':raise ValueError('separate real32 sizing preparation required')
+        from oeis_learn.pipeline_validation.model_sizing import prepare_inputs
+        return prepare_inputs(recipe,prompts,training,validation[:32],output,image=image,source=source,
+            render_node=render_node,parent=parent['contract_sha256'],parent_checkpoint=selected,
+            parent_weights=ref['sha256'],data=prepared['identity'])
     truth_file = inputs / "private/synthetic-truth.json"
     if file_hash(truth_file) != prepared["files"]["private/synthetic-truth.json"]["sha256"]:
         raise ValueError("synthetic training truth hash mismatch")
@@ -141,6 +165,7 @@ def prepare(run, inputs, output, *, image, source, render_node):
         validation_ids=[r["id"] for r in validation],
         seed=recipe["model"]["seed"],
         analysis_nonce=uuid.uuid4().hex,
+        scope=scope,
         authority="weights-only diagnostic; final sealed; no resume/training admission",
     )
     manifest["identity"] = digest(manifest)
@@ -203,7 +228,7 @@ def archive(output, *, cap=256 << 20):
     return target
 
 
-def container_stage(host, image, source, output, *, mode, seconds, gpu):
+def container_stage(host, image, source, output, *, mode, seconds, gpu, argv=None):
     from oeis_learn.container_runtime import private_runtime_environment
     from oeis_learn.tracking.pipeline_profile import character_device
 
@@ -221,7 +246,7 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
         name=name,
         mounts=mounts,
         auto_remove=False,
-        argv=[
+        argv=argv or [
             "python",
             "/opt/oeis-build/scripts/profile_bigint_pipeline.py",
             "--inside",
@@ -242,13 +267,53 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             "OEIS_EXPECTED_PIPELINE_DEVICES": json.dumps(expected_devices, sort_keys=True),
         },
     )
+    cleanup_state={};role_error=None
     try:
-        launch(command, output, seconds=seconds)
+        if argv is None:
+            launch(command, output, seconds=seconds)
+        else:
+            from oeis_learn.pipeline_validation.supervision import launch as supervised
+            supervised(command,output,seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+    except BaseException as exc:
+        role_error=exc
+        if argv is not None and not isinstance(exc,KeyboardInterrupt):
+            try:
+                failed=json.loads((output/'summary.json').read_text())
+            except (OSError,ValueError):failed={}
+            if failed.get('fatal')=='RESOURCE_BREACH':
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                role_error=ResourceBreach(failed.get('error','role resource breach'))
+                raise role_error from exc
+        raise
     finally:
+        cleanup_started=time.monotonic()
+        if argv is not None:
+            cleanup_state.setdefault('deadline',cleanup_started+5)
         try:
-            result = host.engine.call(["inspect", name], capture_output=True, timeout=10)
-            inspection = json.loads(result.stdout)
-            write(output / "container-inspect.json", inspection)
+            try:
+                result = host.engine.call(["inspect", name], capture_output=True, timeout=10 if argv is None else max(.001,min(2,cleanup_state['deadline']-time.monotonic())))
+                inspection = json.loads(result.stdout)
+                if argv is not None and (not isinstance(inspection,list) or len(inspection)!=1 or not isinstance(inspection[0],dict)):
+                    raise ValueError('one container inspection record required')
+                write(output / "container-inspect.json", inspection)
+            except (OSError,ValueError,subprocess.SubprocessError) as inspection_error:
+                if argv is None:raise
+                def error_tail(value):
+                    if isinstance(value,bytes):value=value.decode(errors='replace')
+                    return str(value or '')[-8192:]
+                launcher_error=(type(role_error).__name__+': '+str(role_error))[:8192] if role_error is not None else None
+                write(output/'inspection-error.json',dict(
+                    error=type(inspection_error).__name__+': '+str(inspection_error),
+                    returncode=getattr(inspection_error,'returncode',None),
+                    stderr=error_tail(getattr(inspection_error,'stderr',None)),
+                    stdout=error_tail(getattr(inspection_error,'stdout',None)),launcher_error=launcher_error))
+                write(output/'isolation-audit.json',dict(status='INCOMPLETE',
+                    reason='container inspection unavailable; no isolation PASS inferred',launcher_error=launcher_error))
+                if role_error is not None:raise role_error from inspection_error
+                raise
+            if argv is not None and inspection[0].get('State',{}).get('OOMKilled'):
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('compute container exceeded its memory envelope')
             config = inspection[0]["HostConfig"]
             binds = {
                 m["Destination"]: m["RW"]
@@ -257,9 +322,6 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             }
             from oeis_learn.tracking.pipeline_profile import audit_device_view
 
-            method = audit_device_view(
-                config.get("Devices") or [], read(output / "devices.json"), expected_devices
-            )
             if (
                 config.get("NetworkMode") != "none"
                 or not config.get("ReadonlyRootfs")
@@ -267,7 +329,21 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
                 or binds != {"/work/input": False, "/work/output": True}
                 or config.get("DeviceRequests")
             ):
+                if argv is not None:
+                    from oeis_learn.pipeline_validation.runner import ResourceBreach
+                    raise ResourceBreach('actual role isolation audit failed')
                 raise RuntimeError("actual role isolation audit failed")
+            try:
+                view=read(output/'devices.json')
+            except FileNotFoundError:
+                if role_error is None:raise
+                write(output/'isolation-audit.json',dict(status='INCOMPLETE',
+                    reason='role failed before device attestation',
+                    launcher_error=type(role_error).__name__+': '+str(role_error)))
+                # Missing evidence must not hide the actual launch failure or
+                # downgrade a fatal resource failure into an ordinary file error.
+                raise role_error
+            method = audit_device_view(config.get('Devices') or [],view,expected_devices)
             write(
                 output / "isolation-audit.json",
                 dict(
@@ -279,12 +355,22 @@ def container_stage(host, image, source, output, *, mode, seconds, gpu):
             )
         finally:
             start = time.monotonic()
-            host.engine.remove(name)
-            elapsed = time.monotonic() - start
-            write(
-                output / "cleanup.json",
-                dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
-            )
+            if argv is None:
+                host.engine.remove(name)
+            else:
+                from oeis_learn.pipeline_validation.supervision import reclaim
+                reclaim(host.engine,name,output,cleanup_state)
+            elapsed = time.monotonic() - (start if argv is None else cleanup_started)
+            if argv is None:
+                write(
+                    output / "cleanup.json",
+                    dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
+                )
+            # Modern roles retain reclaim's explicit acknowledgement/failure and
+            # shared deadline proof instead of replacing it with elapsed time.
+            if argv is not None and elapsed>5:
+                from oeis_learn.pipeline_validation.runner import ResourceBreach
+                raise ResourceBreach('pipeline container reclamation exceeded five-second envelope')
             write(
                 output / "host-timing.json",
                 dict(
