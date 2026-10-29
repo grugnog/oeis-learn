@@ -369,7 +369,7 @@ def parser():
     compare.add_argument("--runs", nargs="+", required=True)
     compare.add_argument("--output", required=True)
     pilot_diagnostics = commands.add_parser("pilot-diagnose", help="collect or generate read-only saved-pilot diagnostics")
-    pilot_diagnostics.add_argument("operation", choices=["collect", "models"])
+    pilot_diagnostics.add_argument("operation", choices=["collect", "models", "evaluate"])
     pilot_diagnostics.add_argument("--run", required=True)
     pilot_diagnostics.add_argument("--admission")
     pilot_diagnostics.add_argument("--inputs")
@@ -378,8 +378,15 @@ def parser():
     pilot_diagnostics.add_argument("--snapshots", nargs="+", type=int, default=list(range(6)))
     pilot_diagnostics.add_argument("--training-rows", type=int, default=32768)
     pilot_diagnostics.add_argument("--spectra", action="store_true")
+    pilot_diagnostics.add_argument("--include-selected", action="store_true", help="probe the retained best checkpoint as ordinal 6")
+    pilot_diagnostics.add_argument("--evaluation-policy", choices=["portfolio-clock60-matched/v2", "portfolio-clock60-matched-drain/v2"])
     pilot_diagnostics.add_argument("--max-seconds", type=float)
     pilot_diagnostics.add_argument("--scope-report", action="store_true")
+    followup = commands.add_parser("pilot-followup", help="fresh bounded uniform/family-balanced/LR-decay SFT screen")
+    for name in ("run","admission","inputs","output"):followup.add_argument("--"+name,required=True)
+    followup.add_argument("--tokens",type=int,choices=[25000000,50000000],default=25000000)
+    followup.add_argument("--seed",type=int,default=20261016)
+    followup.add_argument("--scope-report",action="store_true")
     admission = commands.add_parser("pilot-admit", help="qualify and prepare a versioned full-clock learning-pilot decision")
     admission.add_argument("--inputs", required=True, help="retained full corpus producer directory")
     admission.add_argument("--calibration", required=True, help="retained successful full-clock calibration directory")
@@ -413,6 +420,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "pilot-followup":
+            from oeis_learn.pipeline_validation.followup_study import main as followup_main
+            return followup_main(args, ROOT, Host)
         if args.command == "pilot-diagnose":
             from oeis_learn.pipeline_validation.diagnostics import main as diagnostics_main
             return diagnostics_main(args, ROOT, Host)

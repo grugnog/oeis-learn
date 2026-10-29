@@ -6,6 +6,13 @@ from .identity import seal,digest,file_hash,confined
 
 PRODUCER_SOURCE='sha256:fcfbb37256bdc75f7c85ac13be29195ac315f77d72e2fff846640c2f521143c4'
 CHANGES={
+ 'scripts/analyze_pilot.py','scripts/pilot_hip_serial.py',
+ 'src/oeis_learn/decoder/bigint_codec.py','src/oeis_learn/fresh/bigint_diagnostics.py',
+ 'src/oeis_learn/fresh/pipeline_scheduler.py','src/oeis_learn/pipeline_validation/pilot_runtime.py',
+ 'src/oeis_learn/pipeline_validation/pilot_clocks.py','src/oeis_learn/pipeline_validation/pilot_evidence.py',
+ *('src/oeis_learn/pipeline_validation/'+n+'.py' for n in ('followup_evaluation','followup_training','followup_study')),
+ 'tests/unit/test_pilot_followup.py','tests/unit/test_pilot_followup_host.py',
+
  'scripts/foundation_local.py','src/oeis_learn/pipeline_validation/role.py',
  'src/oeis_learn/pipeline_validation/pilot.py','src/oeis_learn/pipeline_validation/adapters.py',
  'src/oeis_learn/container_validation.py','tests/unit/test_pipeline_diagnostics.py',
@@ -69,16 +76,31 @@ def inspect(run,admission,producer,repo,plan):
         from .diagnostics_contract import populations
         population=populations(examples,m['roster'],training_rows=plan['training_rows'])
         selected=set(plan['snapshots'])|{0};snapshots={}
-        for i in sorted(selected):
+        for i in sorted(selected-{6}):
             key='pilot.train-'+str(i);role='stages/'+key+'/train-'+str(i)+'/'
             if r.summary['stages'].get(key,{}).get('state')!='PASS':raise ValueError('requested complete snapshot unavailable')
             trainer=r.read(role+'trainer.json');audit=r.read(role+'checkpoint-audit.json')
             if (audit['source']!=PRODUCER_SOURCE or audit['work']!=m['identity'] or audit['boundary']['active'] or audit['boundary']['reserved']):raise ValueError('snapshot lineage/quiescence mismatch')
             s=snapshot(confined(run,'stages/'+key+'/private/snapshots/'+str(i)),i,trainer,audit)
             snapshots[i]=s
+        if 6 in selected:
+            role='stages/pilot.train-5/train-5/'
+            trainer=r.read(role+'trainer.json');audit=r.read(role+'checkpoint-audit.json')
+            pointer=trainer['selected']
+            checkpoint_root=confined(run,role+'private/trainer/checkpoints')
+            record_path=confined(checkpoint_root,pointer['path'])
+            if file_hash(record_path)!=pointer['sha256']:raise ValueError('selected checkpoint pointer changed')
+            record=json.loads(record_path.read_text())
+            weights=record['files']['weights']
+            path=confined(checkpoint_root,weights['path'])
+            if (record['binding']['contract']!=audit['contract'] or record['binding']['weights']!=weights['sha256']
+                or path.stat().st_size>512<<20 or file_hash(path)!=weights['sha256']):
+                raise ValueError('selected weight/contract binding changed')
+            snapshots[6]=dict(ordinal=6,path=path,weights_sha256=weights['sha256'],parameter_digest=None,
+                pointer=pointer,selection='producer retained selected checkpoint; parameter digest measured during probe')
         public=seal(dict(version='pipeline-pilot-diagnostics-import/v1',source=digest(current),producer_source=PRODUCER_SOURCE,
             work=m['identity'],study=d['identity'],producer_manifests={k:v.manifest['identity'] for k,v in [('run',r),('admission',a),('data',p)]},
             changed_diagnostic_dependencies=changes,populations=population,
             snapshots=[{k:v for k,v in snapshots[i].items() if k not in ('path','descriptor')} for i in sorted(selected)],
             authority='diagnostics only; no optimizer, resume, training or hidden truth'))
-        return dict(prepared=prepared,manifest=m,snapshots=snapshots,populations=population,public=public)
+        return dict(prepared=prepared,manifest=m,contract=audit['contract'],snapshots=snapshots,populations=population,public=public)
