@@ -546,7 +546,7 @@ def generate(
         # A group spends one shared slice of the remaining global budget. Every
         # prompt also retains Portfolio's original sixty-second ceiling.
         size = (min(8,pipeline['workers']) if mode == 'template' else pipeline['batch_size']) if pipeline else 1 if mode == "template" else GENERATION_BATCH_SIZE
-        from oeis_learn.pipeline_validation.pilot_clocks import DRAIN
+        from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN
         if evaluation_policy==DRAIN:size=min(size,pipeline['workers'])
         for offset in range(0, len(rows), size):
             group = rows[offset : offset + size]
@@ -586,6 +586,7 @@ def generate(
                 from oeis_learn.decoder.bigint_generation import sample_batch
                 outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
                     lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],native_priority=evaluation_policy==DRAIN,
+                    native_expiry_grace=5 if evaluation_policy in (MATCHED,DRAIN) else 0,
                     sample=partial(sample_batch,batch_size=pipeline['batch_size'],capacity_qualified=bool(pipeline.get('capacity_qualification')),bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
                 # drive returns only after every native task has positively quiesced.
                 for value in outcomes:

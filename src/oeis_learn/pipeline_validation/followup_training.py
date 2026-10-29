@@ -69,7 +69,8 @@ def run(inputs,output,config):
             loss=sum(r['loss_sum'] for r in dev)/sum(r['tokens'] for r in dev)
             history.append(dict(tokens=tokens,updates=updates,splits=measured))
             if loss<best:best=loss;save('best')
-            write(output/'validation-history.json',history)
+            # A live progress journal, rewritten after each complete measurement.
+            write(output/'validation-history.json',history,exclusive=False)
         measure()
         while time.monotonic()<deadline and tokens<policy['max_tokens']:
             batch=sample(examples['training'],rng,policy['batch'],policy['arm'],groups)
