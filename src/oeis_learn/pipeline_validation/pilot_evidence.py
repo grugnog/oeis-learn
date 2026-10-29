@@ -9,6 +9,7 @@ class Evidence:
         self.output=Path(output);self.output.mkdir(parents=True,exist_ok=True);self.events=0;self.bytes=0
         roster=attempts or dict(correct=8,shuffled=1,absent=1,template=8)
         self.capacity=sum(roster.values())*len(rows)*3
+        self.byte_cap=(32 if attempts else 16)<<20
         self.jobs={(r['id'],mode,i):'UNSTARTED' for r in rows for mode,n in
             roster.items() for i in range(n)}
 
@@ -34,7 +35,7 @@ class Evidence:
         raw=json.dumps(row,sort_keys=True,allow_nan=False)+'\n'
         if len(raw.encode())>2048:raise ValueError('pilot event byte capacity exceeded')
         self.bytes+=len(raw.encode())
-        if self.bytes>32<<20:raise ValueError('pilot mandatory event stream exceeded16MiB')
+        if self.bytes>self.byte_cap:raise ValueError('pilot mandatory event stream exceeded16MiB')
         with (self.output/'attempts.jsonl').open('a') as stream:stream.write(raw)
 
     def __enter__(self):return self

@@ -11,6 +11,7 @@ CHANGES={
  'src/oeis_learn/fresh/pipeline_scheduler.py','src/oeis_learn/pipeline_validation/pilot_runtime.py',
  'src/oeis_learn/pipeline_validation/pilot_clocks.py','src/oeis_learn/pipeline_validation/pilot_evidence.py',
  *('src/oeis_learn/pipeline_validation/'+n+'.py' for n in ('followup_evaluation','followup_training','followup_study')),
+ 'tests/contract/test_native_fitting.py',
  'tests/unit/test_pilot_followup.py','tests/unit/test_pilot_followup_host.py',
 
  'scripts/foundation_local.py','src/oeis_learn/pipeline_validation/role.py',

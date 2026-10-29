@@ -24,7 +24,7 @@ def options(config):
         raise ValueError('explicit pilot purpose/ordinal required')
     from .identity import number
     number(value['seconds'],positive=True);number(value['memory_ceiling'],positive=True);number(value['worker_seconds'])
-    if value['seconds']>43200 or not 0<=value['ordinal']<=(6 if value['purpose']=='followup' else 5):raise ValueError('finite pilot role bound required')
+    if value['seconds']>43200 or not 0<=value['ordinal']<=(9 if value['purpose']=='followup' else 5):raise ValueError('finite pilot role bound required')
     if value['purpose'] in ('preflight','calibration') and value['ordinal']>2:raise ValueError('three preflight snapshots only')
     return value
 
@@ -179,7 +179,7 @@ def generate(inputs,output,config):
             # A frozen proportional share prevents a slow split borrowing another's allowance.
             allowance=(opt['seconds']-60)*len(batch)/296
             result=evaluate(encoder,decoder,batch,cfg['recipe'],synthesis,
-                deadline=deadline if full_clock(opt['purpose']) else min(deadline,time.monotonic()+allowance),
+                deadline=deadline if full_clock(opt['purpose']) or policy else min(deadline,time.monotonic()+allowance),
                 diagnostic_attempts=attempts(policy) if policy else dict(correct=8,shuffled=1,absent=1,template=8),evidence=evidence,
                 **(dict(evaluation_policy=policy or POLICY) if full_clock(opt['purpose']) or policy else {}))
             records.update({k:{n:r[n] for n in ('selections','arm_evidence','complete','family','strata')} for k,r in result['records'].items()})

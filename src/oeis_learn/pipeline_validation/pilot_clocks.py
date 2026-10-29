@@ -45,11 +45,11 @@ class FullClockEvidence(Evidence):
         self.clocks[key]=row
 
     def finish(self):
-        attempts=super().finish();expected=len(self.jobs)//sum(attempts(self.policy).values())*4
+        index=super().finish();expected=len(self.jobs)//sum(attempts(self.policy).values())*4
         self.clock_summary=seal(dict(version='pipeline-portfolio-clocks/v1',policy=self.policy,source=self.source,work=self.work,
             expected_portfolios=expected,missing_portfolios=expected-len(self.clocks),
             cost_complete=len(self.clocks)==expected and all(r['cost_complete'] for r in self.clocks.values()),
             terminations=dict(Counter(r['termination'] for r in self.clocks.values())),
-            attempts=attempts['identity'],clocks=[self.clocks[k] for k in sorted(self.clocks)]))
+            attempts=index['identity'],clocks=[self.clocks[k] for k in sorted(self.clocks)]))
         write(self.output/'portfolio-clocks.json',self.clock_summary)
-        return attempts
+        return index

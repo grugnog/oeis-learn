@@ -22,7 +22,20 @@ def evaluate(owner,output,ordinal):
     cfg['pilot_selections_sha256']=file_hash(gen/'selections.json');write(descriptor,cfg)
     scored,score=p.invoke(output,'score-'+str(ordinal),'pilot-score',
         {'settings.json':descriptor,'selections.json':gen/'selections.json','truth.json':p.prepared/'private/truth.json'},seconds=1500,ordinal=ordinal)
-    return dict(status='COMPLETE',training=False,clock_complete=generated['clock_complete'],scientific_complete=scored['complete'])
+    outcomes=json.loads((score/'outcomes.json').read_text())
+    selected=json.loads((gen/'selections.json').read_text())
+    groups={}
+    for split in sorted({r['strata']['split'] for r in selected.values()}):
+        ids=[k for k,r in selected.items() if r['strata']['split']==split]
+        for arm in ('raw','rescue','equal_budget','shuffled','absent','template'):
+            values=[outcomes[k][arm] for k in ids];n=len(values)
+            success=sum(v['success'] for v in values);complete=sum(v['complete'] for v in values)
+            groups[split+'|'+arm]=dict(denominator=n,success=success,complete=complete,unresolved=n-complete,
+                lower=success/n,upper=(success+n-complete)/n)
+    result=seal(dict(status='COMPLETE',training=False,clock_complete=generated['clock_complete'],
+        scientific_complete=scored['complete'],groups=groups,policy=owner.contract['evaluation_policy']))
+    write(output/'evaluation.json',result)
+    return result
 
 
 def report(owner,output,invocation,receipts):
