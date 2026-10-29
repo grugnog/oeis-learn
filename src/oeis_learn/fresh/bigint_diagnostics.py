@@ -291,8 +291,9 @@ def _portfolio(
                     found, status = _raw(client,source,prompt,service_deadline if pipeline else min(deadline,time.monotonic()+4))
                     fit_result = dict(outcome='raw_only',admitted=[found] if found else [],complete=status['complete'],reason=status['reason'])
                 else:
+                    from oeis_learn.decoder.bigint_codec import fitting_policy
                     fit_result = client.fit(source,prompt,
-                        policy='none' if '(param.get ' in source else 'eligible-literals/v1',
+                        policy=fitting_policy(source),
                         deadline=service_deadline if pipeline else min(deadline,time.monotonic()+4),seed=attempt['seed']%2**32)
                 if evidence:native_clock['completed']=time.monotonic()
                 return raw_found, raw_status, fit_result, time.monotonic()-fit_started
