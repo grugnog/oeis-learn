@@ -33,7 +33,7 @@
 
 ## Validation notes
 
-Two review passes completed. The first checked evidence, scope and constitution compatibility; the second checked testability, access boundaries, defaults and traceability. All 16 checks pass for specification readiness. This is not implementation, benchmark or HIP acceptance.
+Two initial review passes and a research-sequencing amendment review completed. The first checked evidence, scope and constitution compatibility; the second checked testability, access boundaries, defaults and traceability. All 16 checks pass for specification readiness. This is not implementation, benchmark or HIP acceptance.
 
 - The user explicitly required canonical CLI orchestration and HIP consolidation. These are retained as product/operational constraints without defining command flags, schemas, code structure or libraries. Technical code paths and paper methods are confined to the companion research review. Stakeholders here are the researcher and workstation operator; scientific terms are necessary to make their requested outcomes precise.
 - Selection supervision is explicitly distinct from hidden evaluation (FR-003, FR-022–023). The wording was tightened to protect assessment target programs and labels as well as continuation values, and to confine target-relative diagnostics to scoring after selection freezes. No constitutional amendment is hidden in semantic checkpoint selection.
@@ -53,7 +53,7 @@ Two review passes completed. The first checked evidence, scope and constitution 
 | FR-012–016 | Story 2: broader cohort, shortfalls and isolation | SC-002, SC-004 |
 | FR-017–024 | Story 3: paired interventions, selection and resume | SC-003–005 |
 | FR-025–029 | Story 4: bounded verified replay and control | SC-004, SC-005 |
-| FR-030–034 | Stories 1, 3–5: research decisions and evidence delivery | SC-001, SC-005–007 |
+| FR-030–036 | Stories 1, 3–5: research decisions and evidence delivery | SC-001, SC-005–007, SC-009 |
 | NFR-001–002 | Planning handoff for every story | SC-008 |
 | NFR-003–008 | Story 5: serial hardware acceptance and packaging | SC-006–007 |
 
@@ -66,3 +66,7 @@ Two review passes completed. The first checked evidence, scope and constitution 
 - `.specify/extensions.yml` absent at pre- and post-specification checks; no hooks dispatched.
 - Relative document links, reference mappings, unique requirement IDs, mandatory headings and whitespace checked. No runtime implementation changed; runtime tests/HIP execution are not claimed.
 - Ready for `$speckit-plan`. The plan must preserve both user-requested phase/run constraints before a task breakdown is accepted.
+
+## Sequencing amendment
+
+FR-035–036 and SC-009 make the next work concrete: evaluation extension, two additional historical uniform seeds, then a fresh static-versus-refreshed pilot, followed by isolated support/target/replay comparisons. This clarifies execution priority without removing any implementation scope. Adaptive progression uses selection supervision and cannot reuse exposed assessment as fresh confirmation. All 16 specification checks remain satisfied.

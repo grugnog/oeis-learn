@@ -59,6 +59,7 @@ As the operator, I can run selected paired experiments isolating refresh, struct
 2. **Given** paired literal/parameterized targets, **when** they are prepared, **then** both represent the same concrete behavior, control-sensitive literals stay protected, and unsupported cases remain counted.
 3. **Given** fixed milestones and separate loss/behavior selection rules, **when** checkpoints are selected, **then** the same candidate set is considered, assessment truth is inaccessible, and best/latest/selected identities stay distinct.
 4. **Given** an interrupted run, **when** it resumes, **then** learning state, random state, example order, replay and consumed budgets are restored; weights alone cannot serve as a resume source.
+5. **Given** completed qualification and evaluation extensions, **when** the first research campaign is prepared, **then** it names the uniform-seed replication and the first static-versus-refreshed training comparison, with explicit budgets, prerequisites and advancement decisions rather than an unspecified menu of experiments.
 
 ### User Story 4 - Test bounded verified replay (Priority: P2)
 
@@ -157,6 +158,19 @@ As the workstation operator, I can invoke one serial workflow performing qualifi
 - **FR-032**: A decision rule MUST freeze effect size, nonregression guard, completion floor and uncertainty treatment. The default promotion screen requires a mean structural family-macro gain of at least 5 percentage points across three paired seeds, no seed with a negative observed structural difference, no more than a 5-point mean row-weighted parameter-yield decline, and at least 95% completion per primary split/seed. If unresolved-outcome bounds cannot establish these conditions, the result is inconclusive. Passing is not a population-level statistical guarantee.
 - **FR-033**: Sharing bundles MUST contain experiment/qualification identities, commands/order, checkpoint/data/source hashes, requested/actual budgets, attempt/family results, selection decisions, costs, bounds, failures and scoped interpretation. Inventories MUST verify payload size/hash and list intentional omissions. Private optimizer state and sealed truth MUST be excluded.
 - **FR-034**: Software acceptance and scientific outcome MUST be separate statuses. A passing workflow with censored measurements or no gain MUST not claim scientific success. Negative research results do not fail otherwise correct software acceptance.
+- **FR-035**: The default research sequence MUST be: bounded evaluation extension; limited uniform-seed replication; a static-versus-refreshed training pilot on the new frozen benchmark; then separately controlled structural-support, target-representation and replay comparisons. All these capabilities remain implementation scope; execution gates do not defer their implementation. Each stage MUST identify its exact arms, prerequisites, budget and stop/advance decision before execution.
+- **FR-036**: The first replication MUST add uniform 25M-token runs at seeds 20261017 and 20261018 to the historical 20261016 reference, without repeating family-balanced or decay arms. Historical evidence may be reused only when compatible and available; otherwise the baseline must be regenerated or explicitly declared unavailable. The first learning intervention MUST compare fresh static and refreshed-within-support training at seed 20261016 with a 25M-token cap per arm, holding model, family support and sampling policy fixed. Its initial outcome is exploratory; extension to the other two paired seeds requires valid coverage, complete accounting and adequate completion, and uses a decision frozen before assessment. No positive accuracy gain is required to complete a valid negative experiment.
+
+### Research sequence and advancement
+
+| Stage | Concrete purpose | Advancement condition |
+| --- | --- | --- |
+| Evaluation extension | Evaluate available retained best/latest weights and matched controls; add source/cost diagnostics and the shared proposal-bank control. | Identity and accounting checks pass; primary comparisons reach the completion floor. Missing historical weights are reported, never fabricated. |
+| Limited replication | Two additional uniform seeds on the historical recipe/cohort; retain historical seed 20261016 as an explicitly identified reference. | Produce a seed-variability report; investigate unresolved qualification/accounting failures before new training. No claim of new unseen-assessment confirmation. |
+| First learning pilot | Static versus refreshed variants within fixed support, fresh paired initialization, initially one seed on the new benchmark. | Coverage/isolation gates pass and execution is interpretable. Use selection supervision for adaptive advancement; only a preregistered frozen comparison consumes sealed assessment. |
+| Subsequent isolated comparisons | Broader structural support, then literal/parameterized targets, then one verified replay round versus continued supervision. | Freeze each baseline using selection evidence and the preceding registered decision, preserve negative results, and use fresh assessment for adaptive follow-up claims. Do not automatically combine interventions. |
+
+Research execution order is distinct from implementation phases. The complete feature still implements the broader data, representation and replay changes in this specification, while the operator runs only the next justified experiment.
 
 ### Non-Functional Requirements
 
@@ -192,6 +206,7 @@ As the workstation operator, I can invoke one serial workflow performing qualifi
 - **SC-006**: The successful unchanged-environment path needs exactly one serial hardware-validation invocation, qualifies once per required scope and produces a sharing bundle passing integrity checks.
 - **SC-007**: Every injected stage failure produces a partial result identifying the failure/restart requirements; none yields an overall pass. Real accelerator evidence remains distinct from local checks.
 - **SC-008**: The plan contains exactly one complex-algorithm phase, with every algorithm-bearing task/reference test mapped to it. Other phases cover contracts/scaffolding, integration and consolidated validation/delivery.
+- **SC-009**: The operator can identify and launch the first bounded replication and first learning intervention from named frozen recipes, and every later stage has an explicit advance/stop/inconclusive decision without requiring a full experiment sweep.
 
 ## Assumptions
 
