@@ -55,3 +55,25 @@ def test_recovery_archive_excludes_unreviewed_stage_payloads(tmp_path):
     with zipfile.ZipFile(archive) as z:
         assert 'prepare/candidates.json' not in z.namelist()
         assert set(z.namelist())=={'summary.json','workflow.json','manifest.json'}
+
+
+def test_original_consumer_uses_fresh_inspection_and_role_verification(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_qualification_io as io
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.pipeline_validation.identity import seal
+    producer=tmp_path/'producer';producer.mkdir()
+    q=seal(dict(version='generalization-qualification/v2',images=['cpu','gpu'],source_closure='source',build_dependencies=[]))
+    (producer/'qualification.json').write_text(json.dumps(q))
+    calls=[]
+    def inspect(*args,**kwargs):calls.append('inspect');return {'measured':'new'}
+    def invoke(*args,**kwargs):
+        calls.append('consume');assert kwargs['settings']['current']=={'measured':'new'}
+        assert kwargs['source_roots']['public_evidence']==producer
+        return dict(status='PASS',original='original-producer')
+    monkeypatch.setattr(io,'current_facts',inspect);monkeypatch.setattr(roles,'project_and_invoke',invoke)
+    result=io.consume_original(None,tmp_path,producer,tmp_path/'consumer',required_suites=['cpu','hip'],required_capabilities=['load'])
+    assert calls==['inspect','consume'] and result['original']=='original-producer'
+    def stale(*args,**kwargs):raise ValueError('current source closure changed')
+    monkeypatch.setattr(io,'current_facts',stale)
+    with pytest.raises(ValueError,match='source closure'):io.consume_original(None,tmp_path,producer,tmp_path/'stale',required_suites=['cpu'],required_capabilities=['load'])
+    assert calls==['inspect','consume']

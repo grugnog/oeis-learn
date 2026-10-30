@@ -57,7 +57,19 @@ def learner(inputs,output,settings,*,seconds):
     return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume)
 
 
+def qualification_consume(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.qualification import consume
+    from oeis_learn.generalization.contracts import verify_artifact
+    if set(settings)!={'authority','current','required_suites','required_capabilities','research','feature_receipt'}:
+        raise ValueError('closed qualification consumption settings required')
+    root=inputs['public_evidence'];authority=json.loads(verify_artifact(root,settings['authority']))
+    original=consume(authority,settings['current'],root=root,required_suites=settings['required_suites'],
+        required_capabilities=settings['required_capabilities'],research=settings['research'],feature_receipt=settings['feature_receipt'])
+    return dict(status='PASS',original=original,study_qualified=False)
+
+
 HANDLERS={(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+          (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner}
 
 

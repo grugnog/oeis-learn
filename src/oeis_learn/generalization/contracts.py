@@ -7,13 +7,12 @@ import json
 from pathlib import Path, PurePosixPath
 import stat
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
 from oeis_learn.pipeline_validation.identity import seal, digest, confined
 
 
 @lru_cache(maxsize=1)
 def _schemas():
+    from referencing import Registry, Resource
     schemas = {p.name.removesuffix('.schema.json'): json.loads(p.read_text())
                for p in files('oeis_learn.generalization').joinpath('schemas').iterdir()
                if p.name.endswith('.schema.json')}
@@ -22,6 +21,7 @@ def _schemas():
 
 
 def shape(kind, record):
+    from jsonschema import Draft202012Validator
     schemas, registry = _schemas()
     if kind not in schemas:
         raise ValueError('unknown authority kind')

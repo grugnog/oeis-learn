@@ -98,3 +98,20 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     prep['generator']=changed;study['data']['generator']=changed
     bad=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'bad-study',execute=native)
     assert bad['status']=='BLOCKED' and not (tmp_path/'bad-study/study.json').exists()
+
+
+def test_projection_copies_only_named_verified_files(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    (tmp_path/'prompts.json').write_text('[]');(tmp_path/'private-target.json').write_text('secret')
+    (tmp_path/'weights.json').write_text('{}')
+    def invoke(host,image,root,role,channels,**kwargs):
+        prompt_root=root/channels['visible_prompts']
+        assert list(p.name for p in prompt_root.rglob('*') if p.is_file())==['prompts.json']
+        assert not (prompt_root/'private-target.json').exists()
+        return dict(status='PASS')
+    monkeypatch.setattr(roles,'invoke',invoke)
+    result=roles.project_and_invoke(None,'image',tmp_path,'generator',
+        {'visible_prompts':[reference(tmp_path/'prompts.json',tmp_path)],'frozen_weights':[reference(tmp_path/'weights.json',tmp_path)]},
+        output='new',operation='evaluate',settings={},seconds=30)
+    assert result['status']=='PASS' and not (tmp_path/'new/private/input').exists()

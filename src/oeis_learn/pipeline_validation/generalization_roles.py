@@ -57,3 +57,30 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     if result.get('status') not in {'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}:
         raise ValueError('role omitted terminal status')
     return result
+
+
+def project_and_invoke(host,image,root,role,artifacts,*,output,operation,settings,seconds,gpu=False,source_roots=None):
+    """Copy the declared verified files into disjoint, read-only channel views."""
+    from oeis_learn.generalization.contracts import verify_artifact
+    from .identity import confined
+    import shutil
+    root=Path(root);output=confined(root,output,exists=False)
+    if output.exists():raise ValueError('fresh role invocation required')
+    output.mkdir(parents=True,exist_ok=False)
+    channels={}
+    try:
+        for channel,refs in artifacts.items():
+            if channel not in {m.channel for m in ROLE_INPUTS[Role(role)]}:raise ValueError('undeclared role channel')
+            folder=output/'private/input'/channel;folder.mkdir(parents=True)
+            for ref in refs:
+                source=Path((source_roots or {}).get(channel,root)).resolve()
+                source.relative_to(root.resolve())
+                payload=verify_artifact(source,ref)
+                path=confined(folder,ref['path'],exists=False);path.parent.mkdir(parents=True,exist_ok=True)
+                with path.open('xb') as stream:stream.write(payload)
+            channels[channel]=str(folder.relative_to(root))
+        return invoke(host,image,root,role,channels,output=str((output/'role').relative_to(root)),
+            operation=operation,settings=settings,seconds=seconds,gpu=gpu)
+    finally:
+        # Keep operator originals and role outputs; delete only disposable views.
+        shutil.rmtree(output/'private/input',ignore_errors=True)
