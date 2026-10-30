@@ -55,3 +55,13 @@ def test_mixed_batch_persists_replay_cursor_before_interrupted_update():
     assert len(updated)==1 and result['state']['replay']['cursor']==2
     assert sum(r['id'].startswith('replay:') for r in updated[0])==2
 
+
+def test_search_overrun_retains_charged_attempt_evidence(monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_replay as replay
+    clock=[0.]
+    monkeypatch.setattr(replay.time,'monotonic',lambda:clock[0])
+    def overrun(*args):
+        clock[0]=61.
+        raise ValueError('native deadline cleanup overrun')
+    _,report=replay.search_round([task()],propose=overrun,client=NativeFixture(),checkpoint='checkpoint',seed=3)
+    assert sum(row[1] for row in report['search_ledger'])==1

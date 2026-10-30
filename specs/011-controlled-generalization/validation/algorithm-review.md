@@ -121,3 +121,25 @@ selection passes (10 tests); the next combined result records the full exit revi
 The combined selection after the projection correction passes **177 tests and
 9 subtests**, restoring T024/T044's local gate. A subsequent preparation-only check
 passes 6 tests after preserving parameter-target dispositions as protected metadata.
+
+
+## Reopened T043/T044: replay overrun loses charged work
+
+Integration exposed a failing counterexample in `test_search_overrun_retains_charged_attempt_evidence`.
+A deterministic clock advances from 0 to 61 seconds inside the proposal callback,
+which then raises a deadline/cleanup failure. `search_round` invokes
+`SearchLedger.charge` only after the work. The policy rejects the over-limit
+measurement, and the adapter returns an empty search ledger although one attempt
+ran. The expected charged-attempt count is 1; actual is 0. No sleep, native process,
+GPU or HIP command is involved in this reproducer.
+
+T043 and T044 are reopened. Required Phase-B repair: define and test the accounting
+transition for reserved/started attempts, measured elapsed work, timeout and cleanup
+overrun, including interruption before completion. Keep the 8-attempt/60-second
+admission bounds without discarding already performed work or disguising measured
+costs. Reconcile the adapter against that policy and restore the complete gate.
+
+This blocks continuation under plan.md's explicit rule: “A discovered algorithm
+defect reopens B and affected gates. Do not implement a workaround in C/D and call
+it integration.” The failing regression is retained and is not marked xfail/skipped.
+C/D are incomplete; this is not a hardware limitation or a claim of qualification.
