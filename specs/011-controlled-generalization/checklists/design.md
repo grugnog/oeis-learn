@@ -16,6 +16,6 @@
 - [x] Acceptance-specific preparation and stage reservations fit inside the total ceiling; no full research sweep in qualification.
 - [x] Relative links, mandatory plan headings, requirement IDs, Markdown code fences and shell-block syntax checked.
 - [x] Extension file absent at pre/post checks; no registered hooks skipped.
-- [x] No tasks.md or runtime implementation generated; planning ends after design as required by the skill.
+- [x] At completion of speckit-plan, no tasks.md or runtime implementation was generated; planning ended after design as required. The subsequent speckit-tasks invocation now provides [tasks.md](../tasks.md).
 
 Review corrected CPU-only precheck selection, checkout-relative example paths, source dispatcher filename, resolved P1 manifest references, sibling archive naming, canonical exit mappings and smaller acceptance reservations. Learning review also tightened assessment-use wording and replay-specific milestones. All specification quality checks remain satisfied after FR-035–036/SC-009 clarify execution order.

@@ -114,4 +114,4 @@ No constitutional exceptions. The added policy layer and qualification contract 
 
 ## Readiness
 
-Ready for speckit-tasks after review. This planning change contains no runtime implementation and no new training/HIP measurements. Both the first pilot sequence and the complete implementation scope are explicit.
+The [task breakdown](tasks.md) is generated and ready for implementation review. This planning change contains no runtime implementation and no new training/HIP measurements. Both the first pilot sequence and the complete implementation scope are explicit.
