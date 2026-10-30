@@ -57,7 +57,7 @@ class PreparedBatches:
         if not shards or len(shards)>16 or sum(r['bytes'] for r in shards)>8<<30:
             raise ValueError('prepared shard ceiling')
         self.root=root;self.shards=tuple(shards);self.mode=mode;self.batch_size=batch_size
-        self.sizes=[];self.cache=None;seen=set()
+        self.sizes=[];self.cache=None;seen=set();self.target_tokens=0
         for ref in shards:
             rows=json.loads(verify_artifact(root,ref,max_bytes=8<<30))
             if not isinstance(rows,list) or not rows:raise ValueError('nonempty training shard required')
@@ -66,6 +66,7 @@ class PreparedBatches:
                 if row['id'] in seen or row['tokens']!=encode_body(row['source']):raise ValueError('duplicate task or target codec mismatch')
                 seen.add(row['id'])
             self.sizes.append(len(rows))
+            self.target_tokens+=charge_tokens([r['tokens'] for r in rows],bos=1,pad=0)
         self.count=sum(self.sizes)
         self.updates=updates if mode=='static' else min(updates,(self.count+batch_size-1)//batch_size)
         self.identity=digest(dict(shards=list(shards),mode=mode,batch_size=batch_size,updates=updates))
@@ -113,6 +114,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None):
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     batches=PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap)
+    if config['data_mode']=='refresh' and batches.target_tokens<cap:raise ValueError('insufficient prepared refresh target-token capacity')
     compatibility=digest(dict(config=config,data=batches.identity))
     output=Path(output)
     if output.exists():raise ValueError('fresh learner output required')

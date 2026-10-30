@@ -74,8 +74,9 @@ def test_checkpoint_pins_survive_pruning_and_failed_save(tmp_path):
     assert json.loads((tmp_path/'generalization-latest.json').read_text())==third
 
 
+@pytest.mark.parametrize("data_mode",["static","refresh"])
 @pytest.mark.parametrize("target_format",["literal","parameterized"])
-def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format):
+def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode):
     torch=pytest.importorskip('torch')
     pytest.importorskip('numpy')
     from oeis_learn.pipeline_validation.generalization_training import run_torch
@@ -84,7 +85,7 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
     from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.pipeline_validation.identity import digest
     rows=[]
-    for i in range(2):
+    for i in range(4 if data_mode=="refresh" else 2):
         src=f'(program (return (int {i})))' if target_format=='literal' else '(program (return (param.get p0)))'
         rows.append(dict(id=str(i),role='training',source=src,tokens=encode_body(src),indices=list(map(str,range(100))),values=[str(i)]*100))
     (tmp_path/'rows.json').write_text(json.dumps(rows));shards=[reference(tmp_path/'rows.json',tmp_path)]
@@ -98,8 +99,8 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         result=(decoder(encoder(value))-value).square().mean();result.backward();optimizer.step()
     monkeypatch.setattr(bigint_worker,'models',models);monkeypatch.setattr(bigint_worker,'_batch_loss',loss)
     recipe=dict(model=dict(seed=7),learning=dict(learning_rate=.001),inputs={})
-    config=dict(study='study',arm='static',seed=7,recipe=recipe,shards=shards,data_mode='static',batch_size=1,
-                target_tokens=sum(len(r['tokens']) for r in rows)*2,milestones=[len(rows[0]['tokens'])],seconds=30,device='cpu')
+    config=dict(study='study',arm='static',seed=7,recipe=recipe,shards=shards,data_mode=data_mode,batch_size=1,
+                target_tokens=sum(len(r['tokens']) for r in rows)*(1 if data_mode=='refresh' else 2),milestones=[len(rows[0]['tokens'])],seconds=30,device='cpu')
     full=run_torch(tmp_path,tmp_path/'full',config)
     part=run_torch(tmp_path,tmp_path/'part',config,stop_after_updates=1)
     resumed=run_torch(tmp_path,tmp_path/'resumed',config,resume=(tmp_path/'part/checkpoints',part['checkpoint']))
