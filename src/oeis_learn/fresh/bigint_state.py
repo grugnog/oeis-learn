@@ -328,3 +328,29 @@ class GeneralizationCheckpointStore:
         for key in states.keys()-{'rng','data'}:states[key]=decode(verify_artifact(self.root,states[key]))
         states['rng']={key:decode(verify_artifact(self.root,value)) for key,value in states['rng'].items()}
         return dict(states=states,ledger=result['ledger'])
+
+    def retain(self,history,pins):
+        """Verify every retained generation before atomically publishing the pin set.
+
+        Only generations explicitly present in this run's history may be removed;
+        incomplete writes and unrelated files are never guessed to be disposable.
+        """
+        import json,shutil
+        from oeis_learn.generalization.checkpoints import prune_plan
+        from oeis_learn.generalization.contracts import verify_artifact,artifact_refs
+        remove=prune_plan(history,pins)
+        for key in pins:
+            record=json.loads(verify_artifact(self.root,history[key]))
+            for ref in artifact_refs(record):verify_artifact(self.root,ref)
+        latest=read(self.root/'generalization-latest.json')
+        if latest not in [history[k] for k in pins]:raise ValueError('latest generation must remain pinned')
+        write(self.root/'generalization-pins.json',{key:history[key] for key in pins})
+        keep={Path(history[k]['path']).parent for k in pins}
+        for key in remove:
+            relative=Path(history[key]['path']).parent
+            if relative in keep:continue
+            if len(relative.parts)!=1 or not relative.name.startswith('generalization-'):
+                raise ValueError('unowned checkpoint generation')
+            # verify_artifact also rejects symlinks before any recursive removal.
+            verify_artifact(self.root,history[key])
+            shutil.rmtree(self.root/relative)
