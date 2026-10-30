@@ -115,6 +115,8 @@ def _stages(host, suite, output, *, external_seconds=None):
             if p.name != "test_bigint_gpu.py"
         ]
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
+        bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','contract','integration')
+                       for p in sorted((ROOT/'tests'/area).glob('test_generalization_*.py'))]
         bigint_cpu += [
             "tests/unit/test_pilot_followup.py",
             "tests/unit/test_pilot_followup_host.py",

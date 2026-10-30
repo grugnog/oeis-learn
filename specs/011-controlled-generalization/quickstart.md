@@ -83,3 +83,14 @@ python3 scripts/foundation_run.py --engine docker generalization verify-bundle \
 ```
 
 Expect a scoped positive/negative/inconclusive scientific result, actual costs, every registered seed/cell or explicit missing status, and independently reconcilable bounds. A successful software receipt does not establish improvement. Subsequent P2/P3/P4 recipes are defined in the experiment contract and run separately, without changing the single-algorithm-phase implementation requirement.
+
+## Current integration status
+
+Phase C remains incomplete. The `generalization` CLI/helper examples above are
+still prospective. Implemented increments include checkpoint/report callback
+adapters, bounded per-cell preparation and separate visible/scorer files,
+role-mount resolution, seven sealed research recipe templates, and CPU/source
+registration. These components have local fixture tests; they are not a runnable
+research workflow. Do not run the prospective commands as an acceptance procedure
+until public routing, learner/resume/replay wiring and serial-helper integration
+are complete. See `validation/local-checks.md` for actual non-HIP results.

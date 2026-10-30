@@ -50,3 +50,32 @@ The failing family regression above now passes. Strict reconciliation also rejec
 false seed/cost/bound/coverage/aggregate projections. The combined feature, draft
 adapter and historical regression selection passes 131 tests and 4 subtests. See the
 latest algorithm-review entry. C/D remain incomplete; no HIP command ran.
+
+## Preparation/recipe integration increment
+
+Executed the following local non-HIP selection after the preparation, role,
+recipe and CPU/source-registration changes:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pipeline_reuse.py tests/unit/test_pipeline_bundle.py
+```
+
+Result: **136 passed, 4 subtests passed**. `git diff --check` passes. Reviewer
+checklists remain read-only and passing (requirements16/16, design15/15); no hooks.
+
+New coverage exercises per-cell exact materialization, production/reference
+agreement through an injected native interface, failed quota publication, immutable
+output roots, role-channel mount resolution, sealed recipe metadata, and changed or
+unmapped authority invalidating source reuse. The native interface is synthetic in
+these local tests. Actual container-role launching is not established by them.
+
+Tool inspection: `docker`, `podman`, and `cargo` are unavailable. T064's image
+build/inspection cannot run in this environment. T063's local portion ran; its
+qualification-container portion remains pending. No HIP command, model training,
+acceptance invocation or research campaign ran. T065/T067 depend on the still
+unimplemented canonical helper/archive integration; no dry-run/archive success is
+claimed. T068 requires actual acceptance evidence and remains pending.
