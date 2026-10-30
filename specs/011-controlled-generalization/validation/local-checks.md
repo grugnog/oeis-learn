@@ -99,3 +99,33 @@ The same non-HIP selection above now passes **140 tests and 4 subtests**.
 or research campaign ran. T051–T053 and T061–T062 remain partial until canonical
 worker registration and full production integration are implemented and verified.
 This increment does not complete all requested C/D tasks.
+
+## CPU learner and qualification integration continuation
+
+The latest combined local selection passed **178 tests, 9 subtests**, with **one GPU
+test deselected**. The selection was:
+
+```bash
+PYTHONPATH=src python -m pytest -q -m 'not gpu' \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pilot_followup_host.py tests/unit/test_pipeline_reuse.py \
+  tests/unit/test_pipeline_bundle.py
+```
+
+Unlike the earlier callback-only increment, this selection executes actual CPU
+Torch updates and checks uninterrupted/resumed state equivalence for static and
+refreshed data with literal and parameterized targets. T045 and T051 are checked;
+remaining integration tasks retain their unchecked status.
+
+Role projections now accept repeated identical references while rejecting conflicts.
+A regression reproduced the duplicate-reference failure before the fix. Qualification
+producer allocation now leaves 600 seconds outside the canonical runner's 6600-second
+cap for post-run inspection and verification (480 seconds of explicit reservations).
+The producer's failure path is exercised with a fake runner, without HIP execution.
+
+An actual HIP checkpoint-load/finite-update test is registered but has not run.
+Neither Docker nor Podman is available in this environment. Container qualification,
+image inspection, hardware acceptance and scientific campaign results are not claimed.
+Canonical CLI, scoring, replay and complete bundle integration remain unfinished.
