@@ -94,3 +94,31 @@ def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_pa
     assert result['status']=='FAIL'
     # Two image inspections, one device inspection and authority validation.
     assert observed['cap']+3*120+120<=7200
+
+
+def test_research_consumer_projects_complete_verified_feature_closure(tmp_path,monkeypatch):
+    from tests.unit.test_generalization_feature_acceptance import fixture
+    from oeis_learn.pipeline_validation import generalization_qualification_io as io,generalization_roles as roles
+    from oeis_learn.pipeline_validation.identity import seal
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.generalization.feature_acceptance import verify_feature
+    producer=tmp_path/'producer';producer.mkdir()
+    original,facts,feature=fixture(producer)
+    (producer/'producer.json').write_text(json.dumps(original))
+    (producer/'feature.json').write_text(json.dumps(feature))
+    q=seal(dict(version='generalization-qualification/v2',**facts,
+                producer={'receipt':io.reference(producer/'producer.json',producer)}))
+    (producer/'qualification.json').write_text(json.dumps(q))
+    monkeypatch.setattr(io,'current_facts',lambda *a,**kw:facts)
+    def invoke(host,image,root,role,artifacts,**kwargs):
+        assert kwargs['settings']['research'] is True
+        projection=tmp_path/'projected';projection.mkdir()
+        for ref in artifacts['public_evidence']:
+            target=projection/ref['path'];target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(verify_artifact(producer,ref))
+        assert verify_feature(feature,qualification=original['identity'],root=projection)==feature['identity']
+        return dict(status='PASS',original=original['identity'])
+    monkeypatch.setattr(roles,'project_and_invoke',invoke)
+    result=io.consume_original(None,tmp_path,producer,tmp_path/'consumer',required_suites=['hip'],
+        required_capabilities=['load'],research=True,feature_receipt=io.reference(producer/'feature.json',producer))
+    assert result['original']==original['identity']

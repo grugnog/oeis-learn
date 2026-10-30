@@ -81,7 +81,10 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
         build_refs=authority['build_dependencies'],producer_root=producer_root)
     refs=[reference(path,producer_root),*public_closure(producer_root,authority)]
     if feature_receipt is not None:
-        verify_artifact(producer_root,feature_receipt);refs.append(feature_receipt)
+        from oeis_learn.generalization.feature_acceptance import feature_artifacts
+        feature=json.loads(verify_artifact(producer_root,feature_receipt,max_bytes=1<<20))
+        original=json.loads(verify_artifact(producer_root,authority['producer']['receipt']))
+        refs.extend([feature_receipt,*feature_artifacts(feature,qualification=original['identity'],root=producer_root)])
     result=project_and_invoke(host,authority['images'][0],workspace,'report',{'public_evidence':refs},
         source_roots={'public_evidence':producer_root},output=str((output/'verification').relative_to(workspace)),
         operation='qualification-consume',settings=dict(authority=refs[0],current=facts,required_suites=list(required_suites),

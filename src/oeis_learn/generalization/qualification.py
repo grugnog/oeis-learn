@@ -35,9 +35,9 @@ def qualify_reuse(receipt,current,*,required_suites,required_capabilities,root,r
         raise ValueError('real load/finite-update evidence missing')
     if research:
         if feature_receipt is None: raise ValueError('completed feature acceptance required before research')
-        feature=json.loads(verify_artifact(root,feature_receipt))
-        if seal(feature)!=feature or feature.get('status')!='PASS' or feature.get('qualification')!=receipt['identity'] or set(feature.get('cases',()))!={'retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'}:
-            raise ValueError('incomplete feature acceptance')
+        from .feature_acceptance import verify_feature
+        feature=json.loads(verify_artifact(root,feature_receipt,max_bytes=1<<20))
+        verify_feature(feature,qualification=receipt['identity'],root=root)
     return receipt['identity']
 
 
