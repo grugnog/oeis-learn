@@ -128,8 +128,8 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 ### US2 integration — Prepared benchmark and isolation
 
 - [X] T048 [US2] Add preparation/publication integration cases in `tests/integration/test_generalization_preparation.py`, proving deterministic manifests, active coverage, shortfall termination, forbidden mount access and no trainable study on failure.
-- [ ] T049 [US2] Connect bounded exact materialization, native/reference admission and immutable shard publication in `src/oeis_learn/pipeline_validation/generalization_preparation.py`; use separate preparation authority and emit resolved `study.json` under operator outputs only.
-- [ ] T050 [US2] Wire explicit role-specific files/mounts in `src/oeis_learn/pipeline_validation/generalization_roles.py`, keeping assessment continuations/target programs/protected labels out of learner/generator payloads rather than filtering a shared file by convention.
+- [X] T049 [US2] Connect bounded exact materialization, native/reference admission and immutable shard publication in `src/oeis_learn/pipeline_validation/generalization_preparation.py`; use separate preparation authority and emit resolved `study.json` under operator outputs only.
+- [X] T050 [US2] Wire explicit role-specific files/mounts in `src/oeis_learn/pipeline_validation/generalization_roles.py`, keeping assessment continuations/target programs/protected labels out of learner/generator payloads rather than filtering a shared file by convention.
 
 ### US3 integration — Learning, checkpointing and named pilots
 
@@ -274,3 +274,15 @@ Implemented callable full-state persistence, pending-batch update and bounded na
 replay/restore adapters with four new integration fixture tests. T051–T053 and
 T061–T062 remain unchecked because end-to-end production routing is still pending.
 Current local selection: 140 passed, 4 subtests passed. No HIP command executed.
+
+
+## Preparation and role-isolation integration closure
+
+T049/T050 are complete at the adapter boundary. The installed preparation role uses
+bounded native execution, independent reference admission and immutable publication;
+its fixture reproduces the same resolved study as the direct production adapter.
+All seven roles enforce exact input channels, read-only inputs, disjoint output and
+rejection of undeclared/overlapping mounts. Exact file projections omit unnamed
+files. Preparation/role tests: 28 passed. Native callbacks and the container launcher
+are replaced in these fixtures; this does not assert native/container qualification.
+Public preparation endpoint registration remains tracked separately by T057.

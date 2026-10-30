@@ -62,7 +62,7 @@ def test_role_launch_mounts_only_declared_inputs_and_reclaims(tmp_path):
         {'visible_prompts':'prompts','frozen_weights':'weights'},output='result',operation='evaluate',settings={},seconds=30)
 
 
-def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path):
+def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path,monkeypatch):
     from pathlib import Path
     from oeis_learn.generalization.contracts import freeze,validate,verify_artifact
     from oeis_learn.pipeline_validation.generalization_preparation import prepare_study,reference
@@ -95,6 +95,23 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     # A second run uses the same authority and produces the same resolved identity.
     second=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'again',execute=native)
     assert result['study']==second['study']
+    from oeis_learn.pipeline_validation.generalization_role import preparation
+    from oeis_learn.synthesis import client as native_module
+    import time
+    class Native:
+        def __init__(self,*args,**kwargs):pass
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def execute(self,src,indices,*,deadline):
+            assert deadline>time.monotonic()
+            return native(src,indices)
+    monkeypatch.setattr(native_module,'SynthesisClient',Native)
+    (tmp_path/'custodian').mkdir()
+    role_result=preparation({'mechanical_sources':incoming,'isolation_truth':tmp_path/'custodian'},
+        tmp_path/'role',dict(preparation=freeze('preparation',prep).record(),proposed=study),seconds=60)
+    assert role_result['study']==result['study']
+    assert (tmp_path/'role/private/prepared/study.json').is_file()
+
     plans[2]['candidates']=plans[0]['candidates']
     changed=artifact('collision.json',dict(version='generalization-materialization-plan/v1',cells=plans))
     prep['generator']=changed;study['data']['generator']=changed
@@ -117,3 +134,17 @@ def test_projection_copies_only_named_verified_files(tmp_path,monkeypatch):
         {'visible_prompts':[reference(tmp_path/'prompts.json',tmp_path)]*2,'frozen_weights':[reference(tmp_path/'weights.json',tmp_path)]},
         output='new',operation='evaluate',settings={},seconds=30)
     assert result['status']=='PASS' and not (tmp_path/'new/private/input').exists()
+
+
+@pytest.mark.parametrize('role',['preparation','learner','generator','fitter','selection','assessment','report'])
+def test_all_roles_reject_undeclared_and_overlapping_channels(tmp_path,role):
+    from oeis_learn.generalization.role_contracts import ROLE_INPUTS,Role
+    channels={m.channel:m.channel for m in ROLE_INPUTS[Role(role)]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    actual=mounts(tmp_path,role,channels,output='result')
+    assert len(actual)==len(channels)+1 and all(m['read_only'] for m in actual[:-1])
+    with pytest.raises(ValueError):mounts(tmp_path,role,dict(channels,arbitrary='secret'),output='result')
+    with pytest.raises(ValueError):mounts(tmp_path,role,channels,output=next(iter(channels.values()))+'/child')
+    if len(channels)>1:
+        overlap=dict.fromkeys(channels,next(iter(channels.values())))
+        with pytest.raises(ValueError):mounts(tmp_path,role,overlap,output='result')
