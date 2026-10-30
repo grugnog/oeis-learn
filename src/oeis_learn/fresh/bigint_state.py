@@ -272,3 +272,59 @@ def generalization_checkpoint_policy(history, *, pins):
     """Prospective pure prune decision. Historical CheckpointStore remains unchanged."""
     from oeis_learn.generalization.checkpoints import prune_plan
     return prune_plan(history, pins)
+
+
+class GeneralizationCheckpointStore:
+    """Prospective full-state generations; latest moves only after verified publication.
+
+    Private state is trusted run-owned data. Hash verification happens before
+    deserialization; callers must never use this to load untrusted shared archives.
+    """
+    def __init__(self, root, contract, cap):
+        self.root=Path(root); self.contract=contract; self.cap=cap
+
+    @staticmethod
+    def _encode(value):
+        import io,torch
+        stream=io.BytesIO();torch.save(value,stream);return stream.getvalue()
+
+    @staticmethod
+    def _decode(value):
+        import io,torch
+        return torch.load(io.BytesIO(value),map_location='cpu',weights_only=False)
+
+    def save(self,states,ledger,*,encode=None):
+        from oeis_learn.generalization.state import snapshot,STATE_FIELDS
+        from oeis_learn.generalization.contracts import verify_artifact
+        from oeis_learn.pipeline_validation.identity import seal
+        if set(states)!=STATE_FIELDS:raise ValueError('complete prospective state required')
+        encode=encode or self._encode
+        generation='generalization-'+uuid.uuid4().hex
+        folder=self.root/generation;folder.mkdir(parents=True,exist_ok=False)
+        def blob(name,value):
+            data=encode(value)
+            if not isinstance(data,bytes):raise ValueError('state serializer must return bytes')
+            path=folder/(name+'.pt');write(path,data,immutable=True)
+            ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=len(data))
+            verify_artifact(self.root,ref);return ref
+        bound={key:blob(key,states[key]) for key in STATE_FIELDS-{'rng','data'}}
+        bound['rng']={key:blob('rng-'+key,value) for key,value in states['rng'].items()}
+        bound['data']=states['data']
+        manifest=snapshot(bound,contract=self.contract,ledger=ledger)
+        path=folder/'state.json';write(path,manifest,immutable=True)
+        ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=path.stat().st_size)
+        verify_artifact(self.root,ref)
+        write(self.root/'generalization-latest.json',ref)
+        return ref
+
+    def load(self,ref,*,decode=None):
+        import json
+        from oeis_learn.generalization.state import restore
+        from oeis_learn.generalization.contracts import verify_artifact
+        decode=decode or self._decode
+        record=json.loads(verify_artifact(self.root,ref))
+        result=restore(record,contract=self.contract,cap=self.cap,root=self.root)
+        states=result['states']
+        for key in states.keys()-{'rng','data'}:states[key]=decode(verify_artifact(self.root,states[key]))
+        states['rng']={key:decode(verify_artifact(self.root,value)) for key,value in states['rng'].items()}
+        return dict(states=states,ledger=result['ledger'])
