@@ -129,3 +129,13 @@ An actual HIP checkpoint-load/finite-update test is registered but has not run.
 Neither Docker nor Podman is available in this environment. Container qualification,
 image inspection, hardware acceptance and scientific campaign results are not claimed.
 Canonical CLI, scoring, replay and complete bundle integration remain unfinished.
+
+
+## Phase-B replay accounting repair
+
+The combined non-HIP selection recorded above (including the host followup tests)
+now passes **200 tests and 9 subtests**, with one GPU test deselected. It includes the
+previously failing replay overrun test and the new reservation, interruption and
+persistence-failure counterexamples. The focused replay policy/adapter selection
+passes 18 tests. T043/T044's local gate is restored; C/D and hardware qualification
+are not declared complete. No HIP command ran.

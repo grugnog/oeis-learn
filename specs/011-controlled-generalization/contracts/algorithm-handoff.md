@@ -55,7 +55,7 @@ Stable callable policy entry points:
 | Preparation | `observe`, `distribution`, `choose`, `ExclusionIndex`, `project`, `publish` | Bind observed coverage to actual rows; apply frozen exclusions to every future shard; separate role mounts. |
 | Learning | `BigintSampler.descriptor`, `RefreshPlan.take/shard`, `pair`, `select`, `snapshot/restore`, `pin_plan`, `commit_plan`, `promotion` | Preserve unsupported target rows; native fitter unchanged; serialize actual tensor/RNG payloads and verify refs before load. |
 | Execution | `consume`, `qualify_reuse`, `Workflow`, `restart`, `preflight`, `reserve_stage`, `bundle_plan`, `verify_bundle` | Inspect real source/image/device facts; receipts are integrity records, not cryptographic attestation; only trusted qualification producers issue them. |
-| Replay | `admit`, `ReplayPool.add/sample/restore`, `SearchLedger.charge`, `round_plan` | Production callback must be qualified bounded native execution; restore verifier must redo admission against trusted training roster, never an identity callback. |
+| Replay | `admit`, `ReplayPool.add/sample/restore`, `SearchLedger.reserve/finish/snapshot/restore`, `round_plan` | Production callback must be qualified bounded native execution; restore verifier must redo admission against trusted training roster, never an identity callback. |
 
 Internal versioned policy snapshots (`generalization-ledger/v1`,
 `generalization-learner-state/v1`, `generalization-descriptor/v1`,
@@ -71,3 +71,18 @@ it never relaxes quotas. Numeric draws preserve the registered independent unifo
 law; repeated variants consume draws and are rejected by the exclusion/admission
 callback rather than silently recycled. Finite-window exclusion is not a semantic
 proof. Small-seed bootstrap intervals are explicitly labeled by resampling unit.
+
+
+Replay accounting handoff (T043 correction): reserve an attempt before invoking
+proposal/native work; atomically persist the pending ledger and pool through the
+`search_round(save=...)` callback before work starts. Settle measured elapsed time
+without clipping it to admission limits. Overruns remain explicit and cannot admit
+late candidates. Eight attempts/task, 60 seconds/task, 256 tasks and four aggregate
+hours gate new reservations; already measured costs may exceed these ceilings.
+`generalization-search-ledger/v2` preserves pending reservations and overrun records.
+An unfinished reservation has unknown final cost, not a completed zero-cost attempt;
+restoring it does not permit another reservation. Durable recovery must preserve it.
+`generalization-replay-round-result/v2` carries the full ledger plus its legacy
+per-task count/time projection. Interruptions propagate with `replay_evidence` and
+are also sent to the save callback; without a save callback that evidence is only
+in memory. C must wire atomic persistence to claim recovery across process loss.

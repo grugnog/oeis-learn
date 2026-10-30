@@ -143,3 +143,29 @@ This blocks continuation under plan.md's explicit rule: “A discovered algorith
 defect reopens B and affected gates. Do not implement a workaround in C/D and call
 it integration.” The failing regression is retained and is not marked xfail/skipped.
 C/D are incomplete; this is not a hardware limitation or a claim of qualification.
+
+
+## T043/T044 replay accounting repair — local gate restored
+
+The previously recorded 61-second counterexample now retains one charged attempt,
+61 measured seconds, and an explicit 61-versus-60 reservation overrun. The repair
+is in the Phase-B `SearchLedger`: separate reserve and finish transitions, immutable
+v2 snapshots, exact nonnegative finite measurements, and admission limits applied
+before new work. Settlement does not discard over-budget measured work.
+
+The adapter reserves/publishes before callbacks, settles both failures and successful
+work, refuses late audit/admission, and publishes interruption evidence before
+propagating the original exception. Persistence failures prevent work from starting.
+A pending snapshot survives interruption without enabling another reservation.
+No automatic replay-search restart or durable persistence without an adapter callback
+is claimed.
+
+Independent checks cover the 61-second overrun, aggregate 14,401-second settlement,
+256-task/eight-attempt limits, zero-duration observations, invalid measurements,
+pending snapshot round-trip, interruption at three seconds, unexpected native
+failure, late proposal rejection, failed persistence, and persistence consuming the
+deadline. Focused checks: **18 passed**. Combined non-HIP feature/reference/contract,
+CPU learner integration and historical regression checks: **200 passed, 9 subtests
+passed, one GPU test deselected**. `git diff --check` passes. T043 and T044 are
+restored. No native/container/HIP qualification or scientific run occurred.
+The remaining C/D tasks retain their prior incomplete status.

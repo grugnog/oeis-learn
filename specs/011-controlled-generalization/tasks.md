@@ -109,11 +109,11 @@ The task skill's default separate implementation phase per story is adapted to t
 - [X] T040 [P] [US4] Add independent task-weight/cap/eviction/restore examples in `tests/unit/test_generalization_replay_sampling.py`, including empty admission and state cursor restoration.
 - [X] T041 [US4] Implement training-only exact replay admission policy in `src/oeis_learn/generalization/replay_admission.py`, verifying all 100 training terms against the mechanical oracle and independent execution, strictly shorter frozen-length targets, source/token consistency, original/final source, assignment and origin checkpoint; keep original mechanical targets available.
 - [X] T042 [US4] Implement versioned task-first replay/eviction/snapshot policy in `src/oeis_learn/generalization/replay_policy.py`, enforcing at most two alternatives/task, 4,096 globally and 25% replay examples/update, deterministic oldest-admission/identity eviction and explicit source-versus-finite-behavior duplicate scope; do not reinterpret historical replay state.
-- [ ] T043 [US4] Implement one-round search/distillation and paired-control budget policy in `src/oeis_learn/generalization/replay_round.py`, limiting search to 256 training tasks, eight attempts and 60 seconds/task plus four aggregate hours, then 4M extra target tokens/two learner hours per arm with 1M/2M/4M checkpoints; keep search cost explicit and empty yield terminal without weaker verification.
+- [X] T043 [US4] Implement one-round search/distillation and paired-control budget policy in `src/oeis_learn/generalization/replay_round.py`, limiting search to 256 training tasks, eight attempts and 60 seconds/task plus four aggregate hours, then 4M extra target tokens/two learner hours per arm with 1M/2M/4M checkpoints; keep search cost explicit and empty yield terminal without weaker verification.
 
 ### Phase-B exit gate
 
-- [ ] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
+- [X] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
 
 ## Phase C — Routine story integration
 
