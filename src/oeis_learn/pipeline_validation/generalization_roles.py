@@ -20,3 +20,40 @@ def mounts(root,role,channels,*,output):
         raise ValueError('fresh disjoint role output required')
     result.append(dict(source=str(output_path),destination=ROLE_OUTPUTS[role].destination,read_only=False))
     return tuple(result)
+
+
+def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu=False,launcher=None):
+    """Launch one installed role with exact read-only channels and bounded cleanup.
+
+    Settings are public execution metadata only; data and tensor payloads travel
+    through declared channels. The checkout and container socket are never mounted.
+    """
+    import json,uuid
+    from contextlib import nullcontext
+    from .supervision import launch,reclaim
+    if not 0<seconds<=21600:raise ValueError('bounded role duration required')
+    role=Role(role)
+    if gpu and role not in {Role.LEARNER,Role.GENERATOR}:raise ValueError('GPU forbidden for this role')
+    declared=mounts(root,role,channels,output=output)
+    for entry in declared[:-1]:
+        path=Path(entry['source'])
+        if not path.is_dir() or any(p.is_symlink() for p in path.rglob('*')):
+            raise ValueError('regular explicit input directory required')
+    target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
+    name='generalization-'+uuid.uuid4().hex
+    runtime=dict(settings=settings,operation=operation,seconds=seconds,device='cuda' if gpu else 'cpu')
+    command=host.engine.command(image=image,name=name,
+        mounts=[(m['source'],m['destination'],not m['read_only']) for m in declared],
+        argv=['python','-m','oeis_learn.pipeline_validation.generalization_role',role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)],
+        gpu=gpu,render_node=host.policy.get('render_node') if gpu else None,
+        memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
+    cleanup={}
+    try:
+        with host.gpu_lock() if gpu else nullcontext():
+            (launcher or launch)(command,target/'supervision',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
+    finally:
+        reclaim(host.engine,name,target/'supervision',cleanup)
+    result=json.loads((target/'result.json').read_text())
+    if result.get('status') not in {'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}:
+        raise ValueError('role omitted terminal status')
+    return result

@@ -32,3 +32,69 @@ def test_mounts_are_separate_and_read_only(tmp_path):
     result=mounts(tmp_path,'generator',{'visible_prompts':'prompts','frozen_weights':'weights'},output='generated')
     assert all(m['read_only'] for m in result[:-1]) and not result[-1]['read_only']
     with pytest.raises(ValueError): mounts(tmp_path,'generator',{'visible_prompts':'prompts','frozen_weights':'weights','assessment_truth':'truth'},output='generated')
+
+
+def test_role_launch_mounts_only_declared_inputs_and_reclaims(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_roles import invoke
+    for name in ('prompts','weights','hidden'):(tmp_path/name).mkdir()
+    calls=[]
+    class Engine:
+        def command(self,**kw):calls.append(kw);return ['fake-container']
+        def remove(self,name,timeout):calls.append(('remove',name))
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=1024,cpus=2))
+    def launch(argv,output,**kw):
+        assert argv==['fake-container'];calls.append(('launch',kw))
+        (tmp_path/'result/result.json').write_text('{"status":"PASS"}')
+    result=invoke(host,'sha256:'+'1'*64,tmp_path,'generator',
+        {'visible_prompts':'prompts','frozen_weights':'weights'},output='result',
+        operation='evaluate',settings={'fixture':True},seconds=30,gpu=False,launcher=launch)
+    assert result['status']=='PASS'
+    args=calls[0]
+    assert args['network'] is False and args['gpu'] is False
+    assert args['mounts']==[(str(tmp_path/'prompts'),'/inputs/prompts',False),
+                            (str(tmp_path/'weights'),'/inputs/weights',False),
+                            (str(tmp_path/'result'),'/output/generator',True)]
+    assert calls[-1][0]=='remove'
+    with pytest.raises(ValueError):invoke(host,'sha256:'+'1'*64,tmp_path,'generator',
+        {'visible_prompts':'prompts','frozen_weights':'weights'},output='result',operation='evaluate',settings={},seconds=30)
+
+
+def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path):
+    from pathlib import Path
+    from oeis_learn.generalization.contracts import freeze,validate,verify_artifact
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_study,reference
+    from oeis_learn.synthesis.reference import evaluate
+    raw=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())
+    incoming=tmp_path/'incoming';incoming.mkdir()
+    def artifact(name,value):
+        (incoming/name).write_text(json.dumps(value));return reference(incoming/name,incoming)
+    empty=artifact('empty.json',[])
+    plans=[]
+    for i,role in enumerate(('training','selection','assessment')):
+        row=source(i);row['source']=f'(program (return (mul $index (int {i+2}))))'
+        row['parameter_source']=row['source']
+        plans.append(dict(name=role,role=role,holdout='parameter',count=1,quotas={},structural=False,
+                          candidates=artifact(role+'.json',[row])))
+    generator=artifact('generator.json',dict(version='generalization-materialization-plan/v1',cells=plans))
+    prep=raw['preparation'];prep.update(generator=generator,descriptors=empty,exclusions=empty,quotas={})
+    study=raw['study'];study.update(prep['study_settings']);study.update(seeds=prep['seeds'],budgets=prep['budgets'],source_closure=empty)
+    study['data'].update(generator=generator,descriptors=empty,exclusions=empty)
+    study['assessment'].update(authorization=empty,exposure_ledger=empty)
+    def native(src,indices):
+        exact=evaluate(src,indices);return dict(outcome=exact.outcome,values=list(exact.values))
+    result=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'prepared',execute=native)
+    assert result['status']=='PASS'
+    resolved=json.loads((tmp_path/'prepared/study.json').read_text());validate('study',resolved)
+    assert len(resolved['data']['manifests'])==3
+    training=json.loads((tmp_path/'prepared/cells/training/private/training.json').read_text())
+    assert training[0]['role']=='training' and 'family' not in training[0]
+    for ref in resolved['data']['manifests']:verify_artifact(tmp_path/'prepared',ref)
+    # A second run uses the same authority and produces the same resolved identity.
+    second=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'again',execute=native)
+    assert result['study']==second['study']
+    plans[2]['candidates']=plans[0]['candidates']
+    changed=artifact('collision.json',dict(version='generalization-materialization-plan/v1',cells=plans))
+    prep['generator']=changed;study['data']['generator']=changed
+    bad=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'bad-study',execute=native)
+    assert bad['status']=='BLOCKED' and not (tmp_path/'bad-study/study.json').exists()
