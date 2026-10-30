@@ -79,6 +79,27 @@ def selection(inputs,output,settings,*,seconds):
             output=output/'selection',seconds=seconds)
 
 
+def checkpoint_selection(inputs,output,settings,*,seconds):
+    from oeis_learn.synthesis.client import SynthesisClient
+    from .generalization_scoring import select_checkpoints
+    if set(settings)!={'targets','candidates','study','recipe'}:
+        raise ValueError('closed checkpoint selection settings required')
+    with SynthesisClient(settings['study'],cache_root=output/'private/native-cache') as native:
+        return select_checkpoints(inputs['selection_supervision'],settings['targets'],
+            inputs['selection_candidates'],settings['candidates'],recipe=settings['recipe'],client=native,
+            output=output/'selection',seconds=seconds)
+
+
+def assessment(inputs,output,settings,*,seconds):
+    from oeis_learn.synthesis.client import SynthesisClient
+    from .generalization_scoring import score_assessment
+    if set(settings)!={'authorization','study'}:raise ValueError('closed assessment settings required')
+    with SynthesisClient(settings['study'],cache_root=output/'private/native-cache') as native:
+        return score_assessment(inputs['assessment_truth'],inputs['frozen_assessment_authorization'],
+            inputs['frozen_assessment_candidates'],settings['authorization'],client=native,
+            output=output/'assessment',seconds=seconds)
+
+
 def package(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import verify_artifact
     from .generalization_reporting import package_evidence
@@ -113,6 +134,8 @@ def qualification_consume(inputs,output,settings,*,seconds):
 
 
 HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+          (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
+          (Role.ASSESSMENT,'score'):assessment,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 
