@@ -267,3 +267,10 @@ have tested bounded per-cell publication and mount-resolution adapters; their fu
 end-to-end registration is pending. T060 has CPU test/source closure registration;
 feature-specific HIP selections still require actual integration. These partial
 tasks remain unchecked.
+
+## Full-state/update/replay continuation
+
+Implemented callable full-state persistence, pending-batch update and bounded native
+replay/restore adapters with four new integration fixture tests. T051–T053 and
+T061–T062 remain unchecked because end-to-end production routing is still pending.
+Current local selection: 140 passed, 4 subtests passed. No HIP command executed.

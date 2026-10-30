@@ -79,3 +79,23 @@ qualification-container portion remains pending. No HIP command, model training,
 acceptance invocation or research campaign ran. T065/T067 depend on the still
 unimplemented canonical helper/archive integration; no dry-run/archive success is
 claimed. T068 requires actual acceptance evidence and remains pending.
+
+## Full-state/update/replay adapter increment
+
+Added a prospective `GeneralizationCheckpointStore` with immutable private state
+generations and atomic latest publication. All blob references are verified before
+state deserialization. Added an update adapter that persists the pending batch and
+debit before execution and commits after a complete update, plus a callable adapter
+to the existing `_batch_loss` implementation. Local tests inject JSON serialization
+and a deterministic update callback; actual Torch model equivalence is not claimed.
+
+Replay adapters call the bounded native-client interface, independently audit all
+training terms, preserve empty yield, and rerun admission against the training roster
+when restoring a pool. Tests use a synthetic native client and verify visible-only
+proposal inputs, eight charged attempts, task deduplication and exact snapshot restore.
+
+The same non-HIP selection above now passes **140 tests and 4 subtests**.
+`git diff --check` passes. No HIP command, actual learner training, container build,
+or research campaign ran. T051–T053 and T061–T062 remain partial until canonical
+worker registration and full production integration are implemented and verified.
+This increment does not complete all requested C/D tasks.
