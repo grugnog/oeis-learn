@@ -196,3 +196,27 @@ C work. No new research endpoint was enabled as a workaround. The earlier replay
 accounting repair remains passing. The new regressions are retained, not skipped or
 xfail. Completed reporting and preparation/role-isolation integration remain
 committed, while C/D as a whole remain incomplete.
+
+
+## T035/T044 feature-acceptance repair — local gate restored
+
+The three failing counterexamples are fixed. Research now requires a closed v2
+feature manifest referencing original PASS canonical receipts for all five cases.
+Each receipt binds its case and qualification, a closed result record with all
+required checks, and all mandatory case artifacts. All original files and nested
+public artifacts are verified; unproven lists, failed/partial/reused cases, unknown
+fields/versions, changed bindings, false/missing checks, substituted/missing/tampered
+artifacts and private descendants fail closed. `assemble_feature` applies the same
+policy before an aggregate PASS can be produced.
+
+The isolated consumer now projects the complete verified feature closure, including
+original receipt inventory files. Positive tests verify all five synthetic original
+cases, producer assembly, standalone copied closure, and consumer projection.
+Negative tests independently enumerate the required case obligations and mutate
+versions, bindings, statuses, fields, checks and payloads. Synthetic evidence is not
+hardware qualification or independent attestation of an untrusted producer.
+
+The combined non-HIP selection passes **242 tests and 9 subtests**, with one GPU
+test deselected. The original replay-overrun and feature-gate regressions all pass;
+`git diff --check` passes. T035 and T044 are restored. No HIP command, container
+qualification or research campaign ran. Remaining C/D work is still incomplete.

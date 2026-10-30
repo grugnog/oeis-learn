@@ -155,3 +155,13 @@ acceptance counterexamples: FAIL case values, PARTIAL case values, and case name
 without evidence are incorrectly accepted by the research gate. T035/T044 are
 reopened; their required repair is recorded in algorithm-review.md. No HIP command
 or research campaign ran. `git diff --check` passes.
+
+
+## Feature-acceptance gate repair
+
+The same combined non-HIP selection now passes **242 tests and 9 subtests**, with
+one GPU test deselected. The formerly failing FAIL/PARTIAL/names-only cases pass
+alongside original-case, payload-integrity, version, binding, mandatory-check,
+transitive-closure and isolated-projection regressions. T035/T044's local gate is
+restored; C/D and hardware qualification are not declared complete. No HIP command
+ran. `git diff --check` passes.

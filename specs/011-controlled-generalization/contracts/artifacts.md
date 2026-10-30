@@ -90,3 +90,52 @@ summary. Neither is substituted for the other. The archive verifier validates th
 outer inventory, then the original evidence closure and all derived measurements.
 Private or unsupported mandatory inventory paths fail packaging rather than being
 silently omitted. A generic failure-recovery archive is not qualifying evidence.
+
+
+### Feature acceptance before research
+
+`generalization-feature-acceptance/v2` is a closed sealed record with exactly
+`version`, `identity`, `status` (PASS), `qualification` (the original qualification
+producer identity), and `cases`. `cases` maps exactly the five names below to
+ArtifactRefs for original canonical `pipeline-stage/v1` receipts. Legacy v1,
+names-only lists, aggregate flags, missing cases and REUSED wrappers cannot qualify
+research. The base qualification producer remains immutable and does not need to
+claim it already passed these later feature tests.
+
+Each original stage must be PASS, have stage id `acceptance.<case>`, and have binding
+exactly `{case, qualification}`. Its sealed files inventory must contain
+`case-result.json` and every named artifact below as `<label>.json` relative to the
+stage receipt directory. All inventory bytes and hashes are verified. Required
+artifacts cannot be substituted with a different label's path.
+
+`case-result.json` is a closed sealed `generalization-acceptance-result/v1` record
+with `version`, `identity`, `case`, `qualification`, `status` (PASS), `checks`, and
+`artifacts`. `checks` must have exactly the listed keys, each boolean true.
+`artifacts` maps exactly the listed labels to the same ArtifactRefs bound by the
+original stage inventory.
+
+| Case | Required checks | Required public artifacts |
+| --- | --- | --- |
+| retained-eval | weights_loaded, visible_only, matched_budgets | checkpoint_identity, evaluation |
+| refresh | fixed_support, fresh_shards, finite_update | preparation, training |
+| parameter-targets | literal_update, parameterized_update, grounding_verified | literal_training, parameterized_training, target_audit |
+| replay-resume | training_only_admission, paired_control, full_state_resume, finite_update | admission, continued_sft, verified_replay, resume |
+| failure-packaging | failure_preserved, archive_verified, private_payloads_excluded | failure_ledger, archive_verification |
+
+The failure-packaging case is PASS only when the injected failure remains recorded
+as failure and the resulting partial archive verifies; it does not promote the
+injected failed workflow to PASS. Public artifacts contain scoped results and
+identities, never private tensors or sealed targets. Their nested ArtifactRefs are
+verified recursively; private paths, conflicting references, missing payloads and
+tampering fail closed. Total proof closure is limited to 512 MiB/10,000 files;
+feature, stage and case-result documents are limited to 1 MiB each.
+
+`assemble_feature` validates every original before issuing the aggregate manifest;
+`verify_feature` validates it for consumption. `feature_artifacts` returns the exact
+verified closure for isolated role projection, including stage-inventory files
+whose hashes alone are not discoverable as ordinary ArtifactRefs. The consumer
+still independently verifies the current source/image/device/resource facts.
+These are integrity and provenance checks over trusted canonical producer outputs,
+not cryptographic attestation or proof that arbitrary user-authored PASS records
+represent real execution. Producers must write the checks from actual production
+path observations; synthetic fixtures establish only validation behavior.

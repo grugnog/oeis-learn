@@ -86,3 +86,12 @@ restoring it does not permit another reservation. Durable recovery must preserve
 per-task count/time projection. Interruptions propagate with `replay_evidence` and
 are also sent to the save callback; without a save callback that evidence is only
 in memory. C must wire atomic persistence to claim recovery across process loss.
+
+
+T035 feature-acceptance handoff: `feature_acceptance.assemble_feature`,
+`verify_feature` and `feature_artifacts` enforce the v2 aggregate and original
+per-case receipt/result formats described in artifacts.md. The C acceptance
+producer must persist actual per-case public results and original runner receipts,
+then call `assemble_feature`; a five-name list or aggregate PASS is insufficient.
+Consumers project the complete verified closure and revalidate it inside the role.
+No hardware execution or arbitrary self-authored claim is certified by hashing.
