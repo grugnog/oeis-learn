@@ -52,19 +52,50 @@ def verify_bundle(record,*,expected_study,root):
     if study['identity']!=expected_study: raise ValueError('conflicting study identity')
     # Original qualification manifests include all offline evidence they reference.
     from .qualification import consume, FACTS
+    originals={}
     for ref in q['qualification_producers']:
         qual=read(ref)
         for child in artifact_refs(qual):
             if indexed.get(child['path'])!=child: raise ValueError('missing offline original evidence')
         consume(qual,{k:qual[k] for k in FACTS},root=root,required_suites=qual['suite_selection'],required_capabilities=qual['covered_capabilities'])
+        producer=read(qual['producer']['receipt'])
+        originals[producer['identity']]=producer
+        pending=list(artifact_refs(producer)); seen=set()
+        while pending:
+            child=pending.pop()
+            if child['path'] in seen: continue
+            seen.add(child['path'])
+            if indexed.get(child['path'])!=child:
+                raise ValueError('missing transitive original evidence')
+            payload=verify_artifact(root,child,max_bytes=CAP)
+            try: nested=json.loads(payload)
+            except (ValueError,UnicodeError): continue
+            pending.extend(artifact_refs(nested))
     ledger=read(q['stage_ledger']); status=reconcile_ledger(ledger,study=expected_study)
+    for receipt in ledger['receipts']:
+        original=originals.get(receipt['original'])
+        if original is None:
+            # Non-qualification stages bind an original sealed stage record.
+            for ref in inventory:
+                try: candidate=read(ref)
+                except (ValueError,UnicodeError): continue
+                if isinstance(candidate,dict) and candidate.get('identity')==receipt['original']:
+                    original=candidate; break
+            if not original or seal(original)!=original or original.get('study')!=expected_study or original.get('stage')!=receipt['stage']:
+                raise ValueError('missing or incompatible original stage receipt')
+        if original.get('status')!=receipt['status']:
+            raise ValueError('original stage status mismatch')
     if q['software_status']!=status: raise ValueError('stale software status')
     if q['scientific_status'] not in {s.value for s in ScientificStatus}: raise ValueError('scientific status')
-    measurements=read(q['attempts']); stored=read(q['summary'])
-    if set(measurements)!={'roster','outcomes'}: raise ValueError('fixed denominator measurements required')
-    summary=summarize(measurements['roster'],measurements['outcomes'])
-    actual=dict(n=summary.n,successes=summary.successes,unresolved=summary.unresolved,
-                lower=str(summary.lower),upper=str(summary.upper),completion=str(summary.completion),
-                macro_lower=str(summary.macro_lower),macro_upper=str(summary.macro_upper))
-    if stored!=actual: raise ValueError('stale summary')
-    return dict(integrity='PASS',software_status=status,scientific_status=q['scientific_status'],summary=actual,omissions=q['omissions'])
+    from .reconciliation import reconcile_measurements
+    invocation=read(q['effective_invocation'])
+    if ledger['required'] != invocation.get('required_stages'):
+        raise ValueError('mandatory stage roster differs from frozen invocation')
+    actual=reconcile_measurements(invocation,read(q['attempts']),study)
+    for member, expected in actual.items():
+        if read(q[member]) != expected:
+            label='family' if member=='families' else member
+            raise ValueError('stale or invalid '+label+' summary')
+    if len(q['omissions']) != len(set(q['omissions'])) or set(q['omissions']) & set(indexed):
+        raise ValueError('contradictory omissions')
+    return dict(integrity='PASS',software_status=status,scientific_status=q['scientific_status'],summary=actual['summary'],omissions=q['omissions'])

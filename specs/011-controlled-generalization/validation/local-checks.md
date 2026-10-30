@@ -43,3 +43,10 @@ inside reopened Phase B before continuing routine Phase C wiring.
 T063 is only partially attempted. T064–T070 remain uncompleted; no fabricated image,
 preflight, archive or HIP evidence is recorded. The requested no-HIP scope excludes
 T066, while the other gates require completed integration or a usable engine.
+
+## Subsequent repair
+
+The failing family regression above now passes. Strict reconciliation also rejects
+false seed/cost/bound/coverage/aggregate projections. The combined feature, draft
+adapter and historical regression selection passes 131 tests and 4 subtests. See the
+latest algorithm-review entry. C/D remain incomplete; no HIP command ran.

@@ -27,7 +27,7 @@ def test_required_results_cannot_be_silently_redacted():
     assert bundle_plan([dict(path='private',bytes=1,private=True,required=False)],mandatory=set())['omissions']==['private']
     with pytest.raises(ValueError): verify_bundle({'study':'s','stages':[]},expected_study='other',root='.')
 
-@pytest.mark.parametrize("stale_family", [False, True])
+@pytest.mark.parametrize("stale_family", [False, True, "seeds", "costs", "bounds", "coverage", "summary", "partial"])
 def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family):
     import copy,hashlib,json
     from pathlib import Path
@@ -54,11 +54,36 @@ def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family):
     q['producer']=dict(status='PASS',receipt=producer_ref,artifacts=[device]);q['artifact_inventory']=[device]
     qref=write('qualification.json',freeze('qualification',q).record())
     ledger=write('ledger.json',dict(study=study['identity'],required=['qualify'],receipts=[dict(stage='qualify',status='PASS',study=study['identity'],original=producer['identity'])]))
-    measurements=write('attempts.json',dict(roster={'a':'f'},outcomes={'a':True}))
+    measurements=write('attempts.json',dict(version='generalization-attempts/v1',attempts=[dict(row='a',ordinal=0,outcome=True,queue_us=1,service_us=2,cleanup_us=None)]))
     summary=write('summary.json',dict(n=1,successes=1,unresolved=0,lower='1',upper='1',completion='1',macro_lower='1',macro_upper='1'))
     record=replace_refs(fixtures['evidence']);record.update(study=study_ref,qualification_producers=[qref],stage_ledger=ledger,attempts=measurements,summary=summary,software_status='PASS',scientific_status='UNMEASURED',omissions=[])
     record['inventory']=[base,study_ref,device,producer_ref,qref,ledger,measurements,summary]
+    golden=dict(n=1,successes=1,unresolved=0,lower='1',upper='1',completion='1',macro_lower='1',macro_upper='1')
+    seed=study['seeds'][0]
+    members=dict(
+        effective_invocation=dict(version='generalization-measurement-plan/v1',study=study['identity'],required_stages=['qualify'],roster={'a':dict(family='f',seed=seed,cell='structural/raw',attempts=1)}),
+        families={'structural/raw':{str(seed):{'f':golden}}},
+        seeds={'structural/raw':{str(seed):golden}},
+        costs=dict(queue=dict(measured_us=1,unavailable=0),service=dict(measured_us=2,unavailable=0),cleanup=dict(measured_us=0,unavailable=1)),
+        coverage=dict(expected_rows=1,resolved_rows=1,expected_attempts=1,recorded_attempts=1,missing_attempts=0),
+        bounds={k:golden[k] for k in ('lower','upper','completion','macro_lower','macro_upper')})
+    for key,value in members.items():
+        record[key]=write(key+'.json',value);record['inventory'].append(record[key])
     record=freeze('evidence',record).record()
+    if stale_family == 'partial':
+        partial_ledger=write('partial-ledger.json',dict(study=study['identity'],required=['qualify'],receipts=[]))
+        record['stage_ledger']=partial_ledger;record['inventory'].append(partial_ledger)
+        record['software_status']='PARTIAL'
+        record=freeze('evidence',record).record()
+        verified=verify_bundle(record,expected_study=study['identity'],root=tmp_path)
+        assert verified['integrity']=='PASS' and verified['software_status']=='PARTIAL'
+        return
+    if isinstance(stale_family,str):
+        record[stale_family]=write('false-'+stale_family+'.json',{})
+        record['inventory'].append(record[stale_family]);record=freeze('evidence',record).record()
+        with pytest.raises(ValueError,match=stale_family):
+            verify_bundle(record,expected_study=study['identity'],root=tmp_path)
+        return
     if stale_family:
         record['families']=write('false-families.json',{'invented_family': {'successes': 999}})
         record['inventory'].append(record['families'])

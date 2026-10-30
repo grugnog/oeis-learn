@@ -96,7 +96,7 @@ The task skill's default separate implementation phase per story is adapted to t
 - [X] T034 [P] [US5] Add ledger/bundle/preflight failure counterexamples in `tests/unit/test_generalization_recovery.py`, including missing mandatory stages, oversized payloads, insufficient reservations, CPU-only HIP claims, interrupted export and conflicting study identities.
 - [X] T035 [US5] Implement qualification-specific identity/coverage matching in `src/oeis_learn/generalization/qualification.py`, with exact current source/build/image/device/runtime/precision/resource/security equality and intact original PASS producers; preserve full study identity separately and require completed feature acceptance before research runs.
 - [X] T036 [US5] Implement bounded workflow transition/restart/recovery policy in `src/oeis_learn/generalization/recovery.py`, retaining immutable terminal receipts, fresh output roots, precise repeat reasons and full-state learner-resume requirements; preserve PASS=0, FAIL=1, BLOCKED/PARTIAL/INCONCLUSIVE=3, INTERRUPTED=130.
-- [ ] T037 [US5] Implement complete/partial bundle reconciliation and redaction policy in `src/oeis_learn/generalization/bundles.py`, verifying payload size/hash, mandatory original qualification evidence, summaries, omissions and distinct software/scientific statuses; exclude private state and sealed truth without silently dropping required results.
+- [X] T037 [US5] Implement complete/partial bundle reconciliation and redaction policy in `src/oeis_learn/generalization/bundles.py`, verifying payload size/hash, mandatory original qualification evidence, summaries, omissions and distinct software/scientific statuses; exclude private state and sealed truth without silently dropping required results.
 - [X] T038 [US5] Implement effective resource/preflight reservation decisions in `src/oeis_learn/generalization/resources.py`, enforcing the contract's 64 GiB study root, 32 GiB checkpoints, 8 GiB shards, 4 GiB raw evidence/logs, 512 MiB sharing cap and <=100-line/1 MiB log tails; reserve acceptance stages at 10/120/10/75/15 minutes plus 10-minute margin within four hours, and never authorize automatic research work with leftover time.
 
 ### US4 — Bounded verified replay (P2)
@@ -113,7 +113,7 @@ The task skill's default separate implementation phase per story is adapted to t
 
 ### Phase-B exit gate
 
-- [ ] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
+- [X] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
 
 ## Phase C — Routine story integration
 
@@ -251,3 +251,9 @@ The regression is `test_offline_complete_bundle_and_stale_summary[True]` in
 and two passing tests, but remain unchecked because production native/model wiring
 and complete report reconciliation are unfinished. No C/D completion is claimed.
 See [local-checks.md](validation/local-checks.md).
+
+## Reconciliation repair
+
+The integration prerequisite failure above is resolved by strict frozen-roster,
+per-attempt reconciliation. T037/T044 are checked again following 131 passing tests
+and 4 subtests; see the latest algorithm-review entry. Phase C tasks remain unchecked.

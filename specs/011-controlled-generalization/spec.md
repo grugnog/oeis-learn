@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-30
 
-**Status**: Phase A implemented; Phase B evidence reconciliation reopened during Phase C; Phase C/D pending
+**Status**: Phases A/B implemented; reconciliation repaired and locally revalidated; Phase C/D pending
 
 **Input**: Independently assess the supplied research reports and primary sources, integrate the completed pilot findings, and specify the next changes. Concentrate complex algorithm work into one phase and HIP validation into as few runs as possible, ideally one serial invocation with shareable results.
 

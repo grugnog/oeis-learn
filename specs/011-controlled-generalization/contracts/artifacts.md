@@ -42,3 +42,34 @@ Required logical members: study/effective invocation contracts; qualification pr
 Public source bodies are generated candidates only where permitted. Hidden target programs/terms and optimizer/checkpoint state are excluded; public weight identities are hashes. Archive verification rederives totals and status from records, verifies every required size/hash, and rejects a stale summary or missing mandatory evidence. Full scientific completion and software PASS are separate fields.
 
 Terminal failure packaging preserves completed measurements without merging incompatible manifests. A partial bundle may pass integrity validation while carrying FAILED/PARTIAL software status. A fresh-root restart references old verified producers and new execution receipts; it never mutates old terminal evidence.
+
+### Measurement reconciliation payloads
+
+`effective_invocation` uses `generalization-measurement-plan/v1`: exactly `version`,
+`study`, `required_stages`, and `roster`. Each opaque roster key denotes one frozen
+measurement cell/task; its record contains exactly `family`, `seed`, `cell`, and
+`attempts`. All registered seeds must appear, including seeds with no completed
+measurements. Attempt caps cannot exceed the study's inference cap. The stage roster
+must equal the invocation's ledger roster.
+
+`attempts` uses `generalization-attempts/v1`: exactly `version` and an `attempts`
+array. Each attempt contains `row`, zero-based `ordinal`, `outcome` (true, false or
+null), and `queue_us`, `service_us`, `cleanup_us` (nonnegative integer microseconds or
+null for unavailable). Unknown fields, duplicate ordinals and unregistered rows fail.
+An exact success resolves a row true; only all planned attempts resolving false
+resolve it false. Otherwise it remains unresolved. Invalid/duplicate *draws* still
+occupy their own ordinal; duplicate ordinal records are corruption.
+
+The verifier recomputes aggregate summaries, cell/seed/family summaries, bounds,
+coverage and cost totals. Family summaries are nested by cell, decimal seed key,
+then family; seed summaries omit the last level. All use the aggregate summary's
+exact rational-string representation. Costs contain `measured_us` and `unavailable`
+counts per phase; missing timing is never zero-filled. Coverage contains expected and
+recorded attempts, missing attempts, expected rows and resolved rows. Completion
+bounds are not statistical confidence intervals. Old placeholder payloads fail this
+semantic check even if the outer v1 shape and every file hash are valid.
+
+Stage entries must resolve to original verified producer/stage evidence with matching
+status. Qualification payload dependencies must be available transitively in the
+public inventory. A partial bundle may have verified integrity with PARTIAL software
+status; missing measurements remain in the frozen denominator.

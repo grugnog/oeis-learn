@@ -73,3 +73,20 @@ summary but does not rederive family/seed/cost summaries required by T037. The p
 113-test result did not exercise this invariant. T037 and T044 are reopened; the
 previous completion statement is superseded. Production integration cannot rely on
 this verifier until the full reconciliation policy and counterexamples pass.
+
+## T037 repair and T044 reassessment
+
+The fabricated-family failure is repaired. Verification now derives aggregate,
+family, seed, cost, coverage and bound projections from strict per-attempt records
+and a frozen invocation roster. Added counterexamples for each hash-valid false
+projection, missing seed denominators, unequal families, duplicate ordinals,
+unregistered rows/seeds, private attempt fields, invalid outcomes and timing types.
+Partial-bundle integrity is independently exercised. Original stage references and
+transitive qualification payload inventory are checked as part of reconciliation.
+
+The combined feature/adapter and historical reference/followup/reuse/bundle selection
+passes: **131 tests, 4 subtests**. This supersedes the recorded failing T037 regression.
+T037 is repaired and T044's local algorithm exit gate is restored. The command is the
+previous combined command plus `tests/integration/test_generalization_evidence.py`.
+No native/container/HIP execution occurred. Phase C production integration and Phase D
+qualification remain pending; this result establishes local policy/reference behavior.
