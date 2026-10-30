@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/preparation.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "generalization-preparation/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "generator": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "numeric_law": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "descriptors": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "training",
+          "selection",
+          "assessment"
+        ]
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "quotas": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "exclusions": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "budgets": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+    },
+    "study_settings": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "arms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "model": {
+          "type": "object",
+          "properties": {
+            "profile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "initialization": {
+              "const": "random"
+            },
+            "architecture": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "minLength": 71,
+              "maxLength": 71
+            }
+          },
+          "required": [
+            "profile",
+            "initialization",
+            "architecture"
+          ],
+          "additionalProperties": false
+        },
+        "precision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "checkpoints": {
+          "type": "object",
+          "properties": {
+            "milestones": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minItems": 1,
+              "maxItems": 64
+            },
+            "retain": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "minItems": 1,
+              "maxItems": 4096,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "milestones",
+            "retain"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "recipe",
+        "arms",
+        "model",
+        "precision",
+        "checkpoints"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "generator",
+    "numeric_law",
+    "descriptors",
+    "roles",
+    "quotas",
+    "exclusions",
+    "seeds",
+    "budgets",
+    "study_settings"
+  ],
+  "additionalProperties": false
+}

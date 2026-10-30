@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/study.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "generalization-study/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "recipe": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "track": {
+      "const": "generic_only"
+    },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "changing_factors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "arms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "source_closure": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "initialization": {
+          "const": "random"
+        },
+        "architecture": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "profile",
+        "initialization",
+        "architecture"
+      ],
+      "additionalProperties": false
+    },
+    "precision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "data": {
+      "type": "object",
+      "properties": {
+        "generator": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "descriptors": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "manifests": {
+          "type": "array",
+          "items": {
+            "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "target_format": {
+          "enum": [
+            "literal",
+            "parameterized"
+          ]
+        },
+        "sharing_policy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "exclusions": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "generator",
+        "descriptors",
+        "manifests",
+        "target_format",
+        "sharing_policy",
+        "exclusions"
+      ],
+      "additionalProperties": false
+    },
+    "selection": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/selection"
+    },
+    "assessment": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/assessment"
+    },
+    "inference": {
+      "type": "object",
+      "properties": {
+        "visible_terms": {
+          "const": 20
+        },
+        "total_terms": {
+          "const": 100
+        },
+        "attempts": {
+          "const": 8
+        },
+        "seconds": {
+          "const": 60
+        },
+        "policy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "visible_terms",
+        "total_terms",
+        "attempts",
+        "seconds",
+        "policy"
+      ],
+      "additionalProperties": false
+    },
+    "budgets": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+    },
+    "checkpoints": {
+      "type": "object",
+      "properties": {
+        "milestones": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "retain": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "milestones",
+        "retain"
+      ],
+      "additionalProperties": false
+    },
+    "progression": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "enum": [
+            "E0",
+            "P0",
+            "P1-screen",
+            "P1-confirm",
+            "P2",
+            "P3",
+            "P4"
+          ]
+        },
+        "advance_rule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "stop_rule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "assessment_feedback": {
+          "const": false
+        }
+      },
+      "required": [
+        "stage",
+        "advance_rule",
+        "stop_rule",
+        "assessment_feedback"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "recipe",
+    "track",
+    "hypothesis",
+    "changing_factors",
+    "arms",
+    "seeds",
+    "source_closure",
+    "model",
+    "precision",
+    "data",
+    "selection",
+    "assessment",
+    "inference",
+    "budgets",
+    "checkpoints",
+    "progression"
+  ],
+  "additionalProperties": false
+}

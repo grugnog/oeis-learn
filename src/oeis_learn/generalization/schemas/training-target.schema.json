@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/training-target.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "role": {
+      "const": "training"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 1,
+      "maxItems": 1024
+    },
+    "indices": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "not": {
+          "pattern": "\\s"
+        },
+        "maxLength": 4934
+      },
+      "minItems": 100,
+      "maxItems": 100
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "not": {
+          "pattern": "\\s"
+        },
+        "maxLength": 4934
+      },
+      "minItems": 100,
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "id",
+    "role",
+    "source",
+    "tokens",
+    "indices",
+    "values"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/qualification.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "generalization-qualification/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "suite_selection": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "covered_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "source_closure": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "build_dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+      },
+      "minItems": 1,
+      "maxItems": 64
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "minLength": 71,
+        "maxLength": 71
+      },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "hip": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "driver": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "python": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "torch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "hip",
+        "driver",
+        "python",
+        "torch"
+      ],
+      "additionalProperties": false
+    },
+    "hardware": {
+      "type": "object",
+      "properties": {
+        "hip_available": {
+          "const": true
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "hip_available",
+        "device",
+        "memory_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "precision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "resources": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+    },
+    "engine_security": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "enum": [
+            "docker",
+            "podman"
+          ]
+        },
+        "runtime_socket": {
+          "const": false
+        }
+      },
+      "required": [
+        "engine",
+        "runtime_socket"
+      ],
+      "additionalProperties": false
+    },
+    "producer": {
+      "type": "object",
+      "properties": {
+        "receipt": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "status": {
+          "const": "PASS"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "receipt",
+        "status",
+        "artifacts"
+      ],
+      "additionalProperties": false
+    },
+    "artifact_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$",
+            "not": {
+              "pattern": "\\s"
+            }
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "minLength": 71,
+            "maxLength": 71
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "path",
+          "sha256",
+          "bytes"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "maxItems": 1000000
+    },
+    "status": {
+      "const": "PASS"
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "suite_selection",
+    "covered_capabilities",
+    "source_closure",
+    "build_dependencies",
+    "images",
+    "runtime",
+    "hardware",
+    "precision",
+    "resources",
+    "engine_security",
+    "producer",
+    "artifact_inventory",
+    "status"
+  ],
+  "additionalProperties": false
+}
