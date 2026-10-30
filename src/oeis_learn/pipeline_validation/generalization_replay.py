@@ -14,6 +14,7 @@ def admission(task,candidate,*,client,checkpoint,order,deadline):
         if result.get('outcome')!='ok':raise ValueError('native audit incomplete')
         return result['values']
     return admit(task,original_source=candidate['original_source'],final_source=candidate['final_source'],
+                 transformed_source=candidate.get('transformed_source'),
                  assignment=candidate['assignment'],tokens=candidate['tokens'],origin_checkpoint=checkpoint,
                  production=production,production_identity=client.runtime_identity('bigint-body/v1'),order=order)
 

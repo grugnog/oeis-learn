@@ -220,3 +220,9 @@ The combined non-HIP selection passes **242 tests and 9 subtests**, with one GPU
 test deselected. The original replay-overrun and feature-gate regressions all pass;
 `git diff --check` passes. T035 and T044 are restored. No HIP command, container
 qualification or research campaign ran. Remaining C/D work is still incomplete.
+
+### Replay fitter transformation repair
+
+C replay wiring exposed a T039/T041 admission incompatibility: native fitting can replace literal coefficients with an explicit parameterized source before grounding. The previous admission API grounded the generated source itself, rejecting valid native transformations. The new independent regression first failed with an unsupported `transformed_source` argument. Version 2 admitted entries retain generated, transformed, and grounded sources separately. The policy verifies that transformation changes only literal leaves into parameters, then independently checks exact grounding and the existing 100-term oracle/native/reference agreement and shorter-target rule. Legacy v1 entries retain their original semantics. Restore revalidates the transformation, rather than trusting stored admission flags.
+
+T044 was rerun after the repair: the combined generalization/reference/historical regression selection passed 246 tests plus 9 subtests, with the one marked GPU test deselected. This is CPU/fixture evidence, not native-container or HIP qualification. The dedicated v2 round/restore integration is also included in the follow-up regression run. This repair belongs to Phase B; C wiring resumes against the repaired interface.

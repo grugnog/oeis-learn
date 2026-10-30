@@ -17,3 +17,23 @@ def test_full_horizon_shorter_and_forbidden_sources():
         with pytest.raises(ValueError): admit(t,original_source=FINAL,final_source=FINAL,assignment={},tokens=encode_body(FINAL),origin_checkpoint='checkpoint',production=production,production_identity='runtime',order=0)
     with pytest.raises(ValueError): admit(task(),original_source=FINAL,final_source=FINAL,assignment={},tokens=encode_body(FINAL),origin_checkpoint='checkpoint',production=lambda s,i:('1',)*100,production_identity='runtime',order=0)
     with pytest.raises(ValueError): admit(task(),original_source=FINAL,final_source=FINAL,assignment={},tokens=[1],origin_checkpoint='checkpoint',production=production,production_identity='runtime',order=0)
+
+
+def test_fitted_literal_keeps_generated_transformed_and_grounded_sources():
+    generated='(program (return (int 9)))'
+    transformed='(program (return (param.get p0)))'
+    entry=admit(task(),original_source=generated,transformed_source=transformed,
+        final_source=FINAL,assignment={'p0':'0'},tokens=encode_body(FINAL),
+        origin_checkpoint='checkpoint',production=production,production_identity='runtime',order=0)
+    record=entry.record()
+    assert record['original_source']==generated
+    assert record['transformed_source']==transformed and record['final_source']==FINAL
+    assert record['version']=='generalization-admitted-entry/v2'
+    with pytest.raises(ValueError,match='grounding'):
+        admit(task(),original_source=generated,transformed_source=transformed,
+            final_source=FINAL,assignment={'p0':'1'},tokens=encode_body(FINAL),
+            origin_checkpoint='checkpoint',production=production,production_identity='runtime',order=0)
+    with pytest.raises(ValueError,match='structure'):
+        admit(task(),original_source='(program (return (add (int 9) (int 0))))',transformed_source=transformed,
+            final_source=FINAL,assignment={'p0':'0'},tokens=encode_body(FINAL),
+            origin_checkpoint='checkpoint',production=production,production_identity='runtime',order=0)

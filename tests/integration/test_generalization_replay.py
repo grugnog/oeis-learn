@@ -127,3 +127,14 @@ def test_unexpected_failure_propagates_with_accounting(monkeypatch):
         replay.search_round([task()],propose=fail,client=NativeFixture(),checkpoint='c',seed=1)
     assert caught.value.replay_evidence['status']=='FAIL'
     assert caught.value.replay_evidence['search_ledger']==[['task',1,5.]]
+
+
+def test_fitted_literal_round_restores_original_and_transformed_sources():
+    src='(program (return (int 0)))'
+    candidate=dict(original_source='(program (return (int 9)))',
+        transformed_source='(program (return (param.get p0)))',final_source=src,
+        assignment={'p0':'0'},tokens=encode_body(src))
+    pool,report=search_round([task()],propose=lambda *a:candidate,client=NativeFixture(),checkpoint='checkpoint',seed=7)
+    restored=restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture(),deadline=time.monotonic()+60)
+    assert restored.snapshot()==pool.snapshot() and report['admitted']==1
+    assert restored.entries[0].record()['original_source']==candidate['original_source']
