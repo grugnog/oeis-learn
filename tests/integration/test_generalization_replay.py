@@ -138,3 +138,35 @@ def test_fitted_literal_round_restores_original_and_transformed_sources():
     restored=restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture(),deadline=time.monotonic()+60)
     assert restored.snapshot()==pool.snapshot() and report['admitted']==1
     assert restored.entries[0].record()['original_source']==candidate['original_source']
+
+
+def test_isolated_search_projects_only_visible_inputs_and_persists_reservation(tmp_path,monkeypatch):
+    import json
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.pipeline_validation.generalization_replay import search_isolated,admission
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.generalization.contracts import verify_artifact
+    weights=tmp_path/'weights';weights.mkdir();(weights/'weights.pt').write_bytes(b'fixture')
+    calls=[]
+    source='(program (return (int 0)))'
+    def invoke(host,image,workspace,role,artifacts,**kw):
+        settings=kw['settings'];calls.append(role)
+        saved=json.loads((tmp_path/'search/private/search-state.json').read_text())
+        assert saved['report']['search_state']['pending'][0]=='task'
+        roots=kw['source_roots']
+        if role=='generator':
+            assert set(artifacts)=={'visible_prompts','frozen_weights'}
+            prompt=json.loads(verify_artifact(roots['visible_prompts'],settings['prompt']))
+            assert set(prompt)=={'id','indices','values'} and len(prompt['values'])==20
+            return dict(status='PASS',candidate=dict(original_source=source,final_source=source,assignment={},tokens=encode_body(source)))
+        assert role=='learner' and set(artifacts)=={'training_targets','verified_training_replay'}
+        target=json.loads(verify_artifact(roots['training_targets'],settings['task']))
+        candidate=json.loads(verify_artifact(roots['verified_training_replay'],settings['candidate']))
+        entry=admission(target,candidate,client=NativeFixture(),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+30)
+        return dict(status='PASS',entry=entry.record())
+    monkeypatch.setattr(roles,'project_and_invoke',invoke)
+    pool,report=search_isolated(None,tmp_path,tmp_path/'search',images=['cpu-fixture','gpu-fixture'],
+        weights_root=weights,checkpoint=reference(weights/'weights.pt',weights),tasks=[task()],recipe={},study='study',seed=4)
+    assert calls==['generator','learner']*8 and report['admitted']==1
+    assert json.loads((tmp_path/'search/private/pool.json').read_text())==pool.snapshot()
+    assert report['current_policy_success'] is None and report['cumulative_discoveries']==1

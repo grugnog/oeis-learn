@@ -100,7 +100,8 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
     rows=[]
     for i in range(8 if replay_mode else 4 if data_mode=="refresh" else 2):
         src=f'(program (return (int {i})))' if target_format=='literal' else '(program (return (param.get p0)))'
-        rows.append(dict(id=str(i),role='training',source=src,tokens=encode_body(src),indices=list(map(str,range(100))),values=[str(i)]*100))
+        if replay_mode and i==0:src='(program (return (add (int 0) (int 0))))'
+        rows.append(dict(id='task' if replay_mode and i==0 else str(i),role='training',source=src,tokens=encode_body(src),indices=list(map(str,range(100))),values=[str(i)]*100))
     (tmp_path/'rows.json').write_text(json.dumps(rows));shards=[reference(tmp_path/'rows.json',tmp_path)]
     # Tiny real tensor modules isolate persistence equivalence from model scale.
     def models(recipe,device):

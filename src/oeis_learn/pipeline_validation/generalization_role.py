@@ -48,11 +48,52 @@ def report(inputs,output,settings,*,seconds):
 
 def learner(inputs,output,settings,*,seconds):
     from oeis_learn.fresh.bigint_worker import generalization_train
-    if set(settings)!={'config','resume'}:raise ValueError('closed learner role settings required')
+    if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay'}:
+        raise ValueError('closed learner role settings required')
     config=settings['config']
     if config['seconds']>seconds:raise ValueError('learner exceeds enclosing deadline')
     resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
-    return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume)
+    extra=dict(initializer=settings.get('initializer'),initializer_root=inputs['verified_training_replay'])
+    if settings.get('replay') is not None:
+        from oeis_learn.synthesis.client import SynthesisClient
+        from oeis_learn.generalization.contracts import verify_artifact
+        from .generalization_replay import restore_pool
+        refs=settings['replay']
+        if set(refs)!={'pool','tasks'}:raise ValueError('closed replay learner inputs required')
+        if settings.get('initializer') is None:raise ValueError('common replay initializer required')
+        tasks=json.loads(verify_artifact(inputs['training_targets'],refs['tasks']))
+        snapshot=json.loads(verify_artifact(inputs['verified_training_replay'],refs['pool']))
+        with SynthesisClient(config['study'],cache_root=output/'private/native-cache') as native:
+            pool=restore_pool(snapshot,tasks=tasks,client=native,deadline=time.monotonic()+min(60,seconds))
+            return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume,
+                replay=dict(pool=pool,tasks=tasks,client=native),**extra)
+    return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume,**extra)
+
+
+def replay_audit(inputs,output,settings,*,seconds):
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.generalization.contracts import verify_artifact
+    from .generalization_replay import admission
+    if set(settings)!={'task','candidate','study','checkpoint','order'}:raise ValueError('closed replay audit settings required')
+    task=json.loads(verify_artifact(inputs['training_targets'],settings['task']))
+    candidate=json.loads(verify_artifact(inputs['verified_training_replay'],settings['candidate']))
+    with SynthesisClient(settings['study'],cache_root=output/'private/native-cache') as native:
+        entry=admission(task,candidate,client=native,checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+seconds)
+    return dict(status='PASS',entry=entry.record())
+
+
+def replay_propose(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.fresh.bigint_worker import client
+    from .generalization_replay import propose_visible
+    from .sizing_execution import execution_context
+    if set(settings)!={'checkpoint','prompt','recipe','study','seed','attempt','device'}:
+        raise ValueError('closed replay proposal settings required')
+    prompt=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompt']))
+    with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
+        candidate=propose_visible(inputs['frozen_weights'],settings['checkpoint'],prompt,settings['recipe'],client=native,
+            seed=settings['seed'],attempt=settings['attempt'],device=settings['device'],seconds=seconds)
+    return dict(status='PASS',candidate=candidate)
 
 
 def generator(inputs,output,settings,*,seconds):
@@ -136,6 +177,7 @@ def qualification_consume(inputs,output,settings,*,seconds):
 HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
+          (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 

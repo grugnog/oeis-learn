@@ -91,7 +91,7 @@ class PreparedBatches:
         return [self._row(i%self.count) for i in range(start,end)]
 
 
-def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None):
+def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None,initializer_root=None):
     """Actual existing model/update path with complete update-boundary persistence.
 
     Caller supplies a verified, frozen execution projection. No selection/assessment
@@ -121,6 +121,17 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     if replay is not None:
         if set(replay)!={'pool','tasks','client'} or config['data_mode']!='static':
             raise ValueError('verified replay supports only registered static training')
+        tasks={task['id']:task for task in replay['tasks']}
+        if len(tasks)!=len(replay['tasks']):raise ValueError('duplicate replay training task')
+        matched=set()
+        for shard in config['shards']:
+            for row in json.loads(verify_artifact(root,shard,max_bytes=8<<30)):
+                if row['id'] not in tasks:continue
+                task=tasks[row['id']]
+                if task['role']!='training' or any(task[field]!=row[field] for field in ('source','indices','values')):
+                    raise ValueError('replay oracle differs from prepared training task')
+                matched.add(row['id'])
+        if matched!=set(tasks):raise ValueError('replay task absent from prepared training shards')
         extension['replay']=dict(pool=replay['pool'].snapshot(),tasks=replay['tasks'])
     compatibility=digest(dict(config=config,data=batches.identity,**extension))
     output=Path(output)
@@ -130,7 +141,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     encoder,decoder,counts=models(recipe,config['device'])
     if initializer is not None and resume is None:
         import io
-        weights=torch.load(io.BytesIO(verify_artifact(root,initializer)),map_location='cpu',weights_only=True)
+        weights=torch.load(io.BytesIO(verify_artifact(initializer_root or root,initializer)),map_location='cpu',weights_only=True)
         if set(weights)!={'encoder','decoder'}:raise ValueError('weights-only initializer required')
         encoder.load_state_dict(weights['encoder'],strict=True);decoder.load_state_dict(weights['decoder'],strict=True)
     parameters=list(encoder.parameters())+list(decoder.parameters())
