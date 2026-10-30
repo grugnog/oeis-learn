@@ -42,10 +42,8 @@ def report(inputs,output,settings,*,seconds):
     study=json.loads(verify_artifact(root,settings['study']));validate('study',study)
     invocation=json.loads(verify_artifact(root,settings['invocation']))
     attempts=json.loads(verify_artifact(root,settings['attempts']))
-    result=reconcile_measurements(invocation,attempts,study)
-    for name,payload in result.items():write(output/(name+'.json'),payload)
-    return dict(status='PASS',scientific_status='UNMEASURED',study=study['identity'],
-                scope='recorded finite evidence',summary=result['summary'])
+    from .generalization_reporting import measurement_report
+    return measurement_report(study,invocation,attempts,output=output)
 
 
 def learner(inputs,output,settings,*,seconds):
@@ -55,6 +53,19 @@ def learner(inputs,output,settings,*,seconds):
     if config['seconds']>seconds:raise ValueError('learner exceeds enclosing deadline')
     resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
     return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume)
+
+
+def generator(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.fresh.bigint_worker import client
+    from .generalization_evaluation import evaluate_retained
+    from .sizing_execution import execution_context
+    expected={'checkpoint','prompts','recipe','study','source','device','bank_seeds'}
+    if set(settings)!=expected:raise ValueError('closed generation role settings required')
+    prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
+    with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
+        return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
+            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=seconds,bank_seeds=settings['bank_seeds'])
 
 
 def qualification_consume(inputs,output,settings,*,seconds):
@@ -70,7 +81,7 @@ def qualification_consume(inputs,output,settings,*,seconds):
 
 HANDLERS={(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.REPORT,'qualification-consume'):qualification_consume,
-          (Role.LEARNER,'train'):learner}
+          (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 
 
 def main(argv=None):
@@ -82,6 +93,8 @@ def main(argv=None):
     inputs={m.channel:Path(m.destination) for m in ROLE_INPUTS[role]}
     try:
         handler=HANDLERS[(role,runtime['operation'])]
+        selected=runtime['settings'].get('config',runtime['settings'])
+        if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
         result=handler(inputs,output,runtime['settings'],seconds=runtime['seconds'])
     except KeyError:
         result=dict(status='BLOCKED',reason='UNREGISTERED_ROLE_OPERATION')

@@ -13,3 +13,20 @@ def recorded_report(records,*,study,source,roster,checkpoints,available,output=N
                      scope='finite recorded evidence',automatic_run_authorized=False))
     if output is not None: write(output,report)
     return report
+
+
+def measurement_report(study,invocation,attempts,*,output):
+    """Export all projections from actual attempts, preserving unavailable timings."""
+    from pathlib import Path
+    from oeis_learn.generalization.contracts import validate
+    from oeis_learn.generalization.reconciliation import reconcile_measurements
+    validate('study',study)
+    projections=reconcile_measurements(invocation,attempts,study)
+    output=Path(output)
+    for name,payload in projections.items():write(output/(name+'.json'),payload)
+    write(output/'attempts.json',attempts)
+    result=seal(dict(version='generalization-measurement-report/v1',study=study['identity'],
+        status='PARTIAL' if projections['coverage']['missing_attempts'] else 'PASS',
+        scientific_status='UNMEASURED',summary=projections['summary'],scope='recorded finite evidence'))
+    write(output/'report.json',result)
+    return result
