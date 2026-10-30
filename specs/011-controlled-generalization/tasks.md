@@ -18,19 +18,19 @@ The task skill's default separate implementation phase per story is adapted to t
 
 **Goal**: Establish prospective contracts and fixture scaffolding without changing historical behavior or implementing algorithms.
 
-- [ ] T001 Create the policy package skeleton and public interface stubs in `src/oeis_learn/generalization/__init__.py` and `src/oeis_learn/generalization/interfaces.py`, using the entity/method boundaries in `specs/011-controlled-generalization/data-model.md`; retain existing container dependencies.
-- [ ] T002 [P] Translate the proposed authority formats into strict schema resources in `src/oeis_learn/generalization/schemas/`, covering preparation, study, cohort, refresh, checkpoint, replay, qualification and evidence versions from `specs/011-controlled-generalization/contracts/artifacts.md`; reject unknown authority fields and incompatible versions in the declared schemas.
-- [ ] T003 [P] Add mechanically generated fixture inventories and independently computed expected outcomes in `tests/fixtures/generalization/`, covering role isolation, active/inactive control flow, exact grounding, unequal families, censoring, replay and interruption; do not derive expected answers with production algorithms.
-- [ ] T004 Record the stable algorithm interfaces, independent counterexamples and phase-B handoff/exit criteria in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, mapping every nontrivial policy to its owner below before stronger-model handoff.
+- [X] T001 Create the policy package skeleton and public interface stubs in `src/oeis_learn/generalization/__init__.py` and `src/oeis_learn/generalization/interfaces.py`, using the entity/method boundaries in `specs/011-controlled-generalization/data-model.md`; retain existing container dependencies.
+- [X] T002 [P] Translate the proposed authority formats into strict schema resources in `src/oeis_learn/generalization/schemas/`, covering preparation, study, cohort, refresh, checkpoint, replay, qualification and evidence versions from `specs/011-controlled-generalization/contracts/artifacts.md`; reject unknown authority fields and incompatible versions in the declared schemas.
+- [X] T003 [P] Add mechanically generated fixture inventories and independently computed expected outcomes in `tests/fixtures/generalization/`, covering role isolation, active/inactive control flow, exact grounding, unequal families, censoring, replay and interruption; do not derive expected answers with production algorithms.
+- [X] T004 Record the stable algorithm interfaces, independent counterexamples and phase-B handoff/exit criteria in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, mapping every nontrivial policy to its owner below before stronger-model handoff.
 
 ## Phase A2 — Foundational contracts
 
 **Goal**: Make role/mount, CLI and test expectations reviewable before any story algorithm is implemented.
 
-- [ ] T005 Define the role-specific file/mount declarations in `src/oeis_learn/generalization/role_contracts.py`: learner has training/replay only, generator/fitter has visible inputs only, selection has selection supervision only, and assessment scores frozen selections; assessment target programs and protected family/stratum labels cannot reach learner/generator.
-- [ ] T006 [P] Define read-only request/result types and terminal status constants in `src/oeis_learn/generalization/interfaces.py`, including distinct software/scientific statuses, original qualification producer references and separate full-state versus weights-only checkpoint types; do not implement compatibility or state-transition algorithms yet.
-- [ ] T007 [P] Create contract test cases in `tests/contract/test_generalization_authority.py` and `tests/contract/test_generalization_roles.py` for strict formats and forbidden cross-role payloads, referencing the schemas and mount declarations; write expectations before phase-B validators.
-- [ ] T008 Add unimplemented prospective command handlers and routing stubs in `src/oeis_learn/pipeline_validation/generalization_cli.py` for the endpoints in `specs/011-controlled-generalization/contracts/cli.md`; handlers must fail explicitly until wired and must not alter existing pilot defaults.
+- [X] T005 Define the role-specific file/mount declarations in `src/oeis_learn/generalization/role_contracts.py`: learner has training/replay only, generator/fitter has visible inputs only, selection has selection supervision only, and assessment scores frozen selections; assessment target programs and protected family/stratum labels cannot reach learner/generator.
+- [X] T006 [P] Define read-only request/result types and terminal status constants in `src/oeis_learn/generalization/interfaces.py`, including distinct software/scientific statuses, original qualification producer references and separate full-state versus weights-only checkpoint types; do not implement compatibility or state-transition algorithms yet.
+- [X] T007 [P] Create contract test cases in `tests/contract/test_generalization_authority.py` and `tests/contract/test_generalization_roles.py` for strict formats and forbidden cross-role payloads, referencing the schemas and mount declarations; write expectations before phase-B validators.
+- [X] T008 Add unimplemented prospective command handlers and routing stubs in `src/oeis_learn/pipeline_validation/generalization_cli.py` for the endpoints in `specs/011-controlled-generalization/contracts/cli.md`; handlers must fail explicitly until wired and must not alter existing pilot defaults.
 
 **Exit**: T001–T008 are reviewed. No complex algorithm is hidden in schemas, stubs or fixture generation. All expected outcomes and public interfaces are available for B.
 
@@ -236,4 +236,8 @@ These examples do not spawn agents or select a model automatically. The operator
 
 ## Generation validation
 
-70 sequential unchecked tasks; 49 story-labeled and 21 shared/setup/final tasks. Story totals: US1=9, US2=9, US3=13, US4=7, US5=11. Eighteen tasks are marked `[P]` in explicitly bounded waves. All tasks have file paths; all story tasks carry `[USn]`. Mandatory tests are included because the spec and constitution request them. Extension hooks were checked before and after generation; no `.specify/extensions.yml` is present. Generating this file completes no implementation, test or hardware task.
+70 sequential tasks, initially generated unchecked; Phase A T001–T008 are now complete (8 checked, 62 pending); 49 story-labeled and 21 shared/setup/final tasks. Story totals: US1=9, US2=9, US3=13, US4=7, US5=11. Eighteen tasks are marked `[P]` in explicitly bounded waves. All tasks have file paths; all story tasks carry `[USn]`. Mandatory tests are included because the spec and constitution request them. Extension hooks were checked before and after generation; no `.specify/extensions.yml` is present. Generating this file completes no implementation, test or hardware task.
+
+## Phase A completion
+
+T001–T008 are implemented. See [phase-a.md](validation/phase-a.md) for actual contract/regression, deterministic-fixture and packaging evidence, plus the container/HIP limitations. Phase B T009–T044 remains unchecked and is the next single algorithm handoff.

@@ -31,12 +31,12 @@
     "original_source": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 65536
     },
     "final_source": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1024
+      "maxLength": 65536
     },
     "assignment": {
       "type": "object",

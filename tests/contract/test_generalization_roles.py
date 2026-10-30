@@ -81,3 +81,12 @@ def test_unknown_command_rejected_and_exit_codes_preserved():
         "PASS": 0, "FAIL": 1, "BLOCKED": 3, "PARTIAL": 3,
         "INCONCLUSIVE": 3, "INTERRUPTED": 130,
     }
+
+
+def test_source_shapes_allow_existing_profile_size_without_weakening_prompts():
+    records = json.loads((FIXTURES / "payloads.json").read_text())
+    record = copy.deepcopy(records["training-target"])
+    record["source"] = "(program " + " " * 1024 + "(return (int 0)))"
+    validator("training-target").validate(record)
+    record["source"] = "x" * 65537
+    assert list(validator("training-target").iter_errors(record))

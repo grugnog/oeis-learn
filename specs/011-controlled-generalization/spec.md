@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-30
 
-**Status**: Specified, planned and tasked — ready for implementation review
+**Status**: Phase A implemented; Phase B algorithms and later integration/validation pending
 
 **Input**: Independently assess the supplied research reports and primary sources, integrate the completed pilot findings, and specify the next changes. Concentrate complex algorithm work into one phase and HIP validation into as few runs as possible, ideally one serial invocation with shareable results.
 
