@@ -68,6 +68,17 @@ def generator(inputs,output,settings,*,seconds):
             client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=seconds,bank_seeds=settings['bank_seeds'])
 
 
+def selection(inputs,output,settings,*,seconds):
+    from oeis_learn.synthesis.client import SynthesisClient
+    from .generalization_scoring import score_selection
+    if set(settings)!={'targets','candidates','study'}:
+        raise ValueError('closed selection settings required')
+    with SynthesisClient(settings['study'],cache_root=output/'private/native-cache') as native:
+        return score_selection(inputs['selection_supervision'],settings['targets'],
+            inputs['selection_candidates'],settings['candidates'],client=native,
+            output=output/'selection',seconds=seconds)
+
+
 def qualification_consume(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.qualification import consume
     from oeis_learn.generalization.contracts import verify_artifact
@@ -79,7 +90,7 @@ def qualification_consume(inputs,output,settings,*,seconds):
     return dict(status='PASS',original=original,study_qualified=False)
 
 
-HANDLERS={(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+HANDLERS={(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 
