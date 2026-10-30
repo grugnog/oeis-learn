@@ -43,3 +43,37 @@ def test_deterministic_eviction_and_finite_duplicate_scope():
     assert len(ReplayPool(seed=1,duplicate_scope='finite-behavior').add(a).add(b).entries)==1
     bounded=ReplayPool(seed=1,capacity=1).add(a).add(entry('b','(program (return (int 0)))',3))
     assert bounded.task_weights()=={'b':F(1)}
+
+
+def test_search_reserves_before_work_and_settles_overrun_without_refund():
+    reserved=SearchLedger().reserve('task',60)
+    assert reserved.records==( ('task',1,0), )
+    assert reserved.pending==('task',60)
+    with pytest.raises(ValueError):reserved.reserve('other',1)
+    restored=SearchLedger.restore(reserved.snapshot())
+    assert restored==reserved
+    measured=restored.finish(61)
+    assert measured.records==( ('task',1,61), ) and measured.pending is None
+    assert measured.overruns==( ('task',61,60), )
+    with pytest.raises(ValueError):measured.reserve('task',1)
+    with pytest.raises(ValueError):measured.finish(1)
+
+
+def test_search_global_budget_and_task_cap_gate_new_work_only():
+    ledger=SearchLedger()
+    for i in range(239):ledger=ledger.reserve(str(i),60).finish(60)
+    ledger=ledger.reserve('last',60).finish(61)
+    assert sum(r[2] for r in ledger.records)==14401
+    with pytest.raises(ValueError):ledger.reserve('new',1)
+    ledger=SearchLedger()
+    for i in range(256):ledger=ledger.reserve(str(i),1).finish(0)
+    with pytest.raises(ValueError):ledger.reserve('new',1)
+    for _ in range(7):ledger=ledger.reserve('0',1).finish(0)
+    with pytest.raises(ValueError):ledger.reserve('0',1)
+
+
+@pytest.mark.parametrize('value',[True,-1,float('inf'),float('nan')])
+def test_search_invalid_measurement_cannot_settle_reservation(value):
+    ledger=SearchLedger().reserve('task',1)
+    with pytest.raises(ValueError):ledger.finish(value)
+    assert ledger.pending==('task',1)

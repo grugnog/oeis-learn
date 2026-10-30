@@ -18,33 +18,67 @@ def admission(task,candidate,*,client,checkpoint,order,deadline):
                  production=production,production_identity=client.runtime_identity('bigint-body/v1'),order=order)
 
 
-def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400):
-    if not 0<seconds<=14400 or len(tasks)>256:raise ValueError('bounded training search required')
+def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400,save=None):
+    """Reserve before callbacks and publish settled evidence even on interruption.
+
+    Orchestrators supply an atomic save(pool_snapshot, report) callback for durable
+    crash evidence. Without it, exceptions carry replay_evidence in memory only.
+    A persisted pending reservation is unmeasured, never a completed zero-cost run.
+    """
+    from .identity import number
+    number(seconds,positive=True)
+    if seconds>14400 or len(tasks)>256:raise ValueError('bounded training search required')
     if len({t['id'] for t in tasks})!=len(tasks):raise ValueError('duplicate training search task')
     pool=ReplayPool(seed=seed);ledger=SearchLedger();rejected=[];began=time.monotonic()
-    deadline=began+seconds;ordinal=0
+    deadline=began+seconds;ordinal=0;status='PASS'
+    def report(state):
+        return seal(dict(version='generalization-replay-round-result/v2',status=state,plan=round_plan(len(pool.entries)),
+            search_ledger=list(ledger.records),search_state=ledger.snapshot(),rejections=rejected,admitted=len(pool.entries),
+            current_policy_success=None,cumulative_discoveries=len(pool.entries)))
+    def publish(state):
+        result=report(state)
+        if save is not None:save(pool.snapshot(),result)
+        return result
     for task in tasks:
         task_deadline=min(deadline,time.monotonic()+60)
         for attempt in range(8):
-            if time.monotonic()>=task_deadline:break
-            start=time.monotonic();entry=None
+            start=time.monotonic()
+            allowance=min(task_deadline-start,ledger.available(task['id']))
+            if allowance<=0:
+                status='PARTIAL';break
+            ledger=ledger.reserve(task['id'],allowance)
+            publish('RUNNING')  # Failure to persist prevents the callback from running.
+            entry=None;failure=None
             try:
-                # The search role gets the registered visible prefix only.
+                if time.monotonic()>=task_deadline:raise TimeoutError('reservation persistence exhausted deadline')
                 visible=dict(id=task['id'],indices=list(task['indices'][:20]),values=list(task['values'][:20]))
                 candidate=propose(visible,attempt,task_deadline)
+                if time.monotonic()>=task_deadline:raise TimeoutError('proposal deadline exhausted')
                 entry=admission(task,candidate,client=client,checkpoint=checkpoint,order=ordinal,deadline=task_deadline)
-            except ValueError as exc:rejected.append(dict(task=task['id'],attempt=attempt,reason=str(exc)))
-            elapsed=max(time.monotonic()-start,0.000001)
-            try:ledger=ledger.charge(task['id'],elapsed)
-            except ValueError:
-                rejected.append(dict(task=task['id'],attempt=attempt,reason='budget_exhausted'));break
-            if time.monotonic()>task_deadline:break
-            if entry is not None:pool=pool.add(entry)
+            except (ValueError,TimeoutError) as exc:
+                rejected.append(dict(task=task['id'],attempt=attempt,reason=str(exc)))
+            except BaseException as exc:
+                failure=exc
+                rejected.append(dict(task=task['id'],attempt=attempt,reason=type(exc).__name__))
+            finally:
+                elapsed=time.monotonic()-start
+                ledger=ledger.finish(elapsed)
+            late=time.monotonic()>=task_deadline
+            if late:
+                status='PARTIAL'
+                rejected.append(dict(task=task['id'],attempt=attempt,reason='budget_exhausted'))
+            if failure is not None:
+                result=report('INTERRUPTED' if isinstance(failure,(KeyboardInterrupt,InterruptedError)) else 'FAIL')
+                failure.replay_evidence=result
+                if save is not None:save(pool.snapshot(),result)
+                raise failure
+            if entry is not None and not late:pool=pool.add(entry)
             ordinal+=1
-        if time.monotonic()>=deadline:break
-    return pool,seal(dict(version='generalization-replay-round-result/v1',plan=round_plan(len(pool.entries)),
-                          search_ledger=list(ledger.records),rejections=rejected,admitted=len(pool.entries),
-                          current_policy_success=None,cumulative_discoveries=len(pool.entries)))
+            publish('RUNNING')
+            if late:break
+        if time.monotonic()>=deadline:
+            status='PARTIAL';break
+    return pool,publish(status)
 
 
 def restore_pool(record,*,tasks,client,deadline):

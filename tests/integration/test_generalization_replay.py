@@ -65,3 +65,65 @@ def test_search_overrun_retains_charged_attempt_evidence(monkeypatch):
         raise ValueError('native deadline cleanup overrun')
     _,report=replay.search_round([task()],propose=overrun,client=NativeFixture(),checkpoint='checkpoint',seed=3)
     assert sum(row[1] for row in report['search_ledger'])==1
+
+
+def test_interruption_persists_attempt_before_work_and_preserves_measured_time(monkeypatch):
+    import pytest
+    from oeis_learn.pipeline_validation import generalization_replay as replay
+    clock=[0.];saved=[]
+    monkeypatch.setattr(replay.time,'monotonic',lambda:clock[0])
+    def interrupt(*args):
+        assert saved[-1]['search_state']['pending']==['task',60.]
+        assert saved[-1]['search_ledger']==[['task',1,0]]
+        clock[0]=3.
+        raise KeyboardInterrupt()
+    with pytest.raises(KeyboardInterrupt) as caught:
+        replay.search_round([task()],propose=interrupt,client=NativeFixture(),checkpoint='checkpoint',seed=3,
+                            save=lambda pool,report:saved.append(report))
+    assert saved[-1]['search_ledger']==[['task',1,3.]]
+    assert saved[-1]['status']=='INTERRUPTED'
+    assert caught.value.replay_evidence==saved[-1]
+
+
+def test_late_candidate_is_not_audited_or_admitted(monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_replay as replay
+    clock=[0.];calls=[]
+    monkeypatch.setattr(replay.time,'monotonic',lambda:clock[0])
+    def late(*args):clock[0]=2.;return {}
+    monkeypatch.setattr(replay,'admission',lambda *a,**kw:calls.append('audit'))
+    pool,report=replay.search_round([task()],propose=late,client=NativeFixture(),checkpoint='checkpoint',seed=3,seconds=1)
+    assert not calls and not pool.entries
+    assert report['search_ledger']==[['task',1,2.]]
+    assert report['search_state']['overruns']==[['task',2.,1.]]
+    assert report['status']=='PARTIAL'
+
+
+def test_failed_reservation_persistence_prevents_work():
+    import pytest
+    calls=[]
+    def save(*args):raise OSError('disk full')
+    with pytest.raises(OSError,match='disk full'):
+        search_round([task()],propose=lambda *a:calls.append('work'),client=NativeFixture(),checkpoint='c',seed=1,save=save)
+    assert calls==[]
+
+
+def test_reservation_persistence_deadline_prevents_callback(monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_replay as replay
+    clock=[0.];calls=[]
+    monkeypatch.setattr(replay.time,'monotonic',lambda:clock[0])
+    def save(*args):clock[0]=2.
+    _,report=replay.search_round([task()],propose=lambda *a:calls.append('work'),client=NativeFixture(),checkpoint='c',seed=1,seconds=1,save=save)
+    assert calls==[] and report['status']=='PARTIAL'
+    assert report['search_ledger']==[['task',1,2.]]
+
+
+def test_unexpected_failure_propagates_with_accounting(monkeypatch):
+    import pytest
+    from oeis_learn.pipeline_validation import generalization_replay as replay
+    clock=[0.]
+    monkeypatch.setattr(replay.time,'monotonic',lambda:clock[0])
+    def fail(*args):clock[0]=5.;raise RuntimeError('native crash')
+    with pytest.raises(RuntimeError,match='native crash') as caught:
+        replay.search_round([task()],propose=fail,client=NativeFixture(),checkpoint='c',seed=1)
+    assert caught.value.replay_evidence['status']=='FAIL'
+    assert caught.value.replay_evidence['search_ledger']==[['task',1,5.]]
