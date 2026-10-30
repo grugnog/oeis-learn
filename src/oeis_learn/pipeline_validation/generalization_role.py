@@ -106,14 +106,15 @@ def main(argv=None):
         if torch.get_num_interop_threads()!=1:torch.set_num_interop_threads(1)
     output=Path(ROLE_OUTPUTS[role].destination)
     inputs={m.channel:Path(m.destination) for m in ROLE_INPUTS[role]}
+    handler=HANDLERS.get((role,runtime['operation']))
+    if handler is None:
+        write(output/'result.json',seal(dict(status='BLOCKED',reason='UNREGISTERED_ROLE_OPERATION')))
+        return 0
     try:
-        handler=HANDLERS[(role,runtime['operation'])]
         selected=runtime['settings'].get('config',runtime['settings'])
         if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
         result=handler(inputs,output,runtime['settings'],seconds=runtime['seconds'])
-    except KeyError:
-        result=dict(status='BLOCKED',reason='UNREGISTERED_ROLE_OPERATION')
-    except (ValueError,OSError,RuntimeError,TimeoutError) as exc:
+    except (KeyError,ValueError,OSError,RuntimeError,TimeoutError) as exc:
         result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc))
     write(output/'result.json',seal(result))
     # A terminal role result is transported even for a negative software outcome.

@@ -36,3 +36,16 @@ def test_selection_rejects_assessment_truth_before_scoring(tmp_path):
         score_selection(truth,reference(truth/'rows.json',truth),candidates,
             reference(candidates/'rows.json',candidates),client=None,output=tmp_path/'out',seconds=10)
     assert not (tmp_path/'out').exists()
+
+
+def test_role_distinguishes_handler_failure_from_unknown_operation(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_role as role
+    from oeis_learn.generalization.role_contracts import Role
+    monkeypatch.setattr(role,'ROLE_OUTPUTS',{Role.SELECTION:SimpleNamespace(destination=str(tmp_path))})
+    def broken(*args,**kwargs):raise KeyError('missing selected candidate field')
+    monkeypatch.setitem(role.HANDLERS,(Role.SELECTION,'broken'),broken)
+    runtime=dict(settings={},operation='broken',seconds=10,device='cpu')
+    assert role.main(['selection',json.dumps(runtime)])==0
+    record=json.loads((tmp_path/'result.json').read_text())
+    assert record['status']=='FAIL' and record['reason']=='KeyError'
