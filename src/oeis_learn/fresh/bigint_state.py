@@ -275,6 +275,8 @@ def generalization_checkpoint_policy(history, *, pins):
 
 
 class GeneralizationCheckpointStore:
+    MAX_BYTES = 32 << 30
+
     """Prospective full-state generations; latest moves only after verified publication.
 
     Private state is trusted run-owned data. Hash verification happens before
@@ -304,6 +306,10 @@ class GeneralizationCheckpointStore:
         def blob(name,value):
             data=encode(value)
             if not isinstance(data,bytes):raise ValueError('state serializer must return bytes')
+            import shutil
+            used=sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
+            if used+len(data)>self.MAX_BYTES or len(data)>shutil.disk_usage(self.root).free:
+                raise OSError('checkpoint storage reservation exhausted; existing pins retained')
             path=folder/(name+'.pt');write(path,data,immutable=True)
             ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=len(data))
             verify_artifact(self.root,ref);return ref

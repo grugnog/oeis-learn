@@ -48,7 +48,17 @@ def report(inputs,output,settings,*,seconds):
                 scope='recorded finite evidence',summary=result['summary'])
 
 
-HANDLERS={(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report}
+def learner(inputs,output,settings,*,seconds):
+    from oeis_learn.fresh.bigint_worker import generalization_train
+    if set(settings)!={'config','resume'}:raise ValueError('closed learner role settings required')
+    config=settings['config']
+    if config['seconds']>seconds:raise ValueError('learner exceeds enclosing deadline')
+    resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
+    return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume)
+
+
+HANDLERS={(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+          (Role.LEARNER,'train'):learner}
 
 
 def main(argv=None):
