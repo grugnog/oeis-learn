@@ -63,3 +63,13 @@ Public command stubs remain explicitly blocked. The algorithm interfaces and own
 matrix are recorded in [algorithm-handoff.md](../contracts/algorithm-handoff.md).
 An algorithm defect found during integration reopens Phase B and invalidates affected
 evidence; it must not be patched as an unreviewed integration decision.
+
+## Exit review invalidated during Phase C
+
+The family-summary counterexample added during integration fails: a bundle whose
+`families` artifact contains an invented family with 999 successes still returns
+integrity PASS, provided its hash is consistent. The verifier checks the aggregate
+summary but does not rederive family/seed/cost summaries required by T037. The prior
+113-test result did not exercise this invariant. T037 and T044 are reopened; the
+previous completion statement is superseded. Production integration cannot rely on
+this verifier until the full reconciliation policy and counterexamples pass.

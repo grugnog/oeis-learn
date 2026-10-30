@@ -27,7 +27,8 @@ def test_required_results_cannot_be_silently_redacted():
     assert bundle_plan([dict(path='private',bytes=1,private=True,required=False)],mandatory=set())['omissions']==['private']
     with pytest.raises(ValueError): verify_bundle({'study':'s','stages':[]},expected_study='other',root='.')
 
-def test_offline_complete_bundle_and_stale_summary(tmp_path):
+@pytest.mark.parametrize("stale_family", [False, True])
+def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family):
     import copy,hashlib,json
     from pathlib import Path
     from oeis_learn.generalization.contracts import freeze
@@ -58,6 +59,13 @@ def test_offline_complete_bundle_and_stale_summary(tmp_path):
     record=replace_refs(fixtures['evidence']);record.update(study=study_ref,qualification_producers=[qref],stage_ledger=ledger,attempts=measurements,summary=summary,software_status='PASS',scientific_status='UNMEASURED',omissions=[])
     record['inventory']=[base,study_ref,device,producer_ref,qref,ledger,measurements,summary]
     record=freeze('evidence',record).record()
+    if stale_family:
+        record['families']=write('false-families.json',{'invented_family': {'successes': 999}})
+        record['inventory'].append(record['families'])
+        record=freeze('evidence',record).record()
+        with pytest.raises(ValueError,match='family'):
+            verify_bundle(record,expected_study=study['identity'],root=tmp_path)
+        return
     assert verify_bundle(record,expected_study=study['identity'],root=tmp_path)['integrity']=='PASS'
     bad=copy.deepcopy(record);bad['software_status']='PARTIAL';bad=freeze('evidence',bad).record()
     with pytest.raises(ValueError,match='stale'): verify_bundle(bad,expected_study=study['identity'],root=tmp_path)
