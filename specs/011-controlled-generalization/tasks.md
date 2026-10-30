@@ -136,7 +136,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 - [ ] T051 [US3] Add bounded paired-training/interruption integration scenarios in `tests/integration/test_generalization_training.py`, checking static/refresh exposure, both target formats, uninterrupted-versus-resumed next batches/state and retained milestone hashes.
 - [ ] T052 [US3] Wire prospective training arms/seeds to the existing model and native execution adapters in `src/oeis_learn/pipeline_validation/generalization_training.py` and the new-profile route in `src/oeis_learn/fresh/bigint_worker.py`; call refresh/target/token policies and use actual post-substitution targets for charging.
 - [ ] T053 [US3] Connect atomic state persistence and pinned artifacts to the existing checkpoint store in `src/oeis_learn/fresh/bigint_state.py`, routing prospective resume through T030–T031 while preserving historical state/profile behavior.
-- [ ] T054 [US3] Add frozen prospective recipe templates under `configs/foundation/pipeline_studies/` for E0, P0, P1-screen/confirm, P2, P3 and P4, reflecting `specs/011-controlled-generalization/contracts/experiments.md`; validate single changing factors, recipe-specific milestones, separate selection/assessment identities and exact cap/seed lists without executing the campaigns.
+- [X] T054 [US3] Add frozen prospective recipe templates under `configs/foundation/pipeline_studies/` for E0, P0, P1-screen/confirm, P2, P3 and P4, reflecting `specs/011-controlled-generalization/contracts/experiments.md`; validate single changing factors, recipe-specific milestones, separate selection/assessment identities and exact cap/seed lists without executing the campaigns.
 - [ ] T055 [US3] Add opt-in `--arms uniform` and qualification routing to `src/oeis_learn/pipeline_validation/followup_study.py` and its existing host entrypoint, with regression coverage in `tests/unit/test_pilot_followup.py`; keep the default three historical arms/selection semantics and report missing seed16 instead of fabricating confirmation.
 
 ### US5 integration — Canonical endpoints and serial helper
@@ -257,3 +257,13 @@ See [local-checks.md](validation/local-checks.md).
 The integration prerequisite failure above is resolved by strict frozen-roster,
 per-attempt reconciliation. T037/T044 are checked again following 131 passing tests
 and 4 subtests; see the latest algorithm-review entry. Phase C tasks remain unchecked.
+
+## Phase C continuation: preparation and recipe increment
+
+T054 now has seven sealed E0/P0/P1-screen/P1-confirm/P2/P3/P4 templates with fixed
+seeds, budgets, milestones, single changing factors, isolated scoring roles and
+explicit unresolved preparation inputs. They are not runnable studies. T048–T050
+have tested bounded per-cell publication and mount-resolution adapters; their full
+end-to-end registration is pending. T060 has CPU test/source closure registration;
+feature-specific HIP selections still require actual integration. These partial
+tasks remain unchecked.
