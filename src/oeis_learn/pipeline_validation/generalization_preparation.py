@@ -29,6 +29,12 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
         seen+=1
         try:
             if row['origin']!='generic_random': raise ValueError('nonmechanical origin')
+            from oeis_learn.data.bigint_programs import canonical_family
+            from oeis_learn.generalization.targets import ground
+            if canonical_family(row['parameter_source'])!=row['family']:raise ValueError('descriptor family mismatch')
+            if ground(row['parameter_source'],row.get('assignment',{}))!=row['source']:raise ValueError('concrete descriptor grounding mismatch')
+            row=dict(row,variant=str(row['variant']))
+            row.setdefault('group',digest([row['family'],row['variant']]))
             exact=materialize(row)
             native=execute(exact['source'],tuple(exact['indices']))
             if native.get('outcome')!='ok' or tuple(native['values'])!=tuple(exact['values']): raise ValueError('native/reference disagreement')
@@ -38,7 +44,7 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
             if observation.branch_active:tags.append('branch_active')
             exclusion=dict(id=exact['id'],role=role,family=row['family'],holdout=holdout,source=exact['source'],values=exact['values'],group=row['group'],variant=row['variant'])
             if exclusions.reasons(exclusion): raise ValueError('cross-role exclusion')
-            admitted.append(dict(exact,role=role,tags=tags))
+            admitted.append(dict(exact,role=role,holdout=holdout,tags=tags))
         except ValueError as exc:
             rejections.append(dict(draw=seen,reason=str(exc)))
     choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
@@ -108,6 +114,7 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         with path.open('xb') as stream:stream.write(data)
         copied[ref['path']]=ref
     exclusions=ExclusionIndex(json.loads(verify_artifact(root,prep['exclusions'])))
+    training_capacity=0
     choices={};manifests=[];by_role={role:[] for role in prep['roles']}
     deadline=time.monotonic()+min(14400,prep['budgets']['seconds']);draws=0
     for cell in cells:
@@ -130,25 +137,25 @@ def prepare_study(root,preparation,proposed,*,output,execute):
                 source=row['source'],values=row['values'],group=row['group'],variant=row['variant']))
         protected='private/targets.json'
         if cell['role']=='training':
-            training=[]
+            training=[];dispositions=[]
             for row in rows:
                 prompt_id=digest([cell['role'],row['id'],row['source']])
                 target_source=row['source']
                 if proposed['data']['target_format']=='parameterized':
                     from oeis_learn.generalization.targets import pair
                     paired=pair(row['source'],row['parameter_source'],row['assignment'],indices=tuple(row['indices']),sharing=proposed['data']['sharing_policy'])
-                    if paired['disposition']!='supported':
-                        write(folder/'unsupported.json',dict(id=prompt_id,disposition=paired['disposition']))
-                        result=seal(dict(status='BLOCKED',reason='UNSUPPORTED_TARGET',cell=cell['name'],study=None))
-                        write(output/'preparation-result.json',result);return result
+                    dispositions.append(dict(id=prompt_id,disposition=paired['disposition'],family=row['family'],stratum=cell['holdout']))
                     target_source=paired['parameter_source']
                 training.append(dict(id=prompt_id,role='training',source=target_source,tokens=encode_body(target_source),indices=row['indices'],values=row['values']))
-            write(folder/'private/training.json',training);protected='private/training.json'
+            from oeis_learn.generalization.budgets import charge_tokens
+            training_capacity+=charge_tokens([r['tokens'] for r in training],bos=1,pad=0)
+            write(folder/'private/training.json',training)
+            write(folder/'private/target-dispositions.json',dispositions);protected='private/training.json'
         coverage=Counter(tag for row in rows for tag in row['tags'])
         manifest=freeze('cohort',dict(version='generalization-cohort/v1',role=cell['role'],family_rule='fixed-descriptor/v1',
             sources=[digest(row['source']) for row in rows],variants=sorted({row['variant'] for row in rows}),groups=[digest(row['group']) for row in rows],
             quotas=cell['quotas'],coverage=dict(coverage),exclusions=prep['exclusions'],indices=rows[0]['indices'],
-            public_payloads=[reference(folder/'prompts.json',output)],private_payloads=[reference(folder/protected,output)],
+            public_payloads=[reference(folder/'prompts.json',output)],private_payloads=[reference(folder/protected,output)]+([reference(folder/'private/target-dispositions.json',output)] if cell['role']=='training' else []),
             preparation_ledger=reference(folder/'ledger.json',output)))
         write(folder/'cohort.json',manifest.record());ref=reference(folder/'cohort.json',output)
         manifests.append(ref);by_role[cell['role']].append(ref)
@@ -156,6 +163,9 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         if used>min(prep['budgets']['storage_bytes'],8<<30):
             result=seal(dict(status='BLOCKED',reason='STORAGE_EXHAUSTED',study=None))
             write(output/'preparation-result.json',result);return result
+    if any(arm in {'refresh','refreshed'} for arm in prep['study_settings']['arms']) and training_capacity<prep['budgets']['target_tokens']:
+        result=seal(dict(status='BLOCKED',reason='INSUFFICIENT_REFRESH_CAPACITY',study=None,available_target_tokens=training_capacity))
+        write(output/'preparation-result.json',result);return result
     for role in ('selection','assessment'):
         path=output/(role+'-roster.json')
         write(path,seal(dict(version='generalization-cohort-roster/v1',role=role,cells=by_role[role])))

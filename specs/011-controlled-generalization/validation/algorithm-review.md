@@ -106,3 +106,18 @@ Tests cover policy-to-authority serialization, every missing resource/security k
 every changed resource/security value, and v1 rejection. The combined feature and
 historical selection passes **152 tests and 4 subtests**. The local T044 gate is
 restored. No container/native/HIP qualification has run.
+
+## T024 projection boundary correction
+
+Schema checks on the prepared protected payloads exposed a second compositional
+counterexample: `project()` returned a generic family-bearing record for every role,
+which omitted training tokens and scorer strata. The Phase-B projection now emits
+and validates the distinct training/scorer schemas, requiring a declared protected
+holdout stratum for scorer payloads. The visible projection is still exactly opaque
+id plus 20 indices/terms. Integration preserves that stratum and validates descriptor
+family/grounding before materialization. This correction does not relax a schema or
+supply hidden metadata to generation. The dedicated policy/preparation regression
+selection passes (10 tests); the next combined result records the full exit review.
+The combined selection after the projection correction passes **177 tests and
+9 subtests**, restoring T024/T044's local gate. A subsequent preparation-only check
+passes 6 tests after preserving parameter-target dispositions as protected metadata.

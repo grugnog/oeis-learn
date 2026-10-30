@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from oeis_learn.generalization.coverage import observe
 from oeis_learn.generalization.cohorts import choose, project
+from oeis_learn.pipeline_validation.identity import digest
 
 CASES=json.loads(Path('tests/fixtures/generalization/mechanical-cases.json').read_text())
 
@@ -15,14 +16,14 @@ def test_executed_not_syntactic_coverage():
     assert huge.above_64_bits
 
 def test_quota_shortfall_and_projection():
-    rows=[dict(id=str(i),family='f'+str(i),tags=['loop_active','branch_active'],role='selection',indices=list(map(str,range(100))),values=['0']*100,source='private') for i in range(4)]
+    rows=[dict(id=str(i),family=digest('f'+str(i)),tags=['loop_active','branch_active'],role='selection',holdout='parameter',indices=list(map(str,range(100))),values=['0']*100,source='(program (return (int 0)))') for i in range(4)]
     result=choose(rows,count=4,quotas={'loop_active':2,'branch_active':2},structural=True)
     assert result.complete and len(result.rows)==4
     failure=choose(rows[:1],count=4,quotas={'loop_active':2,'branch_active':2},structural=True)
     assert not failure.complete and failure.shortfalls
     visible,scorer=project(rows[0])
     assert set(visible)=={'id','indices','values'} and len(visible['values'])==20
-    assert scorer['family']=='f0'
+    assert scorer['family']==digest('f0')
     with pytest.raises(ValueError): project(dict(rows[0],role='unknown'))
 
 def test_both_branch_paths_and_longer_program_bins():
@@ -33,3 +34,12 @@ def test_both_branch_paths_and_longer_program_bins():
     assert active.branch_active and not inactive.branch_active
     assert distribution([active],length_boundary=1)['long']==1
     assert not choose([dict(id='x',family='same',tags=['loop_active','branch_active'])],count=1,quotas={},structural=True).complete
+
+
+def test_protected_projections_match_their_declared_role_schema():
+    from oeis_learn.generalization.contracts import shape
+    source='(program (return (int 0)))'
+    common=dict(id='opaque',family=digest('family'),holdout='parameter',indices=list(map(str,range(100))),values=['0']*100,source=source)
+    for role,kind in [('training','training-target'),('selection','scorer-target'),('assessment','scorer-target')]:
+        _,protected=project(dict(common,role=role))
+        shape(kind,protected)

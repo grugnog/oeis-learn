@@ -49,7 +49,15 @@ def project(row):
     shape('visible-prompt',visible)
     # Scorer/training payload stays in its own role mount. Opaque ids must already
     # have been assigned by preparation, never encode protected family labels.
-    protected={k:row[k] for k in ('id','role','family','indices','values','source')}
+    protected={k:row[k] for k in ('id','role','indices','values','source')}
+    if row['role']=='training':
+        from oeis_learn.decoder.bigint_codec import encode_body
+        protected['tokens']=encode_body(row['source'])
+        shape('training-target',protected)
+    else:
+        if row.get('holdout') not in {'parameter','structural'}:raise ValueError('registered protected stratum required')
+        protected.update(family=row['family'],stratum=row['holdout'])
+        shape('scorer-target',protected)
     return visible,protected
 
 

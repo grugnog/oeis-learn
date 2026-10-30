@@ -2,10 +2,12 @@ import json
 import pytest
 from oeis_learn.pipeline_validation.generalization_preparation import prepare_cell
 from oeis_learn.pipeline_validation.generalization_roles import mounts
+from oeis_learn.pipeline_validation.identity import digest
+from oeis_learn.data.bigint_programs import canonical_family
 
 
 def source(i):
-    return dict(id=str(i),stage='A',source=f'(program (return (add $index (int {i}))))',parameter_source=f'(program (return (add $index (int {i}))))',family='family'+str(i),variant=str(i),group='group'+str(i),origin='generic_random')
+    return dict(id=str(i),stage='A',source=f'(program (return (add $index (int {i}))))',parameter_source=f'(program (return (add $index (int {i}))))',family=canonical_family(f'(program (return (add $index (int {i}))))'),variant=str(i),group='group'+str(i),origin='generic_random')
 
 def execute(src,indices):
     i=int(src.split('(int ')[1].split(')')[0]);return dict(values=[str(int(n)+i) for n in indices],outcome='ok')
@@ -73,11 +75,11 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     plans=[]
     for i,role in enumerate(('training','selection','assessment')):
         row=source(i);row['source']=f'(program (return (mul $index (int {i+2}))))'
-        row['parameter_source']=row['source']
+        row['parameter_source']=row['source'];row['family']=canonical_family(row['source'])
         plans.append(dict(name=role,role=role,holdout='parameter',count=1,quotas={},structural=False,
                           candidates=artifact(role+'.json',[row])))
     generator=artifact('generator.json',dict(version='generalization-materialization-plan/v1',cells=plans))
-    prep=raw['preparation'];prep.update(generator=generator,descriptors=empty,exclusions=empty,quotas={})
+    prep=raw['preparation'];prep['budgets']['target_tokens']=10;prep.update(generator=generator,descriptors=empty,exclusions=empty,quotas={})
     study=raw['study'];study.update(prep['study_settings']);study.update(seeds=prep['seeds'],budgets=prep['budgets'],source_closure=empty)
     study['data'].update(generator=generator,descriptors=empty,exclusions=empty)
     study['assessment'].update(authorization=empty,exposure_ledger=empty)
