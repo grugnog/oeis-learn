@@ -61,8 +61,8 @@ def main():
                               source_closure=R, build_dependencies=[R], images=[H],
                               runtime=dict(hip='synthetic',driver='synthetic',python='synthetic',torch='synthetic'),
                               hardware=dict(hip_available=True,device='synthetic-not-real',memory_bytes=1),
-                              precision='fp32',resources=B,
-                              engine_security=dict(engine='docker',runtime_socket=False),
+                              precision='fp32',resources=dict(memory_bytes=1048576,cpus=16,torch_intraop=2,torch_interop=1,native_threads=1,learners=1),
+                              engine_security=dict(engine='docker',runtime_socket=False,engine_version='synthetic',runtime='synthetic',rootless=True,selinux=False,network=False,read_only_root=True,no_new_privileges=True,capabilities='none'),
                               producer=dict(receipt=R,status='PASS',artifacts=[R]),
                               artifact_inventory=[R],status='PASS'),
         'evidence': dict(study=R,effective_invocation=R,qualification_producers=[R],stage_ledger=R,
@@ -71,7 +71,7 @@ def main():
                          omissions=['no real evidence'],software_status='BLOCKED',scientific_status='UNMEASURED'),
     }
     for name, record in authority.items():
-        record.update(version=f'generalization-{name}/v1',identity=H)
+        record.update(version=f'generalization-{name}/v'+('2' if name=='qualification' else '1'),identity=H)
     write('authority.json',authority)
     write('payloads.json',{
         'visible-prompt':dict(id='affine',indices=INDICES[:20],values=VALUES[:20]),

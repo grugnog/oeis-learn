@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "version": {
-      "const": "generalization-qualification/v1"
+      "const": "generalization-qualification/v2"
     },
     "identity": {
       "type": "string",
@@ -118,7 +118,39 @@
       "maxLength": 1024
     },
     "resources": {
-      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+      "type": "object",
+      "properties": {
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cpus": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "torch_intraop": {
+          "const": 2
+        },
+        "torch_interop": {
+          "const": 1
+        },
+        "native_threads": {
+          "const": 1
+        },
+        "learners": {
+          "const": 1
+        }
+      },
+      "required": [
+        "memory_bytes",
+        "cpus",
+        "torch_intraop",
+        "torch_interop",
+        "native_threads",
+        "learners"
+      ],
+      "additionalProperties": false
     },
     "engine_security": {
       "type": "object",
@@ -131,11 +163,45 @@
         },
         "runtime_socket": {
           "const": false
+        },
+        "engine_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootless": {
+          "type": "boolean"
+        },
+        "selinux": {
+          "type": "boolean"
+        },
+        "network": {
+          "const": false
+        },
+        "read_only_root": {
+          "const": true
+        },
+        "no_new_privileges": {
+          "const": true
+        },
+        "capabilities": {
+          "const": "none"
         }
       },
       "required": [
         "engine",
-        "runtime_socket"
+        "runtime_socket",
+        "engine_version",
+        "runtime",
+        "rootless",
+        "selinux",
+        "network",
+        "read_only_root",
+        "no_new_privileges",
+        "capabilities"
       ],
       "additionalProperties": false
     },

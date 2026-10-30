@@ -90,3 +90,19 @@ T037 is repaired and T044's local algorithm exit gate is restored. The command i
 previous combined command plus `tests/integration/test_generalization_evidence.py`.
 No native/container/HIP execution occurred. Phase C production integration and Phase D
 qualification remain pending; this result establishes local policy/reference behavior.
+
+## T035 resource-authority correction during integration
+
+The first real resource projection exposed a boundary mismatch: `compute_resources`
+returns effective CPU, Torch/native thread and learner limits, but the v1
+qualification schema reused study budgets and rejected those fields. Dropping the
+fields would make exact reuse matching incomplete. T035/T044 were reopened for this
+counterexample and repaired within Phase B. `generalization-qualification/v2` now
+binds the complete computed resource projection and concrete engine/security facts;
+v1 producers fail closed. Study token/time budgets remain separate. The synthetic
+fixtures were regenerated, with no claim that they represent hardware evidence.
+
+Tests cover policy-to-authority serialization, every missing resource/security key,
+every changed resource/security value, and v1 rejection. The combined feature and
+historical selection passes **152 tests and 4 subtests**. The local T044 gate is
+restored. No container/native/HIP qualification has run.

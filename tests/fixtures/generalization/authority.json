@@ -341,8 +341,16 @@
       "fixture"
     ],
     "engine_security": {
+      "capabilities": "none",
       "engine": "docker",
-      "runtime_socket": false
+      "engine_version": "synthetic",
+      "network": false,
+      "no_new_privileges": true,
+      "read_only_root": true,
+      "rootless": true,
+      "runtime": "synthetic",
+      "runtime_socket": false,
+      "selinux": false
     },
     "hardware": {
       "device": "synthetic-not-real",
@@ -370,13 +378,12 @@
       "status": "PASS"
     },
     "resources": {
-      "attempts": 8,
-      "draws": 10000,
-      "log_bytes": 1024,
+      "cpus": 16,
+      "learners": 1,
       "memory_bytes": 1048576,
-      "seconds": 60,
-      "storage_bytes": 1048576,
-      "target_tokens": 20000
+      "native_threads": 1,
+      "torch_interop": 1,
+      "torch_intraop": 2
     },
     "runtime": {
       "driver": "synthetic",
@@ -393,7 +400,7 @@
     "suite_selection": [
       "fixture"
     ],
-    "version": "generalization-qualification/v1"
+    "version": "generalization-qualification/v2"
   },
   "refresh": {
     "cursor": {

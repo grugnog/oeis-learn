@@ -14,9 +14,11 @@ Required fields: `version`, `identity`, `recipe`, `track`, `hypothesis`, `changi
 - `budgets` binds target tokens, updates where capped, aggregate and per-operation seconds, memory, draws, replay, storage and logs.
 - `progression` records screen/confirmation/stop decisions, permitted selection-only feedback and fresh-assessment requirements. All seed/arm subsets selected by CLI must be subsets of the frozen roster.
 
-## Qualification: `generalization-qualification/v1`
+## Qualification: `generalization-qualification/v2`
 
 Separate authority from study contract. Required fields: `version`, `identity`, `suite_selection`, `covered_capabilities`, `source_closure`, `build_dependencies`, `images`, `runtime`, `hardware`, `precision`, `resources`, `engine_security`, `producer`, `artifact_inventory`, `status`.
+
+`resources` binds the effective memory ceiling, CPU count, Torch intra/inter-op threads, native threads and learner count. It does not reuse study token/time/data budgets. `engine_security` binds engine version, OCI runtime, rootless/SELinux mode and the enforced network, root filesystem, privilege and capability restrictions. v1 producers omit these facts and are rejected by this prospective profile.
 
 `images` uses inspected immutable image IDs, not tags. `hardware/runtime` includes actual HIP availability, device identity/properties and observed driver/runtime/toolchain facts. `producer` references original PASS stage receipts and their dependencies. Artifacts include real weight-load and finite forward/backward parameter-change evidence. A CPU-only substitute fails.
 
