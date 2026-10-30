@@ -74,6 +74,19 @@ def test_checkpoint_pins_survive_pruning_and_failed_save(tmp_path):
     assert json.loads((tmp_path/'generalization-latest.json').read_text())==third
 
 
+def test_descriptor_uses_committed_exposure_without_deserialization(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.identity import digest
+    store=GeneralizationCheckpointStore(tmp_path,digest('contract'),100)
+    state=states();state['data']['pending_batch']=[{'tokens':[3,2]}]
+    ref=store.save(state,Ledger(100).reserve('batch',2),encode=lambda x:json.dumps(x).encode())
+    monkeypatch.setattr(store,'_decode',lambda _:pytest.fail('descriptor must not deserialize private state'))
+    descriptor=store.describe(ref,initialization=digest('init'),pins=['latest'])
+    assert descriptor['tokens']==0 and descriptor['updates']==0
+    assert descriptor['weights']==json.loads((tmp_path/ref['path']).read_text())['states']['weights']
+    (tmp_path/descriptor['weights']['path']).write_bytes(b'changed')
+    with pytest.raises(ValueError):store.describe(ref,initialization=digest('init'),pins=['latest'])
+
+
 @pytest.mark.parametrize("data_mode",["static","refresh"])
 @pytest.mark.parametrize("target_format",["literal","parameterized"])
 def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode,replay_mode=False):
@@ -123,6 +136,15 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         for name,value in a['states']['weights'][component].items():
             assert torch.equal(value,b['states']['weights'][component][name])
     assert full['milestones']==resumed['milestones']
+    for name,result in [('full',full),('resumed',resumed)]:
+        roster=json.loads((tmp_path/name/'checkpoints/retained.json').read_text())
+        assert result['retained']==roster['identity']
+        assert roster['best_loss'] is None and roster['selected'] is None
+        assert len([c for c in roster['checkpoints'] if 'latest' in c['pins']])==1
+        for candidate in roster['checkpoints']:
+            weights=torch.load(tmp_path/name/'checkpoints'/candidate['weights']['path'],weights_only=True)
+            assert set(weights)=={'encoder','decoder'}
+        assert any('initial' in c['pins'] for c in roster['checkpoints'])
 
 
 def test_replay_initialized_torch_resume(tmp_path,monkeypatch):

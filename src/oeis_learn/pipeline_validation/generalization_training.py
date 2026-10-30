@@ -209,9 +209,27 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
+    # These references are private full-state descriptors. Evaluation projects
+    # only each descriptor's weights, never its optimizer/RNG or training data.
+    from .identity import seal
+    initial_record=json.loads(verify_artifact(store.root,history[initial]))
+    initialization=initial_record['states']['weights']['sha256']
+    retained=[]
+    for key,pointer in sorted(history.items()):
+        labels=['retained']
+        if key==initial:labels.append('initial')
+        if pointer==latest:labels.append('latest')
+        labels.extend('milestone:'+str(m) for m,k in milestone_keys.items() if k==key)
+        retained.append(store.describe(pointer,initialization=initialization,
+            parent=initializer['sha256'] if initializer is not None else None,pins=labels))
+    roster=seal(dict(version='generalization-retained/v1',study=config['study'],
+        arm=config['arm'],seed=config['seed'],checkpoints=retained,
+        best_loss=None,selected=None,selection_status='NOT_RUN'))
+    write(output/'checkpoints/retained.json',roster)
     result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed,updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,
         milestones={str(m):state['history']['exposures'][k] for m,k in milestone_keys.items()},
-        learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts)
+        learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts,
+        retained=roster['identity'])
     write(output/'training.json',result)
     return result

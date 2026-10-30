@@ -335,6 +335,26 @@ class GeneralizationCheckpointStore:
         states['rng']={key:decode(verify_artifact(self.root,value)) for key,value in states['rng'].items()}
         return dict(states=states,ledger=result['ledger'])
 
+    def describe(self,ref,*,initialization,parent=None,pins):
+        """Verify a generation and expose its exact weights without unpickling.
+
+        Token exposure describes committed parameters, excluding a reserved but
+        unfinished update. The original ledger remains in the full-state file.
+        """
+        import json
+        from oeis_learn.generalization.state import restore
+        from oeis_learn.generalization.contracts import verify_artifact,shape
+        from oeis_learn.pipeline_validation.identity import seal
+        record=json.loads(verify_artifact(self.root,ref))
+        restored=restore(record,contract=self.contract,cap=self.cap,root=self.root)
+        ledger=restored['ledger']
+        descriptor=seal(dict(version='generalization-checkpoint/v1',kind='full_state',
+            weights=record['states']['weights'],state=ref,initialization=initialization,
+            parent=parent,tokens=ledger.consumed-(ledger.pending[1] if ledger.debited else 0),
+            updates=ledger.updates,pins=list(pins),compatibility=self.contract))
+        shape('checkpoint',descriptor)
+        return descriptor
+
     def retain(self,history,pins):
         """Verify every retained generation before atomically publishing the pin set.
 
