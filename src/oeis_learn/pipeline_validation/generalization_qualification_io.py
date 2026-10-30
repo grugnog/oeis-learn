@@ -88,3 +88,69 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
             required_capabilities=list(required_capabilities),research=research,feature_receipt=feature_receipt),seconds=120)
     if result['status']!='PASS':raise ValueError('INCOMPATIBLE_QUALIFICATION: '+result.get('error',result.get('reason','verification failed')))
     return dict(original=result['original'],authority=authority,root=producer_root)
+
+
+def produce(host,workspace,output,*,images,contract):
+    """Canonical runner executes each required CPU/native and HIP scope once."""
+    from .registry import Stage
+    from .runner import execute
+    from oeis_learn.container_validation import _stages,inspect_current_image
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from .generalization_roles import project_and_invoke
+    workspace=Path(workspace);output=Path(output)
+    if output.exists():raise ValueError('fresh qualification output required')
+    if len(images)!=2:raise ValueError('prebuilt qualification/GPU image pair required')
+    output.mkdir(parents=True,exist_ok=False)
+    class Adapter:
+        def __call__(self,stage,target):
+            if stage.adapter=='inspect':
+                image=images[0 if stage.id=='image.qualification' else 1]
+                if host.engine.image(image)!=image:raise ValueError('immutable image required')
+                inspect_current_image(host,image,target,seconds=stage.seconds)
+                return dict(image=image)
+            gpu=stage.adapter=='hip';host.image=images[1 if gpu else 0]
+            if gpu:
+                host.select_gpu()
+                with host.gpu_lock():result=_stages(host,'bigint-gpu',target,external_seconds=stage.seconds)[1]
+            else:result=_stages(host,'bigint-cpu',target,external_seconds=stage.seconds)[1]
+            return dict(suite='bigint-gpu' if gpu else 'bigint-cpu',result=result)
+    stages=[Stage('image.qualification',1,seconds=240,adapter='inspect'),
+        Stage('cpu.semantic',1,('image.qualification',),seconds=3300,adapter='cpu'),
+        Stage('image.gpu',2,seconds=240,adapter='inspect'),
+        Stage('hip.preflight',2,('image.gpu','cpu.semantic'),seconds=2400,adapter='hip')]
+    code=execute(stages,output/'pipeline',adapter=Adapter(),binding=dict(source=collect_snapshot(workspace),contract=contract),
+                 cap=6600,reserve=300)
+    if code:return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code)
+    write(output/'source.json',collect_snapshot(workspace));source_ref=reference(output/'source.json',output)
+    names=['Dockerfile','pyproject.toml','uv.lock']
+    names.extend(str(p.relative_to(workspace)) for p in sorted((workspace/'crates').rglob('Cargo.lock')))
+    builds=[]
+    for name in names:
+        source=workspace/name
+        if not source.is_file():raise ValueError('missing pinned build input: '+name)
+        target=output/'build'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(source.read_bytes())
+        builds.append(reference(target,output))
+    facts=current_facts(host,workspace,output/'current',images=images,source_ref=source_ref,build_refs=builds,producer_root=output)
+    evidence=list((output/'pipeline/stages/hip.preflight').rglob('generalization-device.json'))
+    if len(evidence)!=1:raise ValueError('missing unique actual load/update proof')
+    device_ref=reference(evidence[0],output);dependencies=[]
+    for stage in stages:
+        path=output/'pipeline/stages'/stage.id/'receipt.json'
+        receipt=json.loads(path.read_text())
+        if receipt['state']!='PASS':raise ValueError('original PASS stage required')
+        files=[reference(path.parent/name,output) for name in receipt['files']]
+        proof=seal(dict(version='generalization-original-stage/v1',status='PASS',stage=stage.id,
+            receipt=reference(path,output),files=files))
+        path=output/'originals'/(stage.id+'.json');write(path,proof);dependencies.append(reference(path,output))
+    producer=seal(dict(version='generalization-producer/v1',status='PASS',facts=facts,suites=['bigint-cpu','bigint-gpu'],
+        capabilities=['weight-load','finite-update','native-exact'],artifacts=[device_ref],dependencies=dependencies,feature_acceptance=False))
+    path=output/'producer.json';write(path,producer);producer_ref=reference(path,output)
+    authority=seal(dict(version='generalization-qualification/v2',suite_selection=producer['suites'],covered_capabilities=producer['capabilities'],
+        **facts,producer=dict(receipt=producer_ref,status='PASS',artifacts=[device_ref]),artifact_inventory=public_closure(output,producer),status='PASS'))
+    path=output/'qualification.json';write(path,authority)
+    refs=[reference(path,output),*public_closure(output,authority)]
+    validated=project_and_invoke(host,images[0],workspace,'report',{'public_evidence':refs},source_roots={'public_evidence':output},
+        output=str((output/'authority-validation').relative_to(workspace)),operation='qualification-consume',
+        settings=dict(authority=refs[0],current=facts,required_suites=producer['suites'],required_capabilities=producer['capabilities'],research=False,feature_receipt=None),seconds=120)
+    if validated['status']!='PASS':raise ValueError('qualification authority validation failed')
+    return dict(status='PASS',original=producer['identity'],qualification=reference(path,output))

@@ -77,3 +77,20 @@ def test_original_consumer_uses_fresh_inspection_and_role_verification(tmp_path,
     monkeypatch.setattr(io,'current_facts',stale)
     with pytest.raises(ValueError,match='source closure'):io.consume_original(None,tmp_path,producer,tmp_path/'stale',required_suites=['cpu'],required_capabilities=['load'])
     assert calls==['inspect','consume']
+
+
+def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_qualification_io as io,runner
+    from oeis_learn.experiments import source_snapshot
+    observed={}
+    def execute(stages,output,**kwargs):
+        observed.update(kwargs)
+        assert len([s for s in stages if s.adapter=='hip'])==1
+        assert sum(s.seconds for s in stages)+kwargs['reserve']<=kwargs['cap']
+        return 1
+    monkeypatch.setattr(runner,'execute',execute)
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda root:{})
+    result=io.produce(None,tmp_path,tmp_path/'qualification',images=['cpu','gpu'],contract={})
+    assert result['status']=='FAIL'
+    # Two image inspections, one device inspection and authority validation.
+    assert observed['cap']+3*120+120<=7200

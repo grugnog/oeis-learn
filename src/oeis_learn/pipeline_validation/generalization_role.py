@@ -89,6 +89,10 @@ def main(argv=None):
     parser.add_argument('role',choices=[r.value for r in Role]);parser.add_argument('runtime')
     args=parser.parse_args(argv);role=Role(args.role);runtime=json.loads(args.runtime)
     if set(runtime)!={'settings','operation','seconds','device'}:raise ValueError('closed role invocation required')
+    if role in {Role.LEARNER,Role.GENERATOR}:
+        import torch
+        torch.set_num_threads(2)
+        if torch.get_num_interop_threads()!=1:torch.set_num_interop_threads(1)
     output=Path(ROLE_OUTPUTS[role].destination)
     inputs={m.channel:Path(m.destination) for m in ROLE_INPUTS[role]}
     try:

@@ -131,6 +131,7 @@ def _stages(host, suite, output, *, external_seconds=None):
         nodes = (
             [
                 "tests/integration/test_bigint_gpu.py",
+                "tests/integration/test_generalization_gpu.py::test_generalization_device_load_and_finite_update",
                 "tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]",
                 "tests/unit/test_bigint_soak.py::test_engineering_uses_actual_trainer_and_checkpoint[cuda]",
                 "tests/unit/test_pipeline_pilot_runtime.py::test_token_weighting_masks_padding_and_keeps_exact_match_distinct[cuda]",
@@ -255,6 +256,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     {
                         "OEIS_REQUIRE_BIGINT_BUILD": "1",
                         "OEIS_REQUIRE_BIGINT_GPU": "1" if gpu else "0",
+                        **({"OEIS_GENERALIZATION_DEVICE_EVIDENCE":"/work/output/generalization-device.json"} if gpu else {}),
                     }
                     if suite.startswith("bigint-")
                     else {}
