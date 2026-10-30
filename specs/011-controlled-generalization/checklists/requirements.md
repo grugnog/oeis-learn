@@ -65,7 +65,7 @@ Two initial review passes and a research-sequencing amendment review completed. 
 - Local feature pointer set to `specs/011-controlled-generalization`; it remains ignored as required by the repository.
 - `.specify/extensions.yml` absent at pre- and post-specification checks; no hooks dispatched.
 - Relative document links, reference mappings, unique requirement IDs, mandatory headings and whitespace checked. No runtime implementation changed; runtime tests/HIP execution are not claimed.
-- Ready for `$speckit-plan`. The plan must preserve both user-requested phase/run constraints before a task breakdown is accepted.
+- `$speckit-plan` completed in this follow-up; see [design validation](design.md). Ready for `$speckit-tasks`, preserving both user-requested phase/run constraints.
 
 ## Sequencing amendment
 
