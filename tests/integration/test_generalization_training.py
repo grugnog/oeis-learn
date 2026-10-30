@@ -76,7 +76,7 @@ def test_checkpoint_pins_survive_pruning_and_failed_save(tmp_path):
 
 @pytest.mark.parametrize("data_mode",["static","refresh"])
 @pytest.mark.parametrize("target_format",["literal","parameterized"])
-def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode):
+def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode,replay_mode=False):
     torch=pytest.importorskip('torch')
     pytest.importorskip('numpy')
     from oeis_learn.pipeline_validation.generalization_training import run_torch
@@ -85,7 +85,7 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
     from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.pipeline_validation.identity import digest
     rows=[]
-    for i in range(4 if data_mode=="refresh" else 2):
+    for i in range(8 if replay_mode else 4 if data_mode=="refresh" else 2):
         src=f'(program (return (int {i})))' if target_format=='literal' else '(program (return (param.get p0)))'
         rows.append(dict(id=str(i),role='training',source=src,tokens=encode_body(src),indices=list(map(str,range(100))),values=[str(i)]*100))
     (tmp_path/'rows.json').write_text(json.dumps(rows));shards=[reference(tmp_path/'rows.json',tmp_path)]
@@ -101,9 +101,21 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
     recipe=dict(model=dict(seed=7),learning=dict(learning_rate=.001),inputs={})
     config=dict(study='study',arm='static',seed=7,recipe=recipe,shards=shards,data_mode=data_mode,batch_size=1,
                 target_tokens=sum(len(r['tokens']) for r in rows)*(1 if data_mode=='refresh' else 2),milestones=[len(rows[0]['tokens'])],seconds=30,device='cpu')
-    full=run_torch(tmp_path,tmp_path/'full',config)
-    part=run_torch(tmp_path,tmp_path/'part',config,stop_after_updates=1)
-    resumed=run_torch(tmp_path,tmp_path/'resumed',config,resume=(tmp_path/'part/checkpoints',part['checkpoint']))
+    extra={}
+    if replay_mode:
+        import time
+        from tests.integration.test_generalization_replay import NativeFixture,task
+        from oeis_learn.pipeline_validation.generalization_replay import search_round
+        source='(program (return (int 0)))'
+        pool,_=search_round([task()],propose=lambda *a:dict(original_source=source,final_source=source,assignment={},tokens=encode_body(source)),
+            client=NativeFixture(),checkpoint='checkpoint',seed=7)
+        config['batch_size']=4
+        first,second,_=models(recipe,'cpu')
+        torch.save(dict(encoder=first.state_dict(),decoder=second.state_dict()),tmp_path/'initializer.pt')
+        extra=dict(initializer=reference(tmp_path/'initializer.pt',tmp_path),replay=dict(pool=pool,tasks=[task()],client=NativeFixture()))
+    full=run_torch(tmp_path,tmp_path/'full',config,**extra)
+    part=run_torch(tmp_path,tmp_path/'part',config,stop_after_updates=1,**extra)
+    resumed=run_torch(tmp_path,tmp_path/'resumed',config,resume=(tmp_path/'part/checkpoints',part['checkpoint']),**extra)
     a=GeneralizationCheckpointStore(tmp_path/'full/checkpoints',full['compatibility'],config['target_tokens']).load(full['checkpoint'])
     b=GeneralizationCheckpointStore(tmp_path/'resumed/checkpoints',resumed['compatibility'],config['target_tokens']).load(resumed['checkpoint'])
     assert a['ledger']==b['ledger']
@@ -111,3 +123,7 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         for name,value in a['states']['weights'][component].items():
             assert torch.equal(value,b['states']['weights'][component][name])
     assert full['milestones']==resumed['milestones']
+
+
+def test_replay_initialized_torch_resume(tmp_path,monkeypatch):
+    test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,'literal','static',replay_mode=True)

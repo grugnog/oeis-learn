@@ -29,3 +29,29 @@ def test_empty_yield_is_terminal_without_weaker_verification():
     def propose(*args):raise ValueError('no_candidate')
     pool,report=search_round([task()],propose=propose,client=NativeFixture(),checkpoint='checkpoint',seed=3)
     assert not pool.entries and report['plan']['status']=='empty_yield'
+
+
+def test_mixed_batch_persists_replay_cursor_before_interrupted_update():
+    import copy
+    import pytest
+    from oeis_learn.pipeline_validation.generalization_replay import ReplayBatches
+    from oeis_learn.pipeline_validation.generalization_training import train_updates
+    from oeis_learn.generalization.budgets import Ledger
+    src='(program (return (int 0)))'
+    propose=lambda *args:dict(original_source=src,final_source=src,assignment={},tokens=encode_body(src))
+    pool,_=search_round([task()],propose=propose,client=NativeFixture(),checkpoint='checkpoint',seed=3)
+    base=[[dict(id=str(i),tokens=encode_body(src),values=['0']*20,indices=list(map(str,range(20)))) for i in range(8)]]
+    state={'data':dict(cursor=0,pending_batch=None),'replay':pool.snapshot()}
+    batches=ReplayBatches(base,pool,[task()],state)
+    saved=[]
+    def save(s,l):saved.append((copy.deepcopy(s),l))
+    def interrupt(batch):raise InterruptedError()
+    with pytest.raises(InterruptedError):train_updates(state,Ledger(1000),batches,update=interrupt,save=save)
+    persisted,ledger=saved[-1]
+    assert persisted['replay']['cursor']==2
+    assert len(persisted['data']['pending_batch'])==8
+    updated=[]
+    result=train_updates(persisted,ledger,batches,update=lambda b:updated.append(b),save=save)
+    assert len(updated)==1 and result['state']['replay']['cursor']==2
+    assert sum(r['id'].startswith('replay:') for r in updated[0])==2
+

@@ -91,7 +91,7 @@ class PreparedBatches:
         return [self._row(i%self.count) for i in range(start,end)]
 
 
-def run_torch(root,output,config,*,resume=None,stop_after_updates=None):
+def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None):
     """Actual existing model/update path with complete update-boundary persistence.
 
     Caller supplies a verified, frozen execution projection. No selection/assessment
@@ -115,12 +115,24 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None):
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     batches=PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap)
     if config['data_mode']=='refresh' and batches.target_tokens<cap:raise ValueError('insufficient prepared refresh target-token capacity')
-    compatibility=digest(dict(config=config,data=batches.identity))
+    data_identity=batches.identity
+    extension={}
+    if initializer is not None:extension['initializer']=initializer
+    if replay is not None:
+        if set(replay)!={'pool','tasks','client'} or config['data_mode']!='static':
+            raise ValueError('verified replay supports only registered static training')
+        extension['replay']=dict(pool=replay['pool'].snapshot(),tasks=replay['tasks'])
+    compatibility=digest(dict(config=config,data=batches.identity,**extension))
     output=Path(output)
     if output.exists():raise ValueError('fresh learner output required')
     output.mkdir(parents=True,exist_ok=False)
     recipe=copy.deepcopy(config['recipe']);recipe['model']['seed']=config['seed']
     encoder,decoder,counts=models(recipe,config['device'])
+    if initializer is not None and resume is None:
+        import io
+        weights=torch.load(io.BytesIO(verify_artifact(root,initializer)),map_location='cpu',weights_only=True)
+        if set(weights)!={'encoder','decoder'}:raise ValueError('weights-only initializer required')
+        encoder.load_state_dict(weights['encoder'],strict=True);decoder.load_state_dict(weights['decoder'],strict=True)
     parameters=list(encoder.parameters())+list(decoder.parameters())
     optimizer=torch.optim.AdamW(parameters,lr=recipe['learning']['learning_rate'])
     store=GeneralizationCheckpointStore(output/'checkpoints',compatibility,cap)
@@ -185,6 +197,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None):
             folder=Path(ref['path']).parent
             shutil.copytree(Path(prior)/folder,store.root/folder,dirs_exist_ok=False)
             permanent[key]=ref;history[key]=ref
+    if replay is not None:
+        from .generalization_replay import restore_pool,ReplayBatches
+        snapshot=state['replay'] if resume is not None else replay['pool'].snapshot()
+        verified=restore_pool(snapshot,tasks=replay['tasks'],client=replay['client'],deadline=time.monotonic()+min(60,config['seconds']))
+        state['replay']=verified.snapshot()
+        batches=ReplayBatches(batches,verified,replay['tasks'],state)
     remaining=config['seconds']-previous_seconds
     try:
         save(state,ledger)
@@ -194,6 +212,6 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None):
     result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed,updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,
         milestones={str(m):state['history']['exposures'][k] for m,k in milestone_keys.items()},
-        learner_seconds=state['scheduler']['learner_seconds'],data=batches.identity,device=config['device'],counts=counts)
+        learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts)
     write(output/'training.json',result)
     return result

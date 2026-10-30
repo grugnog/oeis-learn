@@ -56,3 +56,33 @@ def restore_pool(record,*,tasks,client,deadline):
         if checked.record()!=row:raise ValueError('replay evidence changed on restore')
         return checked
     return ReplayPool.restore(record,verify=verify)
+
+
+class ReplayBatches:
+    """Adapt the Phase B sampler to the learner's persisted pending-batch protocol.
+
+    The caller must independently reverify the pool before construction, including
+    on resume. No sampling occurs when train_updates already has a pending batch.
+    """
+    def __init__(self,base,pool,tasks,state):
+        self.base=base;self.pool=pool;self.state=state
+        self.tasks={t['id']:t for t in tasks}
+        if len(self.tasks)!=len(tasks) or any(t['role']!='training' for t in tasks):
+            raise ValueError('unique training replay roster required')
+        if state['replay']!=pool.snapshot():raise ValueError('reverified replay cursor differs from saved state')
+        for entry in pool.entries:
+            if entry.record()['task'] not in self.tasks:raise ValueError('replay task absent from training roster')
+
+    def __len__(self):return len(self.base)
+
+    def __getitem__(self,index):
+        batch=self.base[index]
+        sampled,next_pool=self.pool.sample(len(batch))
+        replay=[]
+        for entry in sampled:
+            record=entry.record();task=self.tasks[record['task']]
+            replay.append(dict(id='replay:'+record['identity'],tokens=list(record['tokens']),
+                indices=list(task['indices'][:20]),values=list(task['values'][:20])))
+        mixed=batch[:len(batch)-len(replay)]+replay
+        self.pool=next_pool;self.state['replay']=next_pool.snapshot()
+        return mixed
