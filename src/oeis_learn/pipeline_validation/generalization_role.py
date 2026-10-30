@@ -79,6 +79,17 @@ def selection(inputs,output,settings,*,seconds):
             output=output/'selection',seconds=seconds)
 
 
+def package(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.contracts import verify_artifact
+    from .generalization_reporting import package_evidence
+    from .generalization_preparation import reference
+    if set(settings)!={'evidence'}:raise ValueError('closed packaging settings required')
+    root=inputs['public_evidence']
+    record=json.loads(verify_artifact(root,settings['evidence']))
+    archive=package_evidence(root,record,output=output/'export')
+    return dict(status=record['software_status'],archive=reference(archive,output))
+
+
 def verify_archive(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import verify_artifact
     from .generalization_archive import verify_archive as verify
@@ -101,7 +112,7 @@ def qualification_consume(inputs,output,settings,*,seconds):
     return dict(status='PASS',original=original,study_qualified=False)
 
 
-HANDLERS={(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 

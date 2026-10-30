@@ -75,3 +75,18 @@ Stage entries must resolve to original verified producer/stage evidence with mat
 status. Qualification payload dependencies must be available transitively in the
 public inventory. A partial bundle may have verified integrity with PARTIAL software
 status; missing measurements remain in the frozen denominator.
+
+
+### Public archive layout
+
+The report adapter preserves original hash-bound evidence under `payloads/` without
+rewriting producer references. Root `evidence.json` is a sealed
+`generalization-archive/v1` descriptor with exactly `version`, `identity`,
+`payload_root` (`payloads`) and `evidence` (an ArtifactRef for
+`payloads/evidence.json`). The payload evidence manifest retains the
+`generalization-evidence/v1` schema. Root `summary.json` is the pipeline status;
+`payloads/summary.json`, when present, is the independently reconciled scientific
+summary. Neither is substituted for the other. The archive verifier validates the
+outer inventory, then the original evidence closure and all derived measurements.
+Private or unsupported mandatory inventory paths fail packaging rather than being
+silently omitted. A generic failure-recovery archive is not qualifying evidence.

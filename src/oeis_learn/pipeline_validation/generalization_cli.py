@@ -27,9 +27,13 @@ def register(commands):
     verify=operations.add_parser('verify-bundle',help='verify safe archive and independently reconcile evidence')
     verify.add_argument('--archive',required=True)
     verify.add_argument('--output',required=True)
+    report=operations.add_parser('report',help='reconcile and package an explicit public evidence inventory')
+    report.add_argument('--manifest',required=True)
+    report.add_argument('--inputs',required=True)
+    report.add_argument('--output',required=True)
 
 
-def main(args,root,host_factory):
+def verify_main(args,root,host_factory):
     """Host stays stdlib-only; schema/reconciliation execute in an isolated CPU role."""
     import json,re
     from pathlib import Path
@@ -61,3 +65,46 @@ def main(args,root,host_factory):
     pack(output,mandatory=['summary.json'])
     from oeis_learn.generalization.interfaces import EXIT_CODES
     return EXIT_CODES[status]
+
+
+def report_main(args,root,host_factory):
+    import json,re,shutil
+    from pathlib import Path
+    from .identity import confined,file_hash
+    from .generalization_preparation import reference
+    from .generalization_roles import project_and_invoke
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.generalization.interfaces import EXIT_CODES
+    from oeis_learn.container_validation import inspect_current_image
+    root=Path(root);inputs=confined(root,args.inputs)
+    manifest=confined(root,args.manifest);evidence_path=confined(inputs,'evidence.json')
+    if evidence_path.stat().st_size>1<<20:raise ValueError('evidence manifest size cap')
+    record=json.loads(evidence_path.read_text())
+    if record['study']['sha256']!=file_hash(manifest) or record['study']['bytes']!=manifest.stat().st_size:
+        raise ValueError('report study differs from selected manifest')
+    refs=[reference(evidence_path,inputs),*record['inventory']]
+    if len(refs)>9997 or sum(r['bytes'] for r in refs)>512<<20:raise ValueError('report inventory cap')
+    for ref in refs:verify_artifact(inputs,ref,max_bytes=512<<20)
+    output=confined(root,args.output,exists=False)
+    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh report output required')
+    if not args.image or not re.fullmatch(r'sha256:[0-9a-f]{64}',args.image):
+        raise ValueError('--image must identify a prebuilt immutable qualification image')
+    host=host_factory(args)
+    if host.engine.image(args.image)!=args.image:raise ValueError('immutable qualification image changed')
+    output.mkdir(parents=True,exist_ok=False)
+    inspect_current_image(host,args.image,output/'inspection',seconds=120)
+    result=project_and_invoke(host,args.image,root,'report',{'public_evidence':refs},
+        source_roots={'public_evidence':inputs},output=str((output/'packaging').relative_to(root)),
+        operation='package',settings={'evidence':refs[0]},seconds=480)
+    if result['status'] not in {'PASS','PARTIAL','INCONCLUSIVE','FAIL','BLOCKED','INTERRUPTED'}:raise ValueError('terminal report status required')
+    if 'archive' not in result:return EXIT_CODES[result['status']]
+    role_root=output/'packaging/role'
+    verify_artifact(role_root,result['archive'],max_bytes=512<<20)
+    with confined(role_root,result['archive']['path']).open('rb') as source,output.with_suffix('.zip').open('xb') as destination:
+        shutil.copyfileobj(source,destination,length=1<<20)
+    return EXIT_CODES[result['status']]
+
+
+def main(args,root,host_factory):
+    if args.operation=='report':return report_main(args,root,host_factory)
+    return verify_main(args,root,host_factory)

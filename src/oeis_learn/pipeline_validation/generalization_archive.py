@@ -30,6 +30,14 @@ def verify_archive(archive,*,cap=512<<20):
                     import shutil
                     shutil.copyfileobj(source,destination,length=1<<20)
         record=json.loads((root/'evidence.json').read_text())
+        if record.get('version')=='generalization-archive/v1':
+            from .identity import validate
+            from oeis_learn.generalization.contracts import verify_artifact
+            validate(record,{'version','evidence','payload_root'},'generalization-archive/v1')
+            if record['payload_root']!='payloads' or record['evidence']['path']!='payloads/evidence.json':
+                raise ValueError('noncanonical evidence payload root')
+            record=json.loads(verify_artifact(root,record['evidence']))
+            root=confined(root,'payloads')
         study=json.loads(confined(root,record['study']['path']).read_text())
         result=verify_bundle(record,expected_study=study['identity'],root=root)
         if result['software_status']!=manifest['summary_state']:

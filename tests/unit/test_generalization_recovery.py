@@ -27,8 +27,8 @@ def test_required_results_cannot_be_silently_redacted():
     assert bundle_plan([dict(path='private',bytes=1,private=True,required=False)],mandatory=set())['omissions']==['private']
     with pytest.raises(ValueError): verify_bundle({'study':'s','stages':[]},expected_study='other',root='.')
 
-@pytest.mark.parametrize("stale_family", [False, True, "seeds", "costs", "bounds", "coverage", "summary", "partial"])
-def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family):
+@pytest.mark.parametrize("stale_family", [False, True, "seeds", "costs", "bounds", "coverage", "summary", "partial", "archive"])
+def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family, monkeypatch):
     import copy,hashlib,json
     from pathlib import Path
     from oeis_learn.generalization.contracts import freeze
@@ -70,6 +70,36 @@ def test_offline_complete_bundle_and_stale_summary(tmp_path, stale_family):
     for key,value in members.items():
         record[key]=write(key+'.json',value);record['inventory'].append(record[key])
     record=freeze('evidence',record).record()
+    if stale_family == 'archive':
+        from oeis_learn.pipeline_validation.generalization_reporting import package_evidence
+        from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+        archive=package_evidence(tmp_path,record,output=tmp_path/'export')
+        assert verify_archive(archive)['integrity']=='PASS'
+        assert (tmp_path/'export/payloads/summary.json').read_bytes()==(tmp_path/'summary.json').read_bytes()
+        assert json.loads((tmp_path/'export/summary.json').read_text())['selected_scope']=='PASS'
+        with pytest.raises(ValueError):package_evidence(tmp_path,record,output=tmp_path/'export')
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation import generalization_cli, generalization_roles, generalization_role
+        from oeis_learn import container_validation
+        write('evidence.json',record)
+        image='sha256:'+'1'*64
+        host=SimpleNamespace(engine=SimpleNamespace(image=lambda value:value))
+        monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
+        operations=[]
+        def invoke(host,image,root,role,artifacts,**kwargs):
+            operations.append(kwargs['operation'])
+            inputs=kwargs.get('source_roots',{}).get('public_evidence',root)
+            target=root/kwargs['output']/'role';target.mkdir(parents=True)
+            handler=generalization_role.package if kwargs['operation']=='package' else generalization_role.verify_archive
+            return handler({'public_evidence':inputs},target,kwargs['settings'],seconds=kwargs['seconds'])
+        monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
+        args=SimpleNamespace(operation='report',inputs='.',manifest='study.json',output='reported',image=image)
+        assert generalization_cli.main(args,tmp_path,lambda args:host)==0
+        assert verify_archive(tmp_path/'reported.zip')['integrity']=='PASS'
+        args=SimpleNamespace(operation='verify-bundle',archive='reported.zip',output='checked',image=image)
+        assert generalization_cli.main(args,tmp_path,lambda args:host)==0
+        assert operations==['package','verify-archive']
+        return
     if stale_family == 'partial':
         partial_ledger=write('partial-ledger.json',dict(study=study['identity'],required=['qualify'],receipts=[]))
         record['stage_ledger']=partial_ledger;record['inventory'].append(partial_ledger)

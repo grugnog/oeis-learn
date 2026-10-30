@@ -23,3 +23,13 @@ def test_missing_archive_rejected_without_engine(tmp_path):
     args=SimpleNamespace(operation='verify-bundle',archive='absent.zip',output='new',image='sha256:'+'1'*64)
     def forbidden(*args):pytest.fail('engine touched before input validation')
     with pytest.raises(ValueError):main(args,tmp_path,forbidden)
+
+
+def test_report_parser_and_manifest_binding_before_engine(tmp_path):
+    import json
+    from oeis_learn.pipeline_validation.generalization_cli import main
+    args=host_module().parser().parse_args(['generalization','report','--manifest','study.json','--inputs','evidence','--output','reported'])
+    (tmp_path/'study.json').write_text('{}');(tmp_path/'evidence').mkdir()
+    (tmp_path/'evidence/evidence.json').write_text(json.dumps(dict(study=dict(path='study.json',bytes=2,sha256='sha256:'+'0'*64))))
+    def forbidden(*a):pytest.fail('engine touched before study binding')
+    with pytest.raises(ValueError,match='study'):main(args,tmp_path,forbidden)
