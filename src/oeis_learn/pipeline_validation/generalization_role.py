@@ -79,6 +79,17 @@ def selection(inputs,output,settings,*,seconds):
             output=output/'selection',seconds=seconds)
 
 
+def verify_archive(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.contracts import verify_artifact
+    from .generalization_archive import verify_archive as verify
+    if set(settings)!={'archive'}:raise ValueError('closed archive verification settings required')
+    root=inputs['public_evidence']
+    verify_artifact(root,settings['archive'],max_bytes=512<<20)
+    result=verify(root/settings['archive']['path'])
+    write(output/'verification.json',result)
+    return dict(status='PASS',verification=result)
+
+
 def qualification_consume(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.qualification import consume
     from oeis_learn.generalization.contracts import verify_artifact
@@ -90,7 +101,7 @@ def qualification_consume(inputs,output,settings,*,seconds):
     return dict(status='PASS',original=original,study_qualified=False)
 
 
-HANDLERS={(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+HANDLERS={(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 
