@@ -37,3 +37,30 @@ def test_promotion_bounds_and_assessment_firewall():
     assert promotion(rows)=='inconclusive'
     with pytest.raises(ValueError): next_stage('P1-screen',valid=True,selection_completion=F(1),feedback='assessment')
     assert next_stage('P1-screen',valid=True,selection_completion=F(1),feedback='selection')=='P1-confirm'
+
+def test_actual_exposure_milestone_and_commit_safety():
+    from oeis_learn.generalization.checkpoints import milestone_decision,commit_plan,prune_plan
+    assert milestone_decision(7,2,(4,8,16))==(8,)
+    assert pin_plan({'early':7,'latest':9},milestones=(8,),best='early',latest='latest',selected=None,milestone_pins={8:'early'})==('early','latest')
+    with pytest.raises(ValueError): commit_plan({},'new',complete_update=False,verified_payloads=True,available_bytes=100,snapshot_bytes=20,required_pins=2)
+    with pytest.raises(ValueError): prune_plan({'a':1},('missing',))
+    assert prune_plan({'a':1,'b':2},('a',))==('b',)
+
+def test_uninterrupted_and_restored_data_rng_and_ledger():
+    import random
+    def states(rng,cursor,pending):
+        result={k:{'fixture':k} for k in STATE_FIELDS}
+        result['rng']={k:[] for k in ('python','numpy','torch','device')}
+        result['rng']['python']=rng.getstate()
+        result['data']={'cursor':cursor,'pending_batch':pending}
+        return result
+    rng=random.Random(42); batch=[rng.randrange(100) for _ in range(4)]
+    ledger=Ledger(100).reserve('first',12)
+    saved=snapshot(states(rng,4,batch),contract='cpu-fixture',ledger=ledger)
+    expected_next=[rng.randrange(100) for _ in range(4)]
+    restored=restore(saved,contract='cpu-fixture',cap=100)
+    state=restored['states']['rng']['python']; resumed=random.Random()
+    resumed.setstate((state[0],tuple(state[1]),state[2]))
+    assert [resumed.randrange(100) for _ in range(4)]==expected_next
+    assert restored['states']['data']['pending_batch']==batch
+    assert restored['ledger'].commit('first')==ledger.commit('first')

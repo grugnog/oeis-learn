@@ -38,3 +38,36 @@ Common fields are structurally validated only. In particular, hash-shaped identi
 No new runtime dependency is introduced; schemas use the project's existing jsonschema dependency and are included in wheel package data. Phase A does not register new host commands, modify historical recipes or alter the test-selection/source-closure rules assigned to Phase C. New tests must be registered in the qualification container in T060 before claiming container acceptance.
 
 The implementation model for B receives the full plan, contracts, this handoff and independently computed fixtures. C may connect I/O and mounts only after T044. Any algorithm defect found during C/D reopens B and invalidates affected evidence. Normal real-HIP acceptance is still the single Phase-D invocation; no Phase-A result establishes HIP readiness.
+
+## Phase-B exit review
+
+The ownership matrix above is implemented at its listed module paths. T009–T044
+are checked; local reference/contract and historical regression evidence is in
+[algorithm-review.md](../validation/algorithm-review.md). Public dispatch remains
+BLOCKED until Phase C registers adapters. No hardware qualification is implied.
+
+Stable callable policy entry points:
+
+| Owner | Entry points | Boundary obligations for adapters |
+| --- | --- | --- |
+| Shared | `freeze`, `validate`, `verify_artifact`, `resolve_study`, `Ledger.reserve/commit/restore` | Read-only confined authority roots; debit before work; persist pending batch atomically. |
+| Evaluation | `summarize`, `paired_difference`, `seed_uncertainty`, `oracle_union`, `make_bank`, `apply_bank`, `portfolio`, `join_attempts`, `reconcile` | Native generation/fitting run under existing external deadlines; pass measured costs, not estimates. |
+| Preparation | `observe`, `distribution`, `choose`, `ExclusionIndex`, `project`, `publish` | Bind observed coverage to actual rows; apply frozen exclusions to every future shard; separate role mounts. |
+| Learning | `BigintSampler.descriptor`, `RefreshPlan.take/shard`, `pair`, `select`, `snapshot/restore`, `pin_plan`, `commit_plan`, `promotion` | Preserve unsupported target rows; native fitter unchanged; serialize actual tensor/RNG payloads and verify refs before load. |
+| Execution | `consume`, `qualify_reuse`, `Workflow`, `restart`, `preflight`, `reserve_stage`, `bundle_plan`, `verify_bundle` | Inspect real source/image/device facts; receipts are integrity records, not cryptographic attestation; only trusted qualification producers issue them. |
+| Replay | `admit`, `ReplayPool.add/sample/restore`, `SearchLedger.charge`, `round_plan` | Production callback must be qualified bounded native execution; restore verifier must redo admission against trusted training roster, never an identity callback. |
+
+Internal versioned policy snapshots (`generalization-ledger/v1`,
+`generalization-learner-state/v1`, `generalization-descriptor/v1`,
+`generalization-admitted-entry/v1`, `generalization-replay-pool/v1`, and producer/device
+receipts) are separate from the Phase-A external artifact manifests. Their methods
+validate their internal transition contracts; Phase C serializes them as hashed
+payloads referenced by those external manifests. A self-consistent hash never
+proves an untrusted supplied origin or that hardware actually ran.
+
+Quota selection uses deterministic bounded greedy feasibility. It may conservatively
+report a shortfall even where a more expensive combinatorial search could succeed;
+it never relaxes quotas. Numeric draws preserve the registered independent uniform
+law; repeated variants consume draws and are rejected by the exclusion/admission
+callback rather than silently recycled. Finite-window exclusion is not a semantic
+proof. Small-seed bootstrap intervals are explicitly labeled by resampling unit.

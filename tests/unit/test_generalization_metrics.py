@@ -19,3 +19,11 @@ def test_offline_identity_and_unavailable_weights():
     assert reconcile([record], study='s', source='code', roster={'a':'family'}).lower == 1
     with pytest.raises(ValueError): reconcile([dict(record, source='other')], study='s',source='code',roster={'a':'family'})
     assert checkpoint_roster({'best':'hash1','latest':'hash2'}, {'hash1'}) == {'best':'available','latest':'unavailable'}
+
+def test_seed_uncertainty_and_all_missing_family():
+    from oeis_learn.generalization.metrics import seed_uncertainty
+    s=summarize({'a':'small','b':'large','c':'large'}, {'a':True})
+    assert s.macro_lower==F(1,2) and s.macro_upper==1
+    ci=seed_uncertainty({1:(0,F(1,10)),2:(0,F(1,10)),3:(0,F(1,10))},draws=100)
+    assert ci['lower']==ci['upper']==F(1,10) and ci['unit']=='paired_seed'
+    with pytest.raises(ValueError): seed_uncertainty({1:(0,1)})

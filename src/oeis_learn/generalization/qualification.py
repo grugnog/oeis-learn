@@ -36,7 +36,7 @@ def qualify_reuse(receipt,current,*,required_suites,required_capabilities,root,r
     if research:
         if feature_receipt is None: raise ValueError('completed feature acceptance required before research')
         feature=json.loads(verify_artifact(root,feature_receipt))
-        if seal(feature)!=feature or feature.get('status')!='PASS' or feature.get('qualification')!=receipt['identity'] or set(feature.get('cases',()))!={'evaluation','refresh','targets','replay','resume'}:
+        if seal(feature)!=feature or feature.get('status')!='PASS' or feature.get('qualification')!=receipt['identity'] or set(feature.get('cases',()))!={'retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'}:
             raise ValueError('incomplete feature acceptance')
     return receipt['identity']
 

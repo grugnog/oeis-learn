@@ -33,3 +33,13 @@ def test_search_round_limits_and_empty_yield():
     assert round_plan(0)['status']=='empty_yield'
     assert round_plan(1)['tokens_per_arm']==4_000_000
     assert round_plan(1)['milestones']==(1_000_000,2_000_000,4_000_000)
+
+def test_deterministic_eviction_and_finite_duplicate_scope():
+    a=entry('a','(program (return (int 0)))',0)
+    b=entry('a','(program (return (sub (int 0) (int 0))))',1)
+    c=entry('a','(program (return (mul (int 0) (int 0))))',2)
+    pool=ReplayPool(seed=1).add(a).add(b).add(c)
+    assert len(pool.entries)==2 and pool.evictions==(a.record()['identity'],)
+    assert len(ReplayPool(seed=1,duplicate_scope='finite-behavior').add(a).add(b).entries)==1
+    bounded=ReplayPool(seed=1,capacity=1).add(a).add(entry('b','(program (return (int 0)))',3))
+    assert bounded.task_weights()=={'b':F(1)}

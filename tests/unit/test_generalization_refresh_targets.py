@@ -33,3 +33,11 @@ def test_loop_carried_control_and_parameter_limit():
     assert pair(concrete,source,{'p0':'2'},indices=('0',),sharing='explicit')['disposition']=='unsupported_control_dependency'
     with pytest.raises(ValueError):
         pair('(program (return (int 1)))','(program (return (param.get p8)))',{'p8':'1'},indices=('0',),sharing='explicit')
+
+def test_paired_grounding_differential_against_integer_formulae():
+    for a in (-16,-1,0,2,16):
+        for b in (-16,0,16):
+            parameter='(program (return (add (mul (param.get p0) $index) (param.get p1))))'
+            concrete=f'(program (return (add (mul (int {a}) $index) (int {b}))))'
+            result=pair(concrete,parameter,{'p0':str(a),'p1':str(b)},indices=tuple(map(str,range(100))),sharing='explicit')
+            assert result['verification']['values']==[str(a*i+b) for i in range(100)]

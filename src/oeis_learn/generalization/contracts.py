@@ -59,7 +59,6 @@ def verify_artifact(root, ref, *, max_bytes=64 * 1024**3):
 
     Roots must be immutable while verification runs (container read-only mounts in C).
     """
-    shape('common', {})  # ensure offline registry is available
     if set(ref) != {'path', 'sha256', 'bytes'}:
         raise ValueError('artifact fields')
     value = ref['path']
@@ -119,6 +118,23 @@ def resolve_study(preparation, proposed, manifests, *, shortfalls=(), root=None)
     for ref in manifests:
         record = json.loads(verify_artifact(root, ref))
         records.append(validate('cohort', record).record())
+    for record in records:
+        if record['exclusions'] != prep['exclusions']:
+            raise ValueError('changed exclusion authority')
+        if any(record['coverage'].get(k, 0) < v for k, v in record['quotas'].items()):
+            raise ValueError('cohort coverage shortfall')
+        for ref in artifact_refs(record):
+            verify_artifact(root, ref)
+        for ref in record['public_payloads']:
+            payload = json.loads(verify_artifact(root, ref))
+            for row in payload:
+                shape('visible-prompt', row)
+    resolved_quotas = {}
+    for record in records:
+        for key, value in record['quotas'].items():
+            resolved_quotas[key] = resolved_quotas.get(key, 0) + value
+    if resolved_quotas != prep['quotas']:
+        raise ValueError('preparation quota commitments changed')
     if {r['role'] for r in records} != set(prep['roles']):
         raise ValueError('incomplete role manifests')
     candidate['data']['manifests'] = list(manifests)

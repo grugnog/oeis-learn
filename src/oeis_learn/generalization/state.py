@@ -29,6 +29,8 @@ def restore(record,*,contract,cap,root=None):
     from .contracts import artifact_refs, verify_artifact
     if set(record)!={'version','kind','contract','states','ledger','boundary','identity'} or record['version']!='generalization-learner-state/v1' or record['kind']!='full_state' or record['contract']!=contract or seal(record)!=record:
         raise ValueError('incompatible or incomplete full-state restore')
+    if record['boundary'] != 'before_or_after_complete_update':
+        raise ValueError('invalid update boundary')
     _complete(record['states'])
     refs=tuple(artifact_refs(record['states']))
     if refs and root is None: raise ValueError('state artifact verification root required')

@@ -24,3 +24,12 @@ def test_quota_shortfall_and_projection():
     assert set(visible)=={'id','indices','values'} and len(visible['values'])==20
     assert scorer['family']=='f0'
     with pytest.raises(ValueError): project(dict(rows[0],role='unknown'))
+
+def test_both_branch_paths_and_longer_program_bins():
+    from oeis_learn.generalization.coverage import distribution
+    src='(program (local $b0 bigint) (if (lt $index (int 1)) (then (set $b0 (int 2))) (else (set $b0 (int 3)))) (return (get $b0)))'
+    active=observe(src,('0','1'),stage='D')
+    inactive=observe(src,('1','2'),stage='D')
+    assert active.branch_active and not inactive.branch_active
+    assert distribution([active],length_boundary=1)['long']==1
+    assert not choose([dict(id='x',family='same',tags=['loop_active','branch_active'])],count=1,quotas={},structural=True).complete

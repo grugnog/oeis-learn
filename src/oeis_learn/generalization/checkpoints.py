@@ -2,7 +2,7 @@
 from .budgets import reserve_storage
 
 
-def pin_plan(history,*,milestones,best,latest,selected,through=None):
+def pin_plan(history,*,milestones,best,latest,selected,through=None,milestone_pins=None):
     if not history or latest not in history or best not in history or selected is not None and selected not in history:
         raise ValueError('missing named checkpoint')
     if list(milestones)!=sorted(set(milestones)): raise ValueError('milestones must increase')
@@ -13,6 +13,12 @@ def pin_plan(history,*,milestones,best,latest,selected,through=None):
         if milestone>through: continue
         # Milestones are committed at the last complete update at/below exposure;
         # the adapter supplies its frozen milestone mapping when a batch straddles.
+        if milestone_pins and milestone in milestone_pins:
+            key = milestone_pins[milestone]
+            if key not in history or history[key] > milestone:
+                raise ValueError('invalid actual-exposure milestone pin')
+            pins.add(key)
+            continue
         matches=[key for key,tokens in history.items() if tokens==milestone]
         if not matches: raise ValueError('required milestone missing')
         pins.add(min(matches))

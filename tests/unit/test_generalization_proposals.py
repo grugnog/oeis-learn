@@ -22,3 +22,10 @@ def test_failed_signatures_and_joins_survive():
     joined=join_attempts([{'id':'a','source':'bad'}, {'id':'b','source':'bad'}], {'a':{'status':'rejected','reason':'parse'}})
     assert len(joined)==2 and joined[1]['fit']['status']=='unavailable'
     assert joined[0]['duplicate_group']==joined[1]['duplicate_group']
+
+def test_bank_uses_recipient_visible_prefix_and_hidden_fields_fail():
+    from oeis_learn.generalization.proposals import apply_bank
+    bank=make_bank('w',tuple(range(8)),lambda *args:'proposal',elapsed_seconds=3)
+    visible=dict(id='opaque',indices=list(map(str,range(20))),values=['3']*20)
+    assert apply_bank(bank,visible,lambda source,indices,values:values[0])==('3',)*8
+    with pytest.raises(ValueError): apply_bank(bank,dict(visible,family='hidden'),lambda *args:None)
