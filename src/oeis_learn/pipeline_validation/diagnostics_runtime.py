@@ -156,7 +156,19 @@ def evaluate_rows(encoder,decoder,rows,*,device,mode='correct',shuffled=None,dea
             for token in tokens[i,1:][wrong].tolist():
                 kind='integer' if token in codec.DIGIT_IDS or token in (codec.INT_ID,codec.TERM_ID,codec.NEG_ID) else 'control_or_operator'
                 categories[kind]+=1
-            result.append(dict(id=r['id'],family=r['family'],stage=r.get('stage'),mode=mode,target_identity=digest(r['tokens']),**m))
+            role_counts={}
+            for kind in ('integer','control_or_operator'):
+                flags=torch.tensor([('integer' if token in codec.DIGIT_IDS or token in (codec.INT_ID,codec.TERM_ID,codec.NEG_ID) else 'control_or_operator')==kind for token in tokens[i,1:].tolist()],device=device)&valid
+                role_counts[kind]=dict(tokens=int(flags.sum()),errors=int((wrong&flags).sum()))
+            positions=wrong.nonzero().flatten()
+            selected_logits=logits[i][valid].float()
+            top=selected_logits.topk(2,dim=-1).values
+            margins=top[:,0]-top[:,1]
+            target_logs=selected_logits.log_softmax(-1).gather(1,tokens[i,1:][valid,None]).flatten()
+            result.append(dict(id=r['id'],family=r['family'],stage=r.get('stage'),mode=mode,target_identity=digest(r['tokens']),
+                first_error_position=int(positions[0]) if len(positions) else None,token_roles=role_counts,
+                mean_top_two_margin=float(margins.mean()),minimum_top_two_margin=float(margins.min()),
+                mean_target_log_probability=float(target_logs.mean()),**m))
     return result,dict(categories)
 
 
@@ -226,7 +238,10 @@ def run(inputs,output,config):
     del current;gc.collect()
     encoder.eval();decoder.eval();encoder.requires_grad_(False);decoder.requires_grad_(False)
     before=parameter_digest(encoder,decoder)
-    if before!=settings['weights']['parameter_digest']:raise ValueError('actual restored parameter digest changed')
+    expected_digest=settings['weights']['parameter_digest']
+    if expected_digest is None:
+        if ordinal!=6 or not plan.get('include_selected'):raise ValueError('missing original parameter digest')
+    elif before!=expected_digest:raise ValueError('actual restored parameter digest changed')
     index={r['id']:dict(r,split=split) for split,rows in examples.items() for r in rows}
     shuffled={pid:index[target] for pid,target in population['shuffled'].items()}
     from .pilot_data import labels

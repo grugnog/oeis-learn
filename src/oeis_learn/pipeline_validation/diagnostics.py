@@ -21,7 +21,7 @@ def registry(contract,engine):
         if stage.adapter=='engine':stage=replace(stage,prerequisites=(*stage.prerequisites,'diagnostics.import'))
         result.append(stage)
     parents=('diagnostics.import','cpu.'+engine+'.semantic')+(('hip.preflight',) if contract['device']=='hip' else ())
-    result.extend(Stage('diagnostics.snapshot-'+str(i),4,parents,seconds=1800,adapter='diagnostics-model') for i in contract['snapshots'])
+    result.extend(Stage('diagnostics.snapshot-'+str(i),4,parents,seconds=11000 if contract['operation']=='evaluate' else 1800,adapter='diagnostics-model') for i in contract['snapshots'])
     return result
 
 
@@ -51,7 +51,11 @@ class Diagnostics:
             return dict(work=self.imported['manifest']['identity'],snapshots=self.contract['snapshots'],training=False)
         if stage.adapter!='diagnostics-model':
             self.a.receipts=self.receipts;return self.a(stage,output)
-        ordinal=int(stage.id.rsplit('-',1)[1]);order=self.contract['snapshots'];position=order.index(ordinal)
+        ordinal=int(stage.id.rsplit('-',1)[1])
+        if self.contract['operation']=='evaluate':
+            from .followup_evaluation import evaluate
+            return evaluate(self,output,ordinal)
+        order=self.contract['snapshots'];position=order.index(ordinal)
         prior=order[position-1] if position else 0
         data=self.imported;p=self.a.pilot;p.purpose='diagnostics-'+self.contract['device'];p.manifest=data['manifest']
         public=lambda i:{k:v for k,v in data['snapshots'][i].items() if k not in ('path','descriptor')}
@@ -83,6 +87,9 @@ class Diagnostics:
                     canonical_exact_lost=sum(old[k]['exact_program'] and not index[k]['exact_program'] for k in common),
                     mean_loss_change=sum(index[k]['loss_sum']/index[k]['tokens']-old[k]['loss_sum']/old[k]['tokens'] for k in common)/len(common) if common else None))
             previous=i,index
+        if self.contract['operation']=='evaluate':
+            from .followup_evaluation import report
+            return report(self,output,invocation,receipts)
         result=seal(dict(version='pipeline-pilot-diagnostic-report/v1',plan=self.contract['identity'],operation=self.contract['operation'],
             points=points,paired_changes=changes,unavailable_snapshots=missing,stages={k:v['state'] for k,v in receipts.items()},
             scope='POSTRUN_READ_ONLY',training=False,resume=False,final_access='SEALED',automatic_run_authorized=False,
@@ -92,7 +99,7 @@ class Diagnostics:
 
 
 def main(args,root,host_factory):
-    contract=plan(operation=args.operation,device=args.device,snapshots=args.snapshots,training_rows=args.training_rows,spectra=args.spectra)
+    contract=plan(operation=args.operation,device=args.device,snapshots=args.snapshots,training_rows=args.training_rows,spectra=args.spectra,include_selected=getattr(args,'include_selected',False),evaluation_policy=getattr(args,'evaluation_policy',None))
     root=Path(root);output=confined(root,args.output,exists=False)
     maximum=contract['budgets']['global_seconds']
     if args.max_seconds is not None:
@@ -110,7 +117,7 @@ def main(args,root,host_factory):
     from .closures import dependency_closure
     from .runner import execute
     snapshot=collect_snapshot(root)
-    owner=Adapters(options,root,host_factory,contract) if args.operation=='models' else None
+    owner=Adapters(options,root,host_factory,contract) if args.operation in ('models','evaluate') else None
     return execute(stages,output,adapter=Diagnostics(options,root,contract,owner),
         binding=dict(source=digest(snapshot),contract=contract['identity'],dependency_closure=dependency_closure(snapshot,prerequisites={})),
         cap=maximum,reserve=120 if args.operation=='collect' else 1200,contract=contract)

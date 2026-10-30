@@ -136,3 +136,8 @@ def allowed_tokens_at(prefix):
     for token in prefix:
         state.consume(token)
     return state.allowed()
+
+
+def fitting_policy(source):
+    """Classify parsed codec atoms, independent of source whitespace."""
+    return "none" if TOKEN_TO_ID["param.get"] in encode_body(source) else "eligible-literals/v1"

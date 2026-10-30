@@ -246,3 +246,15 @@ def test_scoped_cache_never_promotes_unknown_or_small_bound():
         policy="f",
     )
     assert cache_key(**params) != cache_key(**dict(params, reference="changed"))
+
+
+def test_codec_roundtripped_affine_template_uses_explicit_parameters(synthesis_driver):
+    from oeis_learn.decoder.bigint_codec import encode_body,decode_body,fitting_policy
+    from oeis_learn.fresh.template_baseline import template_bank
+    source=decode_body(encode_body(template_bank()['sources'][2]))
+    assert fitting_policy(source)=='none'
+    result=synthesis_driver('fit',source,['0','1','2'],['5','8','11'])
+    assert result['outcome']=='assignment_found',result
+    prompt=VisiblePrompt(('0','1','2'),('5','8','11'))
+    assert any(_admit(item,prompt,runtime_sha256=synthesis_driver.runtime_sha256).outcome=='verified_solution'
+        for item in result['assignments'])

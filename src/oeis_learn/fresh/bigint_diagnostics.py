@@ -169,11 +169,9 @@ def _portfolio(
     evidence=None,
     evaluation_policy=None,
 ):
-    from oeis_learn.decoder.sampler import WatProgramSampler
     if evaluation_policy is not None:
-        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
-        if evaluation_policy!=POLICY or portfolio_seconds!=60 or ATTEMPTS.get(mode)!=attempt_count:
-            raise ValueError('registered full-clock portfolio required')
+        from oeis_learn.pipeline_validation.pilot_clocks import validate_portfolio
+        validate_portfolio(evaluation_policy,mode,attempt_count,portfolio_seconds)
 
     from .bigint_program_identity import structural_identity
 
@@ -225,6 +223,7 @@ def _portfolio(
             if time.monotonic() >= deadline:
                 source, complete = "", False
             if compare_cache and position == 0 and complete:
+                from oeis_learn.decoder.sampler import WatProgramSampler
                 uncached = WatProgramSampler(
                     decoder,
                     max_length=1024,
@@ -278,21 +277,33 @@ def _portfolio(
         job = logical_job(contract=contract_identity,snapshot=snapshot,
             mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
             method=attempt['method'],seed=attempt['seed'])
+        from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN
+        isolated=evaluation_policy in (MATCHED,DRAIN) and position==0 and not template
+        isolated_found,isolated_status=None,detail['raw']
+        if isolated:
+            raw_job=logical_job(contract=contract_identity,snapshot=snapshot,mode=mode,arm='raw',
+                prompt_id=row['id'],attempt_ordinal=position,method=attempt['method'],seed=attempt['seed'])
+            raw_deadline=min(deadline,time.monotonic()+4)
+            isolated_found,isolated_status=yield NativeRequest(raw_job,prompt_ordinal,raw_deadline,
+                lambda:_raw(client,source,prompt,raw_deadline),
+                cancel=getattr(getattr(client,'worker',None),'cancel_all',None),
+                on_expired=lambda:(None,_status(False,'resource_exhausted','raw service deadline')))
         def native_work():
             from contextlib import nullcontext
             affinity = getattr(getattr(client,'worker',None),'affinity',None)
             with affinity(prompt_ordinal) if affinity else nullcontext():
                 if evidence:native_clock['dispatched']=time.monotonic()
-                raw_found, raw_status = (None, detail['raw'])
-                if position == 0 and not template:
+                raw_found, raw_status = (isolated_found, isolated_status)
+                if position == 0 and not template and not isolated:
                     raw_found, raw_status = _raw(client, source, prompt, service_deadline if pipeline else min(deadline,time.monotonic()+4))
                 fit_started = time.monotonic()
                 if recipe['fitting']['disabled']:
                     found, status = _raw(client,source,prompt,service_deadline if pipeline else min(deadline,time.monotonic()+4))
                     fit_result = dict(outcome='raw_only',admitted=[found] if found else [],complete=status['complete'],reason=status['reason'])
                 else:
+                    from oeis_learn.decoder.bigint_codec import fitting_policy
                     fit_result = client.fit(source,prompt,
-                        policy='none' if '(param.get ' in source else 'eligible-literals/v1',
+                        policy=fitting_policy(source),
                         deadline=service_deadline if pipeline else min(deadline,time.monotonic()+4),seed=attempt['seed']%2**32)
                 if evidence:native_clock['completed']=time.monotonic()
                 return raw_found, raw_status, fit_result, time.monotonic()-fit_started
@@ -302,7 +313,7 @@ def _portfolio(
         if pipeline:
             def expired_native():
                 reason='native/reference service deadline; late candidate excluded'
-                return (None,_status(False,'resource_exhausted',reason),
+                return (isolated_found,isolated_status if isolated else _status(False,'resource_exhausted',reason),
                     dict(outcome='resource_exhausted',admitted=[],complete=False,reason=reason),
                     time.monotonic()-fitting_start)
             found, detail['raw'], fit, fit_elapsed = yield NativeRequest(job,prompt_ordinal,
@@ -368,7 +379,7 @@ def _portfolio(
         from oeis_learn.pipeline_validation.pilot_clocks import clock_record
         evidence.portfolio(row['id'],mode,clock_record(prompt=row['id'],mode=mode,snapshot=snapshot,
             start=start,scope_deadline=scope_deadline,finish=finished,expected=attempt_count,
-            started=len(details),terminal=len(details)))
+            started=len(details),terminal=len(details),policy=evaluation_policy))
     distinct = {}
     for r in fitted:
         previous = distinct.get(r['source_sha256'])
@@ -488,13 +499,13 @@ def generate(
     if portfolio_seconds not in (60,180):
         raise ValueError('registered diagnostic portfolio ceiling required')
     if evaluation_policy is not None:
-        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS
-        if (evaluation_policy!=POLICY or diagnostic_attempts!=ATTEMPTS or portfolio_seconds!=60
+        from oeis_learn.pipeline_validation.pilot_clocks import POLICY,ATTEMPTS,attempts
+        if (diagnostic_attempts!=attempts(evaluation_policy) or portfolio_seconds!=60
             or periodic or not recipe.get('pipeline') or not callable(getattr(evidence,'portfolio',None))):
             raise ValueError('explicit full-clock pilot calibration required')
     scope_start = time.monotonic()
     if diagnostic_attempts is not None and (
-        periodic or diagnostic_attempts != dict(correct=8, shuffled=1, absent=1, template=8)
+        periodic or diagnostic_attempts != (attempts(evaluation_policy) if evaluation_policy else dict(correct=8, shuffled=1, absent=1, template=8))
     ):
         raise ValueError("only the explicit reduced pipeline diagnostic portfolio is supported")
 
@@ -535,6 +546,8 @@ def generate(
         # A group spends one shared slice of the remaining global budget. Every
         # prompt also retains Portfolio's original sixty-second ceiling.
         size = (min(8,pipeline['workers']) if mode == 'template' else pipeline['batch_size']) if pipeline else 1 if mode == "template" else GENERATION_BATCH_SIZE
+        from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN
+        if evaluation_policy==DRAIN:size=min(size,pipeline['workers'])
         for offset in range(0, len(rows), size):
             group = rows[offset : offset + size]
             remaining = (len(modes) - modes.index(mode) - 1) * len(rows) + len(rows) - offset
@@ -572,7 +585,8 @@ def generate(
                 from functools import partial
                 from oeis_learn.decoder.bigint_generation import sample_batch
                 outcomes, boundary = drive(decoder,generators,workers=pipeline['workers'],
-                    lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],
+                    lookahead=pipeline['lookahead'],policies=pipeline,batch_size=pipeline['batch_size'],native_priority=evaluation_policy==DRAIN,
+                    native_expiry_grace=5 if evaluation_policy in (MATCHED,DRAIN) else 0,
                     sample=partial(sample_batch,batch_size=pipeline['batch_size'],capacity_qualified=bool(pipeline.get('capacity_qualification')),bookkeeping=pipeline['bookkeeping'],deadline_policy='production60/v1' if portfolio_seconds==60 else 'fixed-work180/v1'))
                 # drive returns only after every native task has positively quiesced.
                 for value in outcomes:

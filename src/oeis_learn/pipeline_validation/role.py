@@ -182,7 +182,7 @@ def cpu_contracts(inputs,output,config):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-score','pilot-recover','pilot-diagnostics']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
+    p=argparse.ArgumentParser();p.add_argument('mode',choices=['native','contracts','neural','score','replay-reference','replay','replay-compare','replay-batching-reference','replay-batching','replay-batching-compare','hardware-reference','hardware-replay','native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-followup-train','pilot-score','pilot-recover','pilot-diagnostics','pilot-followup-train']);p.add_argument('--input',default='/work/input');p.add_argument('--output',default='/work/output')
     args=p.parse_args(argv);inputs=Path(args.input);output=Path(args.output);output.mkdir(parents=True,exist_ok=True)
     result={'status':'FAIL'}
     role_started=time.monotonic()
@@ -212,18 +212,19 @@ def main(argv=None):
         from .pilot_runtime import train as pilot_train,generate as pilot_generate,score as pilot_score,recover as pilot_recover
         from .pilot_data import prepare as pilot_prepare
         from .diagnostics_runtime import run as pilot_diagnostics
+        from .followup_training import run as followup_train
         from .memory import MemoryWatchdog
         ceiling=config['options'].get('memory_ceiling')
         if ceiling is None:
             from .resources import observe,resolve
             ceiling=resolve(**observe())['ceiling_bytes']
-        with MemoryWatchdog(output,ceiling=ceiling,gpu=(args.mode=='pilot-diagnostics' and config['options']['purpose']=='diagnostics-hip') or args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study','sizing-trial','soak-trial','pilot-train','pilot-generate'},
+        with MemoryWatchdog(output,ceiling=ceiling,gpu=(args.mode=='pilot-diagnostics' and config['options']['purpose']=='diagnostics-hip') or args.mode in {'neural','replay','replay-compare','replay-batching','replay-batching-compare','hardware-replay','coschedule-gpu','coschedule-study','sizing-trial','soak-trial','pilot-train','pilot-generate','pilot-followup-train'},
                 render_node=config['options'].get('render_node'),audit_samples=args.mode.startswith(('soak-','pilot-')),
                 sample_limit=90000 if args.mode.startswith('pilot-') else 9000,
                 sample_bytes=768 if args.mode.startswith('pilot-') else 4096) as guard:
-            if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-score','pilot-recover','pilot-diagnostics'} and not guard.report()['qualified']:
+            if args.mode in {'native-capacity','coschedule-reference','coschedule-gpu','coschedule-study','sizing-reference','sizing-trial','soak-reference','soak-trial','pilot-prepare','pilot-train','pilot-generate','pilot-followup-train','pilot-score','pilot-recover','pilot-diagnostics','pilot-followup-train'} and not guard.report()['qualified']:
                 raise RuntimeError('known aggregate memory accounting required before '+args.mode)
-            result={'pilot-diagnostics':pilot_diagnostics,'pilot-recover':pilot_recover,'pilot-prepare':pilot_prepare,'pilot-train':pilot_train,'pilot-generate':pilot_generate,'pilot-score':pilot_score,'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study,'sizing-reference':sizing_reference,'sizing-trial':sizing_trial,'soak-reference':soak_reference,'soak-trial':soak_trial}[args.mode](inputs,output,config)
+            result={'pilot-followup-train':followup_train,'pilot-diagnostics':pilot_diagnostics,'pilot-recover':pilot_recover,'pilot-prepare':pilot_prepare,'pilot-train':pilot_train,'pilot-generate':pilot_generate,'pilot-score':pilot_score,'native':native_compare,'contracts':cpu_contracts,'neural':gpu,'score':score,'replay-reference':reference_role,'replay':replay_role,'replay-compare':comparison_role,'replay-batching-reference':batching_reference,'replay-batching':batch_role,'replay-batching-compare':batching_compare,'hardware-reference':hardware_reference,'hardware-replay':hardware_role,'native-capacity':investigate,'coschedule-reference':coschedule_reference,'coschedule-gpu':coschedule_gpu,'coschedule-study':coschedule_study,'sizing-reference':sizing_reference,'sizing-trial':sizing_trial,'soak-reference':soak_reference,'soak-trial':soak_trial}[args.mode](inputs,output,config)
         result['resources']=guard.report()
     except BaseException as exc:
         from .runner import ResourceBreach

@@ -11,9 +11,11 @@ import time
 from oeis_learn.fresh.pipeline_jobs import NativeRequest,JobLedger
 
 
-def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None,ledger=None):
+def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,sample=None,ledger=None,native_priority=False,native_expiry_grace=0):
     if workers not in (1,2,4) or lookahead not in (1,2) or batch_size not in (1,8,16,32):
         raise ValueError('unregistered scheduler capacity')
+    if type(native_expiry_grace) is not int or native_expiry_grace not in (0,5):
+        raise ValueError('registered native expiry cleanup allowance required')
     if sample is None:
         from oeis_learn.decoder.bigint_generation import sample_batch
         sample=sample_batch
@@ -56,7 +58,14 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
             now=time.monotonic()
             expired=[request for _,request in active.values() if now>=request.deadline]
             if expired:
-                raise TimeoutError('native/reference task deadline; external watchdog may be required')
+                # The service deadline still decides eligibility. A cooperative
+                # operation may need a bounded interval to acknowledge expiry.
+                # Keep its slot charged and pause new work until it quiesces;
+                # publish() then drops the late value through on_expired.
+                if any(request.on_expired is None or now>=request.deadline+native_expiry_grace for request in expired):
+                    raise TimeoutError('native/reference task deadline; external watchdog may be required')
+                threading.Event().wait(.005)
+                continue
             order=[(cursor+j)%len(generators) for j in range(len(generators))]
             for i in order:
                 request=ready.get(i)
@@ -72,7 +81,7 @@ def drive(decoder,generators,*,workers=1,lookahead=1,policies=None,batch_size=8,
                 thread.start();cursor=(i+1)%len(generators)
             # At most two batches of staged candidate records, tighter native bound wins.
             pending_native=sum(isinstance(r,NativeRequest) for r in ready.values())
-            if pending_native<lookahead*batch_size:
+            if pending_native<lookahead*batch_size and not (native_priority and (active or pending_native)):
                 decode=[i for i in order if i in ready and not isinstance(ready[i],NativeRequest)]
                 if decode:
                     first=ready[decode[0]]

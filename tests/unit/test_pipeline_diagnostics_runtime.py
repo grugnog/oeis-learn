@@ -103,6 +103,12 @@ def actual_role_fixture(root,device):
     assert abs(activation['representations']['absent']['mean_off_diagonal_cosine']-1)<1e-6
     assert (out/'per-example.jsonl').is_file() and not (inputs/'checkpoints').exists()
     raw=(out/'per-example.jsonl').read_text()
+    for line in raw.splitlines():
+        row=json.loads(line)
+        assert sum(v['tokens'] for v in row['token_roles'].values())==row['tokens']
+        assert sum(v['errors'] for v in row['token_roles'].values())==row['tokens']-row['correct_tokens']
+        assert abs(row['mean_target_log_probability']+row['loss_sum']/row['tokens'])<1e-4
+        assert (row['first_error_position'] is None)==row['exact_program']
     assert 'horizon_indices' not in raw and '"values"' not in raw and '"source"' not in raw
 
 
