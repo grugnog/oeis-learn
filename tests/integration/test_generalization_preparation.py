@@ -114,6 +114,6 @@ def test_projection_copies_only_named_verified_files(tmp_path,monkeypatch):
         return dict(status='PASS')
     monkeypatch.setattr(roles,'invoke',invoke)
     result=roles.project_and_invoke(None,'image',tmp_path,'generator',
-        {'visible_prompts':[reference(tmp_path/'prompts.json',tmp_path)],'frozen_weights':[reference(tmp_path/'weights.json',tmp_path)]},
+        {'visible_prompts':[reference(tmp_path/'prompts.json',tmp_path)]*2,'frozen_weights':[reference(tmp_path/'weights.json',tmp_path)]},
         output='new',operation='evaluate',settings={},seconds=30)
     assert result['status']=='PASS' and not (tmp_path/'new/private/input').exists()

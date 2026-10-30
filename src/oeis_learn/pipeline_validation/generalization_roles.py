@@ -72,7 +72,12 @@ def project_and_invoke(host,image,root,role,artifacts,*,output,operation,setting
         for channel,refs in artifacts.items():
             if channel not in {m.channel for m in ROLE_INPUTS[Role(role)]}:raise ValueError('undeclared role channel')
             folder=output/'private/input'/channel;folder.mkdir(parents=True)
+            seen={}
             for ref in refs:
+                if ref['path'] in seen:
+                    if seen[ref['path']] != ref:raise ValueError('conflicting channel artifact')
+                    continue
+                seen[ref['path']]=ref
                 source=Path((source_roots or {}).get(channel,root)).resolve()
                 source.relative_to(root.resolve())
                 payload=verify_artifact(source,ref)
