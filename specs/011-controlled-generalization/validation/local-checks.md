@@ -139,3 +139,19 @@ previously failing replay overrun test and the new reservation, interruption and
 persistence-failure counterexamples. The focused replay policy/adapter selection
 passes 18 tests. T043/T044's local gate is restored; C/D and hardware qualification
 are not declared complete. No HIP command ran.
+
+## Report/preparation integration and feature-acceptance blocker
+
+Completed T047's public report packaging and independent archive reconciliation;
+report/measurement/host/evidence checks passed 32 tests. Completed T049/T050's
+installed preparation-role and all-role isolation checks; focused selection passed
+28 tests. The public report/verify flow is exercised with a fake container boundary
+and real Phase-B reconciliation against synthetic qualification evidence. No
+container or hardware qualification is implied.
+
+The combined non-HIP selection now reports **209 passed, 3 failed, 9 subtests
+passed, one GPU test deselected**. All three failures are the new T035 feature
+acceptance counterexamples: FAIL case values, PARTIAL case values, and case names
+without evidence are incorrectly accepted by the research gate. T035/T044 are
+reopened; their required repair is recorded in algorithm-review.md. No HIP command
+or research campaign ran. `git diff --check` passes.

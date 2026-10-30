@@ -66,3 +66,17 @@ def test_each_effective_resource_and_security_change_invalidates_reuse(tmp_path)
             changed=copy.deepcopy(facts)
             changed[section][key]=not value if type(value) is bool else value+1 if type(value) is int else value+'-changed'
             with pytest.raises(ValueError):qualify_reuse(receipt,changed,root=tmp_path,required_suites={'hip'},required_capabilities={'load'})
+
+
+@pytest.mark.parametrize('case_status',['FAIL','PARTIAL','names-only'])
+def test_research_gate_rejects_unproven_or_failed_feature_cases(tmp_path,case_status):
+    """Case names and an aggregate PASS cannot replace original case evidence."""
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    receipt,facts=producer(tmp_path)
+    names=['retained-eval','refresh','parameter-targets','replay-resume','failure-packaging']
+    cases=names if case_status=='names-only' else {name:dict(status=case_status) for name in names}
+    feature=seal(dict(version='generalization-feature-acceptance/v1',status='PASS',qualification=receipt['identity'],cases=cases))
+    path=tmp_path/'feature-acceptance.json';path.write_text(json.dumps(feature))
+    with pytest.raises(ValueError,match='feature|case|acceptance'):
+        qualify_reuse(receipt,facts,root=tmp_path,required_suites={'hip'},required_capabilities={'load'},
+            research=True,feature_receipt=reference(path,tmp_path))

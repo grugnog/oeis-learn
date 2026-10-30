@@ -169,3 +169,30 @@ CPU learner integration and historical regression checks: **200 passed, 9 subtes
 passed, one GPU test deselected**. `git diff --check` passes. T043 and T044 are
 restored. No native/container/HIP qualification or scientific run occurred.
 The remaining C/D tasks retain their prior incomplete status.
+
+
+## Reopened T035/T044: failed or unproven feature cases authorize research
+
+While wiring the canonical acceptance consumer, a new independent regression showed
+that `qualify_reuse(..., research=True)` checks only the aggregate feature status,
+qualification identity, and the set of case names. It does not check the values of
+those cases or require original per-case evidence. The three cases in
+`test_research_gate_rejects_unproven_or_failed_feature_cases` all fail because reuse
+is accepted: all five case values say FAIL; all five say PARTIAL; or cases are only
+a list of names with no evidence. Each test uses synthetic qualification fixtures;
+no hardware command is involved.
+
+T035/T044 are reopened. The required Phase-B repair is a closed, versioned feature
+acceptance authority binding every required case to intact original PASS evidence,
+its qualification and case identity, and the case's mandatory artifacts. Reject
+missing/unproven cases, failed/partial results, mismatched producer/qualification,
+unknown fields/versions and substituted case payloads. Merely changing the producer
+to print PASS or checking the aggregate flag again is insufficient. Define the
+stable producer/consumer interface and independent negative cases before C creates
+the feature-acceptance producer or enables research consumers.
+
+This blocks T056–T059 and acceptance-dependent workflows; T044 explicitly gates all
+C work. No new research endpoint was enabled as a workaround. The earlier replay
+accounting repair remains passing. The new regressions are retained, not skipped or
+xfail. Completed reporting and preparation/role-isolation integration remain
+committed, while C/D as a whole remain incomplete.
