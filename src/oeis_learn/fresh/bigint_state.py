@@ -266,3 +266,9 @@ def finish_final(root, plan_record, arm, status):
         study.finish(arm, status)
         write(root / "state.json", study.snapshot())
     return study.snapshot()
+
+
+def generalization_checkpoint_policy(history, *, pins):
+    """Prospective pure prune decision. Historical CheckpointStore remains unchanged."""
+    from oeis_learn.generalization.checkpoints import prune_plan
+    return prune_plan(history, pins)
