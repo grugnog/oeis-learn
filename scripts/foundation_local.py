@@ -387,6 +387,8 @@ def parser():
     followup.add_argument("--tokens",type=int,choices=[25000000,50000000],default=25000000)
     followup.add_argument("--seed",type=int,default=20261016)
     followup.add_argument("--scope-report",action="store_true")
+    followup.add_argument("--arms",nargs="+",choices=["uniform"],help="opt in to the uniform-only replication; default remains all three historical arms")
+    followup.add_argument("--qualification",help="original qualification v2 proof with completed feature acceptance")
     admission = commands.add_parser("pilot-admit", help="qualify and prepare a versioned full-clock learning-pilot decision")
     admission.add_argument("--inputs", required=True, help="retained full corpus producer directory")
     admission.add_argument("--calibration", required=True, help="retained successful full-clock calibration directory")

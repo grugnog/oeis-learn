@@ -76,6 +76,19 @@ class Adapters:
             engine=host.policy['runtime'],security=host.policy['engine_info'],resources=seal(policy),hardware=hardware)
 
     def __call__(self,stage,output):
+        if stage.adapter=='generalization-qualification':
+            from .generalization_qualification_io import consume_original
+            from .generalization_preparation import reference
+            from .identity import confined
+            producer=confined(self.root,self.args.qualification)
+            feature=producer/'feature-acceptance.json'
+            if not feature.is_file():raise CapabilityError('completed feature acceptance is required before research')
+            host=self.host(self.args.engine)
+            result=consume_original(host,self.root,producer,output,required_suites=['bigint-cpu','bigint-gpu'],
+                required_capabilities=['weight-load','finite-update','native-exact'],research=True,feature_receipt=reference(feature,producer))
+            for target,image in zip(('qualification','gpu'),result['authority']['images']):
+                self.images.images[(self.args.engine,target)]=image
+            return dict(original_qualification=result['original'],full_study=self.contract['identity'])
         if stage.adapter=='host':
             # Run only stdlib cases here; native/Torch suites belong inside the image.
             names=['contracts','resources','bundle','reuse','validation','comparisons','policy','native_pool','cache','overlap','overlap_metrics','qualification','studies','supervision','benchmarks','memory','disk','native_measurements','attempts','study_batch','workloads','role_failures','replay','replay_comparison','replay_batching','hardware_ladder','native_capacity','coschedule','model_sizing','soak','pilot','pilot_data','pilot_calibration','pilot_longrun','diagnostics']

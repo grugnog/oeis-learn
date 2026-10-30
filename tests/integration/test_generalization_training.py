@@ -74,7 +74,8 @@ def test_checkpoint_pins_survive_pruning_and_failed_save(tmp_path):
     assert json.loads((tmp_path/'generalization-latest.json').read_text())==third
 
 
-def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch):
+@pytest.mark.parametrize("target_format",["literal","parameterized"])
+def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format):
     torch=pytest.importorskip('torch')
     pytest.importorskip('numpy')
     from oeis_learn.pipeline_validation.generalization_training import run_torch
@@ -84,7 +85,7 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch)
     from oeis_learn.pipeline_validation.identity import digest
     rows=[]
     for i in range(2):
-        src=f'(program (return (int {i})))'
+        src=f'(program (return (int {i})))' if target_format=='literal' else '(program (return (param.get p0)))'
         rows.append(dict(id=str(i),role='training',source=src,tokens=encode_body(src),indices=list(map(str,range(100))),values=[str(i)]*100))
     (tmp_path/'rows.json').write_text(json.dumps(rows));shards=[reference(tmp_path/'rows.json',tmp_path)]
     # Tiny real tensor modules isolate persistence equivalence from model scale.
