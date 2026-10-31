@@ -67,3 +67,36 @@ def test_diagnostics_total_cap_is_explicit(tmp_path):
     result=d.collect(root,tmp_path/'public',cap=2)
     assert result['exported_bytes']==2
     assert any(r.get('reason')=='total byte cap' for r in result['files'])
+
+
+@pytest.mark.parametrize('stage,suite', [('cpu.semantic','bigint-cpu'),('hip.preflight','bigint-gpu')])
+def test_recovery_includes_nested_qualification_failures(tmp_path,stage,suite):
+    root=tmp_path/'run';root.mkdir()
+    base=f'qualify/pipeline/stages/{stage}/{suite}-regressions/'
+    expected={base+'results.xml':b'<testsuite><testcase name="failure"><failure>details</failure></testcase></testsuite>',
+              base+'stdout.log':b'FAILED test_example - actual failure',
+              base+'stderr.log':b'error details',base+'process.json':b'{"returncode":1}',
+              base+'cleanup.json':b'{"acknowledged":true}',base+'receipt.json':b'{"status":"FAIL"}',
+              f'qualify/pipeline/stages/{stage}/environment/stdout.log':b'environment observation'}
+    for name,payload in expected.items():put(root,name,payload)
+    put(root,base+'private/results.xml',b'PRIVATE')
+    put(root,base+'pytest/unreviewed/stdout.log',b'PRIVATE')
+    ledger=dict(receipts=[dict(stage='qualify',exit_code=1)],status='FAIL')
+    put(root,'workflow.json',json.dumps(ledger).encode())
+    archive=helper().recover(root,ledger)
+    from oeis_learn.pipeline_validation.bundle import verify
+    assert verify(archive)['summary_state']=='FAIL'
+    with zipfile.ZipFile(archive) as z:
+        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        assert all('private' not in n and 'pytest' not in n for n in z.namelist())
+
+
+def test_oversized_junit_is_omitted_whole(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import collect,XML_CAP
+    root=tmp_path/'run';root.mkdir()
+    name='qualify/pipeline/stages/cpu.semantic/bigint-cpu-regressions/results.xml'
+    put(root,name,b'x'*(XML_CAP+1))
+    result=collect(root,tmp_path/'public')
+    row=next(r for r in result['files'] if r['source']==name)
+    assert row['status']=='OMITTED' and row['reason']=='XML byte cap'
+    assert not (tmp_path/'public'/name).exists()

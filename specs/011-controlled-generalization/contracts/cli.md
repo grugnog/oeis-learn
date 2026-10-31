@@ -99,3 +99,10 @@ most 4 MiB plus the bounded fixed-list index. Truncated logs are labeled; the
 original files are unchanged. Diagnostic copies confer no qualification and
 cannot change the run verdict. The normal report captures diagnostics available
 at packaging time; fallback capture also includes a failed report's inspection.
+
+Qualification diagnostics also include the canonical `cpu.semantic`/`hip.preflight`
+`environment` and `bigint-cpu-regressions`/`bigint-gpu-regressions` records and logs.
+Their `results.xml` JUnit reports are preserved whole up to 2 MiB; larger XML is
+omitted explicitly rather than truncated into invalid XML. The existing 4 MiB
+aggregate payload limit still applies. No recursive pytest/private file discovery
+is performed.

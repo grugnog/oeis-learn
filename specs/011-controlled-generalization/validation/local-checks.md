@@ -411,3 +411,19 @@ registration selection passed 15 tests. `git diff --check` passed. No container
 or HIP command ran and no hardware gate was checked off. Source changes require
 new images and newly frozen inputs before future acceptance; existing evidence
 is preserved.
+
+## T087 nested qualification diagnostics — 2026-10-31
+
+Acceptance-004 verified as an intact FAIL recovery archive with valid captured
+receipt seals. It identifies CPU regression failure and a separate CPU-only GPU
+image inspection timeout; HIP remained BLOCKED. The original JUnit and test logs
+were referenced by the CPU receipt but absent from T086's fixed capture list.
+
+New CPU and HIP suite-path tests reproduced the missing JUnit/log capture before
+the repair. The collector now includes canonical nested environment/regression
+control records, bounded logs and whole JUnit XML (2 MiB limit), retaining the
+4 MiB aggregate cap and explicit omissions. Oversize XML and unreviewed private
+pytest subtrees are tested. Focused diagnostics/acceptance/registration: 18 passed.
+The full local selection used for T086: 280 passed, one hardware test deselected.
+No container/HIP command ran. Existing operator qualify/pipeline.zip is needed
+to identify all failed CPU tests; no speculative test fix is claimed.

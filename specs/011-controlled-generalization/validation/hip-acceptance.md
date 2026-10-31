@@ -79,3 +79,23 @@ hardware rerun is justified by this diagnostic-capture change alone.
 T086 now captures these records automatically in both normal and fallback
 archives, with explicit bounds and omissions. The timeout cause remains open;
 T063–T068 retain their evidence gates.
+
+## Operator acceptance-004 — qualification failed (2026-10-31)
+
+The 48-member recovery archive passes inventory/hash verification and the captured
+original receipt seals verify. Preflight passed all four cases. The first case
+took 116.86 seconds; the remaining cases each completed in about 0.18–1.16 seconds.
+The CPU qualification image inspection passed in 0.41 seconds. The CPU regression
+suite failed after about 336 seconds; its original stage receipt identifies
+`bigint-cpu-regressions/results.xml` and stdout/stderr, but T086's capture omitted
+those nested suite files. The failing tests cannot yet be identified from this
+archive. They remain in the operator's original `qualify/pipeline.zip` and run
+directory. T087 fixes the capture omission for future archives.
+
+The GPU image inspection independently timed out at its 240-second external
+deadline with empty streams. Cleanup was acknowledged. The HIP stage was BLOCKED
+by these two prerequisites; no HIP test or learner started. Reporting then failed
+for absent qualification.json and the wrapper preserved the failed recovery
+archive. Image inspection is CPU-only and its timeout does not prove a GPU fault.
+No timeout increase or speculative cause is asserted. Retrieve existing test
+evidence before any new qualification run; T063–T068 remain open.

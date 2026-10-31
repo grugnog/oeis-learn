@@ -417,3 +417,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — automatic timeout diagnostics
 
 - [X] T086 Include bounded, explicitly allowed preflight/validation/inspection control records and log excerpts in normal and recovery archives, with truncation/omission inventory and no private input/state traversal; test timeout capture, normal packaging, size caps and symlink exclusion (FR-033, NFR-007, SC-007). Preserve the acceptance-003 failure and unresolved timeout cause.
+
+### Phase C/D — qualification regression diagnostics
+
+- [X] T087 Capture the canonical CPU/HIP nested environment and regression records, stdout/stderr and whole bounded JUnit reports in normal/recovery diagnostics; test both suite paths and oversize XML omission. Record acceptance-004 original failures without attributing uncaptured test details or claiming HIP execution (FR-033, NFR-007, SC-007).

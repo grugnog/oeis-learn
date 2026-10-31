@@ -6,6 +6,7 @@ import stat
 from .identity import seal,write
 
 JSON_CAP=256<<10
+XML_CAP=2<<20
 LOG_CAP=64<<10
 TOTAL_CAP=4<<20
 CASES=('parameter-targets','refresh','retained-eval','replay-resume')
@@ -28,6 +29,10 @@ def candidates():
         yield f'qualify/pipeline/stages/{stage}/receipt.json'
         yield f'qualify/pipeline/stages/{stage}/inspection/cleanup.json'
         for name in CONTROL:yield f'qualify/pipeline/stages/{stage}/inspection/logs/{name}'
+    for stage,suite in (('cpu.semantic','bigint-cpu'),('hip.preflight','bigint-gpu')):
+        for step in ('environment',suite+'-regressions'):
+            for name in (*CONTROL,'receipt.json','results.xml'):
+                yield f'qualify/pipeline/stages/{stage}/{step}/{name}'
     yield 'report/inspection/cleanup.json'
     for name in CONTROL:yield 'report/inspection/logs/'+name
 
@@ -51,8 +56,8 @@ def collect(root,destination,*,cap=TOTAL_CAP):
                 before=os.fstat(stream.fileno())
                 if not stat.S_ISREG(before.st_mode):raise ValueError('nonregular file')
                 size=before.st_size;row['original_bytes']=size
-                limit=LOG_CAP if path.suffix=='.log' else JSON_CAP
-                if path.suffix!='.log' and size>limit:raise ValueError('JSON byte cap')
+                limit=LOG_CAP if path.suffix=='.log' else XML_CAP if path.suffix=='.xml' else JSON_CAP
+                if path.suffix!='.log' and size>limit:raise ValueError(('XML' if path.suffix=='.xml' else 'JSON')+' byte cap')
                 if min(size,limit)>cap-used:raise ValueError('total byte cap')
                 if size>limit:
                     marker=b'\n...[diagnostic log truncated: opening and final tail]...\n'
@@ -72,6 +77,6 @@ def collect(root,destination,*,cap=TOTAL_CAP):
         except (OSError,ValueError) as exc:
             row.update(status='OMITTED',reason=str(exc) if isinstance(exc,ValueError) else type(exc).__name__)
     result=seal(dict(version='generalization-diagnostics/v1',qualification_evidence=False,
-        exported_bytes=used,payload_cap=cap,json_cap=JSON_CAP,log_cap=LOG_CAP,files=rows))
+        exported_bytes=used,payload_cap=cap,json_cap=JSON_CAP,xml_cap=XML_CAP,log_cap=LOG_CAP,files=rows))
     write(destination/'index.json',result)
     return result
