@@ -69,3 +69,12 @@ def search_policy(purpose,policy):
     if policy=='model':return 8
     if purpose=='acceptance' and policy==DIAGNOSTIC:return 1
     raise ValueError('unregistered or research diagnostic proposal policy')
+
+
+def small_recipe(original):
+    """Use the already registered 256-wide constructor for fresh smoke updates."""
+    import copy
+    recipe=copy.deepcopy(original)
+    recipe['version']='bigint-bootstrap/v1';recipe.pop('model_profile',None)
+    recipe['model'].update(d_model=256,heads=4,encoder_layers=4,decoder_layers=4,ff=1024)
+    return recipe

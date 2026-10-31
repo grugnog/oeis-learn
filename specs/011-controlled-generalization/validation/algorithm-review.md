@@ -322,3 +322,16 @@ are recorded as rejections. The three-draw/two-unique-source regression was obse
 failing before repair. The combined preparation/input/schema selection passes 37
 tests. Legacy schema branches retain their original positive-token/milestone rules;
 only explicit v3 E0 authority permits zero learner exposure.
+
+Acceptance launch convergence reopens B (T080/T081): verified legacy initialization
+requires a new actual selection, original uniform provenance and producer inventory;
+pending P4 initialization cannot authorize research or learning. The transition
+preserves all choices except its declared initializer. Deterministic mechanical
+fixtures enforce finite exclusions and paired target grounding; a separately labeled
+neutral-expression diagnostic still requires native/reference full-horizon replay
+admission. Fresh refresh/target fixtures use the existing 256-wide v1 constructor;
+retained evaluation/P4 keep the original recipe and weights. This sizing choice
+preserves the 32 GiB aggregate checkpoint ceiling without altering historical inputs.
+Independent cases observed failures before implementation; 55 authority/contract
+checks and 30 fixture/replay policy checks passed. Original imported weights remain
+nonresumable. These checks are not HIP evidence.

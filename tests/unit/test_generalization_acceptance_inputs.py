@@ -44,3 +44,12 @@ def test_research_cannot_use_diagnostic_policy_and_full_audit_still_applies():
     task['values'][-1]='999999999999'
     with pytest.raises(ValueError,match='disagreement'):
         admit(task,**candidate,origin_checkpoint='actual-checkpoint',production=production,production_identity='native-fixture',order=0)
+
+
+def test_small_fixture_recipe_is_a_copy_and_preserves_numeric_input_contract():
+    from oeis_learn.generalization.acceptance_inputs import small_recipe
+    original=dict(version='bigint-bootstrap/v4',model=dict(seed=7,d_model=768,encoder_layers=6,decoder_layers=6,ff=3072,heads=12,precision='float32',dropout=0,attention='eager',token_scale=1,position_scale=16),model_profile={'name':'m100'},execution={'language':'bigint-body/v1'},inputs={'profile':'hybrid-chunks/v1'},learning={'learning_rate':.0001})
+    smaller=small_recipe(original)
+    assert original['model']['d_model']==768 and original['version']=='bigint-bootstrap/v4'
+    assert smaller['model']['d_model']==256 and smaller['version']=='bigint-bootstrap/v1' and 'model_profile' not in smaller
+    assert smaller['inputs']==original['inputs'] and smaller['execution']==original['execution'] and smaller['learning']==original['learning']
