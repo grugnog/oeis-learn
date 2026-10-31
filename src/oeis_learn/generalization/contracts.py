@@ -55,6 +55,10 @@ def validate(kind, record):
         settings=record if kind=='study' else record['study_settings']
         if not record['version'].endswith('/v3') and (record['budgets']['target_tokens']<1 or not settings['checkpoints']['milestones']):
             raise ValueError('legacy authority requires positive learner budgets and milestones')
+        from .bootstrap import is_pending,pending
+        initialization=settings['model']['initialization']
+        if is_pending(initialization) and (not record['version'].endswith('/v3') or initialization!=pending(initialization.get('study')) or settings['recipe']!='P4-replay/v1'):
+            raise ValueError('deferred initializer requires prospective P4 authority')
         p4=(settings.get('progression',{}).get('stage')=='P4' or settings['recipe']=='P4-replay/v1')
         if p4:
             if settings['model']['initialization']=='random':

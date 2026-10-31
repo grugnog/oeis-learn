@@ -47,6 +47,8 @@ def validate_policy(study,runtime,*,case=None):
         raise ValueError('registered recipe and single changing factor required')
     if case is not None and (case not in CASES or stage!=CASES[case]):
         raise ValueError('acceptance case differs from registered experiment')
+    from .bootstrap import verify_pending
+    verify_pending(study,runtime)
     training=runtime['training'];tokens=study['budgets']['target_tokens'];milestones=study['checkpoints']['milestones']
     if type(tokens) is not int or tokens<0 or milestones!=sorted(set(milestones)) or any(type(x) is not int or not 0<x<=tokens for x in milestones):
         raise ValueError('bounded increasing checkpoint exposures required')

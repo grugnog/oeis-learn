@@ -393,7 +393,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 
 ### Reopened Phase B — remaining launch policies
 
-- [ ] T080 Verify freshly selected legacy weights-only initializer provenance and a frozen acceptance-only deferred initializer transition in `generalization/initializers.py`, `contracts.py`, `execution.py`, schemas and independent tests, per FR-022/024, NFR-003 and US5/AC1 (partial).
+- [X] T080 Verify freshly selected legacy weights-only initializer provenance and a frozen acceptance-only deferred initializer transition in `generalization/initializers.py`, `contracts.py`, `execution.py`, schemas and independent tests, per FR-022/024, NFR-003 and US5/AC1 (partial).
 - [ ] T081 Define bounded deterministic mechanical acceptance input construction and explicitly labeled, independently verified replay diagnostic proposals without requiring learning gain, preserving research behavior, budgets and role isolation in pure generalization policies and reference tests, per FR-002/004/034, NFR-005/007 and SC-006 (partial).
 
 ### Phase C — canonical launch integration

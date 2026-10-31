@@ -5,7 +5,7 @@ from oeis_learn.pipeline_validation.identity import seal,digest
 
 def records():
     from oeis_learn.pipeline_validation.followup_training import profile
-    recipe=dict(track=dict(kind='generic_only',assisted_manifest=None,foundation=None),learning=dict(replay=False,target_view='literal'),model=dict(precision='float32'))
+    recipe=dict(version='legacy-test/v1',track=dict(kind='generic_only',assisted_manifest=None,foundation=None),learning=dict(replay=False,target_view='literal'),model=dict(precision='float32'))
     prepared=seal(dict(recipe=digest(recipe)))
     history=[dict(tokens=i*10,updates=i,splits={name:dict(complete=True,loss_sum=loss,tokens=10) for name in ('parameter_development','structural_development')}) for i,loss in enumerate((10.,2.,3.))]
     training=seal(dict(profile=profile(),work=prepared['identity'],source=digest('source'),tokens=20,updates=2,best_weights=digest('best'),latest_weights=digest('latest'),resume=False,final_access='SEALED'))

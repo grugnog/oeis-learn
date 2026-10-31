@@ -164,6 +164,27 @@
                     "artifact"
                   ],
                   "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "acceptance_selection"
+                    },
+                    "case": {
+                      "const": "retained-eval"
+                    },
+                    "study": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "case",
+                    "study"
+                  ],
+                  "additionalProperties": false
                 }
               ]
             },

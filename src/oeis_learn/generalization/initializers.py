@@ -38,23 +38,45 @@ def _selection(record,descriptor):
         raise ValueError('selection result contradicts measured evidence')
 
 
-def verify_initializer(root,study):
+def verify_initializer(root,study,*,allow_pending=False):
     study=validate('study',study).record()
     initialization=study['model']['initialization']
     if initialization=='random':return None
+    from .bootstrap import is_pending
+    if is_pending(initialization):
+        if allow_pending:return None
+        raise ValueError('unresolved acceptance initializer')
     if study['data']['target_format']!='literal':raise ValueError('retained initializer requires literal representation')
     seen=set();documents=[]
     def read(base,ref):return json.loads(verify_artifact(base,ref,max_bytes=1<<20))
     def visit(base,ref,expected,depth):
         if depth>=32:raise ValueError('initializer lineage depth ceiling')
         authority=read(base,ref)
-        closed(authority,{'version','study','checkpoint','selection','producer','ancestry','parent'},'generalization-initializer/v1')
+        legacy=authority.get('version')=='generalization-initializer/v2'
+        fields={'version','study','checkpoint','selection','producer','ancestry','parent'}
+        closed(authority,fields|({'legacy'} if legacy else set()),'generalization-initializer/v2' if legacy else 'generalization-initializer/v1')
         if authority['identity'] in seen:raise ValueError('cyclic initializer lineage')
         seen.add(authority['identity'])
         directory=confined(base,ref['path']).parent
         source=validate('study',read(directory,authority['study'])).record()
         descriptor=validate('checkpoint',read(directory,authority['checkpoint'])).record()
-        if descriptor['kind']!='full_state':
+        legacy_refs=[]
+        if legacy:
+            from .legacy import verify_legacy
+            from .contracts import artifact_refs
+            from oeis_learn.pipeline_validation.identity import digest
+            checked=verify_legacy(directory,descriptor)
+            recipe=checked['recipe'];model={k:v for k,v in recipe['model'].items() if k!='seed'}
+            for key in ('model_profile','inputs'):
+                if key in recipe:model[key]=recipe[key]
+            if (authority['legacy']!=descriptor['provenance'] or source['progression']['stage']!='E0'
+                or source['model']['initialization']!='random' or authority['parent'] is not None
+                or source['model']['architecture']!=digest(model)
+                or source['model']['profile']!=recipe['version']
+                or set(authority['ancestry'])!={'mechanical','training','random_initialization'}):
+                raise ValueError('legacy initializer origin/model mismatch')
+            proof=read(directory,authority['legacy']);legacy_refs=[authority['legacy'],*artifact_refs(proof)]
+        elif descriptor['kind']!='full_state':
             raise ValueError('legacy weights-only import is not initializer selection evidence')
         selection=read(directory,authority['selection'])
         producer=read(directory,authority['producer'])
@@ -85,7 +107,7 @@ def verify_initializer(root,study):
             raise ValueError('original PASS initializer producer binding required')
         producer_dir=Path(authority['producer']['path']).parent
         # The producer must inventory the exact original documents and weights.
-        for item in (authority['study'],authority['checkpoint'],authority['selection'],descriptor['weights']):
+        for item in (authority['study'],authority['checkpoint'],authority['selection'],descriptor['weights'],*legacy_refs):
             try:key=str(Path(item['path']).relative_to(producer_dir))
             except ValueError as exc:raise ValueError('initializer payload outside producer') from exc
             if not isinstance(producer['files'],dict) or producer['files'].get(key)!=item['sha256']:
