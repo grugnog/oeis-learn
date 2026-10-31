@@ -381,3 +381,26 @@ recovery of the earlier implementation. Existing T063–T068 evidence gates stay
 
 - [X] T078 Register added tests/source/package files and run the available reference, contract, integration, host-portability and historical regressions. Record actual results and unavailable native/container/HIP gates.
 - [X] T079 Update contracts, quickstart and recovery evidence; verify each new commit exists and provide a transferable Git bundle plus concrete next steps. No HIP or research run is part of reconstruction.
+
+## Phase 2: Convergence
+
+Targeted launch-path review after successful operator uniform import. Four HIGH
+partial gaps trace to FR-022/024/034, NFR-003/005/007 and US5/AC1. The imported
+weights remain nonresumable; a new measured selection may designate them as an
+initializer. Hardware evidence tasks T063–T068 retain their original gates.
+All algorithm-bearing work below reopens the existing Phase B; C/D wait for its
+reference/counterexample tests. No additional research or HIP execution authorized.
+
+### Reopened Phase B — remaining launch policies
+
+- [ ] T080 Verify freshly selected legacy weights-only initializer provenance and a frozen acceptance-only deferred initializer transition in `generalization/initializers.py`, `contracts.py`, `execution.py`, schemas and independent tests, per FR-022/024, NFR-003 and US5/AC1 (partial).
+- [ ] T081 Define bounded deterministic mechanical acceptance input construction and explicitly labeled, independently verified replay diagnostic proposals without requiring learning gain, preserving research behavior, budgets and role isolation in pure generalization policies and reference tests, per FR-002/004/034, NFR-005/007 and SC-006 (partial).
+
+### Phase C — canonical launch integration
+
+- [ ] T082 Wire retained evaluation's actual selection into initializer publication and resolve the frozen replay dependency inside the existing serial session; bind original producer evidence and preserve reuse/failure packaging in `pipeline_validation/generalization_*`, per FR-022/024/033, NFR-003/004/007 and US5/AC1 (partial).
+- [ ] T083 Add a stdlib setup command consuming the verified uniform import, inspecting explicit built image tags and assembling all real reduced inputs/session without hand-written receipts; document build/setup/dry-run/run commands, per NFR-005/006/007 and SC-006 (partial).
+
+### Phase D — available validation and delivery
+
+- [ ] T084 Exercise setup through serial canonical fixture execution, tampered dependency/research rejection, finite CPU update/resume, native/container checks where available and packaging/source registration; publish exact results and leave actual HIP tasks open, per NFR-002/005/008 and SC-004/006/007 (partial).
