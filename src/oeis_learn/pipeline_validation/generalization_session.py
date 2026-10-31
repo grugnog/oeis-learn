@@ -105,9 +105,10 @@ def _execute(args,workspace,host_factory):
         verify_resolution(children[key][2],runtime)
         if any(study['data'][k]!=original['data'][k] for k in ('generator','descriptors','exclusions','target_format','sharing_policy')):raise ValueError('prepared data policy changed')
         from oeis_learn.generalization.bootstrap import is_pending
+        plan=None
         if is_pending(study['model']['initialization']):
             from .generalization_bootstrap import resolve
-            base,study,runtime=resolve(workspace,output,base,study,runtime,session=session,children=children,prepared=prepared,qualification=qualified['original'])
+            base,study,runtime,plan=resolve(workspace,output,base,study,runtime,host=host,session=session,children=children,prepared=prepared,qualification=qualified['original'])
         dependency_source=session['version']=='generalization-acceptance-session/v2' and name=='retained-eval'
         if getattr(args,'reuse_run',None) and not dependency_source:
             previous=confined(workspace,args.reuse_run)/name
@@ -123,7 +124,7 @@ def _execute(args,workspace,host_factory):
             write(output/'session-binding.json',prior)
             write(output/'reuse.json',dict(original=ref,source=str(previous.relative_to(workspace))))
             return terminal(dict(status='PASS',case=name,reused=True))
-        plan=_validate(host,workspace,output,base,study,runtime,seconds=60)
+        if plan is None:plan=_validate(host,workspace,output,base,study,runtime,seconds=60)
         # The case owns the stage receipt directory; validation observations are
         # retained beside it and only its explicit public inventory is exported.
         from .generalization_acceptance import run_case

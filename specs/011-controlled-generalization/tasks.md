@@ -25,9 +25,10 @@ T001–T063 and T068–T070 are complete for their recorded scopes. Operator
 acceptance-007 passed pinned CPU/native and HIP regression qualification on
 `2501929`, then failed replay/resume and reporting. T064–T067 remain open: complete
 build/input authority and dry-run evidence are not in the uploaded recovery archive,
-and feature acceptance/canonical archive verification did not complete. T092 repairs
-missing terminal diagnostic capture; existing failure records are needed before
-another hardware run. Later source changes require fresh qualification and do not
+and feature acceptance/canonical archive verification did not complete. T092 repaired
+terminal diagnostic capture; the supplemental records identified cleanup and
+packaging failures repaired by T093–T094. T095 repairs the next replay step's host
+dependency boundary. The remaining gate is a new operator acceptance run. Later source changes require fresh qualification and do not
 inherit acceptance-007's PASS evidence automatically.
 See [local checks](validation/local-checks.md), [HIP status](validation/hip-acceptance.md)
 and [coverage audit](checklists/implementation.md). No research campaign was started.
@@ -449,3 +450,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — bounded image reclamation
 
 - [X] T094 Reserve up to30 seconds for image-inspection process/container cleanup inside the existing inspection deadline; retain fail-closed behavior, accurate cleanup accounting and bounded process termination. Capture consumer inspection records in diagnostics and test shared deadline propagation and slow/failed removal (NFR-006/007, SC-007).
+
+### Phase C — replay initializer host/container boundary
+
+- [X] T095 Move resolved replay initializer schema/provenance validation into the existing installed preparation role and reuse its validated plan; keep the host stdlib-only, publish bootstrap evidence only after validation passes and avoid a duplicate role launch. Reproduce host dependency failure with schema calls forbidden outside the role and test invalid initializer rejection (AGENTS host portability, NFR-003/006/008, FR-022/024).

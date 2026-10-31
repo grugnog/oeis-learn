@@ -598,3 +598,27 @@ capture. Five regression cases failed before the fix; focused supervisor, diagno
 acceptance and container tests pass42 cases. A simulated12-second acknowledged
 removal succeeds within the new allowance; timeout still fails closed. No actual
 Podman removal timing or new HIP execution is claimed.
+
+## T095 replay initializer execution boundary — 2026-10-31
+
+Review of the next replay step found a separate latent integration defect: the
+host resolver called `verify_initializer`, which requires container-installed
+JSON schema packages. A test forbidding schema execution on the stdlib host
+reproduced ModuleNotFoundError; this was not the observed acceptance-007 failure,
+which occurred earlier during image reclamation.
+The resolver now delegates schema/model/provenance validation to the existing
+installed preparation role, then publishes bootstrap evidence. Its caller reuses
+the resulting validated plan instead of launching validation again. There is no
+new role, mount capability or additional HIP work. The test permits schema work
+only inside the simulated role, preserves real initializer provenance checks,
+checks one validation call, rejects a failed role without bootstrap publication,
+and still rejects a mismatched original session. Its fake legacy recipe uses a
+fixture-only storage observation, with production storage/tensor checks unchanged.
+Focused setup/initializer/bootstrap tests:24 passed.
+
+Combined T093–T095 validation:334 passed,4 subtests passed, one hardware test
+deselected in19.34 seconds, covering generalization contracts/integration, archive
+policy, supervisor, container adapters and pipeline identity registration.
+`git diff --check` passes. Requirements/design checklist gates remain16/16 and15/15;
+no extension hooks are registered. Hardware qualification applies only to the
+recorded acceptance-007 source, not these new repairs.

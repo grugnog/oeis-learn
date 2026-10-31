@@ -92,12 +92,36 @@ def test_new_selection_resolves_only_its_original_session_dependency(tmp_path,mo
     write(case.parent/'result.json',stage)
     from oeis_learn.pipeline_validation.generalization_bootstrap import resolve
     replay=tmp_path/'run/replay-resume';replay.mkdir()
-    root,s,r=resolve(tmp_path,replay,*resolved['replay-resume'],session=session,children=children,prepared=prepared,qualification=qualification)
+    from oeis_learn.generalization import contracts
+    from oeis_learn.pipeline_validation import generalization_commands
+    original_shape=contracts.shape
+    validations=[]
+    def host_shape(*args,**kw):raise ModuleNotFoundError('schema dependency unavailable on stdlib host')
+    def container_validate(*args,**kw):
+        validations.append(kw['operation'])
+        with monkeypatch.context() as container:
+            container.setattr(contracts,'shape',original_shape)
+            # This authority fixture uses fake weights and a minimal legacy
+            # recipe, not a constructible tensor model. Keep provenance real.
+            from oeis_learn.pipeline_validation import generalization_training
+            container.setattr(generalization_training,'storage_preflight',lambda *a:{'fixture_only':True})
+            return invoke(*args,**kw)
+    with monkeypatch.context() as scoped:
+        scoped.setattr(contracts,'shape',host_shape)
+        scoped.setattr(generalization_commands,'project_and_invoke',container_validate)
+        root,s,r,plan=resolve(tmp_path,replay,*resolved['replay-resume'],host=None,session=session,children=children,prepared=prepared,qualification=qualification)
+        assert validations==['validate-runtime']
+        assert plan['initializer']['checkpoint']==checkpoint['identity']
+        scoped.setattr(generalization_commands,'project_and_invoke',lambda *a,**kw:dict(status='FAIL',error='initializer rejected'))
+        failed=tmp_path/'run/failed-validation'
+        with pytest.raises(ValueError,match='initializer rejected'):
+            resolve(tmp_path,failed,*resolved['replay-resume'],host=None,session=session,children=children,prepared=prepared,qualification=qualification)
+        assert not (failed/'bootstrap.json').exists()
     assert validate_execution(root,s,r)['initializer']['checkpoint']==checkpoint['identity']
     assert json.loads((replay/'bootstrap.json').read_text())['source_study']==source['identity']
     changed=dict(stage,session=digest('other-session'));write(case.parent/'result.json',seal(changed),exclusive=False)
     with pytest.raises(ValueError,match='dependency'):
-        resolve(tmp_path,tmp_path/'run/bad',*resolved['replay-resume'],session=session,children=children,prepared=prepared,qualification=qualification)
+        resolve(tmp_path,tmp_path/'run/bad',*resolved['replay-resume'],host=None,session=session,children=children,prepared=prepared,qualification=qualification)
 
 
 @pytest.mark.parametrize('free_bytes,exit_code', [(64<<30,0),(3<<29,2)])

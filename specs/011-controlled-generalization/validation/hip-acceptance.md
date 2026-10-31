@@ -2,10 +2,11 @@
 
 Current status after operator acceptance-007 (2026-10-31): CPU/native and actual
 HIP qualification passed on source `2501929`; overall feature acceptance remains
-FAIL / PACKAGE_FAILED / UNMEASURED. Replay/resume and reporting failed. Their
-terminal result records are absent from the uploaded recovery archive and must
-be retrieved before a targeted repair or another hardware run. See the final
-section below. Earlier NOT RUN statements are historical records.
+FAIL / PACKAGE_FAILED / UNMEASURED. Replay/resume and reporting failed. The supplemental
+terminal records identify an image-removal timeout and a build-file packaging
+policy defect; T093–T095 repair these and a locally reproduced downstream host
+dependency issue. A fresh operator session must validate the changed source.
+See the final section below. Earlier NOT RUN statements are historical records.
 
 ## Historical local baseline, before operator runs
 
@@ -160,3 +161,34 @@ using that exporter before deciding a repair/rerun. No additional HIP invocation
 is requested for evidence collection. Source changes invalidate automatic reuse
 of this producer for a new revision, but do not alter the historical PASS results.
 T063 and T068 are recorded complete for this observed scope; T064–T067 remain open.
+
+## Acceptance-007 supplemental records and repairs — 2026-10-31
+
+`acceptance-007-diagnostics.zip` passes independent inventory/hash verification;
+SHA-256 `b4fd28e03d9467cbde59f2b554c221804577ecb837e93f62982d21da31a1c6cd`.
+The replay/resume and report role terminal record seals verify. Replay/resume
+failed before bootstrap validation/learning when Podman removal of a consumer
+image-inspection container exceeded its remaining4.999-second cleanup allowance.
+The record reports ResourceBreach and unacknowledged termination; this is preserved
+as failure, not treated as a successful or automatically reusable inspection.
+Report packaging returned ValueError `private acceptance payload`. Retained
+evaluation did publish an initializer; missing selection was not the failure.
+
+T093 reproduces the packaging failure using the canonical producer's pinned build
+filenames and corrects their public archive policy without changing original
+authority. T094 reserves30 seconds for image-inspection cleanup inside the
+existing wall bound and retains failure on unacknowledged removal. It also captures
+consumer inspection controls. These are local policy/containment regressions, not
+new Podman timing measurements. T095 fixes a separate downstream defect found in
+review: initializer schema validation ran on the stdlib-only host. It now runs in
+the existing preparation role and returns the plan for reuse, with no extra launch.
+
+All three repairs have independent failing-before/passing-after regressions. The
+combined local selection passed334 tests and4 subtests, with one hardware test
+deselected in19.34 seconds. No HIP command was executed locally. Preserve the
+original failed acceptance-007 and its passed qualification receipts as evidence
+for their original source. The new source changes invalidate automatic producer
+reuse; rebuild both images, freeze new acceptance-inputs-008, and use one normal
+serial acceptance-008 invocation for requalification and all remaining cases.
+No manual one-off probe or research run is required. Feature acceptance remains
+unqualified until that actual session and archive verification complete.
