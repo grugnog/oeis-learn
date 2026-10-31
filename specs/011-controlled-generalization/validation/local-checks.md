@@ -68,6 +68,35 @@ fixture coverage but awaits the actual acceptance archive, and T068 records NOT 
 T069/T070 documentation and delivery audit are complete. No fixture image, receipt
 or CPU result is represented as HIP qualification.
 
+## Restored-workspace continuation
+
+Re-ran the Spec Kit prerequisite/checklist gate after workspace recovery:
+requirements 16/16 and design 15/15 pass; no extension hooks are configured.
+Compared every restored source/script/test edit, including formerly untracked
+files, byte-for-byte with committed head `38ca17f`; all matched. Preserved the
+restored files before synchronizing the local checkout with the committed audit.
+No implementation change or new hardware evidence was needed for synchronization.
+
+Attempted the canonical **CPU-only** T063 qualification precheck:
+
+```bash
+python3 scripts/foundation_run.py --engine docker validate --suite bigint-cpu \
+  --output run-state/evidence/generalization-precheck-restored-001
+```
+
+Result: **exit 1 before container execution**:
+`ERROR: docker CLI is unavailable; select an installed container engine`.
+Fresh environment inspection also found no Podman, Cargo, Rust compiler or Docker
+socket. Local `wasmtime` and cached wasmtime wheels are absent. A host dependency
+installation cannot supply the required pinned-image qualification evidence.
+The previously recorded 285-test result still describes the unchanged code; it is
+not a new test run. No HIP command ran.
+
+T063–T065 remain blocked on the usable engine, immutable qualification/GPU images
+and corresponding reduced operator inputs; T066 remains excluded; T067–T068 await
+its actual archive/results. All C implementation and feasible D documentation are
+complete. No task checkbox was changed and no unavailable producer was fabricated.
+
 ## Historical implementation and validation record
 
 # Phase C attempt and non-HIP local checks
