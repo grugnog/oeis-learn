@@ -194,3 +194,50 @@ all original closures, every available PASS case's obligations, missing cases,
 serial failures and archive hashes. Scientific status is always `UNMEASURED`;
 this format cannot represent research yields. It uses the same safe outer ZIP
 and `generalization-archive/v1` payload wrapper as recorded research evidence.
+
+## Frozen runtime I/O sidecar
+
+`generalization-runtime/v1` is a closed sealed record with `study` (study identity),
+`purpose` (`acceptance` or `research`), `recipe` (ArtifactRef), `images` (immutable
+qualification then GPU image IDs), `preparation`, `training`, `evaluation`,
+`replay`, `assessment`, `feature` and `storage`. Artifact paths are relative to the
+study file's directory, even when `--runtime` names a separate file. Storage has
+exactly `study_bytes`, `checkpoint_bytes`, `shard_bytes`, `raw_bytes` and
+`sharing_bytes`; the hard ceilings apply to every command, not only preflight.
+
+The study model profile equals the recipe version. Its architecture hash is the
+seed-free `recipe.model` object augmented with `model_profile` and `inputs` when
+those resolved recipe sections exist. Precision is FP32. The custodian measures
+actual CPU model tensor sizes and uses the B storage policy to reserve optimizer,
+metadata, replay and required pinned generations before learning.
+
+Before preparation, `preparation` is the preparation authority reference. Training
+maps each arm to `{cells: [names], data_mode: static|refresh, batch_size: integer}`.
+Evaluation is null or `{role: selection|assessment, cells: [names], checkpoints:
+[ArtifactRef], seconds, bank_seeds}`; replay is null or `{cell, seconds}`. Cells
+must belong to the named role. Preparation resolves these names to exact shards,
+prompt/target references and the replay task reference, writes a new study and
+runtime, then sets `preparation` to null. It never overwrites input authority.
+
+Resolved training views replace `cells` with `shards: [ArtifactRef]`; evaluation
+replaces `cells` with `prompts` and `targets`; replay replaces `cell` with `tasks`.
+P1 static support must be a strict subset of refreshed variants with the same
+structural support. Refresh rows must belong to the frozen descriptor/counter
+stream. P3 retains ordered literal/parameterized concrete pairs and separately
+verified grounding proofs. P4 requires identical static views, the common verified
+literal initializer, bounded training tasks and current-policy selection evaluation.
+
+Assessment must reference the study's frozen authorization and is debited through
+the durable shared exposure ledger before prompt exposure. Selection passes only
+chosen identities back to the learner for pin persistence. Canonical training
+records its origin; eligible literal selections can publish an original initializer
+producer and complete ancestry closure. Missing weights/full state/origin metadata
+remain explicitly unavailable rather than reconstructed.
+
+`generalization-command-result/v2` binds the sealed effective invocation and every
+retained output byte to the original result. Reuse requires an exact compatible
+original PASS, current qualification inspection, intact output inventory and a new
+root. Resuming learning still requires a full-state checkpoint. Command receipt
+archives are explicitly not feature qualification. Session restart recomputes CPU
+preflight/preparation with an explicit repeat reason and reuses verified original
+PASS case evidence; it never silently reruns an incomplete learner.

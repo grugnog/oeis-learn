@@ -43,3 +43,22 @@ def test_registered_runtime_command_parsers(operation):
     if operation=='evaluate':argv+=['--checkpoints','checkpoint-id']
     args=host_module().parser().parse_args(argv)
     assert args.operation==operation and args.runtime=='runtime.json'
+
+
+def test_acceptance_parser_has_explicit_frozen_session_inputs():
+    args=host_module().parser().parse_args(['generalization','acceptance','--manifest','session.json',
+        '--qualification','qualified','--inputs','prepared','--case','refresh','--output','new'])
+    assert args.case=='refresh' and args.inputs=='prepared'
+
+
+def test_command_storage_scope_rejects_checkpoint_and_raw_growth(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_lifecycle import scope,guard
+    from oeis_learn.pipeline_validation.runner import ResourceBreach
+    limits=dict(study_bytes=1024,checkpoint_bytes=10,shard_bytes=100,raw_bytes=10,sharing_bytes=100)
+    (tmp_path/'checkpoints').mkdir();(tmp_path/'checkpoints/weights.pt').write_bytes(b'x'*11)
+    with scope(tmp_path,limits):
+        watcher=guard(tmp_path/'observations')
+        with pytest.raises(ResourceBreach,match='checkpoint_bytes'):watcher.check()
+    (tmp_path/'checkpoints/weights.pt').unlink();(tmp_path/'logs').mkdir();(tmp_path/'logs/output.log').write_bytes(b'x'*11)
+    with scope(tmp_path,limits):
+        with pytest.raises(ResourceBreach,match='raw_bytes'):guard(tmp_path/'observations').check()

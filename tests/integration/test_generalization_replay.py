@@ -1,4 +1,5 @@
 import time
+import pytest
 from oeis_learn.pipeline_validation.generalization_replay import search_round,restore_pool
 from oeis_learn.decoder.bigint_codec import encode_body
 
@@ -170,3 +171,74 @@ def test_isolated_search_projects_only_visible_inputs_and_persists_reservation(t
     assert calls==['generator','learner']*8 and report['admitted']==1
     assert json.loads((tmp_path/'search/private/pool.json').read_text())==pool.snapshot()
     assert report['current_policy_success'] is None and report['cumulative_discoveries']==1
+
+
+@pytest.mark.parametrize('admitted',[True,False])
+def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,monkeypatch,admitted):
+    import copy,json
+    import torch
+    from tests.integration.test_generalization_runtime import fixture
+    from oeis_learn.pipeline_validation import generalization_commands as commands,generalization_workflow as workflow,generalization_roles as roles,generalization_acceptance as acceptance,generalization_role as role,generalization_scoring as scoring
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.generalization.role_contracts import Role
+    from oeis_learn.pipeline_validation.identity import digest
+    from oeis_learn.fresh import bigint_worker,pilot_metrics
+    from oeis_learn.synthesis import client as native_module
+    study,runtime,put=fixture(tmp_path)
+    targets=[]
+    for i in range(4):
+        original=task();original['id']='task' if i==0 else str(i)
+        targets.append(dict(original,tokens=encode_body(original['source'])))
+        targets[-1].pop('ancestry')
+    shard=put('replay-training.json',targets)
+    study['progression']['stage']='P4';study['arms']=['continued_sft','verified_replay']
+    study['budgets']['target_tokens']=sum(len(t['tokens']) for t in targets)*2
+    study['checkpoints']['milestones']=[sum(len(t['tokens']) for t in targets)]
+    runtime['purpose']='acceptance';runtime['training']={a:dict(shards=[shard],data_mode='static',batch_size=4) for a in study['arms']}
+    runtime['replay']=dict(tasks=put('replay-tasks.json',[task()]),seconds=60)
+    truth=[dict(task(),id=k,role='selection',family=digest(k),stratum=k) for k in ('structural','parameter')]
+    for row in truth:row.pop('ancestry')
+    prompts=[dict(id=r['id'],indices=r['indices'][:20],values=r['values'][:20]) for r in truth]
+    runtime['evaluation']=dict(role='selection',prompts=[put('prompts.json',prompts)],targets=[put('truth.json',truth)],checkpoints=[],seconds=60,bank_seeds=None)
+    def models(recipe,device):
+        torch.manual_seed(recipe['model']['seed'])
+        return torch.nn.Linear(1,1).to(device),torch.nn.Linear(1,1).to(device),{}
+    def update(encoder,decoder,batch,device,**kwargs):
+        optimizer=kwargs['optimizer'];optimizer.zero_grad()
+        loss=decoder(encoder(torch.ones(len(batch),1))).square().mean();loss.backward();optimizer.step()
+    monkeypatch.setattr(bigint_worker,'models',models);monkeypatch.setattr(bigint_worker,'_batch_loss',update)
+    monkeypatch.setattr(pilot_metrics,'measure',lambda *a,**kw:dict(complete=True,loss=1.))
+    monkeypatch.setattr(scoring,'score_frozen',lambda *a,**kw:dict(outcomes={r['id']:{'equal_budget':dict(complete=True,success=False)} for r in truth}))
+    recipe=json.loads((tmp_path/'recipe.json').read_text());encoder,decoder,_=models(recipe,'cpu')
+    torch.save(dict(encoder=encoder.state_dict(),decoder=decoder.state_dict()),tmp_path/'initializer.pt')
+    initializer=reference(tmp_path/'initializer.pt',tmp_path)
+    plan=dict(recipe=recipe,initializer=dict(weights=initializer))
+    class Native(NativeFixture):
+        def __init__(self,*a,**kw):pass
+        def __enter__(self):return self
+        def __exit__(self,*a):pass
+    monkeypatch.setattr(native_module,'SynthesisClient',Native)
+    calls=[]
+    def invoke(host,image,workspace,name,artifacts,**kw):
+        settings=copy.deepcopy(kw['settings']);operation=kw['operation'];calls.append((name,operation))
+        out=workspace/kw['output']/'role';out.mkdir(parents=True)
+        if operation=='replay-propose':
+            if not admitted:return dict(status='PARTIAL',reason='fixture_no_candidate')
+            source='(program (return (int 0)))'
+            return dict(status='PASS',candidate=dict(original_source=source,final_source=source,assignment={},tokens=encode_body(source)))
+        if operation=='evaluate':
+            assert set(artifacts)=={'visible_prompts','frozen_weights'}
+            (out/'generation').mkdir();(out/'generation/selections.json').write_text(json.dumps({r['id']:dict(selections={}) for r in prompts}))
+            return dict(status='PASS',checkpoint=settings['checkpoint']['sha256'])
+        if operation=='train':settings['config']['device']='cpu'
+        return role.HANDLERS[(Role(name),operation)](kw['source_roots'],out,settings,seconds=kw['seconds'])
+    for module in (roles,commands,workflow,acceptance):monkeypatch.setattr(module,'project_and_invoke',invoke)
+    result=workflow.replay(None,tmp_path,tmp_path/'round',tmp_path,study,runtime,plan,acceptance_resume=True)
+    assert result['status']=='PASS' and result['rounds']==1
+    run=result['runs'][0]
+    assert run['cumulative_discoveries']==int(admitted) and run['resume']['resume_equal'] is True
+    assert len(run['current_policies'])==2
+    assert [r['arm'] for r in run['paired']['runs']]==['continued_sft','verified_replay']
+    assert all(e['result']['selection']['measurements'][0]['behavior']['structural'][1]['structural'] is False for e in run['current_policies'])
+    assert calls.count(('learner','train'))==4
+    assert all(p['changed'] and p['finite'] for p in run['resume']['runs'])

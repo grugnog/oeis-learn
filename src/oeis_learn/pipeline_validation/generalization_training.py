@@ -246,3 +246,23 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         retained=roster['identity'])
     write(output/'training.json',result)
     return result
+
+
+def storage_preflight(recipe,study,runtime):
+    """Measure actual CPU model tensors and reserve optimizer/pinned snapshots."""
+    from oeis_learn.fresh.bigint_worker import models
+    from oeis_learn.generalization.budgets import reserve_storage
+    encoder,decoder,_=models(recipe,'cpu')
+    parameters=list(encoder.parameters())+list(decoder.parameters())
+    buffers=list(encoder.buffers())+list(decoder.buffers())
+    parameter_bytes=sum(p.numel()*p.element_size() for p in parameters)
+    buffer_bytes=sum(p.numel()*p.element_size() for p in buffers)
+    # FP32 AdamW has two parameter-sized moments. Reserve serialization metadata,
+    # RNG/history, and a bounded full replay snapshot separately from tensor bytes.
+    snapshot_bytes=3*parameter_bytes+buffer_bytes+4096*(len(parameters)+len(buffers))+(1<<20)
+    if runtime['replay'] is not None:snapshot_bytes+=128<<20
+    per_run=len(study['checkpoints']['milestones'])+4  # initial/latest/atomic replacement/selection copy
+    runs=len(runtime['training'])*len(study['seeds'])
+    required=reserve_storage(snapshot_bytes,per_run*max(1,runs),min(32<<30,runtime['storage']['checkpoint_bytes']))
+    return dict(parameter_bytes=parameter_bytes,buffer_bytes=buffer_bytes,snapshot_reservation_bytes=snapshot_bytes,
+        required_checkpoint_bytes=required,pinned_generations_reserved=per_run*max(1,runs),device='cpu',kind='measured_tensors_with_conservative_state_reservation')

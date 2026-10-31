@@ -8,6 +8,13 @@ from .generalization_roles import project_and_invoke
 from oeis_learn.generalization.contracts import verify_artifact
 
 
+def _status(study,values,*,incomplete=False):
+    from oeis_learn.generalization.recovery import Workflow
+    required=tuple(str(i) for i in range(len(values)+int(incomplete)))
+    if not required:return 'PARTIAL'
+    return Workflow(study,required,tuple((str(i),value) for i,value in enumerate(values))).status
+
+
 def _merge(base,refs,path):
     rows=[];seen=set()
     for ref in refs:
@@ -52,6 +59,8 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
     allocation=seconds/(2*len(checkpoints));deadline=time.monotonic()+seconds
     candidates=[];directories={};runs=[];missing=False;incomplete=False
     for key in checkpoints:
+        if time.monotonic()>=deadline:
+            missing=True;runs.append(dict(checkpoint=key,status='PARTIAL',reason='BUDGET_EXHAUSTED'));continue
         descriptor,weights_root=by_id[key]
         weights=descriptor['weights'];source=confined(weights_root,weights['path'],exists=False)
         if not source.is_file():
@@ -74,13 +83,14 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
                 source_roots={'visible_prompts':prompts,'frozen_weights':weights_root},
                 output=str((folder/'generation').relative_to(workspace)),operation='evaluate',
                 settings=dict(checkpoint=weights,prompts=prompt_ref,recipe=plan['recipe'],study=study['identity'],source=key,
-                    device='cuda',bank_seeds=view['bank_seeds'] if bank is not None else None),seconds=allocation,gpu=True)
+                    device='cuda',bank_seeds=view['bank_seeds'] if bank is not None else None),seconds=min(allocation,deadline-time.monotonic()),gpu=True)
             generation=folder/'generation/role/generation'
             incomplete=incomplete or result['status']!='PASS'
             if result['status'] not in {'PASS','PARTIAL'} or not (generation/'selections.json').is_file():
                 runs.append(dict(checkpoint=key,result=result));missing=True;continue
             selection_ref=reference(generation/'selections.json',generation)
             if view['role']=='assessment':
+                if time.monotonic()>=deadline:missing=True;continue
                 authorization_root=folder/'private/authorization';authorization_root.mkdir(parents=True)
                 ledger,plan_record,name,exposure=assessment
                 authorization=seal(dict(version='generalization-assessment-authorization/v1',plan=plan_record,exposure=exposure,
@@ -90,7 +100,7 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
                     {'assessment_truth':[truth_ref],'frozen_assessment_authorization':[reference(authorization_root/'authorization.json',authorization_root)],'frozen_assessment_candidates':[selection_ref]},
                     source_roots={'assessment_truth':truth,'frozen_assessment_authorization':authorization_root,'frozen_assessment_candidates':generation},
                     output=str((folder/'assessment').relative_to(workspace)),operation='score',
-                    settings=dict(study=study['identity'],authorization=reference(authorization_root/'authorization.json',authorization_root)),seconds=allocation)
+                    settings=dict(study=study['identity'],authorization=reference(authorization_root/'authorization.json',authorization_root)),seconds=min(allocation,deadline-time.monotonic()))
                 runs.append(dict(checkpoint=key,generation=result,scoring=scored))
                 if scored['status']!='PASS':missing=True
                 finish_final(ledger,plan_record,name,'completed' if scored['status']=='PASS' else 'failed');assessment=None
@@ -113,15 +123,28 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
                 {'selection_supervision':[truth_ref],'selection_candidates':refs},
                 source_roots={'selection_supervision':truth,'selection_candidates':inputs},
                 output=str((output/'selection').relative_to(workspace)),operation='select-checkpoints',
-                settings=dict(targets=truth_ref,candidates=candidates,directories=directories,study=study['identity'],recipe=plan['recipe']),seconds=remaining)
+                settings=dict(targets=truth_ref,candidates=candidates,directories=directories,study=study['identity'],recipe=plan['recipe']),seconds=remaining/2)
             missing=decision['status']!='PASS'
-    result=seal(dict(status='PARTIAL' if missing or incomplete else 'PASS',runs=runs,selection=decision,checkpoint_directories=directories,
+    publication=None;pins=[]
+    if decision is not None and time.monotonic()<deadline:
+        from .generalization_selection_io import publish_selected,persist_selected
+        publication=publish_selected(host,workspace,output/'initializer',base,study,runtime,decision,available,seconds=min(60,(deadline-time.monotonic())/2))
+        if publication['status']=='FAIL':missing=True
+        if time.monotonic()<deadline:
+            pins=persist_selected(host,workspace,output/'pins',runtime,decision,available,seconds=deadline-time.monotonic())
+            if any(p['status'] not in {'PASS','UNAVAILABLE'} for p in pins):missing=True
+    statuses=[]
+    for run in runs:
+        if 'status' in run:statuses.append(run['status'])
+        statuses.extend(run[k]['status'] for k in ('result','generation','scoring') if k in run)
+    statuses.extend(value['status'] for value in [decision,publication,*pins] if value is not None and value.get('status')!='UNAVAILABLE')
+    result=seal(dict(status=_status(study['identity'],statuses,incomplete=missing or incomplete),runs=runs,selection=decision,initializer=publication,pins=pins,checkpoint_directories=directories,
         scientific_status='UNMEASURED',role=view['role']))
     write(output/'evaluation.json',result)
     return result
 
 
-def replay(host,workspace,output,base,study,runtime,plan):
+def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=False):
     from .generalization_commands import train
     from .generalization_replay import search_isolated
     if study['progression']['stage']!='P4' or plan['initializer'] is None:raise ValueError('frozen literal P4 initializer required')
@@ -160,9 +183,23 @@ def replay(host,workspace,output,base,study,runtime,plan):
                 evaluation_runtime['evaluation']['checkpoints']=[reference(evaluation_base/'checkpoint.json',evaluation_base)]
                 measured=evaluate(host,workspace,folder/run['arm']/'evaluation',evaluation_base,study,evaluation_runtime,plan,checkpoints=[latest['identity']])
                 evaluations.append(dict(arm=run['arm'],result=measured))
-        runs.append(dict(seed=seed,search=search,paired=paired,current_policies=evaluations,cumulative_discoveries=len(pool.entries)))
+        resume_proof=None
+        if acceptance_resume and paired['status']=='PASS':
+            from .generalization_acceptance import training_proof
+            extra=dict(arms=['verified_replay'],seeds=[seed],replay=(pool_root,pool_ref,settings['tasks']))
+            paused=train(host,workspace,folder/'paused',base,study,runtime,plan,stop_after_updates=1,**extra)
+            if len(paused['runs'])!=1 or paused['runs'][0]['result'].get('updates')!=1:raise ValueError('acceptance interruption boundary not reached')
+            prior=folder/'paused'/paused['runs'][0]['root']
+            pointer=prior/'checkpoints'/paused['runs'][0]['result']['checkpoint']['path']
+            continued=train(host,workspace,folder/'resumed',base,study,runtime,plan,resume=str(pointer.relative_to(workspace)),**extra)
+            if continued['status']!='PASS':raise ValueError('acceptance resume incomplete')
+            original=paired['runs'][1];restored=continued['runs'][0]
+            resume_proof=training_proof(host,workspace,folder/'resume-proof',runtime,study,
+                [(folder/'training'/original['root'],original['result']),(folder/'resumed'/restored['root'],restored['result'])],compare=True)
+        runs.append(dict(seed=seed,search=search,paired=paired,current_policies=evaluations,cumulative_discoveries=len(pool.entries),resume=resume_proof))
         if paired['status']!='PASS':break
-    status='PASS' if len(runs)==len(study['seeds']) and all(r['paired']['status']=='PASS' and r['search']['status']=='PASS' and all(e['result']['status']=='PASS' for e in r['current_policies']) for r in runs) else 'PARTIAL'
+    statuses=[value for r in runs for value in [r['paired']['status'],r['search']['status'],*[e['result']['status'] for e in r['current_policies']],*([r['resume']['status']] if r['resume'] else [])]]
+    status=_status(study['identity'],statuses,incomplete=len(runs)!=len(study['seeds']))
     result=seal(dict(status=status,rounds=1,runs=runs,scientific_status='UNMEASURED'))
     write(output/'replay.json',result)
     return result

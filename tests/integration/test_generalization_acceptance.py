@@ -122,3 +122,81 @@ def test_research_consumer_projects_complete_verified_feature_closure(tmp_path,m
     result=io.consume_original(None,tmp_path,producer,tmp_path/'consumer',required_suites=['hip'],
         required_capabilities=['load'],research=True,feature_receipt=io.reference(producer/'feature.json',producer))
     assert result['original']==original['identity']
+
+
+def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,monkeypatch):
+    """Fake only expensive boundaries; real session/case/receipt/archive routing."""
+    import copy
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_session as session,generalization_commands as commands,generalization_workflow as workflow,generalization_acceptance as cases,generalization_roles as roles,generalization_role as role
+    from oeis_learn.pipeline_validation.generalization_cli import main
+    from oeis_learn.pipeline_validation.identity import seal,write,digest
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.generalization.qualification import FACTS
+    from oeis_learn import container_validation
+    from tests.integration.test_generalization_runtime import fixture
+    from tests.unit.test_generalization_qualification import producer
+    input_root=tmp_path/'input';input_root.mkdir()
+    study,runtime,put=fixture(input_root)
+    runtime['purpose']='acceptance';runtime['storage']=dict(study_bytes=64<<20,checkpoint_bytes=32<<20,shard_bytes=8<<20,raw_bytes=4<<20,sharing_bytes=1<<20)
+    mapping={}
+    for name in ('retained-eval','refresh','parameter-targets','replay-resume'):
+        chosen=copy.deepcopy(study);sidecar=copy.deepcopy(runtime)
+        if name=='parameter-targets':chosen['arms']=['literal','parameterized'];chosen['progression']['stage']='P3'
+        if name=='replay-resume':chosen['arms']=['continued_sft','verified_replay'];chosen['progression']['stage']='P4'
+        sidecar['training']={a:dict(shards=runtime['training']['refreshed' if a=='refreshed' else 'static']['shards'],batch_size=1,data_mode='refresh' if a=='refreshed' else 'static') for a in chosen['arms']}
+        chosen=seal(chosen);sidecar=seal(dict(sidecar,study=chosen['identity']))
+        mapping[name]=dict(manifest=put(name+'.json',chosen),runtime=put(name+'-runtime.json',sidecar))
+    manifest=seal(dict(version='generalization-acceptance-session/v1',cases=mapping));put('session.json',manifest)
+    run=tmp_path/'run';run.mkdir();qroot=run/'qualify';qroot.mkdir()
+    raw=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['qualification']
+    base=qroot/'base.json';base.write_text('{}');base_ref=reference(base,qroot)
+    def refs(value):
+        if isinstance(value,dict):
+            if set(value)=={'path','bytes','sha256'}:return base_ref
+            return {k:refs(v) for k,v in value.items()}
+        if isinstance(value,list):return [refs(v) for v in value]
+        return value
+    q=refs(raw);facts={k:q[k] for k in FACTS};original,_=producer(qroot)
+    original=seal(dict(original,facts=facts,suites=q['suite_selection'],capabilities=q['covered_capabilities']))
+    write(qroot/'producer.json',original)
+    q.update(producer=dict(status='PASS',receipt=reference(qroot/'producer.json',qroot),artifacts=original['artifacts']),artifact_inventory=original['artifacts'])
+    write(qroot/'qualification.json',seal(q))
+    observed=[]
+    def qualified(*a,**kw):observed.append('consume-original');return dict(original=original['identity'])
+    monkeypatch.setattr(session,'_qualification',qualified)
+    monkeypatch.setattr(session,'_validate',lambda *a,**kw:dict(recipe={},initializer=None,target_pairs_verified=1))
+    monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
+    host=SimpleNamespace(engine=SimpleNamespace(image=lambda x:x))
+    def invoke(host,image,workspace,name,artifacts,**kw):
+        target=workspace/kw['output']/'role';target.mkdir(parents=True)
+        return role.HANDLERS[(__import__('oeis_learn.generalization.role_contracts',fromlist=['Role']).Role(name),kw['operation'])](kw.get('source_roots',{'public_evidence':workspace}),target,kw['settings'],seconds=kw['seconds'])
+    monkeypatch.setattr(roles,'project_and_invoke',invoke)
+    monkeypatch.setattr(workflow,'_checkpoints',lambda *a:[(dict(identity=digest('checkpoint')),tmp_path)])
+    monkeypatch.setattr(workflow,'evaluate',lambda *a,**kw:dict(status='PASS',runs=[dict(generation=dict(status='PASS'))]))
+    def train(*a,**kw):return dict(status='PASS',runs=[dict(arm=arm,root=arm,result=dict(status='PASS',updates=2,tokens=10)) for arm in kw['arms']])
+    monkeypatch.setattr(commands,'train',train)
+    monkeypatch.setattr(cases,'training_proof',lambda *a,**kw:dict(status='PASS',runs=[dict(finite=True,changed=True,tokens=10,updates=2)]))
+    monkeypatch.setattr(workflow,'replay',lambda *a,**kw:dict(status='PASS',rounds=1,runs=[dict(cumulative_discoveries=1,search=dict(status='PASS',admitted=1),paired=train(arms=['continued_sft','verified_replay']),resume=dict(status='PASS',resume_equal=True))]))
+    # A retained selection fixture is required even when generation is substituted.
+    p=input_root/'retained-eval-runtime.json';side=json.loads(p.read_text());side['evaluation']=dict(role='selection',checkpoints=[]);p.write_text(json.dumps(seal(side)))
+    mapping['retained-eval']['runtime']=reference(p,input_root);manifest=seal(dict(manifest,cases=mapping));(input_root/'session.json').write_text(json.dumps(manifest))
+    def args(operation,output,**kw):return SimpleNamespace(operation=operation,manifest='input/session.json',runtime=None,output=output,image=None,qualification='run/qualify',reuse_run=None,**kw)
+    assert main(args('prepare','run/prepare'),tmp_path,lambda a:host)==0
+    for name in helper().CASES:
+        assert main(args('acceptance','run/'+name,case=name,inputs='run/prepare'),tmp_path,lambda a:host)==0
+    assert observed==['consume-original']*6
+    assert main(args('report','run/report',inputs='run'),tmp_path,lambda a:host)==0
+    from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+    checked=verify_archive(run/'report.zip')
+    assert checked['feature_qualified'] and checked['cases']==dict.fromkeys(helper().CASES,'PASS')
+    assert main(SimpleNamespace(operation='verify-bundle',archive='run/report.zip',output='run/verified',image=runtime['images'][0]),tmp_path,lambda a:host)==0
+    # Reuse verifies the original case payloads; changing a private worker boundary
+    # cannot make it execute again, and stale evidence fails in the fresh root.
+    reuse=args('acceptance','again/refresh',case='refresh',inputs='run/prepare');reuse.reuse_run='run'
+    monkeypatch.setattr(commands,'train',lambda *a,**kw:pytest.fail('reused learner reran'))
+    assert main(reuse,tmp_path,lambda a:host)==0
+    (run/'refresh/case/training.json').write_text('{}')
+    reuse.output='stale/refresh'
+    assert main(reuse,tmp_path,lambda a:host)==1
+    assert json.loads((tmp_path/'stale/refresh/result.json').read_text())['status']=='FAIL'

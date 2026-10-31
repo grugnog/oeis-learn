@@ -190,3 +190,20 @@ def test_selection_pins_are_persisted_without_mounting_supervision(tmp_path):
     with pytest.raises(ValueError,match='outside'):
         store.selected_copy(tmp_path/'forbidden',roster,changed,decode=json.loads,encode=encode)
     assert not (tmp_path/'forbidden').exists()
+
+
+def test_model_storage_reservation_blocks_before_any_update(tmp_path,monkeypatch):
+    import torch
+    from oeis_learn.pipeline_validation.generalization_training import storage_preflight
+    from oeis_learn.fresh import bigint_worker
+    calls=[]
+    def models(recipe,device):
+        calls.append(device);return torch.nn.Linear(2,2),torch.nn.Linear(2,1),{}
+    monkeypatch.setattr(bigint_worker,'models',models)
+    study=dict(checkpoints=dict(milestones=[10,20]),seeds=[7])
+    runtime=dict(training={'a':{},'b':{}},replay=None,storage=dict(checkpoint_bytes=32<<20))
+    result=storage_preflight({},study,runtime)
+    assert result['parameter_bytes']==9*4 and result['pinned_generations_reserved']==12
+    assert calls==['cpu']
+    runtime['storage']['checkpoint_bytes']=result['required_checkpoint_bytes']-1
+    with pytest.raises(ValueError,match='required pins'):storage_preflight({},study,runtime)

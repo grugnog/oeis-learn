@@ -39,6 +39,8 @@ def validate_runtime(inputs,output,settings,*,seconds):
     if set(settings)!={'study','runtime'}:raise ValueError('closed runtime validation settings required')
     # This operation mounts only the explicitly verified custodian input closure.
     plan=validate_execution(inputs['mechanical_sources'],settings['study'],settings['runtime'])
+    from .generalization_training import storage_preflight
+    plan['storage']=storage_preflight(plan['recipe'],settings['study'],settings['runtime'])
     return dict(status='PASS',plan=plan)
 
 
@@ -56,12 +58,12 @@ def report(inputs,output,settings,*,seconds):
 
 def learner(inputs,output,settings,*,seconds):
     from oeis_learn.fresh.bigint_worker import generalization_train
-    if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay'}:
+    if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay','stop_after_updates'}:
         raise ValueError('closed learner role settings required')
     config=settings['config']
     if config['seconds']>seconds:raise ValueError('learner exceeds enclosing deadline')
     resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
-    extra=dict(initializer=settings.get('initializer'),initializer_root=inputs['verified_training_replay'])
+    extra=dict(initializer=settings.get('initializer'),initializer_root=inputs['verified_training_replay'],stop_after_updates=settings.get('stop_after_updates'))
     if settings.get('replay') is not None:
         from oeis_learn.synthesis.client import SynthesisClient
         from oeis_learn.generalization.contracts import verify_artifact
@@ -171,7 +173,10 @@ def package(inputs,output,settings,*,seconds):
     if set(settings)!={'evidence'}:raise ValueError('closed packaging settings required')
     root=inputs['public_evidence']
     record=json.loads(verify_artifact(root,settings['evidence']))
-    archive=package_evidence(root,record,output=output/'export')
+    if record.get('version')=='generalization-acceptance-archive/v1':
+        from .generalization_reporting import package_acceptance
+        archive=package_acceptance(root,record,output=output/'export')
+    else:archive=package_evidence(root,record,output=output/'export')
     return dict(status=record['software_status'],archive=reference(archive,output))
 
 
@@ -197,12 +202,24 @@ def qualification_consume(inputs,output,settings,*,seconds):
     return dict(status='PASS',original=original,study_qualified=False)
 
 
+def check_training(inputs,output,settings,*,seconds):
+    from .generalization_acceptance import check_training as inspect
+    return inspect(inputs,output,settings,seconds=seconds)
+
+
+def publish_initializer(inputs,output,settings,*,seconds):
+    from .generalization_selection_io import publish_role
+    return publish_role(inputs,output,settings,seconds=seconds)
+
+
 HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
           (Role.LEARNER,'pin-selection'):pin_selection,
+          (Role.LEARNER,'check-training'):check_training,
           (Role.PREPARATION,'validate-runtime'):validate_runtime,
+          (Role.PREPARATION,'publish-initializer'):publish_initializer,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 

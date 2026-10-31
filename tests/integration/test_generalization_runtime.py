@@ -29,13 +29,14 @@ def fixture(root):
         actual=materialize(source)
         rows.append(dict(id=digest(['training',actual['id'],actual['source']]),role='training',source=actual['source'],tokens=encode_body(actual['source']),indices=actual['indices'],values=actual['values']))
     shard=put('training.json',rows)
-    cohort=raw['cohort'];cohort.update(role='training',private_payloads=[shard],public_payloads=[],exclusions=empty,preparation_ledger=empty)
+    static=put('static.json',rows[:1])
+    cohort=raw['cohort'];cohort.update(role='training',private_payloads=[shard,static],public_payloads=[],exclusions=empty,preparation_ledger=empty)
     study['data']['manifests']=[put('cohort.json',freeze('cohort',cohort).record())]
     study['budgets'].update(target_tokens=sum(len(row['tokens']) for row in rows[:2]),seconds=30)
     study['checkpoints']['milestones']=[len(rows[0]['tokens'])]
     study=freeze('study',study).record();put('study.json',study)
     runtime=seal(dict(version='generalization-runtime/v1',study=study['identity'],purpose='research',recipe=put('recipe.json',recipe),images=['sha256:'+'1'*64,'sha256:'+'2'*64],
-        preparation=None,training={a:dict(shards=[shard],data_mode='refresh' if a=='refreshed' else 'static',batch_size=1) for a in study['arms']},
+        preparation=None,training={a:dict(shards=[shard if a=='refreshed' else static],data_mode='refresh' if a=='refreshed' else 'static',batch_size=1) for a in study['arms']},
         evaluation=None,replay=None,assessment=None,feature=None,
         storage=dict(study_bytes=64<<20,checkpoint_bytes=32<<20,shard_bytes=8<<20,raw_bytes=4<<20,sharing_bytes=1<<20)))
     put('runtime.json',runtime)
@@ -101,7 +102,8 @@ def test_canonical_train_invokes_validation_then_real_cpu_tensor_worker(tmp_path
         qualification='qualified',arms=['static'],seeds=study['seeds'],resume=None,reuse_run=None)
     assert main(args,tmp_path,lambda args:object())==0
     result=json.loads((tmp_path/'trained/result.json').read_text())
-    assert result['result']['runs'][0]['result']['updates']==2
+    width=len(json.loads((tmp_path/'static.json').read_text())[0]['tokens'])
+    assert result['result']['runs'][0]['result']['updates']==study['budgets']['target_tokens']//width
     assert calls==['qualification','preparation','learner']
     with pytest.raises(ValueError,match='fresh'):main(args,tmp_path,lambda args:pytest.fail('engine reused terminal root'))
     args.output='unknown';args.arms=['not-declared']
@@ -144,3 +146,20 @@ def test_evaluation_projects_original_weights_and_selection_without_truth_leak(t
     (tmp_path/'weights.pt').unlink();calls.clear()
     result=workflow.evaluate(None,tmp_path,tmp_path/'missing',tmp_path,study,runtime,dict(recipe={}),checkpoints=[checkpoint['identity']])
     assert result['status']=='PARTIAL' and result['runs'][0]['reason']=='MISSING_ARTIFACT' and not calls
+    put('weights.pt',{'fixture':True})
+    monkeypatch.setattr(workflow,'project_and_invoke',lambda *a,**kw:dict(status='FAIL',reason='injected generation failure'))
+    failed=workflow.evaluate(None,tmp_path,tmp_path/'failed-generation',tmp_path,study,runtime,dict(recipe={}),checkpoints=[checkpoint['identity']])
+    assert failed['status']=='FAIL' and failed['runs'][0]['result']['reason']=='injected generation failure'
+
+
+def test_command_export_failure_retains_terminal_work_result(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.generalization_commands import _finish
+    from oeis_learn.pipeline_validation import bundle
+    study,runtime,_=fixture(tmp_path);output=tmp_path/'failed';output.mkdir()
+    def failed(*a,**kw):raise OSError('injected export failure')
+    monkeypatch.setattr(bundle,'pack',failed)
+    assert _finish(output,study,'train',dict(status='PASS',updates=2),runtime)==1
+    result=json.loads((output/'result.json').read_text())
+    assert result['status']=='FAIL' and result['result']['reason']=='PACKAGE_FAILED'
+    assert result['result']['work_result']==dict(status='PASS',updates=2)
+    assert json.loads((output/'summary.json').read_text())['selected_scope']=='FAIL'

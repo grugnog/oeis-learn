@@ -15,9 +15,11 @@ from oeis_learn.generalization.resources import reserve_stage,log_tail
 CASES=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging')
 
 
-def plan(engine,manifest,output,*,reuse_run=None):
+def plan(engine,manifest,output,*,reuse_run=None,image=None):
     output=Path(output)
-    base=[sys.executable,str(ROOT/'scripts/foundation_run.py'),'--engine',engine,'generalization']
+    base=[sys.executable,str(ROOT/'scripts/foundation_run.py'),'--engine',engine]
+    if image is not None:base+=['--image',image]
+    base+=['generalization']
     stages=[]
     def add(name,operation,seconds,category,extra=()):
         argv=base+[operation,'--output',str(output/name)]
@@ -41,7 +43,9 @@ def run(stage,root,seconds):
     from oeis_learn.pipeline_validation.supervision import launch
     logs=root/'private/logs'/stage['name']
     try:
-        launch(stage['argv'],logs,seconds=seconds,stream_cap=1<<20)
+        from oeis_learn.pipeline_validation.generalization_lifecycle import guard
+        with guard(logs/'disk'):
+            launch(stage['argv'],logs,seconds=seconds,stream_cap=1<<20)
         return 0
     except KeyboardInterrupt:return 130
     except (OSError,RuntimeError,TimeoutError):
@@ -98,8 +102,10 @@ def execute(stages,root,*,runner=run):
         ledger['receipts'].append(dict(stage=stage['name'],exit_code=code,
             elapsed_seconds=time.monotonic()-started))
         if code and not failure:failure=code
-        if stage['operation']=='report':report_ok=code==0
-        if stage['operation']=='verify-bundle':verified=code==0
+        if stage['operation']=='report':report_ok=(root/'report.zip').is_file()
+        if stage['operation']=='verify-bundle':
+            summary=root/'verify-bundle/summary.json'
+            verified=code==0 or summary.is_file() and json.loads(summary.read_text()).get('integrity')=='PASS'
         ledger['status']='INTERRUPTED' if failure==130 else 'FAIL' if failure in (1,2) else 'BLOCKED' if failure else 'PARTIAL'
         write(root/'workflow.json',seal(ledger))
     if not verified:
@@ -110,6 +116,8 @@ def execute(stages,root,*,runner=run):
         return failure or 1
     ledger['status']='PASS' if not failure else ledger['status']
     write(root/'workflow.json',seal(ledger))
+    import shutil
+    shutil.copyfile(root/'report.zip',root.with_suffix('.zip'))
     return failure
 
 
@@ -127,12 +135,18 @@ def main(argv=None):
         if args.reuse_run:
             previous=confined(ROOT,args.reuse_run)
             if previous==output:raise ValueError('workflow restart requires a new root')
-        stages=plan(args.engine,args.manifest,args.output,reuse_run=args.reuse_run)
+        from oeis_learn.pipeline_validation.generalization_session import load_session
+        _,children=load_session(ROOT,args.manifest)
+        image=children['refresh'][2]['images'][0]
+        stages=plan(args.engine,args.manifest,args.output,reuse_run=args.reuse_run,image=image)
         if args.dry_run:
             print(json.dumps(dict(stages=stages,ceiling_seconds=14400,margin_seconds=600,
                 research_authorized=False,reuse='canonical endpoints verify original producers'),indent=2))
             return 0
-        return execute(stages,output)
+        from oeis_learn.generalization.resources import CAPS
+        from oeis_learn.pipeline_validation.generalization_lifecycle import scope
+        limits={k:min(CAPS[k],sum(c[2]['storage'][k] for c in children.values())) for k in CAPS}
+        with scope(output,limits,extra_roots=[c[0] for c in children.values()]):return execute(stages,output)
     except (OSError,ValueError) as exc:
         print(str(exc),file=sys.stderr);return 2
 

@@ -1,4 +1,4 @@
-"""Prospective routing only; not registered with the portable host CLI until Phase C."""
+"""Canonical prospective commands and the legacy fail-closed typed preview."""
 from types import MappingProxyType
 
 from oeis_learn.generalization.interfaces import (
@@ -17,7 +17,7 @@ HANDLERS = MappingProxyType({command: _unimplemented for command in Command})
 
 
 def dispatch(request: CommandRequest) -> CommandResult:
-    """Always blocked in Phase A; unknown operations fail before any side effects."""
+    """Legacy preview without workspace/engine authority; it never executes work."""
     return HANDLERS[Command(request.operation)](request)
 
 
@@ -32,7 +32,7 @@ def register(commands):
     report.add_argument('--inputs',required=True)
     report.add_argument('--output',required=True)
     report.add_argument('--reuse-run')
-    for name in ('preflight','qualify','prepare','evaluate','train','replay'):
+    for name in ('preflight','qualify','prepare','evaluate','train','replay','acceptance'):
         command=operations.add_parser(name,help='execute frozen generalization '+name)
         command.add_argument('--manifest',required=True)
         command.add_argument('--runtime',help='sealed runtime sidecar; default beside the study manifest')
@@ -46,6 +46,9 @@ def register(commands):
         if name=='evaluate':
             command.add_argument('--checkpoints',nargs='+',required=True)
             command.add_argument('--proposal-bank')
+        if name=='acceptance':
+            command.add_argument('--case',required=True,choices=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'))
+            command.add_argument('--inputs',required=True)
 
 
 def verify_main(args,root,host_factory):
@@ -121,6 +124,15 @@ def report_main(args,root,host_factory):
 
 
 def main(args,root,host_factory):
+    if hasattr(args,'manifest'):
+        import json
+        from .identity import confined
+        path=confined(root,args.manifest)
+        if path.stat().st_size>1<<20:raise ValueError('manifest size cap')
+        if json.loads(path.read_text()).get('version')=='generalization-acceptance-session/v1':
+            from .generalization_session import main as session
+            return session(args,root,host_factory)
+        if args.operation=='acceptance':raise ValueError('acceptance requires a frozen multi-case session manifest')
     if args.operation=='report':return report_main(args,root,host_factory)
     if args.operation=='verify-bundle':return verify_main(args,root,host_factory)
     from .generalization_commands import main as execute

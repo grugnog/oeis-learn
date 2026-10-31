@@ -49,7 +49,8 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
         memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
     cleanup={}
     try:
-        with host.gpu_lock() if gpu else nullcontext():
+        from .generalization_lifecycle import guard
+        with guard(target),host.gpu_lock() if gpu else nullcontext():
             (launcher or launch)(command,target/'supervision',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
     finally:
         reclaim(host.engine,name,target/'supervision',cleanup)

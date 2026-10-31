@@ -158,13 +158,14 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         protected='private/targets.json'
         extra_payloads=[]
         if cell['role']=='training':
-            training=[];dispositions=[];literal=[];parameterized=[];tasks=[]
+            training=[];dispositions=[];literal=[];parameterized=[];tasks=[];pair_proofs=[]
             for row in rows:
                 prompt_id=digest([cell['role'],row['id'],row['source']])
                 target_source=row['source']
                 if proposed['data']['target_format']=='parameterized' or proposed['progression']['stage']=='P3':
                     from oeis_learn.generalization.targets import pair
                     paired=pair(row['source'],row['parameter_source'],row['assignment'],indices=tuple(row['indices']),sharing=proposed['data']['sharing_policy'])
+                    pair_proofs.append(dict(id=prompt_id,**paired))
                     dispositions.append(dict(id=prompt_id,disposition=paired['disposition'],family=row['family'],stratum=cell['holdout']))
                     if proposed['data']['target_format']=='parameterized':target_source=paired['parameter_source']
                     parameterized.append(dict(id=prompt_id,role='training',source=paired['parameter_source'],tokens=encode_body(paired['parameter_source']),indices=row['indices'],values=row['values']))
@@ -178,6 +179,8 @@ def prepare_study(root,preparation,proposed,*,output,execute):
             write(folder/'private/replay-tasks.json',tasks)
             extra_payloads.append(reference(folder/'private/replay-tasks.json',output))
             if proposed['progression']['stage']=='P3':
+                write(folder/'private/target-pairs.json',pair_proofs)
+                extra_payloads.append(reference(folder/'private/target-pairs.json',output))
                 write(folder/'private/training-literal.json',literal)
                 write(folder/'private/training-parameterized.json',parameterized)
                 extra_payloads.extend(reference(folder/('private/training-'+name+'.json'),output) for name in ('literal','parameterized'))

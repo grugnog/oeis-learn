@@ -923,11 +923,11 @@ def admit_replay(replay, rows, diagnostic, synthesis, deadline):
         )
 
 
-def generalization_train(inputs, output, config, *, resume=None,initializer=None,initializer_root=None,replay=None):
+def generalization_train(inputs, output, config, *, resume=None,initializer=None,initializer_root=None,replay=None,stop_after_updates=None):
     """Explicit prospective route; historical v3/v4 train settings stay unchanged."""
     from contextlib import nullcontext
     from oeis_learn.pipeline_validation.generalization_training import run_torch
     from oeis_learn.pipeline_validation.sizing_execution import execution_context
     context=execution_context() if config['recipe'].get('version') in {'bigint-bootstrap/v2','bigint-bootstrap/v3','bigint-bootstrap/v4'} else nullcontext()
     with context:
-        return run_torch(inputs,output,config,resume=resume,initializer=initializer,initializer_root=initializer_root,replay=replay)
+        return run_torch(inputs,output,config,resume=resume,initializer=initializer,initializer_root=initializer_root,replay=replay,stop_after_updates=stop_after_updates)

@@ -23,8 +23,10 @@ def load(root,manifest,runtime=None):
     if not isinstance(record['images'],list) or len(record['images'])!=2 or any(not re.fullmatch(r'sha256:[0-9a-f]{64}',x) for x in record['images']):
         raise ValueError('immutable qualification/GPU images required')
     if record['purpose'] not in {'research','acceptance'}:raise ValueError('registered runtime purpose required')
-    from oeis_learn.generalization.resources import CAPS
+    from oeis_learn.generalization.resources import CAPS,preflight
     if not isinstance(record['storage'],dict) or set(record['storage'])!=set(CAPS):raise ValueError('closed storage reservations required')
+    import shutil
+    preflight(**record['storage'],available_bytes=shutil.disk_usage(root).free)
     if record['purpose']=='acceptance' and (study['budgets']['target_tokens']>4096 or study['budgets']['seconds']>900 or len(study['seeds'])>1):
         raise ValueError('acceptance cannot authorize research-scale learning')
     return path.parent,study,record
@@ -38,6 +40,8 @@ def validate_execution(root,study,runtime):
     if runtime['study']!=study['identity']:raise ValueError('runtime/study identity mismatch')
     recipe=json.loads(verify_artifact(root,runtime['recipe'],max_bytes=1<<20))
     model={k:v for k,v in recipe['model'].items() if k!='seed'}
+    for key in ('model_profile','inputs'):
+        if key in recipe:model[key]=recipe[key]
     if study['model']['architecture']!=digest(model) or study['model']['profile']!=recipe['version']:
         raise ValueError('resolved model recipe differs from frozen architecture/profile')
     if study['precision']!='fp32':raise ValueError('qualified prospective precision is fp32')
@@ -66,26 +70,49 @@ def validate_execution(root,study,runtime):
         from .generalization_preparation import draw_candidates
         source_plan=json.loads(verify_artifact(root,study['data']['generator'],max_bytes=1<<20))
         if source_plan.get('version')!='generalization-materialization-plan/v2':raise ValueError('refresh requires frozen descriptor/counter materialization plan')
-        expected={}
+        expected={};families={}
         for cell in source_plan['cells']:
             if cell['role']!='training':continue
             if 'refresh' not in cell:raise ValueError('refresh training support must use fixed descriptors')
             rows,_=draw_candidates(root,study['data']['descriptors'],cell)
             expected.update({digest(['training',r['id'],r['source']]):r['source'] for r in rows})
+            families.update({digest(['training',r['id'],r['source']]):r['family'] for r in rows})
         for view in training.values():
             for ref in view['shards']:
                 for row in json.loads(verify_artifact(root,ref,max_bytes=8<<30)):
                     if expected.get(row['id'])!=row['source']:raise ValueError('training shard differs from frozen refresh draw stream')
+        if study['progression']['stage'] in {'P1-screen','P1-confirm'}:
+            if set(training)!={'static','refreshed'} or training['static']['data_mode']!='static' or training['refreshed']['data_mode']!='refresh':raise ValueError('registered static/refreshed modes required')
+            ids={arm:[r['id'] for ref in view['shards'] for r in json.loads(verify_artifact(root,ref))] for arm,view in training.items()}
+            if not set(ids['static'])<set(ids['refreshed']) or {families[k] for k in ids['static']}!={families[k] for k in ids['refreshed']}:
+                raise ValueError('refresh must extend variants while retaining static structural support')
+    target_pairs_verified=0
     if study['progression']['stage']=='P3':
         if set(training)!={'literal','parameterized'}:raise ValueError('paired target views required')
-        paired={}
+        paired={};by_arm={}
         for arm,view in training.items():
             rows=[]
             for ref in view['shards']:
                 if not ref['path'].endswith('/training-'+arm+'.json'):raise ValueError('target arm differs from prepared representation')
                 rows.extend(json.loads(verify_artifact(root,ref,max_bytes=8<<30)))
             paired[arm]=[(r['id'],r['indices'],r['values']) for r in rows]
+            by_arm[arm]={r['id']:r for r in rows}
         if paired['literal']!=paired['parameterized']:raise ValueError('target arms must retain paired concrete tasks and ordering')
+        from oeis_learn.generalization.targets import pair
+        proofs={}
+        for cohort in cohorts:
+            if cohort['role']!='training':continue
+            for ref in cohort['private_payloads']:
+                if ref['path'].endswith('/target-pairs.json'):
+                    for proof in json.loads(verify_artifact(root,ref)):
+                        if proof['id'] in proofs:raise ValueError('duplicate target grounding proof')
+                        proofs[proof['id']]=proof
+        for key,literal in by_arm['literal'].items():
+            if key not in proofs:raise ValueError('prepared grounding proof missing')
+            proof=proofs[key];parameterized=by_arm['parameterized'][key]
+            checked=pair(literal['source'],parameterized['source'],proof['assignment'],indices=tuple(literal['indices']),sharing=study['data']['sharing_policy'])
+            if dict(proof,id=key)!=dict(checked,id=key) or checked['verification']['values']!=literal['values']:raise ValueError('prepared grounding proof differs from paired training')
+            target_pairs_verified+=1
     if study['progression']['stage']=='P4':
         if set(training)!={'continued_sft','verified_replay'} or training['continued_sft']!=training['verified_replay'] or training['continued_sft']['data_mode']!='static':
             raise ValueError('paired replay requires identical static training views')
@@ -112,6 +139,8 @@ def validate_execution(root,study,runtime):
             raise ValueError('closed evaluation role view required')
         if not evaluation['prompts'] or not evaluation['targets'] or not 0<evaluation['seconds']<=21600:
             raise ValueError('bounded nonempty evaluation views required')
+        if evaluation['role']=='assessment' and runtime['assessment']!=study['assessment']['authorization']:
+            raise ValueError('assessment plan differs from frozen study authorization')
         owned=[c for c in cohorts if c['role']==evaluation['role']]
         public={digest(r) for c in owned for r in c['public_payloads']}
         protected={digest(r) for c in owned for r in c['private_payloads']}
@@ -128,7 +157,7 @@ def validate_execution(root,study,runtime):
         parent=Path(initializer['root']).relative_to(Path(root))
         initializer=dict(authority=initializer['authority'],checkpoint=initializer['checkpoint'],
             weights=dict(initializer['weights'],path=str(parent/initializer['weights']['path'])))
-    return dict(study=study['identity'],recipe=recipe,initializer=initializer,training=training)
+    return dict(study=study['identity'],recipe=recipe,initializer=initializer,training=training,target_pairs_verified=target_pairs_verified)
 
 
 def preparation_views(root,study,runtime,prep):

@@ -20,6 +20,10 @@ def test_new_roles_checkpoints_replay_helper_and_tests_are_in_source_closure():
     snapshot=collect_snapshot(root)
     for path in (
         'src/oeis_learn/pipeline_validation/generalization_role.py',
+        'src/oeis_learn/pipeline_validation/generalization_runtime.py',
+        'src/oeis_learn/pipeline_validation/generalization_session.py',
+        'src/oeis_learn/pipeline_validation/generalization_selection_io.py',
+        'src/oeis_learn/generalization/acceptance_archive.py',
         'src/oeis_learn/pipeline_validation/generalization_scoring.py',
         'src/oeis_learn/pipeline_validation/generalization_replay.py',
         'src/oeis_learn/fresh/bigint_state.py',

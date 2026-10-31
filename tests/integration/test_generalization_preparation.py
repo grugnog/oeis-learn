@@ -62,7 +62,8 @@ def test_role_launch_mounts_only_declared_inputs_and_reclaims(tmp_path):
         {'visible_prompts':'prompts','frozen_weights':'weights'},output='result',operation='evaluate',settings={},seconds=30)
 
 
-def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path,monkeypatch):
+@pytest.mark.parametrize('stage',['P1-screen','P3'])
+def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path,monkeypatch,stage):
     from pathlib import Path
     from oeis_learn.generalization.contracts import freeze,validate,verify_artifact
     from oeis_learn.pipeline_validation.generalization_preparation import prepare_study,reference
@@ -76,11 +77,17 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     for i,role in enumerate(('training','selection','assessment')):
         row=source(i);row['source']=f'(program (return (mul $index (int {i+2}))))'
         row['parameter_source']=row['source'];row['family']=canonical_family(row['source'])
+        if stage=='P3' and role=='training':
+            row['parameter_source']='(program (return (mul $index (param.get p0))))'
+            row['assignment']={'p0':str(i+2)};row['family']=canonical_family(row['parameter_source'])
         plans.append(dict(name=role,role=role,holdout='parameter',count=1,quotas={},structural=False,
                           candidates=artifact(role+'.json',[row])))
     generator=artifact('generator.json',dict(version='generalization-materialization-plan/v1',cells=plans))
     prep=raw['preparation'];prep['budgets']['target_tokens']=10;prep.update(generator=generator,descriptors=empty,exclusions=empty,quotas={})
+    if stage=='P3':prep['study_settings']['arms']=['literal','parameterized']
     study=raw['study'];study.update(prep['study_settings']);study.update(seeds=prep['seeds'],budgets=prep['budgets'],source_closure=empty)
+    study['progression']['stage']=stage
+    if stage=='P3':study['data']['sharing_policy']='distinct-occurrences'
     study['data'].update(generator=generator,descriptors=empty,exclusions=empty)
     study['assessment'].update(authorization=empty,exposure_ledger=empty)
     def native(src,indices):
@@ -92,6 +99,9 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     training=json.loads((tmp_path/'prepared/cells/training/private/training.json').read_text())
     assert training[0]['role']=='training' and 'family' not in training[0]
     for ref in resolved['data']['manifests']:verify_artifact(tmp_path/'prepared',ref)
+    if stage=='P3':
+        proof=json.loads((tmp_path/'prepared/cells/training/private/target-pairs.json').read_text())[0]
+        assert proof['assignment']=={'p0':'2'} and proof['literal_tokens']!=proof['parameter_tokens']
     # A second run uses the same authority and produces the same resolved identity.
     second=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'again',execute=native)
     assert result['study']==second['study']
