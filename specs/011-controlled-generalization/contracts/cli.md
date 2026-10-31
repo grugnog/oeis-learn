@@ -53,3 +53,23 @@ verify-bundle require an immutable CPU image, and the helper forwards it.
 Research reports consume one explicit aggregate evidence root; acceptance reports
 assemble the session's original case proof closures. A complete session exposes
 `report/qualified/` for subsequent research qualification consumption.
+
+## Host input assembly (no engine or accelerator)
+
+`python3 scripts/generalization_inputs.py` provides four standard-library commands:
+
+- `import-uniform --bundle ZIP --metadata ZIP --weights TRAIN_ROOT --output NEW_ROOT`
+  verifies the original public follow-up archive, exact recipe/prepared metadata,
+  and private best/latest weights, then emits explicit weights-only descriptors.
+- `source-closure --output NEW_JSON` records current qualification source bytes.
+- `study --blueprint JSON --output NEW_ROOT` copies explicit inputs, builds sealed
+  study v3/preparation v3/runtime v2 and freezes execution choices.
+- `session --cases JSON --output NEW_JSON` binds exactly the four child studies and
+  validates case/stage, source/image scope, runtime bindings and work reservations.
+
+Every path is checkout-relative (an absolute path must still be confined to that
+checkout). Outputs must be fresh. Session JSON must be an ancestor of all children.
+The cases mapping uses study paths with sibling `runtime.json`, or explicit
+`{manifest: path, runtime: path}` pairs. Neither form permits arbitrary commands.
+Missing P4 initializer evidence is a blocker; importing historical best-loss
+weights does not supply it. No command launches qualification or research.

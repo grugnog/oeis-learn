@@ -241,3 +241,53 @@ root. Resuming learning still requires a full-state checkpoint. Command receipt
 archives are explicitly not feature qualification. Session restart recomputes CPU
 preflight/preparation with an explicit repeat reason and reuses verified original
 PASS case evidence; it never silently reruns an incomplete learner.
+
+## Reconstructed executable authority (v3/v2)
+
+New executable inputs require `generalization-study/v3` with an `execution` digest
+and `generalization-runtime/v2`. The digest covers every runtime field except its
+own identity/version, study link and preparation link (the latter binds the study
+and would otherwise be circular). It therefore binds the complete recipe bytes,
+images, purpose, training/evaluation/replay views, feature reference and storage.
+Changing a sidecar and resealing it alone cannot change a frozen experiment.
+Older study/runtime versions remain interpretable as historical authority but must
+be explicitly reassembled before canonical execution; they are never silently upgraded.
+
+`generalization-preparation/v3` adds `proposed_study`, the exact proposed study
+identity. The custodian checks this before materialization, preventing changes to
+representation, sharing, inference or progression between assembly and preparation.
+Resolving cell names produces new study/runtime identities. All non-path execution
+choices and study data policies must remain identical. E0 explicitly has zero target
+tokens, no milestones and no training views; it reserves no learner snapshots.
+
+P1 must preserve the family proportions and unique-source support of its static
+subset. P2 uses equal admitted-example counts. P3 retains every unsupported row
+with its original literal learning target and original pair/disposition audit;
+acceptance additionally needs at least one supported parameterized target. P4
+acceptance requires finite-update proofs for both arms as well as complete replay
+resume comparison. Historical continuous pooled-loss selection is kept distinct.
+
+## Legacy uniform weights-only import
+
+`generalization-checkpoint/v2` is explicitly `kind: weights_only`. It retains the
+checkpoint v1 fields, but `state`, `initialization` and `parent` are null and a
+`provenance` ArtifactRef is mandatory. Null initialization means original random
+weight bytes are unavailable, not that a new random checkpoint was generated.
+Pins are exactly `historical_best` or `historical_latest`; `compatibility` binds the
+entire original recipe. These descriptors cannot restore learner state or satisfy
+`generalization-initializer/v1` provenance.
+
+The sealed `generalization-legacy-import/v1` binds `training`, `prepared`, `recipe`,
+`history`, `producer`, `report` and `label`. Import checks the original PASS uniform
+producer, corpus/recipe hashes, generic-only literal/no-replay profile, actual private
+weight hashes and producer-inventoried validation history. Best exposure is derived
+from the original strict-improvement pooled nonpadding dev loss (first minimum),
+latest exposure from the final history/training record. The original report contains
+the exact sealed training record. Hashes preserve trusted original evidence; they
+are not cryptographic execution attestation. The import roster explicitly reports
+`resume_available: false` and `initializer_available: false`.
+
+The standard-library assembly tool emits ASSEMBLED/IMPORTED, never qualification
+PASS. Native admission, tensor compatibility, coverage, resources and HIP still
+require the canonical gates. `source-closure` uses the same `collect_snapshot`
+function as qualification. Rebuild images and record closure after final code changes.

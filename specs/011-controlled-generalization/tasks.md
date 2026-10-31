@@ -10,8 +10,9 @@
 
 ## Current status — 2026-10-31
 
-Reconstruction T071–T077 is implemented on `011-reconstruct-convergence`; T078–T079
-track fresh validation and delivery. The former conversational completion references
+Reconstruction T071–T079 is complete on `011-reconstruct-convergence`, including
+available local validation and verified Git-bundle delivery. Environment and HIP
+gates remain open as described below. The former conversational completion references
 are withdrawn. See the reconstruction task section below for its explicit scope.
 
 T001–T062 and T069–T070 are complete. The Phase B defects described in the historical
@@ -378,4 +379,4 @@ recovery of the earlier implementation. Existing T063–T068 evidence gates stay
 ### Phase D — local validation and truthful delivery
 
 - [X] T078 Register added tests/source/package files and run the available reference, contract, integration, host-portability and historical regressions. Record actual results and unavailable native/container/HIP gates.
-- [ ] T079 Update contracts, quickstart and recovery evidence; verify each new commit exists and provide a transferable Git bundle plus concrete next steps. No HIP or research run is part of reconstruction.
+- [X] T079 Update contracts, quickstart and recovery evidence; verify each new commit exists and provide a transferable Git bundle plus concrete next steps. No HIP or research run is part of reconstruction.

@@ -19,6 +19,7 @@ an isolated worktree; the older checkout's uncommitted changes were preserved.
 | `e7df926` | Production preparation/runtime/selection integration |
 | `f5a7c5d` | Input assembly, examples and representative serial acceptance |
 | `23febbb` | Charged duplicate refresh rejection and legacy schema compatibility |
+| `94eeaac` | Registered regressions and actual validation/environment evidence |
 
 The final delivery also includes validation/documentation commits. Verify the
 bundle's advertised branch and commit list with `git bundle list-heads` and
@@ -113,3 +114,21 @@ and resolve P4 through a new explicit authority transition. It must not relabel
 historical pooled-loss selection, fabricate provenance, add hidden learner work,
 or require a second normal HIP invocation. That bootstrap is **not implemented**
 by this reconstruction and requires a Phase-B contract/policy review before wiring.
+
+## Transfer the verified reconstruction
+
+The incremental `generalization-reconstruction.bundle` contains this branch's Git
+objects after the verified baseline. Download it into your repository root, then:
+
+```bash
+git fetch origin 011-controlled-generalization
+git bundle verify ./generalization-reconstruction.bundle
+git fetch ./generalization-reconstruction.bundle 011-reconstruct-convergence
+git switch -c 011-reconstruct-convergence FETCH_HEAD
+```
+
+These commands create a new branch without resetting existing work. If Git reports
+local changes that prevent switching, preserve them before retrying. The bundle
+requires baseline `6e63421e2d8ef137d01d1d701f9fb0205b012059`; verification explicitly
+checks that prerequisite. The quickstart documents original uniform import and
+input assembly. The pending initializer/bootstrap gate above still applies.

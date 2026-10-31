@@ -121,3 +121,11 @@ actual HIP acceptance remain unexecuted here; this is not hardware qualification
 or a new research result. See the [implementation audit](specs/011-controlled-generalization/checklists/implementation.md).
 After acceptance, the operator-authorized research order is E0 evaluation, P0
 uniform replication, then P1 static/refresh; P2/P3/P4 use separately frozen studies.
+
+Generalization input assembly is available without an engine or host packages:
+`python3 scripts/generalization_inputs.py --help`. It verifies legacy uniform
+best/latest weights as explicitly weights-only, assembles frozen study/runtime
+inputs and binds the four-case serial session. See
+[the input guide](specs/011-controlled-generalization/quickstart.md).
+Example blueprints contain unresolved paths and image IDs; assembly does not create
+P4 initializer evidence or establish native/container/HIP qualification.

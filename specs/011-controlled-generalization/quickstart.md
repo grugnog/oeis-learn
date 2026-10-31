@@ -5,6 +5,61 @@ CPU/reference and fixture integration evidence. Actual pinned-container/native
 qualification and HIP acceptance have **not** run in this environment. No research
 campaign is started by these instructions or by the acceptance helper.
 
+## Assemble real inputs first
+
+Reconstruction starts from verified Git commit `6e63421`; the earlier conversational
+`dae1469` reference was unsupported and must not be used. The commands below are now
+implemented. They perform no HIP work. Place the two supplied ZIPs in the checkout
+root, retain the original private weight files, and import the verified uniform arm:
+
+```bash
+python3 scripts/generalization_inputs.py import-uniform \
+  --bundle study-20261016.zip --metadata uniform-import-metadata.zip \
+  --weights tmp-validation/010-followup-004/study-20261016/stages/followup.uniform/train \
+  --output run-state/generalization/uniform-import
+```
+
+This checks the actual files before importing. It produces `best-checkpoint.json`
+and `latest-checkpoint.json` with original provenance. Best is at 17,885,681 tokens /
+18,433 updates; latest is at 24,999,970 tokens / 25,764 updates for the uploaded run.
+Neither is a full-state resume or a P4 selection-designated initializer.
+
+After final source changes and image builds, record the exact source snapshot:
+
+```bash
+python3 scripts/generalization_inputs.py source-closure \
+  --output run-state/inputs/source-closure.json
+```
+
+Copy and fill the four `inputs-*.example.json` blueprints under
+`configs/foundation/pipeline_studies/`. Supply actual recipe, descriptors, mechanical
+candidates/exclusions, inspected image IDs and (for P4) verified initializer proof.
+These are explicit unresolved examples; they do not create weights or claim native
+admission. Assemble each with, for example:
+
+```bash
+python3 scripts/generalization_inputs.py study \
+  --blueprint run-state/inputs/refresh-blueprint.json \
+  --output run-state/generalization/acceptance-inputs/refresh
+```
+
+Create a cases JSON mapping the four case names to the four emitted `study.json`
+paths, then run:
+
+```bash
+python3 scripts/generalization_inputs.py session \
+  --cases run-state/inputs/acceptance-cases.json \
+  --output run-state/generalization/acceptance-inputs/generalization-acceptance.json
+```
+
+The session file must be above all four child studies. Its dry run remains the
+serial helper below, with this generated manifest path. Missing native inputs or
+initializer proof is a blocker, not permission to fabricate receipts. The uploaded
+uniform metadata alone is insufficient to assemble all four cases. In particular,
+P4 needs either existing original selection/initializer evidence or a separately
+implemented bootstrap inside the same serial workflow before a one-invocation
+acceptance can be promised. Such a bootstrap is not implemented by input assembly.
+
 ## Freeze inputs before execution
 
 Use Python's standard library on the host and the pinned Dockerfile/locks for
@@ -13,7 +68,7 @@ inspect their immutable `sha256:...` IDs, then freeze code and contracts. Do not
 change host drivers. `validate --suite bigint-cpu` is CPU/native only;
 `pipeline all-ready` may select HIP and is not a CPU-only precheck.
 
-Each study has a sealed `study.json` and `runtime.json` beside it. The runtime binds
+Each executable study has a sealed v3 `study.json` and v2 `runtime.json` beside it. The runtime binds
 the resolved recipe, CPU/GPU image pair, role views, storage reservations and original
 feature acceptance. References are relative to the study directory; use a dedicated
 study input/output tree. Explicit `--runtime FILE` selects a sealed sidecar without
@@ -29,7 +84,7 @@ the resolved study is directly under the command output root.
 E0 evaluation must retain actual private weights and exact descriptor identities.
 P1 freezes paired static/refresh views with the same family support and fresh variants.
 P3 requires independently checked target-pair grounding artifacts. P4 requires a
-version 2 study with a verified common retained literal initializer, original
+version 3 study with a verified common retained literal initializer, original
 selection/producer/ancestry proofs, paired continued-SFT/replay arms and selection
 evaluation. Weights-only artifacts cannot serve as full-state resume checkpoints.
 
