@@ -137,6 +137,23 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         for name,value in a['states']['weights'][component].items():
             assert torch.equal(value,b['states']['weights'][component][name])
     assert full['milestones']==resumed['milestones']
+    if not replay_mode and data_mode=='static' and target_format=='literal':
+        from oeis_learn.pipeline_validation.identity import seal
+        roster=json.loads((tmp_path/'part/checkpoints/retained.json').read_text())
+        candidates=roster['checkpoints'];selected=roster['latest']
+        best=next(c['identity'] for c in candidates if 'initial' in c['pins'])
+        decision=seal(dict(version='generalization-selected-pins/v1',roster=roster['identity'],
+            decision=digest('selection decision'),selected=selected,best_loss=best,reason='selected'))
+        pointer=GeneralizationCheckpointStore(tmp_path/'part/checkpoints',part['compatibility'],config['target_tokens']).selected_copy(tmp_path/'selected',roster,decision)
+        continued=run_torch(tmp_path,tmp_path/'continued',config,resume=(tmp_path/'selected',pointer))
+        restored=GeneralizationCheckpointStore(tmp_path/'continued/checkpoints',continued['compatibility'],config['target_tokens']).load(continued['checkpoint'])
+        assert restored['states']['selection']['checkpoint']==selected
+        for member in ('encoder','decoder'):
+            for key,value in a['states']['weights'][member].items():
+                assert torch.equal(value,restored['states']['weights'][member][key])
+        kept=json.loads((tmp_path/'continued/checkpoints/retained.json').read_text())
+        assert {best,selected}<={c['identity'] for c in kept['checkpoints']}
+        assert kept['best_loss']==best and kept['selected']==selected
     for name,result in [('full',full),('resumed',resumed)]:
         roster=json.loads((tmp_path/name/'checkpoints/retained.json').read_text())
         assert result['retained']==roster['identity']
@@ -150,3 +167,26 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
 
 def test_replay_initialized_torch_resume(tmp_path,monkeypatch):
     test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,'literal','static',replay_mode=True)
+
+
+def test_selection_pins_are_persisted_without_mounting_supervision(tmp_path):
+    from oeis_learn.pipeline_validation.identity import digest,seal
+    store=GeneralizationCheckpointStore(tmp_path/'original',digest('contract'),100)
+    encode=lambda value:json.dumps(value).encode()
+    state=states();state['history']={'exposures':{},'milestones':{}}
+    first=store.save(state,Ledger(100),encode=encode)
+    second=store.save(state,Ledger(100,consumed=2,updates=1),encode=encode)
+    descriptors=[store.describe(ref,initialization=digest('random'),pins=[label]) for ref,label in [(first,'initial'),(second,'latest')]]
+    roster=seal(dict(version='generalization-retained/v1',checkpoints=descriptors))
+    decision=seal(dict(version='generalization-selected-pins/v1',roster=roster['identity'],decision=digest('selection'),
+        best_loss=descriptors[0]['identity'],selected=descriptors[1]['identity'],reason='selected'))
+    pointer=store.selected_copy(tmp_path/'selected',roster,decision,decode=json.loads,encode=encode)
+    restored=GeneralizationCheckpointStore(tmp_path/'selected',digest('contract'),100).load(pointer,decode=json.loads)
+    assert restored['states']['selection']['checkpoint']==descriptors[1]['identity']
+    assert restored['states']['selection']['best_loss']==descriptors[0]['identity']
+    assert set(restored['states']['pins'])=={first['sha256'],second['sha256']}
+    assert restored['ledger']==Ledger(100,consumed=2,updates=1)
+    changed=seal(dict(decision,selected=digest('unknown')))
+    with pytest.raises(ValueError,match='outside'):
+        store.selected_copy(tmp_path/'forbidden',roster,changed,decode=json.loads,encode=encode)
+    assert not (tmp_path/'forbidden').exists()

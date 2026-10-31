@@ -231,11 +231,13 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         if key==initial:labels.append('initial')
         if pointer==latest:labels.append('latest')
         labels.extend('milestone:'+str(m) for m,k in milestone_keys.items() if k==key)
-        retained.append(store.describe(pointer,initialization=initialization,
+        retained.append(state['history'].get('descriptors',{}).get(key) or store.describe(pointer,initialization=initialization,
             parent=initializer['sha256'] if initializer is not None else None,pins=labels))
     roster=seal(dict(version='generalization-retained/v1',study=config['study'],
         arm=config['arm'],seed=config['seed'],checkpoints=retained,
-        best_loss=None,selected=None,selection_status='NOT_RUN'))
+        best_loss=state['selection'].get('best_loss'),selected=state['selection'].get('checkpoint'),
+        selection_status=state['selection'].get('reason','selection_not_run'),
+        latest=next(c['identity'] for c in retained if c['state']==latest)))
     write(output/'checkpoints/retained.json',roster)
     result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed,updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,

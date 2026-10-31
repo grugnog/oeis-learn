@@ -355,6 +355,51 @@ class GeneralizationCheckpointStore:
         shape('checkpoint',descriptor)
         return descriptor
 
+    def selected_copy(self,destination,roster,decision,*,decode=None,encode=None):
+        """Persist sanitized selection/pins in a new resumable store.
+
+        The selection controller supplies only chosen identities and its decision
+        hash. Selection targets/measurements are never learner inputs. Immutable
+        retained generations and their descriptor identities remain unchanged.
+        """
+        import shutil
+        from oeis_learn.pipeline_validation.identity import validate as closed
+        closed(decision,{'version','roster','decision','best_loss','selected','reason'},'generalization-selected-pins/v1')
+        if identity({k:v for k,v in roster.items() if k!='identity'})!=roster['identity'] or decision['roster']!=roster['identity']:
+            raise ValueError('selection roster identity mismatch')
+        by_id={c['identity']:c for c in roster['checkpoints']}
+        if len(by_id)!=len(roster['checkpoints']):raise ValueError('duplicate retained checkpoint')
+        for name in ('best_loss','selected'):
+            if decision[name] is not None and decision[name] not in by_id:raise ValueError('selection outside retained candidates')
+        latest=read(self.root/'generalization-latest.json')
+        restored=self.load(latest,decode=decode)
+        state=restored['states'];ledger=restored['ledger']
+        history={};descriptors={}
+        for descriptor in by_id.values():
+            checked=self.describe(descriptor['state'],initialization=descriptor['initialization'],
+                parent=descriptor['parent'],pins=descriptor['pins'])
+            if checked!=descriptor:raise ValueError('retained descriptor differs from state')
+            key=descriptor['state']['sha256'];history[key]=descriptor['state'];descriptors[key]=descriptor
+        if latest not in history.values():raise ValueError('latest absent from retained candidates')
+        destination=Path(destination)
+        if destination.exists():raise ValueError('fresh selected checkpoint store required')
+        needed=sum(p.stat().st_size for pointer in history.values() for p in (self.root/Path(pointer['path']).parent).rglob('*') if p.is_file())
+        if needed>self.MAX_BYTES or needed>shutil.disk_usage(self.root).free:
+            raise OSError('insufficient storage for retained selection pins')
+        destination.mkdir(parents=True)
+        for pointer in history.values():
+            folder=Path(pointer['path']).parent
+            shutil.copytree(self.root/folder,destination/folder)
+        state['pins']=history
+        state['history']['descriptors']=descriptors
+        state['selection']=dict(decision=decision['decision'],checkpoint=decision['selected'],
+            best_loss=decision['best_loss'],reason=decision['reason'])
+        target=GeneralizationCheckpointStore(destination,self.contract,self.cap)
+        pointer=target.save(state,ledger,encode=encode)
+        history[pointer['sha256']]=pointer
+        target.retain(history,tuple(history))
+        return pointer
+
     def retain(self,history,pins):
         """Verify every retained generation before atomically publishing the pin set.
 

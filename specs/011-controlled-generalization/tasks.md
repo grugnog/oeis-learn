@@ -135,7 +135,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 
 - [X] T051 [US3] Add bounded paired-training/interruption integration scenarios in `tests/integration/test_generalization_training.py`, checking static/refresh exposure, both target formats, uninterrupted-versus-resumed next batches/state and retained milestone hashes.
 - [ ] T052 [US3] Wire prospective training arms/seeds to the existing model and native execution adapters in `src/oeis_learn/pipeline_validation/generalization_training.py` and the new-profile route in `src/oeis_learn/fresh/bigint_worker.py`; call refresh/target/token policies and use actual post-substitution targets for charging.
-- [ ] T053 [US3] Connect atomic state persistence and pinned artifacts to the existing checkpoint store in `src/oeis_learn/fresh/bigint_state.py`, routing prospective resume through T030–T031 while preserving historical state/profile behavior.
+- [X] T053 [US3] Connect atomic state persistence and pinned artifacts to the existing checkpoint store in `src/oeis_learn/fresh/bigint_state.py`, routing prospective resume through T030–T031 while preserving historical state/profile behavior.
 - [X] T054 [US3] Add frozen prospective recipe templates under `configs/foundation/pipeline_studies/` for E0, P0, P1-screen/confirm, P2, P3 and P4, reflecting `specs/011-controlled-generalization/contracts/experiments.md`; validate single changing factors, recipe-specific milestones, separate selection/assessment identities and exact cap/seed lists without executing the campaigns.
 - [X] T055 [US3] Add opt-in `--arms uniform` and qualification routing to `src/oeis_learn/pipeline_validation/followup_study.py` and its existing host entrypoint, with regression coverage in `tests/unit/test_pilot_followup.py`; keep the default three historical arms/selection semantics and report missing seed16 instead of fabricating confirmation.
 
@@ -317,3 +317,11 @@ retained initializer; version 1 retains its random-only meaning. The original
 P4 counterexample and independent lineage/selection/producer/tamper cases pass.
 The combined regression selection passes 262 tests plus 9 subtests, with the GPU
 test deselected. Continue C/D; the earlier initializer blocker is superseded.
+
+### T053 checkpoint selection persistence complete
+
+Sanitized best/selected decision identities persist with all retained generations
+in a fresh atomic full-state store. The installed learner pin-selection operation
+receives no selection supervision. Resumed training preserves descriptor identities,
+selection state and pins, and matches uninterrupted CPU weights exactly. The focused
+training/scoring suite passes 16 tests. Public command routing remains T057.

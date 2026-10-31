@@ -96,6 +96,21 @@ def replay_propose(inputs,output,settings,*,seconds):
     return dict(status='PASS',candidate=candidate)
 
 
+def pin_selection(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from .generalization_preparation import reference
+    if set(settings)!={'roster','decision','compatibility','target_tokens'}:
+        raise ValueError('closed checkpoint pin settings required')
+    root=inputs['verified_training_replay']
+    roster=json.loads(verify_artifact(root,settings['roster']))
+    decision=json.loads(verify_artifact(root,settings['decision']))
+    store=GeneralizationCheckpointStore(root,settings['compatibility'],settings['target_tokens'])
+    destination=output/'private/selected'
+    pointer=store.selected_copy(destination,roster,decision)
+    return dict(status='PASS',checkpoint=pointer,root='private/selected',decision=decision['decision'])
+
+
 def generator(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.bigint_worker import client
@@ -178,6 +193,7 @@ HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
+          (Role.LEARNER,'pin-selection'):pin_selection,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 
