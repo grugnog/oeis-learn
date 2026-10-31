@@ -304,3 +304,13 @@ provenance and historical pooled-loss checkpoint exposure. Counterexamples were
 run before implementations (4, then 4, then 6 expected failures). The combined
 focused policy/authority selection passes 30 tests. Routine production wiring
 remains T075–T077. This is local policy evidence, not container/HIP qualification.
+
+During reconstruction integration, Phase B was reopened for the preparation
+resolution boundary: resolved sidecars must preserve all non-path execution choices.
+The independent changed-batch counterexample failed before repair. Acceptance
+counterexamples also require at least one real supported parameterized target and
+finite parameter-update proof for **both** continued-SFT and replay arms; a nominal
+PASS/resume result alone cannot establish those obligations. The replay false-PASS
+counterexample was observed before repair. These checks remain in the same Phase B
+policy boundary; C calls them and emits actual tensor proofs. The extra paired proof
+is included in the unchanged 900-second case reservation (work ceiling 360 seconds).

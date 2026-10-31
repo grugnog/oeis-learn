@@ -98,3 +98,13 @@ def test_refresh_cannot_change_family_mixture_or_reuse_duplicate_sources():
     fresh[-1]['source']='b'
     with pytest.raises(ValueError,match='duplicate'):
         validate_refresh(static,fresh)
+
+
+def test_preparation_resolution_cannot_change_execution_choices():
+    from oeis_learn.generalization.execution import verify_resolution
+    _,r=execution_fixture();prepared=copy.deepcopy(r);prepared['preparation']=None
+    for view in prepared['training'].values():view['shards']=[{'path':'resolved'}];view.pop('cells')
+    verify_resolution(r,prepared)
+    prepared['training']['static']['batch_size']=2
+    with pytest.raises(ValueError,match='resolution changed'):
+        verify_resolution(r,prepared)

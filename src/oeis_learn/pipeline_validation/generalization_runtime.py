@@ -96,7 +96,7 @@ def validate_execution(root,study,runtime):
     if study['progression']['stage']=='P2':
         counts={arm:sum(len(json.loads(verify_artifact(root,ref))) for ref in view['shards']) for arm,view in training.items()}
         if len(set(counts.values()))!=1:raise ValueError('support comparison requires equal admitted-example counts')
-    target_pairs_verified=0
+    target_pairs_verified=0;target_pairs_parameterized=0
     if study['progression']['stage']=='P3':
         if set(training)!={'literal','parameterized'}:raise ValueError('paired target views required')
         paired={};by_arm={}
@@ -124,6 +124,7 @@ def validate_execution(root,study,runtime):
             if dict(proof,id=key)!=dict(checked,id=key) or checked['verification']['values']!=literal['values']:raise ValueError('prepared grounding proof differs from paired training')
             if (parameterized['source'],parameterized['tokens'])!=learning_target(checked):raise ValueError('unsafe paired learning target')
             target_pairs_verified+=1
+            target_pairs_parameterized+=checked['disposition']=='supported' and checked['parameter_count']>0
     if study['progression']['stage']=='P4':
         if set(training)!={'continued_sft','verified_replay'} or training['continued_sft']!=training['verified_replay'] or training['continued_sft']['data_mode']!='static':
             raise ValueError('paired replay requires identical static training views')
@@ -168,7 +169,7 @@ def validate_execution(root,study,runtime):
         parent=Path(initializer['root']).relative_to(Path(root))
         initializer=dict(authority=initializer['authority'],checkpoint=initializer['checkpoint'],
             weights=dict(initializer['weights'],path=str(parent/initializer['weights']['path'])))
-    return dict(study=study['identity'],recipe=recipe,initializer=initializer,training=training,target_pairs_verified=target_pairs_verified)
+    return dict(study=study['identity'],recipe=recipe,initializer=initializer,training=training,target_pairs_verified=target_pairs_verified,target_pairs_parameterized=target_pairs_parameterized)
 
 
 def preparation_views(root,study,runtime,prep):

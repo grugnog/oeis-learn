@@ -65,6 +65,8 @@ def validate_policy(study,runtime,*,case=None):
                 raise ValueError('registered static/refreshed modes required')
         elif any(v['data_mode']!='static' for v in views):raise ValueError('unregistered refresh interaction')
     if stage!='P4' and runtime['replay'] is not None:raise ValueError('unregistered replay interaction')
+    if stage=='P4' and (study['model']['initialization']=='random' or runtime['replay'] is None or runtime['evaluation'] is None or runtime['evaluation']['role']!='selection'):
+        raise ValueError('P4 requires retained initializer, replay tasks and selection evaluation')
     if study['data']['target_format']!='literal':raise ValueError('paired targets use literal authority and separately verified P3 views')
     if study['data']['sharing_policy'] not in {'explicit','distinct-occurrences'}:raise ValueError('registered parameter sharing required')
     if runtime['purpose']=='research' and stage in {'P2','P3','P4'} and study['model']['initialization']=='random':
@@ -89,3 +91,18 @@ def validate_refresh(static,refreshed):
     a=Counter(r['family'] for r in static);b=Counter(r['family'] for r in refreshed)
     if set(a)!=set(b) or any(a[k]*len(refreshed)!=b[k]*len(static) for k in a):
         raise ValueError('refresh must preserve fixed family mixture')
+
+
+def verify_resolution(original,resolved):
+    """Preparation may resolve cell paths, never alter the registered intervention."""
+    def choices(runtime):
+        value=copy.deepcopy(runtime)
+        for key in ('identity','study','preparation','version'):value.pop(key,None)
+        for view in value['training'].values():
+            view.pop('cells',None);view.pop('shards',None)
+        if value['evaluation'] is not None:
+            for key in ('cells','prompts','targets'):value['evaluation'].pop(key,None)
+        if value['replay'] is not None:
+            value['replay'].pop('cell',None);value['replay'].pop('tasks',None)
+        return value
+    if choices(original)!=choices(resolved):raise ValueError('preparation resolution changed execution choices')

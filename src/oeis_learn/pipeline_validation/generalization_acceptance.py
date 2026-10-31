@@ -74,6 +74,8 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
     from oeis_learn.generalization.feature_acceptance import OBLIGATIONS
     from .receipts import Ledger
     if runtime['purpose']!='acceptance':raise ValueError('reduced acceptance runtime required')
+    from oeis_learn.generalization.execution import validate_policy
+    validate_policy(study,runtime,case='refresh' if name=='failure-packaging' else name)
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     evidence_root=Path(evidence_root) if evidence_root is not None else output.parent
     ledger=Ledger(output,'acceptance.'+name,dict(case=name,qualification=qualification))
@@ -91,6 +93,8 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
         elif name in ('refresh','parameter-targets'):
             arms=['static','refreshed'] if name=='refresh' else ['literal','parameterized']
             if set(study['arms'])!=set(arms):raise ValueError('acceptance arm pair mismatch')
+            if name=='parameter-targets' and not plan.get('target_pairs_parameterized'):
+                raise ValueError('acceptance needs an actual supported parameterized learning target')
             trained=train(host,workspace,output/'private/training',base,study,runtime,plan,arms=arms,seeds=study['seeds'])
             if trained['status']!='PASS':raise ValueError('paired training incomplete')
             proofs=[training_proof(host,workspace,output/'private'/('proof-'+str(i)),runtime,study,[run]) for i,run in enumerate(_training_runs(output/'private/training',trained))]
@@ -111,9 +115,9 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
                 checks=dict(literal_update=True,parameterized_update=True,grounding_verified=True)
         elif name=='replay-resume':
             result=replay(host,workspace,output/'private/replay',base,study,runtime,plan,acceptance_resume=True)
-            if result['status']!='PASS' or not all(r.get('resume',{}).get('status')=='PASS' and r['cumulative_discoveries']>0 for r in result['runs']):raise ValueError('paired replay/resume or actual admission incomplete')
+            if result['status']!='PASS' or not result['runs'] or not all(r.get('resume',{}).get('status')=='PASS' and (r.get('paired_proof') or {}).get('status')=='PASS' and r['cumulative_discoveries']>0 for r in result['runs']):raise ValueError('paired finite updates, replay/resume or actual admission incomplete')
             artifacts=dict(admission=dict(rounds=result['rounds'],search=[r['search'] for r in result['runs']]),
-                continued_sft=dict(runs=[r['paired']['runs'][0]['result'] for r in result['runs']]),
+                continued_sft=dict(runs=[r['paired']['runs'][0]['result'] for r in result['runs']],finite_updates=[r['paired_proof'] for r in result['runs']]),
                 verified_replay=dict(runs=[r['paired']['runs'][1]['result'] for r in result['runs']]),resume=dict(runs=[r['resume'] for r in result['runs']]))
             checks=dict(training_only_admission=True,paired_control=True,full_state_resume=True,finite_update=True)
         elif name=='failure-packaging':

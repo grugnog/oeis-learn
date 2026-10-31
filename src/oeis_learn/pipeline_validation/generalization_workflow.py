@@ -189,9 +189,12 @@ def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=Fal
                 evaluation_runtime['evaluation']['checkpoints']=[reference(evaluation_base/'checkpoint.json',evaluation_base)]
                 measured=evaluate(host,workspace,folder/run['arm']/'evaluation',evaluation_base,study,evaluation_runtime,plan,checkpoints=[latest['identity']])
                 evaluations.append(dict(arm=run['arm'],result=measured))
-        resume_proof=None
+        resume_proof=None;paired_proof=None
         if acceptance_resume and paired['status']=='PASS':
             from .generalization_acceptance import training_proof
+            paired_proof=training_proof(host,workspace,folder/'paired-proof',runtime,study,
+                [(folder/'training'/run['root'],run['result']) for run in paired['runs']])
+            if paired_proof['status']!='PASS':raise ValueError('finite update proof required for both paired arms')
             extra=dict(arms=['verified_replay'],seeds=[seed],replay=(pool_root,pool_ref,settings['tasks']))
             paused=train(host,workspace,folder/'paused',base,study,runtime,plan,stop_after_updates=1,**extra)
             if len(paused['runs'])!=1 or paused['runs'][0]['result'].get('updates')!=1:raise ValueError('acceptance interruption boundary not reached')
@@ -202,7 +205,7 @@ def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=Fal
             original=paired['runs'][1];restored=continued['runs'][0]
             resume_proof=training_proof(host,workspace,folder/'resume-proof',runtime,study,
                 [(folder/'training'/original['root'],original['result']),(folder/'resumed'/restored['root'],restored['result'])],compare=True)
-        runs.append(dict(seed=seed,search=search,paired=paired,current_policies=evaluations,cumulative_discoveries=len(pool.entries),resume=resume_proof))
+        runs.append(dict(seed=seed,search=search,paired=paired,paired_proof=paired_proof,current_policies=evaluations,cumulative_discoveries=len(pool.entries),resume=resume_proof))
         if paired['status']!='PASS':break
     statuses=[value for r in runs for value in [r['paired']['status'],r['search']['status'],*[e['result']['status'] for e in r['current_policies']],*([r['resume']['status']] if r['resume'] else [])]]
     status=_status(study['identity'],statuses,incomplete=len(runs)!=len(study['seeds']))

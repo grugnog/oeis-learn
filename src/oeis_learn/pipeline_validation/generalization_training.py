@@ -250,6 +250,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
 
 def storage_preflight(recipe,study,runtime):
     """Measure actual CPU model tensors and reserve optimizer/pinned snapshots."""
+    if not runtime['training']:
+        return dict(required_checkpoint_bytes=0,pinned_generations_reserved=0,kind='evaluation_only_no_learner_snapshots')
     from oeis_learn.fresh.bigint_worker import models
     from oeis_learn.generalization.budgets import reserve_storage
     encoder,decoder,_=models(recipe,'cpu')

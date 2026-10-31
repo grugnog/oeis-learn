@@ -22,11 +22,13 @@ def load_session(workspace,manifest):
         for ref in refs.values():verify_artifact(path.parent,ref,max_bytes=1<<20)
         manifest_path=confined(path.parent,refs['manifest']['path']);runtime_path=confined(path.parent,refs['runtime']['path'])
         base,study,runtime=load(workspace,str(manifest_path.relative_to(workspace)),str(runtime_path.relative_to(workspace)))
+        from oeis_learn.generalization.execution import validate_policy
+        validate_policy(study,runtime,case=name)
         if runtime['purpose']!='acceptance':raise ValueError('session cannot execute research work')
         if images is None:images=runtime['images'];source=study['source_closure']['sha256']
         if runtime['images']!=images or study['source_closure']['sha256']!=source:raise ValueError('one exact qualification scope required')
         learning=study['budgets']['seconds'];evaluation=(runtime['evaluation'] or {}).get('seconds',0)
-        work=evaluation if name=='retained-eval' else 2*learning+120 if name in {'refresh','parameter-targets'} else (runtime['replay'] or {}).get('seconds',0)+4*learning+2*evaluation+60
+        work=evaluation if name=='retained-eval' else 2*learning+120 if name in {'refresh','parameter-targets'} else (runtime['replay'] or {}).get('seconds',0)+4*learning+2*evaluation+120
         if work>360:raise ValueError('acceptance case cannot fit qualification inspection, validation and bounded work in 900 seconds')
         children[name]=(base,study,runtime,manifest_path,runtime_path)
     return session,children
@@ -88,7 +90,10 @@ def _execute(args,workspace,host_factory):
         base,study,runtime=load(workspace,refs['manifest']['path'],refs['runtime']['path'])
         # Preparation can resolve artifacts, not model/budget/arm choices.
         original=children[key][1]
-        if any(study[k]!=original[k] for k in ('model','budgets','arms','seeds','precision','inference','checkpoints','progression')):raise ValueError('prepared acceptance authority changed')
+        if any(study[k]!=original[k] for k in ('model','budgets','arms','seeds','precision','inference','checkpoints','progression','recipe','track','hypothesis','changing_factors','source_closure')):raise ValueError('prepared acceptance authority changed')
+        from oeis_learn.generalization.execution import verify_resolution
+        verify_resolution(children[key][2],runtime)
+        if any(study['data'][k]!=original['data'][k] for k in ('generator','descriptors','exclusions','target_format','sharing_policy')):raise ValueError('prepared data policy changed')
         if getattr(args,'reuse_run',None):
             previous=confined(workspace,args.reuse_run)/name
             from oeis_learn.generalization.feature_acceptance import verify_cases

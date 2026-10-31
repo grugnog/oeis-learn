@@ -124,7 +124,7 @@ def test_research_consumer_projects_complete_verified_feature_closure(tmp_path,m
     assert result['original']==original['identity']
 
 
-def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,monkeypatch):
+def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,monkeypatch,capsys):
     """Fake only expensive boundaries; real session/case/receipt/archive routing."""
     import copy
     from types import SimpleNamespace
@@ -149,11 +149,20 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
         if name=='retained-eval':
             chosen['progression']['stage']='E0';chosen['arms']=['retained'];chosen['budgets']['target_tokens']=0;chosen['checkpoints']['milestones']=[]
             sidecar['training']={};sidecar['evaluation']=dict(role='selection',checkpoints=[put('fake-checkpoint.json',{})],seconds=60)
-        if name=='replay-resume':chosen['model']['initialization']=dict(kind='retained',artifact=put('fixture-initializer.json',{}))
+        if name=='replay-resume':
+            chosen['model']['initialization']=dict(kind='retained',artifact=put('fixture-initializer.json',{}))
+            sidecar['replay']=dict(tasks=put('fixture-tasks.json',[]),seconds=30)
+            sidecar['evaluation']=dict(role='selection',checkpoints=[],seconds=30)
         stage=chosen['progression']['stage'];chosen['recipe']=RECIPES[stage];chosen['changing_factors']=[FACTORS[stage]]
         chosen,sidecar=bind(chosen,sidecar)
         mapping[name]=dict(manifest=put(name+'.json',chosen),runtime=put(name+'-runtime.json',sidecar))
-    manifest=seal(dict(version='generalization-acceptance-session/v1',cases=mapping));put('session.json',manifest)
+    from oeis_learn.pipeline_validation.generalization_inputs import assemble_session
+    assemble_session(input_root,{k:{kind:ref['path'] for kind,ref in v.items()} for k,v in mapping.items()},'session.json')
+    serial=helper();monkeypatch.setattr(serial,'ROOT',input_root)
+    assert serial.main(['--engine','podman','--manifest','session.json','--output','dry-run','--dry-run'])==0
+    dry=json.loads(capsys.readouterr().out)
+    assert len(dry['stages'])==10 and sum(s['operation']=='qualify' for s in dry['stages'])==1
+    assert not (input_root/'dry-run').exists()
     run=tmp_path/'run';run.mkdir();qroot=run/'qualify';qroot.mkdir()
     raw=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['qualification']
     base=qroot/'base.json';base.write_text('{}');base_ref=reference(base,qroot)
@@ -171,7 +180,7 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     observed=[]
     def qualified(*a,**kw):observed.append('consume-original');return dict(original=original['identity'])
     monkeypatch.setattr(session,'_qualification',qualified)
-    monkeypatch.setattr(session,'_validate',lambda *a,**kw:dict(recipe={},initializer=None,target_pairs_verified=1))
+    monkeypatch.setattr(session,'_validate',lambda *a,**kw:dict(recipe={},initializer=None,target_pairs_verified=1,target_pairs_parameterized=1))
     monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
     host=SimpleNamespace(engine=SimpleNamespace(image=lambda x:x))
     def invoke(host,image,workspace,name,artifacts,**kw):
@@ -183,7 +192,7 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     def train(*a,**kw):return dict(status='PASS',runs=[dict(arm=arm,root=arm,result=dict(status='PASS',updates=2,tokens=10)) for arm in kw['arms']])
     monkeypatch.setattr(commands,'train',train)
     monkeypatch.setattr(cases,'training_proof',lambda *a,**kw:dict(status='PASS',runs=[dict(finite=True,changed=True,tokens=10,updates=2)]))
-    monkeypatch.setattr(workflow,'replay',lambda *a,**kw:dict(status='PASS',rounds=1,runs=[dict(cumulative_discoveries=1,search=dict(status='PASS',admitted=1),paired=train(arms=['continued_sft','verified_replay']),resume=dict(status='PASS',resume_equal=True))]))
+    monkeypatch.setattr(workflow,'replay',lambda *a,**kw:dict(status='PASS',rounds=1,runs=[dict(cumulative_discoveries=1,paired_proof=dict(status='PASS'),search=dict(status='PASS',admitted=1),paired=train(arms=['continued_sft','verified_replay']),resume=dict(status='PASS',resume_equal=True))]))
     def args(operation,output,**kw):return SimpleNamespace(operation=operation,manifest='input/session.json',runtime=None,output=output,image=None,qualification='run/qualify',reuse_run=None,**kw)
     assert main(args('prepare','run/prepare'),tmp_path,lambda a:host)==0
     for name in helper().CASES:
