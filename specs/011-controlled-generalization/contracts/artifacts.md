@@ -291,3 +291,33 @@ The standard-library assembly tool emits ASSEMBLED/IMPORTED, never qualification
 PASS. Native admission, tensor compatibility, coverage, resources and HIP still
 require the canonical gates. `source-closure` uses the same `collect_snapshot`
 function as qualification. Rebuild images and record closure after final code changes.
+
+## Acceptance selection dependency and legacy initialization
+
+A v3 P4 study may freeze `model.initialization` as exactly
+`{kind: acceptance_selection, case: retained-eval, study: <original E0 identity>}`.
+This is an unresolved dependency, never learner initialization. Only acceptance
+purpose permits it; canonical preparation may materialize its cohorts, but training
+must reject it. Session v2 requires the named E0 child, identical model/precision
+and recipe, and resolves only after its actual selection publishes original proof.
+Resolution changes only initialization and its consequent study/runtime identities.
+Every other prepared choice remains byte-identical. Research and generic reuse
+cannot consume an unresolved dependency.
+
+`generalization-initializer/v2` adds exactly `legacy` to the original v1 fields.
+It requires an audited weights-only uniform checkpoint, its complete original
+legacy provenance, a newly measured selection decision, an E0 source study with
+matching architecture and recipe, and an original PASS publication receipt binding
+and inventorying these payloads. Historical best-loss meaning and null resume state
+remain unchanged. This is a new initialization, never reconstructed optimizer state.
+Version 1 retains its original full-state-derived meaning.
+
+Acceptance replay may freeze `proposal_policy` as
+`mechanical-neutral-expression-diagnostic/v1`: one charged mechanical proposal per
+training task removes a declared outer neutral addition. It uses no selection or
+assessment truth and still passes canonical native/reference 100-term admission,
+strict shortening, replay limits and finite update/resume proofs. Reports identify
+its diagnostic origin and do not claim a model discovery. Research rejects this
+policy and retains the model-generated eight-attempt default. Mechanical setup
+uses fixed generic sampler/refresh draws with finite exclusions; it cannot weaken
+quotas or borrow rows when construction or native admission fails.

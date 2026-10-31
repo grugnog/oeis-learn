@@ -66,6 +66,9 @@ def validate_policy(study,runtime,*,case=None):
             if training['static']['data_mode']!='static' or training['refreshed']['data_mode']!='refresh':
                 raise ValueError('registered static/refreshed modes required')
         elif any(v['data_mode']!='static' for v in views):raise ValueError('unregistered refresh interaction')
+    if runtime['replay'] is not None:
+        from .acceptance_inputs import search_policy
+        search_policy(runtime['purpose'],runtime['replay'].get('proposal_policy','model'))
     if stage!='P4' and runtime['replay'] is not None:raise ValueError('unregistered replay interaction')
     if stage=='P4' and (study['model']['initialization']=='random' or runtime['replay'] is None or runtime['evaluation'] is None or runtime['evaluation']['role']!='selection'):
         raise ValueError('P4 requires retained initializer, replay tasks and selection evaluation')
