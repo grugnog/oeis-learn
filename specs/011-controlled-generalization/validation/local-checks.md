@@ -370,3 +370,21 @@ No CI-green claim is made for this new head; the user waived waiting for CI.
 Docker, Podman, Cargo/native execution and `wasmtime` are unavailable here.
 Consequently T063–T068 retain their evidence gates; no HIP run, actual acceptance
 archive, scientific improvement or completed hardware qualification is claimed.
+
+## T085 qualification directory regression — 2026-10-31
+
+New tests retain the actual pipeline runner, ledger, inspector, filesystem and
+bundle verifier, replacing only process launch/reclamation and the CPU suite.
+Before the repair both cases reproduced the immediate image-stage FAIL with
+FileExistsError and no container command. After the repair, both image
+inspections reach their intended fresh child; a deliberate CPU failure prevents
+HIP, and injected inspection failures retain their original reasons in the
+verified FAIL archive and captured stdout. The focused acceptance suite passed
+10 tests. No actual container or HIP command ran.
+
+The complete local selection used for T084, rerun after this fix, passed
+**274 tests, 1 deselected in 18.19 seconds**, including the canonical implementation
+digest check. `git diff --check` passed. The uploaded recovery archive SHA-256 is
+`207c9cf1c4fb6406df2946e1fde001000b6572f5408b0ca380eda7e30aa0124a`;
+its inventory, member sizes/hashes and FAIL summary verified with the published
+bundle verifier. No CI-green or completed hardware claim is made.

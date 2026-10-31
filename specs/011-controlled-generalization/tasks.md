@@ -409,3 +409,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase D — available validation and delivery
 
 - [X] T084 Exercise setup through serial canonical fixture execution, tampered dependency/research rejection, finite CPU update/resume, native/container checks where available and packaging/source registration; publish exact results and leave actual HIP tasks open, per NFR-002/005/008 and SC-004/006/007 (partial).
+
+### Phase C/D — operator qualification failure repair
+
+- [X] T085 Repair qualification image-inspection directory ownership in `pipeline_validation/generalization_qualification_io.py`; retain bounded original failure reasons in serial recovery logs, reproduce the defect with the real runner/inspector and test failure propagation, then record acceptance-002 evidence and required requalification (US5/AC3, NFR-004/007, SC-007). Container/HIP gates T063–T068 remain open.

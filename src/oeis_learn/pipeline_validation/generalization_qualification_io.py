@@ -109,7 +109,7 @@ def produce(host,workspace,output,*,images,contract):
             if stage.adapter=='inspect':
                 image=images[0 if stage.id=='image.qualification' else 1]
                 if host.engine.image(image)!=image:raise ValueError('immutable image required')
-                inspect_current_image(host,image,target,seconds=stage.seconds)
+                inspect_current_image(host,image,target/'inspection',seconds=stage.seconds)
                 return dict(image=image)
             gpu=stage.adapter=='hip';host.image=images[1 if gpu else 0]
             if gpu:
@@ -123,7 +123,16 @@ def produce(host,workspace,output,*,images,contract):
         Stage('hip.preflight',2,('image.gpu','cpu.semantic'),seconds=2400,adapter='hip')]
     code=execute(stages,output/'pipeline',adapter=Adapter(),binding=dict(source=collect_snapshot(workspace),contract=contract),
                  cap=6600,reserve=300)
-    if code:return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code)
+    if code:
+        # The serial fallback archive preserves stdout, even when no authority
+        # exists for the normal report. Keep the original stage reasons visible.
+        from .receipts import read_terminal
+        for stage in stages:
+            receipt=read_terminal(output/'pipeline/stages'/stage.id)
+            if receipt['state']!='PASS':
+                print('QUALIFICATION '+json.dumps(dict(stage=stage.id,status=receipt['state'],
+                    reason=receipt.get('reason','')[:4096]),sort_keys=True),flush=True)
+        return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code)
     write(output/'source.json',collect_snapshot(workspace));source_ref=reference(output/'source.json',output)
     names=['Dockerfile','pyproject.toml','uv.lock']
     names.extend(str(p.relative_to(workspace)) for p in sorted((workspace/'crates').rglob('Cargo.lock')))

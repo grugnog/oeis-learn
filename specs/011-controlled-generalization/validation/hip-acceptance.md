@@ -36,3 +36,29 @@ The final local selection passed 272 tests (one hardware test deselected). Actua
 image builds, native validation, real-input preflight, HIP updates and the real
 archive remain unverified here. See [local-checks.md](local-checks.md) and follow
 [quickstart.md](../quickstart.md) for the single normal serial invocation.
+
+## Operator acceptance-002 — failed before HIP (2026-10-31)
+
+The uploaded `acceptance-002.zip` verifies as an intact nine-member recovery bundle
+with overall FAIL / PACKAGE_FAILED. Its workflow records preflight exit 0 at
+59.49 seconds, qualification exit 1 at 59.78 seconds, and report exit 1 at
+60.47 seconds (cumulative elapsed times). Both `image.qualification` and
+`image.gpu` failed immediately; no CPU semantic or HIP stage start is logged.
+The report then failed because no `qualify/qualification.json` was produced.
+This secondary missing-authority error does not explain the image failure.
+
+The recovery bundle omits detailed qualification receipts, which remain in the
+operator's `qualify/pipeline.zip`. Inspection of the published source identified
+a deterministic integration defect matching the immediate failures: the runner
+creates each stage directory, then the adapter passes that existing directory to
+an inspector requiring a fresh directory. A local real-runner/real-inspector
+regression reproduced FileExistsError before any container launch. T085 fixes the
+call to use a fresh `inspection/` child and emits bounded original failure reasons
+into stdout retained by recovery packaging. The operator's exact exception remains
+unconfirmed until its original detailed receipt is read.
+
+Preserve acceptance-001/002. Source and qualification identity changed, so build
+both images and assemble new inputs from the existing uniform import before the
+next session, using Podman and fresh acceptance-inputs-003/acceptance-003 roots.
+No prior qualification PASS exists to reuse. Do not edit old inputs or overwrite
+evidence. Local reproduction is not hardware qualification; T063–T068 stay open.

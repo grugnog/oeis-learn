@@ -212,3 +212,42 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     reuse.output='stale/refresh'
     assert main(reuse,tmp_path,lambda a:host)==1
     assert json.loads((tmp_path/'stale/refresh/result.json').read_text())['status']=='FAIL'
+
+
+@pytest.mark.parametrize('failure', ['cpu', 'inspection'])
+def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_path,monkeypatch,capsys,failure):
+    """Keep the real runner and image inspector; replace only process/device work."""
+    from types import SimpleNamespace
+    from oeis_learn import container_validation
+    from oeis_learn.pipeline_validation import generalization_qualification_io as io, supervision
+    from oeis_learn.pipeline_validation.bundle import verify
+    calls=[]
+    class Engine:
+        def image(self,image):return image
+        def command(self,**kwargs):
+            calls.append(kwargs)
+            assert kwargs['gpu'] is False
+            target=next(Path(src) for src,dest,write in kwargs['mounts'] if dest=='/work/output')
+            assert (target.parent/'transitions.jsonl').is_file()
+            assert target.name=='inspection'
+            return ['fixture-container']
+    workspace=Path(__file__).resolve().parents[2]
+    host=SimpleNamespace(engine=Engine(),policy=dict(workspace=str(workspace),memory_bytes=2<<30,cpus=1))
+    def launch(*args,**kwargs):
+        if failure=='inspection':raise RuntimeError('fixture inspection failure')
+    def cpu(*args,**kwargs):raise RuntimeError('fixture CPU stop before HIP')
+    monkeypatch.setattr(supervision,'launch',launch)
+    monkeypatch.setattr(supervision,'reclaim',lambda *args,**kwargs:None)
+    monkeypatch.setattr(container_validation,'_stages',cpu)
+    out=tmp_path/'qualification'
+    result=io.produce(host,workspace,out,images=['cpu-image','gpu-image'],contract={})
+    assert result['status']=='FAIL'
+    assert [c['image'] for c in calls]==['cpu-image','gpu-image']
+    for name in ('image.qualification','image.gpu'):
+        receipt=json.loads((out/'pipeline/stages'/name/'receipt.json').read_text())
+        assert receipt['state']==('PASS' if failure=='cpu' else 'FAIL')
+        if failure=='inspection':assert 'fixture inspection failure' in receipt['reason']
+    assert not (out/'qualification.json').exists()
+    assert verify(out/'pipeline.zip')['summary_state']=='FAIL'
+    log=capsys.readouterr().out
+    assert ('fixture CPU stop before HIP' if failure=='cpu' else 'fixture inspection failure') in log
