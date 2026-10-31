@@ -26,7 +26,7 @@ The Spec Kit planning workflow's Phase 0/1 below creates design documents only. 
 
 **Project Type**: Existing Python/Rust research CLI and container pipeline.
 
-**Performance Goals**: One normal serial hardware acceptance invocation; one execution per required qualification scope. Preserve eight-attempt/60-second target portfolios and report censoring. No unmeasured throughput claim. Qualification ceiling is four hours, not a predicted duration.
+**Performance Goals**: One normal serial hardware acceptance invocation; one execution per required qualification scope. Preserve eight-attempt/60-second target portfolios and report censoring. No unmeasured throughput claim. Acceptance ceiling is five hours, including bounded cold container startup; this is not a predicted duration.
 
 **Constraints**: Exact source integers/indices, strict mechanical provenance, visible-only proposal/fitting, isolated selection supervision, sealed assessment, conservative dependency closure, finite generation/search/storage. Full research runs are separate from qualification.
 

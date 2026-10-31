@@ -3,7 +3,9 @@ from .budgets import integer
 
 GIB=1024**3
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
-MINUTES=dict(preflight=10,qualification=120,preparation=10,cases=75,packaging=15,margin=10)
+# Includes cold container filesystem setup; learner/research budgets are unchanged.
+MINUTES=dict(preflight=45,qualification=140,preparation=10,cases=75,packaging=20,margin=10)
+SESSION_SECONDS=sum(MINUTES.values())*60
 
 
 def preflight(*,study_bytes,checkpoint_bytes,shard_bytes,raw_bytes,sharing_bytes,available_bytes):
@@ -18,8 +20,8 @@ def reserve_stage(stage,*,elapsed_seconds,requested_seconds):
     if stage not in MINUTES or stage=='margin': raise ValueError('unknown acceptance stage')
     integer(elapsed_seconds); integer(requested_seconds,1)
     if requested_seconds>MINUTES[stage]*60: raise ValueError('stage reservation exceeds ceiling')
-    remaining=240*60-elapsed_seconds
-    protected=10*60+(15*60 if stage!='packaging' else 0)
+    remaining=SESSION_SECONDS-elapsed_seconds
+    protected=MINUTES['margin']*60+(MINUTES['packaging']*60 if stage!='packaging' else 0)
     if requested_seconds+protected>remaining: raise ValueError('insufficient time; preserve packaging and emergency margin')
     return dict(deadline_seconds=elapsed_seconds+requested_seconds,research_authorized=False)
 

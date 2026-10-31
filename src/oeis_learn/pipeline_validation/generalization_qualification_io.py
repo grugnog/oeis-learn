@@ -117,12 +117,12 @@ def produce(host,workspace,output,*,images,contract):
                 with host.gpu_lock():result=_stages(host,'bigint-gpu',target,external_seconds=stage.seconds)[1]
             else:result=_stages(host,'bigint-cpu',target,external_seconds=stage.seconds)[1]
             return dict(suite='bigint-gpu' if gpu else 'bigint-cpu',result=result)
-    stages=[Stage('image.qualification',1,seconds=240,adapter='inspect'),
+    stages=[Stage('image.qualification',1,seconds=900,adapter='inspect'),
         Stage('cpu.semantic',1,('image.qualification',),seconds=3300,adapter='cpu'),
-        Stage('image.gpu',2,seconds=240,adapter='inspect'),
+        Stage('image.gpu',2,seconds=900,adapter='inspect'),
         Stage('hip.preflight',2,('image.gpu','cpu.semantic'),seconds=2400,adapter='hip')]
     code=execute(stages,output/'pipeline',adapter=Adapter(),binding=dict(source=collect_snapshot(workspace),contract=contract),
-                 cap=6600,reserve=300)
+                 cap=7800,reserve=300)
     if code:
         # The serial fallback archive preserves stdout, even when no authority
         # exists for the normal report. Keep the original stage reasons visible.

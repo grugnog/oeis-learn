@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
 from oeis_learn.pipeline_validation.identity import confined,seal
 from oeis_learn.fresh.common import write
-from oeis_learn.generalization.resources import reserve_stage,log_tail
+from oeis_learn.generalization.resources import reserve_stage,log_tail,MINUTES,SESSION_SECONDS
 
 CASES=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging')
 
@@ -28,13 +28,13 @@ def plan(engine,manifest,output,*,reuse_run=None,image=None):
             if reuse_run is not None:argv+=['--reuse-run',reuse_run]
         argv+=list(extra)
         stages.append(dict(name=name,operation=operation,seconds=seconds,category=category,argv=argv))
-    add('preflight','preflight',600,'preflight')
-    add('qualify','qualify',7200,'qualification')
+    add('preflight','preflight',MINUTES['preflight']*60,'preflight')
+    add('qualify','qualify',MINUTES['qualification']*60,'qualification')
     qualification=['--qualification',str(output/'qualify')]
     add('prepare','prepare',600,'preparation',qualification)
     for case in CASES:
         add(case,'acceptance',900,'cases',qualification+['--case',case,'--inputs',str(output/'prepare')])
-    add('report','report',600,'packaging',['--inputs',str(output)])
+    add('report','report',900,'packaging',['--inputs',str(output)])
     add('verify-bundle','verify-bundle',300,'packaging',['--archive',str(output/'report.zip')])
     return stages
 
@@ -144,7 +144,7 @@ def main(argv=None):
         image=children['refresh'][2]['images'][0]
         stages=plan(args.engine,args.manifest,args.output,reuse_run=args.reuse_run,image=image)
         if args.dry_run:
-            print(json.dumps(dict(stages=stages,ceiling_seconds=14400,margin_seconds=600,
+            print(json.dumps(dict(stages=stages,ceiling_seconds=SESSION_SECONDS,margin_seconds=MINUTES['margin']*60,
                 research_authorized=False,reuse='canonical endpoints verify original producers'),indent=2))
             return 0
         from oeis_learn.generalization.resources import CAPS

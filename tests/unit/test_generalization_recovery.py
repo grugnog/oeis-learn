@@ -15,11 +15,20 @@ def test_immutable_terminal_and_restart():
     with pytest.raises(ValueError): restart(flow,old_root='old',new_root='new',reason='interrupted',learner=True)
 
 def test_reservations_and_log_bounds():
-    assert preflight(study_bytes=10,checkpoint_bytes=5,shard_bytes=1,raw_bytes=1,sharing_bytes=1,available_bytes=100)['minutes']==240
+    assert preflight(study_bytes=10,checkpoint_bytes=5,shard_bytes=1,raw_bytes=1,sharing_bytes=1,available_bytes=100)['minutes']==300
     with pytest.raises(ValueError): preflight(study_bytes=100,checkpoint_bytes=5,shard_bytes=1,raw_bytes=1,sharing_bytes=1,available_bytes=90)
     with pytest.raises(ValueError): reserve_stage('cases',elapsed_seconds=200*60,requested_seconds=75*60)
     tail=log_tail(('x'*20000+'\n')*200)
     assert len(tail.encode())<=1024**2 and len(tail.splitlines())<=100
+
+
+def test_extended_startup_budget_still_protects_packaging_and_margin():
+    # Exactly 30 minutes remain: 20 for packaging, 10 emergency margin.
+    with pytest.raises(ValueError,match='preserve packaging'):
+        reserve_stage('cases',elapsed_seconds=270*60,requested_seconds=1)
+    assert reserve_stage('packaging',elapsed_seconds=270*60,requested_seconds=1200)['deadline_seconds']==290*60
+    with pytest.raises(ValueError):reserve_stage('packaging',elapsed_seconds=270*60+1,requested_seconds=1200)
+    with pytest.raises(ValueError,match='ceiling'):reserve_stage('preflight',elapsed_seconds=0,requested_seconds=2701)
 
 def test_required_results_cannot_be_silently_redacted():
     with pytest.raises(ValueError): bundle_plan([dict(path='weights',bytes=1,private=True,required=True)],mandatory={'weights'})

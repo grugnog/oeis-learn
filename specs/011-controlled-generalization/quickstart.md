@@ -148,8 +148,8 @@ python3 scripts/generalization_hip_serial.py --engine docker \
 After the operator completes real image/input/preflight gates, the single normal
 invocation is the same command without `--dry-run`. It runs preflight, one original
 qualification, preparation, five serial cases, report and independent verify-bundle.
-The helper forwards the frozen CPU image. Reservations total 13,800 seconds plus
-600 seconds of recovery margin within four hours; they do not authorize research.
+The helper forwards the frozen CPU image. Reservations total 17,400 seconds plus
+600 seconds of recovery margin within five hours; they do not authorize research.
 
 The helper preserves original receipts, bounded logs and failure status. A verified
 complete or partial report is copied to the session sibling ZIP. Report/verifier

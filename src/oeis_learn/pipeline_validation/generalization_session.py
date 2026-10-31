@@ -67,7 +67,7 @@ def _execute(args,workspace,host_factory):
             from oeis_learn.generalization.resources import preflight,CAPS
             storage={k:sum(child[2]['storage'][k] for child in children.values()) for k in CAPS}
             reservations=preflight(**storage,available_bytes=shutil.disk_usage(workspace).free)
-            plans={name:_validate(host,workspace,output/name,base,study,runtime,seconds=120) for name,(base,study,runtime,_,_) in children.items()}
+            plans={name:_validate(host,workspace,output/name,base,study,runtime,seconds=600) for name,(base,study,runtime,_,_) in children.items()}
             return terminal(dict(status='PASS',plans=plans,reservations=reservations,qualification_required=True,repeat_reason='fresh current input and resource inspection'))
         qualified=_qualification(host,workspace,output,anchor[0],anchor[1],anchor[2],args)
         if args.operation=='prepare':
@@ -154,7 +154,7 @@ def report(args,workspace,host_factory,session,children):
     if args.image is not None and args.image!=image:raise ValueError('acceptance report image mismatch')
     host=host_factory(args)
     if host.engine.image(image)!=image:raise ValueError('immutable acceptance report image changed')
-    output.mkdir(parents=True);inspect_current_image(host,image,output/'inspection',seconds=120)
+    output.mkdir(parents=True);inspect_current_image(host,image,output/'inspection',seconds=300)
     staging=output/'private/public-input';staging.mkdir(parents=True)
     qualification=root/'qualify';q=json.loads((qualification/'qualification.json').read_text())
     refs=[reference(qualification/'qualification.json',qualification),*public_closure(qualification,q)]

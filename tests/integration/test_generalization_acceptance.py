@@ -15,7 +15,12 @@ def helper():
 def test_serial_plan_one_qualification_and_no_research(tmp_path):
     h=helper();plan=h.plan('docker','manifest.json','run-state/new')
     assert [p['operation'] for p in plan]==['preflight','qualify','prepare']+['acceptance']*5+['report','verify-bundle']
-    assert sum(p['seconds'] for p in plan)+600==14400
+    assert sum(p['seconds'] for p in plan)+600==18000
+    from oeis_learn.generalization.resources import reserve_stage
+    elapsed=0
+    for stage in plan:
+        reserve_stage(stage['category'],elapsed_seconds=elapsed,requested_seconds=stage['seconds'])
+        elapsed+=stage['seconds']
     consumers=[p for p in plan if p['operation'] in ('prepare','acceptance')]
     assert all(p['argv'][p['argv'].index('--qualification')+1]=='run-state/new/qualify' for p in consumers)
     assert not any(p['operation'] in ('train','replay') for p in plan)
@@ -86,6 +91,7 @@ def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_pa
     def execute(stages,output,**kwargs):
         observed.update(kwargs)
         assert len([s for s in stages if s.adapter=='hip'])==1
+        assert [s.seconds for s in stages if s.adapter=='inspect']==[900,900]
         assert sum(s.seconds for s in stages)+kwargs['reserve']<=kwargs['cap']
         return 1
     monkeypatch.setattr(runner,'execute',execute)
@@ -93,7 +99,43 @@ def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_pa
     result=io.produce(None,tmp_path,tmp_path/'qualification',images=['cpu','gpu'],contract={})
     assert result['status']=='FAIL'
     # Two image inspections, one device inspection and authority validation.
-    assert observed['cap']+3*120+120<=7200
+    assert observed['cap']+3*120+120+120<=8400
+
+
+def test_cold_session_preflight_budget_fits_all_four_roles(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_session as session
+    from oeis_learn.generalization.resources import CAPS
+    children={name:(tmp_path,{},dict(images=['cpu','gpu'],storage={k:0 for k in CAPS}),None,None)
+              for name in ('retained-eval','refresh','parameter-targets','replay-resume')}
+    monkeypatch.setattr(session,'load_session',lambda *a:({'identity':'fixture'},children))
+    seconds=[]
+    def validate(*args,**kw):seconds.append(kw['seconds']);return {'validated':True}
+    monkeypatch.setattr(session,'_validate',validate)
+    args=SimpleNamespace(operation='preflight',manifest='unused',output='preflight',image='cpu')
+    assert session._execute(args,tmp_path,lambda args:object())==0
+    assert seconds==[600]*4
+    plan=helper().plan('podman','manifest','run')
+    assert sum(seconds)+4*5+120<=plan[0]['seconds']
+    result=json.loads((tmp_path/'preflight/result.json').read_text())
+    assert result['result']['reservations']['minutes']==300
+
+
+def test_report_startup_and_packaging_fit_parent_budget(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn import container_validation
+    from oeis_learn.pipeline_validation import generalization_session as session
+    (tmp_path/'run').mkdir()
+    observed={}
+    def inspect(*a,**kw):observed.update(kw);raise TimeoutError('bounded startup')
+    monkeypatch.setattr(container_validation,'inspect_current_image',inspect)
+    host=SimpleNamespace(engine=SimpleNamespace(image=lambda image:image))
+    args=SimpleNamespace(inputs='run',output='report',image='cpu')
+    with pytest.raises(TimeoutError,match='bounded startup'):
+        session.report(args,tmp_path,lambda args:host,{}, {'refresh':(None,None,{'images':['cpu','gpu']})})
+    assert observed['seconds']==300
+    report=next(s for s in helper().plan('podman','manifest','run') if s['operation']=='report')
+    assert observed['seconds']+480+2*5+60<=report['seconds']
 
 
 def test_research_consumer_projects_complete_verified_feature_closure(tmp_path,monkeypatch):

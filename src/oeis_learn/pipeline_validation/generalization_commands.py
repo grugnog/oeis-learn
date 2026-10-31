@@ -173,7 +173,7 @@ def _execute(args,workspace,host_factory):
     if args.operation=='preflight':
         from oeis_learn.generalization.resources import preflight
         resources=preflight(**runtime['storage'],available_bytes=shutil.disk_usage(workspace).free)
-        plan=_validate(host,workspace,output,base,study,runtime)
+        plan=_validate(host,workspace,output,base,study,runtime,seconds=600)
         return finish(dict(status='PASS',resources=resources,plan=plan,qualification_required=True))
     _qualification(host,workspace,output,base,study,runtime,args)
     if getattr(args,'reuse_run',None):

@@ -500,3 +500,43 @@ pipeline-contract and container-adapter selection: **312 passed, one hardware
 test deselected in 19.33 seconds**. `git diff --check` passed. No container or HIP
 command ran locally; T063–T068 remain open. Fresh images and newly frozen inputs
 are required for another acceptance invocation because source/test closure changed.
+
+## T091 bounded startup timeout increase — 2026-10-31
+
+The uploaded `acceptance-006.zip` verifies as an intact FAIL recovery archive,
+SHA-256 `001706fb6f6f6b86a954f8f1a0d329fd62f35ccdcfb1063f42e11edee9735c54`.
+Initial preflight timed out at 120.87 seconds; report image inspection timed out at
+120.26 seconds. Neither stderr contains an actual Python-start marker (the marker
+text echoed inside Podman's command log is not execution evidence). Both logs end
+at overlay mount setup after reporting that idmapped overlay mounts are unsupported.
+Cleanup was acknowledged in 0.031 and 2.05 seconds. This locates the observed delay
+before Python, but does not establish whether filesystem setup would eventually
+finish or identify an exact kernel/storage cause. No qualification or HIP ran.
+
+Following the operator's request to consider a larger timeout, initial validation
+now allows 600 seconds per case and initial CPU/GPU image inspection 900 seconds
+per image. The enclosing preflight stage is 2700 seconds; the qualification runner
+is 7800 seconds including a 300-second reserve, within an 8400-second qualification
+stage that retains room for all four post-run verification calls. Report image
+inspection allows 300 seconds, with the existing 480-second packaging role inside
+a 900-second report stage; independent bundle verification retains 300 seconds.
+The total reservation is 17,400 seconds plus 600 emergency seconds (five hours).
+Plan/contracts, preflight resource output, serial plan and dry-run ceiling agree.
+The current T038/T065 task text explicitly records this prospective amendment;
+historical evidence retains its original four-hour budget and failure status.
+
+This changes finite startup allowances, not training budgets, research scope,
+isolation, acceptance criteria or automatic retry behavior. Warm consumer checks
+retain their existing bounds. Diagnostics remain enabled. A longer deadline is
+not evidence that the startup issue is fixed; a new actual run is still required.
+
+Six budget/propagation cases failed before implementation. The focused recovery
+and acceptance selection then passed 25 tests. The complete generalization,
+bundle, pipeline-contract and container-adapter selection passed **315 tests,
+one hardware test deselected in 19.48 seconds**. Tests exercise the full worst-case
+serial schedule, one-second margin overruns, four initial validation allocations,
+qualification and report child/parent nesting, and existing failure packaging.
+`git diff --check` passed. Checklist gates remain 16/16 requirements and 15/15
+design; no extension hooks are registered. No container/HIP command ran locally,
+and hardware tasks T063–T068 remain open. Source changes require freshly built
+images and newly frozen inputs before the next single serial invocation.
