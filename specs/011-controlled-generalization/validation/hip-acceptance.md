@@ -1,13 +1,12 @@
 # HIP acceptance — qualification passed; feature acceptance failed
 
 Current status after operator acceptance-008 (2026-10-31): CPU/native and actual
-HIP qualification passed; overall feature acceptance remains FAIL / UNMEASURED.
-The canonical archive now verifies, and retained evaluation, refresh and parameter
-targets passed. Replay/resume failed after bootstrap validation with an exhausted
-cleanup deadline; its nested role controls were not captured. T096 fixes locally
-reproduced cleanup starvation and T097 enables export of those existing controls.
-Retrieve that evidence before prescribing another HIP invocation. These changes
-are locally tested and still require fresh qualification for their changed source.
+HIP qualification passed; feature acceptance remains FAIL / UNMEASURED.
+The canonical archive verifies. Supplemental nested controls identify a30-second
+continued_sft learner timeout after four successful replay audits, followed by
+cleanup starvation. T096 repairs cleanup; T098 enlarges the frozen retained-model
+allowances within the same five-hour session ceiling. The changed source still
+requires fresh operator qualification and complete replay/resume evidence.
 See the final section below. Earlier NOT RUN statements are historical records.
 
 ## Historical local baseline, before operator runs
@@ -225,3 +224,28 @@ archives and exports them from existing runs with no containers or HIP execution
 Export acceptance-008's existing files before selecting another repair or timeout.
 T064–T067 remain open; the original passed qualification is preserved for its
 original source, and these new repairs do not inherit that qualification.
+
+## Acceptance-008 supplemental replay controls — 2026-10-31
+
+`acceptance-008-diagnostics.zip` independently passes inventory/hash verification
+with291 inventoried members and diagnostic-only PARTIAL status. SHA-256:
+`39e8c2730e672c0886418e1365256189e7248bad9ba61e019ed48de85d6c5cc6`.
+
+All four `search/private/attempts/*/audit/role` processes completed successfully
+in1.097–1.127 seconds with acknowledged cleanup. The first continued_sft learner
+process then hit its30-second external deadline; its process record measures
+35.002887 seconds including the exhausted5-second cleanup. Its command binds
+the original retained architecture (width768,6 encoder/decoder layers, FP32),
+512 target tokens and the selected initializer. Stderr contains Torch model and
+attention warnings, no traceback. It proves the role started and exceeded its
+wall allowance, but does not identify the exact active training phase.
+
+T098 raises the P4 learner and current-policy evaluation allowances to180 seconds
+and the replay/resume case to35 minutes, retaining the same work/seed/model.
+The entire serial schedule still fits five hours by reallocating20 minutes from
+CPU qualification margin; the actual CPU suite took336.07 seconds and still gets
+35 minutes. All suites, qualification integrity, cleanup and packaging requirements
+remain enforced. Do not edit or reuse the old frozen input as fresh evidence.
+Rebuild the two images, assemble acceptance-inputs-009, and run one normal serial
+acceptance-009 session to perform qualification and all cases, then package and
+verify results. T064–T067 remain open pending that actual evidence.

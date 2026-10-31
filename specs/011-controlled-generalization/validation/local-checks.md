@@ -666,3 +666,27 @@ evidence reconciliation, with software FAIL and scientific UNMEASURED. See
 remaining blocker is the omitted nested role evidence needed to identify the
 failure that preceded cleanup. The existing-run stdlib exporter retrieves it
 without another hardware invocation. T064–T067 remain open.
+
+## T098 retained-model deadline repair — 2026-10-31
+
+The supplemental acceptance-008 records identify the original error: continued_sft
+training exceeded its30-second external deadline; supervision then spent5 seconds
+on unsuccessful cleanup. All four preceding replay audits completed in about1.1
+seconds each. Learner stderr reached Torch transformer/attention warnings, with
+no traceback; the exact active update/checkpoint phase is unknown. This is evidence
+of an exhausted wall allowance, not proof of a kernel hang or training correctness.
+
+Generated P4 acceptance inputs now freeze180-second learner and180-second
+evaluation allowances, preserving the original model,512-token cap, single seed,
+30-second replay search and research recipes. Its outer case gets2100 seconds.
+Twenty minutes of CPU qualification margin move to the case: CPU/native retains
+2100 seconds against the observed336.07-second suite; no tests are removed. The
+qualification runner cap is6600 seconds plus600 for fresh inspection/validation.
+The complete serial plan still reserves17400 seconds plus600 emergency margin.
+
+Three regression assertions failed before implementation. Setup/session,
+qualification nesting and resource/packaging tests then passed:31 tests. The
+generated plan fits four learners, two evaluations, search, two proofs, fresh
+qualification inspection, validation and an additional120-second cleanup/I/O
+reserve within the case. Oversized work is rejected before execution. This is
+local validation only; changed images/source require fresh operator qualification.

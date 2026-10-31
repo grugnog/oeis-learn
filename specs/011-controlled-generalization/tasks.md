@@ -462,3 +462,11 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — nested role failure capture
 
 - [X] T097 Collect nested acceptance role supervision through bounded metadata discovery with a four-file allowlist, skipping input/state/cache payloads and symlinks. Map private control locations to public diagnostic paths, test normal/recovery/existing-run archives and discovery limits, and independently reconcile acceptance-008 without rerunning HIP or inferring its uncaptured original failure (FR-033, NFR-007/008, SC-007).
+
+### Phase C/D — retained-model acceptance timeout repair
+
+- [X] T098 Increase the frozen P4 acceptance learner/evaluation allowances after the actual retained-model learner exceeded30 seconds; reallocate existing qualification margin to replay/resume while preserving the five-hour serial ceiling, cleanup/reporting reserves, token/model/seed limits and research budgets. Test generated inputs, nested reservations and pre-execution rejection; preserve acceptance-008 original evidence (NFR-003/006/007/008, SC-006/007).
+
+### Phase C/D — learner timeout progress diagnostics
+
+- [ ] T099 Capture pre-import startup/periodic stack diagnostics and bounded learner phase markers through existing nested controls, with real subprocess regression and no changes to model updates, checkpoints or deadlines (FR-033, NFR-007/008, SC-007).

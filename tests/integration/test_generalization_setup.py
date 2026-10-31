@@ -25,6 +25,12 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
     result=setup(tmp_path,monkeypatch)
     session,children=load_session(tmp_path,result['session']['manifest'])
     assert session['version']=='generalization-acceptance-session/v2'
+    replay_study,replay_runtime=children['replay-resume'][1:3]
+    assert replay_study['budgets']['seconds']==180
+    assert replay_runtime['evaluation']['seconds']==180
+    assert replay_study['budgets']['target_tokens']==512
+    assert replay_study['model']['architecture']==children['retained-eval'][1]['model']['architecture']
+    assert children['refresh'][1]['budgets']['seconds']==30
     for name,(base,study,runtime,_,_) in children.items():
         validate_execution(base,study,runtime)
         def native(source,indices):
@@ -47,6 +53,19 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
     h=helper();h.ROOT=tmp_path
     assert h.main(['--engine','docker','--manifest',result['session']['manifest'],'--output','run-state/new','--dry-run'])==0
     assert not (tmp_path/'run-state/new').exists()
+
+
+def test_replay_work_over_reservation_is_rejected_before_execution(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_session as session
+    result=setup(tmp_path,monkeypatch)
+    load=session.load
+    def oversized(*args,**kw):
+        base,study,runtime=load(*args,**kw)
+        if study['progression']['stage']=='P4':study['budgets']['seconds']=400
+        return base,study,runtime
+    monkeypatch.setattr(session,'load',oversized)
+    with pytest.raises(ValueError,match='cannot fit'):
+        session.load_session(tmp_path,result['session']['manifest'])
 
 
 def test_new_selection_resolves_only_its_original_session_dependency(tmp_path,monkeypatch):

@@ -3,8 +3,11 @@ from .budgets import integer
 
 GIB=1024**3
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
-# Includes cold container filesystem setup; learner/research budgets are unchanged.
-MINUTES=dict(preflight=45,qualification=140,preparation=10,cases=75,packaging=20,margin=10)
+# Reassign twenty minutes of CPU qualification margin to retained-model acceptance.
+# Research budgets and the five-hour aggregate ceiling are unchanged.
+MINUTES=dict(preflight=45,qualification=120,preparation=10,cases=95,packaging=20,margin=10)
+CASE_SECONDS={'retained-eval':900,'refresh':900,'parameter-targets':900,
+              'replay-resume':2100,'failure-packaging':900}
 SESSION_SECONDS=sum(MINUTES.values())*60
 
 

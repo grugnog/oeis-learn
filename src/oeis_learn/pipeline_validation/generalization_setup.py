@@ -53,9 +53,10 @@ def assemble_acceptance(workspace,*,imported,images,output):
     cfg.update(stage='P3',cells=[static,*copy.deepcopy(shared)],training={a:dict(cells=['static'],data_mode='static',batch_size=4) for a in ('literal','parameterized')})
     assemble('parameter-targets',cfg)
     cfg.update(stage='P4',recipe=recipe,initializer=pending(e0study['identity']),training={a:dict(cells=['static'],data_mode='static',batch_size=4) for a in ('continued_sft','verified_replay')},
-        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=30,bank_seeds=None),
+        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=180,bank_seeds=None),
         replay=dict(cell='static',seconds=30,proposal_policy=DIAGNOSTIC))
     cfg['storage'].update(study_bytes=30<<30,checkpoint_bytes=26<<30)
+    cfg['budgets']['seconds']=180
     cfg['milestones']=[512]
     assemble('replay-resume',cfg)
     session=assemble_session(workspace,results,str((target/'generalization-acceptance.json').relative_to(workspace)))

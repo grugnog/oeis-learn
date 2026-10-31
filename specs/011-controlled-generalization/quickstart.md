@@ -148,7 +148,8 @@ complete resumed state with uninterrupted state. Empty replay yield is valid in
 research but cannot establish acceptance coverage of an admitted replay update.
 
 Acceptance inputs have at most one seed and 4,096 target tokens. The loader also
-bounds each case's work to fit inspection, validation and work inside its 900-second
+bounds each case's work to fit inspection, validation and work inside its reserved
+2100-second replay/resume or900-second other-case
 reservation. Preflight validates all four inputs and storage before expensive work.
 
 ## One consolidated HIP session
@@ -264,3 +265,5 @@ states, sealed truth and checkpoint bytes remain outside sharing archives.
 See [local evidence](validation/local-checks.md), [algorithm review](validation/algorithm-review.md),
 [hardware status](validation/hip-acceptance.md), [coverage audit](checklists/implementation.md)
 and [CLI contract](contracts/cli.md) for implementation and validation boundaries.
+
+The generated retained-model replay/resume fixture allows180 seconds for each learner invocation and180 seconds for each policy evaluation. Its outer limit is35 minutes; the remaining cases retain15 minutes each. Qualification reserves120 minutes, including35 minutes for the CPU/native suite, so the full serial reservation remains five hours. These are upper bounds, not runtime predictions. Preserve earlier frozen inputs and run directories; rebuild images and assemble a fresh numbered input/session after source changes.

@@ -16,6 +16,13 @@ def test_serial_plan_one_qualification_and_no_research(tmp_path):
     h=helper();plan=h.plan('docker','manifest.json','run-state/new')
     assert [p['operation'] for p in plan]==['preflight','qualify','prepare']+['acceptance']*5+['report','verify-bundle']
     assert sum(p['seconds'] for p in plan)+600==18000
+    stages={p['name']:p for p in plan}
+    assert stages['replay-resume']['seconds']==2100
+    assert stages['qualify']['seconds']==7200
+    assert all(stages[name]['seconds']==900 for name in ('refresh','retained-eval','parameter-targets','failure-packaging'))
+    # Four learners (paired, paused, resumed), two evaluations, search and two
+    # proofs, plus qualification reinspection/validation and cleanup/I/O reserve.
+    assert 4*180+2*180+30+2*60+540+120<=stages['replay-resume']['seconds']
     from oeis_learn.generalization.resources import reserve_stage
     elapsed=0
     for stage in plan:
@@ -92,6 +99,7 @@ def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_pa
         observed.update(kwargs)
         assert len([s for s in stages if s.adapter=='hip'])==1
         assert [s.seconds for s in stages if s.adapter=='inspect']==[900,900]
+        assert next(s.seconds for s in stages if s.adapter=='cpu')==2100
         assert sum(s.seconds for s in stages)+kwargs['reserve']<=kwargs['cap']
         return 1
     monkeypatch.setattr(runner,'execute',execute)
@@ -99,7 +107,7 @@ def test_qualification_reserves_post_run_inspection_without_launching_hip(tmp_pa
     result=io.produce(None,tmp_path,tmp_path/'qualification',images=['cpu','gpu'],contract={})
     assert result['status']=='FAIL'
     # Two image inspections, one device inspection and authority validation.
-    assert observed['cap']+3*120+120+120<=8400
+    assert observed['cap']+3*120+120+120<=7200
 
 
 def test_cold_session_preflight_budget_fits_all_four_roles(tmp_path,monkeypatch):

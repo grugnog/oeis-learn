@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
 from oeis_learn.pipeline_validation.identity import confined,seal
 from oeis_learn.fresh.common import write
-from oeis_learn.generalization.resources import reserve_stage,log_tail,MINUTES,SESSION_SECONDS
+from oeis_learn.generalization.resources import reserve_stage,log_tail,MINUTES,SESSION_SECONDS,CASE_SECONDS
 
 CASES=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging')
 
@@ -33,7 +33,7 @@ def plan(engine,manifest,output,*,reuse_run=None,image=None):
     qualification=['--qualification',str(output/'qualify')]
     add('prepare','prepare',600,'preparation',qualification)
     for case in CASES:
-        add(case,'acceptance',900,'cases',qualification+['--case',case,'--inputs',str(output/'prepare')])
+        add(case,'acceptance',CASE_SECONDS[case],'cases',qualification+['--case',case,'--inputs',str(output/'prepare')])
     add('report','report',900,'packaging',['--inputs',str(output)])
     add('verify-bundle','verify-bundle',300,'packaging',['--archive',str(output/'report.zip')])
     return stages
