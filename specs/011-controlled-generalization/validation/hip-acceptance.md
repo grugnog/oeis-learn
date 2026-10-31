@@ -22,3 +22,10 @@ or partial archive identity and independent verifier result here. Preserve separ
 software/scientific statuses and any omitted evidence. A failed session remains
 failed; record any targeted repair, invalidated producer and justified minimal rerun
 before replacing evidence. No rerun was attempted in this environment.
+
+## Reconstruction input status — 2026-10-31
+
+No HIP commands executed. Host import/assembly and serial fixtures are locally
+validated; the uniform metadata is compatible. P4 original initializer evidence
+and real reduced inputs/images remain required. See [reconstruction.md](reconstruction.md)
+for exact results and the unimplemented bootstrap dependency if no initializer exists.

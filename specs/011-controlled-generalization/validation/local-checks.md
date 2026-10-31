@@ -1,3 +1,11 @@
+# Reconstruction validation — 2026-10-31
+
+The verified reconstruction passes all 242 generalization tests within a broader
+963-pass run. Thirteen additional tests fail on missing Wasmtime/native/container
+prerequisites; 35 skip and 27 device/container cases are deselected. Full commands,
+Git provenance and limits are in [reconstruction.md](reconstruction.md). These
+results supersede unverified conversational completion counts. T063–T068 stay open.
+
 # Current non-HIP validation — 2026-10-31
 
 Phase B defects are repaired and all Phase C integration tasks T045–T062 are
