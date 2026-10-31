@@ -349,3 +349,29 @@ reserves final packaging, and copies the verified archive to the session sibling
 CPU/fixture tests include real tensor updates and complete state comparison; they
 do not establish container/native/HIP qualification. Current evidence and remaining
 environment gates are recorded at the top of validation/local-checks.md.
+
+## Reconstructed convergence work — 2026-10-31
+
+The earlier conversational T071–T079 completion report and commit IDs are not
+supported by Git objects. The exact former task wording is unavailable. The tasks
+below are a new, explicit reconstruction from spec/plan requirements, starting at
+verified remote commit `6e63421e2d8ef137d01d1d701f9fb0205b012059`. They do not claim
+recovery of the earlier implementation. Existing T063–T068 evidence gates stay open.
+
+### Reopened Phase B — policy repairs and independent counterexamples
+
+- [ ] T071 Require comparable frozen selection rosters and retain unsupported target rows safely in `generalization/selection.py`, `targets.py` and their independent unit tests (FR-019/022/023).
+- [ ] T072 Bind the complete runtime execution choices and resolved recipe to new study/preparation versions in `generalization/execution.py`, `contracts.py`, `schemas/` and contract tests; prevent sidecar resealing from changing a frozen experiment (FR-001/021, NFR-008).
+- [ ] T073 Enforce named experiment/acceptance-case policies, evaluation-only E0, matched paired batches, fixed refresh mixtures and bounded acceptance scope in `generalization/execution.py` and counterexamples (FR-005/017/018/021, NFR-005).
+- [ ] T074 Define verified weights-only legacy import policy in `generalization/legacy.py` with tampering/lineage tests. Preserve original uniform provenance and historical best-loss meaning; never invent a full-state resume or selection-designated initializer (FR-002/005/022/024).
+
+### Phase C — reconstruction integration
+
+- [ ] T075 Wire the reviewed execution/target policies into preparation/runtime/selection and add regression cases in existing integration tests. Preserve historical formats for inspection; new executable inputs use the bound versions.
+- [ ] T076 Implement stdlib input assembly and legacy-import commands in `scripts/generalization_inputs.py` and `pipeline_validation/generalization_inputs.py`, with complete input hash checks, fresh destinations, examples and host-isolation tests.
+- [ ] T077 Wire strict four-child acceptance assembly and case dispatch, preserving one qualification and the existing serial canonical endpoint sequence; test dry-run and fail-closed missing inputs before any engine launch.
+
+### Phase D — local validation and truthful delivery
+
+- [ ] T078 Register added tests/source/package files and run the available reference, contract, integration, host-portability and historical regressions. Record actual results and unavailable native/container/HIP gates.
+- [ ] T079 Update contracts, quickstart and recovery evidence; verify each new commit exists and provide a transferable Git bundle plus concrete next steps. No HIP or research run is part of reconstruction.
