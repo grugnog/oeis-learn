@@ -448,4 +448,4 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 
 ### Phase C/D — bounded image reclamation
 
-- [ ] T094 Reserve up to30 seconds for image-inspection process/container cleanup inside the existing inspection deadline; retain fail-closed behavior, accurate cleanup accounting and bounded process termination. Capture consumer inspection records in diagnostics and test shared deadline propagation and slow/failed removal (NFR-006/007, SC-007).
+- [X] T094 Reserve up to30 seconds for image-inspection process/container cleanup inside the existing inspection deadline; retain fail-closed behavior, accurate cleanup accounting and bounded process termination. Capture consumer inspection records in diagnostics and test shared deadline propagation and slow/failed removal (NFR-006/007, SC-007).

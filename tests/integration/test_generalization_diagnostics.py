@@ -16,6 +16,8 @@ def test_recovery_captures_terminal_case_and_packaging_failures_first(tmp_path):
     root=tmp_path/'run';root.mkdir()
     expected={
         'replay-resume/result.json':b'{"status":"FAIL","error":"dependency rejected"}',
+        'replay-resume/qualification/inspection/image-1/cleanup.json':b'{"acknowledged":false}',
+        'replay-resume/qualification/inspection/image-1/logs/process.json':b'{"outcome":"COMPLETE"}',
         'replay-resume/case/receipt.json':b'{"state":"FAIL","reason":"ValueError"}',
         'retained-eval/result.json':b'{"status":"PASS","result":{"initializer":null}}',
         'retained-eval/case/evaluation.json':b'{"selection":"inconclusive"}',
@@ -157,10 +159,13 @@ def test_image_inspection_progress_preserves_integrity_checks(tmp_path,monkeypat
     class Engine:
         def command(self,**kw):captured.update(kw);return ['fixture-inspection']
     host=SimpleNamespace(engine=Engine(),policy=dict(workspace=str(tmp_path),memory_bytes=2<<30,cpus=1))
-    monkeypatch.setattr(supervision,'launch',lambda *a,**k:None)
+    launched={}
+    monkeypatch.setattr(supervision,'launch',lambda *a,**k:launched.update(k))
     monkeypatch.setattr(supervision,'reclaim',lambda *a,**k:None)
     output=tmp_path/'inspection'
     container_validation.inspect_current_image(host,'cpu-image',output,seconds=120)
+    assert launched['cleanup_seconds']==30
+    assert launched['seconds']+launched['cleanup_seconds']<=120
     assert captured['gpu'] is False
     assert captured['startup_diagnostics'] is True
     argv=captured['argv'];code=argv[argv.index('-c')+1]

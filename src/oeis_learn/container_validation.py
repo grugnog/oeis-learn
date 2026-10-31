@@ -414,6 +414,8 @@ def inspect_current_image(host, image, output, *, seconds=600):
     from .pipeline_validation.supervision import launch, reclaim
     from .pipeline_validation.identity import write as public_write
     from .experiments.source_snapshot import collect_snapshot
+    cleanup_seconds=30
+    if seconds<=cleanup_seconds:raise ValueError('image inspection must reserve execution and cleanup time')
     output = Path(output)
     output.mkdir(parents=True)
     inputs = output / 'inputs'
@@ -443,8 +445,9 @@ def inspect_current_image(host, image, output, *, seconds=600):
         argv=['python','-u','-c',code], auto_remove=False, gpu=False, startup_diagnostics=True,
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
-    cleanup_state={}
+    cleanup_state={'allowance_seconds':cleanup_seconds}
     try:
-        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+        launch(command, output / 'logs', seconds=seconds-cleanup_seconds,cleanup_seconds=cleanup_seconds,
+               stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     finally:
         reclaim(host.engine,name,output,cleanup_state)

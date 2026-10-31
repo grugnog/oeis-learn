@@ -6,6 +6,31 @@ from oeis_learn.pipeline_validation.supervision import launch
 
 
 class Supervision(unittest.TestCase):
+    def test_extended_cleanup_uses_one_shared_deadline_and_still_fails_closed(self):
+        import json,time,subprocess
+        from unittest.mock import Mock,patch
+        from oeis_learn.pipeline_validation.supervision import reclaim
+        from oeis_learn.pipeline_validation.runner import ResourceBreach
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);state={}
+            launch([sys.executable,'-c','pass'],root/'launch',seconds=5,
+                   cleanup_seconds=30,cleanup_state=state)
+            assert state['allowance_seconds']==30
+            clock=[state['deadline']-29]
+            engine=Mock()
+            def slow_remove(name,timeout):
+                assert timeout==29
+                clock[0]+=12
+            engine.remove.side_effect=slow_remove
+            with patch('oeis_learn.pipeline_validation.supervision.time.monotonic',side_effect=lambda:clock[0]):
+                reclaim(engine,'fixture',root/'cleanup',state)
+            receipt=json.loads((root/'cleanup/cleanup.json').read_text())
+            assert receipt['acknowledged'] and receipt['seconds']==12 and receipt['allowance_seconds']==30
+            engine.remove.side_effect=subprocess.TimeoutExpired('rm',17)
+            with patch('oeis_learn.pipeline_validation.supervision.time.monotonic',return_value=clock[0]):
+                with self.assertRaises(ResourceBreach):reclaim(engine,'fixture',root/'failure',state)
+            assert not json.loads((root/'failure/cleanup.json').read_text())['acknowledged']
+
     def test_container_reclamation_uses_remaining_allowance_and_failure_is_global(self):
         import json
         import subprocess

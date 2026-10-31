@@ -580,3 +580,21 @@ Complete and partial acceptance archives independently verify after the repair;
 unrelated code/locks, weights and private build paths remain rejected. Focused
 archive/recovery/bundle selection:31 passed plus4 passing subtests. No hardware
 run or claim that replay/resume completed is made.
+
+## T094 image inspection cleanup — 2026-10-31
+
+The acceptance-007 replay/resume terminal record reports `ResourceBreach` because
+Podman `rm --force --time=0 --ignore` exceeded its remaining 4.999-second allowance
+for a qualification-consumer image inspection. It failed before replay validation
+or learning; this is not evidence of a replay algorithm failure.
+Image inspection now reserves30 seconds for process/container reclamation inside
+its existing wall allocation (e.g.90 seconds execution plus30 cleanup for a warm
+120-second check). One shared absolute deadline still governs both phases of
+cleanup. The cleanup receipt records the actual configured allowance. Unacknowledged
+removal remains a hard failure; there are no retries or ignored resource breaches.
+All other roles retain their existing five-second cleanup default.
+Consumer image/device/verification control records are now included in diagnostic
+capture. Five regression cases failed before the fix; focused supervisor, diagnostic,
+acceptance and container tests pass42 cases. A simulated12-second acknowledged
+removal succeeds within the new allowance; timeout still fails closed. No actual
+Podman removal timing or new HIP execution is claimed.

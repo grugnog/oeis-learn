@@ -26,6 +26,14 @@ def candidates():
     for operation in ('report/packaging','verify-bundle/verification'):
         yield operation+'/role/result.json'
         for name in CONTROL:yield operation+'/role/supervision/'+name
+    for stage in ('prepare',*CASES,'failure-packaging'):
+        base=f'{stage}/qualification'
+        for position in range(2):
+            yield f'{base}/inspection/image-{position}/cleanup.json'
+            for name in CONTROL:yield f'{base}/inspection/image-{position}/logs/{name}'
+        for name in CONTROL:yield f'{base}/inspection/device/logs/{name}'
+        yield f'{base}/verification/role/result.json'
+        for name in CONTROL:yield f'{base}/verification/role/supervision/{name}'
     for stage in ('preflight','prepare'):
         for case in CASES:
             role=f'{stage}/{case}/validation/role'
