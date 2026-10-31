@@ -13,3 +13,22 @@ def test_contracts_and_adapters_are_authority_but_recipes_independent():
     changed=dict(snapshot);changed[authority]='sha256:'+'0'*64
     assert not compatible_changes(dependency_closure(snapshot,prerequisites={}),dependency_closure(changed,prerequisites={}),[authority])
     assert not compatible_changes(dependency_closure(snapshot,prerequisites={}),dependency_closure(snapshot,prerequisites={}),['unmapped.py'])
+
+
+def test_new_roles_checkpoints_replay_helper_and_tests_are_in_source_closure():
+    root=Path(__file__).resolve().parents[2]
+    snapshot=collect_snapshot(root)
+    for path in (
+        'src/oeis_learn/pipeline_validation/generalization_role.py',
+        'src/oeis_learn/pipeline_validation/generalization_scoring.py',
+        'src/oeis_learn/pipeline_validation/generalization_replay.py',
+        'src/oeis_learn/fresh/bigint_state.py',
+        'scripts/generalization_hip_serial.py',
+        'tests/integration/test_generalization_gpu.py',
+        'tests/integration/test_generalization_training.py',
+        'tests/integration/test_generalization_scoring.py',
+    ):
+        assert path in snapshot
+        changed=dict(snapshot);changed[path]='sha256:'+'0'*64
+        assert not compatible_changes(dependency_closure(snapshot,prerequisites={}),
+            dependency_closure(changed,prerequisites={}),[path])
