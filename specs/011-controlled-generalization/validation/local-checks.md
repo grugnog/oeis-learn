@@ -640,3 +640,29 @@ including a check that more than3.5 seconds remain for engine removal. All seven
 supervisor tests passed. This establishes the cleanup defect independently; it
 does not establish what triggered the original acceptance-008 role failure or
 qualify the changed source on HIP.
+
+## T097 nested role controls and acceptance-008 reconciliation — 2026-10-31
+
+The previous fixed-path collector omitted controls under acceptance cases' private
+workflow directories. Metadata-only discovery now locates nested role directories
+within explicit entry/directory/role/depth bounds. Only process, cleanup, stdout
+and stderr controls may be copied, under the existing per-file and aggregate byte
+caps. Input/checkpoint/cache trees and symlinks are skipped; role payloads are not
+traversed. Public archive paths use the source parent hash and the index retains
+the original-to-exported path mapping. The original run is unchanged.
+
+The missing-capture and missing-bound regressions failed before implementation.
+Tests now verify existing-run and recovery exports exclude private payloads and
+links, all four discovery limits report omissions, and canonical normal reporting
+includes the controls in an independently verified feature archive. Focused
+diagnostic/session checks: **35 passed**. Combined generalization, contract,
+integration, supervisor, container and bundle selection: **341 passed, 4 subtests
+passed, 1 hardware test deselected in21.43 seconds**. No container/HIP command was
+run locally. The implementation digest was regenerated.
+
+The uploaded acceptance-008 archive independently passes inventory and canonical
+evidence reconciliation, with software FAIL and scientific UNMEASURED. See
+[hip-acceptance.md](hip-acceptance.md) for exact original operator results. The
+remaining blocker is the omitted nested role evidence needed to identify the
+failure that preceded cleanup. The existing-run stdlib exporter retrieves it
+without another hardware invocation. T064–T067 remain open.

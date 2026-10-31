@@ -84,14 +84,17 @@ containers or modifying that run, export to a fresh sibling directory:
 
 ```bash
 PYTHONPATH=src python3 -S -m oeis_learn.pipeline_validation.generalization_diagnostics \
-  --run run-state/generalization/acceptance-007 \
-  --output run-state/generalization/acceptance-007-diagnostics
+  --run run-state/generalization/acceptance-008 \
+  --output run-state/generalization/acceptance-008-diagnostics
 ```
 
 The resulting sibling ZIP is explicitly diagnostic-only. It includes bounded
 terminal case results, public case proofs and report/verifier role failures in
-addition to startup/qualification logs, with an inventory of missing or omitted
-records. It neither reruns work nor upgrades the original acceptance status.
+addition to startup/qualification logs. Bounded metadata discovery also captures
+nested replay audit, training, evaluation and proof role supervision records,
+excluding private input/state payloads. The index maps original paths to exported
+copies and identifies missing, truncated or omitted records. It neither reruns
+work nor upgrades the original acceptance status.
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
 The existing `study` and `session` commands remain available for independently frozen

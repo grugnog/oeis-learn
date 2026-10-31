@@ -75,7 +75,7 @@ def recover(root,ledger):
     from oeis_learn.pipeline_validation.generalization_diagnostics import collect
     diagnostics=collect(root,recovery/'diagnostics')
     mandatory=['summary.json','workflow.json','diagnostics/index.json']
-    mandatory.extend('diagnostics/'+r['source'] for r in diagnostics['files'] if r['status'] in {'COPIED','TRUNCATED'})
+    mandatory.extend('diagnostics/'+r['export_path'] for r in diagnostics['files'] if r['status'] in {'COPIED','TRUNCATED'})
     archive=pack(recovery,mandatory=mandatory,optional_cap=8<<20)
     target=root.with_suffix('.zip')
     if target.exists():raise ValueError('recovery archive already exists')

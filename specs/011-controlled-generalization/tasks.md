@@ -458,3 +458,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — shared cleanup deadline starvation
 
 - [X] T096 Bound default container-client graceful termination within the existing shared cleanup deadline, leaving time for engine removal; preserve controller-only grace and explicit overrides. Reproduce starvation with a real SIGTERM-resistant subprocess, test acknowledged reclamation and retain failed operator evidence without claiming fresh HIP qualification (NFR-006/007/008, SC-007).
+
+### Phase C/D — nested role failure capture
+
+- [X] T097 Collect nested acceptance role supervision through bounded metadata discovery with a four-file allowlist, skipping input/state/cache payloads and symlinks. Map private control locations to public diagnostic paths, test normal/recovery/existing-run archives and discovery limits, and independently reconcile acceptance-008 without rerunning HIP or inferring its uncaptured original failure (FR-033, NFR-007/008, SC-007).

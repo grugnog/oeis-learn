@@ -1,11 +1,13 @@
 # HIP acceptance — qualification passed; feature acceptance failed
 
-Current status after operator acceptance-007 (2026-10-31): CPU/native and actual
-HIP qualification passed on source `2501929`; overall feature acceptance remains
-FAIL / PACKAGE_FAILED / UNMEASURED. Replay/resume and reporting failed. The supplemental
-terminal records identify an image-removal timeout and a build-file packaging
-policy defect; T093–T095 repair these and a locally reproduced downstream host
-dependency issue. A fresh operator session must validate the changed source.
+Current status after operator acceptance-008 (2026-10-31): CPU/native and actual
+HIP qualification passed; overall feature acceptance remains FAIL / UNMEASURED.
+The canonical archive now verifies, and retained evaluation, refresh and parameter
+targets passed. Replay/resume failed after bootstrap validation with an exhausted
+cleanup deadline; its nested role controls were not captured. T096 fixes locally
+reproduced cleanup starvation and T097 enables export of those existing controls.
+Retrieve that evidence before prescribing another HIP invocation. These changes
+are locally tested and still require fresh qualification for their changed source.
 See the final section below. Earlier NOT RUN statements are historical records.
 
 ## Historical local baseline, before operator runs
@@ -192,3 +194,34 @@ reuse; rebuild both images, freeze new acceptance-inputs-008, and use one normal
 serial acceptance-008 invocation for requalification and all remaining cases.
 No manual one-off probe or research run is required. Feature acceptance remains
 unqualified until that actual session and archive verification complete.
+
+## Operator acceptance-008 — archive verified, replay blocked (2026-10-31)
+
+Uploaded archive SHA-256:
+`46dc1b71e3b962b4132fc1e2b1ab7a41952e83d532fd3490352aaaa089442f61`.
+Independent `generalization_archive.verify_archive` and `bundle.verify` both
+pass integrity checks for282 inventoried members. Reconciliation reports software
+FAIL, scientific UNMEASURED, retained-eval/refresh/parameter-targets PASS,
+replay-resume FAIL and missing failure-packaging; feature_qualified is false.
+This is the canonical archive, not recovery packaging. Its workflow is the
+pre-packaging snapshot and does not establish the outer wrapper's final exit.
+
+Original qualification logs report1105 CPU/native tests and77 subtests passed
+in336.07 seconds, and27 HIP tests passed in342.29 seconds. Captured images:
+
+- CPU: `sha256:cb07fd322232a92348301d062367b3f99a37d38e5bd65ae8486751a0ac6e6154`.
+- GPU: `sha256:2686b50d900ad6bf9993a7db2548fe99968a897017ed0f86883166feed251f20`.
+- Source closure: `sha256:c83dc301c43b76fea8b47ea529224286a1c1e88f12fb74d1f8e02e97a77385f2`.
+
+Replay bootstrap validation completed. Replay then reported `container termination
+unacknowledged: TimeoutError: cleanup deadline exhausted before container reclamation`.
+Captured consumer inspection/validation controls completed and acknowledged
+cleanup; the nested replay roles' controls are absent. The initial failure and
+its location cannot be determined from this archive. A reproduced supervisor
+defect explains how a stuck client can consume the whole cleanup envelope,
+masking that initial failure; T096 bounds its default graceful wait without
+extending any deadline. T097 captures nested controls in future normal/recovery
+archives and exports them from existing runs with no containers or HIP execution.
+Export acceptance-008's existing files before selecting another repair or timeout.
+T064–T067 remain open; the original passed qualification is preserved for its
+original source, and these new repairs do not inherit that qualification.

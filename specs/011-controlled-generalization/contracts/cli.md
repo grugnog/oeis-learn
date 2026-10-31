@@ -91,11 +91,19 @@ measured selection and original producer closure can resolve that dependency.
 Normal serial session reports and wrapper recovery archives include `diagnostics/`
 with a versioned `index.json`. A fixed path list selects preflight/preparation
 control results, validation role results and supervision process/cleanup records,
-qualification stage receipts and image-inspection logs. Inputs, checkpoints and
-arbitrary private output trees are not traversed. Missing or inaccessible files
+qualification stage receipts and image-inspection logs. Bounded directory-metadata
+discovery under each canonical acceptance case's `case/private` directory also
+finds nested `role/supervision` controls: only `process.json`, `cleanup.json`,
+`stdout.log` and `stderr.log` may be read. Input, checkpoint, cache, selected and
+cell directories and symlinks are skipped; role directories are never descended.
+Other nested payloads, including role results and command files, are not read.
+Discovery stops at8192 entries,2048 directories,256 roles or32 directory levels,
+with an explicit omission when a bound is reached. Nested control copies use
+`nested-roles/<source-parent-hash>/<filename>`; each index row's `source` and
+`export_path` preserve the mapping. Missing or inaccessible files
 and cap omissions are explicit. JSON files are copied whole up to 256 KiB; logs
 retain an opening excerpt and final tail within 64 KiB. Exported payloads total at
-most 4 MiB plus the bounded fixed-list index. Truncated logs are labeled; the
+most 4 MiB plus the bounded discovery/fixed-list index. Truncated logs are labeled; the
 original files are unchanged. Diagnostic copies confer no qualification and
 cannot change the run verdict. The normal report captures diagnostics available
 at packaging time; fallback capture also includes a failed report's inspection.
@@ -104,5 +112,5 @@ Qualification diagnostics also include the canonical `cpu.semantic`/`hip.preflig
 `environment` and `bigint-cpu-regressions`/`bigint-gpu-regressions` records and logs.
 Their `results.xml` JUnit reports are preserved whole up to 2 MiB; larger XML is
 omitted explicitly rather than truncated into invalid XML. The existing 4 MiB
-aggregate payload limit still applies. No recursive pytest/private file discovery
-is performed.
+aggregate payload limit still applies. No recursive pytest discovery is performed;
+the nested role scan reads only the four explicitly allowed control files.

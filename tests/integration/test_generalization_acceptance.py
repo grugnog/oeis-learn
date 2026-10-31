@@ -243,10 +243,16 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     diagnostic=run/'preflight/parameter-targets/validation/role/supervision/process.json'
     diagnostic.parent.mkdir(parents=True)
     diagnostic.write_text('{"outcome":"COMPLETE"}')
+    nested=run/'replay-resume/case/private/replay/seed/search/private/attempts/attempt/audit/role/supervision/process.json'
+    nested.parent.mkdir(parents=True)
+    nested.write_text('{"outcome":"COMPLETE","failure":null}')
     assert main(args('report','run/report',inputs='run'),tmp_path,lambda a:host)==0
     import zipfile
     with zipfile.ZipFile(run/'report.zip') as z:
         assert any(n.endswith('diagnostics/preflight/parameter-targets/validation/role/supervision/process.json') for n in z.namelist())
+        index=json.loads(z.read('payloads/diagnostics/index.json'))
+        row=next(r for r in index['files'] if r['source']==str(nested.relative_to(run)))
+        assert z.read('payloads/diagnostics/'+row['export_path'])==nested.read_bytes()
     from oeis_learn.pipeline_validation.generalization_archive import verify_archive
     checked=verify_archive(run/'report.zip')
     assert checked['feature_qualified'] and checked['cases']==dict.fromkeys(helper().CASES,'PASS')

@@ -12,6 +12,44 @@ def put(root,name,payload):
     return path
 
 
+@pytest.mark.parametrize('recovery',[False,True])
+def test_nested_role_controls_export_without_private_payloads(tmp_path,recovery):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import export
+    root=tmp_path/'run';root.mkdir()
+    base='replay-resume/case/private/replay/20261016/search/private/attempts/abc/audit/role/'
+    expected={base+'supervision/process.json':b'{"failure":"TimeoutError: original deadline"}',
+              base+'supervision/cleanup.json':b'{"acknowledged":false}',
+              base+'supervision/stderr.log':b'original role stack trace'}
+    for name,payload in expected.items():put(root,name,payload)
+    for name in ('result.json','private/weights.pt','supervision/command.json'):
+        put(root,base+name,b'PRIVATE_PAYLOAD')
+    put(root,'replay-resume/case/private/input/role/supervision/stderr.log',b'PRIVATE_PAYLOAD')
+    outside=tmp_path/'outside';put(outside,'role/supervision/stderr.log',b'PRIVATE_PAYLOAD')
+    (root/'replay-resume/case/private/linked').symlink_to(outside,target_is_directory=True)
+    if recovery:
+        ledger=dict(receipts=[dict(stage='replay-resume',exit_code=1)],status='FAIL')
+        put(root,'workflow.json',json.dumps(ledger).encode())
+        archive=helper().recover(root,ledger)
+    else:archive=export(root,tmp_path/'export')['archive']
+    with zipfile.ZipFile(archive) as z:
+        index=json.loads(z.read('diagnostics/index.json'));rows={r['source']:r for r in index['files']}
+        for name,payload in expected.items():
+            row=rows[name];assert row['status']=='COPIED'
+            assert z.read('diagnostics/'+row['export_path'])==payload
+        assert all('private' not in n for n in z.namelist())
+        assert all(b'PRIVATE_PAYLOAD' not in z.read(n) for n in z.namelist())
+
+
+@pytest.mark.parametrize('bound',['ROLE_SCAN_ENTRIES','ROLE_SCAN_DIRS','ROLE_SCAN_ROLES','ROLE_SCAN_DEPTH'])
+def test_nested_role_discovery_reports_its_bound(tmp_path,monkeypatch,bound):
+    from oeis_learn.pipeline_validation import generalization_diagnostics as d
+    root=tmp_path/'run';root.mkdir()
+    for i in range(10):put(root,f'replay-resume/case/private/{i}/role/supervision/stderr.log',b'log')
+    monkeypatch.setattr(d,bound,0 if bound=='ROLE_SCAN_DEPTH' else 3)
+    index=d.collect(root,tmp_path/'export')
+    assert any(r.get('reason')=='nested role discovery bound' for r in index['files'])
+
+
 def test_recovery_captures_terminal_case_and_packaging_failures_first(tmp_path):
     root=tmp_path/'run';root.mkdir()
     expected={
