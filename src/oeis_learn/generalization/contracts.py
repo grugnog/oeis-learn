@@ -51,6 +51,16 @@ def validate(kind, record):
     shape(kind, record)
     if 'identity' not in record or seal(record) != record:
         raise ValueError('canonical identity mismatch')
+    if kind in {'study','preparation'}:
+        settings=record if kind=='study' else record['study_settings']
+        p4=(settings.get('progression',{}).get('stage')=='P4' or settings['recipe']=='P4-replay/v1')
+        if p4:
+            if settings['model']['initialization']=='random':
+                raise ValueError('P4 requires frozen retained initializer authority')
+            if set(settings['arms'])!={'continued_sft','verified_replay'}:
+                raise ValueError('registered paired replay arms required')
+            if kind=='study' and record['data']['target_format']!='literal':
+                raise ValueError('unregistered replay/representation interaction')
     return FrozenAuthority(kind, json.dumps(record, sort_keys=True, allow_nan=False).encode())
 
 
@@ -140,4 +150,7 @@ def resolve_study(preparation, proposed, manifests, *, shortfalls=(), root=None)
     candidate['data']['manifests'] = list(manifests)
     for ref in artifact_refs(candidate):
         verify_artifact(root, ref)
-    return freeze('study', candidate)
+    resolved=freeze('study', candidate)
+    from .initializers import verify_initializer
+    verify_initializer(root,resolved.record())
+    return resolved

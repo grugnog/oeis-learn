@@ -95,3 +95,13 @@ producer must persist actual per-case public results and original runner receipt
 then call `assemble_feature`; a five-name list or aggregate PASS is insufficient.
 Consumers project the complete verified closure and revalidate it inside the role.
 No hardware execution or arbitrary self-authored claim is certified by hashing.
+
+Retained initialization handoff: `initializers.verify_initializer(root, study)`
+verifies version-2 frozen initializer authority, original producer/selection and
+all mechanical-only ancestors. It returns exact `weights`, their `root`, selected
+`checkpoint`, initializer `authority`, and verified lineage documents. Invoke before
+projection/training; mount only the returned weight bytes to the learner/generator.
+Never substitute runtime initializer settings or project ancestor selection truth
+into those roles. `resolve_study` invokes the policy before publication. Both P4
+arms consume the same verified initializer; full-state resume keeps its existing
+exact compatibility check. Contracts/artifacts.md specifies the local reference roots.

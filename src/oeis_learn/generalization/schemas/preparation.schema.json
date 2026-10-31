@@ -5,7 +5,10 @@
   "type": "object",
   "properties": {
     "version": {
-      "const": "generalization-preparation/v1"
+      "enum": [
+        "generalization-preparation/v1",
+        "generalization-preparation/v2"
+      ]
     },
     "identity": {
       "type": "string",
@@ -94,7 +97,27 @@
               "maxLength": 1024
             },
             "initialization": {
-              "const": "random"
+              "oneOf": [
+                {
+                  "const": "random"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "retained"
+                    },
+                    "artifact": {
+                      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifact"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             },
             "architecture": {
               "type": "string",
@@ -169,5 +192,31 @@
     "budgets",
     "study_settings"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": "generalization-preparation/v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_settings": {
+            "properties": {
+              "model": {
+                "properties": {
+                  "initialization": {
+                    "const": "random"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

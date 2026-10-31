@@ -42,7 +42,7 @@ The task skill's default separate implementation phase per story is adapted to t
 
 - [X] T009 [P] Add independent authority, preparation-transition and path/provenance counterexamples in `tests/unit/test_generalization_contracts.py`, including mutable authority, fabricated identities and hidden evaluation payload rejection; establish the failing expectations for T011.
 - [X] T010 [P] Add hand-computed token/resource ledger tests in `tests/unit/test_generalization_budgets.py`, covering replay-shortened targets, boundary undershoot, interrupted debits, exhaustion and insufficient checkpoint storage; establish the failing expectations for T012.
-- [ ] T011 Implement canonical identity, strict format/provenance validation and preparation-to-new-frozen-study transitions in `src/oeis_learn/generalization/contracts.py`; use existing sealing, preserve immutable authority and reject unknown fields, forbidden imported training ancestry and a shortfall producing trainable study output.
+- [X] T011 Implement canonical identity, strict format/provenance validation and preparation-to-new-frozen-study transitions in `src/oeis_learn/generalization/contracts.py`; use existing sealing, preserve immutable authority and reject unknown fields, forbidden imported training ancestry and a shortfall producing trainable study output.
 - [X] T012 Implement exact cumulative budget and update-boundary accounting in `src/oeis_learn/generalization/budgets.py`: charge actual nonpadding target tokens after replay substitution including encoded EOS, exclude BOS/input/PAD, preserve a pending batch or pre-sampling RNG/cursor, bound cap undershoot by one prospective batch and never replenish resumed budgets.
 
 ### US1 — Explain evidence and extend evaluation (P1)
@@ -113,7 +113,7 @@ The task skill's default separate implementation phase per story is adapted to t
 
 ### Phase-B exit gate
 
-- [ ] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
+- [X] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
 
 ## Phase C — Routine story integration
 
@@ -309,3 +309,11 @@ reservations, and checks replay tasks against prepared training shards. T046, T0
 T053, T061 and T062 remain unchecked because their complete canonical workflows are
 not yet wired. D documentation/check coverage is updated without claiming hardware
 validation or a complete implementation.
+
+### Retained initializer gate restored
+
+T011/T044 are complete again. Version 2 study/preparation contracts freeze a common
+retained initializer; version 1 retains its random-only meaning. The original
+P4 counterexample and independent lineage/selection/producer/tamper cases pass.
+The combined regression selection passes 262 tests plus 9 subtests, with the GPU
+test deselected. Continue C/D; the earlier initializer blocker is superseded.

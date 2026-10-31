@@ -253,3 +253,20 @@ Latest combined regression: **249 passed, 1 failed, 1 GPU deselected, 9 subtests
 passed**. The only failure is this new contract counterexample. This is a real
 prerequisite failure, not a HIP failure. No HIP command ran. Remaining C/D is not
 complete; the feature gate is not restored.
+
+### Retained initializer repair — gate restored
+
+Implemented versioned retained initialization and `initializers.verify_initializer`.
+The original P4/random-initialization regression now passes. New independent tests
+first failed for the absent policy; they now cover a valid P4 authority, v1 semantic
+preservation, preparation v2, exact weight tampering, incompatible architecture or
+precision, parameterized replay, forbidden ancestry, REUSED origins, changed selected
+checkpoint, an unbound random parent, inconsistent selection measurements, and a
+valid retained-parent chain whose ancestor weights are reverified.
+
+The policy verifies the full selection decision and original producer inventory,
+then follows the bounded mechanical-only parent chain. It never loads tensor state
+or treats a standalone weight hash as lineage proof. T011/T044 are restored.
+The combined local non-HIP selection passes **262 tests plus 9 subtests**, with one
+marked GPU test deselected. No native-container or HIP qualification is claimed.
+C/D implementation continues under the user's explicit instruction.

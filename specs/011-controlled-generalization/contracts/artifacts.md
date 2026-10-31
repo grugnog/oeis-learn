@@ -139,3 +139,37 @@ These are integrity and provenance checks over trusted canonical producer output
 not cryptographic attestation or proof that arbitrary user-authored PASS records
 represent real execution. Producers must write the checks from actual production
 path observations; synthetic fixtures establish only validation behavior.
+
+## Retained initializer authority
+
+`generalization-study/v2` and `generalization-preparation/v2` additionally allow
+`model.initialization = {"kind":"retained","artifact":ArtifactRef}`. Version 1
+continues to permit only `random`. P4 requires the retained form, paired
+`continued_sft`/`verified_replay` arms and literal targets. One study-level initializer
+binds both arms; a runtime flag cannot override it.
+
+The referenced sealed `generalization-initializer/v1` has exactly `version`,
+`identity`, `study`, `checkpoint`, `selection`, `producer`, `ancestry`, and `parent`.
+The four named documents are ArtifactRefs. References inside each initializer are
+relative to that initializer document's directory. `checkpoint` is a full checkpoint
+descriptor; only its exact weights are needed for initialization, not optimizer/RNG
+payloads. `selection` contains the complete original checkpoint-selection result;
+behavior ordering is independently recomputed over its frozen candidate set.
+
+`producer` is an original PASS `pipeline-stage/v1` receipt with stage
+`generalization.initializer`, a nonempty attempt and binding exactly
+`{study: origin-study-identity, checkpoint: selected-descriptor-identity,
+ancestry: ancestry-list, parent: parent-initializer-identity-or-null}`. Its inventory
+binds the original study, descriptor, selection result and weight bytes. REUSED
+receipts do not establish an origin. Hashes bind trusted canonical producer evidence;
+they are not cryptographic execution attestation.
+
+Ancestry must be mechanical training from random initialization, optionally including
+verified training replay. Origin and destination must agree on model architecture,
+profile and precision, with literal source/target representation. A random-origin
+checkpoint cannot have an imported parent. Otherwise `parent` must equal the origin
+study's retained authority reference and its verified weight hash must match the
+checkpoint's parent. Every ancestor is reverified, with a 32-generation depth ceiling
+and cyclic/repeated authority rejection. `initializers.verify_initializer` returns
+exact weights/root plus verified lineage; preparation publication invokes it before
+returning a trainable resolved study.
