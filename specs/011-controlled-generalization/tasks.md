@@ -423,3 +423,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 - [X] T087 Capture the canonical CPU/HIP nested environment and regression records, stdout/stderr and whole bounded JUnit reports in normal/recovery diagnostics; test both suite paths and oversize XML omission. Record acceptance-004 original failures without attributing uncaptured test details or claiming HIP execution (FR-033, NFR-007, SC-007).
 
 - [X] T088 Add flushed image-inspection phase markers and periodic Python stack dumps without changing external deadlines, isolation or integrity gates; execute the emitted program in CPU subprocess regressions for passing and tampered source/guest cases (NFR-007, SC-007).
+
+### Phase C/D — container-local setup fixtures
+
+- [X] T089 Make synthetic setup/CLI fixtures declare simulated available disk independently of pytest's small tmpfs; retain unchanged production storage guards and test low-space rejection in CLI and session loading. Reproduce acceptance-004's three test failures, run available regressions and publish the repair without claiming new container/HIP qualification (NFR-005/008, SC-004/007).

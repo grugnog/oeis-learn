@@ -99,3 +99,14 @@ for absent qualification.json and the wrapper preserved the failed recovery
 archive. Image inspection is CPU-only and its timeout does not prove a GPU fault.
 No timeout increase or speculative cause is asserted. Retrieve existing test
 evidence before any new qualification run; T063–T068 remain open.
+
+### Acceptance-004 qualification detail received
+
+The original qualification archive confirms exactly three failing setup fixture
+tests due to insufficient free space in `/tmp/bigint-pytest`. The other 1,081 tests
+and 77 subtests passed; eight tests were deselected. T089 repairs test resource
+observations and verifies production rejection remains effective. This supersedes
+the earlier statement that the failing test identities were unavailable. It does
+not change the original failed qualification receipt or resolve the independent
+GPU-image inspection timeout. Rebuild both images and freeze fresh inputs for
+the next complete serial session; no original PASS qualification exists to reuse.

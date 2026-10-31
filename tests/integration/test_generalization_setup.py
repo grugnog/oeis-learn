@@ -6,6 +6,11 @@ def setup(root,monkeypatch):
     from tests.integration.test_generalization_inputs import legacy_inputs,import_uniform
     from oeis_learn.pipeline_validation.generalization_setup import assemble_acceptance
     from oeis_learn.experiments import source_snapshot
+    import shutil
+    from types import SimpleNamespace
+    # Tiny synthetic weights exercise assembly/authority, not actual disk capacity.
+    # The production-sized prospective reservations must not depend on pytest tmpfs.
+    monkeypatch.setattr(shutil,'disk_usage',lambda _:SimpleNamespace(total=128<<30,used=64<<30,free=64<<30))
     legacy_inputs(root);import_uniform(root,bundle='run.zip',metadata='metadata.zip',weights='train',output='imported')
     monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda _:dict(version='fixture-snapshot'))
     return assemble_acceptance(root,imported='imported',images=['sha256:'+'1'*64,'sha256:'+'2'*64],output='acceptance')
@@ -95,12 +100,16 @@ def test_new_selection_resolves_only_its_original_session_dependency(tmp_path,mo
         resolve(tmp_path,tmp_path/'run/bad',*resolved['replay-resume'],session=session,children=children,prepared=prepared,qualification=qualification)
 
 
-def test_setup_cli_uses_only_stdlib_and_inspects_both_image_tags(tmp_path):
+@pytest.mark.parametrize('free_bytes,exit_code', [(64<<30,0),(3<<29,2)])
+def test_setup_cli_uses_only_stdlib_and_inspects_both_image_tags(tmp_path,free_bytes,exit_code):
     from tests.integration.test_generalization_inputs import legacy_inputs,import_uniform
     import os,subprocess,sys
     from pathlib import Path
     legacy_inputs(tmp_path);import_uniform(tmp_path,bundle='run.zip',metadata='metadata.zip',weights='train',output='imported')
-    code='''from oeis_learn import container_runtime
+    code='''import shutil
+from types import SimpleNamespace
+shutil.disk_usage=lambda _: SimpleNamespace(total=128<<30,used=(128<<30)-FREE_BYTES,free=FREE_BYTES)
+from oeis_learn import container_runtime
 from oeis_learn.experiments import source_snapshot
 from oeis_learn.pipeline_validation.generalization_inputs import main
 class Engine:
@@ -109,9 +118,26 @@ class Engine:
 container_runtime.Engine=Engine
 source_snapshot.collect_snapshot=lambda root: {'version':'fixture-snapshot'}
 raise SystemExit(main(['acceptance','--engine','podman','--imported','imported','--cpu-image','cpu-tag','--gpu-image','gpu-tag','--output','assembled'],workspace='''+repr(str(tmp_path))+'))'
+    code=code.replace('FREE_BYTES',str(free_bytes))
     env=dict(os.environ,PYTHONPATH=str(Path('src').resolve()))
     result=subprocess.run([sys.executable,'-S','-c',code],env=env,text=True,capture_output=True)
-    assert result.returncode==0,result.stderr
+    assert result.returncode==exit_code,result.stderr
+    if exit_code:
+        assert 'insufficient storage reservation' in result.stderr
+        assert not (tmp_path/'assembled/generalization-acceptance.json').exists()
+        return
     report=json.loads(result.stdout)
     assert report['status']=='ASSEMBLED' and report['qualification']=='NOT_RUN'
     assert report['images']==['sha256:'+'1'*64,'sha256:'+'2'*64]
+
+
+def test_prepared_session_load_still_rejects_insufficient_observed_space(tmp_path,monkeypatch):
+    import shutil
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_session import load_session
+    result=setup(tmp_path,monkeypatch)
+    path=tmp_path/result['session']['manifest'];original=path.read_bytes()
+    monkeypatch.setattr(shutil,'disk_usage',lambda _:SimpleNamespace(total=2<<30,used=1<<29,free=3<<29))
+    with pytest.raises(ValueError,match='insufficient storage reservation'):
+        load_session(tmp_path,result['session']['manifest'])
+    assert path.read_bytes()==original

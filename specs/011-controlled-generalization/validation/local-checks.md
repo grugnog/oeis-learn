@@ -443,3 +443,27 @@ Validation after T088: 21 diagnostics/acceptance/registration tests passed, plus
 8 pipeline contract tests including the canonical implementation digest. The
 T087 full selection had passed 280 tests before the additional inspection
 markers. `git diff --check` passed. No actual HIP or container run was executed.
+
+## T089 small-container-filesystem fixture repair — 2026-10-31
+
+The uploaded qualification `pipeline.zip` verifies with SHA-256
+`5e26f07d635ac2892da07ab50437a008d1946827c22dd44ccbd9010ca5f029af`.
+Its original test output reports 1,081 passed, 77 passing subtests, 3 failed and
+8 deselected in 333.73 seconds. All failures are the three setup integration
+tests: their tiny synthetic weights/authority fixtures requested full prospective
+reservations against pytest's tmpfs, which reported about 1.63 GB free. The first
+4 GiB reservation correctly failed the production disk guard.
+
+Reproduction with a simulated 1.5 GiB `disk_usage` observation failed both
+in-process setup cases before the fix. The test fixtures now explicitly supply
+a simulated 64 GiB available observation for their fake workloads; the stdlib
+CLI subprocess has independent ample/insufficient-space cases. A session-load
+case verifies that reducing observed free space rejects an already assembled
+manifest without modifying it. Production source, budgets, guards and acceptance
+criteria are unchanged; no host or container storage allocation was increased.
+
+With the same simulated small filesystem, all five setup cases pass. The full
+local generalization/bundle/pipeline-contract selection passes **285 tests, one
+hardware test deselected in 18.62 seconds**. `git diff --check` passes. No container
+or HIP run was performed locally. Prior image-inspection progress/stack capture
+remains available for the separate unresolved GPU-image inspection timeout.
