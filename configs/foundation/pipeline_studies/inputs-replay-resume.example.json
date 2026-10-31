@@ -1,0 +1,116 @@
+{
+  "version": "generalization-input-blueprint/v1",
+  "stage": "P4",
+  "purpose": "acceptance",
+  "hypothesis": "Reduced software acceptance, not a research experiment",
+  "recipe": "run-state/inputs/model-recipe.json",
+  "source_closure": "run-state/inputs/source-closure.json",
+  "images": [
+    "REPLACE_WITH_INSPECTED_QUALIFICATION_SHA256",
+    "REPLACE_WITH_INSPECTED_GPU_SHA256"
+  ],
+  "initializer": "run-state/inputs/selection-designated-initializer/initializer.json",
+  "descriptors": "run-state/inputs/descriptors.json",
+  "exclusions": "run-state/inputs/exclusions.json",
+  "cells": [
+    {
+      "name": "static",
+      "role": "training",
+      "holdout": "parameter",
+      "count": 2,
+      "quotas": {},
+      "structural": false,
+      "candidates": "run-state/inputs/static-candidates.json"
+    },
+    {
+      "name": "selection-parameter",
+      "role": "selection",
+      "holdout": "parameter",
+      "count": 2,
+      "quotas": {},
+      "structural": false,
+      "candidates": "run-state/inputs/selection-parameter-candidates.json"
+    },
+    {
+      "name": "selection-structural",
+      "role": "selection",
+      "holdout": "structural",
+      "count": 2,
+      "quotas": {},
+      "structural": false,
+      "candidates": "run-state/inputs/selection-structural-candidates.json"
+    },
+    {
+      "name": "assessment-parameter",
+      "role": "assessment",
+      "holdout": "parameter",
+      "count": 2,
+      "quotas": {},
+      "structural": false,
+      "candidates": "run-state/inputs/assessment-parameter-candidates.json"
+    },
+    {
+      "name": "assessment-structural",
+      "role": "assessment",
+      "holdout": "structural",
+      "count": 2,
+      "quotas": {},
+      "structural": false,
+      "candidates": "run-state/inputs/assessment-structural-candidates.json"
+    }
+  ],
+  "training": {
+    "continued_sft": {
+      "cells": [
+        "static"
+      ],
+      "data_mode": "static",
+      "batch_size": 4
+    },
+    "verified_replay": {
+      "cells": [
+        "static"
+      ],
+      "data_mode": "static",
+      "batch_size": 4
+    }
+  },
+  "evaluation": {
+    "role": "selection",
+    "cells": [
+      "selection-parameter",
+      "selection-structural"
+    ],
+    "checkpoints": [],
+    "seconds": 30,
+    "bank_seeds": null
+  },
+  "replay": {
+    "cell": "static",
+    "seconds": 30
+  },
+  "seeds": [
+    20261016
+  ],
+  "budgets": {
+    "target_tokens": 256,
+    "seconds": 30,
+    "draws": 1000,
+    "memory_bytes": 8589934592,
+    "storage_bytes": 1073741824,
+    "log_bytes": 1048576,
+    "attempts": 8
+  },
+  "milestones": [
+    128,
+    256
+  ],
+  "storage": {
+    "study_bytes": 8589934592,
+    "checkpoint_bytes": 4294967296,
+    "shard_bytes": 1073741824,
+    "raw_bytes": 536870912,
+    "sharing_bytes": 67108864
+  },
+  "sharing_policy": "explicit"
+}

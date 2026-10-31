@@ -1,0 +1,116 @@
+# Canonical CLI contract
+
+## Status and compatibility
+
+All commands below using `generalization` are registered by this feature. Installed-image/native/HIP qualification remains an execution gate, not a claim established by registration. Existing `validate --suite pipeline`, `pilot-diagnose` and `pilot-followup` commands remain compatible; no historical default silently acquires new semantics.
+
+Portable entrypoint remains `python3 scripts/foundation_run.py --engine docker|podman ...`. Host routing uses standard-library code and launches existing isolated roles; no direct host PyTorch/native dependencies or runtime socket in containers.
+
+## Implemented endpoints
+
+Common flags: `--manifest FILE --output NEW_DIRECTORY`; immutable manifest identity is authority. Runtime arguments may choose declared cells or lower resource limits only through a newly sealed effective invocation. Unknown flags/arms/checkpoints fail before costly work. Source run inputs and private artifacts must lie within explicitly mounted workspace roots.
+
+| Command | Inputs / options | Required behavior |
+| --- | --- | --- |
+| `generalization preflight` | Manifest, artifact references, `--output` | Read-only inspection plus new preflight report: resolved stage list, budgets, compatibility, missing artifacts, exact CLI plan; no learner work or assessment exposure. |
+| `generalization qualify` | Acceptance manifest, `--output` | Run canonical runner's CPU/native and HIP qualification once; issue original PASS producer with immutable payloads and actual device evidence. |
+| `generalization prepare` | Study manifest, `--qualification PRODUCER`, `--output` | Bounded corpus/target/shard preparation, coverage/isolation certificate or shortfall. Never publish assessment targets to learner/generator. |
+| `generalization evaluate` | Manifest, `--checkpoints ID...`, optional declared `--proposal-bank ID`, qualification, output | Retained checkpoint loading, visible generation/fitting, frozen selection, isolated scoring. Private artifact absence is explicit. |
+| `generalization train` | Manifest, `--arms NAME... --seeds INTEGER...`, qualification, output; optional `--resume FULL_CHECKPOINT` | Run only selected registered arms/seeds; reject weights-only resume, changed data/order/budgets or undeclared combinations. |
+| `generalization replay` | Manifest, declared initializer/training-task roster, qualification, output | One bounded search/admission/distillation round; preserve continued-SFT control and separate search costs. |
+| `generalization report` | Manifest, `--inputs DIRECTORY --output` | Reconcile source/contract/seed/denominator identities and package complete or partial evidence. Never infer missing observations. |
+| `generalization verify-bundle` | `--archive FILE --output NEW_DIRECTORY` | Existing safe archive checks plus new contract/status invariants; read-only with respect to source archive. |
+| `generalization acceptance` | Acceptance session manifest, qualification, `--case NAME --inputs PREPARED_ROOT`, output | Small canonical fixture case: retained-eval, refresh, parameter-targets, replay-resume or failure-packaging. Uses production paths and synthetic fixture truth, never research assessment. |
+
+Existing `pilot-followup` gains opt-in `--arms uniform` and `--qualification PRODUCER` without changing its default three-arm behavior. P0 uses the historical recipe/selection path. Existing `pilot-diagnose evaluate` may gain qualification and generalized checkpoint descriptors through an explicit new profile; old ordinal-based behavior remains available.
+
+## Serial helper
+
+Proposed invocation:
+
+```bash
+python3 scripts/generalization_hip_serial.py --engine docker \
+  --manifest run-state/inputs/generalization-acceptance.json \
+  --output run-state/evidence/generalization-acceptance-001
+```
+
+The helper plans then invokes `preflight`, `qualify`, `prepare`, required `acceptance` cases, `report`, `verify-bundle` in order. Every consumer receives the **original** qualification producer root; it independently verifies coverage/compatibility and performs lightweight current image/device inspection. Helper logic is argument forwarding, serial process supervision, ledger and bounded output capture; acceptance/algorithm decisions live in canonical endpoints.
+
+Add `--dry-run` for the command list/budgets without expensive execution. A workflow restart uses a new output root and `--reuse-run OLD_ROOT`; it validates each reusable completed stage against unchanged inputs and records actual producer refs. There is no unchecked `--start-step` or `--skip-tests`. Learner resume is separate and must satisfy its full-state contract.
+
+If the canonical report endpoint itself fails, use existing minimal recovery packaging to preserve terminal ledger/log evidence, mark PACKAGE_FAILED, and return failure. Never print or package credentials/private checkpoint bytes.
+
+## Status and exit contract
+
+Preserve canonical runner status mapping: PASS exits0, FAIL exits1, BLOCKED/PARTIAL/INCONCLUSIVE exits3, INTERRUPTED exits130. Invalid argument handling retains the host parser's established exit2 convention. Store precise reason codes (MISSING_ARTIFACT, QUOTA_SHORTFALL, INCOMPATIBLE_QUALIFICATION, BUDGET_EXHAUSTED, INTEGRITY_FAILURE, PACKAGE_FAILED) alongside status rather than inventing competing numeric meanings. A valid negative scientific outcome may have software PASS; exit0 alone is not a generalization claim. Packaging failure cannot produce PASS.
+
+Output paths are confined checkout/workspace-relative roots. A directory output produces a sibling `<output>.zip`, matching existing packaging. Use fresh directories and archive paths; do not overwrite terminal results.
+
+`--runtime FILE` optionally selects the sealed sidecar for an ordinary study.
+Acceptance sessions bind all four child study/runtime references themselves.
+Global `--image` must match the frozen CPU image when supplied; report and
+verify-bundle require an immutable CPU image, and the helper forwards it.
+Research reports consume one explicit aggregate evidence root; acceptance reports
+assemble the session's original case proof closures. A complete session exposes
+`report/qualified/` for subsequent research qualification consumption.
+
+## Host input assembly (no engine or accelerator)
+
+`python3 scripts/generalization_inputs.py` provides four standard-library commands:
+
+- `import-uniform --bundle ZIP --metadata ZIP --weights TRAIN_ROOT --output NEW_ROOT`
+  verifies the original public follow-up archive, exact recipe/prepared metadata,
+  and private best/latest weights, then emits explicit weights-only descriptors.
+- `source-closure --output NEW_JSON` records current qualification source bytes.
+- `study --blueprint JSON --output NEW_ROOT` copies explicit inputs, builds sealed
+  study v3/preparation v3/runtime v2 and freezes execution choices.
+- `session --cases JSON --output NEW_JSON` binds exactly the four child studies and
+  validates case/stage, source/image scope, runtime bindings and work reservations.
+
+Every path is checkout-relative (an absolute path must still be confined to that
+checkout). Outputs must be fresh. Session JSON must be an ancestor of all children.
+The cases mapping uses study paths with sibling `runtime.json`, or explicit
+`{manifest: path, runtime: path}` pairs. Neither form permits arbitrary commands.
+Missing P4 initializer evidence is a blocker; importing historical best-loss
+weights does not supply it. No command launches qualification or research.
+
+### Automatic reduced acceptance setup
+
+`python3 scripts/generalization_inputs.py acceptance --engine docker|podman
+--imported DIR --cpu-image TAG --gpu-image TAG --output NEW_DIR` is stdlib-only.
+It inspects immutable image IDs, verifies both imported uniform weight hashes and
+original provenance, snapshots source, generates the bounded mechanical fixture
+policy, and assembles all four studies plus a v2 session. It emits ASSEMBLED, never
+qualification/admission PASS. It preserves original historical inputs and consumes
+no training budget. Native preparation and real HIP acceptance remain canonical.
+The session's pending P4 initializer names the frozen E0 child; only its newly
+measured selection and original producer closure can resolve that dependency.
+
+### Diagnostic capture
+
+Normal serial session reports and wrapper recovery archives include `diagnostics/`
+with a versioned `index.json`. A fixed path list selects preflight/preparation
+control results, validation role results and supervision process/cleanup records,
+qualification stage receipts and image-inspection logs. Bounded directory-metadata
+discovery under each canonical acceptance case's `case/private` directory also
+finds nested `role/supervision` controls: only `process.json`, `cleanup.json`,
+`stdout.log` and `stderr.log` may be read. Input, checkpoint, cache, selected and
+cell directories and symlinks are skipped; role directories are never descended.
+Other nested payloads, including role results and command files, are not read.
+Discovery stops at8192 entries,2048 directories,256 roles or32 directory levels,
+with an explicit omission when a bound is reached. Nested control copies use
+`nested-roles/<source-parent-hash>/<filename>`; each index row's `source` and
+`export_path` preserve the mapping. Missing or inaccessible files
+and cap omissions are explicit. JSON files are copied whole up to 256 KiB; logs
+retain an opening excerpt and final tail within 64 KiB. Exported payloads total at
+most 4 MiB plus the bounded discovery/fixed-list index. Truncated logs are labeled; the
+original files are unchanged. Diagnostic copies confer no qualification and
+cannot change the run verdict. The normal report captures diagnostics available
+at packaging time; fallback capture also includes a failed report's inspection.
+
+Qualification diagnostics also include the canonical `cpu.semantic`/`hip.preflight`
+`environment` and `bigint-cpu-regressions`/`bigint-gpu-regressions` records and logs.
+Their `results.xml` JUnit reports are preserved whole up to 2 MiB; larger XML is
+omitted explicitly rather than truncated into invalid XML. The existing 4 MiB
+aggregate payload limit still applies. No recursive pytest discovery is performed;
+the nested role scan reads only the four explicitly allowed control files.

@@ -115,6 +115,8 @@ def _stages(host, suite, output, *, external_seconds=None):
             if p.name != "test_bigint_gpu.py"
         ]
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
+        bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','contract','integration')
+                       for p in sorted((ROOT/'tests'/area).glob('test_generalization_*.py'))]
         bigint_cpu += [
             "tests/unit/test_pilot_followup.py",
             "tests/unit/test_pilot_followup_host.py",
@@ -129,6 +131,7 @@ def _stages(host, suite, output, *, external_seconds=None):
         nodes = (
             [
                 "tests/integration/test_bigint_gpu.py",
+                "tests/integration/test_generalization_gpu.py::test_generalization_device_load_and_finite_update",
                 "tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]",
                 "tests/unit/test_bigint_soak.py::test_engineering_uses_actual_trainer_and_checkpoint[cuda]",
                 "tests/unit/test_pipeline_pilot_runtime.py::test_token_weighting_masks_padding_and_keeps_exact_match_distinct[cuda]",
@@ -253,6 +256,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     {
                         "OEIS_REQUIRE_BIGINT_BUILD": "1",
                         "OEIS_REQUIRE_BIGINT_GPU": "1" if gpu else "0",
+                        **({"OEIS_GENERALIZATION_DEVICE_EVIDENCE":"/work/output/generalization-device.json"} if gpu else {}),
                     }
                     if suite.startswith("bigint-")
                     else {}
@@ -410,6 +414,8 @@ def inspect_current_image(host, image, output, *, seconds=600):
     from .pipeline_validation.supervision import launch, reclaim
     from .pipeline_validation.identity import write as public_write
     from .experiments.source_snapshot import collect_snapshot
+    cleanup_seconds=30
+    if seconds<=cleanup_seconds:raise ValueError('image inspection must reserve execution and cleanup time')
     output = Path(output)
     output.mkdir(parents=True)
     inputs = output / 'inputs'
@@ -417,23 +423,31 @@ def inspect_current_image(host, image, output, *, seconds=600):
     public_write(inputs / 'expected.json', collect_snapshot(host.policy['workspace']))
     name = 'oeis-package-inspect-' + uuid.uuid4().hex
     code = (
+        "import sys,faulthandler,time; "
+        "print(f'inspection: python-start unix={time.time():.6f}',file=sys.stderr,flush=True); "
+        "faulthandler.dump_traceback_later(30,repeat=True); "
         "import json; from pathlib import Path; "
+        "print(f'inspection: source-snapshot unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "from oeis_learn.experiments.source_snapshot import source_snapshot; "
         "expected=json.loads(Path('/work/input/expected.json').read_text()); "
         "actual=source_snapshot(); assert actual==expected, 'current installed package/source mismatch'; "
+        "print(f'inspection: packaged-artifacts unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "from oeis_learn.fresh.bigint_config import packaged_artifacts; "
         "from oeis_learn.fresh.common import file_hash; "
         "artifacts=packaged_artifacts(); "
         "assert file_hash('/opt/oeis-build-info/bigint-dependency-smoke.wasm')==artifacts['guest_sha256'], 'changed packaged guest'; "
+        "faulthandler.cancel_dump_traceback_later(); "
+        "print(f'inspection: complete unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "print(json.dumps(dict(source=actual,artifacts=artifacts),sort_keys=True))"
     )
     command = host.engine.command(image=image, name=name,
         mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
-        argv=['python','-c',code], auto_remove=False, gpu=False,
+        argv=['python','-u','-c',code], auto_remove=False, gpu=False, startup_diagnostics=True,
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
-    cleanup_state={}
+    cleanup_state={'allowance_seconds':cleanup_seconds}
     try:
-        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+        launch(command, output / 'logs', seconds=seconds-cleanup_seconds,cleanup_seconds=cleanup_seconds,
+               stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     finally:
         reclaim(host.engine,name,output,cleanup_state)

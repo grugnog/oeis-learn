@@ -177,6 +177,7 @@ class Engine:
         labels=None,
         tmp_bytes=64 << 20,
         auto_remove=True,
+        startup_diagnostics=False,
     ):
         image = normalized_image(image)
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}", name):
@@ -187,6 +188,7 @@ class Engine:
             raise ValueError("explicit command and device/network capabilities required")
         args = [
             self.executable,
+            *(["--log-level=debug"] if startup_diagnostics and self.name == "podman" else []),
             "run",
             "--name",
             name,

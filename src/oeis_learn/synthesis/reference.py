@@ -20,7 +20,7 @@ class _Stop(Exception):
     pass
 
 
-def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None):
+def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observer=None):
     start = time.monotonic()
     deadline = min(
         start + limits.evaluation_seconds, deadline if deadline is not None else float("inf")
@@ -104,13 +104,18 @@ def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None):
                 if op == "set":
                     env[args[0]] = expr(args[1])
                 elif op == "if":
-                    branch = args[1] if expr(args[0]) else args[2]
+                    condition = expr(args[0])
+                    if observer is not None:
+                        observer("branch", bool(condition))
+                    branch = args[1] if condition else args[2]
                     for child in branch[1:]:
                         statement(child)
                 elif op == "loop":
                     count = expr(args[1])
                     if count > limits.loop_iterations:
                         raise _Stop("loop_limit")
+                    if observer is not None:
+                        observer("loop", count)
                     env[args[0]] = 0
                     for i in range(count):
                         tick()

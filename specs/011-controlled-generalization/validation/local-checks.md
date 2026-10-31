@@ -1,0 +1,668 @@
+# Reconstruction validation — 2026-10-31
+
+The verified reconstruction passes all 242 generalization tests within a broader
+963-pass run. Thirteen additional tests fail on missing Wasmtime/native/container
+prerequisites; 35 skip and 27 device/container cases are deselected. Full commands,
+Git provenance and limits are in [reconstruction.md](reconstruction.md). These
+results supersede unverified conversational completion counts. T063–T068 stay open.
+
+# Current non-HIP validation — 2026-10-31
+
+Phase B defects are repaired and all Phase C integration tasks T045–T062 are
+implemented. Earlier entries below are chronological records, not the current
+completion status. No HIP command, real container qualification, acceptance session
+or research campaign ran. Local integration tests perform actual CPU tensor updates
+and full-state comparisons; native/container boundaries are fixture-backed.
+
+The current regression selection is:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pilot_followup_host.py tests/unit/test_pipeline_reuse.py \
+  tests/unit/test_pipeline_bundle.py
+```
+
+Result: **285 passed, 1 GPU test deselected, 9 subtests passed** (11.35 seconds).
+Coverage includes retained-initializer provenance, immutable selection pins, paired
+refresh/target training, admitted and empty replay yield, exact CPU resume equality,
+current-policy scoring, original receipt reuse, complete/partial archive verification,
+failure preservation, resource guards and canonical session routes.
+
+A real helper `--dry-run` against a synthetic sealed four-study acceptance session
+produced ten stages, exactly one qualification stage, 13,800 reserved seconds plus
+a 600-second recovery margin, and the frozen image forwarded to commands. It invoked
+no engine. Canonical session fixture tests exercise all five cases and independent
+archive verification, but substitute the model/native/qualification boundaries.
+
+Additional historical regressions were attempted:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_synthesis_state.py tests/unit/test_checkpoint_loader.py \
+  tests/unit/test_pipeline_profile.py tests/integration/test_bigint_workflow.py \
+  -k 'not native and not real and not replay_reference and not installed'
+
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_bigint_runtime_profile.py tests/unit/test_pipeline_pilot.py \
+  tests/unit/test_pipeline_pilot_runtime.py tests/unit/test_pipeline_pilot_data.py \
+  tests/unit/test_pipeline_pilot_longrun.py tests/unit/test_pipeline_pilot_calibration.py
+```
+
+The first yielded **56 passed, 1 skipped, 3 deselected, 1 failed**. The failure,
+`test_integrated_device_checkpoint_update[cpu]`, cannot import local `wasmtime`.
+The second yielded **91 passed, 3 failed, 4 deselected, 25 subtests passed**.
+`test_actual_pilot_constructor_and_public_independent_cost_sentinels` lacks the
+native synthesis executable. `test_pilot_actual_worker_state_and_metric_resume[cpu]`
+and `test_full_clock_pilot_actual_worker_state_and_metric_resume[cpu]` lack
+`wasmtime`. These failures remain visible; passing execution must be obtained in
+the pinned qualification image. Local PyYAML was supplied from the existing runtime
+for collection; no repository dependency or lock was changed.
+
+Host checks: `python3 -S scripts/foundation_local.py generalization --help` lists all
+nine endpoints. Host CLI/session/command imports under `python3 -S` do not import
+Torch, NumPy or jsonschema. The rebuilt source distribution contains all 81 required
+policy modules/resources, role adapters, authoritative contracts and helper files.
+`git diff --check` passed before the workspace disconnected. Implementation code
+was already committed; the final documentation audit was preserved through GitHub.
+
+T063 remains open for qualification-container/historical dependency checks.
+Docker, Podman and Cargo are unavailable, so T064 cannot produce actual image/build
+identities. T065's synthetic dry run is complete; real operator inputs and preflight
+remain pending. T066 is explicitly excluded by the user. T067 has complete/partial
+fixture coverage but awaits the actual acceptance archive, and T068 records NOT RUN.
+T069/T070 documentation and delivery audit are complete. No fixture image, receipt
+or CPU result is represented as HIP qualification.
+
+## Restored-workspace continuation
+
+Re-ran the Spec Kit prerequisite/checklist gate after workspace recovery:
+requirements 16/16 and design 15/15 pass; no extension hooks are configured.
+Compared every restored source/script/test edit, including formerly untracked
+files, byte-for-byte with committed head `38ca17f`; all matched. Preserved the
+restored files before synchronizing the local checkout with the committed audit.
+No implementation change or new hardware evidence was needed for synchronization.
+
+Attempted the canonical **CPU-only** T063 qualification precheck:
+
+```bash
+python3 scripts/foundation_run.py --engine docker validate --suite bigint-cpu \
+  --output run-state/evidence/generalization-precheck-restored-001
+```
+
+Result: **exit 1 before container execution**:
+`ERROR: docker CLI is unavailable; select an installed container engine`.
+Fresh environment inspection also found no Podman, Cargo, Rust compiler or Docker
+socket. Local `wasmtime` and cached wasmtime wheels are absent. A host dependency
+installation cannot supply the required pinned-image qualification evidence.
+The previously recorded 285-test result still describes the unchanged code; it is
+not a new test run. No HIP command ran.
+
+T063–T065 remain blocked on the usable engine, immutable qualification/GPU images
+and corresponding reduced operator inputs; T066 remains excluded; T067–T068 await
+its actual archive/results. All C implementation and feasible D documentation are
+complete. No task checkbox was changed and no unavailable producer was fabricated.
+
+## Historical implementation and validation record
+
+# Phase C attempt and non-HIP local checks
+
+Phase C is **incomplete**, with a failed Phase B prerequisite. No HIP command,
+container command, training, research campaign or acceptance session ran.
+
+The Spec Kit preflight located this feature and both reviewer checklists passed
+(requirements 16/16, design 15/15). No extension hooks exist. Existing Python and
+Docker ignore files cover the generated local artifacts.
+
+Draft evaluation adapters verify actual checkpoint file identities, mark absent
+private weights unavailable, project visible prompts to callbacks and call Phase B
+portfolio/diagnostic policies. Draft recorded reporting preserves fixed denominators
+and missing checkpoint identities. These adapters are not registered public commands
+and have not been connected to the actual native/model container roles.
+
+Executed:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q \
+  tests/integration/test_generalization_evidence.py \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py
+```
+
+Before the new counterexample: **63 passed**. This covers the two new adapter tests
+and existing feature policies/contracts; it does not establish Phase C completion.
+
+Then expanded the offline evidence fixture to replace the family artifact with an
+invented family having 999 successes, recalculating the file reference and outer seal.
+The verifier should reject it even though every hash is valid. Executed:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q \
+  tests/unit/test_generalization_recovery.py
+```
+
+Result: **1 failed, 4 passed**. Failure:
+`test_offline_complete_bundle_and_stale_summary[True]` — expected `ValueError`,
+none raised. The regression is deliberately retained without skip or expected-failure
+masking. T037/T044 are reopened; integration stops at this failed prerequisite per
+`speckit-implement`. The single algorithm-phase rule requires repairing/reviewing this
+inside reopened Phase B before continuing routine Phase C wiring.
+
+T063 is only partially attempted. T064–T070 remain uncompleted; no fabricated image,
+preflight, archive or HIP evidence is recorded. The requested no-HIP scope excludes
+T066, while the other gates require completed integration or a usable engine.
+
+## Subsequent repair
+
+The failing family regression above now passes. Strict reconciliation also rejects
+false seed/cost/bound/coverage/aggregate projections. The combined feature, draft
+adapter and historical regression selection passes 131 tests and 4 subtests. See the
+latest algorithm-review entry. C/D remain incomplete; no HIP command ran.
+
+## Preparation/recipe integration increment
+
+Executed the following local non-HIP selection after the preparation, role,
+recipe and CPU/source-registration changes:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pipeline_reuse.py tests/unit/test_pipeline_bundle.py
+```
+
+Result: **136 passed, 4 subtests passed**. `git diff --check` passes. Reviewer
+checklists remain read-only and passing (requirements16/16, design15/15); no hooks.
+
+New coverage exercises per-cell exact materialization, production/reference
+agreement through an injected native interface, failed quota publication, immutable
+output roots, role-channel mount resolution, sealed recipe metadata, and changed or
+unmapped authority invalidating source reuse. The native interface is synthetic in
+these local tests. Actual container-role launching is not established by them.
+
+Tool inspection: `docker`, `podman`, and `cargo` are unavailable. T064's image
+build/inspection cannot run in this environment. T063's local portion ran; its
+qualification-container portion remains pending. No HIP command, model training,
+acceptance invocation or research campaign ran. T065/T067 depend on the still
+unimplemented canonical helper/archive integration; no dry-run/archive success is
+claimed. T068 requires actual acceptance evidence and remains pending.
+
+## Full-state/update/replay adapter increment
+
+Added a prospective `GeneralizationCheckpointStore` with immutable private state
+generations and atomic latest publication. All blob references are verified before
+state deserialization. Added an update adapter that persists the pending batch and
+debit before execution and commits after a complete update, plus a callable adapter
+to the existing `_batch_loss` implementation. Local tests inject JSON serialization
+and a deterministic update callback; actual Torch model equivalence is not claimed.
+
+Replay adapters call the bounded native-client interface, independently audit all
+training terms, preserve empty yield, and rerun admission against the training roster
+when restoring a pool. Tests use a synthetic native client and verify visible-only
+proposal inputs, eight charged attempts, task deduplication and exact snapshot restore.
+
+The same non-HIP selection above now passes **140 tests and 4 subtests**.
+`git diff --check` passes. No HIP command, actual learner training, container build,
+or research campaign ran. T051–T053 and T061–T062 remain partial until canonical
+worker registration and full production integration are implemented and verified.
+This increment does not complete all requested C/D tasks.
+
+## CPU learner and qualification integration continuation
+
+The latest combined local selection passed **178 tests, 9 subtests**, with **one GPU
+test deselected**. The selection was:
+
+```bash
+PYTHONPATH=src python -m pytest -q -m 'not gpu' \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pilot_followup_host.py tests/unit/test_pipeline_reuse.py \
+  tests/unit/test_pipeline_bundle.py
+```
+
+Unlike the earlier callback-only increment, this selection executes actual CPU
+Torch updates and checks uninterrupted/resumed state equivalence for static and
+refreshed data with literal and parameterized targets. T045 and T051 are checked;
+remaining integration tasks retain their unchecked status.
+
+Role projections now accept repeated identical references while rejecting conflicts.
+A regression reproduced the duplicate-reference failure before the fix. Qualification
+producer allocation now leaves 600 seconds outside the canonical runner's 6600-second
+cap for post-run inspection and verification (480 seconds of explicit reservations).
+The producer's failure path is exercised with a fake runner, without HIP execution.
+
+An actual HIP checkpoint-load/finite-update test is registered but has not run.
+Neither Docker nor Podman is available in this environment. Container qualification,
+image inspection, hardware acceptance and scientific campaign results are not claimed.
+Canonical CLI, scoring, replay and complete bundle integration remain unfinished.
+
+
+## Phase-B replay accounting repair
+
+The combined non-HIP selection recorded above (including the host followup tests)
+now passes **200 tests and 9 subtests**, with one GPU test deselected. It includes the
+previously failing replay overrun test and the new reservation, interruption and
+persistence-failure counterexamples. The focused replay policy/adapter selection
+passes 18 tests. T043/T044's local gate is restored; C/D and hardware qualification
+are not declared complete. No HIP command ran.
+
+## Report/preparation integration and feature-acceptance blocker
+
+Completed T047's public report packaging and independent archive reconciliation;
+report/measurement/host/evidence checks passed 32 tests. Completed T049/T050's
+installed preparation-role and all-role isolation checks; focused selection passed
+28 tests. The public report/verify flow is exercised with a fake container boundary
+and real Phase-B reconciliation against synthetic qualification evidence. No
+container or hardware qualification is implied.
+
+The combined non-HIP selection now reports **209 passed, 3 failed, 9 subtests
+passed, one GPU test deselected**. All three failures are the new T035 feature
+acceptance counterexamples: FAIL case values, PARTIAL case values, and case names
+without evidence are incorrectly accepted by the research gate. T035/T044 are
+reopened; their required repair is recorded in algorithm-review.md. No HIP command
+or research campaign ran. `git diff --check` passes.
+
+
+## Feature-acceptance gate repair
+
+The same combined non-HIP selection now passes **242 tests and 9 subtests**, with
+one GPU test deselected. The formerly failing FAIL/PARTIAL/names-only cases pass
+alongside original-case, payload-integrity, version, binding, mandatory-check,
+transitive-closure and isolated-projection regressions. T035/T044's local gate is
+restored; C/D and hardware qualification are not declared complete. No HIP command
+ran. `git diff --check` passes.
+
+## Retained selection, assessment and isolated replay (2026-10-31)
+
+Committed increments expose checkpoint descriptors without unpickling, preserving
+actual committed exposure when an update debit is pending. Selection uses the same
+retained candidate set for token-weighted loss and Phase-B behavior ordering.
+Assessment verifies a frozen candidate/target authorization and an active original
+exposure debit. Replay generation mounts only 20 visible terms and exact weights;
+full-horizon admission is a separate training-only role. Search persistence precedes
+every model attempt, and replay tasks must match the actual prepared training shards.
+
+The fitted-literal admission incompatibility was repaired in B with an initially
+failing reference test. Version 2 records preserve original/transformed/final source,
+check literal-only transformation and grounding, and rerun admission on restore.
+The focused replay/training integration suite passed 21 tests. Source-registration
+checks passed 2 tests; T060 registration is complete, with no GPU execution.
+
+The combined command above now reports **249 passed, 1 failed, 1 deselected, 9
+subtests passed**. The failure is the new P4 retained-initializer authority regression,
+not one of the installed-role tests. T011/T044 are reopened, with repair requirements
+in `algorithm-review.md`. `git diff --check` passes. Docker, Podman and Cargo remain
+unavailable, so no pinned-container qualification/build is claimed. No HIP command
+or E0/P0/P1/P2/P3/P4 campaign ran.
+
+The serial helper's fake-boundary tests verify 13,800 seconds of stage reservations
+plus 600 seconds of margin, one qualification stage, bounded failure packaging,
+and new output roots. This does not complete T065's actual reduced-manifest
+preflight or qualify the still-unregistered full canonical workflow.
+
+Packaging audit found that the source distribution omitted authoritative 009/011
+contract files. `MANIFEST.in` now includes both contract directories. A fresh local
+`setup.py sdist` build verifies all 34 required contract/schema/helper files are
+present. This is a source-package check, not a pinned image build. Three historical
+checkpoint/debit/final-exposure regression tests also pass.
+
+### Canonical runtime integration — 2026-10-30 (America/Los_Angeles)
+
+The frozen runtime sidecar now binds recipe/image/role views to a study, resolves
+preparation cell names to immutable output references, validates fixed refresh
+streams and paired target/replay views, and routes train/evaluate/replay through
+isolated installed roles. Checkpoint directory projections preserve original
+selection identities. Targeted runtime, preparation and scoring integration:
+24 passed. The command/qualification boundary is substituted in local tests;
+actual tensor training uses CPU. This is not container or HIP qualification.
+Acceptance, consolidated reporting and verified restart remain integration work.
+
+## Final launch convergence validation — 2026-10-31
+
+T080–T084 completes the locally executable launch work, superseding earlier
+initializer/bootstrap implementation blockers. Tests were run without HIP, Docker
+or Podman and without installing host dependencies:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH=src:../phase-a-venv/lib/python3.12/site-packages \
+python -m pytest tests/unit/test_generalization*.py \
+  tests/contract/test_generalization*.py tests/integration/test_generalization*.py \
+  tests/unit/test_bootstrap_bundle.py tests/unit/test_pipeline_contracts.py \
+  -q -p no:cacheprovider -m 'not gpu and not docker'
+```
+
+Result: **272 passed, 1 deselected in 25.20 seconds**. This covers original
+initializer authority, new legacy selection publication, forbidden research
+diagnostics, dependency tampering, actual generated cohorts with independent
+reference callbacks, canonical diagnostic admission, stdlib-only setup CLI,
+serial case/report/archive routing and exact CPU tensor update/resume. Generated
+v2 session dependencies are tested through preparation, original case evidence,
+publication and resolution; expensive container/native/HIP boundaries are fixture
+adapters. This is not an end-to-end hardware session.
+
+The generated refresh budget was corrected to 512 tokens: its first eight rows
+(two batches) fit, so it can actually reach fresh examples. A regression checks
+that condition. Checkpoint reservations are 2 GiB each for retained/refresh/target
+cases and 26 GiB for replay/resume; actual preflight still enforces feasibility.
+
+Both real production constructors instantiated on CPU using the uploaded
+uniform metadata: the reduced fresh model has 32,473,176 parameter bytes; the
+original retained model has 417,986,648. An attempted full production CPU update
+was **blocked before an update** by missing `wasmtime` in the existing environment.
+The passing update/resume tests use tiny real tensor modules to test persistence
+and finite optimization; they do not establish full-model or HIP correctness.
+No dependency was installed to bypass the pinned-container gate.
+
+`setup.py sdist` and `setup.py build_py` succeeded. Independently loaded installed
+source inventory matched all **899** source/build/test records; the sdist includes
+new policy, setup, dependency and owning test files. Registration tests verify
+these files participate in qualification identity. The current implementation
+digest was refreshed using the canonical serializer without changing historical
+dispositions. `git diff --check` passed.
+
+Changes were committed by task grouping and pushed to the existing
+`011-controlled-generalization` branch/PR #62 with matching local/remote trees.
+No CI-green claim is made for this new head; the user waived waiting for CI.
+Docker, Podman, Cargo/native execution and `wasmtime` are unavailable here.
+Consequently T063–T068 retain their evidence gates; no HIP run, actual acceptance
+archive, scientific improvement or completed hardware qualification is claimed.
+
+## T085 qualification directory regression — 2026-10-31
+
+New tests retain the actual pipeline runner, ledger, inspector, filesystem and
+bundle verifier, replacing only process launch/reclamation and the CPU suite.
+Before the repair both cases reproduced the immediate image-stage FAIL with
+FileExistsError and no container command. After the repair, both image
+inspections reach their intended fresh child; a deliberate CPU failure prevents
+HIP, and injected inspection failures retain their original reasons in the
+verified FAIL archive and captured stdout. The focused acceptance suite passed
+10 tests. No actual container or HIP command ran.
+
+The complete local selection used for T084, rerun after this fix, passed
+**274 tests, 1 deselected in 18.19 seconds**, including the canonical implementation
+digest check. `git diff --check` passed. The uploaded recovery archive SHA-256 is
+`207c9cf1c4fb6406df2946e1fde001000b6572f5408b0ca380eda7e30aa0124a`;
+its inventory, member sizes/hashes and FAIL summary verified with the published
+bundle verifier. No CI-green or completed hardware claim is made.
+
+## T086 automatic control diagnostics — 2026-10-31
+
+Added a fixed-path stdlib diagnostic collector to canonical session reports and
+the serial wrapper's recovery archive. Regression tests first failed for missing
+archived timeout files and missing collector, then passed after implementation.
+Tests cover original error/status preservation, normal archive reconciliation,
+empty logs, bounded opening/final log excerpts, whole-JSON omission, aggregate
+byte caps, symlink rejection, fresh destinations and private-input/state exclusion.
+The collector and owning tests participate in source qualification identity.
+
+The uploaded acceptance-003 diagnostic ZIP contains six files. A stdlib-only
+replay captured all six byte-for-byte, including empty streams and acknowledged
+cleanup. The timeout is confirmed, but there is no output identifying whether
+engine startup, Python import or validation stalled. This change does not raise
+timeouts or claim that the stall is fixed.
+
+The same complete local selection used for T085 passed **277 tests, one hardware
+test deselected in 18.68 seconds**. The focused diagnostics, acceptance and
+registration selection passed 15 tests. `git diff --check` passed. No container
+or HIP command ran and no hardware gate was checked off. Source changes require
+new images and newly frozen inputs before future acceptance; existing evidence
+is preserved.
+
+## T087 nested qualification diagnostics — 2026-10-31
+
+Acceptance-004 verified as an intact FAIL recovery archive with valid captured
+receipt seals. It identifies CPU regression failure and a separate CPU-only GPU
+image inspection timeout; HIP remained BLOCKED. The original JUnit and test logs
+were referenced by the CPU receipt but absent from T086's fixed capture list.
+
+New CPU and HIP suite-path tests reproduced the missing JUnit/log capture before
+the repair. The collector now includes canonical nested environment/regression
+control records, bounded logs and whole JUnit XML (2 MiB limit), retaining the
+4 MiB aggregate cap and explicit omissions. Oversize XML and unreviewed private
+pytest subtrees are tested. Focused diagnostics/acceptance/registration: 18 passed.
+The full local selection used for T086: 280 passed, one hardware test deselected.
+No container/HIP command ran. Existing operator qualify/pipeline.zip is needed
+to identify all failed CPU tests; no speculative test fix is claimed.
+
+## T088 image-inspection progress — 2026-10-31
+
+Image inspection now emits flushed stderr markers for Python start, source
+inspection, packaged artifact inspection and completion, plus Python stack dumps
+every 30 seconds while running. Absence of the first marker still cannot locate
+a pre-interpreter stall precisely. External deadlines and both source/guest
+integrity assertions remain unchanged. The emitted program was executed in real
+CPU subprocesses with fixture package dependencies for pass, source mismatch and
+guest mismatch; both integrity failures still reject. Container execution itself
+was not performed. This improves future evidence, not a claimed timeout fix.
+
+Validation after T088: 21 diagnostics/acceptance/registration tests passed, plus
+8 pipeline contract tests including the canonical implementation digest. The
+T087 full selection had passed 280 tests before the additional inspection
+markers. `git diff --check` passed. No actual HIP or container run was executed.
+
+## T089 small-container-filesystem fixture repair — 2026-10-31
+
+The uploaded qualification `pipeline.zip` verifies with SHA-256
+`5e26f07d635ac2892da07ab50437a008d1946827c22dd44ccbd9010ca5f029af`.
+Its original test output reports 1,081 passed, 77 passing subtests, 3 failed and
+8 deselected in 333.73 seconds. All failures are the three setup integration
+tests: their tiny synthetic weights/authority fixtures requested full prospective
+reservations against pytest's tmpfs, which reported about 1.63 GB free. The first
+4 GiB reservation correctly failed the production disk guard.
+
+Reproduction with a simulated 1.5 GiB `disk_usage` observation failed both
+in-process setup cases before the fix. The test fixtures now explicitly supply
+a simulated 64 GiB available observation for their fake workloads; the stdlib
+CLI subprocess has independent ample/insufficient-space cases. A session-load
+case verifies that reducing observed free space rejects an already assembled
+manifest without modifying it. Production source, budgets, guards and acceptance
+criteria are unchanged; no host or container storage allocation was increased.
+
+With the same simulated small filesystem, all five setup cases pass. The full
+local generalization/bundle/pipeline-contract selection passes **285 tests, one
+hardware test deselected in 18.62 seconds**. `git diff --check` passes. No container
+or HIP run was performed locally. Prior image-inspection progress/stack capture
+remains available for the separate unresolved GPU-image inspection timeout.
+
+## T090 startup timeout localization — 2026-10-31
+
+The uploaded `acceptance-005.zip` verifies as an intact FAIL recovery archive
+(18 ZIP members), SHA-256
+`7185e7c64414d6ea0736473b4a00d260081c724bfdcb5481ef47c1bc9a70c01b`.
+Its captured preflight result seal also verifies. The first parameter-targets
+validation exceeded its 120-second deadline, finishing supervision/cleanup in
+121.12 seconds with return code 125 and empty streams. Container reclamation was
+acknowledged in 0.087 seconds. Report image inspection subsequently completed in
+117.36 seconds, with all four Python markers present; report then failed because
+qualification had never run. Qualification and HIP were not started. These
+observations do not locate the delay or establish an engine/model defect.
+
+Runtime validation now starts an unbuffered stdlib bootstrap before role imports,
+emits a wall-clock Python-start timestamp, and dumps Python stacks every 30 seconds.
+The role marks runtime-plan validation, storage/model preflight and completion.
+Image-inspection markers also carry wall-clock timestamps. Both launch paths
+request Podman's global `--log-level=debug` option; Docker command construction is
+unchanged. Debug output uses the existing bounded supervisor stderr and recovery
+archive collection. No extra process, mount, privilege, device, retry or budget is
+introduced. This is diagnostic coverage, not a claimed timeout fix.
+
+New tests first failed on the absent diagnostic command/markers. Tests execute the
+emitted bootstrap in actual CPU subprocesses for success, exception and external
+timeout, check stack capture and unchanged runtime arguments, and verify recovery
+retains the diagnostic log. Separate cases check the last validation milestone on
+runtime/storage rejection and preserve image source/guest integrity failures.
+Focused diagnostics/engine checks: **29 passed**. Full generalization, bundle,
+pipeline-contract and container-adapter selection: **312 passed, one hardware
+test deselected in 19.33 seconds**. `git diff --check` passed. No container or HIP
+command ran locally; T063–T068 remain open. Fresh images and newly frozen inputs
+are required for another acceptance invocation because source/test closure changed.
+
+## T091 bounded startup timeout increase — 2026-10-31
+
+The uploaded `acceptance-006.zip` verifies as an intact FAIL recovery archive,
+SHA-256 `001706fb6f6f6b86a954f8f1a0d329fd62f35ccdcfb1063f42e11edee9735c54`.
+Initial preflight timed out at 120.87 seconds; report image inspection timed out at
+120.26 seconds. Neither stderr contains an actual Python-start marker (the marker
+text echoed inside Podman's command log is not execution evidence). Both logs end
+at overlay mount setup after reporting that idmapped overlay mounts are unsupported.
+Cleanup was acknowledged in 0.031 and 2.05 seconds. This locates the observed delay
+before Python, but does not establish whether filesystem setup would eventually
+finish or identify an exact kernel/storage cause. No qualification or HIP ran.
+
+Following the operator's request to consider a larger timeout, initial validation
+now allows 600 seconds per case and initial CPU/GPU image inspection 900 seconds
+per image. The enclosing preflight stage is 2700 seconds; the qualification runner
+is 7800 seconds including a 300-second reserve, within an 8400-second qualification
+stage that retains room for all four post-run verification calls. Report image
+inspection allows 300 seconds, with the existing 480-second packaging role inside
+a 900-second report stage; independent bundle verification retains 300 seconds.
+The total reservation is 17,400 seconds plus 600 emergency seconds (five hours).
+Plan/contracts, preflight resource output, serial plan and dry-run ceiling agree.
+The current T038/T065 task text explicitly records this prospective amendment;
+historical evidence retains its original four-hour budget and failure status.
+
+This changes finite startup allowances, not training budgets, research scope,
+isolation, acceptance criteria or automatic retry behavior. Warm consumer checks
+retain their existing bounds. Diagnostics remain enabled. A longer deadline is
+not evidence that the startup issue is fixed; a new actual run is still required.
+
+Six budget/propagation cases failed before implementation. The focused recovery
+and acceptance selection then passed 25 tests. The complete generalization,
+bundle, pipeline-contract and container-adapter selection passed **315 tests,
+one hardware test deselected in 19.48 seconds**. Tests exercise the full worst-case
+serial schedule, one-second margin overruns, four initial validation allocations,
+qualification and report child/parent nesting, and existing failure packaging.
+`git diff --check` passed. Checklist gates remain 16/16 requirements and 15/15
+design; no extension hooks are registered. No container/HIP command ran locally,
+and hardware tasks T063–T068 remain open. Source changes require freshly built
+images and newly frozen inputs before the next single serial invocation.
+
+## T092 terminal diagnostics and existing-run export — 2026-10-31
+
+Acceptance-007 reached and passed original CPU/native and HIP qualification, then
+failed replay/resume and report. See [operator evidence](hip-acceptance.md) for
+exact counts, images, archive hash and scoped interpretation. The recovery archive
+omits the terminal case and packaging role records, so their errors are currently
+unavailable. No root-cause fix or full feature PASS is claimed.
+
+The collector now prioritizes all canonical top-level terminal records and explicit
+public case proof filenames, including failure-packaging, followed by report and
+verifier role results/supervision. Fixed paths, 4 MiB total cap, per-file bounds,
+symlink exclusion and private-payload exclusion remain enforced. A stdlib module
+entrypoint exports existing allowed files into a fresh disjoint diagnostic-only
+archive, independently verifies it, and refuses overwrites. It never executes
+container, model or HIP work and leaves the original run unchanged.
+
+Both new regression tests failed before implementation. Focused diagnostics and
+acceptance tests: **29 passed**. Full generalization/bundle/pipeline-contract and
+container-adapter selection: **317 passed, one hardware test deselected in
+19.29 seconds**. The export test runs under Python `-S`, verifies the archive,
+compares original run bytes and checks overwrite rejection. `git diff --check`
+passes. No new container/HIP run occurred locally. Missing original replay/report
+terminal records block targeted repair; retrieve them without rebuilding images
+or running acceptance again.
+
+## T093 original build evidence packaging — 2026-10-31
+
+The supplemental acceptance-007 diagnostics identifies report packaging failure
+`ValueError: private acceptance payload`. The canonical qualification producer
+includes `build/Dockerfile`, `build/pyproject.toml`, `build/uv.lock` and crate
+`Cargo.lock` files, while the public archive policy accepted none of these names.
+Using those actual path shapes instead of JSON fixture stand-ins reproduces the
+reported error before the fix. The policy now admits exactly these build paths
+and their `payloads/` archive envelope, retaining all private/truth/state exclusions.
+Original receipts/references are preserved; there is no resealing or skip.
+Complete and partial acceptance archives independently verify after the repair;
+unrelated code/locks, weights and private build paths remain rejected. Focused
+archive/recovery/bundle selection:31 passed plus4 passing subtests. No hardware
+run or claim that replay/resume completed is made.
+
+## T094 image inspection cleanup — 2026-10-31
+
+The acceptance-007 replay/resume terminal record reports `ResourceBreach` because
+Podman `rm --force --time=0 --ignore` exceeded its remaining 4.999-second allowance
+for a qualification-consumer image inspection. It failed before replay validation
+or learning; this is not evidence of a replay algorithm failure.
+Image inspection now reserves30 seconds for process/container reclamation inside
+its existing wall allocation (e.g.90 seconds execution plus30 cleanup for a warm
+120-second check). One shared absolute deadline still governs both phases of
+cleanup. The cleanup receipt records the actual configured allowance. Unacknowledged
+removal remains a hard failure; there are no retries or ignored resource breaches.
+All other roles retain their existing five-second cleanup default.
+Consumer image/device/verification control records are now included in diagnostic
+capture. Five regression cases failed before the fix; focused supervisor, diagnostic,
+acceptance and container tests pass42 cases. A simulated12-second acknowledged
+removal succeeds within the new allowance; timeout still fails closed. No actual
+Podman removal timing or new HIP execution is claimed.
+
+## T095 replay initializer execution boundary — 2026-10-31
+
+Review of the next replay step found a separate latent integration defect: the
+host resolver called `verify_initializer`, which requires container-installed
+JSON schema packages. A test forbidding schema execution on the stdlib host
+reproduced ModuleNotFoundError; this was not the observed acceptance-007 failure,
+which occurred earlier during image reclamation.
+The resolver now delegates schema/model/provenance validation to the existing
+installed preparation role, then publishes bootstrap evidence. Its caller reuses
+the resulting validated plan instead of launching validation again. There is no
+new role, mount capability or additional HIP work. The test permits schema work
+only inside the simulated role, preserves real initializer provenance checks,
+checks one validation call, rejects a failed role without bootstrap publication,
+and still rejects a mismatched original session. Its fake legacy recipe uses a
+fixture-only storage observation, with production storage/tensor checks unchanged.
+Focused setup/initializer/bootstrap tests:24 passed.
+
+Combined T093–T095 validation:334 passed,4 subtests passed, one hardware test
+deselected in19.34 seconds, covering generalization contracts/integration, archive
+policy, supervisor, container adapters and pipeline identity registration.
+`git diff --check` passes. Requirements/design checklist gates remain16/16 and15/15;
+no extension hooks are registered. Hardware qualification applies only to the
+recorded acceptance-007 source, not these new repairs.
+
+## T096 shared cleanup starvation — 2026-10-31
+
+Acceptance-008 progressed past replay initializer validation, then reported
+`cleanup deadline exhausted before container reclamation`. Its archive omitted
+the nested role records that would identify the original triggering failure.
+Independent local reproduction found that a container client ignoring SIGTERM
+consumes the whole default five-second cleanup envelope before engine removal.
+Default graceful waiting for clients sharing a container cleanup state is now
+capped at0.25 seconds. The absolute deadline is unchanged; explicit grace and
+controller-only supervision retain their previous behavior. Removal still fails
+closed unless acknowledged.
+
+The real subprocess regression failed before the fix and passes afterward,
+including a check that more than3.5 seconds remain for engine removal. All seven
+supervisor tests passed. This establishes the cleanup defect independently; it
+does not establish what triggered the original acceptance-008 role failure or
+qualify the changed source on HIP.
+
+## T097 nested role controls and acceptance-008 reconciliation — 2026-10-31
+
+The previous fixed-path collector omitted controls under acceptance cases' private
+workflow directories. Metadata-only discovery now locates nested role directories
+within explicit entry/directory/role/depth bounds. Only process, cleanup, stdout
+and stderr controls may be copied, under the existing per-file and aggregate byte
+caps. Input/checkpoint/cache trees and symlinks are skipped; role payloads are not
+traversed. Public archive paths use the source parent hash and the index retains
+the original-to-exported path mapping. The original run is unchanged.
+
+The missing-capture and missing-bound regressions failed before implementation.
+Tests now verify existing-run and recovery exports exclude private payloads and
+links, all four discovery limits report omissions, and canonical normal reporting
+includes the controls in an independently verified feature archive. Focused
+diagnostic/session checks: **35 passed**. Combined generalization, contract,
+integration, supervisor, container and bundle selection: **341 passed, 4 subtests
+passed, 1 hardware test deselected in21.43 seconds**. No container/HIP command was
+run locally. The implementation digest was regenerated.
+
+The uploaded acceptance-008 archive independently passes inventory and canonical
+evidence reconciliation, with software FAIL and scientific UNMEASURED. See
+[hip-acceptance.md](hip-acceptance.md) for exact original operator results. The
+remaining blocker is the omitted nested role evidence needed to identify the
+failure that preceded cleanup. The existing-run stdlib exporter retrieves it
+without another hardware invocation. T064–T067 remain open.

@@ -55,6 +55,18 @@ class BigintSampler:
         self.seed = seed
         self.identity = identity({"priors": PRIORS, "seed": seed})
 
+    def descriptor(self, family):
+        """Opt-in fixed structural authority; historical sample(counter) is unchanged."""
+        from oeis_learn.pipeline_validation.identity import seal
+        if type(family) is not int or not 0 <= family < 62500:
+            raise ValueError("descriptor family limit")
+        row = self.sample(family * 16)
+        return seal(dict(version="generalization-descriptor/v1", generator=self.identity,
+                         family=row["family"], stage=row["stage"],
+                         parameter_source=row["parameter_source"],
+                         numeric_law="independent-uniform-integers[-16,16]/v1",
+                         parameter_names=sorted(row["assignment"])))
+
     def sample(self, counter):
         if type(counter) is not int or not 0 <= counter < 1_000_000:
             raise ValueError("counter limit")

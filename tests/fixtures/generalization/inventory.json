@@ -1,0 +1,26 @@
+{
+  "files": {
+    "authority.json": {
+      "bytes": 18322,
+      "sha256": "sha256:489afc5416dfb750f0badbf6c288d9d1a7aef485c4bf0a60008759d494ded972"
+    },
+    "mechanical-cases.json": {
+      "bytes": 2542,
+      "sha256": "sha256:9759700379f40a8bdbe9a63edf969f56394acdced976d31c78d6b89567a60804"
+    },
+    "payloads.json": {
+      "bytes": 5949,
+      "sha256": "sha256:ac1490a00d3057c35ff27b17793f8b494aeeafb6aba329b0504c9cf6585fab6f"
+    },
+    "policy-expectations.json": {
+      "bytes": 4455,
+      "sha256": "sha256:fa48bc58d6e06901379f8fe5edc81330f56f15346addb398963ac9aab507c03b"
+    },
+    "role-expectations.json": {
+      "bytes": 525,
+      "sha256": "sha256:91524753dd467e4f193632034dcf173db8e98ac5cbbcb4880711585e30074791"
+    }
+  },
+  "scope": "synthetic-contract-and-reference-only",
+  "version": "generalization-fixtures/v1"
+}

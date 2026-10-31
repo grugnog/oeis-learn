@@ -53,6 +53,7 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
     finally:
         cleanup_end=time.monotonic()+cleanup_seconds
         if cleanup_state is not None:
+            cleanup_state.setdefault('allowance_seconds',cleanup_seconds)
             cleanup_state.setdefault('deadline',cleanup_end)
             cleanup_end=cleanup_state['deadline']
         cleanup_failure=None
@@ -63,6 +64,11 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 try:
                     os.killpg(process.pid,signal.SIGINT if interrupted else signal.SIGTERM)
                     grace=max(0,cleanup_end-time.monotonic())
+                    # A container client can wait for its engine indefinitely.
+                    # Preserve the shared deadline for engine.remove(), rather
+                    # than exhausting it waiting for that client's exit.
+                    if cleanup_state is not None and grace_seconds is None:
+                        grace=min(grace,.25)
                     process.wait(timeout=grace if grace_seconds is None else min(grace,grace_seconds))
                 except (ProcessLookupError,subprocess.TimeoutExpired):
                     pass
@@ -99,7 +105,8 @@ def reclaim(engine, name, output, cleanup_state):
     from .identity import write
     from .runner import ResourceBreach
     started=time.monotonic()
-    deadline=cleanup_state.setdefault('deadline',started+5)
+    allowance=cleanup_state.get('allowance_seconds',5)
+    deadline=cleanup_state.setdefault('deadline',started+allowance)
     failure=None
     try:
         left=deadline-time.monotonic()
@@ -113,5 +120,5 @@ def reclaim(engine, name, output, cleanup_state):
         raise ResourceBreach('container termination unacknowledged: '+failure) from exc
     finally:
         write(Path(output)/'cleanup.json',dict(seconds=time.monotonic()-started,
-            allowance_seconds=5,within_bound=failure is None and time.monotonic()<=deadline,
+            allowance_seconds=allowance,within_bound=failure is None and time.monotonic()<=deadline,
             acknowledged=failure is None,failure=failure))

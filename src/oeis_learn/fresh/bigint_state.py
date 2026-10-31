@@ -266,3 +266,162 @@ def finish_final(root, plan_record, arm, status):
         study.finish(arm, status)
         write(root / "state.json", study.snapshot())
     return study.snapshot()
+
+
+def generalization_checkpoint_policy(history, *, pins):
+    """Prospective pure prune decision. Historical CheckpointStore remains unchanged."""
+    from oeis_learn.generalization.checkpoints import prune_plan
+    return prune_plan(history, pins)
+
+
+class GeneralizationCheckpointStore:
+    MAX_BYTES = 32 << 30
+
+    """Prospective full-state generations; latest moves only after verified publication.
+
+    Private state is trusted run-owned data. Hash verification happens before
+    deserialization; callers must never use this to load untrusted shared archives.
+    """
+    def __init__(self, root, contract, cap):
+        self.root=Path(root); self.contract=contract; self.cap=cap
+
+    @staticmethod
+    def _encode(value):
+        import io,torch
+        stream=io.BytesIO();torch.save(value,stream);return stream.getvalue()
+
+    @staticmethod
+    def _decode(value):
+        import io,torch
+        return torch.load(io.BytesIO(value),map_location='cpu',weights_only=False)
+
+    def save(self,states,ledger,*,encode=None):
+        from oeis_learn.generalization.state import snapshot,STATE_FIELDS
+        from oeis_learn.generalization.contracts import verify_artifact
+        from oeis_learn.pipeline_validation.identity import seal
+        if set(states)!=STATE_FIELDS:raise ValueError('complete prospective state required')
+        encode=encode or self._encode
+        generation='generalization-'+uuid.uuid4().hex
+        folder=self.root/generation;folder.mkdir(parents=True,exist_ok=False)
+        def blob(name,value):
+            data=encode(value)
+            if not isinstance(data,bytes):raise ValueError('state serializer must return bytes')
+            import shutil
+            used=sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
+            if used+len(data)>self.MAX_BYTES or len(data)>shutil.disk_usage(self.root).free:
+                raise OSError('checkpoint storage reservation exhausted; existing pins retained')
+            path=folder/(name+'.pt');write(path,data,immutable=True)
+            ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=len(data))
+            verify_artifact(self.root,ref);return ref
+        bound={key:blob(key,states[key]) for key in STATE_FIELDS-{'rng','data'}}
+        bound['rng']={key:blob('rng-'+key,value) for key,value in states['rng'].items()}
+        bound['data']=states['data']
+        manifest=snapshot(bound,contract=self.contract,ledger=ledger)
+        path=folder/'state.json';write(path,manifest,immutable=True)
+        ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=path.stat().st_size)
+        verify_artifact(self.root,ref)
+        write(self.root/'generalization-latest.json',ref)
+        return ref
+
+    def load(self,ref,*,decode=None):
+        import json
+        from oeis_learn.generalization.state import restore
+        from oeis_learn.generalization.contracts import verify_artifact
+        decode=decode or self._decode
+        record=json.loads(verify_artifact(self.root,ref))
+        result=restore(record,contract=self.contract,cap=self.cap,root=self.root)
+        states=result['states']
+        for key in states.keys()-{'rng','data'}:states[key]=decode(verify_artifact(self.root,states[key]))
+        states['rng']={key:decode(verify_artifact(self.root,value)) for key,value in states['rng'].items()}
+        return dict(states=states,ledger=result['ledger'])
+
+    def describe(self,ref,*,initialization,parent=None,pins):
+        """Verify a generation and expose its exact weights without unpickling.
+
+        Token exposure describes committed parameters, excluding a reserved but
+        unfinished update. The original ledger remains in the full-state file.
+        """
+        import json
+        from oeis_learn.generalization.state import restore
+        from oeis_learn.generalization.contracts import verify_artifact,shape
+        from oeis_learn.pipeline_validation.identity import seal
+        record=json.loads(verify_artifact(self.root,ref))
+        restored=restore(record,contract=self.contract,cap=self.cap,root=self.root)
+        ledger=restored['ledger']
+        descriptor=seal(dict(version='generalization-checkpoint/v1',kind='full_state',
+            weights=record['states']['weights'],state=ref,initialization=initialization,
+            parent=parent,tokens=ledger.consumed-(ledger.pending[1] if ledger.debited else 0),
+            updates=ledger.updates,pins=list(pins),compatibility=self.contract))
+        shape('checkpoint',descriptor)
+        return descriptor
+
+    def selected_copy(self,destination,roster,decision,*,decode=None,encode=None):
+        """Persist sanitized selection/pins in a new resumable store.
+
+        The selection controller supplies only chosen identities and its decision
+        hash. Selection targets/measurements are never learner inputs. Immutable
+        retained generations and their descriptor identities remain unchanged.
+        """
+        import shutil
+        from oeis_learn.pipeline_validation.identity import validate as closed
+        closed(decision,{'version','roster','decision','best_loss','selected','reason'},'generalization-selected-pins/v1')
+        if identity({k:v for k,v in roster.items() if k!='identity'})!=roster['identity'] or decision['roster']!=roster['identity']:
+            raise ValueError('selection roster identity mismatch')
+        by_id={c['identity']:c for c in roster['checkpoints']}
+        if len(by_id)!=len(roster['checkpoints']):raise ValueError('duplicate retained checkpoint')
+        for name in ('best_loss','selected'):
+            if decision[name] is not None and decision[name] not in by_id:raise ValueError('selection outside retained candidates')
+        latest=read(self.root/'generalization-latest.json')
+        restored=self.load(latest,decode=decode)
+        state=restored['states'];ledger=restored['ledger']
+        history={};descriptors={}
+        for descriptor in by_id.values():
+            checked=self.describe(descriptor['state'],initialization=descriptor['initialization'],
+                parent=descriptor['parent'],pins=descriptor['pins'])
+            if checked!=descriptor:raise ValueError('retained descriptor differs from state')
+            key=descriptor['state']['sha256'];history[key]=descriptor['state'];descriptors[key]=descriptor
+        if latest not in history.values():raise ValueError('latest absent from retained candidates')
+        destination=Path(destination)
+        if destination.exists():raise ValueError('fresh selected checkpoint store required')
+        needed=sum(p.stat().st_size for pointer in history.values() for p in (self.root/Path(pointer['path']).parent).rglob('*') if p.is_file())
+        if needed>self.MAX_BYTES or needed>shutil.disk_usage(self.root).free:
+            raise OSError('insufficient storage for retained selection pins')
+        destination.mkdir(parents=True)
+        for pointer in history.values():
+            folder=Path(pointer['path']).parent
+            shutil.copytree(self.root/folder,destination/folder)
+        state['pins']=history
+        state['history']['descriptors']=descriptors
+        state['selection']=dict(decision=decision['decision'],checkpoint=decision['selected'],
+            best_loss=decision['best_loss'],reason=decision['reason'])
+        target=GeneralizationCheckpointStore(destination,self.contract,self.cap)
+        pointer=target.save(state,ledger,encode=encode)
+        history[pointer['sha256']]=pointer
+        target.retain(history,tuple(history))
+        return pointer
+
+    def retain(self,history,pins):
+        """Verify every retained generation before atomically publishing the pin set.
+
+        Only generations explicitly present in this run's history may be removed;
+        incomplete writes and unrelated files are never guessed to be disposable.
+        """
+        import json,shutil
+        from oeis_learn.generalization.checkpoints import prune_plan
+        from oeis_learn.generalization.contracts import verify_artifact,artifact_refs
+        remove=prune_plan(history,pins)
+        for key in pins:
+            record=json.loads(verify_artifact(self.root,history[key]))
+            for ref in artifact_refs(record):verify_artifact(self.root,ref)
+        latest=read(self.root/'generalization-latest.json')
+        if latest not in [history[k] for k in pins]:raise ValueError('latest generation must remain pinned')
+        write(self.root/'generalization-pins.json',{key:history[key] for key in pins})
+        keep={Path(history[k]['path']).parent for k in pins}
+        for key in remove:
+            relative=Path(history[key]['path']).parent
+            if relative in keep:continue
+            if len(relative.parts)!=1 or not relative.name.startswith('generalization-'):
+                raise ValueError('unowned checkpoint generation')
+            # verify_artifact also rejects symlinks before any recursive removal.
+            verify_artifact(self.root,history[key])
+            shutil.rmtree(self.root/relative)

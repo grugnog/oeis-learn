@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/preparation.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "enum": [
+        "generalization-preparation/v1",
+        "generalization-preparation/v2",
+        "generalization-preparation/v3"
+      ]
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "generator": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "numeric_law": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "descriptors": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "training",
+          "selection",
+          "assessment"
+        ]
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "quotas": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "exclusions": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "budgets": {
+      "anyOf": [
+        {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "target_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "draws": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "storage_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "log_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "target_tokens",
+            "attempts",
+            "seconds",
+            "draws",
+            "memory_bytes",
+            "storage_bytes",
+            "log_bytes"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "study_settings": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "arms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "model": {
+          "type": "object",
+          "properties": {
+            "profile": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "initialization": {
+              "oneOf": [
+                {
+                  "const": "random"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "retained"
+                    },
+                    "artifact": {
+                      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "artifact"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "acceptance_selection"
+                    },
+                    "case": {
+                      "const": "retained-eval"
+                    },
+                    "study": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "case",
+                    "study"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "architecture": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "minLength": 71,
+              "maxLength": 71
+            }
+          },
+          "required": [
+            "profile",
+            "initialization",
+            "architecture"
+          ],
+          "additionalProperties": false
+        },
+        "precision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "checkpoints": {
+          "type": "object",
+          "properties": {
+            "milestones": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "minItems": 0,
+              "maxItems": 64
+            },
+            "retain": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "minItems": 1,
+              "maxItems": 4096,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "milestones",
+            "retain"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "recipe",
+        "arms",
+        "model",
+        "precision",
+        "checkpoints"
+      ],
+      "additionalProperties": false
+    },
+    "proposed_study": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "generator",
+    "numeric_law",
+    "descriptors",
+    "roles",
+    "quotas",
+    "exclusions",
+    "seeds",
+    "budgets",
+    "study_settings"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": "generalization-preparation/v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_settings": {
+            "properties": {
+              "model": {
+                "properties": {
+                  "initialization": {
+                    "const": "random"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": "generalization-preparation/v3"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "proposed_study"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "proposed_study"
+          ]
+        },
+        "properties": {
+          "budgets": {
+            "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+          },
+          "study_settings": {
+            "properties": {
+              "checkpoints": {
+                "properties": {
+                  "milestones": {
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

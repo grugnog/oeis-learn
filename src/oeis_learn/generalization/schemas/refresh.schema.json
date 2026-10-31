@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/refresh.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "generalization-refresh/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "descriptor_set": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "shards": {
+      "type": "array",
+      "items": {
+        "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "numeric_law": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "draws": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rejections": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "properties": {
+        "shard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "shard",
+        "row"
+      ],
+      "additionalProperties": false
+    },
+    "exhaustion": {
+      "const": "stop"
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "descriptor_set",
+    "shards",
+    "numeric_law",
+    "seed",
+    "draws",
+    "rejections",
+    "cursor",
+    "exhaustion"
+  ],
+  "additionalProperties": false
+}
