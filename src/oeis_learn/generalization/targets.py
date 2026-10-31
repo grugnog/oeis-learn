@@ -11,6 +11,19 @@ from oeis_learn.data.bigint_programs import render
 from oeis_learn.decoder.bigint_codec import encode_body, decode_body
 
 
+def learning_target(proof):
+    """Retain unsupported rows with their original literal target and disposition.
+
+    The original pair proof is kept separately for auditing. A control-sensitive
+    parameter is never taught as an admissible fitted target.
+    """
+    if proof['disposition']=='supported':
+        return proof['parameter_source'],proof['parameter_tokens']
+    if proof['disposition']=='unsupported_control_dependency':
+        return proof['literal_source'],proof['literal_tokens']
+    raise ValueError('unknown paired-target disposition')
+
+
 def ground(source,assignment):
     p=parse(source,allow_parameters=True)
     names=set()
