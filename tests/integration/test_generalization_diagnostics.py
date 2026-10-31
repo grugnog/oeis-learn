@@ -100,3 +100,46 @@ def test_oversized_junit_is_omitted_whole(tmp_path):
     row=next(r for r in result['files'] if r['source']==name)
     assert row['status']=='OMITTED' and row['reason']=='XML byte cap'
     assert not (tmp_path/'public'/name).exists()
+
+
+@pytest.mark.parametrize('mismatch', [None,'source','guest'])
+def test_image_inspection_progress_preserves_integrity_checks(tmp_path,monkeypatch,mismatch):
+    import subprocess,sys
+    from types import SimpleNamespace
+    from oeis_learn import container_validation
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.experiments import source_snapshot
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda root:{'fixture':True})
+    captured={}
+    class Engine:
+        def command(self,**kw):captured.update(kw);return ['fixture-inspection']
+    host=SimpleNamespace(engine=Engine(),policy=dict(workspace=str(tmp_path),memory_bytes=2<<30,cpus=1))
+    monkeypatch.setattr(supervision,'launch',lambda *a,**k:None)
+    monkeypatch.setattr(supervision,'reclaim',lambda *a,**k:None)
+    output=tmp_path/'inspection'
+    container_validation.inspect_current_image(host,'cpu-image',output,seconds=120)
+    assert captured['gpu'] is False
+    argv=captured['argv'];code=argv[argv.index('-c')+1]
+    code=code.replace('/work/input/expected.json',str(output/'inputs/expected.json'))
+    prefix="""import sys,types
+snapshot=types.ModuleType('oeis_learn.experiments.source_snapshot')
+snapshot.source_snapshot=lambda: SNAPSHOT
+sys.modules[snapshot.__name__]=snapshot
+config=types.ModuleType('oeis_learn.fresh.bigint_config')
+config.packaged_artifacts=lambda: {'guest_sha256':'original'}
+sys.modules[config.__name__]=config
+common=types.ModuleType('oeis_learn.fresh.common')
+common.file_hash=lambda _: GUEST
+sys.modules[common.__name__]=common
+""".replace('SNAPSHOT',repr({'fixture':False if mismatch=='source' else True})).replace('GUEST',repr('changed' if mismatch=='guest' else 'original'))
+    result=subprocess.run([sys.executable,'-u','-c',prefix+code],text=True,capture_output=True,timeout=10)
+    assert 'inspection: python-start' in result.stderr
+    assert 'inspection: source-snapshot' in result.stderr
+    if mismatch:
+        assert result.returncode!=0
+        assert ('current installed package/source mismatch' if mismatch=='source' else 'changed packaged guest') in result.stderr
+        assert 'inspection: complete' not in result.stderr
+    else:
+        assert result.returncode==0,result.stderr
+        assert 'inspection: packaged-artifacts' in result.stderr and 'inspection: complete' in result.stderr
+        assert json.loads(result.stdout)['source']=={'fixture':True}

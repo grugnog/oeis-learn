@@ -427,3 +427,19 @@ pytest subtrees are tested. Focused diagnostics/acceptance/registration: 18 pass
 The full local selection used for T086: 280 passed, one hardware test deselected.
 No container/HIP command ran. Existing operator qualify/pipeline.zip is needed
 to identify all failed CPU tests; no speculative test fix is claimed.
+
+## T088 image-inspection progress — 2026-10-31
+
+Image inspection now emits flushed stderr markers for Python start, source
+inspection, packaged artifact inspection and completion, plus Python stack dumps
+every 30 seconds while running. Absence of the first marker still cannot locate
+a pre-interpreter stall precisely. External deadlines and both source/guest
+integrity assertions remain unchanged. The emitted program was executed in real
+CPU subprocesses with fixture package dependencies for pass, source mismatch and
+guest mismatch; both integrity failures still reject. Container execution itself
+was not performed. This improves future evidence, not a claimed timeout fix.
+
+Validation after T088: 21 diagnostics/acceptance/registration tests passed, plus
+8 pipeline contract tests including the canonical implementation digest. The
+T087 full selection had passed 280 tests before the additional inspection
+markers. `git diff --check` passed. No actual HIP or container run was executed.
