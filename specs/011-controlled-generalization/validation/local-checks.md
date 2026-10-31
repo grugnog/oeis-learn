@@ -165,3 +165,37 @@ alongside original-case, payload-integrity, version, binding, mandatory-check,
 transitive-closure and isolated-projection regressions. T035/T044's local gate is
 restored; C/D and hardware qualification are not declared complete. No HIP command
 ran. `git diff --check` passes.
+
+## Retained selection, assessment and isolated replay (2026-10-31)
+
+Committed increments expose checkpoint descriptors without unpickling, preserving
+actual committed exposure when an update debit is pending. Selection uses the same
+retained candidate set for token-weighted loss and Phase-B behavior ordering.
+Assessment verifies a frozen candidate/target authorization and an active original
+exposure debit. Replay generation mounts only 20 visible terms and exact weights;
+full-horizon admission is a separate training-only role. Search persistence precedes
+every model attempt, and replay tasks must match the actual prepared training shards.
+
+The fitted-literal admission incompatibility was repaired in B with an initially
+failing reference test. Version 2 records preserve original/transformed/final source,
+check literal-only transformation and grounding, and rerun admission on restore.
+The focused replay/training integration suite passed 21 tests. Source-registration
+checks passed 2 tests; T060 registration is complete, with no GPU execution.
+
+The combined command above now reports **249 passed, 1 failed, 1 deselected, 9
+subtests passed**. The failure is the new P4 retained-initializer authority regression,
+not one of the installed-role tests. T011/T044 are reopened, with repair requirements
+in `algorithm-review.md`. `git diff --check` passes. Docker, Podman and Cargo remain
+unavailable, so no pinned-container qualification/build is claimed. No HIP command
+or E0/P0/P1/P2/P3/P4 campaign ran.
+
+The serial helper's fake-boundary tests verify 13,800 seconds of stage reservations
+plus 600 seconds of margin, one qualification stage, bounded failure packaging,
+and new output roots. This does not complete T065's actual reduced-manifest
+preflight or qualify the still-unregistered full canonical workflow.
+
+Packaging audit found that the source distribution omitted authoritative 009/011
+contract files. `MANIFEST.in` now includes both contract directories. A fresh local
+`setup.py sdist` build verifies all 34 required contract/schema/helper files are
+present. This is a source-package check, not a pinned image build. Three historical
+checkpoint/debit/final-exposure regression tests also pass.

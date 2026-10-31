@@ -226,3 +226,30 @@ qualification or research campaign ran. Remaining C/D work is still incomplete.
 C replay wiring exposed a T039/T041 admission incompatibility: native fitting can replace literal coefficients with an explicit parameterized source before grounding. The previous admission API grounded the generated source itself, rejecting valid native transformations. The new independent regression first failed with an unsupported `transformed_source` argument. Version 2 admitted entries retain generated, transformed, and grounded sources separately. The policy verifies that transformation changes only literal leaves into parameters, then independently checks exact grounding and the existing 100-term oracle/native/reference agreement and shorter-target rule. Legacy v1 entries retain their original semantics. Restore revalidates the transformation, rather than trusting stored admission flags.
 
 T044 was rerun after the repair: the combined generalization/reference/historical regression selection passed 246 tests plus 9 subtests, with the one marked GPU test deselected. This is CPU/fixture evidence, not native-container or HIP qualification. The dedicated v2 round/restore integration is also included in the follow-up regression run. This repair belongs to Phase B; C wiring resumes against the repaired interface.
+
+### Open gate: frozen P4 initializer authority (2026-10-31)
+
+T011/T044 are reopened. The independent counterexample
+`test_p4_cannot_freeze_random_initialization_without_common_retained_authority`
+constructs a P4 study with the correct paired arm names, literal target format,
+4M-token/7200-second caps and 1M/2M/4M milestones, but only random initialization.
+`freeze('study', ...)` accepts it. Both study and preparation schemas constrain
+`model.initialization` to the constant `random`; neither can identify the common
+retained initializer required by the P4 experiment contract. The low-level learner
+can load a separate weights reference, but that is not frozen study authority.
+Exposing it as an arbitrary runtime setting would weaken model/lineage binding.
+
+The repair needs a versioned preparation/study initializer contract, with a stable
+policy validating exact retained weight/checkpoint identity, mechanical-only
+training lineage, compatible model/precision/literal representation, and the same
+initializer for both paired arms. Keep random initialization valid for applicable
+fresh studies and historical routes. Reject imported/unknown ancestry, incompatible
+or changed weights and unregistered representation/replay interactions. Include
+positive retained-initializer publication/resume cases and negative identity,
+lineage and paired-arm counterexamples, then rerun T044 before C routing resumes.
+Do not merely ban all P4 studies or relabel retained weights as random.
+
+Latest combined regression: **249 passed, 1 failed, 1 GPU deselected, 9 subtests
+passed**. The only failure is this new contract counterexample. This is a real
+prerequisite failure, not a HIP failure. No HIP command ran. Remaining C/D is not
+complete; the feature gate is not restored.

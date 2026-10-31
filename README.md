@@ -98,3 +98,22 @@ python3 scripts/foundation_run.py --engine podman validate \
 See [the Phase 4 evidence](specs/008-bigint-constant-synthesis/validation/phase-4.md)
 for the current pass/pending gates. Retirement is not permission to launch a
 research screen or change a checkpoint's profile.
+
+### Controlled generalization (implementation in progress)
+
+The `011-controlled-generalization` feature currently exposes `generalization report`
+and `generalization verify-bundle` through the portable host CLI. Both require a
+prebuilt immutable qualification image via global `--image sha256:...`; report
+consumes one explicit public evidence inventory and writes a sibling archive.
+See the [current command guide](specs/011-controlled-generalization/quickstart.md#current-integration-status)
+for exact usage and limitations. Opt-in `pilot-followup --arms uniform --qualification`
+keeps the historical default arm set unchanged.
+
+Prepared-data, retained-weight, CPU learner/resume, selection/assessment and isolated
+replay adapters are implemented in part. The full generalization command family,
+paired replay workflow and serial acceptance invocation remain incomplete. The
+P4 frozen-initializer authority regression currently reopens the Phase-B gate;
+see the [implementation audit](specs/011-controlled-generalization/checklists/implementation.md).
+No real HIP acceptance or new research campaign is claimed. After completion and
+qualification, the intended research order is E0 evaluation, P0 uniform replication,
+then P1 static/refresh; P2/P3/P4 require separately frozen comparisons.

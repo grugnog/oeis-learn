@@ -1,6 +1,6 @@
 # Validation and first-pilot guide
 
-This is a **post-implementation** guide. `generalization` commands/helper and opt-in flags below are proposed by this plan and do not exist yet. This planning PR does not run training, build images or claim HIP readiness.
+This guide distinguishes implemented evidence commands from the planned research workflow. Public `generalization report` and `verify-bundle`, and opt-in `pilot-followup --arms uniform --qualification`, are implemented. The remaining generalization endpoints and complete serial acceptance workflow are not ready. No HIP readiness or research result is claimed.
 
 ## Prerequisites
 
@@ -86,11 +86,40 @@ Expect a scoped positive/negative/inconclusive scientific result, actual costs, 
 
 ## Current integration status
 
-Phase C remains incomplete. The `generalization` CLI/helper examples above are
-still prospective. Implemented increments include checkpoint/report callback
-adapters, bounded per-cell preparation and separate visible/scorer files,
-role-mount resolution, seven sealed research recipe templates, and CPU/source
-registration. These components have local fixture tests; they are not a runnable
-research workflow. Do not run the prospective commands as an acceptance procedure
-until public routing, learner/resume/replay wiring and serial-helper integration
-are complete. See `validation/local-checks.md` for actual non-HIP results.
+The research examples above remain a target workflow. Only `report` and
+`verify-bundle` are currently public generalization endpoints. Both require the
+global `--image sha256:...` argument naming a prebuilt immutable qualification
+image. Report currently accepts **one** explicit evidence directory containing
+`evidence.json` and its exact public inventory; multi-stage assembly is pending.
+For example, after preparing that inventory:
+
+```bash
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization report \
+  --manifest run-state/evidence/study.json --inputs run-state/evidence/public \
+  --output run-state/evidence/report-001
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization verify-bundle \
+  --archive run-state/evidence/report-001.zip --output run-state/evidence/verified-001
+```
+
+Every output must be new. These commands verify hashes and original evidence;
+they do not qualify an unexecuted study. Full-state learner resume is an internal
+adapter, not yet a public restart route. The helper's `--dry-run` exposes its
+reserved command order, but missing endpoints prevent complete execution/reuse.
+
+Internal installed roles now support preparation, real model training and exact
+resume, retained evaluation, checkpoint selection, authorized assessment scoring,
+and separate visible-only replay proposals/training-only native audits. Retained
+checkpoint descriptors identify exact weights, committed exposure and pins.
+Best-loss and behavior selection use the same candidate set; assessment consumes
+a frozen authorization and active shared exposure debit without ranking. Replay
+search persists reservations before model work and retains empty discoveries and
+interruption costs. These adapters have CPU/fixture tests. Their existence does
+not complete T046/T052/T053/T056–T059/T061–T062 or qualify actual native/HIP work.
+
+As of 2026-10-31, a failing P4 initializer-authority counterexample reopens
+T011/T044. The current study/preparation contracts only permit random initialization
+and cannot bind the required common retained literal initializer. Resolve that
+Phase-B contract/provenance gate before registering the remaining public routes.
+See [local results](validation/local-checks.md), [algorithm review](validation/algorithm-review.md),
+and [implementation audit](checklists/implementation.md). E0→P0→P1 and later P2/P3/P4
+remain separate operator-authorized research; none has been launched here.

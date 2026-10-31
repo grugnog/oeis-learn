@@ -42,7 +42,7 @@ The task skill's default separate implementation phase per story is adapted to t
 
 - [X] T009 [P] Add independent authority, preparation-transition and path/provenance counterexamples in `tests/unit/test_generalization_contracts.py`, including mutable authority, fabricated identities and hidden evaluation payload rejection; establish the failing expectations for T011.
 - [X] T010 [P] Add hand-computed token/resource ledger tests in `tests/unit/test_generalization_budgets.py`, covering replay-shortened targets, boundary undershoot, interrupted debits, exhaustion and insufficient checkpoint storage; establish the failing expectations for T012.
-- [X] T011 Implement canonical identity, strict format/provenance validation and preparation-to-new-frozen-study transitions in `src/oeis_learn/generalization/contracts.py`; use existing sealing, preserve immutable authority and reject unknown fields, forbidden imported training ancestry and a shortfall producing trainable study output.
+- [ ] T011 Implement canonical identity, strict format/provenance validation and preparation-to-new-frozen-study transitions in `src/oeis_learn/generalization/contracts.py`; use existing sealing, preserve immutable authority and reject unknown fields, forbidden imported training ancestry and a shortfall producing trainable study output.
 - [X] T012 Implement exact cumulative budget and update-boundary accounting in `src/oeis_learn/generalization/budgets.py`: charge actual nonpadding target tokens after replay substitution including encoded EOS, exclude BOS/input/PAD, preserve a pending batch or pre-sampling RNG/cursor, bound cap undershoot by one prospective batch and never replenish resumed budgets.
 
 ### US1 — Explain evidence and extend evaluation (P1)
@@ -113,7 +113,7 @@ The task skill's default separate implementation phase per story is adapted to t
 
 ### Phase-B exit gate
 
-- [X] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
+- [ ] T044 Run and reconcile all algorithm reference/differential tests from T009–T043, complete the ownership/invariant matrix in `specs/011-controlled-generalization/contracts/algorithm-handoff.md`, and record the stronger-model exit review in `specs/011-controlled-generalization/validation/algorithm-review.md`; every nontrivial policy must be tested and callable through stable interfaces before C starts.
 
 ## Phase C — Routine story integration
 
@@ -145,7 +145,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 - [ ] T057 [US5] Register all prospective preflight/qualify/prepare/evaluate/train/replay/report/verify-bundle/acceptance endpoints in `src/oeis_learn/pipeline_validation/generalization_cli.py` and `scripts/foundation_local.py`, retaining confined relative paths, parser conventions and existing command behavior.
 - [ ] T058 [US5] Connect canonical producer/consumer receipt and current image/HIP inspection I/O in `src/oeis_learn/pipeline_validation/runner.py`, `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/pipeline_validation/reuse.py` to T035–T038 policies; pass original producer references through prospective endpoints without weakening historical study bindings or accepting REUSED-only evidence.
 - [ ] T059 [US5] Create the stdlib-only serial subprocess helper `scripts/generalization_hip_serial.py`, forwarding preflight→qualify→prepare→five bounded acceptance cases→report→verify-bundle, with dry-run and verified `--reuse-run`, reserved final packaging time and no unchecked skip/start-step or automatic full research runs.
-- [ ] T060 [US5] Register new CPU/native/HIP test selections in `src/oeis_learn/container_validation.py`, include new modules/helper/authoritative contracts in `src/oeis_learn/experiments/source_snapshot.py`, and update Dockerfile/package inclusion only where required; verify changed/unmapped authority invalidates qualification while prospective recipe identities remain independently hashed.
+- [X] T060 [US5] Register new CPU/native/HIP test selections in `src/oeis_learn/container_validation.py`, include new modules/helper/authoritative contracts in `src/oeis_learn/experiments/source_snapshot.py`, and update Dockerfile/package inclusion only where required; verify changed/unmapped authority invalidates qualification while prospective recipe identities remain independently hashed.
 
 ### US4 integration — Training-only replay round
 
@@ -286,3 +286,26 @@ rejection of undeclared/overlapping mounts. Exact file projections omit unnamed
 files. Preparation/role tests: 28 passed. Native callbacks and the container launcher
 are replaced in these fixtures; this does not assert native/container qualification.
 Public preparation endpoint registration remains tracked separately by T057.
+
+## Current implementation gate (2026-10-31)
+
+T011/T044 are reopened by the retained-initializer authority counterexample in
+`tests/unit/test_generalization_contracts.py`. P4 must freeze its common retained
+literal initializer, but preparation/study model contracts currently allow only
+`initialization: random`; the study validator accepts a P4 declaration with no
+retained initializer. See `validation/algorithm-review.md` for the required Phase-B
+repair. Remaining C integration is gated; no runtime-only initializer override may
+stand in for frozen study authority.
+
+T060 is complete: CPU/native/HIP selections, installed resources and source closure
+were audited; owning modules, helper, tests and authoritative contracts invalidate
+reuse when changed, while prospective recipe JSON stays independently hashed.
+The registration tests pass. This registers HIP tests but does not execute them.
+
+Additional committed C work exposes verified retained weight descriptors, computes
+loss/behavior selection on one candidate roster, adds frozen authorized assessment
+scoring, isolates replay proposals from training audits, durably records search
+reservations, and checks replay tasks against prepared training shards. T046, T052,
+T053, T061 and T062 remain unchecked because their complete canonical workflows are
+not yet wired. D documentation/check coverage is updated without claiming hardware
+validation or a complete implementation.
