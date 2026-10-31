@@ -6,6 +6,23 @@ from oeis_learn.pipeline_validation.supervision import launch
 
 
 class Supervision(unittest.TestCase):
+    def test_unresponsive_client_leaves_time_for_container_removal(self):
+        import json,time
+        from unittest.mock import Mock
+        from oeis_learn.pipeline_validation.supervision import reclaim
+        with tempfile.TemporaryDirectory() as folder:
+            state={};root=Path(folder)
+            with self.assertRaises(TimeoutError):
+                launch([sys.executable,'-u','-c',
+                        'import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);print("ready");time.sleep(30)'],
+                       root/'logs',seconds=.3,cleanup_state=state)
+            assert (root/'logs/stdout.log').read_text().strip()=='ready'
+            assert state['deadline']-time.monotonic()>3.5
+            engine=Mock()
+            reclaim(engine,'fixture',root/'cleanup',state)
+            assert engine.remove.call_args.kwargs['timeout']>3.5
+            assert json.loads((root/'cleanup/cleanup.json').read_text())['acknowledged']
+
     def test_extended_cleanup_uses_one_shared_deadline_and_still_fails_closed(self):
         import json,time,subprocess
         from unittest.mock import Mock,patch

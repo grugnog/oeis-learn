@@ -622,3 +622,21 @@ policy, supervisor, container adapters and pipeline identity registration.
 `git diff --check` passes. Requirements/design checklist gates remain16/16 and15/15;
 no extension hooks are registered. Hardware qualification applies only to the
 recorded acceptance-007 source, not these new repairs.
+
+## T096 shared cleanup starvation — 2026-10-31
+
+Acceptance-008 progressed past replay initializer validation, then reported
+`cleanup deadline exhausted before container reclamation`. Its archive omitted
+the nested role records that would identify the original triggering failure.
+Independent local reproduction found that a container client ignoring SIGTERM
+consumes the whole default five-second cleanup envelope before engine removal.
+Default graceful waiting for clients sharing a container cleanup state is now
+capped at0.25 seconds. The absolute deadline is unchanged; explicit grace and
+controller-only supervision retain their previous behavior. Removal still fails
+closed unless acknowledged.
+
+The real subprocess regression failed before the fix and passes afterward,
+including a check that more than3.5 seconds remain for engine removal. All seven
+supervisor tests passed. This establishes the cleanup defect independently; it
+does not establish what triggered the original acceptance-008 role failure or
+qualify the changed source on HIP.

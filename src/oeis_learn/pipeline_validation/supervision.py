@@ -64,6 +64,11 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 try:
                     os.killpg(process.pid,signal.SIGINT if interrupted else signal.SIGTERM)
                     grace=max(0,cleanup_end-time.monotonic())
+                    # A container client can wait for its engine indefinitely.
+                    # Preserve the shared deadline for engine.remove(), rather
+                    # than exhausting it waiting for that client's exit.
+                    if cleanup_state is not None and grace_seconds is None:
+                        grace=min(grace,.25)
                     process.wait(timeout=grace if grace_seconds is None else min(grace,grace_seconds))
                 except (ProcessLookupError,subprocess.TimeoutExpired):
                     pass

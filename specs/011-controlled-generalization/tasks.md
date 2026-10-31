@@ -454,3 +454,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C — replay initializer host/container boundary
 
 - [X] T095 Move resolved replay initializer schema/provenance validation into the existing installed preparation role and reuse its validated plan; keep the host stdlib-only, publish bootstrap evidence only after validation passes and avoid a duplicate role launch. Reproduce host dependency failure with schema calls forbidden outside the role and test invalid initializer rejection (AGENTS host portability, NFR-003/006/008, FR-022/024).
+
+### Phase C/D — shared cleanup deadline starvation
+
+- [X] T096 Bound default container-client graceful termination within the existing shared cleanup deadline, leaving time for engine removal; preserve controller-only grace and explicit overrides. Reproduce starvation with a real SIGTERM-resistant subprocess, test acknowledged reclamation and retain failed operator evidence without claiming fresh HIP qualification (NFR-006/007/008, SC-007).
