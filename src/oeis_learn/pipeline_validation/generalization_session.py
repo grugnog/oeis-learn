@@ -13,7 +13,9 @@ from oeis_learn.generalization.interfaces import EXIT_CODES
 def load_session(workspace,manifest):
     path=confined(workspace,manifest)
     if path.stat().st_size>1<<20:raise ValueError('acceptance session size cap')
-    session=json.loads(path.read_text());validate(session,{'version','cases'},'generalization-acceptance-session/v1')
+    session=json.loads(path.read_text())
+    if session.get('version') not in {'generalization-acceptance-session/v1','generalization-acceptance-session/v2'}:raise ValueError('registered session version required')
+    validate(session,{'version','cases'},session['version'])
     names=set(OBLIGATIONS)-{'failure-packaging'}
     if not isinstance(session['cases'],dict) or set(session['cases'])!=names:raise ValueError('four frozen production-path acceptance inputs required')
     children={};images=None;source=None
@@ -31,6 +33,14 @@ def load_session(workspace,manifest):
         work=evaluation if name=='retained-eval' else 2*learning+120 if name in {'refresh','parameter-targets'} else (runtime['replay'] or {}).get('seconds',0)+4*learning+2*evaluation+120
         if work>360:raise ValueError('acceptance case cannot fit qualification inspection, validation and bounded work in 900 seconds')
         children[name]=(base,study,runtime,manifest_path,runtime_path)
+    from oeis_learn.generalization.bootstrap import is_pending
+    for name,(_,study,runtime,_,_) in children.items():
+        if not is_pending(study['model']['initialization']):continue
+        source=children['retained-eval']
+        if session['version']!='generalization-acceptance-session/v2' or name!='replay-resume' or study['model']['initialization']['study']!=source[1]['identity']:
+            raise ValueError('frozen retained-eval dependency required')
+        if any(study['model'][k]!=source[1]['model'][k] for k in ('architecture','profile')) or study['precision']!=source[1]['precision'] or runtime['recipe']['sha256']!=source[2]['recipe']['sha256']:
+            raise ValueError('bootstrap model/recipe differs from retained evaluation')
     return session,children
 
 
@@ -94,7 +104,12 @@ def _execute(args,workspace,host_factory):
         from oeis_learn.generalization.execution import verify_resolution
         verify_resolution(children[key][2],runtime)
         if any(study['data'][k]!=original['data'][k] for k in ('generator','descriptors','exclusions','target_format','sharing_policy')):raise ValueError('prepared data policy changed')
-        if getattr(args,'reuse_run',None):
+        from oeis_learn.generalization.bootstrap import is_pending
+        if is_pending(study['model']['initialization']):
+            from .generalization_bootstrap import resolve
+            base,study,runtime=resolve(workspace,output,base,study,runtime,session=session,children=children,prepared=prepared,qualification=qualified['original'])
+        dependency_source=session['version']=='generalization-acceptance-session/v2' and name=='retained-eval'
+        if getattr(args,'reuse_run',None) and not dependency_source:
             previous=confined(workspace,args.reuse_run)/name
             from oeis_learn.generalization.feature_acceptance import verify_cases
             prior=json.loads((previous/'session-binding.json').read_text())
@@ -118,6 +133,7 @@ def _execute(args,workspace,host_factory):
         # at the session's stable case name. The parent is never mounted wholesale.
         if result['status']=='PASS':
             result['case_root']=str(case_root.relative_to(workspace))
+        if dependency_source and getattr(args,'reuse_run',None):result['repeat_reason']='revalidate original selection and publish initializer dependency'
         write(output/'session-binding.json',dict(session=session['identity'],study=study['identity'],runtime=runtime['identity']))
         return terminal(result)
     except (Exception,KeyboardInterrupt) as exc:

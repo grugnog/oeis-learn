@@ -398,8 +398,8 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 
 ### Phase C — canonical launch integration
 
-- [ ] T082 Wire retained evaluation's actual selection into initializer publication and resolve the frozen replay dependency inside the existing serial session; bind original producer evidence and preserve reuse/failure packaging in `pipeline_validation/generalization_*`, per FR-022/024/033, NFR-003/004/007 and US5/AC1 (partial).
-- [ ] T083 Add a stdlib setup command consuming the verified uniform import, inspecting explicit built image tags and assembling all real reduced inputs/session without hand-written receipts; document build/setup/dry-run/run commands, per NFR-005/006/007 and SC-006 (partial).
+- [X] T082 Wire retained evaluation's actual selection into initializer publication and resolve the frozen replay dependency inside the existing serial session; bind original producer evidence and preserve reuse/failure packaging in `pipeline_validation/generalization_*`, per FR-022/024/033, NFR-003/004/007 and US5/AC1 (partial).
+- [X] T083 Add a stdlib setup command consuming the verified uniform import, inspecting explicit built image tags and assembling all real reduced inputs/session without hand-written receipts; document build/setup/dry-run/run commands, per NFR-005/006/007 and SC-006 (partial).
 
 ### Phase D — available validation and delivery
 

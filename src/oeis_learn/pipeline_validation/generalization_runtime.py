@@ -57,7 +57,7 @@ def validate_execution(root,study,runtime):
         if any(study.get(k)!=v for k,v in prep['study_settings'].items()) or any(study[k]!=prep[k] for k in ('seeds','budgets')):
             raise ValueError('preparation differs from frozen study settings')
         preparation_views(root,study,runtime,prep)
-        verify_initializer(root,study)
+        verify_initializer(root,study,allow_pending=runtime['purpose']=='acceptance')
         return dict(study=study['identity'],recipe=recipe,preparation=runtime['preparation'])
     training=runtime['training']
     if not isinstance(training,dict) or set(training)-set(study['arms']):raise ValueError('undeclared training arms')
@@ -129,7 +129,7 @@ def validate_execution(root,study,runtime):
         if set(training)!={'continued_sft','verified_replay'} or training['continued_sft']!=training['verified_replay'] or training['continued_sft']['data_mode']!='static':
             raise ValueError('paired replay requires identical static training views')
         replay=runtime['replay']
-        if not isinstance(replay,dict) or set(replay)!={'tasks','seconds'} or not 0<replay['seconds']<=14400:
+        if not isinstance(replay,dict) or set(replay) not in ({'tasks','seconds'},{'tasks','seconds','proposal_policy'}) or not 0<replay['seconds']<=14400:
             raise ValueError('bounded one-round replay settings required')
         tasks=json.loads(verify_artifact(root,replay['tasks'],max_bytes=8<<30))
         if not 1<=len(tasks)<=256 or len({t['id'] for t in tasks})!=len(tasks):raise ValueError('bounded unique replay task roster required')
@@ -164,7 +164,7 @@ def validate_execution(root,study,runtime):
             for row in json.loads(verify_artifact(root,ref)):
                 shape('scorer-target',row)
                 if row['role']!=evaluation['role']:raise ValueError('cross-role scoring payload')
-    initializer=verify_initializer(root,study)
+    initializer=verify_initializer(root,study,allow_pending=runtime['purpose']=='acceptance')
     if initializer is not None:
         parent=Path(initializer['root']).relative_to(Path(root))
         initializer=dict(authority=initializer['authority'],checkpoint=initializer['checkpoint'],
@@ -193,7 +193,7 @@ def preparation_views(root,study,runtime,prep):
         owned(view['cells'],view['role'])
     if runtime['replay'] is not None:
         replay=runtime['replay']
-        if set(replay)!={'cell','seconds'} or not 0<replay['seconds']<=14400:raise ValueError('closed preparation replay view required')
+        if set(replay) not in ({'cell','seconds'},{'cell','seconds','proposal_policy'}) or not 0<replay['seconds']<=14400:raise ValueError('closed preparation replay view required')
         owned([replay['cell']],'training')
     return cells
 
@@ -228,7 +228,7 @@ def publish_runtime(base,prepared,study,runtime):
             targets=[reference(prepared/'cells'/n/'private/targets.json',prepared) for n in evaluation['cells']],
             **{k:evaluation[k] for k in ('checkpoints','seconds','bank_seeds')})
     replay=runtime['replay']
-    if replay is not None:replay=dict(tasks=reference(prepared/'cells'/replay['cell']/'private/replay-tasks.json',prepared),seconds=replay['seconds'])
+    if replay is not None:replay=dict(**({'proposal_policy':replay['proposal_policy']} if 'proposal_policy' in replay else {}),tasks=reference(prepared/'cells'/replay['cell']/'private/replay-tasks.json',prepared),seconds=replay['seconds'])
     if runtime['assessment'] is not None:_copy(prepared,[(base,runtime['assessment'])])
     result=seal(dict(runtime,study=resolved['identity'],preparation=None,training=training,evaluation=evaluation,replay=replay))
     if study.get('version')=='generalization-study/v3':
@@ -241,7 +241,8 @@ def publish_runtime(base,prepared,study,runtime):
 
 def initializer_refs(root,initialization):
     """Projection closure only; the custodian separately verifies all semantics."""
-    if initialization=='random':return []
+    from oeis_learn.generalization.bootstrap import is_pending
+    if initialization=='random' or is_pending(initialization):return []
     seen={};pending=[initialization['artifact']]
     def add(ref):
         if ref['path'] in seen:
@@ -258,6 +259,11 @@ def initializer_refs(root,initialization):
         for key in ('study','checkpoint','selection','producer'):add(relative(authority[key]))
         descriptor=json.loads(verify_artifact(root,relative(authority['checkpoint']),max_bytes=1<<20))
         add(relative(descriptor['weights']))
+        if authority.get('version')=='generalization-initializer/v2':
+            from oeis_learn.generalization.contracts import artifact_refs
+            add(relative(authority['legacy']))
+            proof=json.loads(verify_artifact(root,relative(authority['legacy'])))
+            for item in artifact_refs(proof):add(relative(item))
         if authority['parent'] is not None:pending.append(relative(authority['parent']))
     return list(seen.values())
 
@@ -287,6 +293,8 @@ def execution_refs(root,study,runtime,*,preparation=False):
 
 
 def learner_config(study,runtime,recipe,arm,seed):
+    from oeis_learn.generalization.bootstrap import is_pending
+    if is_pending(study['model']['initialization']):raise ValueError('unresolved acceptance initializer')
     if arm not in study['arms'] or seed not in study['seeds'] or arm not in runtime['training']:
         raise ValueError('undeclared arm/seed')
     view=runtime['training'][arm]

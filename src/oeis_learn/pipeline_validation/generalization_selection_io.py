@@ -22,23 +22,32 @@ def publish_role(inputs,output,settings,*,seconds):
     if set(settings)!={'origin','checkpoint','selection'}:raise ValueError('closed initializer publication inputs required')
     root=inputs['mechanical_sources']
     origin=json.loads(verify_artifact(root,settings['origin']))
-    if seal(origin)!=origin or origin.get('version')!='generalization-learner-origin/v1':raise ValueError('original learner binding required')
+    legacy=origin.get('version')=='generalization-legacy-selection-origin/v1'
+    if seal(origin)!=origin or origin.get('version') not in {'generalization-learner-origin/v1','generalization-legacy-selection-origin/v1'}:raise ValueError('original learner binding required')
     study=validate('study',json.loads(verify_artifact(root,origin['study']))).record()
     descriptor=validate('checkpoint',json.loads(verify_artifact(root,settings['checkpoint']))).record()
     decision=json.loads(verify_artifact(root,settings['selection']))
     if study['data']['target_format']!='literal' or origin['arm']=='parameterized' or origin['arm'] not in study['arms']:
         raise ValueError('literal mechanical learner origin required')
+    legacy_refs=[]
+    if legacy:
+        from oeis_learn.generalization.legacy import verify_legacy
+        from oeis_learn.generalization.contracts import artifact_refs
+        verify_legacy(root,descriptor)
+        if study['progression']['stage']!='E0':raise ValueError('legacy selection requires E0 origin')
+        proof=json.loads(verify_artifact(root,descriptor['provenance']))
+        legacy_refs=[descriptor['provenance'],*artifact_refs(proof)]
     _selection(decision,descriptor)
     prior=verify_initializer(root,study)
     ancestry=['mechanical','training','random_initialization']
     if study['progression']['stage']=='P4' or prior and any('verified_training_replay' in p['authority']['ancestry'] for p in prior['lineage']):ancestry.append('verified_training_replay')
     target=output/'private/initializer'
-    refs=[origin['study'],settings['checkpoint'],settings['selection'],descriptor['weights'],*initializer_refs(root,study['model']['initialization'])]
+    refs=[origin['study'],settings['checkpoint'],settings['selection'],descriptor['weights'],*legacy_refs,*initializer_refs(root,study['model']['initialization'])]
     _copy(target,[(root,r) for r in refs])
     binding=dict(study=study['identity'],checkpoint=descriptor['identity'],ancestry=ancestry,parent=prior['authority'] if prior else None)
     ledger=Ledger(target,'generalization.initializer',binding);ledger.transition('READY');ledger.transition('RUNNING')
     ledger.transition('PASS',files={r['path']:r['sha256'] for r in refs})
-    authority=seal(dict(version='generalization-initializer/v1',study=origin['study'],checkpoint=settings['checkpoint'],selection=settings['selection'],
+    authority=seal(dict(version='generalization-initializer/v2' if legacy else 'generalization-initializer/v1',**({'legacy':descriptor['provenance']} if legacy else {}),study=origin['study'],checkpoint=settings['checkpoint'],selection=settings['selection'],
         producer=reference(target/'receipt.json',target),ancestry=ancestry,parent=study['model']['initialization']['artifact'] if prior else None))
     write(target/'initializer.json',authority)
     artifact=reference(target/'initializer.json',target)
@@ -52,13 +61,25 @@ def publish_selected(host,workspace,output,base,study,runtime,decision,available
     from .generalization_roles import project_and_invoke
     if decision is None or decision.get('selected') is None:return dict(status='UNAVAILABLE',reason='NO_ELIGIBLE_CHECKPOINT')
     descriptor,parent=next((c,r) for c,r in available if c['identity']==decision['selected'])
-    if not (parent/'origin.json').is_file():return dict(status='UNAVAILABLE',reason='ORIGINAL_LEARNER_METADATA_ABSENT')
-    origin=json.loads((parent/'origin.json').read_text())
-    origin_study=json.loads(verify_artifact(parent,origin['study']))
-    if origin['arm']=='parameterized' or origin_study['data']['target_format']!='literal':return dict(status='UNAVAILABLE',reason='NON_LITERAL_INITIALIZER')
     inputs=output/'private/input';inputs.mkdir(parents=True)
-    refs=[reference(parent/'origin.json',parent),origin['study'],descriptor['weights'],*initializer_refs(parent,origin_study['model']['initialization'])]
-    _copy(inputs,[(parent,r) for r in refs])
+    if descriptor.get('kind')=='weights_only':
+        from oeis_learn.generalization.legacy import verify_legacy
+        from oeis_learn.generalization.contracts import artifact_refs
+        verify_legacy(parent,descriptor)
+        proof=json.loads(verify_artifact(parent,descriptor['provenance']))
+        refs=[descriptor['weights'],descriptor['provenance'],*artifact_refs(proof)]
+        _copy(inputs,[(parent,r) for r in refs])
+        write(inputs/'origin-study.json',study)
+        origin=seal(dict(version='generalization-legacy-selection-origin/v1',study=reference(inputs/'origin-study.json',inputs),arm='retained'))
+        write(inputs/'origin.json',origin)
+        refs.extend([origin['study'],reference(inputs/'origin.json',inputs)])
+    else:
+        if not (parent/'origin.json').is_file():return dict(status='UNAVAILABLE',reason='ORIGINAL_LEARNER_METADATA_ABSENT')
+        origin=json.loads((parent/'origin.json').read_text())
+        origin_study=json.loads(verify_artifact(parent,origin['study']))
+        if origin['arm']=='parameterized' or origin_study['data']['target_format']!='literal':return dict(status='UNAVAILABLE',reason='NON_LITERAL_INITIALIZER')
+        refs=[reference(parent/'origin.json',parent),origin['study'],descriptor['weights'],*initializer_refs(parent,origin_study['model']['initialization'])]
+        _copy(inputs,[(parent,r) for r in refs])
     write(inputs/'selected-checkpoint.json',descriptor);write(inputs/'selection-decision.json',decision)
     checkpoint=reference(inputs/'selected-checkpoint.json',inputs);selection=reference(inputs/'selection-decision.json',inputs)
     refs.extend([checkpoint,selection])

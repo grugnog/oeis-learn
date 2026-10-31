@@ -129,7 +129,7 @@ def main(args,root,host_factory):
         from .identity import confined
         path=confined(root,args.manifest)
         if path.stat().st_size>1<<20:raise ValueError('manifest size cap')
-        if json.loads(path.read_text()).get('version')=='generalization-acceptance-session/v1':
+        if json.loads(path.read_text()).get('version') in {'generalization-acceptance-session/v1','generalization-acceptance-session/v2'}:
             from .generalization_session import main as session
             return session(args,root,host_factory)
         if args.operation=='acceptance':raise ValueError('acceptance requires a frozen multi-case session manifest')

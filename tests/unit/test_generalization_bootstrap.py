@@ -50,7 +50,7 @@ def legacy_authority(root):
     shutil.copytree(base/'provenance',base/'new/provenance');shutil.copytree(base/'private',base/'new/private')
     shutil.copyfile(base/'best-provenance.json',base/'new/best-provenance.json')
     source=json.loads((base/'new/study.json').read_text());source.update(version='generalization-study/v3',recipe='E0-evaluation-extension/v1',execution=digest('execution'))
-    source['progression']['stage']='E0';source['budgets']['target_tokens']=0;source['checkpoints']['milestones']=[]
+    source['arms']=['retained','controls','shared_absent_bank'];source['progression']['stage']='E0';source['budgets']['target_tokens']=0;source['checkpoints']['milestones']=[]
     recipe=json.loads((base/'new/provenance/recipe.json').read_text());source['model'].update(profile=recipe.get('version','legacy-test/v1'),architecture=digest({k:v for k,v in recipe['model'].items() if k!='seed'}))
     source=seal(source);authority['study']=put('study.json',source)
     selection=json.loads((base/'new/selection.json').read_text());selection.update(selected=checkpoint['identity'],eligible=[checkpoint['identity']],best_loss=checkpoint['identity'])

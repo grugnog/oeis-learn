@@ -80,7 +80,7 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
     evidence_root=Path(evidence_root) if evidence_root is not None else output.parent
     ledger=Ledger(output,'acceptance.'+name,dict(case=name,qualification=qualification))
     ledger.transition('READY');ledger.transition('RUNNING')
-    artifacts={};checks={}
+    artifacts={};checks={};initializer=None
     try:
         if name=='retained-eval':
             view=runtime['evaluation']
@@ -88,6 +88,8 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
             checkpoints=[c['identity'] for c,_ in _checkpoints(base,view['checkpoints'])]
             result=evaluate(host,workspace,output/'private/evaluation',base,study,runtime,plan,checkpoints=checkpoints)
             if result['status']!='PASS':raise ValueError('retained evaluation incomplete')
+            if (result.get('initializer') or {}).get('status')=='PASS':
+                initializer=reference(output/'private/evaluation/initializer/publication/role'/result['initializer']['artifact']['path'],workspace)
             artifacts=dict(checkpoint_identity=dict(checkpoints=checkpoints),evaluation=result)
             checks=dict(weights_loaded=True,visible_only=True,matched_budgets=True)
         elif name in ('refresh','parameter-targets'):
@@ -119,6 +121,8 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
             artifacts=dict(admission=dict(rounds=result['rounds'],search=[r['search'] for r in result['runs']]),
                 continued_sft=dict(runs=[r['paired']['runs'][0]['result'] for r in result['runs']],finite_updates=[r['paired_proof'] for r in result['runs']]),
                 verified_replay=dict(runs=[r['paired']['runs'][1]['result'] for r in result['runs']]),resume=dict(runs=[r['resume'] for r in result['runs']]))
+            if (output.parent/'bootstrap.json').is_file():
+                artifacts['admission']['initializer_dependency']=json.loads((output.parent/'bootstrap.json').read_text())
             checks=dict(training_only_admission=True,paired_control=True,full_state_resume=True,finite_update=True)
         elif name=='failure-packaging':
             from .bundle import pack,verify
@@ -148,7 +152,7 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
         write(output/'case-result.json',result)
         files={p.name:reference(p,output)['sha256'] for p in output.glob('*.json') if p.name!='receipt.json'}
         ledger.transition('PASS',files=files)
-        return dict(status='PASS',case=name,receipt=reference(output/'receipt.json',evidence_root))
+        return dict(status='PASS',case=name,receipt=reference(output/'receipt.json',evidence_root),**({'initializer':initializer} if initializer is not None else {}))
     except BaseException as exc:
         ledger.transition('PARTIAL' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__)
         if isinstance(exc,KeyboardInterrupt):raise

@@ -158,5 +158,5 @@ def resolve_study(preparation, proposed, manifests, *, shortfalls=(), root=None)
         verify_artifact(root, ref)
     resolved=freeze('study', candidate)
     from .initializers import verify_initializer
-    verify_initializer(root,resolved.record())
+    verify_initializer(root,resolved.record(),allow_pending=True)
     return resolved

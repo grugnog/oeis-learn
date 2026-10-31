@@ -73,3 +73,15 @@ The cases mapping uses study paths with sibling `runtime.json`, or explicit
 `{manifest: path, runtime: path}` pairs. Neither form permits arbitrary commands.
 Missing P4 initializer evidence is a blocker; importing historical best-loss
 weights does not supply it. No command launches qualification or research.
+
+### Automatic reduced acceptance setup
+
+`python3 scripts/generalization_inputs.py acceptance --engine docker|podman
+--imported DIR --cpu-image TAG --gpu-image TAG --output NEW_DIR` is stdlib-only.
+It inspects immutable image IDs, verifies both imported uniform weight hashes and
+original provenance, snapshots source, generates the bounded mechanical fixture
+policy, and assembles all four studies plus a v2 session. It emits ASSEMBLED, never
+qualification/admission PASS. It preserves original historical inputs and consumes
+no training budget. Native preparation and real HIP acceptance remain canonical.
+The session's pending P4 initializer names the frozen E0 child; only its newly
+measured selection and original producer closure can resolve that dependency.

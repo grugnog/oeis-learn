@@ -53,3 +53,24 @@ def test_selected_initializer_and_sanitized_pins_from_real_cpu_store(tmp_path,mo
     restored=GeneralizationCheckpointStore(root,trained['compatibility'],config['target_tokens']).load(result['checkpoint'])
     assert restored['states']['selection']['checkpoint']==roster['latest']
     assert calls==[('preparation','publish-initializer'),('learner','pin-selection')]
+
+
+def test_actual_legacy_selection_publishes_original_initializer(tmp_path,monkeypatch):
+    from tests.unit.test_generalization_bootstrap import legacy_authority
+    from oeis_learn.pipeline_validation.generalization_selection_io import publish_selected
+    from oeis_learn.pipeline_validation import generalization_roles as roles,generalization_role as handlers
+    from oeis_learn.generalization.role_contracts import Role
+    from oeis_learn.generalization.initializers import verify_initializer
+    from oeis_learn.pipeline_validation.identity import seal
+    root,target,_,_=legacy_authority(tmp_path)
+    source=json.loads((root/'study.json').read_text());descriptor=json.loads((root/'checkpoint.json').read_text());decision=json.loads((root/'selection.json').read_text())
+    def invoke(host,image,workspace,name,artifacts,**kw):
+        assert name=='preparation' and kw['operation']=='publish-initializer'
+        assert not artifacts['isolation_truth']
+        output=workspace/kw['output']/'role';output.mkdir(parents=True)
+        return handlers.HANDLERS[(Role(name),kw['operation'])](kw['source_roots'],output,kw['settings'],seconds=kw['seconds'])
+    monkeypatch.setattr(roles,'project_and_invoke',invoke)
+    result=publish_selected(None,tmp_path,tmp_path/'new-selection',root,source,{'images':['cpu','gpu']},decision,[(descriptor,root)])
+    assert result['status']=='PASS'
+    target['model']['initialization']=dict(kind='retained',artifact=result['artifact'])
+    assert verify_initializer(tmp_path/'new-selection/publication/role',seal(target))['checkpoint']==descriptor['identity']

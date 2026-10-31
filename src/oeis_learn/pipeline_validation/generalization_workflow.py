@@ -155,7 +155,7 @@ def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=Fal
     from .generalization_replay import search_isolated
     if study['progression']['stage']!='P4' or plan['initializer'] is None:raise ValueError('frozen literal P4 initializer required')
     settings=runtime['replay']
-    if not isinstance(settings,dict) or set(settings)!={'tasks','seconds'}:raise ValueError('closed one-round replay settings required')
+    if not isinstance(settings,dict) or set(settings) not in ({'tasks','seconds'},{'tasks','seconds','proposal_policy'}):raise ValueError('closed one-round replay settings required')
     tasks=json.loads(verify_artifact(base,settings['tasks'],max_bytes=8<<30))
     if not 1<=len(tasks)<=256:raise ValueError('bounded nonempty replay task roster required')
     output=Path(output)
@@ -165,7 +165,7 @@ def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=Fal
     for seed in study['seeds']:
         folder=output/str(seed)
         pool,search=search_isolated(host,workspace,folder/'search',images=runtime['images'],weights_root=base,
-            checkpoint=plan['initializer']['weights'],tasks=tasks,recipe=plan['recipe'],study=study['identity'],seed=seed,seconds=settings['seconds'])
+            checkpoint=plan['initializer']['weights'],tasks=tasks,recipe=plan['recipe'],study=study['identity'],seed=seed,seconds=settings['seconds'],purpose=runtime['purpose'],proposal_policy=settings.get('proposal_policy','model'))
         pool_root=folder/'search/private';pool_ref=reference(pool_root/'pool.json',pool_root)
         paired=train(host,workspace,folder/'training',base,study,runtime,plan,arms=['continued_sft','verified_replay'],seeds=[seed],
             replay=(pool_root,pool_ref,settings['tasks']))

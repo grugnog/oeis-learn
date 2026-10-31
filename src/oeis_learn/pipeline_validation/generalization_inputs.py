@@ -111,7 +111,11 @@ def assemble_study(workspace,blueprint,output):
     for key in ('recipe','source_closure','descriptors','exclusions'):_json(confined(workspace,cfg[key]))
     for cell in cfg['cells']:
         if 'candidates' in cell:_json(confined(workspace,cell['candidates']),8<<30)
-    if cfg['initializer'] is not None:confined(workspace,cfg['initializer'])
+    from oeis_learn.generalization.bootstrap import is_pending,pending
+    deferred=is_pending(cfg['initializer'])
+    if deferred:
+        if cfg['initializer']!=pending(cfg['initializer'].get('study')) or cfg['purpose']!='acceptance' or stage!='P4':raise ValueError('acceptance-only frozen dependency required')
+    elif cfg['initializer'] is not None:confined(workspace,cfg['initializer'])
     feature=None
     if cfg.get('feature') is not None:
         feature_path=confined(workspace,cfg['feature']);_json(feature_path)
@@ -128,8 +132,8 @@ def assemble_study(workspace,blueprint,output):
     for key in ('model_profile','inputs'):
         if key in recipe:model[key]=recipe[key]
     refs={key:copy_input(key) for key in ('source_closure','descriptors','exclusions')}
-    initializer='random'
-    if cfg['initializer'] is not None:
+    initializer=cfg['initializer'] if deferred else 'random'
+    if cfg['initializer'] is not None and not deferred:
         from .generalization_runtime import initializer_refs
         p=confined(workspace,cfg['initializer']);local=dict(kind='retained',artifact=reference(p,p.parent))
         for ref in initializer_refs(p.parent,local):_copy_file(confined(p.parent,ref['path']),target/'initializer'/ref['path'])
@@ -184,7 +188,9 @@ def assemble_session(workspace,cases,output):
             manifest=confined(workspace,path);runtime=manifest.parent/'runtime.json'
         try:mapping[name]=dict(manifest=reference(manifest,target.parent),runtime=reference(runtime,target.parent))
         except ValueError as exc:raise ValueError('session file must be an ancestor of all four child studies') from exc
-    record=seal(dict(version='generalization-acceptance-session/v1',cases=mapping))
+    from oeis_learn.generalization.bootstrap import is_pending
+    version='generalization-acceptance-session/v2' if any(is_pending(_json(target.parent/refs['manifest']['path'])['model']['initialization']) for refs in mapping.values()) else 'generalization-acceptance-session/v1'
+    record=seal(dict(version=version,cases=mapping))
     write(target,record)
     try:load_session(workspace,str(target.relative_to(workspace)))
     except BaseException:target.unlink();raise
@@ -198,15 +204,24 @@ def main(argv=None,*,workspace=None):
     study=commands.add_parser('study');study.add_argument('--blueprint',required=True);study.add_argument('--output',required=True)
     session=commands.add_parser('session');session.add_argument('--cases',required=True);session.add_argument('--output',required=True)
     snapshot=commands.add_parser('source-closure');snapshot.add_argument('--output',required=True)
+    setup=commands.add_parser('acceptance')
+    setup.add_argument('--engine',choices=('docker','podman'),required=True)
+    for flag in ('imported','cpu-image','gpu-image','output'):setup.add_argument('--'+flag,required=True)
     args=p.parse_args(argv);root=Path(workspace or Path.cwd()).resolve()
     try:
         if args.command=='import-uniform':result=import_uniform(root,**{k:getattr(args,k) for k in ('bundle','metadata','weights','output')})
         elif args.command=='study':result=assemble_study(root,args.blueprint,args.output)
         elif args.command=='session':result=assemble_session(root,_json(confined(root,args.cases)),args.output)
+        elif args.command=='acceptance':
+            from oeis_learn.container_runtime import Engine
+            from .generalization_setup import assemble_acceptance
+            engine=Engine(args.engine)
+            images=[engine.image(args.cpu_image),engine.image(args.gpu_image)]
+            result=assemble_acceptance(root,imported=args.imported,images=images,output=args.output)
         else:
             from oeis_learn.experiments.source_snapshot import collect_snapshot
             destination=_fresh(root,args.output);write(destination,collect_snapshot(root))
             result=dict(status='RECORDED',source_closure=reference(destination,root),qualification='NOT_RUN')
         print(json.dumps(result,indent=2));return 0
-    except (ValueError,OSError,KeyError,TypeError,zipfile.BadZipFile) as exc:
+    except (ValueError,OSError,KeyError,TypeError,RuntimeError,zipfile.BadZipFile) as exc:
         print(str(exc),file=sys.stderr);return 2

@@ -24,41 +24,55 @@ and `latest-checkpoint.json` with original provenance. Best is at 17,885,681 tok
 18,433 updates; latest is at 24,999,970 tokens / 25,764 updates for the uploaded run.
 Neither is a full-state resume or a P4 selection-designated initializer.
 
-After final source changes and image builds, record the exact source snapshot:
+The imported weights remain nonresumable. The acceptance workflow now evaluates
+both on newly frozen selection supervision and publishes a new initializer from
+that measured decision. P4 resolves that explicit dependency later in the same
+session; an inconclusive selection stops it without substituting weights.
+
+After updating the existing PR branch, build both pinned targets from that exact
+checkout, then assemble the reduced inputs automatically:
 
 ```bash
-python3 scripts/generalization_inputs.py source-closure \
-  --output run-state/inputs/source-closure.json
+docker build --target qualification -t oeis-learn:generalization-cpu .
+docker build --target gpu -t oeis-learn:generalization-gpu .
+python3 scripts/generalization_inputs.py acceptance \
+  --engine docker \
+  --imported run-state/generalization/uniform-import \
+  --cpu-image oeis-learn:generalization-cpu \
+  --gpu-image oeis-learn:generalization-gpu \
+  --output run-state/generalization/acceptance-inputs
+python3 scripts/generalization_hip_serial.py --engine docker \
+  --manifest run-state/generalization/acceptance-inputs/generalization-acceptance.json \
+  --output run-state/generalization/acceptance-001 --dry-run
 ```
 
-Copy and fill the four `inputs-*.example.json` blueprints under
-`configs/foundation/pipeline_studies/`. Supply actual recipe, descriptors, mechanical
-candidates/exclusions, inspected image IDs and (for P4) verified initializer proof.
-These are explicit unresolved examples; they do not create weights or claim native
-admission. Assemble each with, for example:
+For Podman, substitute `podman` for `docker` in both builds and `--engine` values.
+Setup inspects immutable image IDs, verifies the imported checkpoint bytes, records
+the source closure and freezes all four studies. It generates bounded generic
+mechanical fixtures with finite isolation and a declared acceptance-only replay
+diagnostic. It does not run a model or issue native/HIP qualification. Canonical
+preflight/prepare still enforce measured storage, native admission and all quotas.
+Fresh refresh/target-format cases use the existing smaller 256-wide model; retained
+evaluation and P4 use the exact original model. P4's diagnostic proposal is never
+reported as a learned discovery. No manual recipe, initializer receipt or session
+JSON is required for this reduced acceptance path.
+
+Setup and run destinations must be new. Preserve a failed setup/run directory and
+choose a fresh suffix for a justified retry. Do not rebuild images, edit source or
+replace frozen inputs between setup and execution. After the dry run succeeds,
+start the one normal HIP invocation:
 
 ```bash
-python3 scripts/generalization_inputs.py study \
-  --blueprint run-state/inputs/refresh-blueprint.json \
-  --output run-state/generalization/acceptance-inputs/refresh
+python3 scripts/generalization_hip_serial.py --engine docker \
+  --manifest run-state/generalization/acceptance-inputs/generalization-acceptance.json \
+  --output run-state/generalization/acceptance-001
 ```
 
-Create a cases JSON mapping the four case names to the four emitted `study.json`
-paths, then run:
-
-```bash
-python3 scripts/generalization_inputs.py session \
-  --cases run-state/inputs/acceptance-cases.json \
-  --output run-state/generalization/acceptance-inputs/generalization-acceptance.json
-```
-
-The session file must be above all four child studies. Its dry run remains the
-serial helper below, with this generated manifest path. Missing native inputs or
-initializer proof is a blocker, not permission to fabricate receipts. The uploaded
-uniform metadata alone is insufficient to assemble all four cases. In particular,
-P4 needs either existing original selection/initializer evidence or a separately
-implemented bootstrap inside the same serial workflow before a one-invocation
-acceptance can be promised. Such a bootstrap is not implemented by input assembly.
+The shareable result is `run-state/generalization/acceptance-001.zip`, including
+partial/failure evidence when a stage fails. A successful command must still have
+original real-device evidence; setup, CPU tests and a dry run cannot establish it.
+The existing `study` and `session` commands remain available for independently frozen
+custom/research inputs using the explicit blueprints.
 
 ## Freeze inputs before execution
 
@@ -90,10 +104,13 @@ evaluation. Weights-only artifacts cannot serve as full-state resume checkpoints
 
 ## Four frozen inputs, five acceptance cases
 
-A sealed `generalization-acceptance-session/v1` manifest binds four case entries:
+A sealed `generalization-acceptance-session/v1` or `/v2` manifest binds four case entries:
 `retained-eval`, `refresh`, `parameter-targets` and `replay-resume`. Each entry has
 exact `manifest` and `runtime` ArtifactRefs relative to the session document.
 All children use acceptance purpose, the same source closure and exact image pair.
+Version 2 permits the explicit retained-evaluation-to-P4 selection dependency. Its
+resolution verifies original case, selection and initializer producers; arbitrary
+post-preparation model or budget changes remain forbidden.
 The failure-packaging case uses the refresh input. The session cannot override
 child sidecars with a runtime CLI flag.
 

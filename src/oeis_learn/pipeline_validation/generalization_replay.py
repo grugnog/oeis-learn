@@ -19,7 +19,7 @@ def admission(task,candidate,*,client,checkpoint,order,deadline):
                  production=production,production_identity=client.runtime_identity('bigint-body/v1'),order=order)
 
 
-def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400,save=None,audit=None):
+def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400,save=None,audit=None,diagnostic=False):
     """Reserve before callbacks and publish settled evidence even on interruption.
 
     Orchestrators supply an atomic save(pool_snapshot, report) callback for durable
@@ -33,7 +33,7 @@ def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400,save=None,
     pool=ReplayPool(seed=seed);ledger=SearchLedger();rejected=[];began=time.monotonic()
     deadline=began+seconds;ordinal=0;status='PASS'
     def report(state):
-        return seal(dict(version='generalization-replay-round-result/v2',status=state,plan=round_plan(len(pool.entries)),
+        return seal(dict(version='generalization-replay-round-result/v3' if diagnostic else 'generalization-replay-round-result/v2',status=state,plan=(dict(status='software_diagnostic',proposal_origin='mechanical-neutral-expression-diagnostic/v1',model_discoveries=0,attempts_per_task=1) if diagnostic else round_plan(len(pool.entries))),
             search_ledger=list(ledger.records),search_state=ledger.snapshot(),rejections=rejected,admitted=len(pool.entries),
             current_policy_success=None,cumulative_discoveries=len(pool.entries)))
     def publish(state):
@@ -42,7 +42,7 @@ def search_round(tasks,*,propose,client,checkpoint,seed,seconds=14400,save=None,
         return result
     for task in tasks:
         task_deadline=min(deadline,time.monotonic()+60)
-        for attempt in range(8):
+        for attempt in range(1 if diagnostic else 8):
             start=time.monotonic()
             allowance=min(task_deadline-start,ledger.available(task['id']))
             if allowance<=0:
@@ -109,7 +109,7 @@ def propose_visible(root,checkpoint,prompt,recipe,*,client,seed,attempt,device,s
         final_source=final,assignment=chosen['assignment'],tokens=encode_body(final))
 
 
-def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks,recipe,study,seed,seconds=14400):
+def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks,recipe,study,seed,seconds=14400,purpose='research',proposal_policy='model'):
     """Serial role calls: visible proposals and training-only independent audits.
 
     The ledger is durably written before each model attempt. All role launch,
@@ -122,6 +122,8 @@ def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks
     from oeis_learn.generalization.replay_admission import AdmittedEntry
     from oeis_learn.fresh.common import write
     from .identity import digest
+    from oeis_learn.generalization.acceptance_inputs import search_policy,diagnostic_candidate,DIAGNOSTIC
+    search_policy(purpose,proposal_policy);diagnostic=proposal_policy==DIAGNOSTIC
     workspace=Path(workspace);output=Path(output)
     if output.exists():raise ValueError('fresh replay search output required')
     output.mkdir(parents=True,exist_ok=False)
@@ -132,6 +134,10 @@ def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks
         folder.mkdir(parents=True,exist_ok=False)
         write(folder/'prompt.json',visible)
         prompt=reference(folder/'prompt.json',folder)
+        if diagnostic:
+            current['folder']=folder
+            task=next(t for t in tasks if t['id']==visible['id'])
+            return diagnostic_candidate(task['source'])
         result=project_and_invoke(host,images[1],workspace,'generator',
             {'visible_prompts':[prompt],'frozen_weights':[checkpoint]},
             source_roots={'visible_prompts':folder,'frozen_weights':weights_root},
@@ -157,7 +163,7 @@ def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks
             raise ValueError('audit result binding mismatch')
         return AdmittedEntry(json.dumps(record,sort_keys=True).encode())
     pool,report=search_round(tasks,propose=propose,audit=audit,client=None,checkpoint=checkpoint['sha256'],
-        seed=seed,seconds=seconds,save=persist)
+        seed=seed,seconds=seconds,save=persist,diagnostic=diagnostic)
     write(output/'private/pool.json',pool.snapshot());write(output/'round.json',report)
     return pool,report
 
