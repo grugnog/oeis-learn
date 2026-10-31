@@ -375,6 +375,18 @@
           "required": [
             "execution"
           ]
+        },
+        "properties": {
+          "budgets": {
+            "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+          },
+          "checkpoints": {
+            "properties": {
+              "milestones": {
+                "minItems": 1
+              }
+            }
+          }
         }
       }
     }

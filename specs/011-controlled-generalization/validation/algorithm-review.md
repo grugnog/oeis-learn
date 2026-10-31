@@ -314,3 +314,11 @@ PASS/resume result alone cannot establish those obligations. The replay false-PA
 counterexample was observed before repair. These checks remain in the same Phase B
 policy boundary; C calls them and emits actual tensor proofs. The extra paired proof
 is included in the unchanged 900-second case reservation (work ceiling 360 seconds).
+
+The refresh input review also found that duplicate numeric draws could survive
+per-cell quota selection and fail only at runtime. Phase B now claims each refresh
+source once across its frozen training cells; duplicate draws remain charged and
+are recorded as rejections. The three-draw/two-unique-source regression was observed
+failing before repair. The combined preparation/input/schema selection passes 37
+tests. Legacy schema branches retain their original positive-token/milestone rules;
+only explicit v3 E0 authority permits zero learner exposure.

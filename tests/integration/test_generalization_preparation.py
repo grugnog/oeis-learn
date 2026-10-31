@@ -194,3 +194,13 @@ def test_runtime_publication_resolves_frozen_cell_views_and_rejects_cross_role(t
     assert (prepared/'recipe.json').is_file()
     runtime['training']['literal']['cells']=['assessment']
     with pytest.raises(ValueError,match='its role'):preparation_views(source_root,study,runtime,prep)
+
+
+def test_refresh_preparation_consumes_duplicate_draws_without_training_them(tmp_path):
+    rows=[source(1),dict(source(1),id='duplicate'),source(2)]
+    result=prepare_cell(rows,role='training',holdout='parameter',count=2,quotas={},structural=False,
+        output=tmp_path/'unique',execute=execute,unique_sources=True)
+    assert result['status']=='PASS' and result['draws']==3
+    chosen=json.loads((tmp_path/'unique/private/selected.json').read_text())
+    assert len({r['source'] for r in chosen})==2
+    assert any(r['reason']=='duplicate refresh source' for r in result['rejections'])

@@ -28,7 +28,7 @@ def draw_candidates(root,descriptors,cell):
 
 
 def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execute,
-                 exclusions=None,draw_cap=1_000_000,seconds=14400,length_boundary=32):
+                 exclusions=None,draw_cap=1_000_000,seconds=14400,length_boundary=32,unique_sources=False):
     """execute is the qualified native client's externally deadline-bounded adapter."""
     if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:
         raise ValueError('invalid cohort role/holdout')
@@ -38,6 +38,7 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
     output.mkdir(parents=True,exist_ok=False)
     deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0
     exclusions=exclusions if exclusions is not None else ExclusionIndex()
+    seen_sources={r[4] for r in exclusions.records if r[1]==role}
     for row in candidates:
         if seen>=draw_cap or time.monotonic()>=deadline: break
         seen+=1
@@ -47,6 +48,9 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
             from oeis_learn.generalization.targets import ground
             if canonical_family(row['parameter_source'])!=row['family']:raise ValueError('descriptor family mismatch')
             if ground(row['parameter_source'],row.get('assignment',{}))!=row['source']:raise ValueError('concrete descriptor grounding mismatch')
+            if unique_sources:
+                from oeis_learn.generalization.refresh import claim_source
+                claim_source(row['source'],seen_sources)
             row=dict(row,variant=str(row['variant']))
             row.setdefault('group',digest([row['family'],row['variant']]))
             exact=materialize(row)
@@ -146,7 +150,7 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         if refresh_record is not None and refresh_record['draws']>available:raise ValueError('refresh draw reservation exceeds remaining preparation budget')
         ledger=prepare_cell(candidates,
             **{k:cell[k] for k in ('role','holdout','count','quotas','structural')},
-            output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available)
+            output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available,unique_sources='refresh' in cell)
         draws+=ledger['draws']
         if refresh_record is not None:write(folder/'refresh.json',refresh_record)
         if ledger['status']!='PASS':

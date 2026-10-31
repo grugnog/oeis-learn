@@ -6,6 +6,13 @@ from .contracts import digest
 from oeis_learn.pipeline_validation.identity import seal
 from oeis_learn.data.bigint_programs import canonical_family
 
+
+def claim_source(source,seen):
+    """Charge the draw but reject an already materialized refresh source."""
+    key=digest(source)
+    if key in seen:raise ValueError('duplicate refresh source')
+    seen.add(key)
+
 @dataclass(frozen=True,init=False)
 class RefreshPlan:
     descriptors: bytes
