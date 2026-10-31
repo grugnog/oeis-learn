@@ -15,8 +15,18 @@ CONTROL=('process.json','cleanup.json','stdout.log','stderr.log')
 
 def candidates():
     # Fixed paths: do not recursively discover similarly named private files.
-    for stage in ('preflight','prepare'):
+    # Prioritize terminal explanations before potentially large suite logs/XML.
+    for stage in ('preflight','prepare',*CASES,'failure-packaging','report','verify-bundle'):
         for name in ('result.json','summary.json'):yield f'{stage}/{name}'
+    from oeis_learn.generalization.feature_acceptance import OBLIGATIONS
+    for case,(_,labels) in OBLIGATIONS.items():
+        for name in ('receipt.json','case-result.json',*(label+'.json' for label in labels)):
+            yield f'{case}/case/{name}'
+    yield 'replay-resume/bootstrap.json'
+    for operation in ('report/packaging','verify-bundle/verification'):
+        yield operation+'/role/result.json'
+        for name in CONTROL:yield operation+'/role/supervision/'+name
+    for stage in ('preflight','prepare'):
         for case in CASES:
             role=f'{stage}/{case}/validation/role'
             yield role+'/result.json'
@@ -80,3 +90,36 @@ def collect(root,destination,*,cap=TOTAL_CAP):
         exported_bytes=used,payload_cap=cap,json_cap=JSON_CAP,xml_cap=XML_CAP,log_cap=LOG_CAP,files=rows))
     write(destination/'index.json',result)
     return result
+
+
+def export(root,destination):
+    """Package existing allowed records without executing or mutating the run."""
+    from .bundle import pack,verify
+    root=Path(root).resolve(strict=True);destination=Path(destination).resolve()
+    archive=destination.with_suffix('.zip')
+    if (not root.is_dir() or destination==root or root in destination.parents or
+        destination in root.parents or destination.exists() or archive.exists()):
+        raise ValueError('fresh disjoint diagnostic output and archive required')
+    destination.mkdir(parents=True,exist_ok=False)
+    index=collect(root,destination/'diagnostics')
+    write(destination/'summary.json',seal(dict(selected_scope='PARTIAL',
+        reason='DIAGNOSTIC_EXPORT_ONLY',feature_qualified=False,scientific_status='UNMEASURED')))
+    mandatory=['summary.json','diagnostics/index.json']
+    mandatory.extend('diagnostics/'+r['source'] for r in index['files'] if r['status'] in {'COPIED','TRUNCATED'})
+    archive=pack(destination,mandatory=mandatory)
+    verify(archive)
+    return dict(archive=str(archive),qualification_evidence=False,exported_bytes=index['exported_bytes'])
+
+
+def main(argv=None):
+    import argparse,json
+    parser=argparse.ArgumentParser(description='Export bounded existing diagnostics; no container or HIP execution.')
+    parser.add_argument('--run',required=True);parser.add_argument('--output',required=True)
+    args=parser.parse_args(argv)
+    try:result=export(args.run,args.output)
+    except (OSError,ValueError) as exc:
+        parser.exit(1,str(exc)+'\n')
+    print(json.dumps(result,sort_keys=True));return 0
+
+
+if __name__=='__main__':raise SystemExit(main())

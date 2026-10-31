@@ -21,12 +21,14 @@ available local validation and verified Git-bundle delivery. Environment and HIP
 gates remain open as described below. The former conversational completion references
 are withdrawn. See the reconstruction task section below for its explicit scope.
 
-T001–T062 and T069–T070 are complete. The Phase B defects described in the historical
-entries below are repaired. T063–T068 remain open for missing environment/operator
-evidence and the explicitly excluded HIP execution: T063 needs pinned-container
-regressions; T064 needs actual images/build inspection; T065 has a passing synthetic
-helper dry run but needs real reduced inputs/preflight; T066 is excluded; T067's
-fixture archives pass but the real archive is absent; T068 records NOT RUN.
+T001–T063 and T068–T070 are complete for their recorded scopes. Operator
+acceptance-007 passed pinned CPU/native and HIP regression qualification on
+`2501929`, then failed replay/resume and reporting. T064–T067 remain open: complete
+build/input authority and dry-run evidence are not in the uploaded recovery archive,
+and feature acceptance/canonical archive verification did not complete. T092 repairs
+missing terminal diagnostic capture; existing failure records are needed before
+another hardware run. Later source changes require fresh qualification and do not
+inherit acceptance-007's PASS evidence automatically.
 See [local checks](validation/local-checks.md), [HIP status](validation/hip-acceptance.md)
 and [coverage audit](checklists/implementation.md). No research campaign was started.
 
@@ -178,12 +180,12 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 
 ## Phase D — Consolidated validation, polish and delivery
 
-- [ ] T063 Run the appropriate local/qualification-container reference, contract and integration regressions, including historical v3/v4 behavior and new suites registered in `src/oeis_learn/container_validation.py`, and write the exact selection/results to `specs/011-controlled-generalization/validation/local-checks.md`; return algorithm defects to B before hardware.
+- [X] T063 Run the appropriate local/qualification-container reference, contract and integration regressions, including historical v3/v4 behavior and new suites registered in `src/oeis_learn/container_validation.py`, and write the exact selection/results to `specs/011-controlled-generalization/validation/local-checks.md`; return algorithm defects to B before hardware.
 - [ ] T064 Prebuild and inspect the pinned qualification/GPU targets using `Dockerfile` and committed locks; record immutable images, whole source/build closure, hardware/resource observations and helper hash in the operator's `run-state/generalization/acceptance-inputs.json` without altering host drivers or source during the session.
 - [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the five-hour ceiling including recovery (T091), and stop before costly work if quotas/artifacts/resources are infeasible.
 - [ ] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
 - [ ] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
-- [ ] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
+- [X] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
 - [X] T069 Update `specs/011-controlled-generalization/quickstart.md` and the relevant usage section in `README.md` with implemented commands, verified restart instructions and the E0→P0→P1 research sequence, clearly distinguishing delivered capability from unexecuted research outcomes.
 - [X] T070 Audit requirement/story/task coverage and the single-algorithm/single-normal-HIP constraints in `specs/011-controlled-generalization/checklists/implementation.md`, commit the completed implementation/evidence incrementally and make the final PR description reflect actual behavior and validation; do not start E0/P0/P1 automatically.
 
@@ -435,3 +437,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — bounded cold-start allowance
 
 - [X] T091 Increase initial runtime/image inspection and recovery image deadlines after acceptance-006 localized the delay before Python startup; update all enclosing reservations, the existing T038 budget parameters, plan and contracts consistently. Keep the reservation algorithm, learner/research work, isolation and qualification gates unchanged. Test the full worst-case schedule, protected packaging/margin, child/parent budget nesting and failure packaging; preserve prior evidence and publish the change (NFR-003/006/007/008, SC-006/007).
+
+### Phase C/D — terminal failure diagnostics and operator evidence
+
+- [X] T092 Capture top-level case results, original public case proofs and report/verifier role terminal records before bulky logs; add a stdlib-only export of existing bounded diagnostics to a fresh verified archive without executing containers or mutating prior runs. Test recovery capture, read-only export and overwrite rejection, record acceptance-007's actual CPU/native/HIP results and missing failure details, and publish the repair (FR-033/034, NFR-007/008, SC-007).

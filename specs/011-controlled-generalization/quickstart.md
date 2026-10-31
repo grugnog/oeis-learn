@@ -79,6 +79,19 @@ logs and emit timestamped Python progress on stderr. Validation starts a periodi
 watchdog. These diagnostics remain under existing log caps and external deadlines.
 An absent Python-start marker alone does not prove where startup stalled; inspect
 the accompanying engine log. No separate diagnostic command is required.
+To supplement an older archive using only existing run files, without launching
+containers or modifying that run, export to a fresh sibling directory:
+
+```bash
+PYTHONPATH=src python3 -S -m oeis_learn.pipeline_validation.generalization_diagnostics \
+  --run run-state/generalization/acceptance-007 \
+  --output run-state/generalization/acceptance-007-diagnostics
+```
+
+The resulting sibling ZIP is explicitly diagnostic-only. It includes bounded
+terminal case results, public case proofs and report/verifier role failures in
+addition to startup/qualification logs, with an inventory of missing or omitted
+records. It neither reruns work nor upgrades the original acceptance status.
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
 The existing `study` and `session` commands remain available for independently frozen

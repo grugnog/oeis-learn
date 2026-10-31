@@ -12,6 +12,49 @@ def put(root,name,payload):
     return path
 
 
+def test_recovery_captures_terminal_case_and_packaging_failures_first(tmp_path):
+    root=tmp_path/'run';root.mkdir()
+    expected={
+        'replay-resume/result.json':b'{"status":"FAIL","error":"dependency rejected"}',
+        'replay-resume/case/receipt.json':b'{"state":"FAIL","reason":"ValueError"}',
+        'retained-eval/result.json':b'{"status":"PASS","result":{"initializer":null}}',
+        'retained-eval/case/evaluation.json':b'{"selection":"inconclusive"}',
+        'report/packaging/role/result.json':b'{"status":"FAIL","error":"archive rejected"}',
+        'report/packaging/role/supervision/stderr.log':b'packaging details',
+    }
+    for name,payload in expected.items():put(root,name,payload)
+    put(root,'replay-resume/private/resolved/study.json',b'PRIVATE')
+    ledger=dict(receipts=[dict(stage='replay-resume',exit_code=1)],status='FAIL')
+    put(root,'workflow.json',json.dumps(ledger).encode())
+    archive=helper().recover(root,ledger)
+    with zipfile.ZipFile(archive) as z:
+        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        assert all('private' not in n for n in z.namelist())
+
+
+def test_existing_run_diagnostic_export_is_stdlib_and_read_only(tmp_path):
+    import os,subprocess,sys
+    root=tmp_path/'run';root.mkdir();output=tmp_path/'export'
+    put(root,'replay-resume/result.json',b'{"status":"FAIL","error":"original rejection"}')
+    put(root,'summary.json',b'{"selected_scope":"FAIL"}')
+    before={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    command=[sys.executable,'-S','-m','oeis_learn.pipeline_validation.generalization_diagnostics',
+             '--run',str(root),'--output',str(output)]
+    env=dict(os.environ,PYTHONPATH=str(Path('src').resolve()))
+    result=__import__('subprocess').run(command,env=env,text=True,capture_output=True,timeout=15)
+    assert result.returncode==0,result.stderr
+    report=json.loads(result.stdout);archive=Path(report['archive'])
+    from oeis_learn.pipeline_validation.bundle import verify
+    assert verify(archive)['summary_state']=='PARTIAL'
+    with zipfile.ZipFile(archive) as z:
+        assert z.read('diagnostics/replay-resume/result.json')==before['replay-resume/result.json']
+        assert json.loads(z.read('summary.json'))['feature_qualified'] is False
+    assert {str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}==before
+    original=archive.read_bytes()
+    again=subprocess.run(command,env=env,text=True,capture_output=True,timeout=15)
+    assert again.returncode!=0 and archive.read_bytes()==original
+
+
 def test_recovery_retains_timeout_records_and_original_failure(tmp_path):
     root=tmp_path/'failed';root.mkdir()
     expected={

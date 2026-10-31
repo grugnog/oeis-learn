@@ -540,3 +540,28 @@ qualification and report child/parent nesting, and existing failure packaging.
 design; no extension hooks are registered. No container/HIP command ran locally,
 and hardware tasks T063–T068 remain open. Source changes require freshly built
 images and newly frozen inputs before the next single serial invocation.
+
+## T092 terminal diagnostics and existing-run export — 2026-10-31
+
+Acceptance-007 reached and passed original CPU/native and HIP qualification, then
+failed replay/resume and report. See [operator evidence](hip-acceptance.md) for
+exact counts, images, archive hash and scoped interpretation. The recovery archive
+omits the terminal case and packaging role records, so their errors are currently
+unavailable. No root-cause fix or full feature PASS is claimed.
+
+The collector now prioritizes all canonical top-level terminal records and explicit
+public case proof filenames, including failure-packaging, followed by report and
+verifier role results/supervision. Fixed paths, 4 MiB total cap, per-file bounds,
+symlink exclusion and private-payload exclusion remain enforced. A stdlib module
+entrypoint exports existing allowed files into a fresh disjoint diagnostic-only
+archive, independently verifies it, and refuses overwrites. It never executes
+container, model or HIP work and leaves the original run unchanged.
+
+Both new regression tests failed before implementation. Focused diagnostics and
+acceptance tests: **29 passed**. Full generalization/bundle/pipeline-contract and
+container-adapter selection: **317 passed, one hardware test deselected in
+19.29 seconds**. The export test runs under Python `-S`, verifies the archive,
+compares original run bytes and checks overwrite rejection. `git diff --check`
+passes. No new container/HIP run occurred locally. Missing original replay/report
+terminal records block targeted repair; retrieve them without rebuilding images
+or running acceptance again.

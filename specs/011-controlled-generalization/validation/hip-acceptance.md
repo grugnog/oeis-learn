@@ -1,4 +1,13 @@
-# HIP acceptance — NOT RUN
+# HIP acceptance — qualification passed; feature acceptance failed
+
+Current status after operator acceptance-007 (2026-10-31): CPU/native and actual
+HIP qualification passed on source `2501929`; overall feature acceptance remains
+FAIL / PACKAGE_FAILED / UNMEASURED. Replay/resume and reporting failed. Their
+terminal result records are absent from the uploaded recovery archive and must
+be retrieved before a targeted repair or another hardware run. See the final
+section below. Earlier NOT RUN statements are historical records.
+
+## Historical local baseline, before operator runs
 
 Status recorded 2026-10-31: **NOT RUN / UNQUALIFIED**. The user explicitly excluded
 running HIP commands. No HIP parameter update, checkpoint load, replay/resume run,
@@ -110,3 +119,44 @@ the earlier statement that the failing test identities were unavailable. It does
 not change the original failed qualification receipt or resolve the independent
 GPU-image inspection timeout. Rebuild both images and freeze fresh inputs for
 the next complete serial session; no original PASS qualification exists to reuse.
+
+## Operator acceptance-007 — qualification PASS, feature FAIL (2026-10-31)
+
+The 117-member recovery ZIP passes inventory/hash verification. Archive SHA-256:
+`bb4d781fb1d8bf8ca3d6425f41eeca1510399008ebf38c4f7cc213980e648cb8`.
+The four original qualification stage receipts have valid seals and PASS states.
+CPU stdout reports **1,101 passed, 77 subtests passed, eight deselected** in
+335.65 seconds; JUnit records 1,178 successful cases, zero failures/errors/skips.
+HIP stdout reports **27 passed** in 345.24 seconds, with zero JUnit failures or
+skips. The HIP environment reports PyTorch `2.9.1+rocm7.2.1.gitff65f5bc`, HIP
+`7.2.53211-e1a6bc5663`, native worker available and AMD Radeon Graphics `gfx1151`.
+These are actual operator container/HIP results, not local fixture qualification.
+
+Captured image/source identities:
+
+- CPU: `sha256:750d1bb3e05c90f1a1e19d83da975f49258a35d5b5804b787729df2a0ae9d17a`.
+- GPU: `sha256:b2f639bd31a9b8a78e1e881d3bc546d9d586f8733249a187803ed2322eda0a30`.
+- Source closure artifact: `sha256:e0cd8dc3869cd16b80e2a54caadd1855a8e128488a84fa286b87c1ebf93a25a7`.
+- Serial helper: `sha256:692a5b9dfc11e08b5b06d6465c433bb7f3ad298e81c9c13c88e670037bdd9317`.
+
+The first CPU preflight completed in 116.86 seconds; its Python portion took about
+0.64 seconds. The GPU image inspection completed in 309.88 seconds, exceeding the
+old 240-second deadline; Python inspection took about 0.09 seconds. Thus the larger
+startup allowances enabled this run to progress, with most cold-start time before
+Python. The exact overlay/storage mechanism remains unproven.
+
+The wrapper records preflight, qualify, prepare, retained-eval, refresh and
+parameter-targets exit 0; replay-resume exit 1; report exit 1. Failure-packaging
+and verify-bundle were not executed. Total recorded elapsed time was 1,328.41
+seconds (22 minutes 8 seconds). Overall status remains FAIL / PACKAGE_FAILED;
+scientific status remains UNMEASURED. Passing qualification and earlier cases
+do not establish full feature acceptance or replay/resume correctness.
+
+The recovery collector omitted top-level acceptance results, case receipts and
+report packaging-role results; replay/report stdout and stderr are empty. Their
+exact failures cannot be diagnosed from this archive. T092 adds those fixed public
+paths and a read-only stdlib exporter. Retrieve the existing acceptance-007 records
+using that exporter before deciding a repair/rerun. No additional HIP invocation
+is requested for evidence collection. Source changes invalidate automatic reuse
+of this producer for a new revision, but do not alter the historical PASS results.
+T063 and T068 are recorded complete for this observed scope; T064–T067 remain open.
