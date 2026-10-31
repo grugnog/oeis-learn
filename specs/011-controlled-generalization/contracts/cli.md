@@ -2,11 +2,11 @@
 
 ## Status and compatibility
 
-All commands below using `generalization` are **proposed new endpoints**, to be implemented by this feature. They are not currently runnable. Existing `validate --suite pipeline`, `pilot-diagnose` and `pilot-followup` commands remain compatible; no historical default silently acquires new semantics.
+All commands below using `generalization` are registered by this feature. Installed-image/native/HIP qualification remains an execution gate, not a claim established by registration. Existing `validate --suite pipeline`, `pilot-diagnose` and `pilot-followup` commands remain compatible; no historical default silently acquires new semantics.
 
 Portable entrypoint remains `python3 scripts/foundation_run.py --engine docker|podman ...`. Host routing uses standard-library code and launches existing isolated roles; no direct host PyTorch/native dependencies or runtime socket in containers.
 
-## Proposed endpoints
+## Implemented endpoints
 
 Common flags: `--manifest FILE --output NEW_DIRECTORY`; immutable manifest identity is authority. Runtime arguments may choose declared cells or lower resource limits only through a newly sealed effective invocation. Unknown flags/arms/checkpoints fail before costly work. Source run inputs and private artifacts must lie within explicitly mounted workspace roots.
 
@@ -18,9 +18,9 @@ Common flags: `--manifest FILE --output NEW_DIRECTORY`; immutable manifest ident
 | `generalization evaluate` | Manifest, `--checkpoints ID...`, optional declared `--proposal-bank ID`, qualification, output | Retained checkpoint loading, visible generation/fitting, frozen selection, isolated scoring. Private artifact absence is explicit. |
 | `generalization train` | Manifest, `--arms NAME... --seeds INTEGER...`, qualification, output; optional `--resume FULL_CHECKPOINT` | Run only selected registered arms/seeds; reject weights-only resume, changed data/order/budgets or undeclared combinations. |
 | `generalization replay` | Manifest, declared initializer/training-task roster, qualification, output | One bounded search/admission/distillation round; preserve continued-SFT control and separate search costs. |
-| `generalization report` | Manifest, `--inputs DIRECTORY... --output` | Reconcile source/contract/seed/denominator identities and package complete or partial evidence. Never infer missing observations. |
+| `generalization report` | Manifest, `--inputs DIRECTORY --output` | Reconcile source/contract/seed/denominator identities and package complete or partial evidence. Never infer missing observations. |
 | `generalization verify-bundle` | `--archive FILE --output NEW_DIRECTORY` | Existing safe archive checks plus new contract/status invariants; read-only with respect to source archive. |
-| `generalization acceptance` | Acceptance manifest, qualification, `--case NAME`, output | Small canonical fixture case: retained-eval, refresh, parameter-targets, replay-resume or failure-packaging. Uses production paths and synthetic fixture truth, never research assessment. |
+| `generalization acceptance` | Acceptance session manifest, qualification, `--case NAME --inputs PREPARED_ROOT`, output | Small canonical fixture case: retained-eval, refresh, parameter-targets, replay-resume or failure-packaging. Uses production paths and synthetic fixture truth, never research assessment. |
 
 Existing `pilot-followup` gains opt-in `--arms uniform` and `--qualification PRODUCER` without changing its default three-arm behavior. P0 uses the historical recipe/selection path. Existing `pilot-diagnose evaluate` may gain qualification and generalized checkpoint descriptors through an explicit new profile; old ordinal-based behavior remains available.
 
@@ -45,3 +45,11 @@ If the canonical report endpoint itself fails, use existing minimal recovery pac
 Preserve canonical runner status mapping: PASS exits0, FAIL exits1, BLOCKED/PARTIAL/INCONCLUSIVE exits3, INTERRUPTED exits130. Invalid argument handling retains the host parser's established exit2 convention. Store precise reason codes (MISSING_ARTIFACT, QUOTA_SHORTFALL, INCOMPATIBLE_QUALIFICATION, BUDGET_EXHAUSTED, INTEGRITY_FAILURE, PACKAGE_FAILED) alongside status rather than inventing competing numeric meanings. A valid negative scientific outcome may have software PASS; exit0 alone is not a generalization claim. Packaging failure cannot produce PASS.
 
 Output paths are confined checkout/workspace-relative roots. A directory output produces a sibling `<output>.zip`, matching existing packaging. Use fresh directories and archive paths; do not overwrite terminal results.
+
+`--runtime FILE` optionally selects the sealed sidecar for an ordinary study.
+Acceptance sessions bind all four child study/runtime references themselves.
+Global `--image` must match the frozen CPU image when supplied; report and
+verify-bundle require an immutable CPU image, and the helper forwards it.
+Research reports consume one explicit aggregate evidence root; acceptance reports
+assemble the session's original case proof closures. A complete session exposes
+`report/qualified/` for subsequent research qualification consumption.

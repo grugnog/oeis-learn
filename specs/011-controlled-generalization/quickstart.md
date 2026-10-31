@@ -1,125 +1,168 @@
 # Validation and first-pilot guide
 
-This guide distinguishes implemented evidence commands from the planned research workflow. Public `generalization report` and `verify-bundle`, and opt-in `pilot-followup --arms uniform --qualification`, are implemented. The remaining generalization endpoints and complete serial acceptance workflow are not ready. No HIP readiness or research result is claimed.
+All nine generalization commands are registered. The implementation has local
+CPU/reference and fixture integration evidence. Actual pinned-container/native
+qualification and HIP acceptance have **not** run in this environment. No research
+campaign is started by these instructions or by the acceptance helper.
 
-## Prerequisites
+## Freeze inputs before execution
 
-Use the repository's pinned Dockerfile/locks and existing foundation container workflow. Host requires Python standard library and a usable Docker/Podman connection; no host toolchain/driver changes. Retain private original weights and source/cohort manifests for historical evaluation; public archives cannot reconstruct them. Resolve study/acceptance manifests and quotas using [contracts/experiments.md](contracts/experiments.md), and keep assessment files in scorer-only mounts.
+Use Python's standard library on the host and the pinned Dockerfile/locks for
+installed roles. Prebuild `qualification` and `gpu` targets on the operator's engine,
+inspect their immutable `sha256:...` IDs, then freeze code and contracts. Do not
+change host drivers. `validate --suite bigint-cpu` is CPU/native only;
+`pipeline all-ready` may select HIP and is not a CPU-only precheck.
 
-## Before hardware
+Each study has a sealed `study.json` and `runtime.json` beside it. The runtime binds
+the resolved recipe, CPU/GPU image pair, role views, storage reservations and original
+feature acceptance. References are relative to the study directory; use a dedicated
+study input/output tree. Explicit `--runtime FILE` selects a sealed sidecar without
+overwriting an earlier one. See [artifact formats](contracts/artifacts.md).
+The templates in `configs/foundation/pipeline_studies/` are unresolved recipe
+commitments, not ready-to-run study manifests.
 
-Build the existing qualification container and run its CPU/native suite, with the implementation registering new test nodes in `container_validation.py`:
+Preparation views name frozen cells. `prepare` publishes a new study/runtime with
+exact role files; its `result.json` reports `result.manifest` and `result.runtime`.
+Use those emitted workspace-relative paths for subsequent commands. Never assume
+the resolved study is directly under the command output root.
 
-```bash
-docker build --target qualification -t oeis-learn:qualification .
-python3 scripts/foundation_run.py --engine docker --image oeis-learn:qualification validate --suite bigint-cpu --output run-state/evidence/generalization-precheck-001
-```
+E0 evaluation must retain actual private weights and exact descriptor identities.
+P1 freezes paired static/refresh views with the same family support and fresh variants.
+P3 requires independently checked target-pair grounding artifacts. P4 requires a
+version 2 study with a verified common retained literal initializer, original
+selection/producer/ancestry proofs, paired continued-SFT/replay arms and selection
+evaluation. Weights-only artifacts cannot serve as full-state resume checkpoints.
 
-Include isolation, parameter, replay, resume, metric, stale-receipt and partial-package cases. This is CPU/native evidence only. Do not use pipeline `all-ready` as a CPU-only precheck; its dependency registry can select HIP stages. Prebuild the GPU target with `docker build --target gpu -t oeis-learn:gpu .` as well, then freeze code, both inspected images, contracts and helper after integration passes. The hardware session validates compatibility and executes its required qualification scopes once; this local precheck is not an extra HIP run.
+## Four frozen inputs, five acceptance cases
 
-## One consolidated real-HIP acceptance invocation
+A sealed `generalization-acceptance-session/v1` manifest binds four case entries:
+`retained-eval`, `refresh`, `parameter-targets` and `replay-resume`. Each entry has
+exact `manifest` and `runtime` ArtifactRefs relative to the session document.
+All children use acceptance purpose, the same source closure and exact image pair.
+The failure-packaging case uses the refresh input. The session cannot override
+child sidecars with a runtime CLI flag.
+
+Use tiny actual model/data fixtures. Retained evaluation loads an identified
+checkpoint. Refresh must consume variants outside the static subset. Parameter
+targets must exercise both forms with verified grounding. Replay/resume must
+produce at least one independently admitted training alternative and compare
+complete resumed state with uninterrupted state. Empty replay yield is valid in
+research but cannot establish acceptance coverage of an admitted replay update.
+
+Acceptance inputs have at most one seed and 4,096 target tokens. The loader also
+bounds each case's work to fit inspection, validation and work inside its 900-second
+reservation. Preflight validates all four inputs and storage before expensive work.
+
+## One consolidated HIP session
+
+First inspect the plan without launching an engine:
 
 ```bash
 python3 scripts/generalization_hip_serial.py --engine docker \
   --manifest run-state/inputs/generalization-acceptance.json \
-  --output run-state/evidence/generalization-acceptance-001
+  --output run-state/evidence/generalization-acceptance-001 --dry-run
 ```
 
-Expected: one original CPU/native and HIP qualification producer, serial representative preparation/evaluation/refresh/target/replay/resume cases, consumer compatibility checks, verified archive and readable report. Tiny real model updates prove loaded checkpoint and finite forward/backward execution on HIP. Full research experiments do not run here. See [CLI contract](contracts/cli.md) for restart and failure behavior.
+After the operator completes real image/input/preflight gates, the single normal
+invocation is the same command without `--dry-run`. It runs preflight, one original
+qualification, preparation, five serial cases, report and independent verify-bundle.
+The helper forwards the frozen CPU image. Reservations total 13,800 seconds plus
+600 seconds of recovery margin within four hours; they do not authorize research.
 
-On failure, inspect the ledger and bounded log tail in the partial bundle. Fix algorithm defects in implementation phase B, then invalidate affected source/qualification evidence. Restart into a fresh output root; reuse only intact compatible original producers. No repeated stage should lack an explicit reason.
+The helper preserves original receipts, bounded logs and failure status. A verified
+complete or partial report is copied to the session sibling ZIP. Report/verifier
+failure produces a minimal recovery archive that does not claim qualification.
+A successful complete session publishes `report/qualified/`, containing the original
+qualification and feature proof closure for subsequent research consumption.
+A partial session cannot qualify research. Generic individual-command ZIPs carry
+receipts only; they are not feature qualification archives.
 
-## E0: evaluation extension without training
+Restart into a fresh output root with `--reuse-run OLD_SESSION_ROOT`. Original
+case producers and exact hashes must still verify against unchanged inputs.
+Preflight and preparation are revalidated with an explicit repeat reason.
+Changed source/images/authority invalidate affected evidence. Do not use unchecked
+skip/start-step flags. Learner `train --resume FULL_CHECKPOINT` is a separate route:
+it verifies the full state, optimizer/RNG/data/replay compatibility and retained pins.
+A weights-only checkpoint is rejected. Selection persistence emits a fresh private
+store whose verified full-state pointer can be used for later resume.
+
+## E0 → P0 → P1 operator sequence
+
+Research is separately authorized after acceptance. Freeze research-purpose runtime
+inputs with the accepted feature receipt and current source/image identities.
+The following paths and descriptor IDs are operator-provided inputs, not artifacts
+created by implementation. Set `QUALIFICATION_IMAGE` to the inspected immutable
+CPU image and `QUALIFIED_ROOT` to the complete session's `report/qualified/`.
+
+E0 extends evaluation without retraining. Select exact descriptor identities from
+the frozen runtime checkpoint roster; display names are not IDs:
 
 ```bash
-python3 scripts/foundation_run.py --engine docker generalization preflight \
-  --manifest run-state/inputs/E0.json --output run-state/evidence/E0-preflight
-python3 scripts/foundation_run.py --engine docker generalization evaluate \
-  --manifest run-state/inputs/E0.json --checkpoints early selected uniform-best uniform-latest \
-  --qualification run-state/evidence/generalization-acceptance-001/qualification \
-  --output run-state/evidence/E0-evaluate
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization preflight \
+  --manifest run-state/inputs/E0/study.json --output run-state/evidence/E0-preflight
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization evaluate \
+  --manifest run-state/inputs/E0/study.json --checkpoints "$EARLY_ID" "$SELECTED_ID" "$UNIFORM_BEST_ID" "$UNIFORM_LATEST_ID" \
+  --qualification "$QUALIFIED_ROOT" --output run-state/evidence/E0-evaluate
 ```
 
-Those checkpoint IDs must resolve to the preflight-frozen private hashes. Missing IDs are unavailable; revise the explicit roster before execution instead of substituting weights. Check full denominators, raw versus fitted budgets, source diversity, shared-bank costs and completion. Historical results remain exploratory.
+Retain unavailable checkpoint status rather than substituting weights. Compare
+fixed denominators, raw/fitted budgets, shared-bank costs and completion. Selection
+uses the declared candidate set. Assessment consumes a frozen authorization and
+durable exposure debit; it does not rank new checkpoints.
 
-## P0: two additional uniform seeds
-
-The implementation adds opt-in arm selection and qualification reuse to the historical endpoint:
+P0 adds only uniform seeds through the opt-in historical route, preserving its
+recipe and selection semantics:
 
 ```bash
 python3 scripts/foundation_run.py --engine docker pilot-followup \
   --run run-state/runs/historical --admission run-state/inputs/admission.json \
   --inputs run-state/inputs/historical --arms uniform --tokens 25000000 --seed 20261017 \
-  --qualification run-state/evidence/generalization-acceptance-001/qualification \
-  --output run-state/evidence/P0-seed17
+  --qualification "$QUALIFIED_ROOT" --output run-state/evidence/P0-seed17
 ```
 
-Repeat serially for seed20261018 in a new output root. Use the frozen historical recipe and its selection semantics; do not also run balancing/decay. Include existing seed16 only with compatible identified artifacts/evidence. A missing seed16 becomes an explicit missing reference or separately registered regeneration, never an invented third seed.
+Repeat serially for seed20261018 in a fresh root. Include seed16 only with compatible
+identified evidence; missing evidence remains missing or requires separately
+registered regeneration. Do not silently add historical balancing/decay arms.
 
-## P1: first learning intervention
+P1 is the first paired learning intervention:
 
 ```bash
-python3 scripts/foundation_run.py --engine docker generalization prepare \
-  --manifest run-state/inputs/P1-preparation.json \
-  --qualification run-state/evidence/generalization-acceptance-001/qualification \
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization prepare \
+  --manifest run-state/inputs/P1/study.json --qualification "$QUALIFIED_ROOT" \
   --output run-state/evidence/P1-prepared
-python3 scripts/foundation_run.py --engine docker generalization train \
-  --manifest run-state/evidence/P1-prepared/study.json --arms static refreshed --seeds 20261016 \
-  --qualification run-state/evidence/generalization-acceptance-001/qualification \
-  --output run-state/evidence/P1-train
+python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization train \
+  --manifest "$PREPARED_STUDY" --runtime "$PREPARED_RUNTIME" --arms static refreshed --seeds 20261016 \
+  --qualification "$QUALIFIED_ROOT" --output run-state/evidence/P1-train
 ```
 
-The frozen preparation contract fixes generation, coverage and isolation policy. Preparation emits a fully resolved frozen `study.json` bound to prepared artifacts; it never mutates existing authority. Compare fixed exposures and selection-supervision results; freeze checkpoint/portfolio choices before isolated assessment. Only valid, adequately completed studies advance under their registered rule to the other paired seeds. If screen assessment influenced any advancement, checkpoint/arm/incumbent choice or recipe change, confirmation uses fresh assessment.
+Set `PREPARED_STUDY` and `PREPARED_RUNTIME` from the prepare result. Compare fixed
+exposures and selection-supervision results; freeze checkpoint/portfolio choices
+before isolated assessment. Advance only under the registered completion rule.
+If screen assessment influenced advancement or any recipe/incumbent choice,
+confirmation uses fresh assessment. P2/P3/P4 have separately frozen studies;
+they are not automatic follow-on jobs or acceptance-helper actions.
 
-## Package and inspect
+## Report and independently verify
 
-```bash
-python3 scripts/foundation_run.py --engine docker generalization report \
-  --manifest run-state/evidence/P1-prepared/study.json \
-  --inputs run-state/evidence/P1-prepared run-state/evidence/P1-train \
-  --output run-state/evidence/P1-report
-python3 scripts/foundation_run.py --engine docker generalization verify-bundle \
-  --archive run-state/evidence/P1-report.zip --output run-state/evidence/P1-verified
-```
-
-Expect a scoped positive/negative/inconclusive scientific result, actual costs, every registered seed/cell or explicit missing status, and independently reconcilable bounds. A successful software receipt does not establish improvement. Subsequent P2/P3/P4 recipes are defined in the experiment contract and run separately, without changing the single-algorithm-phase implementation requirement.
-
-## Current integration status
-
-The research examples above remain a target workflow. Only `report` and
-`verify-bundle` are currently public generalization endpoints. Both require the
-global `--image sha256:...` argument naming a prebuilt immutable qualification
-image. Report currently accepts **one** explicit evidence directory containing
-`evidence.json` and its exact public inventory; multi-stage assembly is pending.
-For example, after preparing that inventory:
+Research `report` consumes **one explicit aggregate public evidence directory**
+containing `evidence.json` and its exact inventory. Assemble observations and missing
+statuses according to the evidence contract. Do not pass multiple raw stage roots
+or infer scientific measurements from private checkpoint files. Acceptance-session
+reporting assembles its original case proof closures automatically.
 
 ```bash
 python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization report \
-  --manifest run-state/evidence/study.json --inputs run-state/evidence/public \
-  --output run-state/evidence/report-001
+  --manifest "$PREPARED_STUDY" --inputs run-state/evidence/P1-public \
+  --output run-state/evidence/P1-report
 python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization verify-bundle \
-  --archive run-state/evidence/report-001.zip --output run-state/evidence/verified-001
+  --archive run-state/evidence/P1-report.zip --output run-state/evidence/P1-verified
 ```
 
-Every output must be new. These commands verify hashes and original evidence;
-they do not qualify an unexecuted study. Full-state learner resume is an internal
-adapter, not yet a public restart route. The helper's `--dry-run` exposes its
-reserved command order, but missing endpoints prevent complete execution/reuse.
+Every output and archive path must be new. Preserve actual costs, every registered
+seed/cell or explicit missing status, and independently reconcilable bounds.
+A successful software receipt does not establish improvement. Private learner
+states, sealed truth and checkpoint bytes remain outside sharing archives.
 
-Internal installed roles now support preparation, real model training and exact
-resume, retained evaluation, checkpoint selection, authorized assessment scoring,
-and separate visible-only replay proposals/training-only native audits. Retained
-checkpoint descriptors identify exact weights, committed exposure and pins.
-Best-loss and behavior selection use the same candidate set; assessment consumes
-a frozen authorization and active shared exposure debit without ranking. Replay
-search persists reservations before model work and retains empty discoveries and
-interruption costs. These adapters have CPU/fixture tests. Their existence does
-not complete T046/T052/T053/T056–T059/T061–T062 or qualify actual native/HIP work.
-
-As of 2026-10-31, a failing P4 initializer-authority counterexample reopens
-T011/T044. The current study/preparation contracts only permit random initialization
-and cannot bind the required common retained literal initializer. Resolve that
-Phase-B contract/provenance gate before registering the remaining public routes.
-See [local results](validation/local-checks.md), [algorithm review](validation/algorithm-review.md),
-and [implementation audit](checklists/implementation.md). E0→P0→P1 and later P2/P3/P4
-remain separate operator-authorized research; none has been launched here.
+See [local evidence](validation/local-checks.md), [algorithm review](validation/algorithm-review.md),
+[hardware status](validation/hip-acceptance.md), [coverage audit](checklists/implementation.md)
+and [CLI contract](contracts/cli.md) for implementation and validation boundaries.

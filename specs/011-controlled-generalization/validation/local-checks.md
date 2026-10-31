@@ -1,3 +1,75 @@
+# Current non-HIP validation — 2026-10-31
+
+Phase B defects are repaired and all Phase C integration tasks T045–T062 are
+implemented. Earlier entries below are chronological records, not the current
+completion status. No HIP command, real container qualification, acceptance session
+or research campaign ran. Local integration tests perform actual CPU tensor updates
+and full-state comparisons; native/container boundaries are fixture-backed.
+
+The current regression selection is:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_generalization_*.py tests/contract/test_generalization_*.py \
+  tests/integration/test_generalization_*.py tests/unit/test_bigint_reference.py \
+  tests/contract/test_bigint_contracts.py tests/unit/test_pilot_followup.py \
+  tests/unit/test_pilot_followup_host.py tests/unit/test_pipeline_reuse.py \
+  tests/unit/test_pipeline_bundle.py
+```
+
+Result: **285 passed, 1 GPU test deselected, 9 subtests passed** (11.35 seconds).
+Coverage includes retained-initializer provenance, immutable selection pins, paired
+refresh/target training, admitted and empty replay yield, exact CPU resume equality,
+current-policy scoring, original receipt reuse, complete/partial archive verification,
+failure preservation, resource guards and canonical session routes.
+
+A real helper `--dry-run` against a synthetic sealed four-study acceptance session
+produced ten stages, exactly one qualification stage, 13,800 reserved seconds plus
+a 600-second recovery margin, and the frozen image forwarded to commands. It invoked
+no engine. Canonical session fixture tests exercise all five cases and independent
+archive verification, but substitute the model/native/qualification boundaries.
+
+Additional historical regressions were attempted:
+
+```bash
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_synthesis_state.py tests/unit/test_checkpoint_loader.py \
+  tests/unit/test_pipeline_profile.py tests/integration/test_bigint_workflow.py \
+  -k 'not native and not real and not replay_reference and not installed'
+
+PYTHONPATH=src /workspace/scratch/5b234f116159/phase-a-venv/bin/python -m pytest -q -m 'not gpu' \
+  tests/unit/test_bigint_runtime_profile.py tests/unit/test_pipeline_pilot.py \
+  tests/unit/test_pipeline_pilot_runtime.py tests/unit/test_pipeline_pilot_data.py \
+  tests/unit/test_pipeline_pilot_longrun.py tests/unit/test_pipeline_pilot_calibration.py
+```
+
+The first yielded **56 passed, 1 skipped, 3 deselected, 1 failed**. The failure,
+`test_integrated_device_checkpoint_update[cpu]`, cannot import local `wasmtime`.
+The second yielded **91 passed, 3 failed, 4 deselected, 25 subtests passed**.
+`test_actual_pilot_constructor_and_public_independent_cost_sentinels` lacks the
+native synthesis executable. `test_pilot_actual_worker_state_and_metric_resume[cpu]`
+and `test_full_clock_pilot_actual_worker_state_and_metric_resume[cpu]` lack
+`wasmtime`. These failures remain visible; passing execution must be obtained in
+the pinned qualification image. Local PyYAML was supplied from the existing runtime
+for collection; no repository dependency or lock was changed.
+
+Host checks: `python3 -S scripts/foundation_local.py generalization --help` lists all
+nine endpoints. Host CLI/session/command imports under `python3 -S` do not import
+Torch, NumPy or jsonschema. The rebuilt source distribution contains all 81 required
+policy modules/resources, role adapters, authoritative contracts and helper files.
+`git diff --check` passed before the workspace disconnected. Implementation code
+was already committed; the final documentation audit was preserved through GitHub.
+
+T063 remains open for qualification-container/historical dependency checks.
+Docker, Podman and Cargo are unavailable, so T064 cannot produce actual image/build
+identities. T065's synthetic dry run is complete; real operator inputs and preflight
+remain pending. T066 is explicitly excluded by the user. T067 has complete/partial
+fixture coverage but awaits the actual acceptance archive, and T068 records NOT RUN.
+T069/T070 documentation and delivery audit are complete. No fixture image, receipt
+or CPU result is represented as HIP qualification.
+
+## Historical implementation and validation record
+
 # Phase C attempt and non-HIP local checks
 
 Phase C is **incomplete**, with a failed Phase B prerequisite. No HIP command,

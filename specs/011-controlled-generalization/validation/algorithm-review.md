@@ -1,3 +1,15 @@
+# Current Phase B status — 2026-10-31
+
+T009–T044 are complete. The family reconciliation, fitted-source replay and retained
+initializer authority defects documented below are repaired in their Phase B
+policy owners, with independent counterexamples retained. Version 2 study/preparation
+contracts require P4's verified common retained literal initializer and its original
+selection/producer/ancestry proofs. Version 1 remains random-only. The current
+non-HIP selection passes 285 tests and 9 subtests. See [local-checks.md](local-checks.md)
+for exact commands and the separate environment-dependent historical failures.
+All C integration is now implemented; installed-image and HIP validation remain open.
+Earlier entries below record the evidence available at each historical increment.
+
 # Phase B algorithm review
 
 Implemented T009–T044 as one algorithm phase, with a separate commit after every

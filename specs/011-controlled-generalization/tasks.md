@@ -8,6 +8,17 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Current status — 2026-10-31
+
+T001–T062 and T069–T070 are complete. The Phase B defects described in the historical
+entries below are repaired. T063–T068 remain open for missing environment/operator
+evidence and the explicitly excluded HIP execution: T063 needs pinned-container
+regressions; T064 needs actual images/build inspection; T065 has a passing synthetic
+helper dry run but needs real reduced inputs/preflight; T066 is excluded; T067's
+fixture archives pass but the real archive is absent; T068 records NOT RUN.
+See [local checks](validation/local-checks.md), [HIP status](validation/hip-acceptance.md)
+and [coverage audit](checklists/implementation.md). No research campaign was started.
+
 ## Format and organization
 
 Tasks use `- [ ] Tnnn [P?] [USn?] description with exact paths`. Paths are repository-relative; proposed files/directories are created by their owning tasks. `[P]` permits concurrent work only within the documented dependency wave on distinct files. It does not authorize parallel GPU learners or HIP runs.
@@ -122,7 +133,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 ### US1 integration — Independent recorded/retained-weight evaluation
 
 - [X] T045 [US1] Add fixture workflow tests in `tests/integration/test_generalization_evidence.py` for recorded evidence, absent private weights, best/latest identities, matched raw/rescue/control budgets and shared-bank application using phase-B outputs.
-- [ ] T046 [P] [US1] Wire collect/evaluate operations to existing diagnostics/native generation in `src/oeis_learn/pipeline_validation/generalization_evaluation.py`, loading exact selected checkpoint hashes and separating visible generation, selection supervision and authorized assessment mounts.
+- [X] T046 [P] [US1] Wire collect/evaluate operations to existing diagnostics/native generation in `src/oeis_learn/pipeline_validation/generalization_evaluation.py`, loading exact selected checkpoint hashes and separating visible generation, selection supervision and authorized assessment mounts.
 - [X] T047 [P] [US1] Wire read-only aggregation/report operations in `src/oeis_learn/pipeline_validation/generalization_reporting.py`, exporting per-attempt/family/seed results, fitting phase telemetry, measured queue/service/cleanup costs and unavailable fields through the phase-B reconciliation policies.
 
 ### US2 integration — Prepared benchmark and isolation
@@ -134,23 +145,23 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 ### US3 integration — Learning, checkpointing and named pilots
 
 - [X] T051 [US3] Add bounded paired-training/interruption integration scenarios in `tests/integration/test_generalization_training.py`, checking static/refresh exposure, both target formats, uninterrupted-versus-resumed next batches/state and retained milestone hashes.
-- [ ] T052 [US3] Wire prospective training arms/seeds to the existing model and native execution adapters in `src/oeis_learn/pipeline_validation/generalization_training.py` and the new-profile route in `src/oeis_learn/fresh/bigint_worker.py`; call refresh/target/token policies and use actual post-substitution targets for charging.
+- [X] T052 [US3] Wire prospective training arms/seeds to the existing model and native execution adapters in `src/oeis_learn/pipeline_validation/generalization_training.py` and the new-profile route in `src/oeis_learn/fresh/bigint_worker.py`; call refresh/target/token policies and use actual post-substitution targets for charging.
 - [X] T053 [US3] Connect atomic state persistence and pinned artifacts to the existing checkpoint store in `src/oeis_learn/fresh/bigint_state.py`, routing prospective resume through T030–T031 while preserving historical state/profile behavior.
 - [X] T054 [US3] Add frozen prospective recipe templates under `configs/foundation/pipeline_studies/` for E0, P0, P1-screen/confirm, P2, P3 and P4, reflecting `specs/011-controlled-generalization/contracts/experiments.md`; validate single changing factors, recipe-specific milestones, separate selection/assessment identities and exact cap/seed lists without executing the campaigns.
 - [X] T055 [US3] Add opt-in `--arms uniform` and qualification routing to `src/oeis_learn/pipeline_validation/followup_study.py` and its existing host entrypoint, with regression coverage in `tests/unit/test_pilot_followup.py`; keep the default three historical arms/selection semantics and report missing seed16 instead of fabricating confirmation.
 
 ### US5 integration — Canonical endpoints and serial helper
 
-- [ ] T056 [US5] Add fake-adapter end-to-end cases in `tests/integration/test_generalization_acceptance.py`, checking one qualification execution across consumers, stale receipt rejection, new-root restart, report failure recovery and verified partial archives; use synthetic fixtures before real hardware.
-- [ ] T057 [US5] Register all prospective preflight/qualify/prepare/evaluate/train/replay/report/verify-bundle/acceptance endpoints in `src/oeis_learn/pipeline_validation/generalization_cli.py` and `scripts/foundation_local.py`, retaining confined relative paths, parser conventions and existing command behavior.
-- [ ] T058 [US5] Connect canonical producer/consumer receipt and current image/HIP inspection I/O in `src/oeis_learn/pipeline_validation/runner.py`, `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/pipeline_validation/reuse.py` to T035–T038 policies; pass original producer references through prospective endpoints without weakening historical study bindings or accepting REUSED-only evidence.
-- [ ] T059 [US5] Create the stdlib-only serial subprocess helper `scripts/generalization_hip_serial.py`, forwarding preflight→qualify→prepare→five bounded acceptance cases→report→verify-bundle, with dry-run and verified `--reuse-run`, reserved final packaging time and no unchecked skip/start-step or automatic full research runs.
+- [X] T056 [US5] Add fake-adapter end-to-end cases in `tests/integration/test_generalization_acceptance.py`, checking one qualification execution across consumers, stale receipt rejection, new-root restart, report failure recovery and verified partial archives; use synthetic fixtures before real hardware.
+- [X] T057 [US5] Register all prospective preflight/qualify/prepare/evaluate/train/replay/report/verify-bundle/acceptance endpoints in `src/oeis_learn/pipeline_validation/generalization_cli.py` and `scripts/foundation_local.py`, retaining confined relative paths, parser conventions and existing command behavior.
+- [X] T058 [US5] Connect canonical producer/consumer receipt and current image/HIP inspection I/O in `src/oeis_learn/pipeline_validation/runner.py`, `src/oeis_learn/pipeline_validation/adapters.py` and `src/oeis_learn/pipeline_validation/reuse.py` to T035–T038 policies; pass original producer references through prospective endpoints without weakening historical study bindings or accepting REUSED-only evidence.
+- [X] T059 [US5] Create the stdlib-only serial subprocess helper `scripts/generalization_hip_serial.py`, forwarding preflight→qualify→prepare→five bounded acceptance cases→report→verify-bundle, with dry-run and verified `--reuse-run`, reserved final packaging time and no unchecked skip/start-step or automatic full research runs.
 - [X] T060 [US5] Register new CPU/native/HIP test selections in `src/oeis_learn/container_validation.py`, include new modules/helper/authoritative contracts in `src/oeis_learn/experiments/source_snapshot.py`, and update Dockerfile/package inclusion only where required; verify changed/unmapped authority invalidates qualification while prospective recipe identities remain independently hashed.
 
 ### US4 integration — Training-only replay round
 
-- [ ] T061 [US4] Add complete one-round/paired-control integration cases in `tests/integration/test_generalization_replay.py`, exercising production/reference admission, empty yield, task-first sampling, resume and separate current-policy/cumulative-discovery accounting.
-- [ ] T062 [US4] Wire prospective replay policy/admission and the canonical replay endpoint in `src/oeis_learn/fresh/replay.py`, `src/oeis_learn/fresh/bigint_worker.py` and `src/oeis_learn/pipeline_validation/generalization_replay.py`; preserve historical replay behavior and explicitly reject unregistered replay/representation interactions.
+- [X] T061 [US4] Add complete one-round/paired-control integration cases in `tests/integration/test_generalization_replay.py`, exercising production/reference admission, empty yield, task-first sampling, resume and separate current-policy/cumulative-discovery accounting.
+- [X] T062 [US4] Wire prospective replay policy/admission and the canonical replay endpoint in `src/oeis_learn/fresh/replay.py`, `src/oeis_learn/fresh/bigint_worker.py` and `src/oeis_learn/pipeline_validation/generalization_replay.py`; preserve historical replay behavior and explicitly reject unregistered replay/representation interactions.
 
 **Exit**: All story integration fixtures pass through canonical production paths. The new public commands become runnable only after these registrations. Every story's independent criterion above is exercised without running a full research campaign. Freeze source, helper, authority and image inputs for D.
 
@@ -162,8 +173,8 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 - [ ] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
 - [ ] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
 - [ ] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
-- [ ] T069 Update `specs/011-controlled-generalization/quickstart.md` and the relevant usage section in `README.md` with implemented commands, verified restart instructions and the E0→P0→P1 research sequence, clearly distinguishing delivered capability from unexecuted research outcomes.
-- [ ] T070 Audit requirement/story/task coverage and the single-algorithm/single-normal-HIP constraints in `specs/011-controlled-generalization/checklists/implementation.md`, commit the completed implementation/evidence incrementally and make the final PR description reflect actual behavior and validation; do not start E0/P0/P1 automatically.
+- [X] T069 Update `specs/011-controlled-generalization/quickstart.md` and the relevant usage section in `README.md` with implemented commands, verified restart instructions and the E0→P0→P1 research sequence, clearly distinguishing delivered capability from unexecuted research outcomes.
+- [X] T070 Audit requirement/story/task coverage and the single-algorithm/single-normal-HIP constraints in `specs/011-controlled-generalization/checklists/implementation.md`, commit the completed implementation/evidence incrementally and make the final PR description reflect actual behavior and validation; do not start E0/P0/P1 automatically.
 
 ## Dependencies and execution order
 
@@ -325,3 +336,16 @@ in a fresh atomic full-state store. The installed learner pin-selection operatio
 receives no selection supervision. Resumed training preserves descriptor identities,
 selection state and pins, and matches uninterrupted CPU weights exactly. The focused
 training/scoring suite passes 16 tests. Public command routing remains T057.
+
+## Canonical integration completion — 2026-10-31
+
+All Phase C tasks T045–T062 are implemented. Canonical routes connect frozen
+preparation views, exact retained evaluation/assessment, training/resume/selection
+pins and original initializer publication, paired replay/current-policy evaluation,
+original qualification consumption, and the five-case serial acceptance session.
+Complete and partial software acceptance archives independently verify original
+case proofs and preserve workflow failure. The helper forwards immutable images,
+reserves final packaging, and copies the verified archive to the session sibling.
+CPU/fixture tests include real tensor updates and complete state comparison; they
+do not establish container/native/HIP qualification. Current evidence and remaining
+environment gates are recorded at the top of validation/local-checks.md.
