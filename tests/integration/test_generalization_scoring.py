@@ -123,3 +123,31 @@ def test_assessment_requires_frozen_plan_active_debit_and_exact_candidates(tmp_p
         scoring.score_assessment(truth,authorization_root,candidates,reference(path,authorization_root),
             client=None,output=tmp_path/'completed',seconds=10)
     assert len(calls)==1
+
+
+def test_projected_checkpoint_directories_preserve_original_selection_identity(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_scoring as scoring,generalization_evaluation as evaluation
+    from oeis_learn.fresh import pilot_metrics
+    from oeis_learn.pipeline_validation.identity import seal,digest
+    truth,candidate_root,row=fixture(tmp_path)
+    rows=[row,dict(row,id='two',stratum='structural')]
+    (truth/'rows.json').write_text(json.dumps(rows))
+    candidates=[];directories={}
+    for number in (1,2):
+        folder=candidate_root/str(number);folder.mkdir()
+        (folder/'weights.pt').write_bytes(str(number).encode());(folder/'selections.json').write_text('{}')
+        descriptor=seal(dict(version='generalization-checkpoint/v1',kind='full_state',weights=reference(folder/'weights.pt',folder),
+            state=dict(path='not-mounted.json',sha256=digest('state'),bytes=1),initialization=digest('init'),parent=None,
+            tokens=1,updates=1,pins=['retained'],compatibility=digest('compatible')))
+        candidates.append(dict(checkpoint=descriptor,selections=reference(folder/'selections.json',folder)))
+        directories[descriptor['identity']]=str(number)
+    monkeypatch.setattr(scoring,'score_selection',lambda *a,**kw:dict(result=dict(outcomes={r['id']:{'equal_budget':dict(complete=True,success=True)} for r in rows})))
+    def load(root,ref,*args,**kwargs):
+        assert root.name in ('1','2')
+        return None,None,{}
+    monkeypatch.setattr(evaluation,'load_retained',load)
+    monkeypatch.setattr(pilot_metrics,'measure',lambda *a,**kw:dict(complete=True,loss=1.))
+    result=scoring.select_checkpoints(truth,reference(truth/'rows.json',truth),candidate_root,candidates,recipe={},
+        client=None,output=tmp_path/'selected',seconds=30,directories=directories)
+    assert result['selected']==min(directories)
+    assert result['candidates']==candidates

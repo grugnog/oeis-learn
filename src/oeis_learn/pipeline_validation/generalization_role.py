@@ -34,6 +34,14 @@ def preparation(inputs,output,settings,*,seconds):
             return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute)
 
 
+def validate_runtime(inputs,output,settings,*,seconds):
+    from .generalization_runtime import validate_execution
+    if set(settings)!={'study','runtime'}:raise ValueError('closed runtime validation settings required')
+    # This operation mounts only the explicitly verified custodian input closure.
+    plan=validate_execution(inputs['mechanical_sources'],settings['study'],settings['runtime'])
+    return dict(status='PASS',plan=plan)
+
+
 def report(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import validate,verify_artifact
     from oeis_learn.generalization.reconciliation import reconcile_measurements
@@ -138,12 +146,12 @@ def selection(inputs,output,settings,*,seconds):
 def checkpoint_selection(inputs,output,settings,*,seconds):
     from oeis_learn.synthesis.client import SynthesisClient
     from .generalization_scoring import select_checkpoints
-    if set(settings)!={'targets','candidates','study','recipe'}:
+    if set(settings)-{'directories'}!={'targets','candidates','study','recipe'}:
         raise ValueError('closed checkpoint selection settings required')
     with SynthesisClient(settings['study'],cache_root=output/'private/native-cache') as native:
         return select_checkpoints(inputs['selection_supervision'],settings['targets'],
             inputs['selection_candidates'],settings['candidates'],recipe=settings['recipe'],client=native,
-            output=output/'selection',seconds=seconds)
+            output=output/'selection',seconds=seconds,directories=settings.get('directories'))
 
 
 def assessment(inputs,output,settings,*,seconds):
@@ -194,6 +202,7 @@ HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
           (Role.LEARNER,'pin-selection'):pin_selection,
+          (Role.PREPARATION,'validate-runtime'):validate_runtime,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
 

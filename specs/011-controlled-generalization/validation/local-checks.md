@@ -199,3 +199,14 @@ contract files. `MANIFEST.in` now includes both contract directories. A fresh lo
 `setup.py sdist` build verifies all 34 required contract/schema/helper files are
 present. This is a source-package check, not a pinned image build. Three historical
 checkpoint/debit/final-exposure regression tests also pass.
+
+### Canonical runtime integration — 2026-10-30 (America/Los_Angeles)
+
+The frozen runtime sidecar now binds recipe/image/role views to a study, resolves
+preparation cell names to immutable output references, validates fixed refresh
+streams and paired target/replay views, and routes train/evaluate/replay through
+isolated installed roles. Checkpoint directory projections preserve original
+selection identities. Targeted runtime, preparation and scoring integration:
+24 passed. The command/qualification boundary is substituted in local tests;
+actual tensor training uses CPU. This is not container or HIP qualification.
+Acceptance, consolidated reporting and verified restart remain integration work.

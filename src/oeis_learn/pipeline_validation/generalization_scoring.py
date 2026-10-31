@@ -62,7 +62,7 @@ def score_assessment(truth_root,authorization_root,candidate_root,authorization_
     return record
 
 
-def select_checkpoints(truth_root,truth_ref,candidate_root,candidates,*,recipe,client,output,seconds):
+def select_checkpoints(truth_root,truth_ref,candidate_root,candidates,*,recipe,client,output,seconds,directories=None):
     """Compare one frozen candidate set under selection supervision only.
 
     The role receives exact weights and generated selections, never learner
@@ -86,14 +86,18 @@ def select_checkpoints(truth_root,truth_ref,candidate_root,candidates,*,recipe,c
             raise ValueError('unique selection-only primary splits required')
         seen.add(row['id']);rosters[row['stratum']][row['id']]=row['family']
     if not all(rosters.values()):raise ValueError('both primary selection splits required')
-    ids=set()
+    from .identity import confined
+    ids=set();roots={}
     for candidate in candidates:
         if set(candidate)!={'checkpoint','selections'}:raise ValueError('closed checkpoint selection input required')
         checkpoint=validate('checkpoint',candidate['checkpoint']).record()
         if checkpoint['identity'] in ids:raise ValueError('duplicate checkpoint candidate')
         ids.add(checkpoint['identity'])
-        verify_artifact(candidate_root,checkpoint['weights'])
-        verify_artifact(candidate_root,candidate['selections'])
+        key=checkpoint['identity']
+        roots[key]=confined(candidate_root,directories[key]) if directories is not None else candidate_root
+        verify_artifact(roots[key],checkpoint['weights'])
+        verify_artifact(roots[key],candidate['selections'])
+    if directories is not None and set(directories)!=ids:raise ValueError('exact candidate directory mapping required')
     output=Path(output)
     if output.exists():raise ValueError('fresh selection output required')
     output.mkdir(parents=True,exist_ok=False)
@@ -104,11 +108,11 @@ def select_checkpoints(truth_root,truth_ref,candidate_root,candidates,*,recipe,c
         checkpoint=candidate['checkpoint'];remaining=deadline-time.monotonic()
         outcomes={};loss=None
         if remaining>0:
-            scoring=score_selection(truth_root,truth_ref,candidate_root,candidate['selections'],client=client,
+            scoring=score_selection(truth_root,truth_ref,roots[checkpoint['identity']],candidate['selections'],client=client,
                 output=output/str(ordinal),seconds=remaining)
             outcomes=scoring['result']['outcomes']
         if time.monotonic()<deadline:
-            encoder,decoder,_=load_retained(candidate_root,checkpoint['weights'],recipe,device='cpu')
+            encoder,decoder,_=load_retained(roots[checkpoint['identity']],checkpoint['weights'],recipe,device='cpu')
             metrics=measure(encoder,decoder,loss_rows,'cpu',deadline=deadline)
             if metrics['complete'] and metrics['loss'] is not None and math.isfinite(metrics['loss']):
                 loss=metrics['loss']

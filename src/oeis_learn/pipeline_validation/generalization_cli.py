@@ -31,6 +31,21 @@ def register(commands):
     report.add_argument('--manifest',required=True)
     report.add_argument('--inputs',required=True)
     report.add_argument('--output',required=True)
+    report.add_argument('--reuse-run')
+    for name in ('preflight','qualify','prepare','evaluate','train','replay'):
+        command=operations.add_parser(name,help='execute frozen generalization '+name)
+        command.add_argument('--manifest',required=True)
+        command.add_argument('--runtime',help='sealed runtime sidecar; default beside the study manifest')
+        command.add_argument('--output',required=True)
+        command.add_argument('--reuse-run')
+        if name not in {'preflight','qualify'}:command.add_argument('--qualification',required=True)
+        if name=='train':
+            command.add_argument('--arms',nargs='+',required=True)
+            command.add_argument('--seeds',nargs='+',type=int,required=True)
+            command.add_argument('--resume')
+        if name=='evaluate':
+            command.add_argument('--checkpoints',nargs='+',required=True)
+            command.add_argument('--proposal-bank')
 
 
 def verify_main(args,root,host_factory):
@@ -107,4 +122,6 @@ def report_main(args,root,host_factory):
 
 def main(args,root,host_factory):
     if args.operation=='report':return report_main(args,root,host_factory)
-    return verify_main(args,root,host_factory)
+    if args.operation=='verify-bundle':return verify_main(args,root,host_factory)
+    from .generalization_commands import main as execute
+    return execute(args,root,host_factory)

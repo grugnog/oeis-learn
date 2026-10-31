@@ -148,3 +148,28 @@ def test_all_roles_reject_undeclared_and_overlapping_channels(tmp_path,role):
     if len(channels)>1:
         overlap=dict.fromkeys(channels,next(iter(channels.values())))
         with pytest.raises(ValueError):mounts(tmp_path,role,overlap,output='result')
+
+
+def test_runtime_publication_resolves_frozen_cell_views_and_rejects_cross_role(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_runtime import publish_runtime,preparation_views
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.identity import seal,write
+    source_root=tmp_path/'source';source_root.mkdir();prepared=tmp_path/'prepared';prepared.mkdir()
+    def put(root,name,value):
+        write(root/name,value);return reference(root/name,root)
+    plan=dict(cells=[dict(name=n,role=n) for n in ('training','selection','assessment')])
+    prep=dict(generator=put(source_root,'generator.json',plan))
+    study=dict(identity=digest('old'),arms=['literal','parameterized'],progression=dict(stage='P3'))
+    put(prepared,'study.json',dict(study,identity=digest('new')))
+    for name in ('literal','parameterized'):put(prepared,'cells/training/private/training-'+name+'.json',[name])
+    put(prepared,'cells/selection/prompts.json',[dict(id='opaque')]);put(prepared,'cells/selection/private/targets.json',[])
+    runtime=seal(dict(study=study['identity'],preparation=put(source_root,'preparation.json',prep),recipe=put(source_root,'recipe.json',{}),
+        training={a:dict(cells=['training'],data_mode='static',batch_size=1) for a in study['arms']},
+        evaluation=dict(role='selection',cells=['selection'],checkpoints=[],seconds=30,bank_seeds=None),replay=None,assessment=None))
+    resolved,actual=publish_runtime(source_root,prepared,study,runtime)
+    assert actual['study']==resolved['identity'] and actual['preparation'] is None
+    assert actual['training']['literal']['shards'][0]['path'].endswith('training-literal.json')
+    assert actual['training']['parameterized']['shards'][0]['path'].endswith('training-parameterized.json')
+    assert (prepared/'recipe.json').is_file()
+    runtime['training']['literal']['cells']=['assessment']
+    with pytest.raises(ValueError,match='its role'):preparation_views(source_root,study,runtime,prep)

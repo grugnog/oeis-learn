@@ -33,3 +33,13 @@ def test_report_parser_and_manifest_binding_before_engine(tmp_path):
     (tmp_path/'evidence/evidence.json').write_text(json.dumps(dict(study=dict(path='study.json',bytes=2,sha256='sha256:'+'0'*64))))
     def forbidden(*a):pytest.fail('engine touched before study binding')
     with pytest.raises(ValueError,match='study'):main(args,tmp_path,forbidden)
+
+
+@pytest.mark.parametrize('operation',['preflight','qualify','prepare','evaluate','train','replay'])
+def test_registered_runtime_command_parsers(operation):
+    argv=['generalization',operation,'--manifest','study.json','--runtime','runtime.json','--output','new']
+    if operation not in {'preflight','qualify'}:argv+=['--qualification','qualified']
+    if operation=='train':argv+=['--arms','static','refreshed','--seeds','20261016']
+    if operation=='evaluate':argv+=['--checkpoints','checkpoint-id']
+    args=host_module().parser().parse_args(argv)
+    assert args.operation==operation and args.runtime=='runtime.json'
