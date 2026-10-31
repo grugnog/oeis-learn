@@ -7,7 +7,8 @@
     "version": {
       "enum": [
         "generalization-study/v1",
-        "generalization-study/v2"
+        "generalization-study/v2",
+        "generalization-study/v3"
       ]
     },
     "identity": {
@@ -194,7 +195,54 @@
       "additionalProperties": false
     },
     "budgets": {
-      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+      "anyOf": [
+        {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/budgets"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "target_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "draws": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "storage_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "log_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "target_tokens",
+            "attempts",
+            "seconds",
+            "draws",
+            "memory_bytes",
+            "storage_bytes",
+            "log_bytes"
+          ],
+          "additionalProperties": false
+        }
+      ]
     },
     "checkpoints": {
       "type": "object",
@@ -205,7 +253,7 @@
             "type": "integer",
             "minimum": 1
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 64
         },
         "retain": {
@@ -261,6 +309,10 @@
         "assessment_feedback"
       ],
       "additionalProperties": false
+    },
+    "execution": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
     }
   },
   "required": [
@@ -302,6 +354,27 @@
               }
             }
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": "generalization-study/v3"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "execution"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "execution"
+          ]
         }
       }
     }
