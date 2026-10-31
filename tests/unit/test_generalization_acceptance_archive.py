@@ -23,6 +23,13 @@ def test_acceptance_archive_reconciles_originals_and_rejects_stale_status(tmp_pa
             if isinstance(value,list):return [refs(v) for v in value]
             return value
         facts={k:refs(raw[k]) for k in FACTS}
+        # Match the canonical producer's actual pinned-build closure, not JSON
+        # stand-ins that hide filename-policy failures during report packaging.
+        builds=[]
+        for name in ('Dockerfile','pyproject.toml','uv.lock','crates/oeis_synthesis_core/Cargo.lock'):
+            path=root/'build'/name;path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_text('pinned build fixture\n');builds.append(reference(path,root))
+        facts['build_dependencies']=builds
         original=seal(dict(original,facts=facts,suites=raw['suite_selection'],capabilities=raw['covered_capabilities']))
         return original,facts
     monkeypatch.setattr(feature_fixture,'producer',full_producer)
@@ -48,3 +55,15 @@ def test_acceptance_archive_reconciles_originals_and_rejects_stale_status(tmp_pa
     partial_archive=package_acceptance(tmp_path,partial,output=tmp_path/'partial')
     verified=verify_archive(partial_archive)
     assert verified['integrity']=='PASS' and verified['software_status']=='PARTIAL' and verified['feature_qualified'] is False
+
+
+def test_pinned_build_paths_are_public_without_admitting_private_or_arbitrary_files():
+    from pathlib import Path
+    from oeis_learn.pipeline_validation.bundle import public
+    for prefix in ('','payloads/'):
+        for name in ('build/Dockerfile','build/pyproject.toml','build/uv.lock','build/crates/core/Cargo.lock'):
+            assert public(Path(prefix+name))
+        for name in ('private/build/Dockerfile','build/.env','build/weights.pt','build/source.py',
+                     'build/arbitrary.lock','other/Dockerfile','build/private/Cargo.lock',
+                     'build/crates/private/Cargo.lock','inputs/build/Dockerfile'):
+            assert not public(Path(prefix+name))

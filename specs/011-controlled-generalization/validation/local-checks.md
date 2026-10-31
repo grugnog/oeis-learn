@@ -565,3 +565,18 @@ compares original run bytes and checks overwrite rejection. `git diff --check`
 passes. No new container/HIP run occurred locally. Missing original replay/report
 terminal records block targeted repair; retrieve them without rebuilding images
 or running acceptance again.
+
+## T093 original build evidence packaging — 2026-10-31
+
+The supplemental acceptance-007 diagnostics identifies report packaging failure
+`ValueError: private acceptance payload`. The canonical qualification producer
+includes `build/Dockerfile`, `build/pyproject.toml`, `build/uv.lock` and crate
+`Cargo.lock` files, while the public archive policy accepted none of these names.
+Using those actual path shapes instead of JSON fixture stand-ins reproduces the
+reported error before the fix. The policy now admits exactly these build paths
+and their `payloads/` archive envelope, retaining all private/truth/state exclusions.
+Original receipts/references are preserved; there is no resealing or skip.
+Complete and partial acceptance archives independently verify after the repair;
+unrelated code/locks, weights and private build paths remain rejected. Focused
+archive/recovery/bundle selection:31 passed plus4 passing subtests. No hardware
+run or claim that replay/resume completed is made.

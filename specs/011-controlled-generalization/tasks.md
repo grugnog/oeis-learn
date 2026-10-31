@@ -441,3 +441,11 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — terminal failure diagnostics and operator evidence
 
 - [X] T092 Capture top-level case results, original public case proofs and report/verifier role terminal records before bulky logs; add a stdlib-only export of existing bounded diagnostics to a fresh verified archive without executing containers or mutating prior runs. Test recovery capture, read-only export and overwrite rejection, record acceptance-007's actual CPU/native/HIP results and missing failure details, and publish the repair (FR-033/034, NFR-007/008, SC-007).
+
+### Reopened Phase B — qualification build evidence sharing
+
+- [X] T093 Correct the public evidence policy to admit only canonical pinned build inputs and their archive envelope; retain private/state/truth exclusions and immutable qualification references. Reproduce acceptance-007's packaging error with real build filenames, verify complete and partial archives and reject unrelated/private files (FR-033, NFR-004/007, SC-007).
+
+### Phase C/D — bounded image reclamation
+
+- [ ] T094 Reserve up to30 seconds for image-inspection process/container cleanup inside the existing inspection deadline; retain fail-closed behavior, accurate cleanup accounting and bounded process termination. Capture consumer inspection records in diagnostics and test shared deadline propagation and slow/failed removal (NFR-006/007, SC-007).
