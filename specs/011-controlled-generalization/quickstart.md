@@ -114,7 +114,7 @@ First inspect the plan without launching an engine:
 
 ```bash
 python3 scripts/generalization_hip_serial.py --engine docker \
-  --manifest run-state/inputs/generalization-acceptance.json \
+  --manifest run-state/generalization/acceptance-inputs/generalization-acceptance.json \
   --output run-state/evidence/generalization-acceptance-001 --dry-run
 ```
 

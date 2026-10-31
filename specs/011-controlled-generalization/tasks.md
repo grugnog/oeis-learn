@@ -10,7 +10,8 @@
 
 ## Current status — 2026-10-31
 
-Reconstruction T071–T079 is complete on `011-reconstruct-convergence`, including
+Reconstruction T071–T079 was developed on local `011-reconstruct-convergence`
+and published to the existing `011-controlled-generalization` PR #62, including
 available local validation and verified Git-bundle delivery. Environment and HIP
 gates remain open as described below. The former conversational completion references
 are withdrawn. See the reconstruction task section below for its explicit scope.

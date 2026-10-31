@@ -10,7 +10,7 @@ Verified baseline: `6e63421e2d8ef137d01d1d701f9fb0205b012059`, fetched from
 `origin/011-controlled-generalization`. Work is on `011-reconstruct-convergence` in
 an isolated worktree; the older checkout's uncommitted changes were preserved.
 
-| Actual commit | Work |
+| Local bundle commit | Work |
 | --- | --- |
 | `1cdc6e6` | Explicit reconstruction task definitions |
 | `bfda21b` | Common selection rosters; safe unsupported learning targets |
@@ -24,8 +24,8 @@ an isolated worktree; the older checkout's uncommitted changes were preserved.
 The final delivery also includes validation/documentation commits. Verify the
 bundle's advertised branch and commit list with `git bundle list-heads` and
 `git log 6e63421..011-reconstruct-convergence`; do not use conversational hashes
-as a substitute for Git objects. No changes were pushed and no remote CI run was
-started by this reconstruction.
+as a substitute for Git objects. The initial delivery was local; the subsequent
+GitHub connector publication is recorded below. No HIP run has been executed.
 
 ## Actual local validation
 
@@ -132,3 +132,34 @@ local changes that prevent switching, preserve them before retrying. The bundle
 requires baseline `6e63421e2d8ef137d01d1d701f9fb0205b012059`; verification explicitly
 checks that prerequisite. The quickstart documents original uniform import and
 input assembly. The pending initializer/bootstrap gate above still applies.
+
+## Publication to the existing PR
+
+Published to existing branch `011-controlled-generalization`, PR #62, through the
+GitHub connector. Each of the nine uploaded commit trees exactly matches its
+corresponding local commit tree. The connector assigns new commit metadata and
+therefore new commit IDs. No replacement branch or PR is needed.
+
+| Local commit | GitHub commit |
+| --- | --- |
+| `1cdc6e653723d488c551567371b7a984bf7aafa2` | `6dcf13fba29e42efccc5add88d5b69bcd1e2aa73` |
+| `bfda21b2667b2b031be345c822b364b1ea7834d0` | `cfda978f28afe8cad44dc304a82bf057ccf0565d` |
+| `bc789e1a3629d42bba2d645b3451a5679a00223a` | `af790e0e7278dee350e0665ed7446be5fa0b46f8` |
+| `153d09969d1c7600e88c7e9ecbf82c9363b673e6` | `f391c3297f8319727b8064c8b956c6ba9eee21bd` |
+| `e7df926267d975a7fe1ca877cd2cc60d9bde5a0d` | `84d344e57d59124721f51d7f264894d275cb8b38` |
+| `f5a7c5dda16e80c1ea99cb8dc0336adb7004ffc6` | `25ef3f5e0f901a76ff23832ae5c8f0132f426a80` |
+| `23febbbbd0171b708d851065b5432042521c01db` | `ad1c464c5f8de880a1db0e3a4c4b331d304abc25` |
+| `94eeaac84f0365c5902b25e421d612f8e4784de7` | `e1d1c697a8bcb942d8368da6592a164e7da10ba6` |
+| `c5d0b7f78fa8f567f63752d374ae3f1eb0c63f77` | `95e727a0c168d2b5177ec885db9e52cf4ede8b5b` |
+
+Use the existing branch directly:
+
+```bash
+git fetch origin 011-controlled-generalization
+git switch 011-controlled-generalization
+git merge --ff-only origin/011-controlled-generalization
+```
+
+The Git bundle is an alternative containing the original local commit IDs; do not
+merge both histories. CI results must be checked on the published head. The
+initializer/bootstrap and real-input gates above still apply.
