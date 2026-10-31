@@ -75,8 +75,11 @@ timeout records and supervision logs need no separate manual export. The index
 identifies missing, omitted and truncated files; private inputs/state are excluded.
 Runtime validation, learner/generator roles and image inspection automatically
 request Podman startup debug logs and emit timestamped Python progress on stderr.
-Roles start periodic30-second Python stack dumps before imports; inspection has
-the same watchdog. Learner phase markers identify input/model/initializer loading,
+Roles start timestamp-only30-second heartbeats before imports; inspection uses
+the same heartbeat. Automatic cross-thread traceback dumps are disabled after
+acceptance-009 crashed during a dump. Heartbeats indicate Python liveness only;
+a blocked GIL may suppress them, while the external supervisor still enforces
+the deadline. Learner phase markers identify input/model/initializer loading,
 update start/completion, checkpoint saving, resume/replay restoration and roster
 publication. At most128 phase markers plus a terminal marker are emitted per
 learner. These diagnostics remain under existing log caps and external deadlines.

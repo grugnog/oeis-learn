@@ -711,3 +711,30 @@ generalization, contracts, integration, supervisor, container and bundle selecti
 **348 passed,4 subtests passed,1 hardware test deselected in25.89 seconds**.
 The implementation digest is regenerated. No Docker/Podman/HIP execution occurred
 locally; T064–T067 require the next operator session and its original evidence.
+
+## T100 diagnostic stack-walk mitigation — 2026-10-31
+
+Acceptance-009's original generator log ends midway through its first scheduled
+traceback, followed by exit139 at32.390348 seconds under a90-second limit. Cleanup
+was acknowledged and no log bytes were omitted. This strongly implicates the new
+diagnostic, without proving the native crash cause. The archive and primary-source
+investigation, including three unsuccessful local attempts to reproduce the
+upstream crash, are recorded in [hip-acceptance.md](hip-acceptance.md).
+
+One shared stdlib program wrapper now emits Python-start and30-second timestamp
+heartbeats around roles and image inspection. It never walks thread frames and
+stops its daemon heartbeat when the body returns or raises. Existing bounded
+stderr/engine logs and learner phase markers remain. The parent supervisor still
+enforces deadlines, including a process whose GIL blocks heartbeat execution.
+No workload, checkpoint, isolation, timeout or acceptance policy was relaxed.
+
+Twelve regressions failed before implementation when scheduled stack walking was
+forbidden. Updated subprocess tests cover normal completion, raised exceptions
+and external termination across validation, learner and generator roles. Image
+inspection still rejects source/guest mismatch. A bounded frame-churn test verifies
+heartbeats and thread shutdown. Focused diagnostics/supervisor tests:36 passed,
+plus the added frame-churn test passed. Full generalization/contract/integration,
+supervisor/container/bundle selection: **349 passed,4 subtests passed,1 hardware
+test deselected in23.83 seconds**. The implementation digest was regenerated.
+No Docker/Podman/HIP command ran locally. This is a tested mitigation of the suspect
+diagnostic path, not new hardware qualification or proof that the crash is resolved.

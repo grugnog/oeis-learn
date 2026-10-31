@@ -7,6 +7,29 @@ import subprocess
 import time
 
 
+def diagnostic_program(body, label):
+    """Wrap installed code with progress only; never walk another thread's frames.
+
+    The host supervisor still owns deadlines, including when a blocked GIL stops
+    the heartbeat. A heartbeat indicates Python liveness, not work completion.
+    """
+    import textwrap
+    prefix="""import sys,threading,time
+_diagnostic_label=LABEL
+print(f'{_diagnostic_label}: python-start unix={time.time():.6f}',file=sys.stderr,flush=True)
+_diagnostic_stop=threading.Event()
+def _diagnostic_heartbeat():
+    while not _diagnostic_stop.wait(30):
+        try:
+            print(f'{_diagnostic_label}: heartbeat unix={time.time():.6f}',file=sys.stderr,flush=True)
+        except OSError:
+            return
+threading.Thread(target=_diagnostic_heartbeat,daemon=True,name='diagnostic-heartbeat').start()
+try:
+""".replace('LABEL',repr(label))
+    return prefix+textwrap.indent(body,'    ')+'\nfinally:\n    _diagnostic_stop.set()\n'
+
+
 def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
            cleanup_state=None, grace_seconds=None):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)

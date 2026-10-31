@@ -1,12 +1,12 @@
 # HIP acceptance — qualification passed; feature acceptance failed
 
-Current status after operator acceptance-008 (2026-10-31): CPU/native and actual
-HIP qualification passed; feature acceptance remains FAIL / UNMEASURED.
-The canonical archive verifies. Supplemental nested controls identify a30-second
-continued_sft learner timeout after four successful replay audits, followed by
-cleanup starvation. T096 repairs cleanup; T098 enlarges the frozen retained-model
-allowances within the same five-hour session ceiling. The changed source still
-requires fresh operator qualification and complete replay/resume evidence.
+Current status after operator acceptance-009 (2026-10-31): CPU/native and actual
+HIP qualification passed; feature acceptance remains FAIL / UNMEASURED. The
+canonical archive verifies. The first retained-checkpoint generator exited139
+during its first scheduled diagnostic stack dump, before its90-second external
+deadline. T100 replaces automatic stack walking with timestamp-only heartbeats.
+This removes a strongly suspected diagnostic regression; the precise native crash
+cause remains unproven. Replay and its longer learner allowance were not exercised.
 See the final section below. Earlier NOT RUN statements are historical records.
 
 ## Historical local baseline, before operator runs
@@ -256,3 +256,51 @@ avoids another manual log-export step if the next run fails. Combined local test
 after T098/T099:348 passed and4 subtests, with one hardware test deselected. These
 tests do not establish that180 seconds is sufficient on the operator's hardware;
 the fresh serial session must measure that outcome.
+
+## Operator acceptance-009 — generator crash during stack dump (2026-10-31)
+
+Archive SHA-256:
+`31a4f1175fd13a26a227d8e95a9b1b42dd79f876df6bd0fd49b2e8e118ecde52`.
+Independent inventory and canonical evidence verification pass for187 inventoried
+members. Reconciliation reports retained-eval FAIL and the other four cases
+missing, scientific UNMEASURED and feature_qualified false. The workflow snapshot
+records preflight, qualification and preparation success, then retained-eval failure
+at1162.55 cumulative seconds. It is a pre-packaging snapshot, not the final outer
+wrapper ledger.
+
+Original suite output:1119 CPU/native tests and77 subtests passed in339.16 seconds;
+27 HIP tests passed in345.79 seconds. Image/source identities:
+
+- CPU: `sha256:179475758c4014440636907300455d7224a0c8addc4279f5f13ad6364539fc77`.
+- GPU: `sha256:e69a12205a397e9457bb71f4399dc1798bf26bc70f5dd0fdfc2b0335eb23b332`.
+- Source closure: `sha256:3a37fe9fae2098c38a9bd68cf5c739b469725bc76943523f5d28d36c4b65ea52`.
+
+The first retained checkpoint's generator had a90-second limit. It started Python,
+emitted the model warning, and began the scheduled30-second traceback. The dump
+ends midway through the first `torch/nn/functional.py` frame, without a line number
+or function. Podman then reports exit139. The process record measures32.390348
+seconds, with zero omitted log bytes and no cleanup failure; container removal was
+acknowledged in0.034760 seconds. The diagnostic collector copied the entire41656-byte
+stderr file. This is a crash, not an external deadline or excerpt truncation.
+
+The timing and interrupted dump make T099's asynchronous stack walking a strong
+suspect, but no native core/backtrace establishes causality. Primary references
+read during investigation:
+
+- [CPython issue158200](https://github.com/python/cpython/issues/158200) reports
+  `dump_traceback_later` crashing while code metadata is freed; its reported build
+  is CPython main/3.16, not this operator's3.12 runtime.
+- [CPython issue116008](https://github.com/python/cpython/issues/116008) records
+  threaded faulthandler crashes accessing frame/code metadata. It is supporting
+  context, not proof that this run hit the same defect.
+- [Python3.12 faulthandler documentation](https://docs.python.org/3.12/library/faulthandler.html)
+  specifies that timed dumps use a watchdog thread and describes descriptor
+  lifetime requirements. The supervisor kept stderr open until process exit.
+
+Three bounded one-second attempts of the upstream frame-churn reproducer on local
+CPython3.12.14 all exited0. The operator crash was not reproduced locally. T100
+therefore removes the suspect mechanism from roles and inspection while preserving
+startup/phase/engine logs, external containment and all acceptance/science limits.
+The replacement only prints timestamps and never inspects frames. Fresh rebuilt
+images and acceptance-inputs-010 are required; run one consolidated acceptance-010
+invocation rather than separate hardware probes. T064–T067 remain open.

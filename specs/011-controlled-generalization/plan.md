@@ -30,6 +30,12 @@ The Spec Kit planning workflow's Phase 0/1 below creates design documents only. 
 
 **Constraints**: Exact source integers/indices, strict mechanical provenance, visible-only proposal/fitting, isolated selection supervision, sealed assessment, conservative dependency closure, finite generation/search/storage. Full research runs are separate from qualification.
 
+**Diagnostic containment (T100)**: Automatic role/image-inspection diagnostics use
+timestamp-only heartbeats and explicit phase markers, never asynchronous traversal
+of another thread's Python frames. External process/container deadlines remain
+authoritative even when the GIL prevents a heartbeat. Diagnostic liveness is not
+proof of progress or successful execution.
+
 **Scale/Scope**: Historical baseline plus four new selection/assessment cells of 128 rows each; up to 25M target tokens per fresh research arm; three paired seeds for confirmation; 4,096 replay entries, two/task, at most 25% of batch. Explicit operational ceilings are in [contracts/experiments.md](contracts/experiments.md).
 
 ## Constitution Check

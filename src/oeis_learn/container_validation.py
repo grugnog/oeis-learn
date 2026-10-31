@@ -411,7 +411,7 @@ def validate(host, suite, output):
 
 def inspect_current_image(host, image, output, *, seconds=600):
     """Compare every installed package byte and packaged build snapshot before reuse."""
-    from .pipeline_validation.supervision import launch, reclaim
+    from .pipeline_validation.supervision import launch, reclaim, diagnostic_program
     from .pipeline_validation.identity import write as public_write
     from .experiments.source_snapshot import collect_snapshot
     cleanup_seconds=30
@@ -423,9 +423,6 @@ def inspect_current_image(host, image, output, *, seconds=600):
     public_write(inputs / 'expected.json', collect_snapshot(host.policy['workspace']))
     name = 'oeis-package-inspect-' + uuid.uuid4().hex
     code = (
-        "import sys,faulthandler,time; "
-        "print(f'inspection: python-start unix={time.time():.6f}',file=sys.stderr,flush=True); "
-        "faulthandler.dump_traceback_later(30,repeat=True); "
         "import json; from pathlib import Path; "
         "print(f'inspection: source-snapshot unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "from oeis_learn.experiments.source_snapshot import source_snapshot; "
@@ -436,13 +433,12 @@ def inspect_current_image(host, image, output, *, seconds=600):
         "from oeis_learn.fresh.common import file_hash; "
         "artifacts=packaged_artifacts(); "
         "assert file_hash('/opt/oeis-build-info/bigint-dependency-smoke.wasm')==artifacts['guest_sha256'], 'changed packaged guest'; "
-        "faulthandler.cancel_dump_traceback_later(); "
         "print(f'inspection: complete unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "print(json.dumps(dict(source=actual,artifacts=artifacts),sort_keys=True))"
     )
     command = host.engine.command(image=image, name=name,
         mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
-        argv=['python','-u','-c',code], auto_remove=False, gpu=False, startup_diagnostics=True,
+        argv=['python','-u','-c',diagnostic_program(code,'inspection')], auto_remove=False, gpu=False, startup_diagnostics=True,
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
     cleanup_state={'allowance_seconds':cleanup_seconds}

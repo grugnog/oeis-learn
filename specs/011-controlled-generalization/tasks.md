@@ -470,3 +470,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — learner timeout progress diagnostics
 
 - [X] T099 Capture pre-import startup/periodic stack diagnostics and bounded learner phase markers through existing nested controls, with real subprocess regression and no changes to model updates, checkpoints or deadlines (FR-033, NFR-007/008, SC-007).
+
+### Phase C/D — diagnostic stack-walk mitigation
+
+- [X] T100 Replace scheduled cross-thread traceback dumps with timestamp-only heartbeats in role and image-inspection bootstraps after acceptance-009 exited139 during its first dump. Preserve external deadlines, phase markers, isolation and failure evidence; test pass/error/hang and frame churn with stack walking forbidden, document causal uncertainty and publish the repair (FR-033, NFR-007/008, SC-007).

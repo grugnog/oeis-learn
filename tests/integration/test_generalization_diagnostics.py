@@ -12,6 +12,37 @@ def put(root,name,payload):
     return path
 
 
+def test_heartbeat_survives_frame_churn_and_stops_after_body(tmp_path):
+    import subprocess,sys
+    from oeis_learn.pipeline_validation.supervision import diagnostic_program
+    body="""import types
+def template():return 1
+end=time.monotonic()+.3
+while time.monotonic()<end:
+    code=template.__code__.replace()
+    function=types.FunctionType(code,{})
+    assert function()==1
+    function=None;code=None
+"""
+    program=diagnostic_program(body,'fixture').replace('_diagnostic_stop.wait(30)','_diagnostic_stop.wait(0.02)')
+    prefix="""import faulthandler
+def forbidden(*args,**kwargs):raise AssertionError('stack walk forbidden')
+faulthandler.dump_traceback_later=forbidden
+"""
+    suffix="""
+assert _diagnostic_stop.is_set()
+for thread in threading.enumerate():
+    if thread.name=='diagnostic-heartbeat':
+        thread.join(timeout=1)
+        assert not thread.is_alive()
+print('finished')
+"""
+    result=subprocess.run([sys.executable,'-u','-c',prefix+program+suffix],capture_output=True,text=True,timeout=5)
+    assert result.returncode==0,result.stderr
+    assert result.stdout.strip()=='finished'
+    assert 'fixture: heartbeat unix=' in result.stderr and 'Timeout (' not in result.stderr
+
+
 @pytest.mark.parametrize('recovery',[False,True])
 def test_nested_role_controls_export_without_private_payloads(tmp_path,recovery):
     from oeis_learn.pipeline_validation.generalization_diagnostics import export
@@ -208,7 +239,9 @@ def test_image_inspection_progress_preserves_integrity_checks(tmp_path,monkeypat
     assert captured['startup_diagnostics'] is True
     argv=captured['argv'];code=argv[argv.index('-c')+1]
     code=code.replace('/work/input/expected.json',str(output/'inputs/expected.json'))
-    prefix="""import sys,types
+    prefix="""import sys,types,faulthandler
+def forbidden_dump(*args,**kwargs):raise AssertionError('asynchronous stack walk forbidden')
+faulthandler.dump_traceback_later=forbidden_dump
 snapshot=types.ModuleType('oeis_learn.experiments.source_snapshot')
 snapshot.source_snapshot=lambda: SNAPSHOT
 sys.modules[snapshot.__name__]=snapshot
@@ -259,14 +292,17 @@ def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monke
     assert captured['gpu'] is False and captured['startup_diagnostics'] is True
     argv=captured['argv'];code=argv[argv.index('-c')+1]
     # Accelerate only the diagnostic timer in this local subprocess. The actual
-    # production wrapper keeps 30-second dumps and the unchanged external budget.
-    code=code.replace('30,repeat=True','0.1,repeat=True')
-    prefix="""import runpy,sys,time,json
+    # production wrapper keeps 30-second heartbeats and the unchanged budget.
+    code=code.replace('_diagnostic_stop.wait(30)','_diagnostic_stop.wait(0.1)')
+    prefix="""import runpy,sys,time,json,faulthandler
+def forbidden_dump(*args,**kwargs):raise AssertionError('asynchronous stack walk forbidden')
+faulthandler.dump_traceback_later=forbidden_dump
 def fixture(name,run_name):
     assert name=='oeis_learn.pipeline_validation.generalization_role'
     assert run_name=='__main__'
     assert sys.argv[1]==ROLE_NAME
     assert json.loads(sys.argv[2])['operation']==OPERATION
+    time.sleep(.25)
     if OUTCOME=='fail':raise RuntimeError('fixture rejection')
     if OUTCOME=='hang':time.sleep(10)
 runpy.run_module=fixture
@@ -280,7 +316,8 @@ runpy.run_module=fixture
     else:supervision.launch(command,logs,seconds=5,stream_cap=4096)
     stderr=(logs/'stderr.log').read_text()
     assert prefix_name+': python-start unix=' in stderr
-    if outcome=='hang':assert 'Timeout (' in stderr and 'fixture' in stderr
+    assert prefix_name+': heartbeat unix=' in stderr
+    assert 'Timeout (' not in stderr
     if outcome=='fail':assert 'fixture rejection' in stderr
     process=json.loads((logs/'process.json').read_text())
     assert (process['outcome']=='COMPLETE') == (outcome=='pass')

@@ -2,18 +2,13 @@
 from pathlib import Path
 from oeis_learn.generalization.role_contracts import Role, ROLE_INPUTS, ROLE_OUTPUTS
 from .identity import confined
+from .supervision import diagnostic_program
 
 
 # Start diagnostics before importing the installed role and its dependencies.
 # Stderr is captured by the existing bounded supervisor and archive collector.
-VALIDATION_BOOTSTRAP = """import sys,faulthandler,time
-print(f'validation: python-start unix={time.time():.6f}',file=sys.stderr,flush=True)
-faulthandler.dump_traceback_later(30,repeat=True)
-try:
-    import runpy
-    runpy.run_module('oeis_learn.pipeline_validation.generalization_role',run_name='__main__')
-finally:
-    faulthandler.cancel_dump_traceback_later()
+ROLE_PROGRAM = """import runpy
+runpy.run_module('oeis_learn.pipeline_validation.generalization_role',run_name='__main__')
 """
 
 
@@ -57,7 +52,7 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     runtime=dict(settings=settings,operation=operation,seconds=seconds,device='cuda' if gpu else 'cpu')
     diagnostic=('validation' if role==Role.PREPARATION and operation=='validate-runtime' else
                 role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
-    argv=(['python','-u','-c',VALIDATION_BOOTSTRAP.replace('validation:',diagnostic+':')] if diagnostic else
+    argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else
           ['python','-m','oeis_learn.pipeline_validation.generalization_role'])
     argv += [role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)]
     command=host.engine.command(image=image,name=name,
