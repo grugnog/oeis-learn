@@ -28,6 +28,8 @@ def test_new_roles_checkpoints_replay_helper_and_tests_are_in_source_closure():
         'src/oeis_learn/pipeline_validation/generalization_replay.py',
         'src/oeis_learn/fresh/bigint_state.py',
         'scripts/generalization_hip_serial.py',
+        'src/oeis_learn/pipeline_validation/generalization_diagnostics.py',
+        'tests/integration/test_generalization_diagnostics.py',
         'scripts/generalization_inputs.py',
         'src/oeis_learn/generalization/execution.py',
         'src/oeis_learn/generalization/legacy.py',

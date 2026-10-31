@@ -62,3 +62,20 @@ both images and assemble new inputs from the existing uniform import before the
 next session, using Podman and fresh acceptance-inputs-003/acceptance-003 roots.
 No prior qualification PASS exists to reuse. Do not edit old inputs or overwrite
 evidence. Local reproduction is not hardware qualification; T063–T068 stay open.
+
+## Operator acceptance-003 diagnostics — 2026-10-31
+
+The uploaded recovery archive and separately supplied diagnostics confirm
+preflight failed with TimeoutError at the 120-second external deadline while
+launching the parameter-targets `validate-runtime` role through Podman. The
+process record reports 121.42 seconds including cleanup and return code 125.
+Both captured output streams are empty, with zero omitted bytes. Container
+reclamation was acknowledged within 0.30 seconds. These facts do not locate the
+stall inside engine startup, Python import or runtime validation. No role result
+was published; qualification and HIP did not start. The later missing
+qualification.json report error is secondary. No timeout increase or new
+hardware rerun is justified by this diagnostic-capture change alone.
+
+T086 now captures these records automatically in both normal and fallback
+archives, with explicit bounds and omissions. The timeout cause remains open;
+T063–T068 retain their evidence gates.

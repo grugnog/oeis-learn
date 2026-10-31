@@ -413,3 +413,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — operator qualification failure repair
 
 - [X] T085 Repair qualification image-inspection directory ownership in `pipeline_validation/generalization_qualification_io.py`; retain bounded original failure reasons in serial recovery logs, reproduce the defect with the real runner/inspector and test failure propagation, then record acceptance-002 evidence and required requalification (US5/AC3, NFR-004/007, SC-007). Container/HIP gates T063–T068 remain open.
+
+### Phase C/D — automatic timeout diagnostics
+
+- [X] T086 Include bounded, explicitly allowed preflight/validation/inspection control records and log excerpts in normal and recovery archives, with truncation/omission inventory and no private input/state traversal; test timeout capture, normal packaging, size caps and symlink exclusion (FR-033, NFR-007, SC-007). Preserve the acceptance-003 failure and unresolved timeout cause.

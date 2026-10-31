@@ -1,0 +1,69 @@
+"""Failure diagnostics are bounded public copies, never execution authority."""
+import json
+from pathlib import Path
+import zipfile
+import pytest
+
+from tests.integration.test_generalization_acceptance import helper
+
+
+def put(root,name,payload):
+    path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(payload)
+    return path
+
+
+def test_recovery_retains_timeout_records_and_original_failure(tmp_path):
+    root=tmp_path/'failed';root.mkdir()
+    expected={
+        'preflight/result.json':b'{"status":"FAIL","reason":"TimeoutError"}',
+        'preflight/summary.json':b'{"selected_scope":"FAIL"}',
+        'preflight/parameter-targets/validation/role/supervision/process.json':b'{"outcome":"FAIL","returncode":125}',
+        'preflight/parameter-targets/validation/role/supervision/cleanup.json':b'{"acknowledged":true}',
+        'preflight/parameter-targets/validation/role/supervision/stdout.log':b'',
+        'preflight/parameter-targets/validation/role/supervision/stderr.log':b'',
+    }
+    for name,payload in expected.items():put(root,name,payload)
+    put(root,'preflight/parameter-targets/validation/private/input/truth.json',b'PRIVATE')
+    put(root,'preflight/parameter-targets/validation/role/checkpoints/weights.pt',b'WEIGHTS')
+    ledger=dict(receipts=[dict(stage='preflight',exit_code=1)],status='FAIL')
+    put(root,'workflow.json',json.dumps(ledger).encode())
+    archive=helper().recover(root,ledger)
+    from oeis_learn.pipeline_validation.bundle import verify
+    assert verify(archive)['summary_state']=='FAIL'
+    with zipfile.ZipFile(archive) as z:
+        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        assert all('private' not in n and 'checkpoints' not in n for n in z.namelist())
+        inventory=json.loads(z.read('diagnostics/index.json'))
+        assert inventory['qualification_evidence'] is False
+        assert {r['source'] for r in inventory['files'] if r['status']=='COPIED'}>=set(expected)
+
+
+def test_diagnostics_bound_reads_preserve_json_and_reject_links(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import collect,JSON_CAP,LOG_CAP
+    root=tmp_path/'run';root.mkdir();dest=tmp_path/'public'
+    put(root,'preflight/result.json',b'x'*(JSON_CAP+1))
+    log='preflight/parameter-targets/validation/role/supervision/stderr.log'
+    put(root,log,b'opening'+b'x'*(LOG_CAP*2)+b'last error')
+    outside=put(tmp_path,'secret.json',b'SECRET')
+    (root/'preflight/summary.json').symlink_to(outside)
+    (root/'report').symlink_to(tmp_path,target_is_directory=True)
+    inventory=collect(root,dest)
+    rows={r['source']:r for r in inventory['files']}
+    assert rows['preflight/result.json']['status']=='OMITTED'
+    assert rows['preflight/summary.json']['status']=='OMITTED'
+    assert rows[log]['status']=='TRUNCATED'
+    data=(dest/log).read_bytes()
+    assert len(data)<=LOG_CAP and data.startswith(b'opening') and data.endswith(b'last error')
+    assert not (dest/'preflight/result.json').exists()
+    assert b'SECRET' not in b''.join(p.read_bytes() for p in dest.rglob('*') if p.is_file())
+    with pytest.raises(FileExistsError):collect(root,dest)
+
+
+def test_diagnostics_total_cap_is_explicit(tmp_path):
+    from oeis_learn.pipeline_validation import generalization_diagnostics as d
+    root=tmp_path/'run';root.mkdir()
+    put(root,'preflight/result.json',b'{}')
+    put(root,'preflight/summary.json',b'{}')
+    result=d.collect(root,tmp_path/'public',cap=2)
+    assert result['exported_bytes']==2
+    assert any(r.get('reason')=='total byte cap' for r in result['files'])

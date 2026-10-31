@@ -85,3 +85,17 @@ qualification/admission PASS. It preserves original historical inputs and consum
 no training budget. Native preparation and real HIP acceptance remain canonical.
 The session's pending P4 initializer names the frozen E0 child; only its newly
 measured selection and original producer closure can resolve that dependency.
+
+### Diagnostic capture
+
+Normal serial session reports and wrapper recovery archives include `diagnostics/`
+with a versioned `index.json`. A fixed path list selects preflight/preparation
+control results, validation role results and supervision process/cleanup records,
+qualification stage receipts and image-inspection logs. Inputs, checkpoints and
+arbitrary private output trees are not traversed. Missing or inaccessible files
+and cap omissions are explicit. JSON files are copied whole up to 256 KiB; logs
+retain an opening excerpt and final tail within 64 KiB. Exported payloads total at
+most 4 MiB plus the bounded fixed-list index. Truncated logs are labeled; the
+original files are unchanged. Diagnostic copies confer no qualification and
+cannot change the run verdict. The normal report captures diagnostics available
+at packaging time; fallback capture also includes a failed report's inspection.

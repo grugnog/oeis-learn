@@ -388,3 +388,26 @@ digest check. `git diff --check` passed. The uploaded recovery archive SHA-256 i
 `207c9cf1c4fb6406df2946e1fde001000b6572f5408b0ca380eda7e30aa0124a`;
 its inventory, member sizes/hashes and FAIL summary verified with the published
 bundle verifier. No CI-green or completed hardware claim is made.
+
+## T086 automatic control diagnostics — 2026-10-31
+
+Added a fixed-path stdlib diagnostic collector to canonical session reports and
+the serial wrapper's recovery archive. Regression tests first failed for missing
+archived timeout files and missing collector, then passed after implementation.
+Tests cover original error/status preservation, normal archive reconciliation,
+empty logs, bounded opening/final log excerpts, whole-JSON omission, aggregate
+byte caps, symlink rejection, fresh destinations and private-input/state exclusion.
+The collector and owning tests participate in source qualification identity.
+
+The uploaded acceptance-003 diagnostic ZIP contains six files. A stdlib-only
+replay captured all six byte-for-byte, including empty streams and acknowledged
+cleanup. The timeout is confirmed, but there is no output identifying whether
+engine startup, Python import or validation stalled. This change does not raise
+timeouts or claim that the stall is fixed.
+
+The same complete local selection used for T085 passed **277 tests, one hardware
+test deselected in 18.68 seconds**. The focused diagnostics, acceptance and
+registration selection passed 15 tests. `git diff --check` passed. No container
+or HIP command ran and no hardware gate was checked off. Source changes require
+new images and newly frozen inputs before future acceptance; existing evidence
+is preserved.

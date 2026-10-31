@@ -69,7 +69,11 @@ python3 scripts/generalization_hip_serial.py --engine docker \
 ```
 
 The shareable result is `run-state/generalization/acceptance-001.zip`, including
-partial/failure evidence when a stage fails. A successful command must still have
+partial/failure evidence when a stage fails. Both normal and recovery archives
+include bounded control diagnostics and `diagnostics/index.json`, so preflight
+timeout records and supervision logs need no separate manual export. The index
+identifies missing, omitted and truncated files; private inputs/state are excluded.
+A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
 The existing `study` and `session` commands remain available for independently frozen
 custom/research inputs using the explicit blueprints.

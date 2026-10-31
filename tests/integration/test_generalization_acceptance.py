@@ -54,7 +54,7 @@ def test_recovery_archive_excludes_unreviewed_stage_payloads(tmp_path):
     import zipfile
     with zipfile.ZipFile(archive) as z:
         assert 'prepare/candidates.json' not in z.namelist()
-        assert set(z.namelist())=={'summary.json','workflow.json','manifest.json'}
+        assert set(z.namelist())=={'summary.json','workflow.json','manifest.json','diagnostics/index.json'}
 
 
 def test_original_consumer_uses_fresh_inspection_and_role_verification(tmp_path,monkeypatch):
@@ -198,7 +198,13 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     for name in helper().CASES:
         assert main(args('acceptance','run/'+name,case=name,inputs='run/prepare'),tmp_path,lambda a:host)==0
     assert observed==['consume-original']*6
+    diagnostic=run/'preflight/parameter-targets/validation/role/supervision/process.json'
+    diagnostic.parent.mkdir(parents=True)
+    diagnostic.write_text('{"outcome":"COMPLETE"}')
     assert main(args('report','run/report',inputs='run'),tmp_path,lambda a:host)==0
+    import zipfile
+    with zipfile.ZipFile(run/'report.zip') as z:
+        assert any(n.endswith('diagnostics/preflight/parameter-targets/validation/role/supervision/process.json') for n in z.namelist())
     from oeis_learn.pipeline_validation.generalization_archive import verify_archive
     checked=verify_archive(run/'report.zip')
     assert checked['feature_qualified'] and checked['cases']==dict.fromkeys(helper().CASES,'PASS')

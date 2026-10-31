@@ -188,6 +188,8 @@ def report(args,workspace,host_factory,session,children):
     feature=None
     if status=='PASS':
         record=assemble_feature(cases,qualification=original,root=staging);write(staging/'feature.json',record);feature=reference(staging/'feature.json',staging)
+    from .generalization_diagnostics import collect
+    collect(root,staging/'diagnostics')
     inventory=[reference(p,staging) for p in sorted(staging.rglob('*')) if p.is_file()]
     record=seal(dict(version='generalization-acceptance-archive/v1',session=session['identity'],qualification=reference(staging/'qualification.json',staging),
         feature=feature,cases=cases,inventory=inventory,software_status=status,scientific_status='UNMEASURED',omissions=missing,workflow=workflow))
