@@ -114,3 +114,11 @@ Their `results.xml` JUnit reports are preserved whole up to 2 MiB; larger XML is
 omitted explicitly rather than truncated into invalid XML. The existing 4 MiB
 aggregate payload limit still applies. No recursive pytest discovery is performed;
 the nested role scan reads only the four explicitly allowed control files.
+
+Learner and generator roles also enable bounded engine startup diagnostics and
+pre-import Python-start markers/periodic30-second stack dumps. Learners emit only
+phase names and timestamps for model/initializer loading, checkpoint persistence,
+updates, resume/replay restoration and roster publication, capped at128 phase
+markers plus a terminal marker. No tensor, target or source payload is printed.
+These records use the same supervisor/excerpt caps and do not change deadlines
+or the acceptance verdict.

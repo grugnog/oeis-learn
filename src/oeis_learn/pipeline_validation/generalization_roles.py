@@ -55,13 +55,14 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
     runtime=dict(settings=settings,operation=operation,seconds=seconds,device='cuda' if gpu else 'cpu')
-    diagnostic=role==Role.PREPARATION and operation=='validate-runtime'
-    argv=(['python','-u','-c',VALIDATION_BOOTSTRAP] if diagnostic else
+    diagnostic=('validation' if role==Role.PREPARATION and operation=='validate-runtime' else
+                role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
+    argv=(['python','-u','-c',VALIDATION_BOOTSTRAP.replace('validation:',diagnostic+':')] if diagnostic else
           ['python','-m','oeis_learn.pipeline_validation.generalization_role'])
     argv += [role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)]
     command=host.engine.command(image=image,name=name,
         mounts=[(m['source'],m['destination'],not m['read_only']) for m in declared],
-        argv=argv,startup_diagnostics=diagnostic,
+        argv=argv,startup_diagnostics=bool(diagnostic),
         gpu=gpu,render_node=host.policy.get('render_node') if gpu else None,
         memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
     cleanup={}

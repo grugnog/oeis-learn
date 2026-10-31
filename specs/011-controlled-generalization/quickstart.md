@@ -73,10 +73,13 @@ partial/failure evidence when a stage fails. Both normal and recovery archives
 include bounded control diagnostics and `diagnostics/index.json`, so preflight
 timeout records and supervision logs need no separate manual export. The index
 identifies missing, omitted and truncated files; private inputs/state are excluded.
-Runtime validation and image inspection automatically request Podman startup debug
-logs and emit timestamped Python progress on stderr. Validation starts a periodic
-30-second Python stack dump before importing its role; inspection has the same
-watchdog. These diagnostics remain under existing log caps and external deadlines.
+Runtime validation, learner/generator roles and image inspection automatically
+request Podman startup debug logs and emit timestamped Python progress on stderr.
+Roles start periodic30-second Python stack dumps before imports; inspection has
+the same watchdog. Learner phase markers identify input/model/initializer loading,
+update start/completion, checkpoint saving, resume/replay restoration and roster
+publication. At most128 phase markers plus a terminal marker are emitted per
+learner. These diagnostics remain under existing log caps and external deadlines.
 An absent Python-start marker alone does not prove where startup stalled; inspect
 the accompanying engine log. No separate diagnostic command is required.
 To supplement an older archive using only existing run files, without launching

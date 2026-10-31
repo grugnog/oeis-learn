@@ -98,7 +98,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     targets enter this worker. All milestone candidates remain available for the
     separately mounted selection role after training.
     """
-    import copy,json,random,shutil
+    import copy,json,random,shutil,sys
     from pathlib import Path
     import numpy as np
     import torch
@@ -108,11 +108,19 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from oeis_learn.generalization.checkpoints import milestone_decision,pin_plan
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.common import write
+    progress_count=0
+    def progress(phase):
+        nonlocal progress_count
+        # Public phase/timestamp only; bounded even for long research learners.
+        if progress_count<128 or phase=='complete':
+            print(f'learner: {phase} unix={time.time():.6f}',file=sys.stderr,flush=True)
+            progress_count+=1
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
     if set(config)!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
+    progress('batch-inputs')
     batches=PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap)
     if config['data_mode']=='refresh' and batches.target_tokens<cap:raise ValueError('insufficient prepared refresh target-token capacity')
     data_identity=batches.identity
@@ -138,9 +146,11 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     if output.exists():raise ValueError('fresh learner output required')
     output.mkdir(parents=True,exist_ok=False)
     recipe=copy.deepcopy(config['recipe']);recipe['model']['seed']=config['seed']
+    progress('model-init')
     encoder,decoder,counts=models(recipe,config['device'])
     if initializer is not None and resume is None:
         import io
+        progress('initializer-load')
         weights=torch.load(io.BytesIO(verify_artifact(initializer_root or root,initializer)),map_location='cpu',weights_only=True)
         if set(weights)!={'encoder','decoder'}:raise ValueError('weights-only initializer required')
         encoder.load_state_dict(weights['encoder'],strict=True);decoder.load_state_dict(weights['decoder'],strict=True)
@@ -151,6 +161,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         replay={},history=dict(exposures={},milestones={}),pins={},selection=dict(checkpoint=None,reason='selection_not_run'))
     ledger=Ledger(cap);latest=None;history={};initial=None
     if resume is not None:
+        progress('resume-load')
         prior,ref=resume;old=GeneralizationCheckpointStore(prior,compatibility,cap)
         restored=old.load(ref);state=restored['states'];ledger=restored['ledger']
         for member in ('encoder','decoder'):(encoder if member=='encoder' else decoder).load_state_dict(state['weights'][member])
@@ -166,10 +177,16 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         initial=next(iter(state['history']['exposures']),None)
     began=time.monotonic();previous_seconds=state['scheduler']['learner_seconds'];saved_ledger=ledger
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
-    update=torch_update(encoder,decoder,optimizer,device=config['device'])
+    update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
+    def update(batch):
+        progress('update-start')
+        result=update_tensors(batch)
+        progress('update-complete')
+        return result
     class StopAtBoundary(Exception):pass
     def save(current,account):
         nonlocal latest,saved_ledger,initial,history
+        progress('checkpoint-save')
         effective=account.consumed-(account.pending[1] if account.debited else 0)
         current['weights']=dict(encoder=encoder.state_dict(),decoder=decoder.state_dict())
         current['optimizer']=optimizer.state_dict()
@@ -190,6 +207,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         keep=set(pins)|set(permanent)
         store.retain(history,tuple(sorted(keep)))
         history={k:v for k,v in history.items() if k in keep}
+        progress('checkpoint-saved')
         if stop_after_updates is not None and account.pending is None and account.updates>=stop_after_updates:
             raise StopAtBoundary()
     # Restore a snapshot that itself was newly pinned before its reference could
@@ -209,6 +227,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             shutil.copytree(Path(prior)/folder,store.root/folder,dirs_exist_ok=False)
             permanent[key]=ref;history[key]=ref
     if replay is not None:
+        progress('replay-restore')
         from .generalization_replay import restore_pool,ReplayBatches
         snapshot=state['replay'] if resume is not None else replay['pool'].snapshot()
         verified=restore_pool(snapshot,tasks=replay['tasks'],client=replay['client'],deadline=time.monotonic()+min(60,config['seconds']))
@@ -223,6 +242,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
     from .identity import seal
+    progress('publish-roster')
     initial_record=json.loads(verify_artifact(store.root,history[initial]))
     initialization=initial_record['states']['weights']['sha256']
     retained=[]
@@ -245,6 +265,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts,
         retained=roster['identity'])
     write(output/'training.json',result)
+    progress('complete')
     return result
 
 

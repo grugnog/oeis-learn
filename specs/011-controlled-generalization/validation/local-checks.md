@@ -690,3 +690,24 @@ generated plan fits four learners, two evaluations, search, two proofs, fresh
 qualification inspection, validation and an additional120-second cleanup/I/O
 reserve within the case. Oversized work is rejected before execution. This is
 local validation only; changed images/source require fresh operator qualification.
+
+## T099 learner/generator progress capture — 2026-10-31
+
+The acceptance-008 learner warnings proved Python/model code had started but did
+not identify the active phase at its deadline. Learner/generator invocations now
+use the existing unbuffered pre-import diagnostic bootstrap with a role-specific
+marker, periodic30-second stack dumps and bounded Podman startup logging. The
+learner additionally emits public phase/timestamp markers around input/model/
+initializer loading, updates, checkpoint saves, resume/replay restoration and
+roster publication, limited to128 plus the terminal marker. No data/tensors are
+logged; task behavior, external deadlines and log/archive caps are unchanged.
+
+Missing learner bootstrap diagnostics and absent worker phase markers were both
+reproduced before implementation. Real subprocess tests cover pass, error and
+timeout for validation, learner and generator bootstraps. Actual tiny CPU tensor
+workers verify phase markers while retaining exact resumed weights/optimizer/
+data/replay behavior. Focused diagnostics/training:41 passed. Final combined
+generalization, contracts, integration, supervisor, container and bundle selection:
+**348 passed,4 subtests passed,1 hardware test deselected in25.89 seconds**.
+The implementation digest is regenerated. No Docker/Podman/HIP execution occurred
+locally; T064–T067 require the next operator session and its original evidence.

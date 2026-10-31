@@ -89,7 +89,7 @@ def test_descriptor_uses_committed_exposure_without_deserialization(tmp_path,mon
 
 @pytest.mark.parametrize("data_mode",["static","refresh"])
 @pytest.mark.parametrize("target_format",["literal","parameterized"])
-def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode,replay_mode=False):
+def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,target_format,data_mode,capsys,replay_mode=False):
     torch=pytest.importorskip('torch')
     pytest.importorskip('numpy')
     from oeis_learn.pipeline_validation.generalization_training import run_torch
@@ -128,6 +128,13 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         torch.save(dict(encoder=first.state_dict(),decoder=second.state_dict()),tmp_path/'initializer.pt')
         extra=dict(initializer=reference(tmp_path/'initializer.pt',tmp_path),replay=dict(pool=pool,tasks=[task()],client=NativeFixture()))
     full=run_torch(tmp_path,tmp_path/'full',config,**extra)
+    progress=[line for line in capsys.readouterr().err.splitlines() if line.startswith('learner:')]
+    phases=[line.split()[1] for line in progress]
+    assert phases[0]=='batch-inputs' and phases[-1]=='complete'
+    for phase in ('model-init','checkpoint-save','checkpoint-saved','update-start','update-complete','publish-roster'):
+        assert phase in phases
+    if replay_mode:assert 'initializer-load' in phases and 'replay-restore' in phases
+    assert len(progress)<=129 and all(float(line.split('unix=')[1])>0 for line in progress)
     part=run_torch(tmp_path,tmp_path/'part',config,stop_after_updates=1,**extra)
     resumed=run_torch(tmp_path,tmp_path/'resumed',config,resume=(tmp_path/'part/checkpoints',part['checkpoint']),**extra)
     a=GeneralizationCheckpointStore(tmp_path/'full/checkpoints',full['compatibility'],config['target_tokens']).load(full['checkpoint'])
@@ -165,8 +172,8 @@ def test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,
         assert any('initial' in c['pins'] for c in roster['checkpoints'])
 
 
-def test_replay_initialized_torch_resume(tmp_path,monkeypatch):
-    test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,'literal','static',replay_mode=True)
+def test_replay_initialized_torch_resume(tmp_path,monkeypatch,capsys):
+    test_torch_worker_exact_resume_and_retained_milestones(tmp_path,monkeypatch,'literal','static',capsys,replay_mode=True)
 
 
 def test_selection_pins_are_persisted_without_mounting_supervision(tmp_path):

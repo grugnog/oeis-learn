@@ -249,3 +249,10 @@ remain enforced. Do not edit or reuse the old frozen input as fresh evidence.
 Rebuild the two images, assemble acceptance-inputs-009, and run one normal serial
 acceptance-009 session to perform qualification and all cases, then package and
 verify results. T064–T067 remain open pending that actual evidence.
+
+T099 additionally captures learner/generator startup and periodic stack diagnostics
+plus bounded learner phase markers in the normal nested control inventory. This
+avoids another manual log-export step if the next run fails. Combined local tests
+after T098/T099:348 passed and4 subtests, with one hardware test deselected. These
+tests do not establish that180 seconds is sufficient on the operator's hardware;
+the fresh serial session must measure that outcome.

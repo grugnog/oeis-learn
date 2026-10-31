@@ -469,4 +469,4 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 
 ### Phase C/D — learner timeout progress diagnostics
 
-- [ ] T099 Capture pre-import startup/periodic stack diagnostics and bounded learner phase markers through existing nested controls, with real subprocess regression and no changes to model updates, checkpoints or deadlines (FR-033, NFR-007/008, SC-007).
+- [X] T099 Capture pre-import startup/periodic stack diagnostics and bounded learner phase markers through existing nested controls, with real subprocess regression and no changes to model updates, checkpoints or deadlines (FR-033, NFR-007/008, SC-007).

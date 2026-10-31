@@ -236,7 +236,10 @@ sys.modules[common.__name__]=common
 
 
 @pytest.mark.parametrize('outcome', ['pass','fail','hang'])
-def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monkeypatch,outcome):
+@pytest.mark.parametrize('role_name,operation,prefix_name',[
+    ('preparation','validate-runtime','validation'),('learner','train','learner'),
+    ('generator','evaluate','generator')])
+def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monkeypatch,outcome,role_name,operation,prefix_name):
     import sys
     from types import SimpleNamespace
     from oeis_learn.generalization.role_contracts import Role,ROLE_INPUTS
@@ -245,14 +248,14 @@ def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monke
     class Engine:
         def command(self,**kw):captured.update(kw);return ['fixture']
     host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=2<<30,cpus=1))
-    channels={m.channel:m.channel for m in ROLE_INPUTS[Role.PREPARATION]}
+    channels={m.channel:m.channel for m in ROLE_INPUTS[Role(role_name)]}
     for path in channels.values():(tmp_path/path).mkdir()
     def launch(command,output,**kw):
         assert kw['seconds']==120 and kw['stream_cap']==1<<20
         (output.parent/'result.json').write_text('{"status":"PASS"}')
     monkeypatch.setattr(supervision,'reclaim',lambda *a,**kw:None)
-    roles.invoke(host,'cpu',tmp_path,Role.PREPARATION,channels,output='role',
-                 operation='validate-runtime',settings={},seconds=120,launcher=launch)
+    roles.invoke(host,'cpu',tmp_path,Role(role_name),channels,output='role',
+                 operation=operation,settings={},seconds=120,launcher=launch)
     assert captured['gpu'] is False and captured['startup_diagnostics'] is True
     argv=captured['argv'];code=argv[argv.index('-c')+1]
     # Accelerate only the diagnostic timer in this local subprocess. The actual
@@ -262,12 +265,12 @@ def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monke
 def fixture(name,run_name):
     assert name=='oeis_learn.pipeline_validation.generalization_role'
     assert run_name=='__main__'
-    assert sys.argv[1]=='preparation'
-    assert json.loads(sys.argv[2])['operation']=='validate-runtime'
+    assert sys.argv[1]==ROLE_NAME
+    assert json.loads(sys.argv[2])['operation']==OPERATION
     if OUTCOME=='fail':raise RuntimeError('fixture rejection')
     if OUTCOME=='hang':time.sleep(10)
 runpy.run_module=fixture
-""".replace('OUTCOME',repr(outcome))
+""".replace('OUTCOME',repr(outcome)).replace('ROLE_NAME',repr(role_name)).replace('OPERATION',repr(operation))
     logs=tmp_path/'subprocess'
     command=[sys.executable,'-u','-c',prefix+code,*argv[argv.index('-c')+2:]]
     if outcome=='hang':
@@ -276,7 +279,7 @@ runpy.run_module=fixture
         with pytest.raises(RuntimeError):supervision.launch(command,logs,seconds=5,stream_cap=4096)
     else:supervision.launch(command,logs,seconds=5,stream_cap=4096)
     stderr=(logs/'stderr.log').read_text()
-    assert 'validation: python-start unix=' in stderr
+    assert prefix_name+': python-start unix=' in stderr
     if outcome=='hang':assert 'Timeout (' in stderr and 'fixture' in stderr
     if outcome=='fail':assert 'fixture rejection' in stderr
     process=json.loads((logs/'process.json').read_text())
