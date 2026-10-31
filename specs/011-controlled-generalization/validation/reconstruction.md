@@ -94,7 +94,7 @@ Historical best-loss exposure is **17,885,681 tokens / 18,433 updates**; latest 
 previously; the private tensors are not in this workspace. The importer checks
 those actual hashes again on the operator machine before copying bytes.
 
-## Remaining gate and next work
+## Historical reconstruction gate (superseded by launch completion below)
 
 T063–T068 remain open for pinned-image/native/container/operator/HIP evidence.
 No HIP command or research campaign ran. Complete original qualification evidence
@@ -163,3 +163,27 @@ git merge --ff-only origin/011-controlled-generalization
 The Git bundle is an alternative containing the original local commit IDs; do not
 merge both histories. CI results must be checked on the published head. The
 initializer/bootstrap and real-input gates above still apply.
+
+## Launch completion — 2026-10-31 (supersedes the bootstrap gate above)
+
+Convergence T080–T084 supplies the missing launch workflow on the existing PR #62.
+The earlier proposal to add bootstrap training was unnecessary: FR-024 permits a
+new initialization from weights-only checkpoints after a fresh selection. The
+serial session now evaluates the original retained checkpoints against frozen
+selection inputs, publishes its actual selection/producer/provenance closure,
+and resolves only the explicitly bound acceptance replay dependency. It never
+relabels historical pooled-loss selection or invents historical optimizer state.
+
+`generalization_inputs.py acceptance` builds all four reduced study/runtime inputs
+from the verified uniform import, deterministic mechanical cohorts, explicit
+image tags and current source closure. It requires no manually written receipts.
+Fresh cases use the existing v1 small-model constructor; retained/replay cases
+preserve the original model architecture and recipe. The replay diagnostic is
+explicitly software-only, independently admitted, and forbidden in research.
+
+The final local selection passed 272 tests (one hardware test deselected), with
+package and source registration checks. See [local-checks.md](local-checks.md) for
+exact scope and limitations. T063–T068 remain open for container/native/operator
+and HIP evidence. Use the existing remote branch and the build/setup/dry-run/run
+sequence in [quickstart.md](../quickstart.md); the historical Git bundle and
+separate reconstruction branch are not needed. No HIP command was executed here.

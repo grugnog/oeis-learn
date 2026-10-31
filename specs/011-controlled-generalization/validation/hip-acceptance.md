@@ -23,9 +23,16 @@ software/scientific statuses and any omitted evidence. A failed session remains
 failed; record any targeted repair, invalidated producer and justified minimal rerun
 before replacing evidence. No rerun was attempted in this environment.
 
-## Reconstruction input status — 2026-10-31
+## Current launch input status — 2026-10-31
 
-No HIP commands executed. Host import/assembly and serial fixtures are locally
-validated; the uniform metadata is compatible. P4 original initializer evidence
-and real reduced inputs/images remain required. See [reconstruction.md](reconstruction.md)
-for exact results and the unimplemented bootstrap dependency if no initializer exists.
+No HIP commands executed. T080–T084 completed the missing input/setup dependency:
+`generalization_inputs.py acceptance` constructs the reduced session from the
+verified uniform import and explicitly inspected image tags. During that session,
+retained evaluation publishes a new selection-based weights-only initializer
+and resolves replay/resume through a verified dependency transition. The import's
+`initializer_available: false` and `resume_available: false` remain accurate.
+
+The final local selection passed 272 tests (one hardware test deselected). Actual
+image builds, native validation, real-input preflight, HIP updates and the real
+archive remain unverified here. See [local-checks.md](local-checks.md) and follow
+[quickstart.md](../quickstart.md) for the single normal serial invocation.

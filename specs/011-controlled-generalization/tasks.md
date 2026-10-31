@@ -10,6 +10,11 @@
 
 ## Current status — 2026-10-31
 
+Reconstruction T071–T079 and launch completion T080–T084 are complete within
+the available local environment. Setup now constructs the reduced session from the
+verified uniform import and inspected images; the serial session performs a new
+retained selection and publishes its initializer before replay/resume.
+
 Reconstruction T071–T079 was developed on local `011-reconstruct-convergence`
 and published to the existing `011-controlled-generalization` PR #62, including
 available local validation and verified Git-bundle delivery. Environment and HIP
@@ -403,4 +408,4 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 
 ### Phase D — available validation and delivery
 
-- [ ] T084 Exercise setup through serial canonical fixture execution, tampered dependency/research rejection, finite CPU update/resume, native/container checks where available and packaging/source registration; publish exact results and leave actual HIP tasks open, per NFR-002/005/008 and SC-004/006/007 (partial).
+- [X] T084 Exercise setup through serial canonical fixture execution, tampered dependency/research rejection, finite CPU update/resume, native/container checks where available and packaging/source registration; publish exact results and leave actual HIP tasks open, per NFR-002/005/008 and SC-004/006/007 (partial).

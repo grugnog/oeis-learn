@@ -129,3 +129,11 @@ inputs and binds the four-case serial session. See
 [the input guide](specs/011-controlled-generalization/quickstart.md).
 Example blueprints contain unresolved paths and image IDs; assembly does not create
 P4 initializer evidence or establish native/container/HIP qualification.
+
+For the imported uniform run, `generalization_inputs.py acceptance` inspects the
+two explicitly built image tags and constructs the reduced inputs and session.
+The same serial acceptance invocation evaluates retained weights, publishes a
+new selection-based initializer and resolves replay/resume. No bootstrap training
+run or handwritten initializer receipt is needed. Its deterministic replay
+diagnostic is labeled as software evidence, with zero model discoveries; it is
+forbidden in research mode. Follow the command guide above.

@@ -319,3 +319,54 @@ selection identities. Targeted runtime, preparation and scoring integration:
 24 passed. The command/qualification boundary is substituted in local tests;
 actual tensor training uses CPU. This is not container or HIP qualification.
 Acceptance, consolidated reporting and verified restart remain integration work.
+
+## Final launch convergence validation — 2026-10-31
+
+T080–T084 completes the locally executable launch work, superseding earlier
+initializer/bootstrap implementation blockers. Tests were run without HIP, Docker
+or Podman and without installing host dependencies:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH=src:../phase-a-venv/lib/python3.12/site-packages \
+python -m pytest tests/unit/test_generalization*.py \
+  tests/contract/test_generalization*.py tests/integration/test_generalization*.py \
+  tests/unit/test_bootstrap_bundle.py tests/unit/test_pipeline_contracts.py \
+  -q -p no:cacheprovider -m 'not gpu and not docker'
+```
+
+Result: **272 passed, 1 deselected in 25.20 seconds**. This covers original
+initializer authority, new legacy selection publication, forbidden research
+diagnostics, dependency tampering, actual generated cohorts with independent
+reference callbacks, canonical diagnostic admission, stdlib-only setup CLI,
+serial case/report/archive routing and exact CPU tensor update/resume. Generated
+v2 session dependencies are tested through preparation, original case evidence,
+publication and resolution; expensive container/native/HIP boundaries are fixture
+adapters. This is not an end-to-end hardware session.
+
+The generated refresh budget was corrected to 512 tokens: its first eight rows
+(two batches) fit, so it can actually reach fresh examples. A regression checks
+that condition. Checkpoint reservations are 2 GiB each for retained/refresh/target
+cases and 26 GiB for replay/resume; actual preflight still enforces feasibility.
+
+Both real production constructors instantiated on CPU using the uploaded
+uniform metadata: the reduced fresh model has 32,473,176 parameter bytes; the
+original retained model has 417,986,648. An attempted full production CPU update
+was **blocked before an update** by missing `wasmtime` in the existing environment.
+The passing update/resume tests use tiny real tensor modules to test persistence
+and finite optimization; they do not establish full-model or HIP correctness.
+No dependency was installed to bypass the pinned-container gate.
+
+`setup.py sdist` and `setup.py build_py` succeeded. Independently loaded installed
+source inventory matched all **899** source/build/test records; the sdist includes
+new policy, setup, dependency and owning test files. Registration tests verify
+these files participate in qualification identity. The current implementation
+digest was refreshed using the canonical serializer without changing historical
+dispositions. `git diff --check` passed.
+
+Changes were committed by task grouping and pushed to the existing
+`011-controlled-generalization` branch/PR #62 with matching local/remote trees.
+No CI-green claim is made for this new head; the user waived waiting for CI.
+Docker, Podman, Cargo/native execution and `wasmtime` are unavailable here.
+Consequently T063–T068 retain their evidence gates; no HIP run, actual acceptance
+archive, scientific improvement or completed hardware qualification is claimed.
