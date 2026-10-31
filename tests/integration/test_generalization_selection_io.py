@@ -44,7 +44,7 @@ def test_selected_initializer_and_sanitized_pins_from_real_cpu_store(tmp_path,mo
     monkeypatch.setattr(roles,'project_and_invoke',invoke)
     publication=publish_selected(None,tmp_path,tmp_path/'published',tmp_path,study,runtime,decision,available)
     assert publication['status']=='PASS'
-    consumer=seal(dict(study,version='generalization-study/v2',recipe='P4-replay/v1',arms=['continued_sft','verified_replay'],
+    consumer=seal(dict(study,version='generalization-study/v3',recipe='P4-replay/v1',arms=['continued_sft','verified_replay'],
         progression=dict(study['progression'],stage='P4'),model=dict(study['model'],initialization=dict(kind='retained',artifact=publication['artifact']))))
     assert verify_initializer(tmp_path/'published/publication/role',consumer)['checkpoint']==roster['latest']
     results=persist_selected(None,tmp_path,tmp_path/'pinned',runtime,decision,available,seconds=60)

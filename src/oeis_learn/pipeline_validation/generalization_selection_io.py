@@ -42,7 +42,7 @@ def publish_role(inputs,output,settings,*,seconds):
         producer=reference(target/'receipt.json',target),ancestry=ancestry,parent=study['model']['initialization']['artifact'] if prior else None))
     write(target/'initializer.json',authority)
     artifact=reference(target/'initializer.json',target)
-    expected=seal(dict(study,version='generalization-study/v2',model=dict(study['model'],initialization=dict(kind='retained',artifact=artifact))))
+    expected=seal(dict(study,version='generalization-study/v3' if study['version']=='generalization-study/v3' else 'generalization-study/v2',model=dict(study['model'],initialization=dict(kind='retained',artifact=artifact))))
     verify_initializer(target,expected)
     return dict(status='PASS',authority=authority['identity'],checkpoint=descriptor['identity'],artifact=reference(target/'initializer.json',output))
 

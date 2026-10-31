@@ -22,6 +22,7 @@ def fixture(root):
     descriptor=seal(dict(version='generalization-descriptor/v1',generator=digest('mechanical'),family=canonical_family(parameter),stage='A',
         parameter_source=parameter,numeric_law='independent-uniform-integers[-16,16]/v1',parameter_names=['p0']))
     study['data']['descriptors']=put('descriptors.json',[descriptor])
+    study['data']['exclusions']=empty;study['data']['sharing_policy']='explicit'
     study['data']['generator']=put('generator.json',dict(version='generalization-materialization-plan/v2',cells=[dict(name='training',role='training',holdout='parameter',count=4,quotas={},structural=False,refresh=dict(seed=7,capacity=4,cursor=0,draws=4))]))
     generated,_=RefreshPlan([descriptor],seed=7,capacity=4).take(0,4)
     rows=[]
@@ -39,7 +40,8 @@ def fixture(root):
         preparation=None,training={a:dict(shards=[shard if a=='refreshed' else static],data_mode='refresh' if a=='refreshed' else 'static',batch_size=1) for a in study['arms']},
         evaluation=None,replay=None,assessment=None,feature=None,
         storage=dict(study_bytes=64<<20,checkpoint_bytes=32<<20,shard_bytes=8<<20,raw_bytes=4<<20,sharing_bytes=1<<20)))
-    put('runtime.json',runtime)
+    from oeis_learn.generalization.execution import bind
+    study,runtime=bind(study,runtime);put('study.json',study);put('runtime.json',runtime)
     return study,runtime,put
 
 
@@ -52,16 +54,16 @@ def test_runtime_binds_recipe_cohort_views_and_declared_pairs(tmp_path):
     assert config['data_mode']=='refresh' and config['device']=='cuda'
     with pytest.raises(ValueError,match='undeclared'):learner_config(study,runtime,plan['recipe'],'unknown',1)
     bad=copy.deepcopy(runtime);bad['training']['static']['shards'][0]['path']='hidden.json'
-    with pytest.raises(ValueError,match='inventory'):validate_execution(root,study,bad)
+    with pytest.raises(ValueError,match='execution binding'):validate_execution(root,study,bad)
 
 
 def test_runtime_rejects_changed_model_and_hidden_training_targets(tmp_path):
     study,runtime,put=fixture(tmp_path)
     recipe=json.loads((tmp_path/'recipe.json').read_text());recipe['model']['width']=9
     runtime['recipe']=put('changed.json',recipe)
-    with pytest.raises(ValueError,match='model'):validate_execution(tmp_path,study,runtime)
+    with pytest.raises(ValueError,match='execution binding'):validate_execution(tmp_path,study,runtime)
     changed=copy.deepcopy(runtime);changed['study']=digest('different study');put('runtime.json',seal(changed))
-    with pytest.raises(ValueError,match='frozen study'):load(tmp_path,'study.json')
+    with pytest.raises(ValueError,match='execution binding'):load(tmp_path,'study.json')
 
 
 def test_canonical_train_invokes_validation_then_real_cpu_tensor_worker(tmp_path,monkeypatch):

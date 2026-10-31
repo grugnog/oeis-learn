@@ -97,6 +97,8 @@ def prepare_study(root,preparation,proposed,*,output,execute):
     from oeis_learn.decoder.bigint_codec import encode_body
     from .identity import confined
     prep=validate('preparation',preparation.record()).record()
+    if prep['version']=='generalization-preparation/v3' and (seal(proposed)!=proposed or prep['proposed_study']!=proposed['identity']):
+        raise ValueError('changed proposed study authority')
     plan=json.loads(verify_artifact(root,prep['generator']))
     if set(plan)!={'version','cells'} or plan['version'] not in {'generalization-materialization-plan/v1','generalization-materialization-plan/v2'}:
         raise ValueError('frozen materialization plan required')
@@ -163,12 +165,13 @@ def prepare_study(root,preparation,proposed,*,output,execute):
                 prompt_id=digest([cell['role'],row['id'],row['source']])
                 target_source=row['source']
                 if proposed['data']['target_format']=='parameterized' or proposed['progression']['stage']=='P3':
-                    from oeis_learn.generalization.targets import pair
+                    from oeis_learn.generalization.targets import pair,learning_target
                     paired=pair(row['source'],row['parameter_source'],row['assignment'],indices=tuple(row['indices']),sharing=proposed['data']['sharing_policy'])
                     pair_proofs.append(dict(id=prompt_id,**paired))
                     dispositions.append(dict(id=prompt_id,disposition=paired['disposition'],family=row['family'],stratum=cell['holdout']))
-                    if proposed['data']['target_format']=='parameterized':target_source=paired['parameter_source']
-                    parameterized.append(dict(id=prompt_id,role='training',source=paired['parameter_source'],tokens=encode_body(paired['parameter_source']),indices=row['indices'],values=row['values']))
+                    learning_source,learning_tokens=learning_target(paired)
+                    if proposed['data']['target_format']=='parameterized':target_source=learning_source
+                    parameterized.append(dict(id=prompt_id,role='training',source=learning_source,tokens=learning_tokens,indices=row['indices'],values=row['values']))
                 training.append(dict(id=prompt_id,role='training',source=target_source,tokens=encode_body(target_source),indices=row['indices'],values=row['values']))
                 literal.append(dict(id=prompt_id,role='training',source=row['source'],tokens=encode_body(row['source']),indices=row['indices'],values=row['values']))
                 tasks.append(dict(id=prompt_id,role='training',ancestry=['mechanical','training'],source=row['source'],indices=row['indices'],values=row['values']))

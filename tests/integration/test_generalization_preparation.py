@@ -62,8 +62,10 @@ def test_role_launch_mounts_only_declared_inputs_and_reclaims(tmp_path):
         {'visible_prompts':'prompts','frozen_weights':'weights'},output='result',operation='evaluate',settings={},seconds=30)
 
 
-@pytest.mark.parametrize('stage',['P1-screen','P3'])
+@pytest.mark.parametrize('stage',['P1-screen','P3','P3-unsupported'])
 def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_path,monkeypatch,stage):
+    unsupported=stage=='P3-unsupported'
+    if unsupported:stage='P3'
     from pathlib import Path
     from oeis_learn.generalization.contracts import freeze,validate,verify_artifact
     from oeis_learn.pipeline_validation.generalization_preparation import prepare_study,reference
@@ -80,6 +82,10 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
         if stage=='P3' and role=='training':
             row['parameter_source']='(program (return (mul $index (param.get p0))))'
             row['assignment']={'p0':str(i+2)};row['family']=canonical_family(row['parameter_source'])
+            if unsupported:
+                row['source']='(program (return (select (lt $index (int 2)) (int 1) (int 0))))'
+                row['parameter_source']='(program (return (select (lt $index (param.get p0)) (int 1) (int 0))))'
+                row['family']=canonical_family(row['parameter_source'])
         plans.append(dict(name=role,role=role,holdout='parameter',count=1,quotas={},structural=False,
                           candidates=artifact(role+'.json',[row])))
     generator=artifact('generator.json',dict(version='generalization-materialization-plan/v1',cells=plans))
@@ -102,6 +108,11 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     if stage=='P3':
         proof=json.loads((tmp_path/'prepared/cells/training/private/target-pairs.json').read_text())[0]
         assert proof['assignment']=={'p0':'2'} and proof['literal_tokens']!=proof['parameter_tokens']
+        learned=json.loads((tmp_path/'prepared/cells/training/private/training-parameterized.json').read_text())[0]
+        if unsupported:
+            assert proof['disposition']=='unsupported_control_dependency'
+            assert learned['source']==proof['literal_source'] and learned['tokens']==proof['literal_tokens']
+        else:assert learned['source']==proof['parameter_source']
     # A second run uses the same authority and produces the same resolved identity.
     second=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'again',execute=native)
     assert result['study']==second['study']

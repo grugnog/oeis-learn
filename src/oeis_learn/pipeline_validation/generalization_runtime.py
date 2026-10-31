@@ -17,7 +17,9 @@ def load(root,manifest,runtime=None):
     sidecar=confined(root,runtime) if runtime else path.parent/'runtime.json'
     if sidecar.stat().st_size>1<<20:raise ValueError('runtime document cap')
     record=json.loads(sidecar.read_text())
-    validate(record,{'version','study','purpose','recipe','images','preparation','training','evaluation','replay','assessment','feature','storage'},'generalization-runtime/v1')
+    validate(record,{'version','study','purpose','recipe','images','preparation','training','evaluation','replay','assessment','feature','storage'},'generalization-runtime/v2')
+    from oeis_learn.generalization.execution import verify_binding,validate_policy
+    verify_binding(study,record);validate_policy(study,record)
     if record['study']!=study['identity']:raise ValueError('runtime differs from frozen study')
     import re
     if not isinstance(record['images'],list) or len(record['images'])!=2 or any(not re.fullmatch(r'sha256:[0-9a-f]{64}',x) for x in record['images']):
@@ -37,6 +39,9 @@ def validate_execution(root,study,runtime):
     from oeis_learn.generalization.contracts import validate as authority,shape
     from oeis_learn.generalization.initializers import verify_initializer
     study=authority('study',study).record()
+    if study['version']=='generalization-study/v3':
+        from oeis_learn.generalization.execution import verify_binding,validate_policy
+        verify_binding(study,runtime);validate_policy(study,runtime)
     if runtime['study']!=study['identity']:raise ValueError('runtime/study identity mismatch')
     recipe=json.loads(verify_artifact(root,runtime['recipe'],max_bytes=1<<20))
     model={k:v for k,v in recipe['model'].items() if k!='seed'}
@@ -47,6 +52,8 @@ def validate_execution(root,study,runtime):
     if study['precision']!='fp32':raise ValueError('qualified prospective precision is fp32')
     if runtime['preparation'] is not None:
         prep=authority('preparation',json.loads(verify_artifact(root,runtime['preparation'],max_bytes=1<<20))).record()
+        if study['version']=='generalization-study/v3' and (prep['version']!='generalization-preparation/v3' or prep['proposed_study']!=study['identity']):
+            raise ValueError('preparation must bind the exact proposed study')
         if any(study.get(k)!=v for k,v in prep['study_settings'].items()) or any(study[k]!=prep[k] for k in ('seeds','budgets')):
             raise ValueError('preparation differs from frozen study settings')
         preparation_views(root,study,runtime,prep)
@@ -83,9 +90,12 @@ def validate_execution(root,study,runtime):
                     if expected.get(row['id'])!=row['source']:raise ValueError('training shard differs from frozen refresh draw stream')
         if study['progression']['stage'] in {'P1-screen','P1-confirm'}:
             if set(training)!={'static','refreshed'} or training['static']['data_mode']!='static' or training['refreshed']['data_mode']!='refresh':raise ValueError('registered static/refreshed modes required')
-            ids={arm:[r['id'] for ref in view['shards'] for r in json.loads(verify_artifact(root,ref))] for arm,view in training.items()}
-            if not set(ids['static'])<set(ids['refreshed']) or {families[k] for k in ids['static']}!={families[k] for k in ids['refreshed']}:
-                raise ValueError('refresh must extend variants while retaining static structural support')
+            from oeis_learn.generalization.execution import validate_refresh
+            rows={arm:[dict(r,family=families[r['id']]) for ref in view['shards'] for r in json.loads(verify_artifact(root,ref))] for arm,view in training.items()}
+            validate_refresh(rows['static'],rows['refreshed'])
+    if study['progression']['stage']=='P2':
+        counts={arm:sum(len(json.loads(verify_artifact(root,ref))) for ref in view['shards']) for arm,view in training.items()}
+        if len(set(counts.values()))!=1:raise ValueError('support comparison requires equal admitted-example counts')
     target_pairs_verified=0
     if study['progression']['stage']=='P3':
         if set(training)!={'literal','parameterized'}:raise ValueError('paired target views required')
@@ -98,7 +108,7 @@ def validate_execution(root,study,runtime):
             paired[arm]=[(r['id'],r['indices'],r['values']) for r in rows]
             by_arm[arm]={r['id']:r for r in rows}
         if paired['literal']!=paired['parameterized']:raise ValueError('target arms must retain paired concrete tasks and ordering')
-        from oeis_learn.generalization.targets import pair
+        from oeis_learn.generalization.targets import pair,learning_target
         proofs={}
         for cohort in cohorts:
             if cohort['role']!='training':continue
@@ -110,8 +120,9 @@ def validate_execution(root,study,runtime):
         for key,literal in by_arm['literal'].items():
             if key not in proofs:raise ValueError('prepared grounding proof missing')
             proof=proofs[key];parameterized=by_arm['parameterized'][key]
-            checked=pair(literal['source'],parameterized['source'],proof['assignment'],indices=tuple(literal['indices']),sharing=study['data']['sharing_policy'])
+            checked=pair(literal['source'],proof['parameter_source'],proof['assignment'],indices=tuple(literal['indices']),sharing=study['data']['sharing_policy'])
             if dict(proof,id=key)!=dict(checked,id=key) or checked['verification']['values']!=literal['values']:raise ValueError('prepared grounding proof differs from paired training')
+            if (parameterized['source'],parameterized['tokens'])!=learning_target(checked):raise ValueError('unsafe paired learning target')
             target_pairs_verified+=1
     if study['progression']['stage']=='P4':
         if set(training)!={'continued_sft','verified_replay'} or training['continued_sft']!=training['verified_replay'] or training['continued_sft']['data_mode']!='static':
@@ -167,7 +178,8 @@ def preparation_views(root,study,runtime,prep):
     def owned(names,role):
         if not isinstance(names,list) or not names or len(set(names))!=len(names) or any(n not in cells or cells[n]['role']!=role for n in names):
             raise ValueError('preparation view must name unique cells of its role')
-    if not isinstance(runtime['training'],dict) or set(runtime['training'])!=set(study['arms']):
+    expected=set() if study['progression']['stage']=='E0' else set(study['arms'])
+    if not isinstance(runtime['training'],dict) or set(runtime['training'])!=expected:
         raise ValueError('complete frozen training cell views required')
     for view in runtime['training'].values():
         if set(view)!={'cells','data_mode','batch_size'} or view['data_mode'] not in {'static','refresh'} or type(view['batch_size']) is not int or not 1<=view['batch_size']<=128:
@@ -204,6 +216,10 @@ def publish_runtime(base,prepared,study,runtime):
         # Retained artifacts remain in their original relative directories.
         from .generalization_workflow import _checkpoints
         for descriptor,parent in _checkpoints(base,evaluation['checkpoints']) if evaluation['checkpoints'] else []:
+            if descriptor.get('kind')=='weights_only':
+                proof=json.loads(verify_artifact(parent,descriptor['provenance']))
+                from oeis_learn.generalization.contracts import artifact_refs
+                _copy(prepared/parent.relative_to(base),[(parent,r) for r in [descriptor['provenance'],*artifact_refs(proof)]])
             if (parent/descriptor['weights']['path']).is_file():
                 target=prepared/parent.relative_to(base)
                 _copy(target,[(parent,descriptor['weights'])])
@@ -214,6 +230,10 @@ def publish_runtime(base,prepared,study,runtime):
     if replay is not None:replay=dict(tasks=reference(prepared/'cells'/replay['cell']/'private/replay-tasks.json',prepared),seconds=replay['seconds'])
     if runtime['assessment'] is not None:_copy(prepared,[(base,runtime['assessment'])])
     result=seal(dict(runtime,study=resolved['identity'],preparation=None,training=training,evaluation=evaluation,replay=replay))
+    if study.get('version')=='generalization-study/v3':
+        from oeis_learn.generalization.execution import bind
+        resolved,result=bind(resolved,result)
+        write(prepared/'study.json',resolved,exclusive=False)
     write(prepared/'runtime.json',result)
     return resolved,result
 
@@ -252,7 +272,7 @@ def execution_refs(root,study,runtime,*,preparation=False):
         plan=json.loads(verify_artifact(root,prep['generator'],max_bytes=1<<20))
         refs.extend(c['candidates'] for c in plan['cells'] if 'candidates' in c)
     else:
-        refs.extend([study['data']['generator'],study['data']['descriptors']])
+        refs.extend([study['data']['generator'],study['data']['descriptors'],study['data']['exclusions']])
         refs.extend(study['data']['manifests'])
         for ref in study['data']['manifests']:
             cohort=json.loads(verify_artifact(root,ref,max_bytes=1<<20));refs.extend(artifact_refs(cohort))

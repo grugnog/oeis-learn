@@ -31,6 +31,9 @@ def _checkpoints(base,refs):
         value=json.loads(verify_artifact(base,ref,max_bytes=1<<20))
         candidates=value['checkpoints'] if value.get('version')=='generalization-retained/v1' else [value]
         for checkpoint in candidates:
+            if checkpoint.get('version')=='generalization-checkpoint/v2':
+                from oeis_learn.generalization.legacy import verify_legacy
+                verify_legacy(confined(base,ref['path']).parent,checkpoint)
             if checkpoint['identity'] in seen:raise ValueError('duplicate checkpoint in evaluation roster')
             seen.add(checkpoint['identity'])
             result.append((checkpoint,confined(base,ref['path']).parent))
@@ -44,6 +47,9 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
     view=runtime['evaluation']
     if view is None:raise ValueError('frozen evaluation view required')
     available=_checkpoints(base,view['checkpoints']);by_id={c['identity']:(c,r) for c,r in available}
+    for descriptor,_ in available:
+        if descriptor.get('kind')=='weights_only' and descriptor['compatibility']!=digest(plan['recipe']):
+            raise ValueError('historical checkpoint requires its original resolved recipe')
     if not checkpoints or len(set(checkpoints))!=len(checkpoints) or set(checkpoints)-set(by_id):
         raise ValueError('explicit frozen checkpoint subset required')
     if bank is not None and bank!=digest(view['bank_seeds']):raise ValueError('undeclared proposal-bank seed identity')

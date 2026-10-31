@@ -43,11 +43,15 @@ def audit_uniform(training,prepared,recipe,history,stage):
 
 
 def verify_legacy(root,descriptor):
+    closed(descriptor,{'version','kind','weights','state','initialization','parent','tokens','updates','pins','compatibility','provenance'},'generalization-checkpoint/v2')
     if descriptor.get('version')!='generalization-checkpoint/v2' or descriptor.get('kind')!='weights_only':
         raise ValueError('explicit legacy weights-only descriptor required')
     proof=json.loads(verify_artifact(root,descriptor['provenance'],max_bytes=1<<20))
-    closed(proof,{'version','training','prepared','recipe','history','producer','label'},'generalization-legacy-import/v1')
-    documents={k:json.loads(verify_artifact(root,proof[k],max_bytes=4<<20)) for k in ('training','prepared','recipe','history','producer')}
+    closed(proof,{'version','training','prepared','recipe','history','producer','report','label'},'generalization-legacy-import/v1')
+    documents={k:json.loads(verify_artifact(root,proof[k],max_bytes=4<<20)) for k in ('training','prepared','recipe','history','producer','report')}
+    report=documents['report']
+    if seal(report)!=report or report['version']!='pipeline-followup-study-result/v1' or documents['training'] not in report['arms']:
+        raise ValueError('uniform record absent from original follow-up report')
     checked=audit_uniform(documents['training'],documents['prepared'],documents['recipe'],documents['history'],documents['producer'])
     label=proof['label']
     if label not in ('best','latest'):raise ValueError('historical best/latest label required')
