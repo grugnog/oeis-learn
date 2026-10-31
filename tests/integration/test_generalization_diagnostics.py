@@ -20,7 +20,7 @@ def test_recovery_retains_timeout_records_and_original_failure(tmp_path):
         'preflight/parameter-targets/validation/role/supervision/process.json':b'{"outcome":"FAIL","returncode":125}',
         'preflight/parameter-targets/validation/role/supervision/cleanup.json':b'{"acknowledged":true}',
         'preflight/parameter-targets/validation/role/supervision/stdout.log':b'',
-        'preflight/parameter-targets/validation/role/supervision/stderr.log':b'',
+        'preflight/parameter-targets/validation/role/supervision/stderr.log':b'time="fixture" level=debug msg="startup"\nvalidation: python-start unix=123\nTimeout (0:00:30)!\n',
     }
     for name,payload in expected.items():put(root,name,payload)
     put(root,'preflight/parameter-targets/validation/private/input/truth.json',b'PRIVATE')
@@ -119,6 +119,7 @@ def test_image_inspection_progress_preserves_integrity_checks(tmp_path,monkeypat
     output=tmp_path/'inspection'
     container_validation.inspect_current_image(host,'cpu-image',output,seconds=120)
     assert captured['gpu'] is False
+    assert captured['startup_diagnostics'] is True
     argv=captured['argv'];code=argv[argv.index('-c')+1]
     code=code.replace('/work/input/expected.json',str(output/'inputs/expected.json'))
     prefix="""import sys,types
@@ -135,6 +136,9 @@ sys.modules[common.__name__]=common
     result=subprocess.run([sys.executable,'-u','-c',prefix+code],text=True,capture_output=True,timeout=10)
     assert 'inspection: python-start' in result.stderr
     assert 'inspection: source-snapshot' in result.stderr
+    markers=[line for line in result.stderr.splitlines() if line.startswith('inspection:')]
+    stamps=[float(line.split('unix=')[1]) for line in markers]
+    assert stamps == sorted(stamps) and all(stamp>0 for stamp in stamps)
     if mismatch:
         assert result.returncode!=0
         assert ('current installed package/source mismatch' if mismatch=='source' else 'changed packaged guest') in result.stderr
@@ -143,3 +147,78 @@ sys.modules[common.__name__]=common
         assert result.returncode==0,result.stderr
         assert 'inspection: packaged-artifacts' in result.stderr and 'inspection: complete' in result.stderr
         assert json.loads(result.stdout)['source']=={'fixture':True}
+
+
+@pytest.mark.parametrize('outcome', ['pass','fail','hang'])
+def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monkeypatch,outcome):
+    import sys
+    from types import SimpleNamespace
+    from oeis_learn.generalization.role_contracts import Role,ROLE_INPUTS
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    captured={}
+    class Engine:
+        def command(self,**kw):captured.update(kw);return ['fixture']
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=2<<30,cpus=1))
+    channels={m.channel:m.channel for m in ROLE_INPUTS[Role.PREPARATION]}
+    for path in channels.values():(tmp_path/path).mkdir()
+    def launch(command,output,**kw):
+        assert kw['seconds']==120 and kw['stream_cap']==1<<20
+        (output.parent/'result.json').write_text('{"status":"PASS"}')
+    monkeypatch.setattr(supervision,'reclaim',lambda *a,**kw:None)
+    roles.invoke(host,'cpu',tmp_path,Role.PREPARATION,channels,output='role',
+                 operation='validate-runtime',settings={},seconds=120,launcher=launch)
+    assert captured['gpu'] is False and captured['startup_diagnostics'] is True
+    argv=captured['argv'];code=argv[argv.index('-c')+1]
+    # Accelerate only the diagnostic timer in this local subprocess. The actual
+    # production wrapper keeps 30-second dumps and the unchanged external budget.
+    code=code.replace('30,repeat=True','0.1,repeat=True')
+    prefix="""import runpy,sys,time,json
+def fixture(name,run_name):
+    assert name=='oeis_learn.pipeline_validation.generalization_role'
+    assert run_name=='__main__'
+    assert sys.argv[1]=='preparation'
+    assert json.loads(sys.argv[2])['operation']=='validate-runtime'
+    if OUTCOME=='fail':raise RuntimeError('fixture rejection')
+    if OUTCOME=='hang':time.sleep(10)
+runpy.run_module=fixture
+""".replace('OUTCOME',repr(outcome))
+    logs=tmp_path/'subprocess'
+    command=[sys.executable,'-u','-c',prefix+code,*argv[argv.index('-c')+2:]]
+    if outcome=='hang':
+        with pytest.raises(TimeoutError):supervision.launch(command,logs,seconds=.5,stream_cap=4096)
+    elif outcome=='fail':
+        with pytest.raises(RuntimeError):supervision.launch(command,logs,seconds=5,stream_cap=4096)
+    else:supervision.launch(command,logs,seconds=5,stream_cap=4096)
+    stderr=(logs/'stderr.log').read_text()
+    assert 'validation: python-start unix=' in stderr
+    if outcome=='hang':assert 'Timeout (' in stderr and 'fixture' in stderr
+    if outcome=='fail':assert 'fixture rejection' in stderr
+    process=json.loads((logs/'process.json').read_text())
+    assert (process['outcome']=='COMPLETE') == (outcome=='pass')
+
+
+@pytest.mark.parametrize('failure', [None,'runtime','storage'])
+def test_validation_milestones_locate_last_reached_phase(tmp_path,monkeypatch,capsys,failure):
+    from oeis_learn.pipeline_validation import generalization_role as role
+    from oeis_learn.pipeline_validation import generalization_runtime as runtime
+    from oeis_learn.pipeline_validation import generalization_training as training
+    def validate(*args):
+        if failure=='runtime':raise ValueError('runtime rejected')
+        return {'recipe':{}}
+    def storage(*args):
+        if failure=='storage':raise ValueError('storage rejected')
+        return {'reserved':123}
+    monkeypatch.setattr(runtime,'validate_execution',validate)
+    monkeypatch.setattr(training,'storage_preflight',storage)
+    args=({'mechanical_sources':tmp_path},tmp_path,{'study':{},'runtime':{}})
+    if failure:
+        with pytest.raises(ValueError,match=failure+' rejected'):role.validate_runtime(*args,seconds=120)
+    else:
+        result=role.validate_runtime(*args,seconds=120)
+        assert result=={'status':'PASS','plan':{'recipe':{},'storage':{'reserved':123}}}
+    lines=capsys.readouterr().err.splitlines()
+    phases=[line.split()[1] for line in lines]
+    assert phases==(['runtime-plan'] if failure=='runtime' else
+                    ['runtime-plan','storage-preflight'] if failure=='storage' else
+                    ['runtime-plan','storage-preflight','complete'])
+    assert all(float(line.split('unix=')[1])>0 for line in lines)

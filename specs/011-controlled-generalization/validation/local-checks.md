@@ -467,3 +467,36 @@ local generalization/bundle/pipeline-contract selection passes **285 tests, one
 hardware test deselected in 18.62 seconds**. `git diff --check` passes. No container
 or HIP run was performed locally. Prior image-inspection progress/stack capture
 remains available for the separate unresolved GPU-image inspection timeout.
+
+## T090 startup timeout localization — 2026-10-31
+
+The uploaded `acceptance-005.zip` verifies as an intact FAIL recovery archive
+(18 ZIP members), SHA-256
+`7185e7c64414d6ea0736473b4a00d260081c724bfdcb5481ef47c1bc9a70c01b`.
+Its captured preflight result seal also verifies. The first parameter-targets
+validation exceeded its 120-second deadline, finishing supervision/cleanup in
+121.12 seconds with return code 125 and empty streams. Container reclamation was
+acknowledged in 0.087 seconds. Report image inspection subsequently completed in
+117.36 seconds, with all four Python markers present; report then failed because
+qualification had never run. Qualification and HIP were not started. These
+observations do not locate the delay or establish an engine/model defect.
+
+Runtime validation now starts an unbuffered stdlib bootstrap before role imports,
+emits a wall-clock Python-start timestamp, and dumps Python stacks every 30 seconds.
+The role marks runtime-plan validation, storage/model preflight and completion.
+Image-inspection markers also carry wall-clock timestamps. Both launch paths
+request Podman's global `--log-level=debug` option; Docker command construction is
+unchanged. Debug output uses the existing bounded supervisor stderr and recovery
+archive collection. No extra process, mount, privilege, device, retry or budget is
+introduced. This is diagnostic coverage, not a claimed timeout fix.
+
+New tests first failed on the absent diagnostic command/markers. Tests execute the
+emitted bootstrap in actual CPU subprocesses for success, exception and external
+timeout, check stack capture and unchanged runtime arguments, and verify recovery
+retains the diagnostic log. Separate cases check the last validation milestone on
+runtime/storage rejection and preserve image source/guest integrity failures.
+Focused diagnostics/engine checks: **29 passed**. Full generalization, bundle,
+pipeline-contract and container-adapter selection: **312 passed, one hardware
+test deselected in 19.33 seconds**. `git diff --check` passed. No container or HIP
+command ran locally; T063–T068 remain open. Fresh images and newly frozen inputs
+are required for another acceptance invocation because source/test closure changed.

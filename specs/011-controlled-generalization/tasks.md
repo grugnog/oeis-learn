@@ -427,3 +427,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — container-local setup fixtures
 
 - [X] T089 Make synthetic setup/CLI fixtures declare simulated available disk independently of pytest's small tmpfs; retain unchanged production storage guards and test low-space rejection in CLI and session loading. Reproduce acceptance-004's three test failures, run available regressions and publish the repair without claiming new container/HIP qualification (NFR-005/008, SC-004/007).
+
+### Phase C/D — startup timeout localization
+
+- [X] T090 Capture bounded Podman startup debug output for runtime validation and image inspection, timestamp Python/validation milestones, and enable pre-import periodic preflight stack dumps. Test emitted commands, success/failure/timeout propagation and recovery capture without changing deadlines, isolation or qualification rules; preserve acceptance-005's unresolved timeout evidence (NFR-006/007/008, SC-007).

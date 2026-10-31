@@ -4,6 +4,19 @@ from oeis_learn.generalization.role_contracts import Role, ROLE_INPUTS, ROLE_OUT
 from .identity import confined
 
 
+# Start diagnostics before importing the installed role and its dependencies.
+# Stderr is captured by the existing bounded supervisor and archive collector.
+VALIDATION_BOOTSTRAP = """import sys,faulthandler,time
+print(f'validation: python-start unix={time.time():.6f}',file=sys.stderr,flush=True)
+faulthandler.dump_traceback_later(30,repeat=True)
+try:
+    import runpy
+    runpy.run_module('oeis_learn.pipeline_validation.generalization_role',run_name='__main__')
+finally:
+    faulthandler.cancel_dump_traceback_later()
+"""
+
+
 def mounts(root,role,channels,*,output):
     role=Role(role); declarations=ROLE_INPUTS[role]
     if set(channels)!={m.channel for m in declarations}:
@@ -42,9 +55,13 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
     runtime=dict(settings=settings,operation=operation,seconds=seconds,device='cuda' if gpu else 'cpu')
+    diagnostic=role==Role.PREPARATION and operation=='validate-runtime'
+    argv=(['python','-u','-c',VALIDATION_BOOTSTRAP] if diagnostic else
+          ['python','-m','oeis_learn.pipeline_validation.generalization_role'])
+    argv += [role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)]
     command=host.engine.command(image=image,name=name,
         mounts=[(m['source'],m['destination'],not m['read_only']) for m in declared],
-        argv=['python','-m','oeis_learn.pipeline_validation.generalization_role',role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)],
+        argv=argv,startup_diagnostics=diagnostic,
         gpu=gpu,render_node=host.policy.get('render_node') if gpu else None,
         memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
     cleanup={}

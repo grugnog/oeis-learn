@@ -35,12 +35,18 @@ def preparation(inputs,output,settings,*,seconds):
 
 
 def validate_runtime(inputs,output,settings,*,seconds):
+    import sys
+    def progress(phase):
+        print(f'validation: {phase} unix={time.time():.6f}',file=sys.stderr,flush=True)
+    progress('runtime-plan')
     from .generalization_runtime import validate_execution
     if set(settings)!={'study','runtime'}:raise ValueError('closed runtime validation settings required')
     # This operation mounts only the explicitly verified custodian input closure.
     plan=validate_execution(inputs['mechanical_sources'],settings['study'],settings['runtime'])
+    progress('storage-preflight')
     from .generalization_training import storage_preflight
     plan['storage']=storage_preflight(plan['recipe'],settings['study'],settings['runtime'])
+    progress('complete')
     return dict(status='PASS',plan=plan)
 
 

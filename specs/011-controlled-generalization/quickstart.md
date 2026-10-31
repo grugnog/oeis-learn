@@ -73,6 +73,12 @@ partial/failure evidence when a stage fails. Both normal and recovery archives
 include bounded control diagnostics and `diagnostics/index.json`, so preflight
 timeout records and supervision logs need no separate manual export. The index
 identifies missing, omitted and truncated files; private inputs/state are excluded.
+Runtime validation and image inspection automatically request Podman startup debug
+logs and emit timestamped Python progress on stderr. Validation starts a periodic
+30-second Python stack dump before importing its role; inspection has the same
+watchdog. These diagnostics remain under existing log caps and external deadlines.
+An absent Python-start marker alone does not prove where startup stalled; inspect
+the accompanying engine log. No separate diagnostic command is required.
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
 The existing `study` and `session` commands remain available for independently frozen
