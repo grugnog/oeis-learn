@@ -54,6 +54,8 @@ def verify_initializer(root,study):
         directory=confined(base,ref['path']).parent
         source=validate('study',read(directory,authority['study'])).record()
         descriptor=validate('checkpoint',read(directory,authority['checkpoint'])).record()
+        if descriptor['kind']!='full_state':
+            raise ValueError('legacy weights-only import is not initializer selection evidence')
         selection=read(directory,authority['selection'])
         producer=read(directory,authority['producer'])
         training_ancestry(authority['ancestry'])

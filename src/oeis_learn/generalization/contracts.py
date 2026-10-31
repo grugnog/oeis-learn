@@ -53,6 +53,8 @@ def validate(kind, record):
         raise ValueError('canonical identity mismatch')
     if kind in {'study','preparation'}:
         settings=record if kind=='study' else record['study_settings']
+        if not record['version'].endswith('/v3') and (record['budgets']['target_tokens']<1 or not settings['checkpoints']['milestones']):
+            raise ValueError('legacy authority requires positive learner budgets and milestones')
         p4=(settings.get('progression',{}).get('stage')=='P4' or settings['recipe']=='P4-replay/v1')
         if p4:
             if settings['model']['initialization']=='random':

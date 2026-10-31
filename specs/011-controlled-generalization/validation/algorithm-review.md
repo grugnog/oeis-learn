@@ -293,3 +293,14 @@ cannot become PASS. The new independent counterexample first failed with the
 missing verifier, then passed with complete/partial safe ZIP round trips. This
 extends the Phase-B evidence policy; no scientific estimation algorithm was added
 to routine integration. Research evidence still uses fixed-roster reconciliation.
+
+## Reconstruction policy review — 2026-10-31
+
+Reopened Phase B covers T071–T074: common row/family selection rosters;
+explicit literal retention for unsupported control-dependent targets; study v3
+execution binding and preparation v3 proposed-study binding; isolated stage,
+paired-batch, refresh-mixture and acceptance policies; original uniform weights-only
+provenance and historical pooled-loss checkpoint exposure. Counterexamples were
+run before implementations (4, then 4, then 6 expected failures). The combined
+focused policy/authority selection passes 30 tests. Routine production wiring
+remains T075–T077. This is local policy evidence, not container/HIP qualification.
