@@ -38,8 +38,12 @@ def verify_archive(archive,*,cap=512<<20):
                 raise ValueError('noncanonical evidence payload root')
             record=json.loads(verify_artifact(root,record['evidence']))
             root=confined(root,'payloads')
-        study=json.loads(confined(root,record['study']['path']).read_text())
-        result=verify_bundle(record,expected_study=study['identity'],root=root)
+        if record.get('version')=='generalization-acceptance-archive/v1':
+            from oeis_learn.generalization.acceptance_archive import verify_acceptance
+            result=verify_acceptance(record,root=root)
+        else:
+            study=json.loads(confined(root,record['study']['path']).read_text())
+            result=verify_bundle(record,expected_study=study['identity'],root=root)
         if result['software_status']!=manifest['summary_state']:
             raise ValueError('archive status differs from reconciled generalization evidence')
         return result

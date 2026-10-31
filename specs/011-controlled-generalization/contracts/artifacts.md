@@ -173,3 +173,24 @@ checkpoint's parent. Every ancestor is reverified, with a 32-generation depth ce
 and cyclic/repeated authority rejection. `initializers.verify_initializer` returns
 exact weights/root plus verified lineage; preparation publication invokes it before
 returning a trainable resolved study.
+
+## Reduced acceptance session and archive
+
+A sealed `generalization-acceptance-session/v1` has exactly `version`, `identity`
+and `cases`. The four keys `retained-eval`, `refresh`, `parameter-targets` and
+`replay-resume` each bind `{manifest: ArtifactRef, runtime: ArtifactRef}` relative
+to the session file. All use `purpose: acceptance`, one image/source scope, at
+most one seed, 4,096 target tokens and 900 learner seconds. The failure-packaging
+case uses the refresh case's environment. Each case executes its own frozen
+study; a P1 study is never silently reinterpreted as P3/P4.
+
+`generalization-acceptance-archive/v1` is a sealed software-only inventory with
+`session`, `qualification`, `feature`, `cases`, `inventory`, `software_status`,
+`scientific_status`, `omissions`, and `workflow`. Qualification is the original
+v2 authority reference; cases reference original stage receipts. `feature` is
+null unless every case and the serial workflow succeeded. `workflow` is an
+optional reference to the sealed pre-packaging serial ledger. Verification checks
+all original closures, every available PASS case's obligations, missing cases,
+serial failures and archive hashes. Scientific status is always `UNMEASURED`;
+this format cannot represent research yields. It uses the same safe outer ZIP
+and `generalization-archive/v1` payload wrapper as recorded research evidence.

@@ -20,13 +20,13 @@ OBLIGATIONS=MappingProxyType({
 CAP=512<<20
 
 
-def _verify_feature(feature,*,qualification,root):
+def _verify_feature(feature,*,qualification,root,complete=True):
     """Verify the closed feature authority, original stages and complete public closure."""
     validate(feature,{'version','status','qualification','cases'},'generalization-feature-acceptance/v2')
     if feature['status']!='PASS' or feature['qualification']!=qualification:
         raise ValueError('feature acceptance qualification/status mismatch')
     cases=feature['cases']
-    if not isinstance(cases,dict) or set(cases)!=set(OBLIGATIONS):raise ValueError('complete feature case references required')
+    if not isinstance(cases,dict) or set(cases)-set(OBLIGATIONS) or complete and set(cases)!=set(OBLIGATIONS):raise ValueError('complete feature case references required')
     seen={};cache={};used=0
     def read(ref):
         nonlocal used
@@ -48,7 +48,8 @@ def _verify_feature(feature,*,qualification,root):
         if not isinstance(value,dict):raise ValueError('case document required')
         return value
     identities=set()
-    for name,(checks,labels) in OBLIGATIONS.items():
+    for name in cases:
+        checks,labels=OBLIGATIONS[name]
         ref=cases[name];stage=document(ref)
         required={'version','identity','stage','attempt','binding','state','reason','files'}
         optional={'observations','prerequisites','command','counts','cleanup','prerequisite_equivalence'}
@@ -96,6 +97,12 @@ def _verify_feature(feature,*,qualification,root):
 
 def verify_feature(feature,*,qualification,root):
     return _verify_feature(feature,qualification=qualification,root=root)[0]
+
+
+def verify_cases(cases,*,qualification,root):
+    """Verify a subset of original PASS cases without qualifying the feature."""
+    feature=seal(dict(version='generalization-feature-acceptance/v2',status='PASS',qualification=qualification,cases=cases))
+    return _verify_feature(feature,qualification=qualification,root=root,complete=False)[1]
 
 
 def feature_artifacts(feature,*,qualification,root):

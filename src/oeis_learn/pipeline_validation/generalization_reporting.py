@@ -46,6 +46,24 @@ def package_evidence(root,record,*,output):
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh report output required')
     study=json.loads(verify_artifact(root,record['study']))
     verdict=verify_bundle(record,expected_study=study['identity'],root=root)
+    return _package_verified(root,record,verdict,output=output)
+
+
+def package_acceptance(root,record,*,output):
+    from oeis_learn.generalization.acceptance_archive import verify_acceptance
+    return _package_verified(root,record,verify_acceptance(record,root=root),output=output)
+
+
+def _package_verified(root,record,verdict,*,output):
+    from pathlib import Path
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.generalization.bundles import CAP
+    from .bundle import pack,public
+    from .identity import confined
+    from .generalization_preparation import reference
+    from .generalization_archive import verify_archive
+    root=Path(root);output=Path(output)
+    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh report output required')
     # All mandatory payloads must be shareable; never silently omit sealed truth.
     if any(not public(Path(ref['path'])) for ref in record['inventory']):
         raise ValueError('private or unsupported evidence inventory member')

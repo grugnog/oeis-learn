@@ -270,3 +270,14 @@ or treats a standalone weight hash as lineage proof. T011/T044 are restored.
 The combined local non-HIP selection passes **262 tests plus 9 subtests**, with one
 marked GPU test deselected. No native-container or HIP qualification is claimed.
 C/D implementation continues under the user's explicit instruction.
+
+### Acceptance closure extension — 2026-10-30 (America/Los_Angeles)
+
+The existing feature acceptance policy now exposes verification of a subset of
+original PASS cases without granting feature qualification. A software-only
+acceptance archive delegates to that policy and original qualification validation;
+missing cases, stale aggregate status, tampering and partial workflow failures
+cannot become PASS. The new independent counterexample first failed with the
+missing verifier, then passed with complete/partial safe ZIP round trips. This
+extends the Phase-B evidence policy; no scientific estimation algorithm was added
+to routine integration. Research evidence still uses fixed-roster reconciliation.
