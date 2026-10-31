@@ -46,7 +46,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
         result=assemble_study(workspace,config,str((target/name).relative_to(workspace)));results[name]=result['manifest'];return result
     e0=assemble('retained-eval',cfg);e0study=_json(workspace/e0['manifest'])
     cfg.update(stage='P1-screen',recipe=put('fresh-fixture-recipe.json',small_recipe(recipes[0])),cells=[static,fresh,*copy.deepcopy(shared)],evaluation=None)
-    cfg['budgets']['target_tokens']=256;cfg['milestones']=[128,256]
+    cfg['budgets']['target_tokens']=512;cfg['milestones']=[256,512]
     cfg['storage'].update(study_bytes=3<<30,checkpoint_bytes=2<<30)
     cfg['training']={'static':dict(cells=['static'],data_mode='static',batch_size=4),'refreshed':dict(cells=['static','fresh'],data_mode='refresh',batch_size=4)}
     assemble('refresh',cfg)
@@ -56,7 +56,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
         evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=30,bank_seeds=None),
         replay=dict(cell='static',seconds=30,proposal_policy=DIAGNOSTIC))
     cfg['storage'].update(study_bytes=30<<30,checkpoint_bytes=26<<30)
-    cfg['milestones']=[256]
+    cfg['milestones']=[512]
     assemble('replay-resume',cfg)
     session=assemble_session(workspace,results,str((target/'generalization-acceptance.json').relative_to(workspace)))
     result=seal(dict(version='generalization-acceptance-setup/v1',status='ASSEMBLED',session=session,images=images,source_closure=reference(workspace/source,workspace),

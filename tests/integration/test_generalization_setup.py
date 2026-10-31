@@ -30,6 +30,11 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
         assert got['status']=='PASS',got
         s,r=publish_runtime(base,destination,study,runtime);plan=validate_execution(destination,s,r)
         if name=='parameter-targets':assert plan['target_pairs_parameterized']==4
+        if name=='refresh':
+            from oeis_learn.generalization.contracts import verify_artifact
+            from oeis_learn.generalization.budgets import charge_tokens
+            rows=[row for ref in r['training']['refreshed']['shards'] for row in json.loads(verify_artifact(destination,ref))]
+            assert charge_tokens([x['tokens'] for x in rows[:8]],bos=1,pad=0)<=s['budgets']['target_tokens']
         if name=='replay-resume':
             assert plan['initializer'] is None
             with pytest.raises(ValueError,match='unresolved'):learner_config(s,r,plan['recipe'],'continued_sft',s['seeds'][0])
@@ -88,3 +93,25 @@ def test_new_selection_resolves_only_its_original_session_dependency(tmp_path,mo
     changed=dict(stage,session=digest('other-session'));write(case.parent/'result.json',seal(changed),exclusive=False)
     with pytest.raises(ValueError,match='dependency'):
         resolve(tmp_path,tmp_path/'run/bad',*resolved['replay-resume'],session=session,children=children,prepared=prepared,qualification=qualification)
+
+
+def test_setup_cli_uses_only_stdlib_and_inspects_both_image_tags(tmp_path):
+    from tests.integration.test_generalization_inputs import legacy_inputs,import_uniform
+    import os,subprocess,sys
+    from pathlib import Path
+    legacy_inputs(tmp_path);import_uniform(tmp_path,bundle='run.zip',metadata='metadata.zip',weights='train',output='imported')
+    code='''from oeis_learn import container_runtime
+from oeis_learn.experiments import source_snapshot
+from oeis_learn.pipeline_validation.generalization_inputs import main
+class Engine:
+ def __init__(self,name): assert name=='podman'
+ def image(self,tag): return {'cpu-tag':'sha256:'+'1'*64,'gpu-tag':'sha256:'+'2'*64}[tag]
+container_runtime.Engine=Engine
+source_snapshot.collect_snapshot=lambda root: {'version':'fixture-snapshot'}
+raise SystemExit(main(['acceptance','--engine','podman','--imported','imported','--cpu-image','cpu-tag','--gpu-image','gpu-tag','--output','assembled'],workspace='''+repr(str(tmp_path))+'))'
+    env=dict(os.environ,PYTHONPATH=str(Path('src').resolve()))
+    result=subprocess.run([sys.executable,'-S','-c',code],env=env,text=True,capture_output=True)
+    assert result.returncode==0,result.stderr
+    report=json.loads(result.stdout)
+    assert report['status']=='ASSEMBLED' and report['qualification']=='NOT_RUN'
+    assert report['images']==['sha256:'+'1'*64,'sha256:'+'2'*64]

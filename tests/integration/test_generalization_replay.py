@@ -242,3 +242,31 @@ def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,
     assert all(e['result']['selection']['measurements'][0]['behavior']['structural'][1]['structural'] is False for e in run['current_policies'])
     assert calls.count(('learner','train'))==4
     assert all(p['changed'] and p['finite'] for p in run['resume']['runs'])
+
+
+def test_isolated_diagnostic_is_charged_native_audited_and_never_model_yield(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.generalization_replay import search_isolated
+    from oeis_learn.pipeline_validation import generalization_roles
+    from oeis_learn.generalization.acceptance_inputs import DIAGNOSTIC
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.generalization_replay import admission
+    import json
+    (tmp_path/'weights.pt').write_bytes(b'identified fixture weights')
+    weight=reference(tmp_path/'weights.pt',tmp_path);calls=[]
+    def invoke(host,image,workspace,role,artifacts,**kw):
+        calls.append((role,kw['operation']))
+        assert role=='learner' and kw['operation']=='replay-audit'
+        settings=kw['settings'];roots=kw['source_roots']
+        t=json.loads(verify_artifact(roots['training_targets'],settings['task']))
+        candidate=json.loads(verify_artifact(roots['verified_training_replay'],settings['candidate']))
+        entry=admission(t,candidate,client=NativeFixture(),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+10)
+        return dict(status='PASS',entry=entry.record())
+    monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
+    pool,report=search_isolated(None,tmp_path,tmp_path/'search',images=['cpu','gpu'],weights_root=tmp_path,checkpoint=weight,tasks=[task()],recipe={},study='fixture',seed=7,seconds=30,purpose='acceptance',proposal_policy=DIAGNOSTIC)
+    assert len(pool.entries)==1 and report['search_ledger'][0][1]==1
+    assert report['plan']['model_discoveries']==0 and report['plan']['proposal_origin']==DIAGNOSTIC
+    assert calls==[('learner','replay-audit')]
+    with pytest.raises(ValueError,match='research'):
+        search_isolated(None,tmp_path,tmp_path/'forbidden',images=['cpu','gpu'],weights_root=tmp_path,checkpoint=weight,tasks=[task()],recipe={},study='fixture',seed=7,seconds=30,purpose='research',proposal_policy=DIAGNOSTIC)
+    assert not (tmp_path/'forbidden').exists()
