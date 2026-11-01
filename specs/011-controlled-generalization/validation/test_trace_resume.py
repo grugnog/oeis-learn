@@ -383,3 +383,18 @@ def test_isolated_linear_capture_uses_target_and_retains_private_operands(tmp_pa
     assert set(operands)=={'input','weight','bias','output'}
     assert list(operands['input'].shape)==[2,3,4]
     assert not any(m._forward_hooks for m in a.modules())
+
+
+
+def test_no_lt_policy_sets_addmm_bypass_before_backend_selection(monkeypatch):
+    import os,torch
+    calls=[]
+    def preferred(value=None):
+        calls.append((value,os.environ.get('DISABLE_ADDMM_CUDA_LT'),os.environ.get('TORCH_BLAS_PREFER_HIPBLASLT')))
+        return 'BlasBackend.Cublas'
+    monkeypatch.setattr(torch.backends.cuda,'preferred_blas_library',preferred)
+    for key in ('DISABLE_ADDMM_CUDA_LT','TORCH_BLAS_PREFER_HIPBLASLT','ROCBLAS_USE_HIPBLASLT','ROCBLAS_DEFAULT_ATOMICS_MODE','HIPBLASLT_LOG_MASK'):
+        monkeypatch.delenv(key,raising=False)
+    helper.configure_policy('no-lt')
+    assert calls==[('cublas','1','0'),(None,'1','0')]
+    assert os.environ['ROCBLAS_USE_HIPBLASLT']=='0' and os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE']=='0'

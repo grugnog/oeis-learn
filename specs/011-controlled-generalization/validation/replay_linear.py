@@ -57,10 +57,9 @@ def command(host,image,helper,inputs,output,name,policy,expected):
 def worker(policy,expected):
     import os,hashlib
     if policy not in POLICIES:raise ValueError('closed replay policy required')
-    if policy=='no-lt':os.environ.update(DISABLE_ADDMM_CUDA_LT='1',TORCH_BLAS_PREFER_HIPBLASLT='0')
     # Configuration precedes any Torch import/BLAS handle creation.
     from trace_resume import configure_policy,probe_linear
-    if policy!='observe':configure_policy('rocblas')
+    if policy!='observe':configure_policy(policy)
     import torch
     from oeis_learn.pipeline_validation.sizing_execution import execution_context,execution_observation
     from diagnose_hip import save

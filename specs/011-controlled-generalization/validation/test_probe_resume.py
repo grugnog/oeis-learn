@@ -248,25 +248,26 @@ def test_boundary_comparison_discloses_missing_branch_and_rejects_corruption(tmp
 
 
 
-def test_fresh_policy_propagates_and_wraps_training_only(tmp_path,monkeypatch):
+@pytest.mark.parametrize('policy',['rocblas','no-lt'])
+def test_fresh_policy_propagates_and_wraps_training_only(tmp_path,monkeypatch,policy):
     from contextlib import contextmanager
     monkeypatch.syspath_prepend(str(HERE))
     import trace_resume,diagnose_hip
-    args=SimpleNamespace(engine='podman',run='old',output='out',start='fresh',policy='rocblas',internal='continue-a')
-    assert all(s['argv'][-2:]==['--policy','rocblas'] for s in helper.plan(args))
+    args=SimpleNamespace(engine='podman',run='old',output='out',start='fresh',policy=policy,internal='continue-a')
+    assert all(s['argv'][-2:]==['--policy',policy] for s in helper.plan(args))
     monkeypatch.setattr(helper,'ROOT',tmp_path)
     monkeypatch.setattr(helper,'load_context',lambda _:dict(start='fresh'))
     monkeypatch.setattr(diagnose_hip,'host_for',lambda _:object())
     active=[]
     @contextmanager
-    def instrument(policy,*,tracing):
-        assert policy=='rocblas' and tracing is False
+    def instrument(requested,*,tracing):
+        assert requested==policy and tracing is False
         active.append(True)
         try:yield
         finally:active.pop()
     monkeypatch.setattr(trace_resume,'instrument',instrument)
     def train(name,context,host,output):
-        assert active and context['policy']=='rocblas';return dict(status='PASS')
+        assert active and context['policy']==policy;return dict(status='PASS')
     monkeypatch.setattr(helper,'train_branch',train)
     result=helper.internal(args)
-    assert result['requested_policy']=='rocblas' and not active
+    assert result['requested_policy']==policy and not active

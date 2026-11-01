@@ -77,7 +77,27 @@ stable but round differently. Controls still differ and capture changes an endpo
 so the original divergence is not reproduced in the isolated loop. T126 replays
 saved operands across fresh GPU processes with zero model/training work.
 
+Latest evidence, 2026-11-01 Pacific: processes-001 verifies. Identical captured
+operands produce varying native/flattened Linear hashes across fresh processes
+under original and earlier rocBLAS settings; hipBLASLt solution indices vary.
+The explicit no-Lt arm and separate-bias variants match across all three processes.
+This is a reproduced operation-level distinction, with a candidate full-path
+mitigation. T127 requests no-Lt in the untraced fresh matrix; T064–T067 remain open.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T127 Reconcile processes-001's cross-process Linear reproduction and
+  stable no-Lt arm. Share explicit addmm-Lt bypass configuration with the existing
+  uninstrumented fresh matrix, preserve earlier policy semantics and accurate
+  intervention labels, test pre-import setup and stage propagation, and publish
+  one fresh full/resume command. No production promotion before measured validation.
+
+T127 validation:101 local helper tests pass after the intended unsupported-policy
+failure. Tests verify addmm bypass variables before backend selection, untraced
+fresh stage propagation/routing, earlier policy compatibility and effect labeling.
+No production inventory changed; no local HIP or CI wait. Full fresh repeat/resume
+under this explicit policy is the remaining operator measurement.
+
 
 - [X] T126 Reconcile linear-001's stable isolated evaluations and add a temporary
   stdlib-host saved-operand replay runner: verify private capture hashes before

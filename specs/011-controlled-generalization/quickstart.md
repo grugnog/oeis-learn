@@ -7,7 +7,46 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: replay saved operands across fresh processes
+### Current next step: untraced fresh validation with explicit addmm bypass
+
+Processes-001 reproduced native Linear variation across fresh GPU processes with
+identical operands. Original and earlier rocBLAS settings still logged hipBLASLt
+calls and varying solution indices. All three explicit no-Lt processes agreed,
+including every formulation. Test that specific bypass in the full learner path:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/probe_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --start fresh \
+    --policy no-lt \
+    --output run-state/generalization/resume-no-lt-fresh-001
+)
+```
+
+Upload `run-state/generalization/resume-no-lt-fresh-001.zip`, pass or fail. Keep
+`diagnostic-001` intact. Nine updates across two independent fresh uninterrupted
+runs, a fresh update1 pause, and its continuation. Every learner call requests
+`DISABLE_ADDMM_CUDA_LT=1`, `TORCH_BLAS_PREFER_HIPBLASLT=0`, the previous rocBLAS
+handle defaults and accepted hipBLAS preference before BLAS initialization. This
+is the explicit bypass tested in processes-001, not merely a library preference.
+Bounded hipBLASLt logging is enabled for diagnostic provenance.
+
+No tensor observers or readbacks are installed during training; CPU comparison
+runs after learning. Canonical compatibility still gates the original image/data,
+not qualification of the experimental numerical configuration. `repeat_equal` and
+`split_equal` must both be true in exact comparison before considering production
+promotion. Historical endpoint hashes may legitimately differ under another
+numerical path; they are context, not a replacement criterion. One clean operand
+experiment does not establish full training reproducibility. No rebuild, broad test
+suite, search or evaluation is needed. Stage ceilings remain67 minutes, measured
+fresh-matrix times so far roughly3–5 minutes. T064–T067 remain open.
+
+### Completed diagnostic: saved operands across fresh processes
 
 Linear-001's isolated loops were stable: native/flattened Linear match the captured
 output, while separate-bias formulations round differently but are stable. The full

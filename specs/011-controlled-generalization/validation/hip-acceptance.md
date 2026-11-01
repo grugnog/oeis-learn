@@ -1042,3 +1042,46 @@ hipBLASLt bench logs are retained; no per-kernel route guarantee is claimed.
 constructors, cleanup failure and exclusion of private tensors from failure archives.
 No local HIP ran and CI was not awaited. Cross-process operation replay remains
 an operator measurement; T064–T067 stay open.
+
+
+## Linear-processes-001: cross-process variation isolated to the fused Linear route
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`f8811f7540779f8c1f25ae4f7a5ebd53e08f3b4e934357c1ce626d86f9a7e088`.
+All38 inventoried payloads plus manifest verify, no omissions; all four helper
+hashes matchdcd958d. All nine processes PASS with acknowledged cleanup. Their
+measured process times sum13.944s; this is not total wrapper elapsed time.
+Image/operand hashes are unchanged; actual architecture is gfx1151.
+
+| Configuration | Native/flattened Linear across3 processes | Separate-bias formulations |
+| --- | --- | --- |
+| Original settings | Two distinct hashes | One stable hash |
+| Earlier rocBLAS settings | Two distinct hashes | Same stable hash |
+| Explicit addmm-Lt bypass | One stable hash | Same stable hash |
+
+Each process is internally stable over all tested repeats/offsets. Original native
+Linear process1 outputs hash19366a5c, processes2/3 hash6b30be16. Earlier rocBLAS
+outputs6b30be16/19366a5c/6b30be16. Each corresponding full captured stderr log
+(16–17 KiB, below the64 KiB export bound) contains32 hipBLASLt bench lines. Solution
+indices are respectively7601/7602/7602 and7600/7601/7600. The same logical shape,
+operand hashes, preference and deterministic settings accompany different solution
+selections and output families. This is direct operation-level reproduction; it
+does not prove every model discrepancy has the same cause.
+
+Every explicit no-Lt process has all variant output hashes149de9d6, matching the
+separate-bias result across all configurations. Their logs are294 bytes and contain
+no hipBLASLt bench lines, with the requested bypass flags recorded. Absence of logs
+alone is not a route proof, but the combined request/log/output evidence supports
+this bypass as a candidate mitigation for the measured operation. All maxima vs
+CPU FP64 retain their numerical-comparison scope; no tolerance is inferred.
+
+T127 shares the exact no-Lt configuration with the existing uninstrumented fresh
+matrix. It sets DISABLE_ADDMM_CUDA_LT=1 and TORCH_BLAS_PREFER_HIPBLASLT=0 before
+Torch/BLAS initialization, alongside rocBLAS defaults and accepted preference,
+and records both flags. Every full/pause/resume learner receives the same request.
+The earlier rocBLAS policy remains distinct for historical interpretation. Labels
+identify policy effects rather than observer effects.101 local helper tests pass
+after the intended unsupported-policy counterexample. No production inventory
+changed, no local HIP ran and CI was not awaited. The operation-level success must
+be checked by fresh full/resume equality before production promotion; T064–T067
+remain open.

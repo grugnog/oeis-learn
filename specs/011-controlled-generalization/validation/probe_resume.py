@@ -280,7 +280,7 @@ def main(argv=None):
     parser.add_argument('--run',required=True)
     parser.add_argument('--output',required=True)
     parser.add_argument('--start',choices=['paused','fresh'],default='paused')
-    parser.add_argument('--policy',choices=['observe','rocblas'],default='observe')
+    parser.add_argument('--policy',choices=['observe','rocblas','no-lt'],default='observe')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--internal',choices=['compatibility',*BRANCHES,'compare'],help=argparse.SUPPRESS)
     args=parser.parse_args(argv)

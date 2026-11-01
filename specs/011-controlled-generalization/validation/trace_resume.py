@@ -15,10 +15,12 @@ RUNS=('old-control','new-control','old-traced','new-traced')
 def configure_policy(policy):
     """Experimental intervention confined to traced diagnostic learner processes."""
     if policy=='observe':return
-    if policy!='rocblas':raise ValueError('unregistered diagnostic policy')
+    if policy not in {'rocblas','no-lt'}:raise ValueError('unregistered diagnostic policy')
     import os
     # Set handle-creation defaults before importing Torch or creating BLAS handles.
     os.environ.update(ROCBLAS_USE_HIPBLASLT='0',ROCBLAS_DEFAULT_ATOMICS_MODE='0')
+    if policy=='no-lt':
+        os.environ.update(DISABLE_ADDMM_CUDA_LT='1',TORCH_BLAS_PREFER_HIPBLASLT='0',HIPBLASLT_LOG_MASK='32')
     import torch
     torch.backends.cuda.preferred_blas_library('cublas')
     if str(torch.backends.cuda.preferred_blas_library()).split('.')[-1].lower()!='cublas':
@@ -26,7 +28,9 @@ def configure_policy(policy):
     import json,sys
     print('diagnostic-blas-policy: '+json.dumps(dict(policy=policy,blas_preference='cublas',
         ROCBLAS_USE_HIPBLASLT=os.environ['ROCBLAS_USE_HIPBLASLT'],
-        ROCBLAS_DEFAULT_ATOMICS_MODE=os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE'])),file=sys.stderr,flush=True)
+        ROCBLAS_DEFAULT_ATOMICS_MODE=os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE'],
+        DISABLE_ADDMM_CUDA_LT=os.environ.get('DISABLE_ADDMM_CUDA_LT'),
+        TORCH_BLAS_PREFER_HIPBLASLT=os.environ.get('TORCH_BLAS_PREFER_HIPBLASLT'))),file=sys.stderr,flush=True)
 
 
 def capture_value(value,budget):
@@ -142,7 +146,8 @@ def install_trace(path,policy='observe',layers=False,defer_layers=False,linear_p
             device_name=torch.cuda.get_device_name() if device=='cuda' else 'cpu',
             execution=execution_observation(),threads=torch.get_num_threads(),
             environment={k:os.environ.get(k) for k in ('PYTHONHASHSEED','CUBLAS_WORKSPACE_CONFIG',
-                'HIPBLAS_WORKSPACE_CONFIG','ROCBLAS_DEFAULT_ATOMICS_MODE','ROCBLAS_USE_HIPBLASLT')})
+                'HIPBLAS_WORKSPACE_CONFIG','ROCBLAS_DEFAULT_ATOMICS_MODE','ROCBLAS_USE_HIPBLASLT',
+                'DISABLE_ADDMM_CUDA_LT','TORCH_BLAS_PREFER_HIPBLASLT')})
         ordinal=0
         def snapshot():
             return dict(weights=fingerprint(dict(encoder=encoder.state_dict(),decoder=decoder.state_dict())),
@@ -227,7 +232,7 @@ def instrument(policy='observe',*,tracing=True,layers=False,defer_layers=False,l
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
-    if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
+    if policy not in {'observe','rocblas','no-lt'}:raise ValueError('unregistered diagnostic policy')
     observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r},defer_layers={defer_layers!r},linear_probe={linear_probe!r})\n" if tracing else ''
     roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+
         (inspect.getsource(capture_value)+'\n'+inspect.getsource(probe_linear)+'\n'+inspect.getsource(install_trace) if tracing else '')+
@@ -347,12 +352,13 @@ def comparison_container(saved=Path('/saved'),output=Path('/output'),trace_path=
     difference=first_difference(traces['old-traced'][1:],traces['new-traced'][1:]) if all(n in traces for n in ('old-traced','new-traced')) else None
     def equal(a,b):return comparisons.get(a+':'+b,{}).get('equal')
     policies={r[0].get('diagnostic_policy','observe') for r in traces.values() if r}
-    intervention='rocblas' in policies
+    intervention=bool(policies-{'observe'})
+    reported_policy=next(iter(policies)) if len(policies)==1 else 'mixed_or_unavailable'
     save(output/'comparison.json',dict(status='PASS',feature_qualified=False,scientific_status='UNMEASURED',
         starting_completed_updates=1,trace_update_numbers='continuation ordinals: 1 is overall update 2',
         complete=complete,missing=missing,checkpoints=refs,comparisons=comparisons,traces=traces,
         control_equal=equal('old-control','new-control'),traced_equal=equal('old-traced','new-traced'),
-        diagnostic_policy='rocblas' if intervention else 'observe',
+        diagnostic_policy=reported_policy,
         observer_effect=None if intervention else dict(old_equal=equal('old-control','old-traced'),new_equal=equal('new-control','new-traced')),
         intervention_effect=dict(old_equal=equal('old-control','old-traced'),new_equal=equal('new-control','new-traced')) if intervention else None,
         first_trace_difference=difference,
@@ -393,7 +399,7 @@ def main(argv=None):
     p.add_argument('--engine',choices=['docker','podman'],required=True)
     p.add_argument('--run',required=True);p.add_argument('--matrix',required=True);p.add_argument('--output',required=True)
     p.add_argument('--dry-run',action='store_true')
-    p.add_argument('--policy',choices=['observe','rocblas'],default='observe')
+    p.add_argument('--policy',choices=['observe','rocblas','no-lt'],default='observe')
     p.add_argument('--layers',action='store_true',help='Hash module inputs/outputs in the first traced forward')
     p.add_argument('--defer-layers',action='store_true',help='Capture device tensors and read only after the whole forward')
     p.add_argument('--linear-probe',action='store_true',help='Probe and privately retain the isolated target Linear operands')
