@@ -557,3 +557,44 @@ includes real host subprocess supervision and command-construction checks for
 both engines; it is not a Docker/Podman/native/HIP execution result. Tests observed
 and repaired invalid single-file mounting and a malformed native contract hash
 before operator execution. No CI completion was awaited.
+
+## Diagnostic-001: final resume comparison reached
+
+ZIP SHA256: `1d5dc65ecbe0737fa77c5fda5052f9fdada191bc63936eaeddc62dea7243be33`;
+375 members. The archive's mandatory inventory and hashes independently verify.
+Its summary FAIL is the diagnostic outcome, not an integrity failure. No canonical
+feature qualification is claimed. Stage durations total726.993 seconds (12.1min).
+
+| Selected operation | Seconds | Observed outcome |
+| --- | ---: | --- |
+| Original qualification compatibility | 2.57 | PASS |
+| Native admission/restore probe | 1.56 | PASS;1 admitted, exact restore |
+| Small HIP full-state resume | 8.95 | PASS;2 updates, exact resume |
+| Traced retained reproduction | 108.86 | PASS |
+| Refresh | 19.19 | PASS |
+| Parameter targets | 19.05 | PASS |
+| Failure packaging | 3.37 | PASS |
+| Canonical retained evaluation | 112.96 | PASS |
+| Replay/resume | 450.49 | FAIL at exact full-state comparison |
+
+Underlying role controls show paired learners PASS in66.89/85.41s; post-training
+generators PASS in69.67/65.22s with successful selection roles; paired finite-update
+proof PASS; intentional paused learner PARTIAL; resumed learner PASS in93.17s.
+The resume-proof role fails with `resumed state differs from uninterrupted state`
+after6.21s. No unacknowledged cleanup was reported. This exercises the earlier
+timeout repairs through evaluation and reaches the final state comparison.
+
+The previous NonQuiescentWorker failure did not recur in either retained evaluation.
+That does not establish it is fixed. Trace logs are bounded excerpts, so unmatched
+start/end counts cannot establish a missing operation. The uploaded archive lacks
+the private checkpoint components needed to locate the new mismatch. Do not infer
+numerical nondeterminism, a replay cursor defect or a harmless RNG difference from
+the generic error, and do not relax exact comparison.
+
+T115 supplies a temporary read-only CPU inspector for the existing local states.
+It reports per-component equality and bounded tensor statistics without exporting
+private values or modifying production code.32 local tests pass, including real
+serialized-state comparison, corruption rejection, scoped path discovery and
+Docker/Podman command construction. No actual container/HIP work ran locally;
+the production source inventory still exactly matches acceptance-015. Final
+T064–T067 gates remain open, and a production repair awaits the inspection result.

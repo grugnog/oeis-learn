@@ -7,6 +7,41 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
+### Current next step: inspect diagnostic-001's saved state on CPU
+
+Diagnostic-001 completed all selected probes/cases except exact replay resume
+equality. Do not repeat training to obtain the missing comparison detail. Keep
+the original diagnostic-001 directory and its private checkpoints, then run:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/inspect_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --output run-state/generalization/resume-inspection-001
+)
+```
+
+Upload `run-state/generalization/resume-inspection-001.zip`. This uses the existing
+immutable learner image with no GPU devices, no network and read-only mounts of
+the three saved learner directories. It loads trusted local full-state artifacts
+after hash validation; do not point it at untrusted checkpoints. No build,
+qualification suite, model update or evaluation is run. The container has a
+five-minute total work/cleanup envelope; this is a ceiling, not a measured duration.
+
+The report separates weights, optimizer, RNG, data cursor/pending batch, replay
+and token-ledger equality. Tensor differences report counts and maximum finite
+absolute difference, never tensor values. Initial weight comparisons distinguish
+initializer differences from later divergence. Wall-time accounting is recorded
+but excluded from the equality verdict, matching the canonical proof's scope.
+No tolerance is introduced. Report status PASS means inspection completed;
+`comparison_equal` is the equality result. Feature qualification remains false.
+
+### General selective diagnostic command
+
 Use the temporary helper below before another complete acceptance session. It
 consumes the existing acceptance-015 qualification and prepared inputs, checks
 their compatibility, and does not rebuild images or rerun the broad suites.

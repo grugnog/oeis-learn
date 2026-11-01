@@ -19,6 +19,21 @@ does not close the final hardware gates or change production acceptance rules.
 
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
+- [X] T115 Add `validation/inspect_resume.py` and colocated tests to inspect
+  diagnostic-001's existing full/paused/resumed checkpoints in an isolated CPU
+  container. Report exact per-component mismatches and bounded tensor difference
+  statistics, without exporting tensors, weakening equality, changing installed
+  code or rerunning training. Record diagnostic-001's verified progress and retain
+  T064–T067 as open. The uploaded archive lacks private state, so a production
+  correction must wait for component-level evidence rather than guess a cause.
+
+T115 local validation:32 temporary-helper tests passed, including actual serialized
+state comparison, corruption rejection and both engines' read-only CPU command
+construction. The source inventory remains identical to acceptance-015. Diagnostic-001
+passed every selected item except exact retained-model replay resume equality;
+all stages totaled726.993s. Component-level private state is absent from the ZIP,
+so identifying and fixing the mismatch remains blocked on the saved-state inspection.
+
 - [X] T114 Implement and test `validation/diagnose_hip.py` and colocated
   `validation/test_diagnose_hip.py`: exact existing qualification/prepared-input
   consumption, selectable independent canonical cases, tiny real native and HIP
