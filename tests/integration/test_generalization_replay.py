@@ -214,7 +214,8 @@ def test_isolated_search_projects_only_visible_inputs_and_persists_reservation(t
 
 
 @pytest.mark.parametrize('admitted',[True,False])
-def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,monkeypatch,admitted):
+@pytest.mark.parametrize('fault',[None,'evaluate','paired-proof','resumed','resume-proof'])
+def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,monkeypatch,admitted,fault):
     import copy,json
     import torch
     from tests.integration.test_generalization_runtime import fixture
@@ -259,11 +260,14 @@ def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,
         def __enter__(self):return self
         def __exit__(self,*a):pass
     monkeypatch.setattr(native_module,'SynthesisClient',Native)
+    from pathlib import Path
     calls=[]
     def invoke(host,image,workspace,name,artifacts,**kw):
         Native.active_image=image
         settings=copy.deepcopy(kw['settings']);operation=kw['operation'];calls.append((name,operation))
         out=workspace/kw['output']/'role';out.mkdir(parents=True)
+        if fault is not None and (fault=='evaluate' and operation=='evaluate' or fault in Path(kw['output']).parts):
+            return dict(status='FAIL',reason='injected post-training '+fault)
         if operation=='replay-propose':
             if not admitted:return dict(status='PARTIAL',reason='fixture_no_candidate')
             source='(program (return (int 0)))'
@@ -285,7 +289,14 @@ def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,
                 roots[channel]=destination
         return role.HANDLERS[(Role(name),operation)](roots,out,settings,seconds=kw['seconds'])
     for module in (roles,commands,workflow,acceptance):monkeypatch.setattr(module,'project_and_invoke',invoke)
+    if fault in {'paired-proof','resumed'}:
+        with pytest.raises(ValueError,match='proof required|resume incomplete'):
+            workflow.replay(None,tmp_path,tmp_path/'round',tmp_path,study,runtime,plan,acceptance_resume=True)
+        return
     result=workflow.replay(None,tmp_path,tmp_path/'round',tmp_path,study,runtime,plan,acceptance_resume=True)
+    if fault is not None:
+        assert result['status']=='FAIL'
+        return
     assert result['status']=='PASS' and result['rounds']==1
     run=result['runs'][0]
     assert run['cumulative_discoveries']==int(admitted) and run['resume']['resume_equal'] is True

@@ -1,5 +1,12 @@
 # HIP failure-class audit
 
+Implementation update, 2026-11-01 UTC: T103–T109 are now implemented and locally
+validated; see [operational repairs](operational-repairs.md). Acceptance-011 was
+subsequently made available and inspected; see [HIP evidence](hip-acceptance.md).
+The original audit below records the evidence and open tasks at audit time. Its
+statements that 011 was unavailable and the repairs were open are historical.
+Fresh hardware qualification remains pending for the changed source.
+
 Audit date: 2026-11-01 UTC. Audited source: remote commit
 `f2fd4f454d8f8f3d6d12ed9692b851c0ad42b4d0` (T102; same source tree as local
 `e77b5a6`). This is an audit and remediation backlog, **not a repair or hardware

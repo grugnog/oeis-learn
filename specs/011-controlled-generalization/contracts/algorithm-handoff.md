@@ -105,3 +105,17 @@ Never substitute runtime initializer settings or project ancestor selection trut
 into those roles. `resolve_study` invokes the policy before publication. Both P4
 arms consume the same verified initializer; full-state resume keeps its existing
 exact compatibility check. Contracts/artifacts.md specifies the local reference roots.
+
+## Operational audit policy closure — T103–T109
+
+The reopened Phase-B group owns watchdog signal lifetime (T103), validated final
+workflow/verifier completion (T104), conservative enclosing-time and cleanup
+partitioning (T106), and peak-live checkpoint reservations (T108). These policies
+and their independent delayed-operation/metadata/finalization counterexamples
+precede routine diagnostic and runtime-environment integration (T105/T107).
+T109's combined validation exposed the final verifier terminal-record ambiguity;
+that contract defect was repaired through T104, not hidden in a fixture adapter.
+See [operational repairs](../validation/operational-repairs.md) for local evidence.
+No scientific sampling, selection, replay admission or research budget changed.
+The sole remaining representative hardware validation stays in the consolidated
+operator workflow; local completion does not establish HIP qualification.

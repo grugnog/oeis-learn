@@ -8,30 +8,35 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
-## Current status — 2026-10-31
+## Current status — 2026-11-01 UTC
 
-Reconstruction T071–T079 and launch completion T080–T084 are complete within
-the available local environment. Setup now constructs the reduced session from the
-verified uniform import and inspected images; the serial session performs a new
-retained selection and publishes its initializer before replay/resume.
+T001–T063, T068–T102 and the audit repairs T103–T109 are implemented for their
+recorded scopes. T103–T109 cover watchdog lifetime, final workflow publication,
+bounded diagnostics, deadline accounting, private runtime configuration, full
+checkpoint storage reservations and combined regression coverage. Changes are
+published to the existing `011-controlled-generalization` PR #62.
 
-Reconstruction T071–T079 was developed on local `011-reconstruct-convergence`
-and published to the existing `011-controlled-generalization` PR #62, including
-available local validation and verified Git-bundle delivery. Environment and HIP
-gates remain open as described below. The former conversational completion references
-are withdrawn. See the reconstruction task section below for its explicit scope.
+The combined local selection passed 412 tests and 6 subtests. One real-model
+check explicitly skipped because `wasmtime` is unavailable locally; one actual
+HIP test was deselected. The existing HIP qualification test now also exercises
+the installed generalization learner and exact full-state resume, within the same
+operator invocation. Local fixture results are not hardware evidence.
 
-T001–T063 and T068–T070 are complete for their recorded scopes. Operator
-acceptance-007 passed pinned CPU/native and HIP regression qualification on
-`2501929`, then failed replay/resume and reporting. T064–T067 remain open: complete
-build/input authority and dry-run evidence are not in the uploaded recovery archive,
-and feature acceptance/canonical archive verification did not complete. T092 repaired
-terminal diagnostic capture; the supplemental records identified cleanup and
-packaging failures repaired by T093–T094. T095 repairs the next replay step's host
-dependency boundary. The remaining gate is a new operator acceptance run. Later source changes require fresh qualification and do not
-inherit acceptance-007's PASS evidence automatically.
-See [local checks](validation/local-checks.md), [HIP status](validation/hip-acceptance.md)
-and [coverage audit](checklists/implementation.md). No research campaign was started.
+Acceptance-011's original archive independently passes inventory/hash validation.
+Its CPU/native and HIP qualification records passed, while replay-resume failed
+at the 180-second deadline during checkpoint persistence. T106 uses the observed
+save durations to raise the acceptance-only envelope to 335 minutes (5h35),
+including cleanup, packaging and margin; token/model/seed/research budgets remain
+unchanged. This ceiling is not an expected runtime.
+
+T064–T067 remain open for fresh build/input authority, real-input preflight,
+complete feature acceptance and independent canonical verification on the changed
+source. Earlier qualification does not transfer to these changes. No local HIP
+command or research campaign was run, and CI completion was not awaited. See
+[operational repairs](validation/operational-repairs.md),
+[HIP evidence](validation/hip-acceptance.md) and
+[historical local checks](validation/local-checks.md). The original audit is
+preserved in [the failure audit](validation/hip-failure-audit.md).
 
 ## Format and organization
 
@@ -183,7 +188,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 
 - [X] T063 Run the appropriate local/qualification-container reference, contract and integration regressions, including historical v3/v4 behavior and new suites registered in `src/oeis_learn/container_validation.py`, and write the exact selection/results to `specs/011-controlled-generalization/validation/local-checks.md`; return algorithm defects to B before hardware.
 - [ ] T064 Prebuild and inspect the pinned qualification/GPU targets using `Dockerfile` and committed locks; record immutable images, whole source/build closure, hardware/resource observations and helper hash in the operator's `run-state/generalization/acceptance-inputs.json` without altering host drivers or source during the session.
-- [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the five-hour ceiling including recovery (T091), and stop before costly work if quotas/artifacts/resources are infeasible.
+- [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the 335-minute ceiling including recovery (T106 supersedes T091), and stop before costly work if quotas/artifacts/resources are infeasible.
 - [ ] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
 - [ ] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
 - [X] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
@@ -495,4 +500,4 @@ Targeted HIP failure-class audit, 2026-11-01. This is not complete feature conve
 - [X] T106 **F3:** Charge setup/checkpoint/input-projection time to the existing enclosing deadlines in `generalization_training.py`, `generalization_roles.py` and their callers. Recheck the remaining allowance after expensive persistence/copy operations before launching a new update/role, preserve the pending batch/debit and exact resume state, and test virtual-clock slow saves/copies plus interrupted/resumed accounting. Retain external deadlines and frozen token/research budgets; place any changed accounting algorithm in the single reopened Phase-B group. Per FR-024, NFR-006 and plan update-boundary resume/containment decisions (partial).
 - [X] T107 **F4:** Align generalization production-role scratch/cache and thread controls with the effective qualified runtime through existing private writable output mounts. Make `container_runtime.private_runtime_environment` support the actual `/output/<role>` destination rather than hard-coding `/work/output`, preserve role isolation and disk accounting, and test real Engine command construction, path mapping, permissions, read-only inputs and qualification compatibility. Do not treat this configuration mismatch as a proven cause of a prior GPU failure. Per NFR-004/006/008 and plan portable role integration (partial).
 - [X] T108 **F6:** Extend measured storage preflight to cover peak live artifacts for the full replay/resume acceptance graph: paired, paused and resumed learners; retained states; proof inputs; temporary projection copies; and persistent auxiliary inputs. Share the explicit accounting policy with runtime enforcement and reject insufficient space before costly work; test a retained-model-size metadata fixture and exact-fit/over-cap transitions without allocating multi-GB tensors. Keep policy design in the single reopened Phase-B group, followed by routine integration; do not raise caps or prune required checkpoints without evidence. Per FR-024, NFR-006/007 and plan bounded checkpoint/acceptance decisions (partial).
-- [ ] T109 **F7:** Add a combined cross-boundary regression matrix for the repaired failures using canonical orchestration and real command construction with recorded external process boundaries, including errors after successful child exit and post-training evaluation/proof/resume/export. Extend or relocate the bounded existing HIP coverage to exercise the installed generalization learner/full-state resume path within the same serial operator invocation; retain explicit device assertions and avoid duplicate qualification or a new manual probe. Explain the narrower scope of the existing finite-update smoke test, run local gates first, and leave actual hardware results pending until observed. Per NFR-003/005, SC-006/007 and plan C fixture workflow/D representative resume validation (partial).
+- [X] T109 **F7:** Add a combined cross-boundary regression matrix for the repaired failures using canonical orchestration and real command construction with recorded external process boundaries, including errors after successful child exit and post-training evaluation/proof/resume/export. Extend or relocate the bounded existing HIP coverage to exercise the installed generalization learner/full-state resume path within the same serial operator invocation; retain explicit device assertions and avoid duplicate qualification or a new manual probe. Explain the narrower scope of the existing finite-update smoke test, run local gates first, and leave actual hardware results pending until observed. Per NFR-003/005, SC-006/007 and plan C fixture workflow/D representative resume validation (partial).

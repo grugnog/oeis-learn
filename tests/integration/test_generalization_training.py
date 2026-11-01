@@ -244,3 +244,28 @@ def test_checkpoint_clock_includes_tensor_serialization(tmp_path):
     loaded=store.load(ref,decode=json.loads)
     assert loaded['states']['scheduler']['learner_seconds']==clock[0]-1
     assert clock[0]>5
+
+
+
+def test_installed_resume_probe_on_cpu_is_not_hardware_evidence(tmp_path,monkeypatch):
+    from tests.integration.test_generalization_gpu import resume_probe
+    from oeis_learn.fresh.bigint_config import resolve
+    import torch
+    from oeis_learn.fresh import bigint_worker
+    def models(recipe,device):
+        assert device=='cpu';torch.manual_seed(recipe['model']['seed'])
+        return torch.nn.Linear(1,1),torch.nn.Linear(1,1),{}
+    def update(encoder,decoder,batch,device,**kwargs):
+        optimizer=kwargs['optimizer'];optimizer.zero_grad()
+        loss=decoder(encoder(torch.ones(len(batch),1))).square().mean();loss.backward();optimizer.step()
+    monkeypatch.setattr(bigint_worker,'models',models);monkeypatch.setattr(bigint_worker,'_batch_loss',update)
+    result=resume_probe(tmp_path/'probe',resolve(dict(version='bigint-bootstrap/v1')),'cpu')
+    assert result['resume_equal'] is True and result['updates']==2
+
+
+
+def test_installed_resume_probe_with_qualified_model_dependencies(tmp_path):
+    pytest.importorskip('wasmtime',reason='real model loss imports the pinned container runtime')
+    from tests.integration.test_generalization_gpu import resume_probe
+    from oeis_learn.fresh.bigint_config import resolve
+    assert resume_probe(tmp_path/'probe',resolve(dict(version='bigint-bootstrap/v1')),'cpu')['resume_equal']

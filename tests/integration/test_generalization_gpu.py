@@ -31,8 +31,49 @@ def test_generalization_device_load_and_finite_update(tmp_path):
     assert any(p.grad is not None for p in parameters)
     assert all(torch.isfinite(p.grad).all() for p in parameters if p.grad is not None)
     assert any(not torch.equal(a,b) for a,b in zip(before,parameters))
+    # Continue through the installed prospective learner/checkpoint/resume path.
+    # This stays inside the existing qualification test and operator invocation.
+    resumed=resume_probe(tmp_path/'prospective-resume',settings['recipe'],'cuda')
     # supervised_step checks finite loss; persist the actual loaded checkpoint hash.
     record=seal(dict(version='generalization-device-evidence/v1',device='hip',loaded_weights=file_hash(saved),
-        finite_forward=True,finite_backward=True,parameters_changed=True))
+        finite_forward=True,finite_backward=True,parameters_changed=True,**resumed))
     destination=os.environ.get('OEIS_GENERALIZATION_DEVICE_EVIDENCE')
     if destination:write(Path(destination),record)
+
+
+def resume_probe(root,recipe,device):
+    """The installed learner and proof handlers, shared by CPU wiring and HIP gate."""
+    import json
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.generalization.budgets import charge_tokens
+    from oeis_learn.pipeline_validation.generalization_role import learner
+    from oeis_learn.pipeline_validation.generalization_acceptance import check_training
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.pipeline_validation.identity import digest
+    root.mkdir(parents=True)
+    source='(program (return (int 0)))'
+    row=dict(id='mechanical-zero',role='training',source=source,tokens=encode_body(source),indices=list(map(str,range(100))),values=['0']*100)
+    (root/'rows.json').write_text(json.dumps([row]));shard=reference(root/'rows.json',root)
+    tokens=charge_tokens([row['tokens']],bos=1,pad=0)
+    config=dict(study=digest('generalization-resume-qualification'),arm='static',seed=7,recipe=recipe,
+        shards=[shard],data_mode='static',batch_size=1,target_tokens=2*tokens,milestones=[tokens],seconds=180,device=device)
+    def run(name,*,prior=None,stop=None):
+        settings=dict(config=config,resume=prior['checkpoint'] if prior else None)
+        if stop is not None:settings['stop_after_updates']=stop
+        inputs=dict(training_targets=root,verified_training_replay=root/'paused/private/learner/checkpoints' if prior else root)
+        return learner(inputs,root/name,settings,seconds=180)
+    full=run('full');paused=run('paused',stop=1);resumed=run('resumed',prior=paused)
+    assert full['status']==resumed['status']=='PASS' and paused['status']=='PARTIAL'
+    assert full['updates']==resumed['updates']==2 and paused['updates']==1
+    assert full['device']==resumed['device']==device
+    records=[]
+    for name,result in [('full',full),('resumed',resumed)]:
+        folder=root/name/'private/learner/checkpoints'
+        state=GeneralizationCheckpointStore(folder,result['compatibility'],config['target_tokens']).load(result['checkpoint'])
+        if device=='cuda':assert state['states']['rng']['device']
+        records.append(dict(directory=str(folder.relative_to(root)),compatibility=result['compatibility'],
+            cap=config['target_tokens'],checkpoint=result['checkpoint'],roster=reference(folder/'retained.json',folder)))
+    proof=check_training({'verified_training_replay':root},root/'proof',dict(runs=records,compare=True),seconds=60)
+    assert proof['resume_equal'] is True and all(r['finite'] and r['changed'] for r in proof['runs'])
+    return dict(resume_equal=True,resume_checkpoint=resumed['checkpoint']['sha256'],updates=resumed['updates'])

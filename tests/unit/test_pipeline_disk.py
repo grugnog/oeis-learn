@@ -83,11 +83,13 @@ def test_nested_watchdog_dispatches_actual_breached_scope(tmp_path):
     import pytest
     from oeis_learn.pipeline_validation import disk
     prior=signal.getsignal(signal.SIGUSR1)
-    with pytest.raises(ResourceBreach,match='outer breach'):
-        with DiskWatchdog(tmp_path,tmp_path/'outer',free_reserve=0) as outer:
-            with DiskWatchdog(tmp_path,tmp_path/'inner',free_reserve=0):
-                outer.breach='outer breach'
-                disk._dispatch_breach(signal.SIGUSR1,None)
+    with DiskWatchdog(tmp_path,tmp_path/'outer',free_reserve=0) as outer:
+        with DiskWatchdog(tmp_path,tmp_path/'inner',free_reserve=0):
+            outer.breach='outer breach'
+            try:
+                with pytest.raises(ResourceBreach,match='outer breach'):
+                    disk._dispatch_breach(signal.SIGUSR1,None)
+            finally:outer.breach=None
     assert signal.getsignal(signal.SIGUSR1)==prior
 
 

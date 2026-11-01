@@ -1,13 +1,19 @@
-# HIP acceptance — qualification passed; feature acceptance failed
+# HIP acceptance — original qualification passed; feature acceptance failed
 
-Current status after operator acceptance-009 (2026-10-31): CPU/native and actual
-HIP qualification passed; feature acceptance remains FAIL / UNMEASURED. The
-canonical archive verifies. The first retained-checkpoint generator exited139
-during its first scheduled diagnostic stack dump, before its90-second external
-deadline. T100 replaces automatic stack walking with timestamp-only heartbeats.
-This removes a strongly suspected diagnostic regression; the precise native crash
-cause remains unproven. Replay and its longer learner allowance were not exercised.
-See the final section below. Earlier NOT RUN statements are historical records.
+Current status after inspecting operator acceptance-011 (2026-11-01 UTC): its
+CPU/native and actual HIP qualification records passed; feature acceptance is
+FAIL / UNMEASURED. Independent inventory/hash verification passed. Verified replay
+progressed beyond the earlier restore-identity boundary and performed updates,
+then hit its 180-second external deadline during checkpoint persistence. Cleanup
+also exhausted its allowance. Full paired/resumed proof was not completed.
+
+T103–T109 now repair the audited operational gaps and add installed learner/resume
+coverage to the existing HIP qualification invocation. Local combined validation
+passed 412 tests and 6 subtests, with one dependency skip and the HIP test excluded.
+No new local HIP result is claimed. T064–T067 remain open for fresh source/image
+qualification and complete feature acceptance. The acceptance-only ceiling is now
+335 minutes (5h35), including recovery reserves; it is not a runtime prediction.
+Earlier status statements below are historical records.
 
 ## Historical local baseline, before operator runs
 
@@ -376,3 +382,36 @@ Preserve acceptance-010 and its qualified source/image scope. T064–T067 stay o
 for fresh images and acceptance-inputs-011, followed by one consolidated serial
 acceptance-011 run. Do not rerun standalone HIP probes or extend training merely
 to bypass the mismatch. This acceptance remains software validation, not research.
+
+## Operator acceptance-011 — checkpoint deadline and cleanup (2026-11-01 UTC)
+
+The original `acceptance-011.zip` independently verifies all 372 inventoried
+members. Archive SHA-256:
+`8d75032bf8289056a96084b63ae84790fe2d73fcce34ab8da1f5d71449c86d61`.
+CPU/native JUnit contains 1,213 records and HIP JUnit contains 27, with zero
+failures, errors or skips in either. JUnit record counts are not substituted for
+pytest's test/subtest totals. Retained-eval, refresh and parameter-targets pass;
+replay-resume fails and science remains UNMEASURED.
+
+The continued-SFT process completed in 122.78984 seconds. Verified replay passed
+admission/restoration, executed updates and timed out during checkpoint persistence
+at its 180-second external deadline. Completed checkpoint saves took approximately
+25.90 and 45.23 seconds. The process observation elapsed 185.00169 seconds with
+no return code and `process-group termination unacknowledged within cleanup
+deadline`. Engine cleanup was unacknowledged with a five-second allowance and
+`cleanup deadline exhausted before container reclamation`. These records establish
+the timeout location and cleanup exhaustion; they do not establish full resume
+correctness or completion of downstream proofs.
+
+T106 charges setup/copy/persistence to enclosing allowances, preserves pending
+update state, and reserves cleanup before work. T108 avoids duplicate full-state
+copies and includes paired/paused/resumed/proof peaks in preflight. The generated
+acceptance session allows 600 seconds per replay learner, 180 seconds per replay
+proof and 70 minutes for replay/resume, within 335 minutes overall. Existing
+26 GiB P4 / 32 GiB aggregate checkpoint limits and scientific budgets are unchanged.
+
+The broader T103–T109 repairs and local regressions are in
+[operational-repairs.md](operational-repairs.md). The existing HIP smoke check now
+also performs installed full-state learner/resume verification in the same serial
+qualification run; its execution on changed code is still pending. Preserve this
+original archive and do not transfer its PASS qualification to new source/images.
