@@ -113,6 +113,18 @@ B is the handoff boundary for a more powerful model. Its handoff includes this d
 
 ## Test and evidence strategy
 
+Operator-authorized diagnostic iteration (T114): a disposable script and its
+tests live under this feature's `validation/` directory, outside the existing
+production qualification inventory. Their hashes accompany every diagnostic
+bundle. Reuse the original producer only through unchanged canonical compatibility
+checks. Run selected independent acceptance cases without repeating the broad
+qualification suites; a failed E0 still blocks its replay initializer dependency.
+Small probes call the installed native admission/restore and actual HIP learner/
+full-state resume paths. A traced retained probe preserves the original weights,
+prompts and time budgets. Instrumentation logs bounded owner/worker events, never
+cross-thread stack traversal. Neither selective execution nor traced probes confer
+feature qualification. Full current-source acceptance remains the final gate.
+
 - Preserve historical v3/v4 fixtures and CLI semantics; verify new profiles cannot silently alter them.
 - Hand-computed metric examples include unequal family sizes, unresolved outcomes, failed completion eligibility and ties. Oracle unions never count as deployable selection.
 - Independent safety cases include inactive control flow, impossible quotas, prefix/shift collisions in later shards, loop-carried parameter dependence, repeated nonlinear coefficients and full-horizon replay failures.

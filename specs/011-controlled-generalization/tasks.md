@@ -10,6 +10,24 @@
 
 ## Current status — 2026-11-01 UTC
 
+Acceptance-015 independently verifies as software FAIL/science UNMEASURED.
+CPU qualification passed 1187 tests plus77 subtests; HIP passed27 tests. One
+retained evaluator reported NonQuiescentWorker; the other completed. Later cases
+were unstarted. The operator authorized a temporary selective diagnostic helper
+instead of another full qualification cycle. T114 below owns that helper; it
+does not close the final hardware gates or change production acceptance rules.
+
+### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [ ] T114 Implement and test `validation/diagnose_hip.py` and colocated
+  `validation/test_diagnose_hip.py`: exact existing qualification/prepared-input
+  consumption, selectable independent canonical cases, tiny real native and HIP
+  resume probes, traced retained-model reproduction, external deadlines, cleanup
+  containment, bounded diagnostic-only export, and one copy-pastable invocation.
+  Keep helper/test bytes outside the existing qualification source inventory;
+  record their hashes separately. No source-inventory rule changes or fabricated
+  qualification. Changed production code still requires fresh qualification.
+
 Latest operator update, 2026-10-31 Pacific: acceptance-014 passed qualification,
 retained evaluation and refresh, then the parameterized small-model learner hit
 its24-second process-work deadline during checkpoint persistence. Replay/resume
