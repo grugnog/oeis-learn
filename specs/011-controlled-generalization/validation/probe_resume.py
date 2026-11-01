@@ -232,10 +232,16 @@ def export(output):
     comparison=output/'compare/comparison.json'
     if comparison.is_file():copyfile(comparison,destination/'comparison.json')
     provenance={}
+    traces=[]
     for stage in record['plan']:
         name=stage['name'];root=output/name
         if root.is_dir():
             collect(root,destination/(name+'-diagnostics'))
+            trace=root/'trace.json'
+            if trace.is_file():
+                if trace.is_symlink() or trace.stat().st_size>64<<10:raise ValueError('bounded regular trace required')
+                target='traces/'+name+'.json'
+                save(destination/target,json.loads(trace.read_text()));traces.append(target)
             result=root/'result.json'
             if result.is_file():
                 value=json.loads(result.read_text())
@@ -253,7 +259,7 @@ def export(output):
                     target=destination/'logs'/name/label/filename;target.parent.mkdir(parents=True,exist_ok=True)
                     with path.open('rb') as stream:stream.seek(max(0,path.stat().st_size-65536));target.write_bytes(stream.read(65536))
     save(destination/'branches.json',provenance)
-    mandatory=['summary.json','diagnostic.json','branches.json']+(['comparison.json'] if comparison.is_file() else [])
+    mandatory=['summary.json','diagnostic.json','branches.json',*traces]+(['comparison.json'] if comparison.is_file() else [])
     archive=pack(destination,mandatory=mandatory,cap=64<<20,optional_cap=48<<20)
     target=output.with_suffix('.zip')
     if target.exists():raise ValueError('matrix archive already exists')

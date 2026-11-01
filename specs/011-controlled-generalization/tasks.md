@@ -29,7 +29,32 @@ still differs. Value equality alone does not establish equivalent representation
 or historical process/backend conditions; T119 adds CPU-only inspection of existing
 files. No new HIP run is justified before reading that available evidence.
 
+Latest evidence, 2026-11-01 Pacific: layout-001 verifies (15.233s). Old/new
+pause weights, optimizer, replay and all RNG serialized hashes are identical;
+values/layout/storage aliasing/order match. Only elapsed-time/history/pins differ.
+No production source/build/host-script changes occurred after diagnostic-001's
+helper commit5ac9d72, and the learner image is unchanged. A later learner fix does
+not explain the fresh passing result. T120 adds controls plus per-update tracing;
+no causal defect or hardware-gate closure is claimed.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T120 Record layout-001's identical serialized numerical states and add a
+  disposable paired continuation trace with old/new uninstrumented controls.
+  Hash inputs, restored state, forward logits, raw/clipped gradients and post-update
+  state on the installed learner path; record bounded execution facts, compare all
+  endpoints and tracing effects, and package one diagnostic archive. Preserve
+  canonical qualification, mounts, deadlines, exact equality and failure handling.
+  No speculative production/backend changes; trace readbacks are an explicit
+  timing intervention and cannot close feature qualification.
+
+T120 validation:77 local helper tests pass after three intended failing tests.
+A real CPU optimizer update and RNG are unchanged by the observer; hook scope,
+phase comparison, incomplete traces, frozen checkpoint routing, both engines'
+read-only CPU comparison mounts and mandatory partial-trace export are tested.
+The diagnostic uses eight updates across four canonical learner invocations.
+Production qualification inventory is unchanged; no local HIP or CI wait.
+Actual instrumentation effects and divergence remain operator measurements.
 
 - [X] T119 Reconcile fresh-matrix evidence without declaring the historical
   mismatch repaired. Extend the temporary CPU inspector to compare old/new saved

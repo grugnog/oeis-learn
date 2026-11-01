@@ -747,3 +747,44 @@ source, equality rule, backend policy or qualification inventory changed.
 64 local tests pass after four intended failing tests; no local HIP or CI wait.
 Final T064–T067 gates remain open. Next operator action needs only CPU access to
 already saved files, not another training run.
+
+
+## Resume-layout-001: identical serialized numerical state
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`c6545602993bd61ed1481c9bc3215521f659733f06fa9a4bbb3392cefe88c249`.
+Independent verification passed for7 payloads plus manifest, no omissions.
+CPU inspection completed15.233s, exit0. Historical final comparison stays false.
+
+Old and new paused checkpoints have identical weights, optimizer, RNG, data,
+replay and ledger values. Tensor layouts, storage aliasing, dictionary order and
+recorded types match, with no omitted layout changes. The serialized weights,
+optimizer, replay, all four RNG files and selection state have identical SHA256
+identities. The only observed excluded differences are scheduler learner_seconds,
+history exposure keys and checkpoint pins. These are expected elapsed-time and
+provenance distinctions; they do not establish a cause of numerical divergence.
+The source audit confirms these fields control budgets/retention, not learning-rate
+or optimizer mathematics; both compared terminal runs performed the same updates.
+
+The user's later-fix hypothesis was checked before further diagnostic changes:
+`git diff 5ac9d72..37875b4 -- src scripts tests Dockerfile pyproject.toml uv.lock`
+has no production differences. Intervening commits changed only temporary helper
+code/tests and feature documentation. Fresh-001 and the existing diagnostic use
+GPU image `sha256:1afe89cf6e61b3d311e3b1d4e71b2d5ff15e5571e5ef22ac54ed149dc7602069`.
+No subsequent committed learner fix can explain the differing outcomes under that
+unchanged installed image. Process/runtime conditions remain unobserved candidates,
+not a proven backend defect. A successful fresh resume does not erase the failure.
+
+T120 adds a temporary paired diagnostic using the same canonical learner and
+qualification consumer: old/new uninstrumented controls and old/new instrumented
+continuations, eight total updates. The observer hashes pre-update inputs/state,
+forward logits, raw/clipped gradients and post-update state, and records actual
+execution facts. Hashing reads tensors back to CPU and synchronizes the device;
+control-versus-trace endpoint comparisons explicitly measure this intervention.
+The first differing observed phase narrows the boundary without diagnosing a kernel.
+The helper makes no algorithm, backend-policy, tolerance or installed-source change.
+All available final endpoints are compared on CPU and partial traces survive failed
+learners or final comparison.77 local tests pass, including an actual CPU optimizer
+update/RNG preservation test, both engine constructors and failure packaging.
+No local HIP or CI wait. One operator run is required for the new measurements;
+T064–T067 remain open.

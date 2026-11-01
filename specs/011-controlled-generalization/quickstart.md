@@ -7,7 +7,57 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: CPU inspection of equal-valued pause checkpoints
+### Current next step: paired controls and update tracing
+
+Layout-001 confirms equal tensor representations and identical serialized numerical
+state. No learner or host production fix occurred between the differing and passing
+runs; all intervening changes were diagnostic-only and both use the same immutable
+learner image. Stop repeating checkpoint-only inspections. The next single command
+runs old/new paused-state continuations without instrumentation, then repeats both
+with bounded phase fingerprints. Each continuation performs two updates (eight
+updates total), reusing the frozen data/pool/configuration and original qualification.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/trace_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --output run-state/generalization/resume-trace-001
+)
+```
+
+Upload `run-state/generalization/resume-trace-001.zip`, pass or fail. Keep both
+input directories intact. No rebuild, broad qualification suite, new input assembly,
+search or evaluation is performed. Canonical compatibility is rechecked first;
+all four learner branches then run independently and serially. Ordinary branch
+failures do not prevent the others; failed cleanup or interruption stops new work.
+
+The trace records hashes of the input batch, restored weights/optimizer/RNG,
+forward logits, raw gradients, clipped gradients/norm and post-update state. It
+also records bounded execution flags, versions and selected numerical-runtime
+environment settings. No tensor values, training programs or memory addresses are
+exported. Readbacks synchronize the device and can change timing: the independent
+uninstrumented controls are required to detect that effect. No backend or numerical
+policy is changed. Hashing is a diagnostic observation, not qualification.
+
+`comparison.json` contains all available endpoint pairs (including original saved
+endpoints), both traces, the first differing observed phase and control-versus-traced
+equality for each starting state. Standalone partial traces are mandatory archive
+members even if final comparison fails. Missing endpoints are explicit. If controls
+or traces no longer reproduce the mismatch, that is non-reproduction, not a repair.
+If a phase differs, it narrows the execution boundary; it does not by itself identify
+a defective kernel. T064–T067 remain open.
+
+Stage ceilings total67 minutes, including compatibility and CPU comparison. Prior
+untraced matrix runs took roughly3–4 minutes; this observer's actual HIP overhead
+is unmeasured, so do not assume that duration. `--dry-run` shows the plan without
+engine work. The operator HIP invocation is the remaining block.
+
+### Completed diagnostic: CPU inspection of equal-valued pause checkpoints
 
 Fresh-001 finished in176.265 seconds. Both fresh full runs and fresh pause/resume
 match the original uninterrupted endpoint exactly. All initial comparisons and the
