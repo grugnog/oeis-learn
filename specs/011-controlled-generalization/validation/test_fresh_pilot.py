@@ -85,6 +85,7 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     def public(output,**kwargs):
         from fresh_pilot_report import REQUIRED
         saved.update(kwargs);assert kwargs['plan']['required_stages']==list(REQUIRED)
+        assert any(name=='fresh/recipe.json' and path.read_bytes()==(base/'recipe.json').read_bytes() for path,name in kwargs['extra'])
         status=kwargs['stages'][-1]['status']
         write(output/'fresh/study.json',study)
         return dict(software_status=status)

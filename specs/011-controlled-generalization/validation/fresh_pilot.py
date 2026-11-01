@@ -221,6 +221,8 @@ def run(args):
         manifest=result['result']['manifest']
         from oeis_learn.pipeline_validation.generalization_runtime import load
         base,study,runtime=load(ROOT,manifest)
+        verify_artifact(base,runtime['recipe'],max_bytes=1<<20)
+        extra.append((confined(base,runtime['recipe']['path']),'fresh/recipe.json'))
         truth_refs=[];prompt_refs=[]
         for ref in study['data']['manifests']:
             cohort=json.loads(verify_artifact(base,ref,max_bytes=16<<20))
