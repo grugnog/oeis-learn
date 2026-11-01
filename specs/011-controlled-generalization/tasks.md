@@ -17,7 +17,27 @@ were unstarted. The operator authorized a temporary selective diagnostic helper
 instead of another full qualification cycle. T114 below owns that helper; it
 does not close the final hardware gates or change production acceptance rules.
 
+Latest evidence, 2026-11-01 Pacific: resume-matrix-001 verifies. All three new
+continuations and the earlier resumed endpoint match exactly; only the original
+uninterrupted endpoint differs. Stage elapsed total219.628s. No production cause
+is established. T118 adds one fresh-start matrix; T064–T067 remain open.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T118 Extend the temporary matrix with a fresh-start mode: independent A/B
+  fresh learners, a fresh one-update pause and its continuation, exact final,
+  initial and old/new pause comparisons. Keep canonical frozen training and
+  qualification checks, record checkpoint provenance in the public archive,
+  exercise failures and both engine command constructors, and reconcile matrix-001.
+  No production/equality changes or claim of a diagnosed cause; final HIP gates
+  remain open. Commit and push before handing off one bounded operator command.
+
+T118 local validation:57 temporary-helper tests pass, including actual serialized
+initial/pause states, corruption/missing-branch handling, both engines' read-only
+comparison mounts and public checkpoint provenance. Five intended failures were
+observed before implementation. Changed paths do not intersect the production
+source inventory; installed code/images remain unchanged. The fresh matrix uses
+nine updates across four learner calls. No local HIP run or CI wait.
 
 - [X] T117 Add a temporary `validation/probe_resume.py` diagnostic matrix and
   colocated tests: two independent continuations from the identical saved paused

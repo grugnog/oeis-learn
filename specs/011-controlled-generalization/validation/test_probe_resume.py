@@ -121,7 +121,8 @@ def test_export_preserves_comparisons_but_excludes_private_models(tmp_path,monke
 
 
 @pytest.mark.parametrize('engine',['docker','podman'])
-def test_comparison_container_mounts_all_endpoints_read_only_without_gpu(tmp_path,monkeypatch,engine):
+@pytest.mark.parametrize('start',['paused','fresh'])
+def test_comparison_container_mounts_all_endpoints_read_only_without_gpu(tmp_path,monkeypatch,engine,start):
     import json
     from oeis_learn.container_runtime import Engine
     from oeis_learn.pipeline_validation import supervision
@@ -134,7 +135,7 @@ def test_comparison_container_mounts_all_endpoints_read_only_without_gpu(tmp_pat
     host=SimpleNamespace(engine=adapter,policy=dict(memory_bytes=16<<30,cpus=4))
     full=tmp_path/'full';full.mkdir();old=tmp_path/'old';old.mkdir()
     output=tmp_path/'matrix/compare';output.mkdir(parents=True)
-    for name in ('continue-a','continue-b','split-rest'):
+    for name in ('continue-a','continue-b','split-first','split-rest'):
         folder=tmp_path/name;folder.mkdir()
         save(output.parent/name/'result.json',dict(status='PASS',learner=name))
     captured=[]
@@ -143,10 +144,104 @@ def test_comparison_container_mounts_all_endpoints_read_only_without_gpu(tmp_pat
         save(output/'private/comparison/comparison.json',dict(complete=True,observation='new_continuations_agree'))
     monkeypatch.setattr(supervision,'launch',launch)
     monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
-    result=helper.compare(host,dict(saved={'full':full,'resumed':old},runtime={'images':['cpu','sha256:'+'a'*64]}),output)
+    result=helper.compare(host,dict(start=start,saved={'full':full,'resumed':old,'paused':old},runtime={'images':['cpu','sha256:'+'a'*64]}),output)
     assert result['complete']
     argv=captured[0]
-    assert '/helper/probe_resume.py' in argv and '--container' in argv
+    assert '/helper/probe_resume.py' in argv
+    assert ('--container-fresh' if start=='fresh' else '--container') in argv
     mounts=[argv[i+1] for i,arg in enumerate(argv) if arg=='--mount']
-    assert len(mounts)==7 and all('readonly' in m for m in mounts[:-1])
+    assert len(mounts)==(9 if start=='fresh' else 7) and all('readonly' in m for m in mounts[:-1])
     assert '--network=none' in argv
+
+
+def test_fresh_plan_propagates_mode_and_branches_from_initializer(tmp_path):
+    args=SimpleNamespace(engine='podman',run='old',output='new',start='fresh')
+    for stage in helper.plan(args):
+        assert stage['argv'][-2:]==['--start','fresh']
+    context=dict(paused=tmp_path/'paused',paused_updates=1,start='fresh')
+    for name in ('continue-a','continue-b','split-first'):
+        assert helper.branch(name,context,lambda _:None)==(None,1 if name=='split-first' else None)
+    assert helper.branch('split-rest',context,lambda _:tmp_path/'new-pause')==(tmp_path/'new-pause',None)
+
+
+@pytest.mark.parametrize('name',['continue-a','continue-b','split-first'])
+def test_fresh_training_uses_initializer_without_resume(tmp_path,monkeypatch,name):
+    import json
+    from oeis_learn.pipeline_validation import generalization_commands as commands
+    monkeypatch.setattr(helper,'ROOT',tmp_path)
+    old=tmp_path/'old';old.mkdir()
+    (old/'training.json').write_text(json.dumps(dict(compatibility='contract')))
+    pool=tmp_path/'pool';pool.mkdir();(pool/'pool.json').write_text('{}')
+    runtime={'replay':{'tasks':{'path':'tasks.json'}}}
+    initializer={'weights':{'sha256':'sha256:'+'c'*64}}
+    execution={'initializer':initializer}
+    monkeypatch.setattr(commands,'_validate',lambda *a,**k:execution)
+    def train(*a,**kw):
+        assert a[6] is execution
+        assert kw['resume'] is None
+        assert kw['stop_after_updates']==(1 if name=='split-first' else None)
+        return dict(runs=[dict(root='learner',result=dict(status='PARTIAL' if name=='split-first' else 'PASS',
+            updates=1 if name=='split-first' else 3,compatibility='contract',device='cuda',checkpoint={'sha256':'sha256:'+'d'*64}))])
+    monkeypatch.setattr(commands,'train',train)
+    context=dict(base=tmp_path,study={},runtime=runtime,paused=old,seed=7,start='fresh',
+                 paused_updates=1,final_updates=3,pool=pool)
+    result=helper.train_branch(name,context,SimpleNamespace(select_gpu=lambda:None),tmp_path/'matrix'/name)
+    assert result['start_checkpoint'] is None and result['initializer']==initializer['weights']['sha256']
+
+
+def test_export_includes_bounded_checkpoint_provenance(tmp_path,monkeypatch):
+    import json,zipfile
+    monkeypatch.syspath_prepend(str(HERE))
+    from diagnose_hip import save
+    root=tmp_path/'matrix';root.mkdir()
+    save(root/'diagnostic.json',dict(status='PASS',plan=[dict(name='continue-a')]))
+    save(root/'continue-a/result.json',dict(status='PASS',start_checkpoint='sha256:'+'a'*64,
+        checkpoint='sha256:'+'b'*64,updates=3,learner_status='PASS',initializer=None,
+        learner='private/location',secret='must not escape'))
+    with zipfile.ZipFile(helper.export(root)) as z:
+        provenance=json.loads(z.read('branches.json'))
+        assert provenance['continue-a']['start_checkpoint']=='sha256:'+'a'*64
+        assert 'learner' not in provenance['continue-a'] and 'secret' not in provenance['continue-a']
+
+
+def boundary_fixture(tmp_path):
+    import torch,json
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.generalization.budgets import Ledger
+    from oeis_learn.pipeline_validation.identity import seal
+    roots={}
+    for name in ('a','b','paused','old-paused','original'):
+        root=tmp_path/name;root.mkdir();roots[name]=root
+        state=dict(weights={'w':torch.tensor([1.])},optimizer={},rng={'python':[1],'numpy':[2],'torch':torch.tensor([3]),'device':[]},data=dict(cursor=0,pending_batch=None),replay={},
+                   scheduler={},history={},pins={},selection={})
+        store=GeneralizationCheckpointStore(root/'checkpoints','contract',100)
+        initial=store.save(state,Ledger(100))
+        state['weights']['w']=torch.tensor([3. if name!='old-paused' else 3.0001])
+        final=store.save(state,Ledger(100,consumed=10,updates=1))
+        (root/'training.json').write_text(json.dumps(dict(checkpoint=final,compatibility='contract')))
+        (root/'checkpoints/retained.json').write_text(json.dumps(seal(dict(checkpoints=[dict(pins=['initial'],state=initial)]))))
+    return roots
+
+
+def test_initial_and_pause_comparisons_use_verified_full_states(tmp_path,monkeypatch):
+    monkeypatch.syspath_prepend(str(HERE))
+    roots=boundary_fixture(tmp_path)
+    result=helper.boundary_comparisons(roots)
+    assert result['missing']==[] and len(result['comparisons'])==5
+    for label,row in result['comparisons'].items():
+        assert row['equal']==label.startswith('initial:')
+    assert result['comparisons']['pause:paused:old-paused']['components']['rng']['equal']
+    assert not result['comparisons']['pause:paused:old-paused']['components']['weights']['equal']
+
+
+def test_boundary_comparison_discloses_missing_branch_and_rejects_corruption(tmp_path,monkeypatch):
+    import json
+    monkeypatch.syspath_prepend(str(HERE))
+    roots=boundary_fixture(tmp_path)
+    del roots['paused']
+    result=helper.boundary_comparisons(roots)
+    assert set(result['missing'])=={'pause:paused:old-paused','initial:a:paused'}
+    roster=json.loads((roots['a']/'checkpoints/retained.json').read_text())
+    ref=roster['checkpoints'][0]['state']
+    (roots['a']/'checkpoints'/ref['path']).write_text('{}')
+    with pytest.raises(ValueError):helper.boundary_comparisons(roots)

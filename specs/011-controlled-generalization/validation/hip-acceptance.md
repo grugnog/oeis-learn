@@ -655,3 +655,47 @@ original qualification compatibility and exact comparisons. All available new an
 original final-state pairs are compared together on CPU. No production source,
 backend setting or equality rule is changed.48 local helper tests pass; no local
 HIP execution occurred and CI was not awaited. Final feature gates remain open.
+
+
+## Resume-matrix-001: repeat continuations and extra restart agree
+
+Operator upload reviewed2026-11-01 Pacific. ZIP SHA256:
+`e9cf84fdfb2f3a1c84d9de2cdc29e9eb235535e112aa93ee7ae67f911d578afc`.
+Independent inventory/hash verification passed for78 members with no omissions.
+All four helper/test hashes match the committed helper versions at63cfc0e.
+Compatibility, four training calls and CPU comparison all completed successfully,
+with no unacknowledged cleanup; summed stage elapsed219.628 seconds (3m40s).
+
+| Exact endpoint comparison | Outcome |
+| --- | --- |
+| Continuation A versus B | Equal |
+| A versus extra-restart continuation | Equal |
+| A/B/extra-restart versus earlier resumed endpoint | Equal |
+| Every resumed endpoint versus original uninterrupted endpoint | Unequal |
+
+All endpoints have the same compatibility identity. Equal means all six compared
+components: weights, optimizer, RNG, data, replay and ledger. Only weights and
+optimizer differ against the original endpoint. `status=PASS` means measurements
+completed; `feature_qualified=false` and scientific UNMEASURED remain accurate.
+The generic result projection omitted branch starting-checkpoint IDs from the
+archive; unchanged verified helper hashes establish the executed routing, but the
+archive does not directly supply those omitted IDs. T118 preserves them explicitly.
+
+These observations show repeatability for the tested saved-state continuations,
+including a restart at update2. They do not establish general backend determinism,
+locate the original divergence, or clear the original resume gate. Audit of the
+production routes found the same frozen configuration, seeded model construction,
+initializer, replay pool, exact state restore and scoped FP32 math policy; no
+causal code defect was demonstrated. Do not change optimizer or backend settings
+speculatively, and do not loosen equality.
+
+T118 extends the disposable helper with `--start fresh`: two fresh complete runs,
+a fresh update1 pause and its continuation, all final pair comparisons, full
+initial-state comparisons (not just weights), and old/new update1 state comparison.
+This is nine updates in one bounded command using the existing canonical roles,
+images and qualification consumer. Comparison loads extra boundary pairs serially
+to limit memory and verifies checkpoint closures before deserialization. Archive
+provenance includes checkpoint/initializer hashes but excludes private tensors.
+57 local tests pass; five expected pre-implementation failures were observed.
+The production source inventory has no changed files. No local HIP execution or
+CI wait occurred; final T064–T067 gates remain open.

@@ -7,7 +7,56 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: same-checkpoint continuation matrix
+### Current next step: fresh-start and first-pause matrix
+
+Matrix-001 completed in219.628 seconds. Both continuations from the saved paused
+checkpoint, the extra-restart path and the earlier resumed endpoint match exactly.
+Only the original uninterrupted endpoint differs. This does not identify a backend
+or restore defect. The next temporary matrix repeats the original fresh-start path:
+
+- A and B independently train from the frozen initializer to completion.
+- A third fresh run pauses after update1 and resumes to completion.
+- CPU comparisons cover all final endpoints, the new versus old update1 pause,
+  and complete initial numerical/RNG/data/replay/ledger states of new and old runs.
+
+Nine updates total; no broad suites, rebuild, search, evaluation or new inputs.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/probe_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --start fresh \
+    --output run-state/generalization/resume-fresh-001
+)
+```
+
+Upload `run-state/generalization/resume-fresh-001.zip`, pass or fail. Keep
+`diagnostic-001` intact. The prior matrix output is useful evidence but is not an
+input to this command. Canonical qualification compatibility is rechecked. Helpers
+and tests are separately hashed; production source and image authority are unchanged.
+The frozen model, seed,512-token cap, pool, prepared data and initializer all remain
+unchanged. The intentional pause is accepted only at exactly one completed update.
+
+`comparison.json` distinguishes completed measurement from exact equality. Final
+pairs remain in `comparisons`; `boundaries` contains full initial and pause state
+comparisons with checkpoint references. `branches.json` preserves starting/final
+checkpoint IDs, initializer hashes and update counts without exporting private
+payloads. All comparisons are exact; scheduler elapsed time and provenance/history
+are excluded as in the original comparison. Missing branches are explicit, and
+independent branches still run after an ordinary failure. No outcome confers feature
+qualification. Equal fresh repeats plus a different split path do not alone locate
+the first divergent update; interpret the initial and pause comparisons as well.
+
+Allow roughly5–10 minutes based on the earlier retained-model measurements; this
+is an estimate, not a guarantee. The sum of stage ceilings remains67 minutes,
+including compatibility/comparison and cleanup reserves. Add `--dry-run` to inspect
+the plan without engine work. Full acceptance remains pending after a causal repair.
+
+### Completed diagnostic: same-checkpoint continuation matrix
 
 Inspection-002 found no retained uninterrupted snapshot at the paused update
 count. Further CPU-only inspection cannot recover that missing boundary. The

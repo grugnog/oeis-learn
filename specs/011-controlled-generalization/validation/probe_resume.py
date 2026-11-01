@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Temporary same-checkpoint continuation matrix; no research/qualification claim."""
+"""Temporary fresh-start or same-checkpoint continuation matrix; no research/qualification claim."""
 import argparse
 import json
 from pathlib import Path
@@ -18,13 +18,15 @@ def plan(args):
             seconds=600 if name=='compatibility' else 300 if name=='compare' else 780,
             needs=[] if name=='compatibility' else ['compatibility']+(['split-first'] if name=='split-rest' else []),
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,
-                  '--run',args.run,'--output',str(target),'--internal',name]))
+                  '--run',args.run,'--output',str(target),'--internal',name,
+                  '--start',getattr(args,'start','paused')]))
     return stages
 
 
 def branch(name,context,previous):
-    return (previous('split-first') if name=='split-rest' else context['paused'],
-            context['paused_updates']+1 if name=='split-first' else None)
+    fresh=context.get('start')=='fresh'
+    return (previous('split-first') if name=='split-rest' else None if fresh else context['paused'],
+            (1 if fresh else context['paused_updates']+1) if name=='split-first' else None)
 
 
 def compare_states(states):
@@ -74,14 +76,14 @@ def train_branch(name,context,host,output):
     from oeis_learn.pipeline_validation.identity import confined
     base,study,runtime=context['base'],context['study'],context['runtime']
     start,stop=branch(name,context,lambda n:learner_output(output.parent/n))
-    prior=json.loads((start/'training.json').read_text())
-    pointer=confined(start/'checkpoints',prior['checkpoint']['path'])
+    prior=json.loads(((start or context['paused'])/'training.json').read_text())
+    pointer=confined(start/'checkpoints',prior['checkpoint']['path']) if start else None
     case=output/'replay-resume'
     execution=_validate(host,ROOT,case,base,study,runtime,seconds=60)
     host.select_gpu()
     destination=case/'case/private/training'
     result=train(host,ROOT,destination,base,study,runtime,execution,
-        arms=['verified_replay'],seeds=[context['seed']],resume=str(pointer.relative_to(ROOT)),
+        arms=['verified_replay'],seeds=[context['seed']],resume=str(pointer.relative_to(ROOT)) if pointer else None,
         replay=(context['pool'],reference(context['pool']/'pool.json',context['pool']),runtime['replay']['tasks']),
         stop_after_updates=stop)
     if len(result['runs'])!=1:raise ValueError('one learner result required')
@@ -92,35 +94,76 @@ def train_branch(name,context,host,output):
     if actual['compatibility']!=prior['compatibility'] or actual['device']!='cuda':
         raise ValueError('continuation changed contract or device')
     return dict(status='PASS',learner=str((destination/row['root']).relative_to(ROOT)),
-                start_checkpoint=prior['checkpoint']['sha256'],checkpoint=actual['checkpoint']['sha256'],
+                start_checkpoint=prior['checkpoint']['sha256'] if start else None,
+                initializer=execution['initializer']['weights']['sha256'] if not start else None,
+                checkpoint=actual['checkpoint']['sha256'],
                 updates=actual['updates'],learner_status=actual['status'],feature_qualified=False)
 
 
-def comparison_container():
+def load_saved(root,*,initial=False):
+    """Verify the complete private state closure before deserializing it on CPU."""
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.pipeline_validation.identity import seal
+    result=json.loads((root/'training.json').read_text())
+    pointer=result['checkpoint']
+    if initial:
+        roster=json.loads((root/'checkpoints/retained.json').read_text())
+        if seal(roster)!=roster:raise ValueError('retained roster identity mismatch')
+        candidates=[r for r in roster['checkpoints'] if 'initial' in r['pins']]
+        if len(candidates)!=1:raise ValueError('unique initial checkpoint required')
+        pointer=candidates[0]['state']
+    descriptor=json.loads(verify_artifact(root/'checkpoints',pointer,max_bytes=1<<20))
+    store=GeneralizationCheckpointStore(root/'checkpoints',result['compatibility'],descriptor['ledger']['cap'])
+    return store.load(pointer),dict(checkpoint=pointer['sha256'],compatibility=result['compatibility'])
+
+
+def boundary_comparisons(roots):
+    """Compare one pair at a time to bound memory; no training or GPU access."""
+    comparisons={};checkpoints={};missing=[]
+    pairs=[('paused','old-paused',False),('a','b',True),('a','paused',True),
+           ('a','original',True),('original','old-paused',True)]
+    for a,b,initial in pairs:
+        label=('initial:' if initial else 'pause:')+a+':'+b
+        if a not in roots or b not in roots:
+            missing.append(label);continue
+        left,lref=load_saved(roots[a],initial=initial)
+        right,rref=load_saved(roots[b],initial=initial)
+        if lref['compatibility']!=rref['compatibility']:raise ValueError('incompatible boundary contracts')
+        if initial and (left['ledger'].updates!=0 or right['ledger'].updates!=0):
+            raise ValueError('initial comparison requires zero completed updates')
+        if not initial and (left['ledger'].updates!=1 or right['ledger'].updates!=1):
+            raise ValueError('pause comparison requires one completed update')
+        comparisons[label]=compare_states({'left':left,'right':right})['left:right']
+        checkpoints[label]=dict(left=lref,right=rref)
+        del left,right
+    return dict(comparisons=comparisons,checkpoints=checkpoints,missing=missing)
+
+
+def comparison_container(*,fresh=False):
     import torch
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
     from diagnose_hip import save
-    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
-    from oeis_learn.generalization.contracts import verify_artifact
     states={};refs={};missing=[]
     for name in ('a','b','split','original','old-resumed'):
         root=Path('/saved')/name
         if not root.exists():missing.append(name);continue
-        result=json.loads((root/'training.json').read_text())
-        descriptor=json.loads(verify_artifact(root/'checkpoints',result['checkpoint'],max_bytes=1<<20))
-        store=GeneralizationCheckpointStore(root/'checkpoints',result['compatibility'],descriptor['ledger']['cap'])
-        states[name]=store.load(result['checkpoint'])
-        refs[name]=dict(checkpoint=result['checkpoint']['sha256'],compatibility=result['compatibility'])
+        states[name],refs[name]=load_saved(root)
     if len({r['compatibility'] for r in refs.values()})!=1:raise ValueError('incompatible comparison contracts')
     comparisons=compare_states(states)
     complete=all(n in states for n in ('a','b','split'))
     repeat_equal=comparisons.get('a:b',{}).get('equal')
     split_equal=comparisons.get('a:split',{}).get('equal')
+    del states
+    boundaries=boundary_comparisons({n:Path('/saved')/n for n in
+        ('a','b','paused','old-paused','original') if (Path('/saved')/n).exists()}) if fresh else None
     report=dict(version='generalization-resume-matrix/v1',status='PASS',feature_qualified=False,
+        start='fresh' if fresh else 'paused',boundaries=boundaries,
         scientific_status='UNMEASURED',complete=complete,missing=missing,checkpoints=refs,
         repeat_equal=repeat_equal,split_equal=split_equal,comparisons=comparisons,
         observation='incomplete_matrix' if not complete else 'repeat_divergence' if not repeat_equal else
-                    'extra_restart_divergence' if not split_equal else 'new_continuations_agree',
+                    ('fresh_split_divergence' if fresh else 'extra_restart_divergence') if not split_equal else
+                    ('fresh_paths_agree' if fresh else 'new_continuations_agree'),
         note='Exact measurements only. PASS means comparison completed, not feature qualification or a diagnosed backend cause.')
     save(Path('/output/comparison.json'),report)
 
@@ -130,7 +173,12 @@ def compare(host,context,output):
     from inspect_resume import command
     from oeis_learn.pipeline_validation.supervision import launch,reclaim
     inputs={'original':context['saved']['full'],'old-resumed':context['saved']['resumed']}
-    for key,name in [('a','continue-a'),('b','continue-b'),('split','split-rest')]:
+    fresh=context.get('start')=='fresh'
+    selected=[('a','continue-a'),('b','continue-b'),('split','split-rest')]
+    if fresh:
+        inputs['old-paused']=context['saved']['paused']
+        selected.append(('paused','split-first'))
+    for key,name in selected:
         stage=output.parent/name
         if (stage/'result.json').is_file() and json.loads((stage/'result.json').read_text()).get('status')=='PASS':
             inputs[key]=learner_output(stage)
@@ -142,6 +190,7 @@ def compare(host,context,output):
     argv=command(host,context['runtime']['images'][1],helpers,target,inputs,container)
     # Reuse the reviewed CPU command constructor; change only the helper entrypoint.
     argv[argv.index('/helper/inspect_resume.py')]='/helper/probe_resume.py'
+    if fresh:argv[argv.index('--container')]='--container-fresh'
     cleanup=dict(deadline=time.monotonic()+270,allowance_seconds=30)
     try:
         launch(argv,output/'supervision',seconds=240,stream_cap=1<<20,cleanup_seconds=30,cleanup_state=cleanup)
@@ -156,6 +205,7 @@ def internal(args):
     from diagnose_hip import host_for
     from oeis_learn.pipeline_validation.identity import confined
     context=load_context(args.run)
+    context['start']=args.start
     output=confined(ROOT,args.output,exists=False);output.mkdir(parents=True,exist_ok=False)
     host=host_for(args.engine)
     if args.internal=='compatibility':
@@ -178,15 +228,21 @@ def export(output):
     record=json.loads((output/'diagnostic.json').read_text())
     save(destination/'diagnostic.json',record)
     save(destination/'summary.json',dict(selected_scope=record['status'],feature_qualified=False,
-        scientific_status='UNMEASURED',scope='same-checkpoint continuation diagnostics; comparison completion is not equality'))
+        scientific_status='UNMEASURED',scope='resume matrix diagnostics; comparison completion is not equality'))
     comparison=output/'compare/comparison.json'
     if comparison.is_file():copyfile(comparison,destination/'comparison.json')
+    provenance={}
     for stage in record['plan']:
         name=stage['name'];root=output/name
         if root.is_dir():
             collect(root,destination/(name+'-diagnostics'))
             result=root/'result.json'
-            if result.is_file():save(destination/'controls'/name/'result.json',terminal_fields(json.loads(result.read_text())))
+            if result.is_file():
+                value=json.loads(result.read_text())
+                save(destination/'controls'/name/'result.json',terminal_fields(value))
+                if name in BRANCHES:
+                    fields=('status','start_checkpoint','initializer','checkpoint','updates','learner_status')
+                    provenance[name]={k:value[k] for k in fields if k in value}
         for control_root,label in [(output/'private/logs'/name,'outer'),(root/'supervision','comparison')]:
             for filename in ('process.json','cleanup.json'):
                 path=control_root/filename
@@ -196,7 +252,8 @@ def export(output):
                 if path.is_file():
                     target=destination/'logs'/name/label/filename;target.parent.mkdir(parents=True,exist_ok=True)
                     with path.open('rb') as stream:stream.seek(max(0,path.stat().st_size-65536));target.write_bytes(stream.read(65536))
-    mandatory=['summary.json','diagnostic.json']+(['comparison.json'] if comparison.is_file() else [])
+    save(destination/'branches.json',provenance)
+    mandatory=['summary.json','diagnostic.json','branches.json']+(['comparison.json'] if comparison.is_file() else [])
     archive=pack(destination,mandatory=mandatory,cap=64<<20,optional_cap=48<<20)
     target=output.with_suffix('.zip')
     if target.exists():raise ValueError('matrix archive already exists')
@@ -209,6 +266,7 @@ def main(argv=None):
     parser.add_argument('--engine',choices=['docker','podman'],required=True)
     parser.add_argument('--run',required=True)
     parser.add_argument('--output',required=True)
+    parser.add_argument('--start',choices=['paused','fresh'],default='paused')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--internal',choices=['compatibility',*BRANCHES,'compare'],help=argparse.SUPPRESS)
     args=parser.parse_args(argv)
@@ -230,7 +288,7 @@ def main(argv=None):
     output.mkdir(parents=True)
     from oeis_learn.generalization.resources import CAPS
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
-    metadata=dict(source_run=args.run,images=context['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,start=args.start,images=context['runtime']['images'],helpers={
         name:file_hash(Path(__file__).with_name(name)) for name in
         ('probe_resume.py','test_probe_resume.py','inspect_resume.py','diagnose_hip.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)
@@ -241,6 +299,7 @@ def main(argv=None):
 
 if __name__=='__main__':
     if sys.argv[1:]==['--container']:comparison_container()
+    elif sys.argv[1:]==['--container-fresh']:comparison_container(fresh=True)
     else:
         try:raise SystemExit(main())
         except (ValueError,OSError) as exc:print(str(exc),file=sys.stderr);raise SystemExit(2)
