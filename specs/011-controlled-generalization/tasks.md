@@ -20,6 +20,23 @@ See [the evidence review](validation/acceptance-016-review.md). Preserve the ori
 images/private run and qualification root for research consumers; no repeat
 acceptance is requested by this documentation-only reconciliation.
 
+### Post-acceptance E0 readiness review
+
+- [X] T130 Audit already implemented E0 assembly/evaluation/qualification/reporting
+  against the spec and measured reliability repairs; independently reconcile
+  acceptance-016, correct the missing prepare/shared-bank steps in the operator
+  guide, and document concrete research-input/export prerequisites without claiming
+  a runnable research campaign or repeating production implementation.
+
+See [E0 readiness](validation/e0-readiness.md). Existing backend capability is
+present, but research authority and the one-command scientific export handoff are
+not yet assembled. The specific original uniform provenance metadata is absent
+from this workspace and from the intentionally public acceptance archive. A
+bounded no-HIP metadata command obtains it without private weights or truth.
+387 local tests pass,1 Wasmtime-dependent test skips,1 GPU test is deselected.
+The metadata command passes stdlib success/allowlist/hash, existing-output refusal
+and missing-input-before-output checks. No production source closure changed.
+
 The dated entries below are historical, including their then-open hardware gates.
 
 ## Historical diagnostic status — 2026-11-01 UTC

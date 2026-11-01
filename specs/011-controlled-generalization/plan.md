@@ -154,3 +154,22 @@ and the generic gpu qualification defaults retain their numerical settings.
 This is one measured runtime-integration repair, not new sampling/admission or
 selection algorithm work. Production promotion requires fresh source/image
 qualification and the unchanged consolidated final acceptance gates.
+
+
+## Post-acceptance readiness update — 2026-11-01 Pacific
+
+Acceptance-016 completes D for the frozen ef886a7 source/images: canonical offline
+verification passes all five cases and feature qualification;905 source entries
+match exactly. Earlier planning statements about unimplemented/runtime-pending
+work are historical. Science remains UNMEASURED. See
+[acceptance review](validation/acceptance-016-review.md).
+
+The [E0 readiness review](validation/e0-readiness.md) confirms existing core
+implementation while identifying the missing concrete research authority and
+public export/orchestration handoff. Prepare must resolve the frozen input study;
+shared-bank evaluation needs its explicit digest argument. Research time envelopes
+must account for the actual roster and per-checkpoint role allocation, setup,
+scoring and packaging. No acceptance fixture is promoted to a research benchmark.
+Keep the measured ROCm/no-Lt baseline; identify original research input metadata
+before constructing and testing the single bounded E0 launch. No new algorithm,
+production runtime, image or dependency change is part of this review.

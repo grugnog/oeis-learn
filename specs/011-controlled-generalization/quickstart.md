@@ -1,61 +1,31 @@
 # Validation and first-pilot guide
 
-All nine generalization commands are registered. The implementation has local
-CPU/reference and fixture integration evidence. Actual pinned-container/native
-qualification and HIP acceptance have **not** run in this environment. No research
-campaign is started by these instructions or by the acceptance helper.
+All nine generalization commands are registered. Acceptance-016 passed the
+pinned CPU/native and actual HIP qualification, all five feature cases and canonical
+archive verification. See [the evidence review](validation/acceptance-016-review.md).
+The scientific status remains UNMEASURED.
 
-## Current next step: final repaired-source acceptance
+## Current next step: freeze E0 research inputs
 
-No-lt-fresh-001 passes exact repeat and full/resume comparison without tensor
-observers. The measured startup policy is now installed in prospective GPU roles
-and bigint-gpu qualification, verified at runtime and bound into original
-qualification facts/device evidence and CUDA full-state compatibility. This is a
-production source change: rebuild both pinned images and obtain fresh qualification.
-Earlier diagnostic commands below describe historical source/images and do not
-supply repaired-source acceptance or qualification reuse.
+Keep the accepted images and installed no-Lt policy. T064–T067 are complete; do not
+repeat acceptance for this documentation-only handoff. Keep the full private run
+and `run-state/generalization/acceptance-016/report/qualified/` intact.
 
-```bash
-(
-  set -e
-  test "$(git branch --show-current)" = "011-controlled-generalization"
-  git pull --ff-only origin 011-controlled-generalization
-  test ! -e run-state/generalization/acceptance-inputs-016
-  test ! -e run-state/generalization/acceptance-016
-  test ! -e run-state/generalization/acceptance-016.zip
+The evaluation backend and generic study assembler already exist. The repository's
+E0 recipe is a PREPARATION_REQUIRED template, not a runnable research manifest.
+Neither the uniform weights-only import nor the reduced acceptance fixture defines
+the historical evaluation roster or a new research benchmark. The uploaded archive
+excludes those private inputs intentionally.
 
-  podman build --target qualification -t oeis-learn:generalization-cpu .
-  podman build --target gpu -t oeis-learn:generalization-gpu .
-
-  python3 scripts/generalization_inputs.py acceptance --engine podman \
-    --imported run-state/generalization/uniform-import \
-    --cpu-image oeis-learn:generalization-cpu \
-    --gpu-image oeis-learn:generalization-gpu \
-    --output run-state/generalization/acceptance-inputs-016
-
-  python3 scripts/generalization_hip_serial.py --engine podman \
-    --manifest run-state/generalization/acceptance-inputs-016/generalization-acceptance.json \
-    --output run-state/generalization/acceptance-016 --dry-run
-
-  python3 scripts/generalization_hip_serial.py --engine podman \
-    --manifest run-state/generalization/acceptance-inputs-016/generalization-acceptance.json \
-    --output run-state/generalization/acceptance-016
-)
-```
-
-Upload `run-state/generalization/acceptance-016.zip`, pass or fail. This batches
-builds, frozen inputs/preflight, one original qualification per required scope,
-all five feature cases, reporting and canonical verification. Existing inputs/runs
-are preserved. Fresh qualification is necessary because the installed code, policy
-binding and source closure changed; no earlier producer is reused. The serial
-ceiling remains395 minutes (6h35), plus image builds, not a runtime estimate.
-T064–T067 remain open until the actual repaired-source archive is reviewed. No
-research campaign is started. The qualification image supplies the pinned native dependencies; their checks
-remain execution gates.
+Read [E0 readiness and the bounded metadata handoff](validation/e0-readiness.md)
+before launching. Freeze actual cohorts/quotas, checkpoint availability, shared-bank
+seeds, time/storage reservations and the public evidence inventory first. The
+examples below are templates until those exact inputs exist. No research or HIP
+command was executed during this review.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: untraced fresh validation with explicit addmm bypass
+### Historical diagnostic: untraced fresh validation with explicit addmm bypass
 
 Processes-001 reproduced native Linear variation across fresh GPU processes with
 identical operands. Original and earlier rocBLAS settings still logged hipBLASLt
@@ -880,16 +850,38 @@ The following paths and descriptor IDs are operator-provided inputs, not artifac
 created by implementation. Set `QUALIFICATION_IMAGE` to the inspected immutable
 CPU image and `QUALIFIED_ROOT` to the complete session's `report/qualified/`.
 
-E0 extends evaluation without retraining. Select exact descriptor identities from
-the frozen runtime checkpoint roster; display names are not IDs:
+E0 extends evaluation without retraining. First assemble a research-purpose
+blueprint with `generalization_inputs.py study`; it must reference the original
+completed `feature.json`, qualified source/images and actual research inputs.
+Preflight does not prepare data. Run `prepare`, then read its returned manifest
+and runtime from `result.json` rather than evaluating the unresolved input study.
+Select available descriptor identities from the frozen roster; display names and
+unavailable IDs are not runnable checkpoint selections. Freeze unavailable entries
+in the accompanying measurement plan so they are not silently dropped from claims.
+
+The following is a **template**, not the ready-to-run E0 invocation. `CHECKPOINT_IDS`
+is a shell array of the declared available descriptors. `BANK_ID` is the canonical
+digest of the eight frozen unique integer seeds in `runtime.evaluation.bank_seeds`.
+The explicit `--proposal-bank` option activates the shared absent-input control;
+setting seeds in the sidecar alone does not activate it.
 
 ```bash
-python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization preflight \
+python3 scripts/foundation_run.py --engine podman --image "$QUALIFICATION_IMAGE" generalization preflight \
   --manifest run-state/inputs/E0/study.json --output run-state/evidence/E0-preflight
-python3 scripts/foundation_run.py --engine docker --image "$QUALIFICATION_IMAGE" generalization evaluate \
-  --manifest run-state/inputs/E0/study.json --checkpoints "$EARLY_ID" "$SELECTED_ID" "$UNIFORM_BEST_ID" "$UNIFORM_LATEST_ID" \
+python3 scripts/foundation_run.py --engine podman --image "$QUALIFICATION_IMAGE" generalization prepare \
+  --manifest run-state/inputs/E0/study.json --qualification "$QUALIFIED_ROOT" \
+  --output run-state/evidence/E0-prepared
+# Read PREPARED_STUDY/PREPARED_RUNTIME from E0-prepared/result.json's result object.
+python3 scripts/foundation_run.py --engine podman --image "$QUALIFICATION_IMAGE" generalization evaluate \
+  --manifest "$PREPARED_STUDY" --runtime "$PREPARED_RUNTIME" \
+  --checkpoints "${CHECKPOINT_IDS[@]}" --proposal-bank "$BANK_ID" \
   --qualification "$QUALIFIED_ROOT" --output run-state/evidence/E0-evaluate
 ```
+
+Report/verify-bundle follow only after assembling the explicit public evidence
+root consumed by `generalization report`. An evaluate command's sibling ZIP is a
+command receipt, not the complete scientific evidence export. See the readiness
+review for the required orchestration and bounded failure packaging.
 
 Retain unavailable checkpoint status rather than substituting weights. Compare
 fixed denominators, raw/fitted budgets, shared-bank costs and completion. Selection
