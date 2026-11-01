@@ -7,7 +7,54 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: defer module reads until forward completion
+### Current next step: isolated Linear operand probe
+
+Deferred-001 found the first differing module: `encoder.s1_magnitude.mlp.3`
+(`Linear`), with matching input hashes and differing output hashes. The preceding
+Linear, GELU and Dropout match. Restored parameter hashes match, but original tensor
+layout/alignment was not recorded. Observer effects still occur; this is a concrete
+measured boundary, not a proven library defect.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/trace_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --linear-probe \
+    --output run-state/generalization/resume-linear-001
+)
+```
+
+Upload `run-state/generalization/resume-linear-001.zip`, pass or fail. Keep the
+new output directory intact as well as both inputs. This retains the same controls
+and eight training updates. In the first traced forward only, it captures the target
+layer's input, weight, bias and actual output on-device, then probes those fixed
+operands after whole-forward completion. Broad module tracing and BLAS overrides
+are absent. No rebuild, broad qualification, search or evaluation is required.
+
+Each captured operation gets64 forward evaluations: native Linear, flattened Linear,
+explicit matrix multiplication plus separate bias, and Linear without bias plus
+separate bias, each with four repeats at four allocation offsets. Reports distinguish
+within-offset stability from equality across offsets, match counts against the
+actual captured output, and maximum differences versus a CPU FP64 computation.
+Different formulations/layouts can legitimately round differently; neither FP64
+agreement nor a changed hash supplies a new acceptance tolerance. Original operand
+shapes/strides/storage offsets and alignment modulo256, plus logical-value hashes,
+are reported. No memory addresses or tensor values are exported.
+
+The captured tensors (at most64 MiB) remain in private run-owned
+`linear-operands.pt` files under each traced role output; their hashes accompany
+the report. Retaining them allows follow-up isolated operation tests without another
+model run. Do not upload those private files as part of the diagnostic archive.
+The probe still perturbs timing/allocation, so interpret its endpoint versus its
+control, and do not declare a fix from one clean repetition. Stage ceilings remain
+67 minutes; operand probe overhead on HIP is unmeasured. T064–T067 remain open.
+
+### Completed diagnostic: deferred module capture
 
 Layers-001 verified, but all202 module events and traced endpoints agree while
 controls differ. One traced endpoint also differs from its control. Per-module

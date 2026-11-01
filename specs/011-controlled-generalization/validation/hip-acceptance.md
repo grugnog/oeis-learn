@@ -955,3 +955,45 @@ failures, including absence of CPU tensor reads inside the observed forward,
 immutable capture, memory rejection, CPU update/RNG parity and failure cleanup.
 No production source inventory changed, no local HIP ran and CI was not awaited.
 T064–T067 remain open; deferred-capture behavior requires one operator invocation.
+
+
+## Resume-deferred-001: equal Linear inputs, differing Linear outputs
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`a39a9b12a947832b7887138f4d4eaa8a641e67b410226c531ebd02499688f962`.
+All80 inventoried payloads plus manifest verify, no omissions; all five helper
+hashes matchb6d9d95. Stage elapsed291.009s (4m51s), all stages PASS/exit0 and
+acknowledged cleanup. Diagnostic completion still does not imply equality.
+
+Controls agree and match old-resumed. Old-traced agrees with its control;
+new-traced differs and matches the original uninterrupted endpoint. Deferred tracing
+therefore still has an observer effect. Nevertheless, it captures differing logits
+and module events rather than hiding all divergence. Event3 is the earliest
+observed module difference: `encoder.s1_magnitude.mlp.3`, type Linear. Both input
+hashes are `sha256:2cffd2bd16efe9f9c1db90297a48040b0c29db3ce2e3c75aad99042877ef65f4`;
+outputs differ. Events0–2 (the preceding Linear, GELU, Dropout) match. Global
+restored weight/optimizer/RNG/batch hashes match, as do observed execution settings.
+Original device layouts were not captured; equal value hashes are not proof of
+equivalent backend dispatch. This is a measured Linear boundary, not a kernel diagnosis.
+
+Source audit identifies the second Linear in MagnitudeStream's MLP. Primary-source
+research read [PyTorch issue196164](https://github.com/pytorch/pytorch/issues/196164)
+including follow-ups, not just its initial suspected hipBLASLt diagnosis. That
+report ultimately identifies an embedding-backward race in another workload; it
+is not a demonstrated explanation of our first forward Linear difference. Earlier
+comments also show why BLAS preference alone need not identify addmm dispatch.
+Version-tagged raw Linear/Blas source retrieval was unavailable, so no unverified
+source-path assertion is used to select a production fix.
+
+T125 adds a small operand probe to the same diagnostic helper. Only the target
+Linear's input/weight/bias/output are captured on-device and retained privately;
+post-forward micro-evaluations compare four explicit formulations, repeated four
+times at each of four allocation offsets. Within-offset stability is separated
+from across-offset equality, captured-output matches and CPU FP64 numerical error.
+The latter is not exact real arithmetic and supplies no acceptance tolerance.
+Original layout/alignment metadata and logical operand hashes are public, tensor
+values remain private (64 MiB cap), and stored operands can support future tests
+without repeating model capture. No extra backend setting or production change
+is introduced.93 local tests pass, including actual target capture/cleanup and
+private retention, exact integer controls and input bounds. No local HIP ran and
+CI was not awaited; production source inventory and T064–T067 remain unchanged.

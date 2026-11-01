@@ -63,7 +63,30 @@ endpoint differs from its control, so synchronized module tracing has an observe
 effect and cannot localize the original divergence. T124 defers module CPU reads
 until forward completion; no production fix or gate closure is claimed.
 
+Latest evidence, 2026-11-01 Pacific: deferred-001 verifies (291.009s). The
+first differing module is encoder.s1_magnitude.mlp.3 (Linear): input hashes match,
+output hashes differ, and the preceding Linear/GELU/Dropout events match. Controls
+agree but traced runs differ, with one observer effect; this localizes a measured
+operation without proving the underlying kernel cause. T125 isolates its operands.
+T064–T067 remain open; no production change or tolerance relaxation is justified.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T125 Record deferred-001's first unequal Linear output from equal inputs.
+  Add a bounded operand-level probe of that exact layer to the existing helper:
+  capture input/weight/bias/output privately, compare native Linear, flattened
+  Linear and separate bias formulations across repeated/aligned allocations,
+  report exact statistics and preserve operands for future reuse. No tolerance or
+  production change; upstream reports are hypotheses, not diagnoses of this run.
+
+T125 validation:93 local helper tests pass after the initial missing-function
+counterexample. Tests cover captured operand shape/type checks, exact small-integer
+controls, numerical metadata, fixed repeat counts, stage propagation, actual target
+hook capture/cleanup and private tensor retention. CPU alignment variation during
+probe development motivated separate within-layout and across-layout statistics;
+it is not evidence of the HIP cause. No production inventory changed, no local HIP
+ran and CI was not awaited. Actual operation-level reproduction remains pending.
+
 
 - [X] T124 Reconcile layers-001's observer effect and add deferred module capture
   to the same temporary trace. Clone observed tensors on their current device,

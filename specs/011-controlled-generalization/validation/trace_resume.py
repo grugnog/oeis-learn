@@ -47,7 +47,52 @@ def capture_value(value,budget):
     return value
 
 
-def install_trace(path,policy='observe',layers=False,defer_layers=False):
+def probe_linear(operands):
+    """One captured operation, fixed repeated layouts; no claim of exact real arithmetic."""
+    import hashlib
+    import torch
+    import torch.nn.functional as F
+    if set(operands)!={'input','weight','bias','output'}:raise ValueError('closed Linear operands required')
+    x,w,b,observed=(operands[k] for k in ('input','weight','bias','output'))
+    if any(t.dtype!=torch.float32 for t in (x,w,b,observed)) or x.ndim not in (2,3) or w.ndim!=2 or b.ndim!=1:
+        raise ValueError('bounded FP32 Linear operands required')
+    if x.shape[-1]!=w.shape[1] or b.numel()!=w.shape[0] or tuple(observed.shape)!=(*x.shape[:-1],w.shape[0]):
+        raise ValueError('Linear shape mismatch')
+    if sum(t.numel()*t.element_size() for t in (x,w,b,observed))>64<<20:raise ValueError('Linear operand cap')
+    variants={};shape=observed.shape
+    with torch.no_grad():
+        expected=observed.cpu()
+        # FP64 CPU result is a numerical comparison, not a proof of exact arithmetic.
+        reference=F.linear(x.cpu().double(),w.cpu().double(),b.cpu().double())
+        for name in ('linear','flat_linear','mm_bias','linear_no_bias'):
+            first=None;stable=True;matches=0;max_error=0.;calls=0;layouts=[]
+            for offset in (0,1,7,64):
+                layout_first=None;layout_equal=True;alignments=set()
+                for _ in range(4):
+                    storage=torch.empty(x.numel()+offset,device=x.device,dtype=x.dtype)
+                    value=storage[offset:].view(x.shape);value.copy_(x)
+                    alignments.add(value.data_ptr()%256)
+                    if name=='linear':result=F.linear(value,w,b)
+                    elif name=='flat_linear':result=F.linear(value.reshape(-1,value.shape[-1]),w,b).view(shape)
+                    elif name=='mm_bias':result=(torch.mm(value.reshape(-1,value.shape[-1]),w.t())+b).view(shape)
+                    else:result=F.linear(value,w,None)+b
+                    actual=result.cpu()
+                    if not torch.isfinite(actual).all():raise ValueError('nonfinite Linear probe output')
+                    if first is None:first=actual.clone()
+                    if layout_first is None:layout_first=actual.clone()
+                    layout_equal=layout_equal and torch.equal(layout_first,actual)
+                    stable=stable and torch.equal(first,actual)
+                    matches+=int(torch.equal(expected,actual));calls+=1
+                    max_error=max(max_error,float((actual.double()-reference).abs().max()))
+                layouts.append(dict(offset_elements=offset,alignment_mod256=sorted(alignments),repeat_equal=layout_equal))
+            variants[name]=dict(repeat_equal=stable,calls=calls,layouts=layouts,observed_output_matches=matches,max_abs_vs_cpu_fp64=max_error)
+    return dict(shapes={k:list(t.shape) for k,t in operands.items()},variants=variants,
+        operand_hashes={k:'sha256:'+hashlib.sha256(t.detach().contiguous().cpu().reshape(-1).view(torch.uint8).numpy().tobytes()).hexdigest()
+                        for k,t in operands.items()},
+        note='Repeated captured operands; changed layouts/formulations can change rounding. No production qualification.')
+
+
+def install_trace(path,policy='observe',layers=False,defer_layers=False,linear_probe=False):
     """Observe the existing update; CPU readbacks synchronize and may affect timing."""
     import hashlib,json,os,random
     from dataclasses import is_dataclass,fields
@@ -92,7 +137,7 @@ def install_trace(path,policy='observe',layers=False,defer_layers=False):
     def factory(encoder,decoder,optimizer,*,device,scheduler=None):
         update=original(encoder,decoder,optimizer,device=device,scheduler=scheduler)
         emit('execution',torch=str(torch.__version__),hip=torch.version.hip,device=device,
-            diagnostic_policy=policy,module_tracing=layers,deferred_module_reads=defer_layers,
+            diagnostic_policy=policy,module_tracing=layers,deferred_module_reads=defer_layers,linear_probe=linear_probe,
             blas_preference=str(torch.backends.cuda.preferred_blas_library()),
             device_name=torch.cuda.get_device_name() if device=='cuda' else 'cpu',
             execution=execution_observation(),threads=torch.get_num_threads(),
@@ -110,10 +155,17 @@ def install_trace(path,policy='observe',layers=False,defer_layers=False):
             if ordinal>4:raise ValueError('trace limited to four diagnostic updates')
             logits=sft.teacher_forced_logits;clip=torch.nn.utils.clip_grad_norm_
             def forward(*args,**kwargs):
-                events=[];handles=[];budget=dict(bytes=0,nodes=0)
+                events=[];handles=[];budget=dict(bytes=0,nodes=0);operands={};operand_layouts={}
                 def hook(name):
                     def observed(module,inputs,keywords,result):
                         if len(events)>=2048:raise ValueError('module event cap')
+                        if linear_probe and name=='encoder.s1_magnitude.mlp.3':
+                            if operands:raise ValueError('unique target Linear call required')
+                            values=dict(input=inputs[0],weight=module.weight,bias=module.bias,output=result)
+                            operand_layouts.update({k:dict(shape=list(v.shape),stride=list(v.stride()),
+                                storage_offset=v.storage_offset(),alignment_mod256=v.data_ptr()%256) for k,v in values.items()})
+                            operands.update(capture_value(values,budget))
+                        if not layers:return
                         if defer_layers:
                             events.append(dict(module=name,kind=type(module).__name__,
                                 input=capture_value((inputs,keywords),budget),output=capture_value(result,budget)))
@@ -122,17 +174,28 @@ def install_trace(path,policy='observe',layers=False,defer_layers=False):
                                 input=fingerprint((inputs,keywords)),output=fingerprint(result)))
                     return observed
                 try:
-                    if layers and ordinal==1:
+                    if (layers or linear_probe) and ordinal==1:
                         for prefix,model in (('encoder',encoder),('decoder',decoder)):
                             for name,module in model.named_modules():
-                                handles.append(module.register_forward_hook(hook(prefix+('.'+name if name else '')),with_kwargs=True))
+                                label=prefix+('.'+name if name else '')
+                                if layers or label=='encoder.s1_magnitude.mlp.3':
+                                    handles.append(module.register_forward_hook(hook(label),with_kwargs=True))
                     result=logits(*args,**kwargs)
                     if defer_layers:
                         # The original complete forward has now returned. Only
                         # here may captured tensors be read back and hashed.
                         for event in events:
                             event['input']=fingerprint(event['input']);event['output']=fingerprint(event['output'])
-                    emit('forward',ordinal,logits=fingerprint(result),**({'layer_events':events} if layers and ordinal==1 else {}))
+                    extra={}
+                    if linear_probe and ordinal==1:
+                        if not operands:raise ValueError('target Linear was not called')
+                        extra['linear_probe']=probe_linear(operands)
+                        extra['linear_probe']['original_layouts']=operand_layouts
+                        private=path.with_name('linear-operands.pt')
+                        if private.exists():raise ValueError('fresh private operands required')
+                        torch.save({k:v.cpu() for k,v in operands.items()},private)
+                        extra['linear_operand_sha256']='sha256:'+hashlib.sha256(private.read_bytes()).hexdigest()
+                    emit('forward',ordinal,logits=fingerprint(result),**extra,**({'layer_events':events} if layers and ordinal==1 else {}))
                     return result
                 finally:
                     for handle in handles:handle.remove()
@@ -159,15 +222,15 @@ def install_trace(path,policy='observe',layers=False,defer_layers=False):
 
 
 @contextmanager
-def instrument(policy='observe',*,tracing=True,layers=False,defer_layers=False):
+def instrument(policy='observe',*,tracing=True,layers=False,defer_layers=False,linear_probe=False):
     from oeis_learn.pipeline_validation import generalization_roles as roles
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
     if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
-    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r},defer_layers={defer_layers!r})\n" if tracing else ''
+    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r},defer_layers={defer_layers!r},linear_probe={linear_probe!r})\n" if tracing else ''
     roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+
-        (inspect.getsource(capture_value)+'\n'+inspect.getsource(install_trace) if tracing else '')+
+        (inspect.getsource(capture_value)+'\n'+inspect.getsource(probe_linear)+'\n'+inspect.getsource(install_trace) if tracing else '')+
         "\nimport sys,json\nif sys.argv[-2]=='learner' and json.loads(sys.argv[-1])['operation']=='train':\n"
         f"    configure_policy({policy!r})\n"+observer+original)
     try:yield
@@ -183,7 +246,8 @@ def plan(args):
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,'--run',args.run,
                   '--matrix',args.matrix,'--output',str(Path(args.output)/name),'--internal',name,
                   '--policy',getattr(args,'policy','observe')]+(['--layers'] if getattr(args,'layers',False) else [])+
-                  (['--defer-layers'] if getattr(args,'defer_layers',False) else [])))
+                  (['--defer-layers'] if getattr(args,'defer_layers',False) else [])+
+                  (['--linear-probe'] if getattr(args,'linear_probe',False) else [])))
     return result
 
 
@@ -252,7 +316,8 @@ def internal(args):
     try:
         manager=nullcontext()
         if traced:
-            if getattr(args,'layers',False):manager=instrument(getattr(args,'policy','observe'),layers=True,defer_layers=getattr(args,'defer_layers',False))
+            if getattr(args,'linear_probe',False):manager=instrument(getattr(args,'policy','observe'),linear_probe=True)
+            elif getattr(args,'layers',False):manager=instrument(getattr(args,'policy','observe'),layers=True,defer_layers=getattr(args,'defer_layers',False))
             else:manager=instrument() if getattr(args,'policy','observe')=='observe' else instrument(args.policy)
         with manager:
             result=probe_resume.train_branch('continue-a',ctx,host,output)
@@ -331,9 +396,11 @@ def main(argv=None):
     p.add_argument('--policy',choices=['observe','rocblas'],default='observe')
     p.add_argument('--layers',action='store_true',help='Hash module inputs/outputs in the first traced forward')
     p.add_argument('--defer-layers',action='store_true',help='Capture device tensors and read only after the whole forward')
+    p.add_argument('--linear-probe',action='store_true',help='Probe and privately retain the isolated target Linear operands')
     p.add_argument('--internal',choices=['compatibility',*RUNS,'compare'],help=argparse.SUPPRESS)
     args=p.parse_args(argv)
     if args.defer_layers and not args.layers:p.error('--defer-layers requires --layers')
+    if args.linear_probe and args.layers:p.error('--linear-probe is separate from broad module tracing')
     sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
     from diagnose_hip import save,execute,run
     from oeis_learn.pipeline_validation.identity import confined,file_hash
@@ -350,7 +417,7 @@ def main(argv=None):
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
     import probe_resume
     output.mkdir(parents=True)
-    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,module_tracing=args.layers,deferred_module_reads=args.defer_layers,images=ctx['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,module_tracing=args.layers,deferred_module_reads=args.defer_layers,linear_probe=args.linear_probe,images=ctx['runtime']['images'],helpers={
         n:file_hash(Path(__file__).with_name(n)) for n in ('trace_resume.py','test_trace_resume.py',
         'probe_resume.py','inspect_resume.py','diagnose_hip.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)

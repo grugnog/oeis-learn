@@ -329,3 +329,57 @@ def test_deferred_capture_clones_without_cpu_reads_and_obeys_bound(monkeypatch):
 def test_deferred_plan_and_bootstrap_propagate_capture_mode():
     args=SimpleNamespace(engine='podman',run='old',matrix='fresh',output='out',layers=True,defer_layers=True)
     assert all(s['argv'][-2:]==['--layers','--defer-layers'] for s in helper.plan(args))
+
+
+
+def test_linear_probe_is_bounded_and_keeps_operand_values_private():
+    import torch
+    torch.manual_seed(42)
+    x=torch.randn(2,3,4);w=torch.randn(5,4);b=torch.randn(5)
+    observed=torch.nn.functional.linear(x,w,b)
+    result=helper.probe_linear(dict(input=x,weight=w,bias=b,output=observed))
+    assert set(result['variants'])=={'linear','flat_linear','mm_bias','linear_no_bias'}
+    assert all(len(v['layouts'])==4 and v['max_abs_vs_cpu_fp64']<.001 for v in result['variants'].values())
+    assert all(v['calls']==16 for v in result['variants'].values())
+    assert 'tensor(' not in json.dumps(result)
+    assert result['shapes']['input']==[2,3,4]
+    with pytest.raises(ValueError):helper.probe_linear(dict(input=x.double(),weight=w,bias=b,output=observed))
+
+
+
+def test_linear_probe_exact_small_integer_control_and_stage_flag():
+    import torch
+    x=torch.ones(2,3,4);w=torch.ones(5,4);b=torch.ones(5)
+    result=helper.probe_linear(dict(input=x,weight=w,bias=b,output=torch.full((2,3,5),5.)))
+    assert all(v['repeat_equal'] and v['observed_output_matches']==16 for v in result['variants'].values())
+    args=SimpleNamespace(engine='podman',run='old',matrix='fresh',output='out',linear_probe=True)
+    assert all(s['argv'][-1]=='--linear-probe' for s in helper.plan(args))
+
+
+def test_isolated_linear_capture_uses_target_and_retains_private_operands(tmp_path,monkeypatch):
+    import sys,types,torch,oeis_learn.rl
+    from oeis_learn.pipeline_validation import generalization_training as training
+    module=types.ModuleType('oeis_learn.rl.sft_trainer')
+    module.teacher_forced_logits=lambda a,b:b(a(torch.ones(2,3,2)))
+    monkeypatch.setitem(sys.modules,'oeis_learn.rl.sft_trainer',module)
+    monkeypatch.setattr(oeis_learn.rl,'sft_trainer',module,raising=False)
+    class Encoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.s1_magnitude=torch.nn.Module()
+            self.s1_magnitude.mlp=torch.nn.Sequential(torch.nn.Linear(2,4),torch.nn.GELU(),torch.nn.Dropout(0),torch.nn.Linear(4,2))
+        def forward(self,x):return self.s1_magnitude.mlp(x)
+    a=Encoder();b=torch.nn.Linear(2,1);opt=torch.optim.SGD(list(a.parameters())+list(b.parameters()),lr=.01)
+    def factory(a,b,opt,**kw):
+        def update(batch):
+            opt.zero_grad();loss=module.teacher_forced_logits(a,b).sum();loss.backward();opt.step();return {'loss':float(loss.detach())}
+        return update
+    monkeypatch.setattr(training,'torch_update',factory)
+    undo=helper.install_trace(tmp_path/'trace.jsonl',linear_probe=True)
+    try:training.torch_update(a,b,opt,device='cpu')([])
+    finally:undo()
+    rows=[json.loads(line) for line in (tmp_path/'trace.jsonl').read_text().splitlines()]
+    assert 'linear_probe' in rows[2] and 'layer_events' not in rows[2]
+    operands=torch.load(tmp_path/'linear-operands.pt',weights_only=True)
+    assert set(operands)=={'input','weight','bias','output'}
+    assert list(operands['input'].shape)==[2,3,4]
+    assert not any(m._forward_hooks for m in a.modules())
