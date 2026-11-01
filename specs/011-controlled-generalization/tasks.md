@@ -84,21 +84,31 @@ boundary tests cover every failed stage, partial training, initialization mismat
 missing verifier output. Actual canonical offline report/verify round trips preserve
 PASS/PARTIAL/FAIL/INTERRUPTED and reject changed archive references. These tests are
 not hardware qualification or scientific evidence.
-- [ ] T137 Publish one consolidated command for any required current-source
+- [X] T137 Publish one consolidated command for any required current-source
   acceptance followed by the fresh P1 pilot, with setup/loading/persistence/scoring
   and packaging reservations. Actual HIP/research results remain pending until run.
 
-## Current status — acceptance-016 reviewed 2026-11-01 Pacific
+T137 handoff is the current first section of `quickstart.md` and
+`validation/fresh-pilot-readiness.md`: update the existing PR branch, build both pinned
+images and invoke the temporary runner once. It automatically creates a fresh root,
+runs current-source acceptance at the research resource profile and continues only
+after the original proofs pass. The60-hour outer ceiling explicitly supersedes the
+default36-hour screen envelope for this invocation; builds are outside it, each
+learner remains capped at6 hours/25M tokens, and one hour is reserved for finalization.
+It is a ceiling, not a runtime prediction. No HIP command was run here; the next
+operator archive is the remaining actual hardware/scientific gate.
+
+## Prior-source status — acceptance-016 reviewed 2026-11-01 Pacific
 
 T064–T067 are complete for production head ef886a7. The uploaded acceptance-016
 archive independently passes the canonical offline verifier with feature_qualified
 true, all five cases PASS, no missing cases, and scientific status UNMEASURED.
-Its entire 905-file source closure matches this checkout. CPU:1196 tests plus77
+Its entire 905-file source closure matched the reviewed ef886a7 checkout. CPU:1196 tests plus77
 subtests; HIP:27 tests; exact full-state resume passes under the installed no-Lt
 policy. The serial workflow completed in1430.071 seconds excluding image builds.
 See [the evidence review](validation/acceptance-016-review.md). Preserve the original
-images/private run and qualification root for research consumers; no repeat
-acceptance is requested by this documentation-only reconciliation.
+images/private run and qualification root as original evidence. The fresh-start
+production repairs above now require a new current-source acceptance.
 
 ### Post-acceptance E0 readiness review
 

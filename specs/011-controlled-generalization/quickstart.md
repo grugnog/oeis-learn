@@ -12,12 +12,60 @@ the historical artifacts without using them as fresh validation or paired seeds.
 P1 uses static versus refreshed mechanical training from identical random weights,
 seed20261016, literal targets, fixed model/support/mixture and no replay.
 
-Research launch is not yet turnkey. T133–T137 cover research-scale preparation,
-persistence review and one temporary serial preparation/train/evaluate/export
-helper. Keep sealed assessment out of adaptive decisions. No old E0 command below
-is the current launch instruction, and no fresh HIP run is requested until the local
-repairs and consolidated handoff are complete. Acceptance-016 remains original
-software evidence for ef886a7; production changes require current-source acceptance.
+T132–T137 are implemented and locally checked. The temporary runner performs
+current-source acceptance once, then research preparation, both learners, matched
+selection evaluation, reporting and independent archive verification. Keep sealed
+assessment out of adaptive decisions. Acceptance-016 remains original evidence for
+ef886a7; the production changes below require fresh acceptance. No fresh HIP or
+scientific result is claimed until this command runs on the operator's machine.
+
+From the repository root, update the **existing PR branch** and run the following.
+It assumes the already imported files remain at
+`run-state/generalization/uniform-import`. Set `PILOT_ENGINE=docker` before the block
+if using Docker; otherwise it uses Podman. Both images must be rebuilt from this
+checkout, with the existing pinned versions and numerical execution policy.
+
+```bash
+(
+  set -e
+  git fetch origin 011-controlled-generalization
+  git switch 011-controlled-generalization
+  git merge --ff-only origin/011-controlled-generalization
+
+  PILOT_ENGINE="${PILOT_ENGINE:-podman}"
+  PILOT_RUN="run-state/generalization/fresh-p1-$(date -u +%Y%m%dT%H%M%SZ)"
+  "$PILOT_ENGINE" build --target qualification -t oeis-learn:generalization-cpu .
+  "$PILOT_ENGINE" build --target gpu -t oeis-learn:generalization-gpu .
+  python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py run \
+    --engine "$PILOT_ENGINE" \
+    --cpu-image oeis-learn:generalization-cpu \
+    --gpu-image oeis-learn:generalization-gpu \
+    --imported run-state/generalization/uniform-import \
+    --output "$PILOT_RUN"
+)
+```
+
+The final JSON prints the archive to upload: normally `<PILOT_RUN>/report.zip`, or
+`<PILOT_RUN>/recovery.zip` if the research report cannot be verified. A nonzero exit
+still requires reading that JSON and sharing the archive. Preserve the full private
+run and imported files locally; the shareable archive deliberately excludes tensors,
+optimizer/RNG state and protected target payloads. Existing outputs are never
+overwritten. If acceptance or preparation fails, research does not start.
+
+This freezes a **60-hour total ceiling after image builds**, not an estimated runtime.
+Each learner gets at most6 hours/25M target tokens; each arm's generation and scoring
+gets up to6 hours each. Setup, qualification, validation, checkpoint persistence,
+cleanup and final reporting have separate reservations. Qualification and research
+use64GiB/four CPUs, with64GiB reserved per research root. Checkpoint/input projections
+and image storage need free disk space as well; measured preflight remains mandatory.
+Partial learners are evaluated for diagnosis, but unequal/partial exposure cannot
+support a matched25M comparison. No assessment scoring or automatic next experiment
+is launched. See [the frozen handoff and local evidence](validation/fresh-pilot-readiness.md).
+
+Use `--dry-run` on the final Python command to print reservations without containers
+or HIP. Advanced reuse through `--qualified PATH` requires an original current-source
+qualified root at the exact64GiB/four-CPU resources; acceptance-016 does not qualify
+this changed source. The default above handles that requirement automatically.
 
 ### Historical diagnostic: untraced fresh validation with explicit addmm bypass
 

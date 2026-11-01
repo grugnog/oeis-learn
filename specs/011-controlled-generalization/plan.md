@@ -30,6 +30,18 @@ The Spec Kit planning workflow's Phase 0/1 below creates design documents only. 
 
 **Constraints**: Exact source integers/indices, strict mechanical provenance, visible-only proposal/fitting, isolated selection supervision, sealed assessment, conservative dependency closure, finite generation/search/storage. Full research runs are separate from qualification.
 
+**Fresh-start delivery (T132–T137)**: The temporary runner under `validation/` binds
+a new P1 screen protocol before learning, runs one current-source acceptance and then
+canonical preparation/training plus the existing isolated generator/scorer roles.
+The operator-authorized command has a60-hour outer ceiling after builds, including
+finalization reserves; each learner remains at6 hours/25M tokens. Qualification and
+research use64GiB/four CPUs. Both latest checkpoints are evaluated with frozen matched
+controls; partial exposure remains descriptive, no adaptive checkpoint ranking or
+assessment scoring occurs. Complex quota/exclusion and persistence repairs are in
+the single reopened Phase B; temporary orchestration/export/handoff are routine C/D.
+See [the handoff](validation/fresh-pilot-readiness.md). Actual new-source HIP and
+scientific results remain pending, regardless of local test completion.
+
 **Diagnostic containment (T100)**: Automatic role/image-inspection diagnostics use
 timestamp-only heartbeats and explicit phase markers, never asynchronous traversal
 of another thread's Python frames. External process/container deadlines remain
