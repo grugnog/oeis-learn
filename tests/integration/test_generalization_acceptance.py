@@ -262,7 +262,8 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
         assert any(n.endswith('diagnostics/preflight/parameter-targets/validation/role/supervision/process.json') for n in z.namelist())
         index=json.loads(z.read('payloads/diagnostics/index.json'))
         row=next(r for r in index['files'] if r['source']==str(nested.relative_to(run)))
-        assert z.read('payloads/diagnostics/'+row['export_path'])==nested.read_bytes()
+        assert json.loads(z.read('payloads/diagnostics/'+row['export_path']))=={'outcome':'COMPLETE'}
+        assert row['status']=='PROJECTED' and row['original_sha256']
         outcome_row=next(r for r in index['files'] if r['source']==str(outcome.relative_to(run)))
         assert outcome_row['status']=='PROJECTED'
         assert Path(outcome_row['export_path']).parent==Path(row['export_path']).parent

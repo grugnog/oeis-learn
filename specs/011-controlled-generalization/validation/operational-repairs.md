@@ -17,3 +17,9 @@ Validation:85 local tests passed across operational budgets, training, runtime, 
 The finalization policy validates the canonical sealed verifier summary, archive bytes/hash, scope and exit code together. Valid negative-scope verification remains usable; missing/truncated/contradictory results trigger a verified recovery bundle. Final publication preserves every original report member byte-for-byte and adds the complete controller ledger, verifier summary and original member manifest. Independent archive verification checks final status/order and preservation of original payloads. Interrupted publication retains an INTERRUPTED ledger/export. Original report/qualification receipts are never rewritten.
 
 Validation:38 tests passed across serial/canonical acceptance, recovery and archive boundaries, including nine finalization outcomes and tampered final metadata. No HIP command. This completes the reopened operational-policy work; subsequent tasks wire bounded diagnostics, runtime environment and consolidated coverage.
+
+## T105 — complete bounded control capture (2026-10-31)
+
+Diagnostics now inventory outer stage process/disk controls, fresh qualification image/device inspections, authority validation, verifier inspection and every discovered role disk record. Numeric/status controls precede bulky logs, are allowlist-projected without argv/host paths, and retain original hash/size. Missing, malformed, oversized and unsafe sources remain explicit inventory outcomes. Normal report, recovery and read-only export paths share the collector.
+
+Validation:63 diagnostics/canonical acceptance tests passed, including seven previously omitted boundary paths across all three export modes. Existing original qualification/measurement payloads remain unchanged.

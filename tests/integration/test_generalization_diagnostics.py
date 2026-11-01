@@ -12,6 +12,15 @@ def put(root,name,payload):
     return path
 
 
+def assert_exported(name,actual,original):
+    if name.endswith('.json'):
+        expected=json.loads(original)
+        if Path(name).name=='process.json' and 'failure' in expected:
+            expected={'failure_type':expected['failure'].split(':',1)[0]}
+        assert json.loads(actual)==expected
+    else:assert actual==original
+
+
 @pytest.mark.parametrize('recovery',[False,True])
 def test_nested_role_outcome_survives_zero_exit_without_private_result_payload(tmp_path,recovery):
     from oeis_learn.pipeline_validation.generalization_diagnostics import export
@@ -128,8 +137,8 @@ def test_nested_role_controls_export_without_private_payloads(tmp_path,recovery)
     with zipfile.ZipFile(archive) as z:
         index=json.loads(z.read('diagnostics/index.json'));rows={r['source']:r for r in index['files']}
         for name,payload in expected.items():
-            row=rows[name];assert row['status']=='COPIED'
-            assert z.read('diagnostics/'+row['export_path'])==payload
+            row=rows[name];assert row['status'] in {'COPIED','PROJECTED'}
+            assert_exported(name,z.read('diagnostics/'+row['export_path']),payload)
         assert all('private' not in n for n in z.namelist())
         assert all(b'PRIVATE_PAYLOAD' not in z.read(n) for n in z.namelist())
 
@@ -162,7 +171,7 @@ def test_recovery_captures_terminal_case_and_packaging_failures_first(tmp_path):
     put(root,'workflow.json',json.dumps(ledger).encode())
     archive=helper().recover(root,ledger)
     with zipfile.ZipFile(archive) as z:
-        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        for name,payload in expected.items():assert_exported(name,z.read('diagnostics/'+name),payload)
         assert all('private' not in n for n in z.namelist())
 
 
@@ -214,11 +223,11 @@ def test_recovery_retains_timeout_records_and_original_failure(tmp_path):
     from oeis_learn.pipeline_validation.bundle import verify
     assert verify(archive)['summary_state']=='FAIL'
     with zipfile.ZipFile(archive) as z:
-        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        for name,payload in expected.items():assert_exported(name,z.read('diagnostics/'+name),payload)
         assert all('private' not in n and 'checkpoints' not in n for n in z.namelist())
         inventory=json.loads(z.read('diagnostics/index.json'))
         assert inventory['qualification_evidence'] is False
-        assert {r['source'] for r in inventory['files'] if r['status']=='COPIED'}>=set(expected)
+        assert {r['source'] for r in inventory['files'] if r['status'] in {'COPIED','PROJECTED'}}>=set(expected)
 
 
 def test_diagnostics_bound_reads_preserve_json_and_reject_links(tmp_path):
@@ -270,7 +279,7 @@ def test_recovery_includes_nested_qualification_failures(tmp_path,stage,suite):
     from oeis_learn.pipeline_validation.bundle import verify
     assert verify(archive)['summary_state']=='FAIL'
     with zipfile.ZipFile(archive) as z:
-        for name,payload in expected.items():assert z.read('diagnostics/'+name)==payload
+        for name,payload in expected.items():assert_exported(name,z.read('diagnostics/'+name),payload)
         assert all('private' not in n and 'pytest' not in n for n in z.namelist())
 
 
@@ -353,7 +362,7 @@ def test_validation_bootstrap_survives_failure_and_exposes_stalls(tmp_path,monke
     channels={m.channel:m.channel for m in ROLE_INPUTS[Role(role_name)]}
     for path in channels.values():(tmp_path/path).mkdir()
     def launch(command,output,**kw):
-        assert kw['seconds']==120 and kw['stream_cap']==1<<20
+        assert 0<kw['seconds']<=96 and kw['cleanup_seconds']==24 and kw['stream_cap']==1<<20
         (output.parent/'result.json').write_text('{"status":"PASS"}')
     monkeypatch.setattr(supervision,'reclaim',lambda *a,**kw:None)
     roles.invoke(host,'cpu',tmp_path,Role(role_name),channels,output='role',
@@ -417,3 +426,36 @@ def test_validation_milestones_locate_last_reached_phase(tmp_path,monkeypatch,ca
                     ['runtime-plan','storage-preflight'] if failure=='storage' else
                     ['runtime-plan','storage-preflight','complete'])
     assert all(float(line.split('unix=')[1])>0 for line in lines)
+
+
+@pytest.mark.parametrize('mode',['collect','recovery','export'])
+def test_all_canonical_control_boundaries_are_captured_and_projected(tmp_path,mode):
+    from oeis_learn.pipeline_validation import generalization_diagnostics as d
+    root=tmp_path/'run';root.mkdir()
+    paths=['private/logs/replay-resume/process.json','private/logs/replay-resume/disk/disk.json',
+           'qualify/current/image-1/logs/process.json','qualify/current/device/logs/process.json',
+           'qualify/authority-validation/role/result.json','verify-bundle/inspection/logs/process.json',
+           'replay-resume/case/private/replay/seed/training/arm/execution/role/disk.json']
+    for path in paths:
+        value=dict(status='FAIL',outcome='FAIL',returncode=None,elapsed_seconds=180,peak_bytes=123,
+                   breach='study reservation exceeded: checkpoint_bytes',failure='TimeoutError: PRIVATE_SECRET',
+                   filesystem_path='PRIVATE_SECRET',argv=['PRIVATE_SECRET'],weights='PRIVATE_SECRET')
+        put(root,path,json.dumps(value).encode())
+    if mode=='collect':
+        destination=tmp_path/'collected';index=d.collect(root,destination)
+        read=lambda n:(destination/n).read_bytes()
+    else:
+        if mode=='export':archive=d.export(root,tmp_path/'export')['archive']
+        else:
+            ledger=dict(receipts=[dict(stage='replay-resume',exit_code=1)],status='FAIL')
+            put(root,'workflow.json',json.dumps(ledger).encode());archive=helper().recover(root,ledger)
+        with zipfile.ZipFile(archive) as z:payloads={n:z.read(n) for n in z.namelist()}
+        index=json.loads(payloads['diagnostics/index.json']);read=lambda n:payloads['diagnostics/'+n]
+    rows={r['source']:r for r in index['files']}
+    for path in paths:
+        row=rows[path];assert row['status']=='PROJECTED'
+        data=read(row['export_path']);assert b'PRIVATE_SECRET' not in data
+        assert row['original_sha256'] and row['original_bytes']>len(data)
+        assert 'private' not in Path(row['export_path']).parts
+    assert json.loads(read(rows[paths[0]]['export_path']))['failure_type']=='TimeoutError'
+    assert json.loads(read(rows[paths[1]]['export_path']))['breach']=='study reservation exceeded: checkpoint_bytes'

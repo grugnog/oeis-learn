@@ -36,6 +36,39 @@ def terminal_fields(result):
     return fields
 
 
+
+def control_fields(value):
+    """Public numeric/status projection; command lines and host paths stay private."""
+    import math
+    if not isinstance(value,dict):raise ValueError('invalid control record')
+    result={}
+    numeric={'elapsed_seconds','seconds','allowance_seconds','returncode','peak_bytes','trace_peak_bytes',
+             'cap_bytes','trace_cap_bytes','free_reserve_bytes','free_bytes','minimum_free_bytes'}
+    for key in numeric:
+        member=value.get(key)
+        if key in value and (member is None or type(member) is int and -(1<<63)<=member<1<<63 or type(member) is float and math.isfinite(member)):
+            result[key]=member
+    for key in ('acknowledged','within_bound'):
+        if type(value.get(key)) is bool:result[key]=value[key]
+    if isinstance(value.get('outcome'),str) and value['outcome'] in {'COMPLETE','FAIL','INTERRUPTED'}:result['outcome']=value['outcome']
+    for key in ('failure','cleanup_failure'):
+        text=value.get(key)
+        if isinstance(text,str):
+            kind=text.split(':',1)[0]
+            result[key+'_type']=kind if kind in {'TimeoutError','OSError','RuntimeError','ResourceBreach','KeyboardInterrupt','TimeoutExpired'} else 'UNACKNOWLEDGED'
+    breach=value.get('breach')
+    if breach:
+        known=('invocation transient artifact cap exceeded','invocation trace cap exceeded',
+               'invocation free-space reserve exhausted','invocation disk accounting unavailable',
+               'disk accounting did not stop within cleanup deadline','symlink in study output')
+        result['breach']=next((k for k in known if isinstance(breach,str) and breach.startswith(k)),'RESOURCE_BREACH')
+        if isinstance(breach,str) and breach in {'study reservation exceeded: '+k for k in ('checkpoint_bytes','shard_bytes','raw_bytes')}:
+            result['breach']=breach
+    observation=value.get('breach_observation')
+    if isinstance(observation,dict):
+        result['breach_observation']={k:v for k,v in observation.items() if k in {'artifact_bytes','trace_bytes','free_bytes'} and type(v) is int}
+    return result
+
 def nested_controls(root):
     """Discover control paths and results for projection, without reading payloads."""
     pending=[];names=[];omissions=[];entries=directories=roles=0
@@ -67,6 +100,7 @@ def nested_controls(root):
                         roles+=1
                         names.extend(str(path/'supervision'/name) for name in CONTROL)
                         names.append(str(path/'result.json'))
+                        names.append(str(path/'disk.json'))
                     else:pending.append((path,depth+1))
         except OSError as exc:
             omissions.append(dict(source=str(relative),status='OMITTED',reason=type(exc).__name__))
@@ -85,6 +119,18 @@ def candidates(*,nested=()):
         for name in ('receipt.json','case-result.json',*(label+'.json' for label in labels)):
             yield f'{case}/case/{name}'
     yield 'replay-resume/bootstrap.json'
+    for stage in ('preflight','qualify','prepare',*CASES,'failure-packaging','report','verify-bundle'):
+        for name in CONTROL:yield f'private/logs/{stage}/{name}'
+        yield f'private/logs/{stage}/disk/disk.json'
+    for position in range(2):
+        yield f'qualify/current/image-{position}/cleanup.json'
+        for name in CONTROL:yield f'qualify/current/image-{position}/logs/{name}'
+    for name in CONTROL:yield 'qualify/current/device/logs/'+name
+    yield 'qualify/authority-validation/role/result.json'
+    yield 'qualify/authority-validation/role/disk.json'
+    for name in CONTROL:yield 'qualify/authority-validation/role/supervision/'+name
+    yield 'verify-bundle/inspection/cleanup.json'
+    for name in CONTROL:yield 'verify-bundle/inspection/logs/'+name
     yield from nested
     for operation in ('report/packaging','verify-bundle/verification'):
         yield operation+'/role/result.json'
@@ -125,14 +171,20 @@ def collect(root,destination,*,cap=TOTAL_CAP):
     destination.mkdir(parents=True,exist_ok=False)
     nested,omissions=nested_controls(root);nested=set(nested)
     rows=[];used=0
-    for name in candidates(nested=sorted(nested)):
+    names=list(dict.fromkeys(candidates(nested=sorted(nested))))
+    names=list(dict.fromkeys([*names,*[str(Path(n).parent/'disk.json') for n in names if n.endswith('/role/result.json')]]))
+    # Keep all terminal/process/disk records ahead of bulky logs and suite XML.
+    names.sort(key=lambda n:Path(n).suffix in {'.log','.xml'})
+    for name in names:
         relative=Path(name)
-        projected=name in nested and relative.name=='result.json'
-        control_parent=relative.parent/'supervision' if projected else relative.parent
+        outcome=relative.name=='result.json' and relative.parent.name=='role'
+        control=relative.name in {'process.json','cleanup.json','disk.json'}
+        projected=outcome or control
+        control_parent=relative.parent/'supervision' if outcome else relative.parent
         # Archive paths must never expose private directories as public payloads.
         export_path=(str(Path('nested-roles')/hashlib.sha256(str(control_parent).encode()).hexdigest()/
-                         ('outcome.json' if projected else relative.name))
-                     if name in nested else name)
+                         ('outcome.json' if outcome else relative.name))
+                     if name in nested or 'private' in relative.parts else name)
         path=root/name;row=dict(source=name,export_path=export_path);rows.append(row)
         try:
             if any((root/Path(*relative.parts[:i])).is_symlink() for i in range(1,len(relative.parts)+1)):
@@ -160,7 +212,7 @@ def collect(root,destination,*,cap=TOTAL_CAP):
                     raise ValueError('file changed during capture')
             if projected:
                 row['original_sha256']='sha256:'+hashlib.sha256(data).hexdigest()
-                data=(json.dumps(terminal_fields(json.loads(data)),sort_keys=True)+'\n').encode()
+                data=(json.dumps((terminal_fields if outcome else control_fields)(json.loads(data)),sort_keys=True)+'\n').encode()
                 status='PROJECTED'
                 if len(data)>cap-used:raise ValueError('total byte cap')
             target=destination/export_path;target.parent.mkdir(parents=True,exist_ok=True)
