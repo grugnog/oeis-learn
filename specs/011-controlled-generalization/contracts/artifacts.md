@@ -321,3 +321,32 @@ its diagnostic origin and do not claim a model discovery. Research rejects this
 policy and retains the model-generated eight-attempt default. Mechanical setup
 uses fixed generic sampler/refresh draws with finite exclusions; it cannot weaken
 quotas or borrow rows when construction or native admission fails.
+
+
+## Prospective HIP numerical policy (T128)
+
+Installed prospective GPU work freezes `generalization-hip-execution/v1`:
+`DISABLE_ADDMM_CUDA_LT=1`, `TORCH_BLAS_PREFER_HIPBLASLT=0`,
+`ROCBLAS_USE_HIPBLASLT=0`, `ROCBLAS_DEFAULT_ATOMICS_MODE=0`, and accepted PyTorch
+BLAS preference `cublas` (hipBLAS on ROCm). Flags must be set at process start;
+missing/changed flags fail closed, rather than being patched after cached backend
+initialization. Existing FP32/math attention controls still apply to sized profiles.
+The stdlib descriptor's canonical identity is
+`sha256:7e8b6150696841d883936a6599c05d80b7055cb6d8c518846c29bc0897f5d71d`.
+
+Current qualification `runtime.execution_policy` records that installed, verified
+identity. The schema admits its omission only for historical authority parsing;
+new producer/consumer inspection always requires the current identity. Original
+real-device finite-update and exact-resume evidence must bind the same policy in
+one artifact. Source/image/build closure checks remain mandatory. Qualification
+stage receipts also include the policy in their cache identity.
+
+CUDA full-state compatibility includes the policy identity, so an earlier numerical
+regime cannot resume under the new one merely because recipe/data values match.
+Weights-only initializers retain their separate permitted initialization contract;
+they never count as a full-state resume. CPU checkpoint compatibility is unchanged.
+Prospective learner/generator containers and the bigint-gpu suite receive the
+startup environment. Historical model commands and generic gpu suite defaults
+retain their former settings. The repair changes installed source, so earlier
+qualification must not be reused for the repaired package. Full required validation
+remains pending until the fresh canonical serial acceptance completes.

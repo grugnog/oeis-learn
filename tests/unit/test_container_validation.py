@@ -144,6 +144,11 @@ def test_all_validation_scratch_is_disk_backed_accounted_and_private(host, tmp_p
     with patch('oeis_learn.container_validation.subprocess.Popen', side_effect=spawn):
         _, results = _stages(host, suite, tmp_path / 'validation')
     assert commands and all('--network=none' in c and '--read-only' in c for c in commands)
+    if suite=='bigint-gpu':
+        from oeis_learn.pipeline_validation.generalization_execution import startup_environment
+        for command in commands:
+            env=dict(command[i+1].split('=',1) for i,v in enumerate(command) if v=='--env')
+            assert all(env.get(k)==v for k,v in startup_environment().items())
     receipt = results[suite + '-regressions']
     assert receipt['status'] == 'PASS' and 'results.xml' in receipt['files']
     assert not any('pytest' in Path(p).parts for p in receipt['files'])
@@ -174,3 +179,15 @@ def test_fail(tmp_path):
     assert result.returncode == 1 and '1 failed, 1 passed' in result.stdout, result.stdout + result.stderr
     assert not Path((tmp_path / 'passed-path').read_text()).exists()
     assert (Path((tmp_path / 'failed-path').read_text()) / 'checkpoint.pt').read_bytes() == b'failed fixture'
+
+
+def test_prospective_qualification_sets_startup_flags_only_when_requested(host,tmp_path):
+    from oeis_learn.container_validation import _stages
+    from oeis_learn.pipeline_validation.generalization_execution import startup_environment
+    for enabled in (False,True):
+        with launch(host) as processes:
+            _stages(host,'gpu',tmp_path/'validation',generalization_policy=enabled)
+            assert processes.call_count==3  # Environment, regressions and learning all rerun under the new policy.
+        env=host.engine.command.call_args.kwargs['environment']
+        for key,value in startup_environment().items():
+            assert env.get(key)==(value if enabled else None)

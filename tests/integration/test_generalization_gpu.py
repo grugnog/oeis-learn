@@ -16,6 +16,8 @@ def test_generalization_device_load_and_finite_update(tmp_path):
     from oeis_learn.fresh.bigint_worker import models,_batch_loss
     from oeis_learn.fresh.common import file_hash
     from oeis_learn.pipeline_validation.identity import seal,write
+    from oeis_learn.pipeline_validation.generalization_execution import verify_execution
+    execution_policy=verify_execution()
     _,_,settings,examples=_fixture('cuda',tmp_path)
     encoder,decoder,_=models(settings['recipe'],'cuda')
     saved=tmp_path/'qualification-weights.pt'
@@ -36,7 +38,7 @@ def test_generalization_device_load_and_finite_update(tmp_path):
     resumed=resume_probe(tmp_path/'prospective-resume',settings['recipe'],'cuda')
     # supervised_step checks finite loss; persist the actual loaded checkpoint hash.
     record=seal(dict(version='generalization-device-evidence/v1',device='hip',loaded_weights=file_hash(saved),
-        finite_forward=True,finite_backward=True,parameters_changed=True,**resumed))
+        finite_forward=True,finite_backward=True,parameters_changed=True,execution_policy=execution_policy,**resumed))
     destination=os.environ.get('OEIS_GENERALIZATION_DEVICE_EVIDENCE')
     if destination:write(Path(destination),record)
 

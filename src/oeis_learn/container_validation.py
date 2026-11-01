@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .container_runtime import private_runtime_environment
+from .pipeline_validation.generalization_execution import startup_environment as generalization_environment
+from .pipeline_validation.generalization_execution import POLICY_ID as GENERALIZATION_EXECUTION
 from .fresh.common import digest, file_hash, lock, read, write
 from contextlib import nullcontext
 
@@ -50,7 +52,10 @@ GPU_NODES = [
 ]
 
 
-def _stages(host, suite, output, *, external_seconds=None):
+def _stages(host, suite, output, *, external_seconds=None,generalization_policy=None):
+    # bigint-gpu includes the installed prospective resume test. Generic/historical
+    # GPU qualification and historical model commands retain their defaults.
+    if generalization_policy is None:generalization_policy=suite=='bigint-gpu'
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     invocation_started = time.monotonic()
@@ -215,6 +220,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                 "argv": argv,
                 "runtime": host.policy["runtime"],
                 "observed_environment": results.get("environment", {}).get("files"),
+                **({'generalization_execution':GENERALIZATION_EXECUTION} if generalization_policy and gpu else {}),
             }
         )
         if receipt.exists() and not (gpu and name == "environment"):
@@ -252,6 +258,7 @@ def _stages(host, suite, output, *, external_seconds=None):
             },
             environment={
                 **private_runtime_environment(out),
+                **(generalization_environment() if generalization_policy and gpu else {}),
                 "PYTHONPATH": "/opt/oeis-build/src",
                 "OMP_NUM_THREADS": "2" if external_seconds is not None else str(host.policy["cpus"]),
                 **({'MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','RAYON_NUM_THREADS':'1'} if external_seconds is not None else {}),

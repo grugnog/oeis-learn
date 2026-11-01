@@ -68,6 +68,9 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     from oeis_learn.container_runtime import private_runtime_environment
     environment={**private_runtime_environment(target,destination=declared[-1]["destination"]),
         "OMP_NUM_THREADS":"2","MKL_NUM_THREADS":"1","OPENBLAS_NUM_THREADS":"1","RAYON_NUM_THREADS":"1"}
+    if gpu:
+        from .generalization_execution import startup_environment
+        environment.update(startup_environment())
     command=host.engine.command(image=image,name=name,
         mounts=[(m['source'],m['destination'],not m['read_only']) for m in declared],
         argv=argv,startup_diagnostics=bool(diagnostic),

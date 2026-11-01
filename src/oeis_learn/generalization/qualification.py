@@ -33,6 +33,11 @@ def qualify_reuse(receipt,current,*,required_suites,required_capabilities,root,r
         if value.get('version')=='generalization-device-evidence/v1': device_evidence.append(value)
     if not any(seal(e)==e and e.get('device')=='hip' and e.get('loaded_weights') and all(e.get(k) is True for k in ('finite_forward','finite_backward','parameters_changed')) for e in device_evidence):
         raise ValueError('real load/finite-update evidence missing')
+    policy=current['runtime'].get('execution_policy')
+    if policy is not None and not any(seal(e)==e and e.get('device')=='hip' and e.get('loaded_weights') and
+        all(e.get(k) is True for k in ('finite_forward','finite_backward','parameters_changed','resume_equal')) and
+        e.get('execution_policy')==policy for e in device_evidence):
+        raise ValueError('device/resume numerical policy evidence differs')
     if research:
         if feature_receipt is None: raise ValueError('completed feature acceptance required before research')
         from .feature_acceptance import verify_feature

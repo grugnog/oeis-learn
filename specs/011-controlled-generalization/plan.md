@@ -140,3 +140,17 @@ No constitutional exceptions. The added policy layer and qualification contract 
 ## Readiness
 
 The [task breakdown](tasks.md) is generated and ready for implementation review. This planning change contains no runtime implementation and no new training/HIP measurements. Both the first pilot sequence and the complete implementation scope are explicit.
+
+
+## Prospective HIP execution repair after isolated Linear reproduction
+
+T128 freezes generalization-hip-execution/v1 in one stdlib descriptor. Prospective
+GPU roles and the bigint-gpu qualification suite receive the four no-Lt/rocBLAS
+startup flags before interpreter/BLAS initialization. Installed CUDA learner and
+generator paths verify them and the accepted hipBLAS preference. A policy hash
+binds CUDA full-state compatibility, current qualification runtime observations,
+real-device resume evidence and stage receipt identity. Historical model commands
+and the generic gpu qualification defaults retain their numerical settings.
+This is one measured runtime-integration repair, not new sampling/admission or
+selection algorithm work. Production promotion requires fresh source/image
+qualification and the unchanged consolidated final acceptance gates.

@@ -84,6 +84,19 @@ The explicit no-Lt arm and separate-bias variants match across all three process
 This is a reproduced operation-level distinction, with a candidate full-path
 mitigation. T127 requests no-Lt in the untraced fresh matrix; T064–T067 remain open.
 
+### Production numerical policy repair
+
+- [X] T128 Promote the measured no-Lt prospective execution policy through one
+  stdlib descriptor and startup environment. Verify actual accepted preference and
+  flags on CUDA learners; bind the policy identity into full-state compatibility,
+  qualification runtime facts and device evidence. Apply it to the prospective
+  qualification suite and explicit prospective roles without changing historical
+  default commands. Test startup, both engines, receipt/checkpoint invalidation,
+  schema handling and CPU paths; preserve strict equality and old evidence.
+- [ ] T129 Record no-lt-fresh-001 evidence, update contracts/dispositions and provide
+  a consolidated rebuild/input-freeze/fresh qualification/final-acceptance command.
+  Run local gates, commit/push logical changes and leave actual HIP gates open.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
 - [X] T127 Reconcile processes-001's cross-process Linear reproduction and

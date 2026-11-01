@@ -7,6 +7,7 @@ import uuid
 from oeis_learn.generalization.contracts import artifact_refs,verify_artifact
 from .identity import seal,write,file_hash
 from .generalization_preparation import reference
+from .generalization_execution import startup_environment,POLICY_ID
 
 
 def inspect_device(host,image,output,*,seconds=120):
@@ -14,15 +15,16 @@ def inspect_device(host,image,output,*,seconds=120):
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     name='generalization-inspect-'+uuid.uuid4().hex
     code="""import json,platform,torch
+from oeis_learn.pipeline_validation.generalization_execution import verify_execution
 from pathlib import Path
 assert torch.version.hip and torch.cuda.is_available(), 'actual HIP required'
 p=torch.cuda.get_device_properties(0)
 driver=Path('/sys/module/amdgpu/srcversion')
-result=dict(runtime=dict(hip=str(torch.version.hip),driver=driver.read_text().strip() if driver.is_file() else platform.release(),python=platform.python_version(),torch=str(torch.__version__)),hardware=dict(hip_available=True,device=p.name,memory_bytes=p.total_memory))
+result=dict(runtime=dict(hip=str(torch.version.hip),driver=driver.read_text().strip() if driver.is_file() else platform.release(),python=platform.python_version(),torch=str(torch.__version__),execution_policy=verify_execution()),hardware=dict(hip_available=True,device=p.name,memory_bytes=p.total_memory))
 Path('/output/inspection.json').write_text(json.dumps(result,sort_keys=True))
 """
     command=host.engine.command(image=image,name=name,mounts=[(output,'/output',True)],argv=['python','-c',code],
-        gpu=True,render_node=host.policy['render_node'],memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'])
+        gpu=True,render_node=host.policy['render_node'],memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],environment=startup_environment())
     cleanup={}
     try:
         with host.gpu_lock():launch(command,output/'logs',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
@@ -46,6 +48,7 @@ def current_facts(host,root,output,*,images,source_ref,build_refs,producer_root,
         inspect_current_image(host,image,Path(output)/('image-'+str(position)),seconds=120)
     host.select_gpu()
     device=device_inspector(host,images[1],Path(output)/'device')
+    if device['runtime'].get('execution_policy')!=POLICY_ID:raise ValueError('current numerical policy differs')
     engine=host.engine.facts()
     resources=dict(memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],torch_intraop=2,torch_interop=1,native_threads=1,learners=1)
     security=dict(engine=engine['engine'],runtime_socket=False,engine_version=engine['version'],runtime=engine['runtime'],
@@ -114,7 +117,7 @@ def produce(host,workspace,output,*,images,contract):
             gpu=stage.adapter=='hip';host.image=images[1 if gpu else 0]
             if gpu:
                 host.select_gpu()
-                with host.gpu_lock():result=_stages(host,'bigint-gpu',target,external_seconds=stage.seconds)[1]
+                with host.gpu_lock():result=_stages(host,'bigint-gpu',target,external_seconds=stage.seconds,generalization_policy=True)[1]
             else:result=_stages(host,'bigint-cpu',target,external_seconds=stage.seconds)[1]
             return dict(suite='bigint-gpu' if gpu else 'bigint-cpu',result=result)
     stages=[Stage('image.qualification',1,seconds=900,adapter='inspect'),

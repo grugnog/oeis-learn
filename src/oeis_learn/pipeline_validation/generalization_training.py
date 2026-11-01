@@ -120,6 +120,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
     if set(config)!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
+    from .generalization_execution import verify_execution,bind_compatibility
+    execution_policy=verify_execution() if config['device']=='cuda' else None
     seconds=config['seconds'] if seconds is None else seconds
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
     milestones=config['milestones'];cap=config['target_tokens']
@@ -145,7 +147,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                 matched.add(row['id'])
         if matched!=set(tasks):raise ValueError('replay task absent from prepared training shards')
         extension['replay']=dict(pool=replay['pool'].snapshot(),tasks=replay['tasks'])
-    compatibility=digest(dict(config=config,data=batches.identity,**extension))
+    compatibility=digest(dict(config=config,data=batches.identity,**bind_compatibility(config['device'],extension)))
     output=Path(output)
     if output.exists():raise ValueError('fresh learner output required')
     output.mkdir(parents=True,exist_ok=False)
@@ -271,6 +273,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         milestones={str(m):state['history']['exposures'][k] for m,k in milestone_keys.items()},
         learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts,
         retained=roster['identity'])
+    if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
     progress('complete')
     return result

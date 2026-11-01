@@ -80,3 +80,31 @@ def test_research_gate_rejects_unproven_or_failed_feature_cases(tmp_path,case_st
     with pytest.raises(ValueError,match='feature|case|acceptance'):
         qualify_reuse(receipt,facts,root=tmp_path,required_suites={'hip'},required_capabilities={'load'},
             research=True,feature_receipt=reference(path,tmp_path))
+
+
+def test_policy_bound_qualification_requires_matching_real_resume_evidence(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_execution import POLICY_ID
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    receipt,facts=producer(tmp_path)
+    facts['runtime']['execution_policy']=POLICY_ID
+    receipt=seal(dict(receipt,facts=facts))
+    with pytest.raises(ValueError,match='numerical policy evidence'):
+        qualify_reuse(receipt,facts,required_suites={'hip'},required_capabilities={'load'},root=tmp_path)
+    evidence=json.loads((tmp_path/'update.json').read_text())
+    evidence=seal(dict(evidence,execution_policy=POLICY_ID,resume_equal=True))
+    (tmp_path/'update.json').write_text(json.dumps(evidence))
+    receipt=seal(dict(receipt,artifacts=[reference(tmp_path/'update.json',tmp_path)]))
+    assert qualify_reuse(receipt,facts,required_suites={'hip'},required_capabilities={'load'},root=tmp_path)
+    changed=copy.deepcopy(facts);changed['runtime']['execution_policy']='sha256:'+'0'*64
+    with pytest.raises(ValueError):qualify_reuse(receipt,changed,required_suites={'hip'},required_capabilities={'load'},root=tmp_path)
+
+
+def test_schema_accepts_policy_identity_and_rejects_unbound_configuration():
+    from pathlib import Path
+    from oeis_learn.generalization.contracts import freeze
+    from oeis_learn.pipeline_validation.generalization_execution import POLICY_ID
+    authority=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['qualification']
+    authority['runtime']['execution_policy']=POLICY_ID
+    assert freeze('qualification',authority).record()['runtime']['execution_policy']==POLICY_ID
+    authority['runtime']['execution_policy']='fp32 only'
+    with pytest.raises(ValueError):freeze('qualification',authority)

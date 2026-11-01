@@ -108,6 +108,9 @@ def replay_propose(inputs,output,settings,*,seconds):
     from .sizing_execution import execution_context
     if set(settings)!={'checkpoint','prompt','recipe','study','seed','attempt','device'}:
         raise ValueError('closed replay proposal settings required')
+    if settings['device']=='cuda':
+        from .generalization_execution import verify_execution
+        verify_execution()
     prompt=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompt']))
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         candidate=propose_visible(inputs['frozen_weights'],settings['checkpoint'],prompt,settings['recipe'],client=native,
@@ -139,6 +142,9 @@ def generator(inputs,output,settings,*,seconds):
     from .sizing_execution import execution_context
     expected={'checkpoint','prompts','recipe','study','source','device','bank_seeds'}
     if set(settings)!=expected:raise ValueError('closed generation role settings required')
+    if settings['device']=='cuda':
+        from .generalization_execution import verify_execution
+        verify_execution()
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
