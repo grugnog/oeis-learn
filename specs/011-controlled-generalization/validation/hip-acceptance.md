@@ -1085,3 +1085,41 @@ after the intended unsupported-policy counterexample. No production inventory
 changed, no local HIP ran and CI was not awaited. The operation-level success must
 be checked by fresh full/resume equality before production promotion; T064–T067
 remain open.
+
+
+## Resume-no-lt-fresh-001: exact uninstrumented fresh resume passes
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`7b935c55086032c08b247e0a84fbf24efe0984f2a32401df65034da04ff766e4`.
+The separately uploaded `(1)` archive has identical bytes and is not another run.
+All78 inventoried payloads plus manifest verify with no omissions. All six
+helper/test hashes match2e9fbed. Stage elapsed219.284 seconds (3m39s); all stages
+PASS/exit0 and acknowledged cleanup.
+
+`repeat_equal=true`, `split_equal=true`, no missing comparisons: both fresh
+uninterrupted runs and the fresh pause/resume match exactly in weights, optimizer,
+RNG, data, replay and token ledger. Every branch requests no-lt with tensor tracing
+false. The resume starts from the exact new one-update checkpoint. Initial
+comparisons match; historical old/new-policy intermediate and final numerical
+states differ. Those historical endpoints do not define new-policy equality.
+This supports the measured combined bypass in this scope, not universal future
+reproducibility or full feature acceptance.
+
+T128 installs the prospective process-start environment and validates accepted
+preference/flags in installed CUDA training/generation/proposal work. A stdlib
+policy descriptor binds stage cache identity, qualification runtime observations,
+real HIP finite-update/resume evidence and CUDA checkpoint compatibility. Old
+CUDA states and old qualification cannot silently cross the policy boundary.
+The bigint-gpu qualification suite starts configured before Torch initializes;
+generic GPU suite defaults and historical model entrypoints are unchanged.
+T129 records evidence and provides a single fresh build/qualification/acceptance
+command for acceptance-016, with all feature hardware gates still open.
+
+Local verification:387 tests pass,1 qualified-model test skips for missing local
+Wasmtime and1 GPU test is deselected. The final targeted policy/reuse/container
+selection passes35 tests. python3 -S imports remain free of Torch/NumPy/jsonschema.
+The refreshed current implementation disposition validates all68 original input
+mappings. Supplemental historical handoff checks pass21 and fail3 on missing
+Wasmtime; phase13 input tests fail collection on the same missing dependency.
+These supplemental native checks are not claimed as passes and await the pinned
+image. No local image build or HIP execution occurred; CI was not awaited.

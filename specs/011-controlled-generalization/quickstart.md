@@ -5,6 +5,54 @@ CPU/reference and fixture integration evidence. Actual pinned-container/native
 qualification and HIP acceptance have **not** run in this environment. No research
 campaign is started by these instructions or by the acceptance helper.
 
+## Current next step: final repaired-source acceptance
+
+No-lt-fresh-001 passes exact repeat and full/resume comparison without tensor
+observers. The measured startup policy is now installed in prospective GPU roles
+and bigint-gpu qualification, verified at runtime and bound into original
+qualification facts/device evidence and CUDA full-state compatibility. This is a
+production source change: rebuild both pinned images and obtain fresh qualification.
+Earlier diagnostic commands below describe historical source/images and do not
+supply repaired-source acceptance or qualification reuse.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  test ! -e run-state/generalization/acceptance-inputs-016
+  test ! -e run-state/generalization/acceptance-016
+  test ! -e run-state/generalization/acceptance-016.zip
+
+  podman build --target qualification -t oeis-learn:generalization-cpu .
+  podman build --target gpu -t oeis-learn:generalization-gpu .
+
+  python3 scripts/generalization_inputs.py acceptance --engine podman \
+    --imported run-state/generalization/uniform-import \
+    --cpu-image oeis-learn:generalization-cpu \
+    --gpu-image oeis-learn:generalization-gpu \
+    --output run-state/generalization/acceptance-inputs-016
+
+  python3 scripts/generalization_hip_serial.py --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-016/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-016 --dry-run
+
+  python3 scripts/generalization_hip_serial.py --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-016/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-016
+)
+```
+
+Upload `run-state/generalization/acceptance-016.zip`, pass or fail. This batches
+builds, frozen inputs/preflight, one original qualification per required scope,
+all five feature cases, reporting and canonical verification. Existing inputs/runs
+are preserved. Fresh qualification is necessary because the installed code, policy
+binding and source closure changed; no earlier producer is reused. The serial
+ceiling remains395 minutes (6h35), plus image builds, not a runtime estimate.
+T064–T067 remain open until the actual repaired-source archive is reviewed. No
+research campaign is started. The qualification image supplies the pinned native dependencies; their checks
+remain execution gates.
+
 ## Faster diagnostic iteration after acceptance-015
 
 ### Current next step: untraced fresh validation with explicit addmm bypass

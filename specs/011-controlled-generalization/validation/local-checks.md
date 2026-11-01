@@ -808,3 +808,32 @@ No CI wait, new research run, timeout increase or identity exemption is introduc
 ## T103 — watchdog lifetime repair (2026-10-31)
 
 Reopened Phase B operational-policy group for T103–T109. Disk monitors now notify only the main thread under an active-owner lock; retirement blocks/drains pending notifications before restoring the previous handler. Nested scopes dispatch the actual breached owner. A scan that cannot stop within bounded cleanup fails explicitly and cannot signal a later scope. Thread-start failure restores ownership. Local delayed-scan, nested-scope and interruption regressions plus existing supervision/recovery tests: **27 passed, 2 subtests**. No HIP command or CI wait.
+
+
+## Prospective numerical policy repair — 2026-11-01 Pacific
+
+The measured no-Lt startup policy is installed and bound into prospective CUDA
+checkpoint compatibility, original qualification facts/device evidence and GPU
+validation receipt identities. The original strict resume proof is retained.
+
+Final broad local selection:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH="$PWD/src:$PWD/../phase-a-venv/lib/python3.12/site-packages" \
+python -m pytest tests/unit/test_generalization* tests/contract/test_generalization* \
+  tests/integration/test_generalization* tests/unit/test_container_validation.py \
+  -q -p no:cacheprovider -m 'not gpu and not docker' --tb=short
+```
+
+387 passed,1 skipped (real-model dependency Wasmtime unavailable),1 GPU test
+deselected. The final targeted execution/container/qualification tests pass35.
+python3 -S imports of policy, role and qualification modules contain no optional
+host packages. The current disposition implementation hash was refreshed and all68
+original input mappings verify. Source changes require fresh images and original
+qualification; this local evidence grants no new HIP PASS.
+
+Supplemental historical checks were attempted: phase13 inputs cannot collect
+without Wasmtime; foundation handoff yields21 passed/3 missing-Wasmtime failures.
+The pinned qualification image remains the execution gate for those dependencies.
+No real container/HIP invocation ran locally and no CI completion was awaited.

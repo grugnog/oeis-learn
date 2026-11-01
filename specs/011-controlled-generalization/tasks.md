@@ -84,6 +84,13 @@ The explicit no-Lt arm and separate-bias variants match across all three process
 This is a reproduced operation-level distinction, with a candidate full-path
 mitigation. T127 requests no-Lt in the untraced fresh matrix; T064–T067 remain open.
 
+Latest evidence, 2026-11-01 Pacific: no-lt-fresh-001 verifies (219.284s). Both
+fresh uninterrupted endpoints and the uninstrumented pause/resume endpoint match
+exactly in all six components. Historical numerical endpoints differ, as expected
+for the changed computation path. T128 installs the measured startup policy and
+binds it to qualification/checkpoint compatibility; T129 supplies one fresh final
+acceptance invocation. Only actual hardware gates T064–T067 remain unchecked.
+
 ### Production numerical policy repair
 
 - [X] T128 Promote the measured no-Lt prospective execution policy through one
@@ -93,9 +100,19 @@ mitigation. T127 requests no-Lt in the untraced fresh matrix; T064–T067 remain
   qualification suite and explicit prospective roles without changing historical
   default commands. Test startup, both engines, receipt/checkpoint invalidation,
   schema handling and CPU paths; preserve strict equality and old evidence.
-- [ ] T129 Record no-lt-fresh-001 evidence, update contracts/dispositions and provide
+- [X] T129 Record no-lt-fresh-001 evidence, update contracts/dispositions and provide
   a consolidated rebuild/input-freeze/fresh qualification/final-acceptance command.
   Run local gates, commit/push logical changes and leave actual HIP gates open.
+
+T128/T129 validation:387 generalization/container tests pass,1 Wasmtime-dependent
+model test skips and1 GPU test is deselected; final targeted policy/container/reuse
+checks pass35 tests. Standard-library-only host imports pass under python3 -S.
+The current disposition identity was refreshed and all68 original mappings verify.
+Supplemental historical handoff tests pass21 and fail3 on missing local Wasmtime;
+phase13 input tests cannot collect for that same dependency. Those native checks
+remain for the pinned qualification image, not represented as passes. No local HIP
+or real image build ran, and CI was not awaited. New source requires a rebuild and
+fresh original qualification; previous producer reuse is not authorized.
 
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
