@@ -699,3 +699,51 @@ provenance includes checkpoint/initializer hashes but excludes private tensors.
 57 local tests pass; five expected pre-implementation failures were observed.
 The production source inventory has no changed files. No local HIP execution or
 CI wait occurred; final T064–T067 gates remain open.
+
+
+## Resume-fresh-001: fresh resume passes; equal pause values do not explain history
+
+Reviewed2026-11-01 Pacific. Archive SHA256:
+`8d57e7bbfe4f38e6d0a55f35b38aaa8813963e0ab2197fb503932d8043a8861a`.
+All78 inventoried payloads plus manifest verified (79 ZIP entries), no omissions.
+All four helper/test hashes match dd9ae26. Stage elapsed total176.265 seconds;
+all six stages PASS/exit0 with acknowledged cleanup. Feature qualification stays
+false and science UNMEASURED.
+
+| Comparison | Exact outcome |
+| --- | --- |
+| Fresh A versus fresh B | Equal |
+| Fresh A/B versus fresh pause/resume | Equal |
+| All three new final states versus original uninterrupted | Equal |
+| New versus old one-update pause | Equal |
+| All four initial-state comparison pairs | Equal |
+| Every new final state versus old resumed | Unequal weights/optimizer only |
+
+The equality checks include weights, optimizer, RNG, data, replay and ledger, with
+zero missing boundary comparisons. All fresh branches use initializer
+`sha256:a7aad279a0b51fc31cb6a2a8285a88b39b153feda6d4d9b35ed60a76fa5ce10b`.
+The fresh pause checkpoint is
+`sha256:c803d8b4526f03ca45906a3592fd8f5dc097b2b71405c1a3c9336e02928d0dde`;
+the split-rest branch explicitly starts from that exact pointer. All endpoints
+retain the original compatibility identity. Old-resumed differences retain the
+previous232 weight leaves/482 optimizer leaves and previous global maxima.
+
+This corrects any inference that the original uninterrupted result was the lone
+nonreproducible path: three new paths now reproduce it. Conversely, repeated
+continuations of the old paused state previously reproduced the old resumed result.
+The two paused states compare equal in values. A deterministic failure inherent in
+every first restart is not demonstrated. Nor is the historical mismatch repaired.
+The current comparison ignores tensor layout/storage aliasing and dictionary
+insertion order; it also excludes elapsed time and provenance state by design.
+These are remaining observable differences to inspect, not established causes.
+
+T119 extends the disposable CPU inspector with optional `--matrix`, binding the
+fresh matrix to the original source diagnostic, frozen images and successful
+one-update checkpoint. It reports exact values, CPU-loaded representation metadata,
+serialized component hashes and excluded-state differences; bounded layout details
+contain no tensor contents, raw program keys or memory addresses. Historical GPU
+allocations/backend state cannot be recovered by this inspection. No production
+source, equality rule, backend policy or qualification inventory changed.
+64 local tests pass after four intended failing tests; no local HIP or CI wait.
+Final T064–T067 gates remain open. Next operator action needs only CPU access to
+already saved files, not another training run.

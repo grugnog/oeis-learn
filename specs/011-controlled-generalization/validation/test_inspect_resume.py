@@ -140,3 +140,74 @@ def test_saved_run_discovery_selects_replay_arm_and_rejects_path_escape(tmp_path
     record['runs'][0]['paired']['runs'][0]['root']='../../escape'
     path.write_text(json.dumps(seal(record)))
     with pytest.raises(ValueError,match='traversal'):helper.saved_runs(tmp_path)
+
+
+
+def test_representation_detects_equal_values_with_different_strides():
+    import torch
+    x=torch.ones((2,2))
+    assert helper.differences(x,x.T)['equal']
+    assert helper.representation(x)!=helper.representation(x.T)
+
+
+def test_representation_detects_aliasing_and_dictionary_order_without_addresses():
+    import torch,json
+    x=torch.ones(3)
+    shared={'a':x,'b':x};independent={'a':x.clone(),'b':x.clone()}
+    assert helper.differences(shared,independent)['equal']
+    assert helper.representation(shared)!=helper.representation(independent)
+    assert helper.representation({'a':1,'b':2})!=helper.representation({'b':2,'a':1})
+    metadata=json.dumps(helper.representation({'private program secret':x}))
+    assert 'private program secret' not in metadata and str(x.data_ptr()) not in metadata
+
+
+def test_pause_inspection_uses_full_checkpoint_closure(tmp_path,monkeypatch):
+    roots=fixture(tmp_path,monkeypatch)
+    result=helper.inspect_pause_pair(roots['full'],roots['paused'])
+    assert result['values_equal'] and result['representation_equal']
+    assert set(result['components'])=={'weights','optimizer','rng','data','replay','ledger'}
+    result=helper.inspect_pause_pair(roots['full'],roots['resumed'])
+    assert not result['values_equal'] and result['representation_equal']
+
+
+def test_matrix_pause_discovery_binds_source_images_and_result(tmp_path,monkeypatch):
+    from diagnose_hip import save
+    monkeypatch.setattr(helper,'ROOT',tmp_path)
+    run=tmp_path/'old';run.mkdir()
+    matrix=tmp_path/'matrix';matrix.mkdir()
+    learner=matrix/'split-first/learner';learner.mkdir(parents=True)
+    save(matrix/'diagnostic.json',dict(metadata=dict(start='fresh',source_run='old',images=['cpu','gpu'])))
+    result=dict(status='PASS',learner_status='PARTIAL',updates=1,learner='matrix/split-first/learner',checkpoint='hash')
+    save(matrix/'split-first/result.json',result)
+    save(learner/'training.json',dict(updates=1,status='PARTIAL',checkpoint={'sha256':'hash'}))
+    assert helper.matrix_pause(matrix,run,['cpu','gpu'])==learner
+    with pytest.raises(ValueError):helper.matrix_pause(matrix,run,['other','gpu'])
+    result['learner']='../escape';save(matrix/'split-first/result.json',result)
+    with pytest.raises(ValueError):helper.matrix_pause(matrix,run,['cpu','gpu'])
+
+
+
+def test_optional_matrix_inspection_is_included_in_real_report(tmp_path,monkeypatch):
+    roots=fixture(tmp_path,monkeypatch)
+    roots['matrix-paused']=roots['paused']
+    result=helper.inspect_saved(roots,tmp_path/'out')
+    assert result['pause_pair']['values_equal']
+    assert result['pause_pair']['representation_equal']
+    assert result['pause_pair']['layout_changes']==[]
+    assert not result['comparison_equal']  # Historical mismatch stays visible.
+
+
+@pytest.mark.parametrize('engine',['docker','podman'])
+def test_matrix_input_mount_is_read_only_and_does_not_enable_gpu(tmp_path,monkeypatch,engine):
+    from oeis_learn.container_runtime import Engine
+    adapter=Engine(engine,executable=engine,details={})
+    monkeypatch.setattr(adapter,'user_args',lambda:[])
+    monkeypatch.setattr(adapter,'device_args',lambda *_:pytest.fail('no GPU inspection'))
+    roots={n:tmp_path/n for n in ('full','paused','resumed','matrix-paused')}
+    for root in roots.values():root.mkdir()
+    scripts=tmp_path/'helpers';scripts.mkdir();output=tmp_path/'out';output.mkdir()
+    host=SimpleNamespace(engine=adapter,policy=dict(memory_bytes=16<<30,cpus=4))
+    argv=helper.command(host,'sha256:'+'a'*64,scripts,output,roots,'inspection')
+    mounts=[argv[i+1] for i,v in enumerate(argv) if v=='--mount']
+    assert len(mounts)==6 and all('readonly' in m for m in mounts[:-1])
+    assert '--network=none' in argv and not any('sock' in m or '/dev/' in m for m in mounts)

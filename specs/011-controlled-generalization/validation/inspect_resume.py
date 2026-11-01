@@ -63,6 +63,94 @@ def differences(left,right,*,limit=128):
     return dict(equal=count==0,different_leaves=count,details=details,omitted_details=max(0,count-len(details)),**totals)
 
 
+def representation(value):
+    """Value-free layout/order/alias description; never export memory addresses."""
+    import hashlib
+    import numpy as np
+    import torch
+    rows={};storages={};nodes=0
+    def key(value):
+        return hashlib.sha256((type(value).__name__+':'+str(value)).encode()).hexdigest()
+    def walk(value,path):
+        nonlocal nodes
+        nodes+=1
+        if nodes>100000:raise ValueError('representation node cap')
+        row=dict(type=type(value).__module__+'.'+type(value).__qualname__)
+        rows[path]=row
+        if isinstance(value,torch.Tensor):
+            if value.device.type!='cpu' or value.layout!=torch.strided:
+                raise ValueError('CPU strided inspection tensor required')
+            storage=value.untyped_storage()
+            # IDs are used only inside this process to assign stable alias classes.
+            alias=storages.setdefault(storage._cdata,len(storages))
+            row.update(shape=list(value.shape),dtype=str(value.dtype),stride=list(value.stride()),
+                storage_offset=value.storage_offset(),storage_bytes=storage.nbytes(),alias=alias,
+                requires_grad=value.requires_grad,is_conj=value.is_conj(),is_neg=value.is_neg())
+        elif isinstance(value,np.ndarray):
+            row.update(shape=list(value.shape),dtype=str(value.dtype),strides=list(value.strides))
+        elif isinstance(value,dict):
+            row['key_order']=[key(k) for k in value]
+            for k in sorted(value,key=key):walk(value[k],path+'.'+key(k))
+        elif isinstance(value,(tuple,list)):
+            row['length']=len(value)
+            for i,item in enumerate(value):walk(item,path+'.'+str(i))
+    walk(value,'state')
+    return rows
+
+
+def inspect_pause_pair(old,new):
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.generalization.contracts import verify_artifact
+    states=[];records=[]
+    for root in (old,new):
+        result=json.loads((root/'training.json').read_text())
+        ref=result['checkpoint'];record=json.loads(verify_artifact(root/'checkpoints',ref))
+        store=GeneralizationCheckpointStore(root/'checkpoints',result['compatibility'],record['ledger']['cap'])
+        state=store.load(ref)
+        if state['ledger'].updates!=1:raise ValueError('one-update pause required')
+        states.append(state)
+        records.append(dict(checkpoint=ref['sha256'],compatibility=result['compatibility'],
+            serialized={k:({n:r['sha256'] for n,r in v.items()} if k=='rng' else v['sha256'])
+                        for k,v in record['states'].items() if k!='data'}))
+    if records[0]['compatibility']!=records[1]['compatibility']:raise ValueError('pause contracts differ')
+    left,right=states
+    components={k:differences(left['states'][k],right['states'][k])
+                for k in ('weights','optimizer','rng','data','replay')}
+    components['ledger']=differences(left['ledger'].snapshot(),right['ledger'].snapshot())
+    old_layout=representation({k:left['states'][k] for k in components if k!='ledger'})
+    new_layout=representation({k:right['states'][k] for k in components if k!='ledger'})
+    metadata=differences(old_layout,new_layout)
+    changed=[p for p in sorted(set(old_layout)|set(new_layout)) if old_layout.get(p)!=new_layout.get(p)]
+    layout_rows=[]
+    for path in changed[:16]:
+        row=dict(path=path,old=old_layout.get(path),new=new_layout.get(path))
+        if len(json.dumps(row))<=32768:layout_rows.append(row)
+    # Include excluded state categories explicitly, without mistaking provenance
+    # or elapsed-time differences for a numerical mismatch or its cause.
+    excluded={k:differences(left['states'][k],right['states'][k])
+              for k in ('scheduler','history','pins','selection')}
+    return dict(values_equal=all(c['equal'] for c in components.values()),components=components,
+        representation_equal=metadata['equal'],representation=metadata,layout_changes=layout_rows,
+        omitted_layout_changes=len(changed)-len(layout_rows),excluded=excluded,checkpoints=records,
+        note='CPU-loaded representations only; historical device allocations/backend state are unavailable. No causal conclusion.')
+
+
+def matrix_pause(matrix,run,images):
+    from oeis_learn.pipeline_validation.identity import confined
+    metadata=json.loads((matrix/'diagnostic.json').read_text())['metadata']
+    if metadata['start']!='fresh' or metadata['images']!=images or confined(ROOT,metadata['source_run'])!=run:
+        raise ValueError('fresh matrix must bind the original diagnostic and images')
+    row=json.loads((matrix/'split-first/result.json').read_text())
+    if row['status']!='PASS' or row['learner_status']!='PARTIAL' or row['updates']!=1:
+        raise ValueError('completed fresh one-update pause required')
+    learner=confined(ROOT,row['learner'])
+    if not learner.is_relative_to(matrix/'split-first'):raise ValueError('matrix learner escaped producer stage')
+    result=json.loads((learner/'training.json').read_text())
+    if result['updates']!=1 or result['status']!='PARTIAL' or result['checkpoint']['sha256']!=row['checkpoint']:
+        raise ValueError('matrix checkpoint result binding mismatch')
+    return learner
+
+
 def inspect_saved(mounts,output):
     import torch
     torch.set_num_threads(2);torch.set_num_interop_threads(1)
@@ -71,7 +159,8 @@ def inspect_saved(mounts,output):
     from oeis_learn.pipeline_validation.identity import file_hash,seal
     from diagnose_hip import save
     loaded={};summaries={};initials={}
-    for name,folder in mounts.items():
+    for name in ('full','paused','resumed'):
+        folder=mounts[name]
         folder=Path(folder)
         result=json.loads((folder/'training.json').read_text())
         checkpoint=result['checkpoint'];root=folder/'checkpoints'
@@ -100,6 +189,10 @@ def inspect_saved(mounts,output):
                 initial_full_paused=differences(initials['full'],initials['paused']),
                 initial_full_resumed=differences(initials['full'],initials['resumed']),
                 note='PASS means inspection completed; comparison_equal reports resume equality. No tolerance applied.')
+    if 'matrix-paused' in mounts:
+        # Release prior full states before loading the extra pair.
+        del loaded,a,b,state,initials
+        report['pause_pair']=inspect_pause_pair(Path(mounts['paused']),Path(mounts['matrix-paused']))
     save(Path(output)/'inspection.json',report)
     return report
 
@@ -170,6 +263,7 @@ def main(argv=None):
     parser.add_argument('--engine',choices=['docker','podman'],required=True)
     parser.add_argument('--run',required=True)
     parser.add_argument('--output',required=True)
+    parser.add_argument('--matrix',help='Optional completed fresh matrix for CPU-only old/new pause inspection')
     args=parser.parse_args(argv)
     sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
     from diagnose_hip import save,host_for
@@ -181,6 +275,8 @@ def main(argv=None):
     runs=saved_runs(run)
     ledger=json.loads((run/'diagnostic.json').read_text())
     image=ledger['metadata']['images'][1]
+    matrix=confined(ROOT,args.matrix) if args.matrix else None
+    if matrix is not None:runs['matrix-paused']=matrix_pause(matrix,run,ledger['metadata']['images'])
     host=host_for(args.engine)
     if host.engine.image(image)!=image:raise ValueError('original immutable image required')
     import shutil,uuid
@@ -214,14 +310,19 @@ def main(argv=None):
          helper_sha256=file_hash(Path(__file__)),diagnostic_helper_sha256=file_hash(Path(__file__).with_name('diagnose_hip.py')),
          tests_sha256=file_hash(Path(__file__).with_name('test_inspect_resume.py')),
          input_diagnostic_sha256=file_hash(run/'diagnostic.json')))
-    archive=pack(output,mandatory=['summary.json'],cap=4<<20,optional_cap=2<<20);verify(archive)
+    if matrix is not None:
+        save(output/'matrix-input.json',dict(diagnostic_sha256=file_hash(matrix/'diagnostic.json'),
+             pause_result_sha256=file_hash(matrix/'split-first/result.json')))
+    mandatory=['summary.json']+(['inspection.json'] if (output/'inspection.json').is_file() else [])
+    archive=pack(output,mandatory=mandatory,cap=4<<20,optional_cap=2<<20);verify(archive)
     print(json.dumps(dict(status=status,archive=str(archive.relative_to(ROOT))),indent=2))
     return 0 if status=='PASS' else 1
 
 
 if __name__=='__main__':
     if sys.argv[1:]==['--container']:
-        inspect_saved({n:Path('/saved')/n for n in ('full','paused','resumed')},Path('/output'))
+        inspect_saved({n:Path('/saved')/n for n in ('full','paused','resumed','matrix-paused')
+                       if (Path('/saved')/n).exists()},Path('/output'))
     else:
         try:raise SystemExit(main())
         except (ValueError,OSError) as exc:print(str(exc),file=sys.stderr);raise SystemExit(2)

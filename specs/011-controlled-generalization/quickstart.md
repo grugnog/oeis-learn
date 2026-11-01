@@ -7,7 +7,43 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: fresh-start and first-pause matrix
+### Current next step: CPU inspection of equal-valued pause checkpoints
+
+Fresh-001 finished in176.265 seconds. Both fresh full runs and fresh pause/resume
+match the original uninterrupted endpoint exactly. All initial comparisons and the
+new/old pause value comparison also match. The old resumed endpoint still differs.
+Do not treat this as a diagnosed repair or weaken exact equality. Inspect the saved
+pause representations before spending more HIP time:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/inspect_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --output run-state/generalization/resume-layout-001
+)
+```
+
+Upload `run-state/generalization/resume-layout-001.zip`, pass or fail. Keep both
+input directories intact. This loads existing private checkpoints in the original
+immutable image with GPU access disabled, read-only inputs and no network. It does
+not train, rebuild, search, evaluate or rerun qualification. The external process
+allowance is270 seconds plus30 seconds cleanup; that is a ceiling, not an estimate.
+
+`inspection.json.pause_pair` contains the exact six-component value comparison,
+tensor layout/storage-alias and dictionary-order comparison, bounded old/new layout
+metadata, serialized component hashes, and differences in scheduler/history/pins/
+selection. Paths/keys in layout metadata are hashed; tensor contents and addresses
+are never exported. Some bookkeeping differences are expected and are not causes
+by themselves. Inspection reflects CPU-loaded representations, not historical GPU
+allocations or backend state. Input matrix source/images/result/checkpoint bindings
+are checked before inspection. Successful inspection remains diagnostic-only.
+
+### Completed diagnostic: fresh-start and first-pause matrix
 
 Matrix-001 completed in219.628 seconds. Both continuations from the saved paused
 checkpoint, the extra-restart path and the earlier resumed endpoint match exactly.

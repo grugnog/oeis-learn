@@ -22,7 +22,30 @@ continuations and the earlier resumed endpoint match exactly; only the original
 uninterrupted endpoint differs. Stage elapsed total219.628s. No production cause
 is established. T118 adds one fresh-start matrix; T064–T067 remain open.
 
+Latest evidence, 2026-11-01 Pacific: fresh-001 verifies (176.265s). Fresh A,
+B and pause/resume equal the original uninterrupted endpoint. New and old paused
+states and all initial state comparisons also equal. The old resumed endpoint
+still differs. Value equality alone does not establish equivalent representations
+or historical process/backend conditions; T119 adds CPU-only inspection of existing
+files. No new HIP run is justified before reading that available evidence.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T119 Reconcile fresh-matrix evidence without declaring the historical
+  mismatch repaired. Extend the temporary CPU inspector to compare old/new saved
+  pause tensor layouts, storage aliasing, container order/types and serialized
+  component identities alongside exact values. Bind an optional fresh matrix to
+  its original diagnostic/images/checkpoint; reject invalid or escaped inputs,
+  preserve read-only mounts and package bounded metadata without private values.
+  Test equal-value representation differences before implementation. No HIP work,
+  production policy changes or inferred backend diagnosis.
+
+T119 validation:64 temporary-helper tests pass; four intended pre-implementation
+failures observed. Tests cover equal values with unequal strides, shared versus
+independent tensor storage, dictionary order, actual serialized checkpoints,
+source/image/result binding, path escape rejection and both engines' CPU-only
+read-only matrix mounts. No production inventoried file changed; no local HIP or
+CI wait. Historical failure and T064–T067 remain open.
 
 - [X] T118 Extend the temporary matrix with a fresh-start mode: independent A/B
   fresh learners, a fresh one-update pause and its continuation, exact final,
