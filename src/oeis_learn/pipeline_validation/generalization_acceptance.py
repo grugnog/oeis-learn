@@ -53,7 +53,7 @@ def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import artifact_refs
     from oeis_learn.generalization.resources import PROOF_SECONDS
-    deadline=time.monotonic()+(PROOF_SECONDS if runtime.get('replay') is not None else 60)
+    deadline=time.monotonic()+PROOF_SECONDS
     sources=[];settings=[];origins={}
     for ordinal,(root,result) in enumerate(runs):
         parent=root/'checkpoints';pointer=result['checkpoint']

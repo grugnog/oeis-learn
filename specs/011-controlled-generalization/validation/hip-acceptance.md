@@ -1,17 +1,15 @@
 # HIP acceptance — original qualification passed; feature acceptance failed
 
-Current status after inspecting operator acceptance-013 (2026-10-31 Pacific):
-CPU/native and actual HIP qualification passed, including the installed exact-resume
-probe. Retained-eval, refresh and parameter-targets passed. Both P4 paired learners
-completed, then post-training continued-SFT evaluation hit its process deadline.
-The final archive independently verifies as FAIL / UNMEASURED with completed
-canonical verification and final controller evidence. This was not a packaging
-failure. Full paired acceptance resume/proof remains uncompleted.
+Current status after acceptance-014 (2026-10-31 Pacific): CPU/native and HIP
+qualification, retained evaluation and refresh passed. The parameterized learner
+expired during checkpoint persistence within its30-second envelope (about24 seconds
+of process work). Replay/resume was not reached. Independent canonical archive
+reconciliation returns integrity PASS, software FAIL, science UNMEASURED.
 
-T111 repairs evaluation startup/load/exit clock containment; T112 enlarges only
-acceptance evaluation envelopes and their enclosing reservations to375 minutes
-(6h15). T064–T067 remain open for the changed source. Earlier original qualification
-passes remain evidence of their exact source/image scope, not the new code.
+T113 enlarges both small-model learner/proof envelopes and case reservations. The
+current serial ceiling is395 minutes (6h35). New-source hardware validation remains
+pending; acceptance-014 does not exercise the prior post-training evaluation repair.
+Earlier records below retain their original qualification scopes.
 
 ## Historical local baseline, before operator runs
 
@@ -490,3 +488,33 @@ T111/T112 address these boundaries together, retaining original evidence and all
 scientific/proof/storage gates. See [operational repairs](operational-repairs.md)
 and the updated [one-command guide](../quickstart.md). One fresh acceptance-014
 session is the next hardware gate; no separate probe or diagnostic export is needed.
+
+## Operator acceptance-014 — small-model checkpoint persistence deadline
+
+Recorded 2026-10-31 Pacific. Original archive:1,322,612 bytes,369 inventoried
+payloads plus manifest; SHA-256
+`4b1deb4d532c17fcf045915dc31ec8dd25a6a28fe1bc7eca85ed06686bd77598`.
+Basic inventory/hash verification and independent `verify_archive` reconciliation
+both pass; final workflow and terminal verifier evidence bind a valid negative
+scope. Report/verifier exit1 encodes FAIL, not a packaging infrastructure failure.
+
+CPU JUnit:1,262 records in380.253 seconds; HIP:27 records in369.546 seconds,
+zero failures/errors/skips. Duplicate diagnostic copies are not additional runs.
+Workflow cumulative seconds:preflight130.199, qualify1248.433, prepare1288.368,
+retained-eval1403.240, refresh1462.879, parameter-targets1520.109,
+report1530.082, verify1531.418. Replay/resume and failure-packaging were unstarted.
+
+The literal learner completed with PASS/COMPLETE, exit0 in23.871 seconds. The
+parameterized learner loaded its small model, completed an update, saved a
+checkpoint, then began another checkpoint save. Its process timed out after25.247
+seconds with returncode unavailable and unacknowledged client termination. Engine
+cleanup subsequently succeeded in4.029 seconds within its6-second allowance.
+The envelope was30 seconds with approximately24 seconds of process work. The
+write already in progress could not finish before that external deadline. This
+establishes a persistence timeout, not a semantic failure of parameterized targets.
+
+T113 gives both small-model learner cases180 seconds per learner and180 per proof;
+both case reservations become25 minutes. It accounts for both proofs during
+preflight. The total ceiling becomes395 minutes; scientific work/storage limits
+and research budgets remain fixed. Full replay/resume remains pending. The next
+consolidated session uses acceptance-015 paths, as in the quickstart.

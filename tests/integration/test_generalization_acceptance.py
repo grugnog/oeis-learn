@@ -15,13 +15,15 @@ def helper():
 def test_serial_plan_one_qualification_and_no_research(tmp_path):
     h=helper();plan=h.plan('docker','manifest.json','run-state/new')
     assert [p['operation'] for p in plan]==['preflight','qualify','prepare']+['acceptance']*5+['report','verify-bundle']
-    assert sum(p['seconds'] for p in plan)+600==22500
+    assert sum(p['seconds'] for p in plan)+600==23700
     stages={p['name']:p for p in plan}
     assert stages['replay-resume']['seconds']==6000
     assert stages['qualify']['seconds']==7200
     assert stages['retained-eval']['seconds']==1500
     assert 720+540 <= stages['retained-eval']['seconds']
-    assert all(stages[name]['seconds']==900 for name in ('refresh','parameter-targets','failure-packaging'))
+    assert all(stages[name]['seconds']==1500 for name in ('refresh','parameter-targets'))
+    assert stages['failure-packaging']['seconds']==900
+    assert all(2*180+2*180+540 <= stages[name]['seconds'] for name in ('refresh','parameter-targets'))
     # Four learners (paired, paused, resumed), two evaluations, search and two
     # proofs, plus qualification reinspection/validation and cleanup/I/O reserve.
     assert 4*600+2*1200+30+2*180+540+120<=stages['replay-resume']['seconds']
@@ -128,7 +130,7 @@ def test_cold_session_preflight_budget_fits_all_four_roles(tmp_path,monkeypatch)
     plan=helper().plan('podman','manifest','run')
     assert sum(seconds)+4*5+120<=plan[0]['seconds']
     result=json.loads((tmp_path/'preflight/result.json').read_text())
-    assert result['result']['reservations']['minutes']==375
+    assert result['result']['reservations']['minutes']==395
 
 
 def test_report_startup_and_packaging_fit_parent_budget(tmp_path,monkeypatch):
@@ -376,3 +378,26 @@ def test_canonical_verifier_does_not_publish_terminal_before_packaging(tmp_path,
         cli.verify_main(args,tmp_path,lambda a:SimpleNamespace(engine=SimpleNamespace(image=lambda value:value)))
     assert json.loads((tmp_path/'checked/summary.json').read_text())['integrity']=='PASS'
     assert not (tmp_path/'checked/result.json').exists()
+
+
+@pytest.mark.parametrize('replay',[None,{}])
+def test_training_proof_reserves_persistence_headroom_for_every_case(tmp_path,monkeypatch,replay):
+    import time
+    from oeis_learn.pipeline_validation import generalization_acceptance as cases
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    parent=tmp_path/'run/checkpoints';parent.mkdir(parents=True)
+    (parent/'state.json').write_text('{}');(parent/'initial.pt').write_bytes(b'weights')
+    (parent/'retained.json').write_text(json.dumps(dict(checkpoints=[dict(pins=['initial'],weights=reference(parent/'initial.pt',parent))])))
+    pointer=reference(parent/'state.json',parent);clock=[100.]
+    monkeypatch.setattr(time,'monotonic',lambda:clock[0])
+    original=cases.verify_artifact
+    def verify(*a,**kw):clock[0]+=15;return original(*a,**kw)
+    monkeypatch.setattr(cases,'verify_artifact',verify)
+    def invoke(*a,**kw):
+        assert kw['operation']=='check-training' and kw['seconds']==150
+        assert kw['artifact_sources']['verified_training_replay']
+        return {'status':'PASS'}
+    monkeypatch.setattr(cases,'project_and_invoke',invoke)
+    result=dict(checkpoint=pointer,compatibility='contract')
+    assert cases.training_proof(None,tmp_path,tmp_path/'proof',dict(replay=replay,images=['cpu']),
+        dict(budgets={'target_tokens':512}),[(tmp_path/'run',result)])['status']=='PASS'

@@ -67,3 +67,15 @@ search +2*180 proofs +540 inspection/validation +120 I/O =5850 seconds, within60
 Retained evaluation720 +540 inspection/validation fits1500. Learner tokens512,
 single seed, model, portfolio attempts, per-target60-second limits, proof checks and
 storage caps are unchanged. Existing research recipes/budgets are unchanged.
+
+
+### Acceptance-014 small-model persistence amendment (T113)
+
+Supersedes small-model timings above: refresh and target-format learners get180
+seconds each instead of30; each acceptance proof gets180 instead of60. Both cases
+reserve1500 seconds. Feasibility includes two learners and two proofs:
+2*180+2*180+540 inspection/validation =1260 <=1500. Case reservations total190
+minutes; serial total395 minutes (6h35), including20 packaging and10 emergency
+margin. Replay/retained evaluation envelopes remain as in T112. All model, token,
+seed, portfolio, storage and research budgets are unchanged. This addresses the
+measured acceptance-014 checkpoint-write timeout without relaxing success gates.

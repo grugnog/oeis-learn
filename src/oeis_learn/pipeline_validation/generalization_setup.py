@@ -46,6 +46,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
         result=assemble_study(workspace,config,str((target/name).relative_to(workspace)));results[name]=result['manifest'];return result
     e0=assemble('retained-eval',cfg);e0study=_json(workspace/e0['manifest'])
     cfg.update(stage='P1-screen',recipe=put('fresh-fixture-recipe.json',small_recipe(recipes[0])),cells=[static,fresh,*copy.deepcopy(shared)],evaluation=None)
+    cfg['budgets']['seconds']=180
     cfg['budgets']['target_tokens']=512;cfg['milestones']=[256,512]
     cfg['storage'].update(study_bytes=3<<30,checkpoint_bytes=2<<30)
     cfg['training']={'static':dict(cells=['static'],data_mode='static',batch_size=4),'refreshed':dict(cells=['static','fresh'],data_mode='refresh',batch_size=4)}

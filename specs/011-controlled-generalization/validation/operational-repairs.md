@@ -179,3 +179,51 @@ six T111 counterexamples, which were red before repair. `git diff --check` passe
 The original archive was not modified. No local HIP command or CI wait occurred.
 T111/T112 are implemented; T064–T067 require fresh evidence on changed source.
 The quickstart publishes one consolidated acceptance-014 invocation.
+
+## T113 — small-model persistence and remaining time-limit audit
+
+Recorded2026-10-31 Pacific. Acceptance-014 independently verifies with integrity
+PASS/software FAIL/science UNMEASURED; archive SHA-256
+`4b1deb4d532c17fcf045915dc31ec8dd25a6a28fe1bc7eca85ed06686bd77598`.
+CPU/native and HIP suites, retained evaluation and refresh passed. Parameterized
+learning expired during checkpoint persistence, before replay. Client termination
+was unacknowledged but engine cleanup succeeded within its6-second reservation.
+
+Both small-model learner envelopes are now180 seconds, all acceptance proof
+envelopes180 seconds, and both cases1500 seconds. Feasibility counts both proofs:
+2*180 +2*180 +540 =1260 <=1500. This replaces the stale30-second learners and
+60-second non-replay proofs together. Serial maximum395 minutes (6h35) includes
+20 packaging and10 emergency margin. All scientific/model/token/storage limits
+and research recipes are unchanged. Checks remain fail-closed.
+
+The additional requested audit checked all other case/stage limits against source,
+014 process records and prior013 evidence. Values below are enclosing limits,
+including their existing startup/copy/cleanup costs; these are not runtime forecasts.
+
+| Component | Current allowance | Relevant observed evidence / assessment |
+|---|---|---|
+| Serial preflight |2700s; each validator600s |014 total130s, slow validator127s; sufficient headroom. |
+| Qualification |7200s; image inspection900s |014 total1118s, GPU image inspection359.5s; CPU/HIP suites passed. |
+| Preparation |600s total; dynamically divided role budgets |014 total39.9s, measured validators <=1.43s. Allocation remains bounded by remaining parent time. |
+| Retained evaluation |1500s case;720s evaluation |014 case114.9s, generators47.6/52.7s, selection7.29s; expanded T112 limits retained. |
+| Refresh and target-format |1500s each;180s learner/proof |Repaired here; literal learner23.9s was already near the former24s work allowance. |
+| Replay learners |600s each |013 both completed109.9/190.0s; four learner envelopes remain reserved. |
+| Replay evaluations |1200s each |T111/T112 repaired startup/load/exit and expanded bounds;014 never reached this path. |
+| Paired/resume proofs |180s each |Two full-state proofs remain reserved, including projection; hardware completion still pending. |
+| Replay search |30s diagnostic search |013 admission progressed and both arms trained; registered attempt/native limits remain enforced. |
+| Replay case |6000s |4*600+2*1200+30+2*180+540+120 =5850s fits. |
+| Failure packaging |900s |Uses a tiny injected fixture/archive; no learner or generation work. |
+| Final report / verifier |900s /300s |Report reserves300s inspection+480s role+120s local work; verifier120s inspection+120s role+60s local work.014 completed9.97s/1.34s. |
+| Publication and selection pins |Remaining evaluation budget, publication <=60s |014 retained publication completed; private copies and cleanup remain charged. |
+
+No additional unsupported time-limit reduction or blanket removal is introduced.
+No actual success is inferred for the still-unexecuted retained replay/resume path.
+
+Tests: generated envelopes and worst-case schedule/protected-margin counterexamples
+were red before repair. A new virtual-clock proof-boundary test charges30 seconds
+of verification and confirms150 remain from180 for both replay/non-replay inputs.
+Final combined local result: **431 passed,1 skipped,1 deselected,6 subtests passed**
+in30.16 seconds. The skip is the unavailable local `wasmtime` model dependency;
+the HIP test is excluded. Canonical archive reconciliation was run independently
+on the uploaded014 archive. `git diff --check` passed; no HIP command or CI wait.
+T113 is implemented; fresh acceptance-015 remains the hardware gate.

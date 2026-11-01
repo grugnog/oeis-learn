@@ -31,7 +31,7 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
     assert children['retained-eval'][2]['evaluation']['seconds']==720
     assert replay_study['budgets']['target_tokens']==512
     assert replay_study['model']['architecture']==children['retained-eval'][1]['model']['architecture']
-    assert children['refresh'][1]['budgets']['seconds']==30
+    assert all(children[name][1]['budgets']['seconds']==180 for name in ('refresh','parameter-targets'))
     for name,(base,study,runtime,_,_) in children.items():
         validate_execution(base,study,runtime)
         def native(source,indices):
