@@ -767,3 +767,39 @@ The quickstart provides one export from the existing acceptance-010 run, requiri
 no containers or model rerun. T064–T067 stay open. No replay algorithm or identity
 verification was changed based on an inferred cause, and no new hardware run is
 requested until the original error is available. CI is not awaited, as instructed.
+
+
+## T102 replay audit runtime routing — 2026-10-31
+
+The verified supplemental acceptance-010 archive identifies an exact evidence
+comparison failure after successful full-horizon re-admission. Code inspection
+found that initial audits run in the qualification image while learner restoration
+runs in the GPU image; each builds its native worker separately. The previous
+fixture used one constant runtime identity across both images, hiding this wiring
+problem. The original archive does not expose the two compared entries, so exact
+operator field attribution remains unavailable.
+
+Three strengthened adapter regressions reproduced `replay evidence changed on
+restore` before the fix: model-proposal search, mechanical diagnostic search, and
+the paired training/resume workflow. Six diagnostic assertions also failed before
+field-specific reporting was implemented. Audit now uses the same immutable image
+as training/restoration, with GPU access explicitly false and unchanged isolated
+training-only channels. The Phase-B100-term admission and exact record equality
+checks are unchanged. Mismatches report canonical field names, not payload values.
+
+Tests verify independent worker-byte hashing produces different production
+identities, cross-runtime restore still fails, same-runtime restore preserves the
+snapshot, and changed reference/scope/terms/indices/values remain rejected. Research
+and diagnostic search retain their original budgets and accounting. The complete
+paired workflow executes real tiny CPU tensor updates and checks full-state resume
+using image-specific native fixtures. Focused replay/admission/sampling:32 passed.
+Final generalization/unit/contract/integration, container/supervisor/bundle tests:
+**365 passed,4 subtests passed,1 hardware test deselected in26.32 seconds**.
+Artifact document/schema checks and the documented shell command's syntax pass.
+The implementation identity was regenerated; automatic suite discovery includes
+the updated integration tests. No Docker/Podman/HIP command ran locally.
+
+T102 is complete; T064–T067 require fresh operator evidence. The quickstart combines
+both image builds, input freezing, dry-run, one serial qualification/acceptance and
+packaging in one shell invocation using new011 paths. Prior evidence is preserved.
+No CI wait, new research run, timeout increase or identity exemption is introduced.

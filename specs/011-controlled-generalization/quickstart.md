@@ -104,6 +104,34 @@ appear on stderr in future runs, even if the process exits0. The index maps orig
 paths to exported copies and identifies projected, missing, truncated or omitted
 records, preserving the original hash for projections. It neither reruns
 work nor upgrades the original acceptance status.
+
+After the acceptance-010 replay runtime routing repair, use fresh `-011` paths.
+This single shell invocation rebuilds both images, freezes inputs, checks the
+serial plan, executes qualification and all cases, and packages/verifies results.
+Run from the project checkout after pulling `011-controlled-generalization`:
+
+```bash
+(
+  set -e
+  podman build --target qualification -t oeis-learn:generalization-cpu .
+  podman build --target gpu -t oeis-learn:generalization-gpu .
+  python3 scripts/generalization_inputs.py acceptance --engine podman \
+    --imported run-state/generalization/uniform-import \
+    --cpu-image oeis-learn:generalization-cpu \
+    --gpu-image oeis-learn:generalization-gpu \
+    --output run-state/generalization/acceptance-inputs-011
+  python3 scripts/generalization_hip_serial.py --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-011/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-011 --dry-run
+  python3 scripts/generalization_hip_serial.py --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-011/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-011
+)
+```
+
+Share `run-state/generalization/acceptance-011.zip`, including failures. Existing
+runs are preserved; there is no research extension or acceptance timeout increase.
+
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
 The existing `study` and `session` commands remain available for independently frozen

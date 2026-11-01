@@ -343,3 +343,36 @@ and emits negative outcomes on stderr in future images. Other role payload field
 remain excluded. Export the existing acceptance-010 files with the quickstart's
 stdlib-only command before choosing another repair or HIP run. T064–T067 remain
 open; no changed source inherits this run's original qualification.
+
+
+## Acceptance-010 supplemental outcome — 2026-10-31
+
+`acceptance-010-diagnostics.zip` passes independent bundle inventory/hash validation
+with313 inventoried members and diagnostic-only PARTIAL status. SHA-256:
+`dd11c83fe80c2b3829863c27109fef0674933dd49aa188f5fdae48e18b9615f3`.
+All18 nested result projections are present. The continued_sft learner reports
+PASS/COMPLETE; the verified_replay learner reports FAIL/ValueError with exactly
+`replay evidence changed on restore`. This localizes failure to the comparison
+following a successful independent re-admission, before tensor training begins.
+It does not indicate an exhausted timeout or failed100-term agreement.
+
+The adapter used the qualification image for initial replay audits and the GPU
+image for learner restoration. Each image independently builds its synthesis
+worker in `build-native-wheel.sh`; the shared synthesis build does not replace
+that worker. `SynthesisClient.runtime_identity` binds exact worker bytes, guest,
+profile and engine policy. This routing assumes binary identity across separate
+builds. The supplemental projection does not include the original entry or newly
+computed entry, so it cannot prove which field differed in the operator run.
+
+T102 removes that unsupported assumption: run the isolated CPU audit in the
+learner's frozen image with GPU access explicitly disabled. A fixture with distinct
+image runtime identities reproduced the same exception in both proposal paths and
+the real paired/resume adapter path before the change. Same-image routing fixes
+those regressions while retaining exact admission/restore checks. Restore mismatch
+errors now name only canonical field names for any further discrepancy. This is
+routine image routing and diagnostics, not a new Phase-B admission policy.
+
+Preserve acceptance-010 and its qualified source/image scope. T064–T067 stay open
+for fresh images and acceptance-inputs-011, followed by one consolidated serial
+acceptance-011 run. Do not rerun standalone HIP probes or extend training merely
+to bypass the mismatch. This acceptance remains software validation, not research.

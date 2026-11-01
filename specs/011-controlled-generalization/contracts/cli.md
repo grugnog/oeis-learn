@@ -136,3 +136,16 @@ updates, resume/replay restoration and roster publication, capped at128 phase
 markers plus a terminal marker. No tensor, target or source payload is printed.
 These records use the same supervisor/excerpt caps and do not change deadlines
 or the acceptance verdict.
+
+
+### Replay audit runtime binding
+
+Replay proposal and training use the frozen learner image. The separate
+`replay-audit` learner operation also uses that image, but with `gpu=false`, no
+accelerator mounts and only the existing training-target and candidate channels.
+It performs the same full100-term native/reference admission as before. Restoration
+reruns admission and requires byte-equivalent canonical evidence, including native
+and reference identities. Sharing source or passing both image suites does not
+make separately built native binaries interchangeable. A mismatch still fails;
+its error now names canonical fields such as `verification.production` without
+printing source bodies, target values or arbitrary supplied keys.

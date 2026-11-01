@@ -151,12 +151,15 @@ def search_isolated(host,workspace,output,*,images,weights_root,checkpoint,tasks
     def audit(task,candidate,*,client,checkpoint,order,deadline):
         folder=current['folder'];write(folder/'task.json',task);write(folder/'candidate.json',candidate)
         task_ref=reference(folder/'task.json',folder);candidate_ref=reference(folder/'candidate.json',folder)
-        result=project_and_invoke(host,images[0],workspace,'learner',
+        # Restore redoes admission inside the learner image and requires the
+        # exact native/reference identities. CPU and GPU images can contain
+        # different native binaries; use the learner image without GPU access.
+        result=project_and_invoke(host,images[1],workspace,'learner',
             {'training_targets':[task_ref],'verified_training_replay':[candidate_ref]},
             source_roots={'training_targets':folder,'verified_training_replay':folder},
             output=str((folder/'audit').relative_to(workspace)),operation='replay-audit',
             settings=dict(task=task_ref,candidate=candidate_ref,study=study,checkpoint=checkpoint,order=order),
-            seconds=min(60,max(.001,deadline-time.monotonic())))
+            seconds=min(60,max(.001,deadline-time.monotonic())),gpu=False)
         if result['status']!='PASS':raise ValueError(result.get('error',result.get('reason','audit_failed')))
         record=result['entry']
         if seal(record)!=record or record['task_identity']!=digest(task) or record['origin_checkpoint']!=checkpoint or record['order']!=order:
@@ -174,7 +177,16 @@ def restore_pool(record,*,tasks,client,deadline):
         row=entry.record()
         if row['task'] not in roster:raise ValueError('replay task absent from training roster')
         checked=admission(roster[row['task']],row,client=client,checkpoint=row['origin_checkpoint'],order=row['order'],deadline=deadline)
-        if checked.record()!=row:raise ValueError('replay evidence changed on restore')
+        actual=checked.record()
+        if actual!=row:
+            # Emit only names from the newly generated canonical record, never
+            # source/target values or arbitrary keys from the supplied snapshot.
+            fields=[key for key in actual if key!='identity' and actual[key]!=row.get(key)]
+            if 'verification' in fields and isinstance(row.get('verification'),dict):
+                fields.remove('verification')
+                fields.extend('verification.'+key for key in actual['verification']
+                              if actual['verification'][key]!=row['verification'].get(key))
+            raise ValueError('replay evidence changed on restore: '+', '.join(fields or ['record']))
         return checked
     return ReplayPool.restore(record,verify=verify)
 

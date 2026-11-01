@@ -4,7 +4,8 @@ from oeis_learn.pipeline_validation.generalization_replay import search_round,re
 from oeis_learn.decoder.bigint_codec import encode_body
 
 class NativeFixture:
-    def runtime_identity(self,profile):return 'fixture-runtime'
+    def __init__(self,runtime='fixture-runtime'):self.runtime=runtime
+    def runtime_identity(self,profile):return self.runtime
     def execute(self,source,indices,*,deadline):
         assert deadline>time.monotonic()
         return dict(outcome='ok',values=['0']*len(indices))
@@ -24,6 +25,42 @@ def test_native_replay_admission_and_restore():
     restored=restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture(),deadline=time.monotonic()+60)
     assert restored.snapshot()==pool.snapshot()
     assert report['plan']['arms']==['continued_sft','verified_replay']
+
+
+@pytest.mark.parametrize('changed',['production','reference','scope','terms','indices','values'])
+def test_restore_rejects_changed_verification_with_field_diagnostic(changed):
+    import copy
+    from oeis_learn.pipeline_validation.identity import seal
+    src='(program (return (int 0)))'
+    candidate=dict(original_source=src,final_source=src,assignment={},tokens=encode_body(src))
+    pool,_=search_round([task()],propose=lambda *a:candidate,client=NativeFixture(),checkpoint='c',seed=3)
+    record=copy.deepcopy(pool.snapshot());entry=record['entries'][0]
+    entry['verification'][changed]='changed'
+    record['entries'][0]=seal(entry);record=seal(record)
+    with pytest.raises(ValueError,match='replay evidence changed on restore.*verification.'+changed):
+        restore_pool(record,tasks=[task()],client=NativeFixture(),deadline=time.monotonic()+60)
+
+
+def test_distinct_worker_bytes_change_identity_and_cannot_restore_each_other(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.synthesis.client import SynthesisClient
+    guest=tmp_path/'guest.wasm';guest.write_bytes(b'shared fixture guest')
+    monkeypatch.setenv('OEIS_BIGINT_WASM',str(guest))
+    identities=[]
+    for image in ('cpu','gpu'):
+        binary=tmp_path/(image+'-worker');binary.write_bytes(image.encode())
+        # Exercise production identity hashing, without launching a worker.
+        native=object.__new__(SynthesisClient)
+        native.worker=SimpleNamespace(command=[str(binary)]);native.runtime_identities={}
+        identities.append(native.runtime_identity('bigint-body/v1'))
+    assert identities[0]!=identities[1]
+    source='(program (return (int 0)))'
+    candidate=dict(original_source=source,final_source=source,assignment={},tokens=encode_body(source))
+    pool,_=search_round([task()],propose=lambda *a:candidate,client=NativeFixture(identities[0]),checkpoint='c',seed=3)
+    with pytest.raises(ValueError,match='verification.production'):
+        restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture(identities[1]),deadline=time.monotonic()+60)
+    assert restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture(identities[0]),
+                        deadline=time.monotonic()+60).snapshot()==pool.snapshot()
 
 
 def test_empty_yield_is_terminal_without_weaker_verification():
@@ -161,9 +198,10 @@ def test_isolated_search_projects_only_visible_inputs_and_persists_reservation(t
             assert set(prompt)=={'id','indices','values'} and len(prompt['values'])==20
             return dict(status='PASS',candidate=dict(original_source=source,final_source=source,assignment={},tokens=encode_body(source)))
         assert role=='learner' and set(artifacts)=={'training_targets','verified_training_replay'}
+        assert kw.get('gpu',False) is False
         target=json.loads(verify_artifact(roots['training_targets'],settings['task']))
         candidate=json.loads(verify_artifact(roots['verified_training_replay'],settings['candidate']))
-        entry=admission(target,candidate,client=NativeFixture(),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+30)
+        entry=admission(target,candidate,client=NativeFixture(image),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+30)
         return dict(status='PASS',entry=entry.record())
     monkeypatch.setattr(roles,'project_and_invoke',invoke)
     pool,report=search_isolated(None,tmp_path,tmp_path/'search',images=['cpu-fixture','gpu-fixture'],
@@ -171,6 +209,8 @@ def test_isolated_search_projects_only_visible_inputs_and_persists_reservation(t
     assert calls==['generator','learner']*8 and report['admitted']==1
     assert json.loads((tmp_path/'search/private/pool.json').read_text())==pool.snapshot()
     assert report['current_policy_success'] is None and report['cumulative_discoveries']==1
+    restored=restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture('gpu-fixture'),deadline=time.monotonic()+60)
+    assert restored.snapshot()==pool.snapshot()
 
 
 @pytest.mark.parametrize('admitted',[True,False])
@@ -214,12 +254,14 @@ def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,
     initializer=reference(tmp_path/'initializer.pt',tmp_path)
     plan=dict(recipe=recipe,initializer=dict(weights=initializer))
     class Native(NativeFixture):
-        def __init__(self,*a,**kw):pass
+        active_image=None
+        def __init__(self,*a,**kw):super().__init__(self.active_image)
         def __enter__(self):return self
         def __exit__(self,*a):pass
     monkeypatch.setattr(native_module,'SynthesisClient',Native)
     calls=[]
     def invoke(host,image,workspace,name,artifacts,**kw):
+        Native.active_image=image
         settings=copy.deepcopy(kw['settings']);operation=kw['operation'];calls.append((name,operation))
         out=workspace/kw['output']/'role';out.mkdir(parents=True)
         if operation=='replay-propose':
@@ -257,16 +299,19 @@ def test_isolated_diagnostic_is_charged_native_audited_and_never_model_yield(tmp
     def invoke(host,image,workspace,role,artifacts,**kw):
         calls.append((role,kw['operation']))
         assert role=='learner' and kw['operation']=='replay-audit'
+        assert kw.get('gpu',False) is False
         settings=kw['settings'];roots=kw['source_roots']
         t=json.loads(verify_artifact(roots['training_targets'],settings['task']))
         candidate=json.loads(verify_artifact(roots['verified_training_replay'],settings['candidate']))
-        entry=admission(t,candidate,client=NativeFixture(),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+10)
+        entry=admission(t,candidate,client=NativeFixture(image),checkpoint=settings['checkpoint'],order=settings['order'],deadline=time.monotonic()+10)
         return dict(status='PASS',entry=entry.record())
     monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
     pool,report=search_isolated(None,tmp_path,tmp_path/'search',images=['cpu','gpu'],weights_root=tmp_path,checkpoint=weight,tasks=[task()],recipe={},study='fixture',seed=7,seconds=30,purpose='acceptance',proposal_policy=DIAGNOSTIC)
     assert len(pool.entries)==1 and report['search_ledger'][0][1]==1
     assert report['plan']['model_discoveries']==0 and report['plan']['proposal_origin']==DIAGNOSTIC
     assert calls==[('learner','replay-audit')]
+    restored=restore_pool(pool.snapshot(),tasks=[task()],client=NativeFixture('gpu'),deadline=time.monotonic()+60)
+    assert restored.snapshot()==pool.snapshot()
     with pytest.raises(ValueError,match='research'):
         search_isolated(None,tmp_path,tmp_path/'forbidden',images=['cpu','gpu'],weights_root=tmp_path,checkpoint=weight,tasks=[task()],recipe={},study='fixture',seed=7,seconds=30,purpose='research',proposal_policy=DIAGNOSTIC)
     assert not (tmp_path/'forbidden').exists()

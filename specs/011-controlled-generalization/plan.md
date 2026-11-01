@@ -38,6 +38,13 @@ proof of progress or successful execution.
 
 **Scale/Scope**: Historical baseline plus four new selection/assessment cells of 128 rows each; up to 25M target tokens per fresh research arm; three paired seeds for confirmation; 4,096 replay entries, two/task, at most 25% of batch. Explicit operational ceilings are in [contracts/experiments.md](contracts/experiments.md).
 
+**Replay runtime routing (T102)**: Isolated replay audits run on CPU in the same
+immutable image as the learner (`runtime.images[1]`), without GPU access. Admission
+and restore therefore use the same native binary, guest, engine policy and
+reference implementation. The qualification image remains responsible for its CPU
+suite and other roles. Exact replay evidence comparison remains mandatory; no
+cross-image equivalence or identity substitution is introduced.
+
 ## Constitution Check
 
 Gate assessed before research and again after design: **PASS at design level**, no amendment or justified violation. Runtime gates remain unexecuted.

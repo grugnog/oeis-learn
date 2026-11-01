@@ -478,3 +478,8 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — negative role outcome diagnostics
 
 - [X] T101 Capture bounded status/reason/error projections from nested role results, including negative application outcomes transported with exit0; exclude source/tensor/entry payloads and retain original hash plus explicit projection status. Emit negative role outcomes to existing bounded stderr and test normal/recovery/existing-run packaging, malformed/oversized results and message limits. Reconcile acceptance-010 and provide an existing-run export for its missing error before proposing another HIP run (FR-033, NFR-007/008, SC-007).
+
+
+### Phase C — replay audit and learner runtime routing
+
+- [X] T102 Run isolated replay admission in the same frozen image as training/restoration, with GPU access disabled for the audit and unchanged training-only mounts. Reproduce CPU/GPU worker identity divergence through the real admission/restore interfaces, cover research and diagnostic proposals plus paired full-state resume, and retain rejection of changed runtime/reference/evidence. Report bounded mismatch field names without exporting payloads, reconcile acceptance-010 supplemental evidence, and publish one consolidated fresh acceptance command (FR-024/026/027/029/033, NFR-003/004/007/008, SC-006/007). This changes routine role routing and error reporting only; Phase-B admission and exact restore semantics remain unchanged.
