@@ -121,3 +121,13 @@ def test_cleanup_filters_exact_run_and_attempts_all_reclamations():
             engine.cleanup("token")
     assert "label=oeis.run=token" in call.call_args.args[0]
     assert remove.call_count == 2
+
+
+def test_runtime_environment_uses_explicit_mount_and_rejects_escape(tmp_path):
+    from oeis_learn.container_runtime import private_runtime_environment
+    assert private_runtime_environment(tmp_path)['HOME']=='/work/output/.runtime/home'
+    assert private_runtime_environment(tmp_path,destination='/output/learner')['TMPDIR']=='/output/learner/.runtime/tmp'
+    for destination in ('relative','/output/../inputs','/'):
+        with pytest.raises(ValueError):private_runtime_environment(tmp_path,destination=destination)
+    (tmp_path/'.runtime/tmp').rmdir();(tmp_path/'.runtime/tmp').symlink_to(tmp_path)
+    with pytest.raises(ValueError,match='symlink'):private_runtime_environment(tmp_path)

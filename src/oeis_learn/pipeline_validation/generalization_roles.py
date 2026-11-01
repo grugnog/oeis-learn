@@ -59,11 +59,15 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else
           ['python','-m','oeis_learn.pipeline_validation.generalization_role'])
     argv += [role.value,json.dumps(runtime,sort_keys=True,allow_nan=False)]
+    from oeis_learn.container_runtime import private_runtime_environment
+    environment={**private_runtime_environment(target,destination=declared[-1]["destination"]),
+        "OMP_NUM_THREADS":"2","MKL_NUM_THREADS":"1","OPENBLAS_NUM_THREADS":"1","RAYON_NUM_THREADS":"1"}
     command=host.engine.command(image=image,name=name,
         mounts=[(m['source'],m['destination'],not m['read_only']) for m in declared],
         argv=argv,startup_diagnostics=bool(diagnostic),
         gpu=gpu,render_node=host.policy.get('render_node') if gpu else None,
-        memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
+        memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False,
+        tmp_bytes=2<<30,environment=environment)
     cleanup=dict(deadline=deadline,allowance_seconds=cleanup_seconds)
     try:
         from .generalization_lifecycle import guard

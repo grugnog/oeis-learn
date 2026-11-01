@@ -90,3 +90,33 @@ def test_source_shapes_allow_existing_profile_size_without_weakening_prompts():
     validator("training-target").validate(record)
     record["source"] = "x" * 65537
     assert list(validator("training-target").iter_errors(record))
+
+
+@pytest.mark.parametrize('engine_name',['docker','podman'])
+@pytest.mark.parametrize('role_name',['preparation','learner','generator','report'])
+def test_real_role_command_uses_qualified_private_runtime(tmp_path,monkeypatch,engine_name,role_name):
+    import stat
+    from types import SimpleNamespace
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    from oeis_learn.generalization.role_contracts import ROLE_INPUTS,Role
+    engine=Engine(engine_name,executable=engine_name,details={})
+    monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    selected=Role(role_name);channels={m.channel:m.channel for m in ROLE_INPUTS[selected]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    observed=[]
+    def launch(argv,output,**kw):
+        observed.extend(argv);(output.parent/'result.json').write_text('{"status":"PASS"}')
+    roles.invoke(SimpleNamespace(engine=engine,policy={'memory_bytes':2<<30,'cpus':4}),
+        'sha256:'+'a'*64,tmp_path,selected,channels,output='out',operation='fixture',settings={},seconds=30,launcher=launch)
+    env=dict(observed[i+1].split('=',1) for i,x in enumerate(observed) if x=='--env')
+    assert env['TMPDIR']==f'/output/{role_name}/.runtime/tmp'
+    assert env['HOME']==f'/output/{role_name}/.runtime/home'
+    assert env['XDG_CACHE_HOME']==f'/output/{role_name}/.runtime/cache'
+    assert env['OMP_NUM_THREADS']=='2' and env['RAYON_NUM_THREADS']=='1'
+    assert '/tmp:rw,noexec,nosuid,nodev,size=2147483648,mode=1777' in observed
+    mounts=[observed[i+1] for i,x in enumerate(observed) if x=='--mount']
+    assert len(mounts)==len(channels)+1 and all(m.endswith(',readonly') for m in mounts[:-1])
+    assert '--read-only' in observed and '--network=none' in observed
+    for path in (tmp_path/'out/.runtime').iterdir():assert stat.S_IMODE(path.stat().st_mode)==0o700
