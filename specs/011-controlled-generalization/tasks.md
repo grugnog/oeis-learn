@@ -44,7 +44,28 @@ update2, before optimizer mutation. Old now equals original, new equals the old
 resumed endpoint: association with checkpoint age reverses. T121 tests one
 explicit diagnostic backend configuration; no causal production fix is claimed.
 
+Latest evidence, 2026-11-01 Pacific: blas-001 verifies (274.884s). Original-policy
+controls still differ; both modified continuations and their full observed phase
+traces match exactly, including buffers/modes, and reproduce the original full
+endpoint. This supports a candidate combined mitigation, not a proven individual
+cause. T122 tests fresh full versus paused/resumed execution without tensor tracing.
+Production policy and final T064–T067 gates remain unchanged.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T122 Reconcile blas-001's candidate mitigation and extend the existing
+  fresh matrix with an explicit uninstrumented diagnostic policy. Apply the
+  same requested BLAS configuration to both fresh full runs, the pause and its
+  continuation; verify bootstrap scope and policy/result labeling, retain exact
+  comparisons, separately hash dependencies and preserve diagnostic-only status.
+  No production policy or historical qualification change before this measurement.
+
+T122 validation:82 local helper tests pass after two intended failing tests.
+Bootstrap tests prove BLAS configuration is applied while torch_update remains
+untouched and observer code is absent. Stage propagation and policy labeling are
+covered. No production inventoried file changed; no local HIP or CI wait. Actual
+uninstrumented full/resume behavior remains the operator execution gate.
+
 
 - [X] T121 Reconcile trace-001 and add an explicit `--policy rocblas` temporary
   experiment: original-policy controls plus paired traced continuations with

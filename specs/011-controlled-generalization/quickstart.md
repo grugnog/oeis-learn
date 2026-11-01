@@ -7,7 +7,48 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: explicit BLAS diagnostic configuration
+### Current next step: fresh full/resume validation without tracing
+
+Blas-001 produced identical modified old/new continuation traces and final states,
+while the original-policy controls still differed. The modified endpoints reproduce
+the original uninterrupted endpoint. The next single command tests the candidate
+configuration on fresh full and paused/resumed learners without tensor observers:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/probe_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --start fresh \
+    --policy rocblas \
+    --output run-state/generalization/resume-blas-fresh-001
+)
+```
+
+Upload `run-state/generalization/resume-blas-fresh-001.zip`, pass or fail. Keep
+`diagnostic-001` intact. This is nine updates: two independent complete fresh runs,
+a fresh update1 pause, and continuation to completion. All four calls apply the
+same candidate BLAS configuration. The bootstrap configures the library and emits
+a bounded accepted-preference record; it installs no tensor hashing, gradient hooks
+or trace readbacks. CPU comparison runs after training. No rebuild, broad test suite,
+search or evaluation is performed. Original compatibility is rechecked first.
+
+`requested_policy=rocblas` and `tensor_tracing=false` accompany metadata/branch
+results. Comparison remains exact in weights, optimizer, RNG, data, replay and
+ledger, plus the initial/pause comparisons described below. Interpret fresh A/B
+and A/split first; comparisons with historical original-policy states remain context,
+not acceptance of a changed runtime. A passing matrix supports a production policy
+repair, which still requires explicit source/qualification binding and fresh final
+acceptance. This diagnostic configuration itself grants no feature qualification.
+
+Stage ceilings remain67 minutes. Earlier matrices took roughly3–5 minutes, but
+this exact fresh configuration's duration is unmeasured. `--dry-run` shows the plan
+without engine work.
+
+### Completed diagnostic: explicit BLAS diagnostic configuration
 
 Trace-001 reproduced the numerical mismatch. The first observed difference is
 forward logits in the first continuation update (overall update2), despite equal

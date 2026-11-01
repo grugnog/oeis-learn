@@ -19,7 +19,7 @@ def plan(args):
             needs=[] if name=='compatibility' else ['compatibility']+(['split-first'] if name=='split-rest' else []),
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,
                   '--run',args.run,'--output',str(target),'--internal',name,
-                  '--start',getattr(args,'start','paused')]))
+                  '--start',getattr(args,'start','paused'),'--policy',getattr(args,'policy','observe')]))
     return stages
 
 
@@ -196,6 +196,8 @@ def compare(host,context,output):
         launch(argv,output/'supervision',seconds=240,stream_cap=1<<20,cleanup_seconds=30,cleanup_state=cleanup)
     finally:reclaim(host.engine,container,output/'supervision',cleanup)
     report=json.loads((target/'comparison.json').read_text())
+    report['requested_policy']=context.get('policy','observe')
+    report['tensor_tracing']=False
     from diagnose_hip import save
     save(output/'comparison.json',report)
     return dict(status='PASS',complete=report['complete'],observation=report['observation'],feature_qualified=False)
@@ -206,6 +208,7 @@ def internal(args):
     from oeis_learn.pipeline_validation.identity import confined
     context=load_context(args.run)
     context['start']=args.start
+    context['policy']=getattr(args,'policy','observe')
     output=confined(ROOT,args.output,exists=False);output.mkdir(parents=True,exist_ok=False)
     host=host_for(args.engine)
     if args.internal=='compatibility':
@@ -216,7 +219,11 @@ def internal(args):
         return dict(status='PASS',original=q['original'],paused_updates=context['paused_updates'],
                     final_updates=context['final_updates'],feature_qualified=False)
     if args.internal=='compare':return compare(host,context,output)
-    return train_branch(args.internal,context,host,output)
+    from contextlib import nullcontext
+    from trace_resume import instrument
+    with instrument(context['policy'],tracing=False) if context['policy']!='observe' else nullcontext():
+        result=train_branch(args.internal,context,host,output)
+    return dict(result,requested_policy=context['policy'],tensor_tracing=False)
 
 
 def export(output):
@@ -247,7 +254,7 @@ def export(output):
                 value=json.loads(result.read_text())
                 save(destination/'controls'/name/'result.json',terminal_fields(value))
                 if name in BRANCHES:
-                    fields=('status','start_checkpoint','initializer','checkpoint','updates','learner_status')
+                    fields=('status','start_checkpoint','initializer','checkpoint','updates','learner_status','requested_policy','tensor_tracing')
                     provenance[name]={k:value[k] for k in fields if k in value}
         for control_root,label in [(output/'private/logs'/name,'outer'),(root/'supervision','comparison')]:
             for filename in ('process.json','cleanup.json'):
@@ -273,6 +280,7 @@ def main(argv=None):
     parser.add_argument('--run',required=True)
     parser.add_argument('--output',required=True)
     parser.add_argument('--start',choices=['paused','fresh'],default='paused')
+    parser.add_argument('--policy',choices=['observe','rocblas'],default='observe')
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--internal',choices=['compatibility',*BRANCHES,'compare'],help=argparse.SUPPRESS)
     args=parser.parse_args(argv)
@@ -294,9 +302,9 @@ def main(argv=None):
     output.mkdir(parents=True)
     from oeis_learn.generalization.resources import CAPS
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
-    metadata=dict(source_run=args.run,start=args.start,images=context['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,start=args.start,requested_policy=args.policy,tensor_tracing=False,images=context['runtime']['images'],helpers={
         name:file_hash(Path(__file__).with_name(name)) for name in
-        ('probe_resume.py','test_probe_resume.py','inspect_resume.py','diagnose_hip.py')})
+        ('probe_resume.py','test_probe_resume.py','inspect_resume.py','diagnose_hip.py','trace_resume.py','test_trace_resume.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)
     archive=export(output)
     print(json.dumps(dict(status=record['status'],archive=str(archive.relative_to(ROOT)),feature_qualified=False),indent=2))

@@ -233,3 +233,21 @@ def test_diagnostic_policy_bootstrap_is_learner_only_and_restores_role_program(m
             assert training.torch_update is not original
     finally:training.torch_update=original
     assert roles.ROLE_PROGRAM=='sentinel=True\n'
+
+
+
+def test_policy_bootstrap_can_run_without_installing_any_tensor_observer(monkeypatch):
+    import torch,sys
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.pipeline_validation import generalization_training as training
+    original=training.torch_update
+    monkeypatch.setattr(roles,'ROLE_PROGRAM','sentinel=True\n')
+    monkeypatch.setattr(sys,'argv',['-c','learner',json.dumps(dict(operation='train'))])
+    calls=[]
+    monkeypatch.setattr(torch.backends.cuda,'preferred_blas_library',lambda value=None:calls.append(value) or 'BlasBackend.Cublas')
+    for key in ('ROCBLAS_USE_HIPBLASLT','ROCBLAS_DEFAULT_ATOMICS_MODE'):monkeypatch.delenv(key,raising=False)
+    with helper.instrument('rocblas',tracing=False):
+        scope={};exec(roles.ROLE_PROGRAM,scope)
+        assert scope['sentinel'] and calls==['cublas',None]
+        assert training.torch_update is original
+        assert 'def install_trace' not in roles.ROLE_PROGRAM

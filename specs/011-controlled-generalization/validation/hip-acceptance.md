@@ -845,3 +845,45 @@ cause or qualify production.80 local tests pass, including policy setup order,
 bootstrap isolation, effect labeling and unchanged default observation mode.
 No production qualification source changed, no local HIP ran, and CI was not awaited.
 T064–T067 remain open pending a measured repair and full required acceptance.
+
+
+## Resume-blas-001: candidate configuration removes the observed difference
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`3369c2b7d932ceb047f70eea0333f54883b15eab70df9c28b743100c1543858e`.
+Independent archive verification passed for80 payloads plus manifest, no omissions;
+all five helper hashes match1f73d31. Stage elapsed274.884 seconds (4m35s), all
+stages PASS/exit0, with acknowledged cleanup. Diagnostic completion is not feature
+acceptance.
+
+| Comparison | Exact outcome |
+| --- | --- |
+| Original-policy old/new controls | Unequal weights/optimizer |
+| Modified old/new continuations | Equal in all six components |
+| All modified phase fingerprints | Equal |
+| Modified continuations versus original uninterrupted | Equal |
+| Old control versus modified old | Unequal |
+| New control versus modified new | Equal |
+
+Both modified learners accepted `_BlasBackend.Cublas` and recorded
+`ROCBLAS_USE_HIPBLASLT=0`, `ROCBLAS_DEFAULT_ATOMICS_MODE=0`. Initial batch, weights,
+optimizer, RNG, all named buffers and module-mode fingerprints match. Logits,
+raw/clipped gradients, norms and post-update states match at both continuation
+updates. No first trace difference is observed. This is evidence for the combined
+configuration as a candidate mitigation; it does not identify which setting matters,
+prove the actual kernel or atomics mode used by each operation, or establish every
+future run is reproducible. The changed branches also include tensor readbacks.
+
+T122 extends the existing fresh matrix with an explicit diagnostic policy applied
+to every learner process, using configuration-only bootstrap injection and no
+observer installation or readbacks. This tests two fresh uninterrupted runs versus
+a fresh update1 pause/resume from the common frozen initializer, nine updates in
+one command. Canonical configuration, inputs, isolation, time/storage bounds,
+qualification consumption and exact comparisons are retained. Policy requests,
+no-tracing status and independently hashed policy helper dependencies are exported;
+bounded role stderr records accepted configuration. The CPU comparator still runs
+after learning.82 local tests pass after two intended failing tests, including
+proof that configuration-only bootstrap leaves torch_update untouched. No installed
+production source changed, no local HIP ran and CI was not awaited.
+T064–T067 remain open. Promotion requires the uninstrumented fresh result, then an
+explicit production policy/qualification repair and final required validation.

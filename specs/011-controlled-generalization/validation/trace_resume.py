@@ -23,6 +23,10 @@ def configure_policy(policy):
     torch.backends.cuda.preferred_blas_library('cublas')
     if str(torch.backends.cuda.preferred_blas_library()).split('.')[-1].lower()!='cublas':
         raise RuntimeError('requested hipBLAS preference was not accepted')
+    import json,sys
+    print('diagnostic-blas-policy: '+json.dumps(dict(policy=policy,blas_preference='cublas',
+        ROCBLAS_USE_HIPBLASLT=os.environ['ROCBLAS_USE_HIPBLASLT'],
+        ROCBLAS_DEFAULT_ATOMICS_MODE=os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE'])),file=sys.stderr,flush=True)
 
 
 def install_trace(path,policy='observe'):
@@ -109,15 +113,16 @@ def install_trace(path,policy='observe'):
 
 
 @contextmanager
-def instrument(policy='observe'):
+def instrument(policy='observe',*,tracing=True):
     from oeis_learn.pipeline_validation import generalization_roles as roles
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
     if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
-    roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+inspect.getsource(install_trace)+
+    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r})\n" if tracing else ''
+    roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+(inspect.getsource(install_trace) if tracing else '')+
         "\nimport sys,json\nif sys.argv[-2]=='learner' and json.loads(sys.argv[-1])['operation']=='train':\n"
-        f"    configure_policy({policy!r})\n    install_trace('/output/learner/update-trace.jsonl',{policy!r})\n"+original)
+        f"    configure_policy({policy!r})\n"+observer+original)
     try:yield
     finally:roles.ROLE_PROGRAM=original
 
