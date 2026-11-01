@@ -64,7 +64,7 @@ def run(stage,root,seconds):
 def recover(root,ledger):
     """Minimal existing archive format, explicitly not a qualified feature bundle."""
     from oeis_learn.pipeline_validation.bundle import pack,verify
-    state='INTERRUPTED' if any(r['exit_code']==130 for r in ledger['receipts']) else 'FAIL'
+    state='INTERRUPTED' if ledger.get('status')=='INTERRUPTED' or any(r['exit_code']==130 for r in ledger['receipts']) else 'FAIL'
     write(root/'summary.json',seal(dict(selected_scope=state,reason='PACKAGE_FAILED',
         scientific_status='UNMEASURED',feature_qualified=False,stages={})))
     import shutil
@@ -90,7 +90,7 @@ def execute(stages,root,*,runner=run):
     root.mkdir(parents=True,exist_ok=False)
     ledger=dict(version='generalization-serial-workflow/v1',plan=stages,receipts=[],
                 research_authorized=False,status='PARTIAL')
-    started=time.monotonic();failure=0;report_ok=False;verified=False
+    started=time.monotonic();failure=0;report_ok=False;verified=False;verification=None
     write(root/'workflow.json',seal(ledger))
     for stage in stages:
         packaging=stage['category']=='packaging'
@@ -108,21 +108,31 @@ def execute(stages,root,*,runner=run):
         if code and not failure:failure=code
         if stage['operation']=='report':report_ok=(root/'report.zip').is_file()
         if stage['operation']=='verify-bundle':
-            summary=root/'verify-bundle/summary.json'
-            verified=code==0 or summary.is_file() and json.loads(summary.read_text()).get('integrity')=='PASS'
+            try:
+                from oeis_learn.pipeline_validation.generalization_finalization import verification as read_verification
+                verification=read_verification(root,code);verified=True
+            except (OSError,ValueError,KeyError,TypeError) as exc:
+                ledger['finalization_error']=type(exc).__name__+': '+str(exc)[:2048]
+                failure=failure or 1
         ledger['status']='INTERRUPTED' if failure==130 else 'FAIL' if failure in (1,2) else 'BLOCKED' if failure else 'PARTIAL'
         write(root/'workflow.json',seal(ledger))
-    if not verified:
-        ledger['status']='INTERRUPTED' if failure==130 else 'FAIL'
-        ledger['reason']='PACKAGE_FAILED'
-        write(root/'workflow.json',seal(ledger))
-        recover(root,ledger)
-        return failure or 1
-    ledger['status']='PASS' if not failure else ledger['status']
+    if verified:
+        try:
+            from oeis_learn.pipeline_validation.generalization_finalization import publish
+            ledger['status']=verification['selected_scope']
+            final=seal(ledger)
+            write(root/'workflow.json',final)
+            publish(root,final,verification)
+            return failure
+        except (OSError,ValueError,KeyError,TypeError,RuntimeError,KeyboardInterrupt) as exc:
+            failure=130 if isinstance(exc,KeyboardInterrupt) else failure or 1
+            ledger['finalization_error']=type(exc).__name__+': '+str(exc)[:2048]
+    ledger['status']='INTERRUPTED' if failure==130 else 'FAIL'
+    ledger['reason']='PACKAGE_FAILED'
     write(root/'workflow.json',seal(ledger))
-    import shutil
-    shutil.copyfile(root/'report.zip',root.with_suffix('.zip'))
-    return failure
+    recover(root,ledger)
+    return failure or 1
+
 
 
 def main(argv=None):

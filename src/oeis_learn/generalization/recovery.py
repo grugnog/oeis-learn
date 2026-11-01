@@ -44,3 +44,35 @@ def restart(workflow,*,old_root,new_root,reason,learner,full_state=None):
     return dict(study=workflow.study,parent_root=str(old_root),output_root=str(new_root),reason=reason,
                 immutable_receipts=workflow.receipts,reuse_requires_original_verification=True,
                 resume=full_state if learner else None)
+
+
+def verified_scope(summary,exit_code,*,archive,scope):
+    """Bind a canonical verifier result to bytes and its public exit contract."""
+    from oeis_learn.pipeline_validation.identity import seal
+    if (not isinstance(summary,dict) or set(summary)!={'identity','selected_scope','archive','integrity','scientific_status'}
+        or seal(summary)!=summary or summary['integrity']!='PASS'
+        or summary['selected_scope']!=scope or scope not in EXIT_CODES
+        or EXIT_CODES[scope]!=exit_code or not isinstance(summary['archive'],dict)
+        or any(summary['archive'].get(k)!=archive[k] for k in ('bytes','sha256'))):
+        raise ValueError('invalid, incompatible or contradictory verifier outcome')
+    return scope
+
+
+def verify_final_workflow(workflow,summary,scope):
+    from oeis_learn.pipeline_validation.identity import seal
+    if not isinstance(workflow,dict) or seal(workflow)!=workflow or workflow.get('status')!=scope:
+        raise ValueError('final workflow status differs from verified archive')
+    planned=[s['name'] for s in workflow['plan']];receipts=workflow['receipts']
+    names=[r['stage'] for r in receipts]
+    if len(set(planned))!=len(planned) or len(set(names))!=len(names) or names!=[n for n in planned if n in names]:
+        raise ValueError('final workflow order/uniqueness')
+    if names[-2:]!=['report','verify-bundle'] or (scope=='PASS' and names!=planned):
+        raise ValueError('final packaging or required stages missing')
+    code=EXIT_CODES.get(scope)
+    if code is None or receipts[-1]['exit_code']!=code or summary['selected_scope']!=scope:
+        raise ValueError('final verifier exit disagrees with scope')
+    failures=[r['exit_code'] for r in receipts if r['exit_code']]
+    if any(r['exit_code'] not in (0,1,2,3,130) for r in receipts) or (not failures)!=(scope=='PASS'):
+        raise ValueError('final workflow failure contradicts scope')
+    if failures and failures[0]!=(code or 1):raise ValueError('first failure differs from final scope')
+    return scope

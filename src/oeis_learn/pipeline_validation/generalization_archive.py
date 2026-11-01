@@ -29,6 +29,8 @@ def verify_archive(archive,*,cap=512<<20):
                 with z.open(member['path']) as source,target.open('xb') as destination:
                     import shutil
                     shutil.copyfileobj(source,destination,length=1<<20)
+        from .generalization_finalization import validate_final
+        validate_final(root,manifest)
         record=json.loads((root/'evidence.json').read_text())
         if record.get('version')=='generalization-archive/v1':
             from .identity import validate
