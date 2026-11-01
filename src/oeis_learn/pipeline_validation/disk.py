@@ -6,6 +6,16 @@ import threading
 from .identity import write
 from .runner import ResourceBreach
 
+POLL_SECONDS=1
+JOIN_SECONDS=2
+_ACTIVE=[]  # Main-thread owned; monitor threads only publish their own breach.
+
+
+def _dispatch_breach(signum,frame):
+    for guard in tuple(_ACTIVE):
+        if guard.breach:
+            raise ResourceBreach(guard.breach)
+
 
 class DiskWatchdog:
     def __init__(self, root, output, *, cap=8<<30, trace_cap=128<<20, free_reserve=16<<20, extra_roots=()):
@@ -13,6 +23,7 @@ class DiskWatchdog:
         self.free_reserve=free_reserve;self.stop=threading.Event();self.breach=None
         self.peak=0;self.trace_peak=0
         self.free=None;self.minimum_free=None;self.breach_observation=None
+        self._signal_lock=threading.Lock();self._active=False
 
     def usage(self):
         seen=set();size=traces=0
@@ -52,27 +63,51 @@ class DiskWatchdog:
 
     def __enter__(self):
         self.check()
-        self.previous=signal.getsignal(signal.SIGUSR1)
-        def breach(signum,frame):
-            raise ResourceBreach(self.breach or 'disk accounting failure')
-        signal.signal(signal.SIGUSR1,breach)
         def monitor():
-            while not self.stop.wait(1):
+            while not self.stop.wait(POLL_SECONDS):
                 try:self.check()
                 except ResourceBreach as exc:
-                    self.breach=str(exc)
-                    os.kill(os.getpid(),signal.SIGUSR1)
+                    # Serialize retirement with notification, never with a scan.
+                    with self._signal_lock:
+                        if self._active and not self.stop.is_set():
+                            self.breach=str(exc)
+                            signal.pthread_kill(threading.main_thread().ident,signal.SIGUSR1)
                     break
-        self.thread=threading.Thread(target=monitor,daemon=True);self.thread.start()
+        # The monitor inherits the blocked mask. Notifications target the main
+        # thread explicitly so retirement can drain them before handler restore.
+        mask=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGUSR1})
+        try:
+            self.previous=signal.getsignal(signal.SIGUSR1)
+            signal.signal(signal.SIGUSR1,_dispatch_breach)
+            self._active=True;_ACTIVE.append(self)
+            try:
+                self.thread=threading.Thread(target=monitor,daemon=True);self.thread.start()
+            except BaseException:
+                self._active=False;_ACTIVE.remove(self)
+                signal.signal(signal.SIGUSR1,self.previous)
+                raise
+        finally:signal.pthread_sigmask(signal.SIG_SETMASK,mask)
         return self
 
     def __exit__(self,*exc):
-        self.stop.set();self.thread.join(timeout=2)
-        signal.signal(signal.SIGUSR1,self.previous)
+        mask=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGUSR1})
         try:
-            self.check()
-        except ResourceBreach as failure:
-            self.breach=str(failure)
+            with self._signal_lock:
+                self._active=False;self.stop.set()
+            try:
+                self.thread.join(timeout=JOIN_SECONDS)
+                if self.thread.is_alive() is True:
+                    self.breach=self.breach or 'disk accounting did not stop within cleanup deadline'
+                else:
+                    try:self.check()
+                    except ResourceBreach as failure:self.breach=str(failure)
+            finally:
+                _ACTIVE.remove(self)
+                # Consume notifications already queued under this handler. Remaining
+                # active breaches are explicitly propagated below, including parents.
+                while signal.sigtimedwait({signal.SIGUSR1},0) is not None:pass
+                signal.signal(signal.SIGUSR1,self.previous)
+        finally:signal.pthread_sigmask(signal.SIG_SETMASK,mask)
         try:
             write(self.output/'disk.json',dict(version='pipeline-disk-observation/v1',
                 peak_bytes=self.peak,trace_peak_bytes=self.trace_peak,cap_bytes=self.cap,
@@ -83,3 +118,4 @@ class DiskWatchdog:
             # Earlier ledgers remain usable; resource exhaustion must still propagate.
             if exc[0] is None:raise ResourceBreach('disk report could not be persisted')
         if self.breach and exc[0] is not KeyboardInterrupt:raise ResourceBreach(self.breach) from exc[1]
+        if exc[0] is None:_dispatch_breach(signal.SIGUSR1,None)

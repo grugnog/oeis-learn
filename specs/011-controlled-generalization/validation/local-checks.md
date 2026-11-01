@@ -803,3 +803,8 @@ T102 is complete; T064–T067 require fresh operator evidence. The quickstart co
 both image builds, input freezing, dry-run, one serial qualification/acceptance and
 packaging in one shell invocation using new011 paths. Prior evidence is preserved.
 No CI wait, new research run, timeout increase or identity exemption is introduced.
+
+
+## T103 — watchdog lifetime repair (2026-10-31)
+
+Reopened Phase B operational-policy group for T103–T109. Disk monitors now notify only the main thread under an active-owner lock; retirement blocks/drains pending notifications before restoring the previous handler. Nested scopes dispatch the actual breached owner. A scan that cannot stop within bounded cleanup fails explicitly and cannot signal a later scope. Thread-start failure restores ownership. Local delayed-scan, nested-scope and interruption regressions plus existing supervision/recovery tests: **27 passed, 2 subtests**. No HIP command or CI wait.
