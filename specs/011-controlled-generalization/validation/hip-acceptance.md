@@ -1123,3 +1123,11 @@ mappings. Supplemental historical handoff checks pass21 and fail3 on missing
 Wasmtime; phase13 input tests fail collection on the same missing dependency.
 These supplemental native checks are not claimed as passes and await the pinned
 image. No local image build or HIP execution occurred; CI was not awaited.
+
+
+## Acceptance-016: full repaired-source acceptance passes
+
+See [the independent evidence review](acceptance-016-review.md). All five cases,
+CPU/native and HIP qualification, and final archive reconciliation pass. T064–T067
+are now complete. Earlier open-gate statements above describe their historical
+run only. Science remains UNMEASURED; research inputs are a separate prerequisite.

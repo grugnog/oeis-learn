@@ -8,7 +8,21 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
-## Current status — 2026-11-01 UTC
+## Current status — acceptance-016 reviewed 2026-11-01 Pacific
+
+T064–T067 are complete for production head ef886a7. The uploaded acceptance-016
+archive independently passes the canonical offline verifier with feature_qualified
+true, all five cases PASS, no missing cases, and scientific status UNMEASURED.
+Its entire 905-file source closure matches this checkout. CPU:1196 tests plus77
+subtests; HIP:27 tests; exact full-state resume passes under the installed no-Lt
+policy. The serial workflow completed in1430.071 seconds excluding image builds.
+See [the evidence review](validation/acceptance-016-review.md). Preserve the original
+images/private run and qualification root for research consumers; no repeat
+acceptance is requested by this documentation-only reconciliation.
+
+The dated entries below are historical, including their then-open hardware gates.
+
+## Historical diagnostic status — 2026-11-01 UTC
 
 Acceptance-015 independently verifies as software FAIL/science UNMEASURED.
 CPU qualification passed 1187 tests plus77 subtests; HIP passed27 tests. One
@@ -518,10 +532,10 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 ## Phase D — Consolidated validation, polish and delivery
 
 - [X] T063 Run the appropriate local/qualification-container reference, contract and integration regressions, including historical v3/v4 behavior and new suites registered in `src/oeis_learn/container_validation.py`, and write the exact selection/results to `specs/011-controlled-generalization/validation/local-checks.md`; return algorithm defects to B before hardware.
-- [ ] T064 Prebuild and inspect the pinned qualification/GPU targets using `Dockerfile` and committed locks; record immutable images, whole source/build closure, hardware/resource observations and helper hash in the operator's `run-state/generalization/acceptance-inputs.json` without altering host drivers or source during the session.
-- [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the 395-minute ceiling including recovery (T113 supersedes earlier allocations), and stop before costly work if quotas/artifacts/resources are infeasible.
-- [ ] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
-- [ ] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
+- [X] T064 Prebuild and inspect the pinned qualification/GPU targets using `Dockerfile` and committed locks; record immutable images, whole source/build closure, hardware/resource observations and helper hash in the operator's `run-state/generalization/acceptance-inputs.json` without altering host drivers or source during the session.
+- [X] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the 395-minute ceiling including recovery (T113 supersedes earlier allocations), and stop before costly work if quotas/artifacts/resources are infeasible.
+- [X] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
+- [X] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
 - [X] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
 - [X] T069 Update `specs/011-controlled-generalization/quickstart.md` and the relevant usage section in `README.md` with implemented commands, verified restart instructions and the E0→P0→P1 research sequence, clearly distinguishing delivered capability from unexecuted research outcomes.
 - [X] T070 Audit requirement/story/task coverage and the single-algorithm/single-normal-HIP constraints in `specs/011-controlled-generalization/checklists/implementation.md`, commit the completed implementation/evidence incrementally and make the final PR description reflect actual behavior and validation; do not start E0/P0/P1 automatically.
