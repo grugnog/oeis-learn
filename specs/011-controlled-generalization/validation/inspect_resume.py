@@ -14,9 +14,14 @@ def differences(left,right,*,limit=128):
     import torch
     import numpy as np
     count=0;leaves=0;details=[]
+    totals=dict(tensor_different_elements=0,tensor_nonfinite_pairs=0,max_tensor_abs_finite=0.)
     def difference(path,reason,**extra):
         nonlocal count
         count+=1
+        if reason=='tensor_values':
+            totals['tensor_different_elements']+=extra['different_elements']
+            totals['tensor_nonfinite_pairs']+=extra['nonfinite_pairs']
+            totals['max_tensor_abs_finite']=max(totals['max_tensor_abs_finite'],extra['max_abs_finite'])
         if len(details)<limit:details.append(dict(path=path,reason=reason,**extra))
     def walk(a,b,path):
         nonlocal leaves
@@ -55,7 +60,7 @@ def differences(left,right,*,limit=128):
             for i,(x,y) in enumerate(zip(a,b)):walk(x,y,path+'['+str(i)+']')
         elif type(a)!=type(b) or a!=b:difference(path,'scalar_value_or_type')
     walk(left,right,'state')
-    return dict(equal=count==0,different_leaves=count,details=details,omitted_details=max(0,count-len(details)))
+    return dict(equal=count==0,different_leaves=count,details=details,omitted_details=max(0,count-len(details)),**totals)
 
 
 def inspect_saved(mounts,output):
@@ -76,7 +81,7 @@ def inspect_saved(mounts,output):
         summaries[name]=dict(checkpoint=checkpoint['sha256'],training_sha256=file_hash(folder/'training.json'),
                              compatibility=result['compatibility'],ledger=state['ledger'].snapshot(),
                              learner_seconds=state['states']['scheduler']['learner_seconds'])
-        if name!='paused':loaded[name]=state
+        loaded[name]=state
         roster=json.loads((root/'retained.json').read_text())
         if seal(roster)!=roster:raise ValueError('retained roster identity mismatch')
         first=next(c for c in roster['checkpoints'] if 'initial' in c['pins'])
@@ -87,15 +92,49 @@ def inspect_saved(mounts,output):
     a,b=loaded['full'],loaded['resumed']
     components={key:differences(a['states'][key],b['states'][key]) for key in ('weights','optimizer','rng','data','replay')}
     components['ledger']=differences(a['ledger'].snapshot(),b['ledger'].snapshot())
-    report=dict(version='generalization-resume-inspection/v1',status='PASS',
+    boundary=pause_boundary(Path(mounts['full']),loaded['paused'])
+    report=dict(version='generalization-resume-inspection/v2',status='PASS',
                 feature_qualified=False,scientific_status='UNMEASURED',device='cpu',
                 comparison_equal=all(v['equal'] for v in components.values()),
-                runs=summaries,components=components,
+                runs=summaries,components=components,pause_boundary=boundary,
                 initial_full_paused=differences(initials['full'],initials['paused']),
                 initial_full_resumed=differences(initials['full'],initials['resumed']),
                 note='PASS means inspection completed; comparison_equal reports resume equality. No tolerance applied.')
     save(Path(output)/'inspection.json',report)
     return report
+
+
+def pause_boundary(full,paused):
+    """Compare retained pre/post-save points at the same completed update count.
+
+    A pre-update save may already hold the NEXT batch/debit/replay cursor. Compare
+    weights, optimizer and RNG only; never pretend its data/ledger equals pause.
+    Inspect every retained match rather than selecting a favorable checkpoint.
+    """
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.pipeline_validation.identity import seal
+    root=full/'checkpoints'
+    result=json.loads((full/'training.json').read_text())
+    roster=json.loads((root/'retained.json').read_text())
+    if seal(roster)!=roster or len(roster['checkpoints'])>128:raise ValueError('bounded sealed retained roster required')
+    matches=[];seen=set()
+    for item in roster['checkpoints']:
+        pointer=item['state']
+        if pointer['sha256'] in seen:continue
+        seen.add(pointer['sha256'])
+        record=json.loads(verify_artifact(root,pointer,max_bytes=1<<20))
+        if record['ledger']['updates']!=paused['ledger'].updates:continue
+        if len(matches)>=8:raise ValueError('pause-boundary candidate cap')
+        store=GeneralizationCheckpointStore(root,result['compatibility'],paused['ledger'].cap)
+        state=store.load(pointer)
+        components={key:differences(state['states'][key],paused['states'][key]) for key in ('weights','optimizer','rng')}
+        matches.append(dict(checkpoint=pointer['sha256'],ledger=state['ledger'].snapshot(),components=components,
+                            equal=all(v['equal'] for v in components.values())))
+    return dict(available=bool(matches),updates=paused['ledger'].updates,candidates=matches,
+                interpretation=('No retained state at the pause update count; divergence timing remains unknown.' if not matches else
+                'A mismatch here precedes resumption. A match localizes the observed difference to subsequent execution; it does not by itself identify the cause.'),
+                compared=['weights','optimizer','rng'],excluded=['data','replay','ledger','scheduler','history','pins','selection'])
 
 
 def saved_runs(run):

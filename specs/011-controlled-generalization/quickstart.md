@@ -7,10 +7,14 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: inspect diagnostic-001's saved state on CPU
+### Current next step: locate divergence at the saved pause boundary on CPU
 
-Diagnostic-001 completed all selected probes/cases except exact replay resume
-equality. Do not repeat training to obtain the missing comparison detail. Keep
+Inspection-001 established exact initial weights/RNG/data/replay/token-accounting
+agreement but different final weights and optimizer moments. The updated inspector
+also compares every retained uninterrupted checkpoint at the paused update count,
+to distinguish divergence already present before resumption from later divergence.
+It reports global tensor statistics even when individual detail rows are omitted.
+Do not repeat training to obtain this missing comparison detail. Keep
 the original diagnostic-001 directory and its private checkpoints, then run:
 
 ```bash
@@ -21,11 +25,11 @@ the original diagnostic-001 directory and its private checkpoints, then run:
   python3 specs/011-controlled-generalization/validation/inspect_resume.py \
     --engine podman \
     --run run-state/generalization/diagnostic-001 \
-    --output run-state/generalization/resume-inspection-001
+    --output run-state/generalization/resume-inspection-002
 )
 ```
 
-Upload `run-state/generalization/resume-inspection-001.zip`. This uses the existing
+Upload `run-state/generalization/resume-inspection-002.zip`. This uses the existing
 immutable learner image with no GPU devices, no network and read-only mounts of
 the three saved learner directories. It loads trusted local full-state artifacts
 after hash validation; do not point it at untrusted checkpoints. No build,
@@ -39,6 +43,11 @@ initializer differences from later divergence. Wall-time accounting is recorded
 but excluded from the equality verdict, matching the canonical proof's scope.
 No tolerance is introduced. Report status PASS means inspection completed;
 `comparison_equal` is the equality result. Feature qualification remains false.
+The pause-boundary subreport compares weights, optimizer and RNG only: a retained
+pre-update snapshot may already have prefetched/debited the next batch, so its data,
+replay cursor and ledger are not treated as the same stopping point. Missing
+matching retained snapshots are explicitly unavailable. A matching boundary does
+not prove a particular backend or resume defect; it localizes the divergence.
 
 ### General selective diagnostic command
 

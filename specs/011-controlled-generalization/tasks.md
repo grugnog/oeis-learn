@@ -19,6 +19,15 @@ does not close the final hardware gates or change production acceptance rules.
 
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
+- [X] T116 Extend the temporary CPU inspector with comparison of every retained
+  uninterrupted snapshot at the paused run's completed-update count, considering
+  weights/optimizer/RNG while disclosing next-batch prefetch/debit differences.
+  Add aggregate tensor statistics including omitted detail rows and regression
+  tests for boundary matches, divergence before resume and missing snapshots.
+  Record inspection-001: initial weights, RNG, data, replay and ledger match;
+  final weights/optimizer differ. Production cause remains unconfirmed; preserve
+  exact comparison and avoid speculative backend or tolerance changes.
+
 - [X] T115 Add `validation/inspect_resume.py` and colocated tests to inspect
   diagnostic-001's existing full/paused/resumed checkpoints in an isolated CPU
   container. Report exact per-component mismatches and bounded tensor difference

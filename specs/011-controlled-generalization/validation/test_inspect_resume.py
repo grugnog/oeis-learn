@@ -35,6 +35,14 @@ def test_nan_never_silently_passes_or_breaks_json():
     json.dumps(result,allow_nan=False)
 
 
+def test_aggregate_differences_include_omitted_tensor_details():
+    import torch
+    result=helper.differences([torch.tensor([0.]),torch.tensor([0.])],
+                              [torch.tensor([1.]),torch.tensor([5.])],limit=1)
+    assert result['omitted_details']==1 and result['max_tensor_abs_finite']==5.
+    assert result['tensor_different_elements']==2
+
+
 @pytest.mark.parametrize('engine',['docker','podman'])
 def test_actual_engine_command_is_read_only_cpu_and_has_no_socket(tmp_path,monkeypatch,engine):
     from oeis_learn.container_runtime import Engine
@@ -70,7 +78,7 @@ def fixture(tmp_path,monkeypatch):
         ref=store.save(state,Ledger(100,consumed=10,updates=1))
         (root/'training.json').write_text(json.dumps({'checkpoint':ref,'compatibility':'contract'}))
         record=json.loads((store.root/ref['path']).read_text())
-        (store.root/'retained.json').write_text(json.dumps(seal({'checkpoints':[{'pins':['initial'],'weights':record['states']['weights']}]})))
+        (store.root/'retained.json').write_text(json.dumps(seal({'checkpoints':[{'pins':['initial'],'weights':record['states']['weights'],'state':ref}]})))
     return roots
 
 
@@ -82,6 +90,25 @@ def test_real_serialized_state_inspection_separates_mismatch_from_completion(tmp
     assert all(v['equal'] for k,v in result['components'].items() if k!='optimizer')
     assert result['initial_full_resumed']['equal']
     assert not result['feature_qualified']
+    assert result['pause_boundary']['available']
+    assert result['pause_boundary']['candidates'][0]['equal']
+
+
+def test_missing_boundary_is_explicit_not_inferred_from_latest(tmp_path,monkeypatch):
+    roots=fixture(tmp_path,monkeypatch)
+    from oeis_learn.generalization.budgets import Ledger
+    result=helper.pause_boundary(roots['full'],{'ledger':Ledger(100,consumed=20,updates=2)})
+    assert result['available'] is False and result['candidates']==[]
+
+
+def test_boundary_mismatch_is_detected_before_resumption(tmp_path,monkeypatch):
+    roots=fixture(tmp_path,monkeypatch)
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    row=json.loads((roots['resumed']/'training.json').read_text())
+    paused=GeneralizationCheckpointStore(roots['resumed']/'checkpoints','contract',100).load(row['checkpoint'])
+    result=helper.pause_boundary(roots['full'],paused)
+    assert not result['candidates'][0]['equal']
+    assert not result['candidates'][0]['components']['optimizer']['equal']
 
 
 def test_corrupted_private_payload_is_rejected_before_comparison(tmp_path,monkeypatch):

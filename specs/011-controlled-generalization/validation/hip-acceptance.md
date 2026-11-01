@@ -598,3 +598,36 @@ serialized-state comparison, corruption rejection, scoped path discovery and
 Docker/Podman command construction. No actual container/HIP work ran locally;
 the production source inventory still exactly matches acceptance-015. Final
 T064–T067 gates remain open, and a production repair awaits the inspection result.
+
+## Resume-inspection-001: numerical state differs, logical state matches
+
+ZIP SHA256: `d5c51800b0e985e95d54d33d115c7103f3347502ed67b6f9a447e23e40d62a91`.
+Independent archive inventory/hash verification passed. CPU inspection completed
+in12.166 seconds, exit0. Inspection PASS means successful measurement;
+`comparison_equal=false` retains the failed resume comparison.
+
+The three saved learners have identical compatibility IDs. Full and resumed runs
+each completed3 updates, consumed456 of512 target tokens and retain the identical
+next batch of151 tokens, which exceeds the remaining budget (`debited=false`).
+The paused run completed1 update and consumed154 tokens. Initial weights match
+between full/paused and full/resumed. Final RNG, data (including pending batch),
+replay and token-ledger states all compare exactly equal.
+
+232 weight leaves and482 optimizer leaves differ. The first128 exported details
+per component contain weight absolute differences up to1.7142119759e-5 and
+optimizer differences up to6.6938810050e-9. These are maxima of exported detail,
+not global maxima:104/354 details respectively were omitted. Do not infer a
+tolerance or a backend cause from those incomplete magnitude summaries.
+
+Code audit confirms `models()` seeds Python/NumPy/Torch and enables deterministic
+algorithms; the retained-model learner also uses its scoped FP32 math policy.
+Therefore merely enabling the already-active deterministic flag is not a fix.
+The evidence narrows divergence to numerical training state but does not yet
+distinguish independent-run variation before pause from variation after restore.
+
+T116 extends the temporary inspector to compare all retained full-run snapshots
+at the paused update count against the saved paused numerical/RNG state. It also
+aggregates statistics across omitted tensor detail rows. This uses existing
+read-only states and no HIP work.35 local helper tests pass, including boundary
+match/mismatch/unavailable cases. No production code, equality rule, image or
+qualification source inventory changed; T064–T067 remain open.
