@@ -59,10 +59,31 @@ The proposed study binds the complete pilot protocol identity in its hypothesis.
 
 ### Phase C/D — fresh paired pilot delivery
 
-- [ ] T136 Implement the temporary serial pilot helper and public research export,
+- [X] T136 Implement the temporary serial pilot helper and public research export,
   with frozen controls/denominators, real checkpoint lineage, actual costs, original
   stage receipts, strict offline verification and partial/failure packaging. Exercise
   successful and failed command boundaries locally before a hardware invocation.
+
+T136 implementation uses `validation/fresh_pilot.py`, with the frozen input builder
+and public projection helper beside it. It runs one current-source acceptance at
+64GiB/four CPUs, canonical research preflight/prepare/train, then the existing isolated
+generator and selection roles for both latest checkpoints, followed by canonical
+report/verify-bundle. Assessment stays sealed. It binds equal random initialization,
+fixed bank seeds, exact weights and recipe, immutable current qualification and the
+protocol identity. It preserves original receipts, cost ledgers and measured training
+exposure; unavailable costs remain unavailable. A mandatory controller receipt records
+failures between commands. Final verification binds sealed terminal/summary to exact
+archive bytes; fallback archives are explicitly diagnostic only. Bounded control
+capture covers failed research roles without opening protected payloads.
+
+Local evidence:375 generalization/helper tests pass, one missing-native-dependency
+test skips and one GPU test is deselected. The final31-test temporary-helper suite also
+passes after final binding/diagnostic changes. Focused tests exercise the role
+child's exact recipe/protocol and canonical qualification binding. Synthetic process
+boundary tests cover every failed stage, partial training, initialization mismatch and
+missing verifier output. Actual canonical offline report/verify round trips preserve
+PASS/PARTIAL/FAIL/INTERRUPTED and reject changed archive references. These tests are
+not hardware qualification or scientific evidence.
 - [ ] T137 Publish one consolidated command for any required current-source
   acceptance followed by the fresh P1 pilot, with setup/loading/persistence/scoring
   and packaging reservations. Actual HIP/research results remain pending until run.

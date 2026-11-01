@@ -12,6 +12,27 @@ P1's 25M-token cap per arm, fixed support/mixture, selection-only advancement an
 sealed assessment rules remain in force. A changed effective budget/design must
 be frozen under a new identity before learning, never patched after outcomes.
 
+The temporary fresh-start runner freezes a **60-hour campaign ceiling**, superseding
+the default36-hour P1 screen envelope only for this registered invocation. It includes
+one current-source acceptance session (395 minutes maximum), preparation and validation,
+two6-hour learners, two6-hour generators and two6-hour scorers, with host/setup/cleanup
+headroom and one hour reserved for final reporting/recovery. Image builds occur before
+this clock starts. These are bounds, not expected durations. Per-arm25M/6-hour limits
+and per-target inference budgets remain unchanged. Both roles use64GiB/four CPUs and
+must consume qualification with those exact resources. Acceptance does not authorize
+research by itself; the operator's explicit `fresh_pilot.py run` does.
+
+The frozen pilot protocol selects latest available checkpoints at the two terminal
+learner boundaries. Retained milestone states remain private and available for later
+separately declared analysis. This screen does not perform adaptive checkpoint ranking,
+publish a new replay initializer, open assessment, or automatically launch confirmation.
+Partial/unequal exposure remains descriptive. The public measurement plan freezes
+256 selection rows, seven policies and both arms before learning; each metric slot is
+the outcome of the policy's selected program, not an oracle union of its proposals.
+Original proposal/cost ledgers accompany these projections. A controller receipt makes
+post-command failures part of the mandatory software ledger; missing/failed verification
+produces a diagnostic recovery archive, never a completed-research claim.
+
 ## Named research stages
 
 | Recipe | Arms and data | Fixed budget and checkpoint rule | Stop / advance |
