@@ -19,7 +19,7 @@ does not close the final hardware gates or change production acceptance rules.
 
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
-- [ ] T114 Implement and test `validation/diagnose_hip.py` and colocated
+- [X] T114 Implement and test `validation/diagnose_hip.py` and colocated
   `validation/test_diagnose_hip.py`: exact existing qualification/prepared-input
   consumption, selectable independent canonical cases, tiny real native and HIP
   resume probes, traced retained-model reproduction, external deadlines, cleanup
@@ -27,6 +27,12 @@ does not close the final hardware gates or change production acceptance rules.
   Keep helper/test bytes outside the existing qualification source inventory;
   record their hashes separately. No source-inventory rule changes or fabricated
   qualification. Changed production code still requires fresh qualification.
+
+T114 local validation:76 tests passed, including23 helper tests, real subprocess
+outcome handling, Docker/Podman command construction, cleanup interruption,
+nonquiescent trace preservation and bounded archive exclusion. No local native
+container or HIP run was executed. The helper's production inventory comparison
+matches acceptance-015 exactly; no rebuild is needed for this helper-only change.
 
 Latest operator update, 2026-10-31 Pacific: acceptance-014 passed qualification,
 retained evaluation and refresh, then the parameterized small-model learner hit

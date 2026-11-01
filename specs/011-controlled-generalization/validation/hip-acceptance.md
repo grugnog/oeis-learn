@@ -518,3 +518,42 @@ both case reservations become25 minutes. It accounts for both proofs during
 preflight. The total ceiling becomes395 minutes; scientific work/storage limits
 and research budgets remain fixed. Full replay/resume remains pending. The next
 consolidated session uses acceptance-015 paths, as in the quickstart.
+
+## Acceptance-015 and temporary diagnostic iteration
+
+Archive SHA256: `22a98409a60e28220cffde4ae41b173c159fd1ec91c74825e77839af9253c6b4`.
+247 ZIP members. Independent canonical verification: integrity PASS, software
+FAIL, scientific UNMEASURED, feature_qualified false. Only retained-eval ran as
+a feature case; refresh, parameter-targets, replay-resume and failure-packaging
+are missing, not failed measurements.
+
+Underlying stdout records1187 CPU tests and77 subtests passed in379.46s;
+27 HIP tests passed in360.33s. Cumulative workflow times:preflight149.993s,
+qualification1443.184s, preparation1483.071s, retained-eval1594.649s,
+report1596.048s, verification1596.967s. Roughly24 of26.6 minutes preceded
+preparation. Duplicate diagnostic copies do not count as additional tests.
+
+The e14604b9 checkpoint's generator reported FAIL/NonQuiescentWorker:
+"nonquiescent reference/native task; terminate role via external watchdog".
+Its process exited0 after60.237s, so the outer process timeout was not the failure.
+The82db144b checkpoint generator passed and exited0 after46.646s. The scheduler
+raises this exception when a worker remains alive after its shared five-second
+drain. The archive does not identify the underlying operation or prove the cause.
+T113's small-model learner/proof changes were not exercised by this run.
+
+T114 adds a temporary, independently hashed helper and tests beside this note.
+No production source, qualification-inventory rule, image or canonical acceptance
+contract changes. A local comparison confirms the production inventory still
+equals acceptance-015's original `payloads/source.json` byte-hash mapping. Real
+current-device/image/source compatibility remains checked by the canonical
+qualification consumer before probes. The helper supports focused reproduction,
+tiny installed native/HIP paths and independent canonical cases in one archive.
+It does not fix or claim to explain the nonquiescent worker. Its traces are the
+next evidence needed; final T064–T067 gates remain open.
+
+Local helper/affected-adapter validation:76 tests passed in3.60s (23 helper tests
+plus53 existing acceptance, scheduler, container and evaluation tests). This
+includes real host subprocess supervision and command-construction checks for
+both engines; it is not a Docker/Podman/native/HIP execution result. Tests observed
+and repaired invalid single-file mounting and a malformed native contract hash
+before operator execution. No CI completion was awaited.

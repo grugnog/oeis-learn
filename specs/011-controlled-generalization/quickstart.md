@@ -5,6 +5,75 @@ CPU/reference and fixture integration evidence. Actual pinned-container/native
 qualification and HIP acceptance have **not** run in this environment. No research
 campaign is started by these instructions or by the acceptance helper.
 
+## Faster diagnostic iteration after acceptance-015
+
+Use the temporary helper below before another complete acceptance session. It
+consumes the existing acceptance-015 qualification and prepared inputs, checks
+their compatibility, and does not rebuild images or rerun the broad suites.
+The helper/tests live under `validation/` and are not in the existing production
+source inventory; this is verified against acceptance-015's uploaded source
+closure. Their own hashes are recorded in the diagnostic ledger. Production
+source, build, image or hardware incompatibility still blocks reuse.
+
+From the existing checkout on `011-controlled-generalization`:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+
+  python3 specs/011-controlled-generalization/validation/diagnose_hip.py \
+    --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-015/generalization-acceptance.json \
+    --previous run-state/generalization/acceptance-015 \
+    --output run-state/generalization/diagnostic-001 \
+    --dry-run
+
+  python3 specs/011-controlled-generalization/validation/diagnose_hip.py \
+    --engine podman \
+    --manifest run-state/generalization/acceptance-inputs-015/generalization-acceptance.json \
+    --previous run-state/generalization/acceptance-015 \
+    --output run-state/generalization/diagnostic-001
+)
+```
+
+Upload `run-state/generalization/diagnostic-001.zip`, even on failure. The parent
+directory retains private checkpoints locally; only bounded control evidence and
+logs enter the shareable archive. It is explicitly diagnostic-only and cannot
+satisfy the canonical feature verifier. Exit0 means all selected diagnostics
+passed, not feature qualification. Exit1 includes failed/blocked cases;130 means
+interrupted. The dry-run performs host manifest validation, no engine work.
+
+Default order: original qualification compatibility; one real native 100-term
+admission/restore probe; actual HIP two-update uninterrupted/paused/resumed learner
+comparison; traced reproduction using both original retained checkpoints and
+their original prompts/budgets; then canonical refresh, parameter-targets,
+failure-packaging, retained-eval and replay-resume cases. Tracing records bounded
+queue/start/end/cancel events with hashed job IDs and remaining time. It does not
+walk thread stacks, alter deadlines or suppress worker failures. The traced probe
+does not publish an initializer, so uninstrumented canonical retained-eval still
+runs to provide replay's required dependency. No reduced-model result substitutes
+for retained-weight load/persistence or complete replay acceptance.
+
+Ordinary probe/case failures do not stop independent cases. Incompatible original
+qualification, interruption or unacknowledged cleanup stops further work. Replay
+is BLOCKED if its canonical retained-eval prerequisite fails; selecting replay
+automatically includes that prerequisite. A new output root is required each time.
+
+For a faster targeted follow-up, append `--probes retained --cases` to run only the
+traced reproduction, or `--probes native resume --cases` for the tiny probes.
+`--probes --cases parameter-targets` runs just that canonical case. Previously
+passing cases are omitted explicitly; their status is never copied or relabeled.
+The previous root remains the original session, not a diagnostic archive.
+
+The full diagnostic selection has230 minutes of stage ceilings, plus bounded
+packaging; this is not a runtime prediction. The tiny selection has25 minutes of
+stage ceilings (including compatibility), and traced-only25 minutes. Actual
+durations will be recorded. Acceptance-015 spent24 minutes on preflight and broad
+qualification; those suites are absent from this loop. After the individual pieces
+pass, use the complete acceptance command below for final qualification.
+
 ## Assemble real inputs first
 
 Reconstruction starts from verified Git commit `6e63421`; the earlier conversational
