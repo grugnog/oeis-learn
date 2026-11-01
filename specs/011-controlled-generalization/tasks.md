@@ -19,6 +19,24 @@ does not close the final hardware gates or change production acceptance rules.
 
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
 
+- [X] T117 Add a temporary `validation/probe_resume.py` diagnostic matrix and
+  colocated tests: two independent continuations from the identical saved paused
+  checkpoint, a third continuation split across one extra checkpoint/restart,
+  and exact CPU comparisons against each other and the original saved endpoints.
+  Reuse canonical qualification compatibility, frozen learner configuration,
+  replay admission/restore and production training; skip broad suites, search
+  and evaluation. Continue independent branches after ordinary failures, block
+  invalid dependencies, preserve cleanup/deadline/storage bounds and package
+  controls plus numerical statistics in one diagnostic-only archive. No tolerance
+  changes, backend guesses or production-source changes.
+
+T117 local validation:48 temporary-helper tests pass. Inspection-002 confirms
+there is no retained uninterrupted snapshot at the paused update count, so the
+read-only evidence cannot localize divergence further. The matrix performs six
+additional updates across four bounded invocations using the existing paused
+state. Actual matrix measurements remain an operator HIP gate; no local HIP run
+or completed feature acceptance is claimed.
+
 - [X] T116 Extend the temporary CPU inspector with comparison of every retained
   uninterrupted snapshot at the paused run's completed-update count, considering
   weights/optimizer/RNG while disclosing next-batch prefetch/debit differences.

@@ -631,3 +631,27 @@ aggregates statistics across omitted tensor detail rows. This uses existing
 read-only states and no HIP work.35 local helper tests pass, including boundary
 match/mismatch/unavailable cases. No production code, equality rule, image or
 qualification source inventory changed; T064–T067 remain open.
+
+## Resume-inspection-002: missing historical pause boundary
+
+ZIP SHA256: `d56a4b8f716a07d9b887ccadbced739ac2c60972a86505aa1d868d1a4b9910e4`.
+Independent archive verification passed; CPU process completed in10.978s.
+The pause-boundary report is explicitly unavailable: no retained full-run state
+has the paused run's completed-update count1. This cannot establish whether the
+divergence began before or after resumption. No further read-only inspection can
+recreate that discarded boundary.
+
+Complete aggregate statistics (including omitted detail rows): weights differ in
+232 leaves/29,733,134 elements, maximum finite absolute difference1.7142119759e-5;
+optimizer differs in482 leaves/206,741,247 elements, maximum6.2864273787e-8.
+Neither comparison has nonfinite tensor pairs. RNG/data/replay/ledger remain
+exactly equal. The optimizer global maximum supersedes the earlier exported-detail
+maximum; no acceptance tolerance is inferred from either statistic.
+
+T117 implements one focused same-paused-checkpoint continuation matrix. Independent
+A/B continuations test repeatability; an additional update2 checkpoint/restart tests
+the restart boundary. It reuses the installed learner, frozen data/pool/initializer,
+original qualification compatibility and exact comparisons. All available new and
+original final-state pairs are compared together on CPU. No production source,
+backend setting or equality rule is changed.48 local helper tests pass; no local
+HIP execution occurred and CI was not awaited. Final feature gates remain open.

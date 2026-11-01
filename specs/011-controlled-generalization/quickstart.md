@@ -7,7 +7,55 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: locate divergence at the saved pause boundary on CPU
+### Current next step: same-checkpoint continuation matrix
+
+Inspection-002 found no retained uninterrupted snapshot at the paused update
+count. Further CPU-only inspection cannot recover that missing boundary. The
+temporary matrix below reuses the saved one-update paused checkpoint in three
+paths: A continues to completion; B independently repeats A; the third path
+continues to update2, saves, then resumes to completion in another process.
+This is six new updates across four learner invocations. It performs no replay
+search, model evaluation, new input assembly or broad qualification suite.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/probe_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --output run-state/generalization/resume-matrix-001
+)
+```
+
+Upload `run-state/generalization/resume-matrix-001.zip`, pass or fail. Keep
+diagnostic-001's private checkpoints, resolved study and replay pool intact. No
+image rebuild is required: helper changes remain outside the existing source
+inventory, while canonical source/image/device compatibility is rechecked first.
+All branches use the original learner configuration, seed, batch order, pool,
+model and512-token cap. Frozen full-state compatibility is still enforced. The
+split's intentional PARTIAL result counts as a completed diagnostic stage only
+when the exact update2 boundary is reached.
+
+One final CPU container compares all available endpoint pairs, including both
+original endpoints. It reports exact weights/optimizer/RNG/data/replay/ledger
+equality and bounded numerical statistics. `repeat_equal=false` demonstrates
+divergence between repeated continuations from the same saved state. If repeats
+match but `split_equal=false`, the extra restart distinguishes the paths. If both
+match, compare the original endpoint pairs before interpreting the earlier failure.
+None of these observations alone identifies a backend cause or licenses a tolerance.
+PASS means the selected diagnostic executions/comparison completed; feature
+qualification remains false, and equality is reported separately.
+
+Independent branches continue after ordinary failures; interruption or missing
+cleanup acknowledgment stops new work. The split-rest stage requires split-first.
+The comparison preserves available pairs even if a new branch failed. GPU work
+remains serial; training uses existing isolated production roles. The outer stage
+ceilings total67 minutes, including the compatibility check and final comparison;
+this is not a measured duration. Add `--dry-run` for the plan without engine work.
+
+### Prior saved-state inspection on CPU
 
 Inspection-001 established exact initial weights/RNG/data/replay/token-accounting
 agreement but different final weights and optimizer moments. The updated inspector
