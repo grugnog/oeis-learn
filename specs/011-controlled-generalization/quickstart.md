@@ -5,25 +5,19 @@ pinned CPU/native and actual HIP qualification, all five feature cases and canon
 archive verification. See [the evidence review](validation/acceptance-016-review.md).
 The scientific status remains UNMEASURED.
 
-## Current next step: freeze E0 research inputs
+## Current next step: fresh paired P1 pilot
 
-Keep the accepted images and installed no-Lt policy. T064–T067 are complete; do not
-repeat acceptance for this documentation-only handoff. Keep the full private run
-and `run-state/generalization/acceptance-016/report/qualified/` intact.
+The operator approved a fresh start on 2026-11-01 Pacific. Defer E0 and P0; preserve
+the historical artifacts without using them as fresh validation or paired seeds.
+P1 uses static versus refreshed mechanical training from identical random weights,
+seed20261016, literal targets, fixed model/support/mixture and no replay.
 
-The evaluation backend and generic study assembler already exist. The repository's
-E0 recipe is a PREPARATION_REQUIRED template, not a runnable research manifest.
-Neither the uniform weights-only import nor the reduced acceptance fixture defines
-the historical evaluation roster or a new research benchmark. The uploaded archive
-excludes those private inputs intentionally.
-
-Read [E0 readiness and the bounded metadata handoff](validation/e0-readiness.md)
-before launching. Freeze actual cohorts/quotas, checkpoint availability, shared-bank
-seeds, time/storage reservations and the public evidence inventory first. The
-examples below are templates until those exact inputs exist. No research or HIP
-command was executed during this review.
-
-## Faster diagnostic iteration after acceptance-015
+Research launch is not yet turnkey. T133–T137 cover research-scale preparation,
+persistence review and one temporary serial preparation/train/evaluate/export
+helper. Keep sealed assessment out of adaptive decisions. No old E0 command below
+is the current launch instruction, and no fresh HIP run is requested until the local
+repairs and consolidated handoff are complete. Acceptance-016 remains original
+software evidence for ef886a7; production changes require current-source acceptance.
 
 ### Historical diagnostic: untraced fresh validation with explicit addmm bypass
 

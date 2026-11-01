@@ -8,6 +8,39 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Fresh-start delivery — 2026-11-01 Pacific
+
+User-approved next experiment: fresh P1 static versus refreshed, seed20261016.
+E0/P0 are deferred; historical inputs have arrived and are no longer a blocker.
+The accepted old source remains valid evidence only for its original closure.
+
+- [X] T132 Record the operator-approved fresh-start sequence in spec/plan/guide;
+  preserve historical evidence and separate this exploratory seed from confirmation.
+
+### Reopened Phase B — research-scale preparation and persistence
+
+- [ ] T133 Reproduce and repair preparation scaling/bounds without changing
+  deterministic quota ordering or cross-role isolation: full 32,768-row shards,
+  fixed family mixtures, bulk exclusions, bounded manifest readers and research
+  preparation envelopes. Add independent differential and scale counterexamples.
+- [ ] T134 Audit full-state persistence at research scale and implement a frozen,
+  bounded checkpoint policy if required. Preserve update-boundary restoration,
+  actual work/time debits, milestone pins and exact interrupted/resumed behavior;
+  never silently discard unaccounted work or reuse weights-only state.
+
+### Phase C/D — fresh paired pilot delivery
+
+- [ ] T135 Assemble a deterministic research descriptor/cell blueprint with the
+  required coverage and sufficient refresh token capacity; wire it through canonical
+  preparation and training, never acceptance fixtures or historical target imports.
+- [ ] T136 Implement the temporary serial pilot helper and public research export,
+  with frozen controls/denominators, real checkpoint lineage, actual costs, original
+  stage receipts, strict offline verification and partial/failure packaging. Exercise
+  successful and failed command boundaries locally before a hardware invocation.
+- [ ] T137 Publish one consolidated command for any required current-source
+  acceptance followed by the fresh P1 pilot, with setup/loading/persistence/scoring
+  and packaging reservations. Actual HIP/research results remain pending until run.
+
 ## Current status — acceptance-016 reviewed 2026-11-01 Pacific
 
 T064–T067 are complete for production head ef886a7. The uploaded acceptance-016

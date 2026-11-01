@@ -2,6 +2,16 @@
 
 These are prospective contract definitions for implementation, not executed configurations. Committed prospective recipe templates live under `configs/foundation/pipeline_studies/`; runtime preparation emits fully resolved sealed JSON and artifacts only in operator workspace/output roots; every authority input is hashed independently of source closure. Unspecified hardware-dependent coverage counts are resolved by bounded preflight, never by observing learning results.
 
+## Operator-authorized fresh start (2026-11-01 Pacific)
+
+Execute P1-screen next, with fresh paired random initialization at seed20261016.
+E0 and P0 remain optional deferred historical investigations; their completion is
+not a prerequisite for this authorized sequence. Retain their artifacts and
+limitations. Do not count historical seed16 as part of fresh P1 confirmation.
+P1's 25M-token cap per arm, fixed support/mixture, selection-only advancement and
+sealed assessment rules remain in force. A changed effective budget/design must
+be frozen under a new identity before learning, never patched after outcomes.
+
 ## Named research stages
 
 | Recipe | Arms and data | Fixed budget and checkpoint rule | Stop / advance |

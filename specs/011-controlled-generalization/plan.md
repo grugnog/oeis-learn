@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the complete evaluation, corpus-refresh, target-comparison and verified-replay capability, then use it for a staged research campaign. The first research runs are two additional historical uniform seeds, followed by a fresh paired static-versus-refreshed pilot. Execution order does not remove broader changes from implementation scope.
+Implement the complete evaluation, corpus-refresh, target-comparison and verified-replay capability, then use it for a staged research campaign. The operator-approved next research run is a fresh paired static-versus-refreshed pilot; historical E0 evaluation and P0 seed replication are deferred. Execution order does not remove broader changes from implementation scope.
 
 Use the existing portable host wrapper, container roles, exact native fitter, independent reference evaluator, checkpoint store, pipeline runner and evidence packaging. Add a prospective `generalization` policy layer with strict role-specific data contracts. Separate qualification identity from study identity so canonical endpoints can share one original qualified producer without weakening study provenance.
 
@@ -173,3 +173,20 @@ scoring and packaging. No acceptance fixture is promoted to a research benchmark
 Keep the measured ROCm/no-Lt baseline; identify original research input metadata
 before constructing and testing the single bounded E0 launch. No new algorithm,
 production runtime, image or dependency change is part of this review.
+
+
+## Fresh-start delivery — 2026-11-01 Pacific
+
+The operator authorized the fresh P1 alternative in FR-035/036. Historical inputs
+are now available; their target format is not a prerequisite for this experiment.
+Retain the passing ROCm/no-Lt numerical policy. Acceptance-016 proves its frozen
+software fixtures, not research-scale preparation or learner throughput.
+
+Reopen one Phase-B group for demonstrated research-scale preparation and
+persistence defects, with independent counterexamples before repairs. Follow with
+routine role/CLI integration and a temporary validation-directory orchestration
+helper. It must freeze the research roster, enforce preparation/coverage/isolation
+and accounting gates, preserve actual partial outcomes and package public results.
+Changing production code or authoritative contracts invalidates reuse of the old
+source closure; perform any necessary fresh acceptance in the same serial operator
+invocation before research. Never use acceptance-sized data as the new benchmark.
