@@ -56,7 +56,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
         evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=180,bank_seeds=None),
         replay=dict(cell='static',seconds=30,proposal_policy=DIAGNOSTIC))
     cfg['storage'].update(study_bytes=30<<30,checkpoint_bytes=26<<30)
-    cfg['budgets']['seconds']=180
+    cfg['budgets']['seconds']=600
     cfg['milestones']=[512]
     assemble('replay-resume',cfg)
     session=assemble_session(workspace,results,str((target/'generalization-acceptance.json').relative_to(workspace)))

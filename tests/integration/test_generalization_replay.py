@@ -273,7 +273,17 @@ def test_complete_paired_workflow_and_exact_resume_use_current_weights(tmp_path,
             (out/'generation').mkdir();(out/'generation/selections.json').write_text(json.dumps({r['id']:dict(selections={}) for r in prompts}))
             return dict(status='PASS',checkpoint=settings['checkpoint']['sha256'])
         if operation=='train':settings['config']['device']='cpu'
-        return role.HANDLERS[(Role(name),operation)](kw['source_roots'],out,settings,seconds=kw['seconds'])
+        from oeis_learn.generalization.contracts import verify_artifact
+        roots=dict(kw.get('source_roots',{}))
+        for channel,refs in artifacts.items():
+            if channel not in roots or channel in kw.get('artifact_sources',{}):
+                destination=out/'fixture-inputs'/channel;destination.mkdir(parents=True)
+                for ref in refs:
+                    source,original=kw.get('artifact_sources',{}).get(channel,{}).get(ref['path'],(roots.get(channel,workspace),ref))
+                    path=destination/ref['path'];path.parent.mkdir(parents=True,exist_ok=True)
+                    path.write_bytes(verify_artifact(source,original))
+                roots[channel]=destination
+        return role.HANDLERS[(Role(name),operation)](roots,out,settings,seconds=kw['seconds'])
     for module in (roles,commands,workflow,acceptance):monkeypatch.setattr(module,'project_and_invoke',invoke)
     result=workflow.replay(None,tmp_path,tmp_path/'round',tmp_path,study,runtime,plan,acceptance_resume=True)
     assert result['status']=='PASS' and result['rounds']==1

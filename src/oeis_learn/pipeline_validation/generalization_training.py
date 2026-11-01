@@ -24,6 +24,7 @@ def train_updates(state,ledger,batches,*,update,save,seconds=21600):
         key=digest(batch);ledger=ledger.reserve(key,tokens)
         save(state,ledger)
         if not ledger.debited:return dict(status='COMPLETE',ledger=ledger,state=state)
+        if time.monotonic()>=deadline:break
         update(batch)
         ledger=ledger.commit(key);state['data']['pending_batch']=None
         save(state,ledger)
@@ -91,13 +92,14 @@ class PreparedBatches:
         return [self._row(i%self.count) for i in range(start,end)]
 
 
-def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None,initializer_root=None):
+def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None,initializer_root=None,seconds=None):
     """Actual existing model/update path with complete update-boundary persistence.
 
     Caller supplies a verified, frozen execution projection. No selection/assessment
     targets enter this worker. All milestone candidates remain available for the
     separately mounted selection role after training.
     """
+    began=time.monotonic()
     import copy,json,random,shutil,sys
     from pathlib import Path
     import numpy as np
@@ -118,6 +120,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
     if set(config)!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
+    seconds=config['seconds'] if seconds is None else seconds
+    if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     progress('batch-inputs')
@@ -175,7 +179,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             shutil.copytree(Path(prior)/folder,store.root/folder,dirs_exist_ok=False)
             history[key]=pointer
         initial=next(iter(state['history']['exposures']),None)
-    began=time.monotonic();previous_seconds=state['scheduler']['learner_seconds'];saved_ledger=ledger
+    # Conservatively debit reduced enclosing allowance (I/O and cleanup reserve).
+    previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
@@ -192,10 +197,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         current['optimizer']=optimizer.state_dict()
         current['rng']=dict(python=random.getstate(),numpy=np.random.get_state(),torch=torch.get_rng_state(),
                             device=torch.cuda.get_rng_state_all() if config['device']=='cuda' else [])
-        current['scheduler']['learner_seconds']=previous_seconds+time.monotonic()-began
+        def scheduler():
+            current['scheduler']['learner_seconds']=previous_seconds+time.monotonic()-began
+            return current['scheduler']
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}
-        latest=store.save(current,account);saved_ledger=account
+        latest=store.save(current,account,scheduler=scheduler);saved_ledger=account
         key=latest['sha256'];history[key]=latest;current['history']['exposures'][key]=effective
         if initial is None:initial=key;permanent[key]=latest
         crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
@@ -230,12 +237,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         progress('replay-restore')
         from .generalization_replay import restore_pool,ReplayBatches
         snapshot=state['replay'] if resume is not None else replay['pool'].snapshot()
-        verified=restore_pool(snapshot,tasks=replay['tasks'],client=replay['client'],deadline=time.monotonic()+min(60,config['seconds']))
+        verified=restore_pool(snapshot,tasks=replay['tasks'],client=replay['client'],deadline=min(time.monotonic()+60,began+config['seconds']-previous_seconds))
         state['replay']=verified.snapshot()
         batches=ReplayBatches(batches,verified,replay['tasks'],state)
-    remaining=config['seconds']-previous_seconds
     try:
         save(state,ledger)
+        remaining=config['seconds']-previous_seconds-(time.monotonic()-began)
         result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
@@ -284,8 +291,11 @@ def storage_preflight(recipe,study,runtime):
     # RNG/history, and a bounded full replay snapshot separately from tensor bytes.
     snapshot_bytes=3*parameter_bytes+buffer_bytes+4096*(len(parameters)+len(buffers))+(1<<20)
     if runtime['replay'] is not None:snapshot_bytes+=128<<20
-    per_run=len(study['checkpoints']['milestones'])+4  # initial/latest/atomic replacement/selection copy
-    runs=len(runtime['training'])*len(study['seeds'])
-    required=reserve_storage(snapshot_bytes,per_run*max(1,runs),min(32<<30,runtime['storage']['checkpoint_bytes']))
+    from oeis_learn.generalization.resources import checkpoint_reservation
+    graph=checkpoint_reservation(snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
+        milestones=len(study['checkpoints']['milestones']),arms=len(runtime['training']),seeds=len(study['seeds']),
+        acceptance_replay=runtime.get('purpose')=='acceptance' and runtime.get('replay') is not None,
+        selection=runtime.get('evaluation') is not None)
+    reserve_storage(graph['required_checkpoint_bytes'],1,min(32<<30,runtime['storage']['checkpoint_bytes']))
     return dict(parameter_bytes=parameter_bytes,buffer_bytes=buffer_bytes,snapshot_reservation_bytes=snapshot_bytes,
-        required_checkpoint_bytes=required,pinned_generations_reserved=per_run*max(1,runs),device='cpu',kind='measured_tensors_with_conservative_state_reservation')
+        **graph,device='cpu',kind='measured_tensors_with_serial_peak_reservation')

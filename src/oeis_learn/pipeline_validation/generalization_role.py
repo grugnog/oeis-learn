@@ -68,7 +68,9 @@ def learner(inputs,output,settings,*,seconds):
     if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay','stop_after_updates'}:
         raise ValueError('closed learner role settings required')
     config=settings['config']
-    if config['seconds']>seconds:raise ValueError('learner exceeds enclosing deadline')
+    deadline=time.monotonic()+seconds
+    from oeis_learn.generalization.budgets import remaining_seconds
+    if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
     resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
     extra=dict(initializer=settings.get('initializer'),initializer_root=inputs['verified_training_replay'],stop_after_updates=settings.get('stop_after_updates'))
     if settings.get('replay') is not None:
@@ -83,8 +85,8 @@ def learner(inputs,output,settings,*,seconds):
         with SynthesisClient(config['study'],cache_root=output/'private/native-cache') as native:
             pool=restore_pool(snapshot,tasks=tasks,client=native,deadline=time.monotonic()+min(60,seconds))
             return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume,
-                replay=dict(pool=pool,tasks=tasks,client=native),**extra)
-    return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume,**extra)
+                replay=dict(pool=pool,tasks=tasks,client=native),seconds=remaining_seconds(deadline),**extra)
+    return generalization_train(inputs['training_targets'],output/'private/learner',config,resume=resume,seconds=remaining_seconds(deadline),**extra)
 
 
 def replay_audit(inputs,output,settings,*,seconds):

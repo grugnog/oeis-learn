@@ -165,3 +165,49 @@ def test_command_export_failure_retains_terminal_work_result(tmp_path,monkeypatc
     assert result['status']=='FAIL' and result['result']['reason']=='PACKAGE_FAILED'
     assert result['result']['work_result']==dict(status='PASS',updates=2)
     assert json.loads((output/'summary.json').read_text())['selected_scope']=='FAIL'
+
+
+def test_projection_deadline_charges_io_and_never_launches_late(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.generalization import contracts
+    source=tmp_path/'source';source.mkdir();(source/'x').write_text('x')
+    ref=reference(source/'x',source);clock=[0.];calls=[]
+    original=contracts.verify_artifact
+    def verify(*a,**kw):clock[0]+=2;return original(*a,**kw)
+    monkeypatch.setattr(contracts,'verify_artifact',verify)
+    monkeypatch.setattr(roles.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(roles,'invoke',lambda *a,**kw:calls.append(kw) or {'status':'PASS'})
+    for seconds,expected in [(1,None),(5,3)]:
+        kwargs=dict(output='projection'+str(seconds),operation='fixture',settings={},seconds=seconds,source_roots={'public_evidence':source})
+        if expected is None:
+            with pytest.raises(TimeoutError):roles.project_and_invoke(None,'image',tmp_path,'report',{'public_evidence':[ref]},**kwargs)
+            assert not calls
+        else:
+            roles.project_and_invoke(None,'image',tmp_path,'report',{'public_evidence':[ref]},**kwargs)
+            assert calls[-1]['seconds']==expected
+        assert not (tmp_path/kwargs['output']/'private/input').exists()
+
+
+def test_direct_projections_have_one_copy_and_preserve_originals(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.generalization.contracts import verify_artifact
+    sources={};refs=[]
+    for name in ('first','second'):
+        root=tmp_path/name;root.mkdir();(root/'state.pt').write_bytes(name.encode())
+        original=reference(root/'state.pt',root);projected=dict(original,path=name+'/state.pt')
+        refs.append(projected);sources[projected['path']]=(root,original)
+    calls=[]
+    def invoke(host,image,root,role,channels,**kw):
+        target=root/channels['verified_training_replay']
+        assert [verify_artifact(target,r) for r in refs]==[b'first',b'second']
+        assert len(list(root.rglob('state.pt')))==4  # two originals + one projection each
+        calls.append(channels);return {'status':'PASS'}
+    monkeypatch.setattr(roles,'invoke',invoke)
+    roles.project_and_invoke(None,'image',tmp_path,'learner',{'training_targets':[],'verified_training_replay':refs},
+        artifact_sources={'verified_training_replay':sources},output='projection',operation='check-training',settings={},seconds=10)
+    assert calls and len(list(tmp_path.rglob('state.pt')))==2
+    assert not (tmp_path/'projection/private/input').exists()
+    bad=dict(refs[0],sha256='sha256:'+'0'*64)
+    with pytest.raises(ValueError,match='identity differs'):
+        roles.project_and_invoke(None,'image',tmp_path,'learner',{'training_targets':[],'verified_training_replay':[bad]},
+            artifact_sources={'verified_training_replay':sources},output='bad',operation='check-training',settings={},seconds=10)

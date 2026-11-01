@@ -1,5 +1,7 @@
 """Publish selection-designated retained initialization from actual learner origins."""
 import json
+import time
+from oeis_learn.generalization.budgets import remaining_seconds
 from pathlib import Path
 from .identity import seal,write
 from .generalization_preparation import reference
@@ -59,6 +61,7 @@ def publish_role(inputs,output,settings,*,seconds):
 def publish_selected(host,workspace,output,base,study,runtime,decision,available,*,seconds=60):
     from .generalization_commands import _copy
     from .generalization_roles import project_and_invoke
+    deadline=time.monotonic()+seconds
     if decision is None or decision.get('selected') is None:return dict(status='UNAVAILABLE',reason='NO_ELIGIBLE_CHECKPOINT')
     descriptor,parent=next((c,r) for c,r in available if c['identity']==decision['selected'])
     inputs=output/'private/input';inputs.mkdir(parents=True)
@@ -85,13 +88,14 @@ def publish_selected(host,workspace,output,base,study,runtime,decision,available
     refs.extend([checkpoint,selection])
     return project_and_invoke(host,runtime['images'][0],workspace,'preparation',{'mechanical_sources':refs,'isolation_truth':[]},
         source_roots={'mechanical_sources':inputs,'isolation_truth':inputs},output=str((output/'publication').relative_to(workspace)),
-        operation='publish-initializer',settings=dict(origin=reference(inputs/'origin.json',inputs),checkpoint=checkpoint,selection=selection),seconds=seconds)
+        operation='publish-initializer',settings=dict(origin=reference(inputs/'origin.json',inputs),checkpoint=checkpoint,selection=selection),seconds=remaining_seconds(deadline))
 
 
 def persist_selected(host,workspace,output,runtime,decision,available,*,seconds):
     """Only sanitized selection identities cross back into the learner role."""
     from .generalization_commands import _resume_inputs,_copy
     from .generalization_roles import project_and_invoke
+    deadline=time.monotonic()+seconds
     wanted={decision[k] for k in ('selected','best_loss') if decision.get(k) is not None}
     parents={parent for descriptor,parent in available if descriptor['identity'] in wanted}
     results=[]
@@ -109,6 +113,6 @@ def persist_selected(host,workspace,output,runtime,decision,available,*,seconds)
         write(inputs/'selection-pins.json',pins);pins_ref=reference(inputs/'selection-pins.json',inputs)
         result=project_and_invoke(host,runtime['images'][0],workspace,'learner',{'training_targets':[],'verified_training_replay':[*refs,roster_ref,pins_ref]},
             source_roots={'training_targets':inputs,'verified_training_replay':inputs},output=str((folder/'persistence').relative_to(workspace)),
-            operation='pin-selection',settings=dict(roster=roster_ref,decision=pins_ref,compatibility=state['contract'],target_tokens=state['ledger']['cap']),seconds=seconds/max(1,len(parents)))
+            operation='pin-selection',settings=dict(roster=roster_ref,decision=pins_ref,compatibility=state['contract'],target_tokens=state['ledger']['cap']),seconds=remaining_seconds(deadline)/max(1,len(parents)-ordinal))
         results.append(dict(result,output=str((folder/'persistence/role').relative_to(workspace))))
     return results

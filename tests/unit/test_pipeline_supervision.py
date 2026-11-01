@@ -100,3 +100,29 @@ class Supervision(unittest.TestCase):
             result=json.loads((root/'process.json').read_text())
             self.assertEqual(result['omitted_bytes']['stderr'],100004-4096)
             self.assertEqual(result['outcome'],'FAIL')
+
+
+def test_unreapable_client_preserves_engine_cleanup_reservation(tmp_path,monkeypatch):
+    import io,signal,subprocess
+    from unittest.mock import Mock
+    from oeis_learn.pipeline_validation import supervision as s
+    clock=[0.];waits=[]
+    process=Mock(pid=1234,returncode=None,stdout=io.BytesIO(),stderr=io.BytesIO())
+    process.poll.return_value=None
+    def wait(timeout):
+        waits.append(timeout);clock[0]+=timeout;raise subprocess.TimeoutExpired('client',timeout)
+    process.wait.side_effect=wait
+    monkeypatch.setattr(s.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(s.subprocess,'Popen',lambda *a,**kw:process)
+    monkeypatch.setattr(s.os,'killpg',lambda *a:None)
+    # Fail immediately after spawn, exercising finally without fake selector I/O.
+    monkeypatch.setattr(s.selectors,'DefaultSelector',Mock(side_effect=RuntimeError('injected setup failure')))
+    from oeis_learn.pipeline_validation.runner import ResourceBreach
+    import pytest
+    state={}
+    with pytest.raises(ResourceBreach,match='termination unacknowledged'):
+        s.launch(['client'],tmp_path/'logs',seconds=180,cleanup_state=state)
+    engine=Mock()
+    s.reclaim(engine,'container',tmp_path/'logs',state)
+    assert waits==[.25,1]
+    assert engine.remove.call_args.kwargs['timeout']==3.75

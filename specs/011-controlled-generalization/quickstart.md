@@ -304,3 +304,8 @@ See [local evidence](validation/local-checks.md), [algorithm review](validation/
 and [CLI contract](contracts/cli.md) for implementation and validation boundaries.
 
 The generated retained-model replay/resume fixture allows180 seconds for each learner invocation and180 seconds for each policy evaluation. Its outer limit is35 minutes; the remaining cases retain15 minutes each. Qualification reserves120 minutes, including35 minutes for the CPU/native suite, so the full serial reservation remains five hours. These are upper bounds, not runtime predictions. Preserve earlier frozen inputs and run directories; rebuild images and assemble a fresh numbered input/session after source changes.
+
+
+### Audit repair timing (T106/T108)
+
+Fresh acceptance inputs now freeze a335-minute (5h35) outer ceiling, including a70-minute replay/resume case,600-second learner envelopes and180-second full-state proof envelopes. This supersedes older five-hour/35-minute instructions above; it is not an expected runtime. Reassemble inputs after rebuilding the changed source closure. No additional manual diagnostic invocation is required.

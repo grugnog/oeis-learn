@@ -8,7 +8,7 @@ from .generalization_commands import _copy,_validate,_qualification,_finish
 from oeis_learn.generalization.contracts import verify_artifact
 from oeis_learn.generalization.feature_acceptance import OBLIGATIONS
 from oeis_learn.generalization.interfaces import EXIT_CODES
-from oeis_learn.generalization.resources import CASE_SECONDS
+from oeis_learn.generalization.resources import CASE_SECONDS,PROOF_SECONDS
 
 
 def load_session(workspace,manifest):
@@ -31,7 +31,7 @@ def load_session(workspace,manifest):
         if images is None:images=runtime['images'];source=study['source_closure']['sha256']
         if runtime['images']!=images or study['source_closure']['sha256']!=source:raise ValueError('one exact qualification scope required')
         learning=study['budgets']['seconds'];evaluation=(runtime['evaluation'] or {}).get('seconds',0)
-        work=evaluation if name=='retained-eval' else 2*learning+120 if name in {'refresh','parameter-targets'} else (runtime['replay'] or {}).get('seconds',0)+4*learning+2*evaluation+120
+        work=evaluation if name=='retained-eval' else 2*learning+120 if name in {'refresh','parameter-targets'} else (runtime['replay'] or {}).get('seconds',0)+4*learning+2*evaluation+2*PROOF_SECONDS+120
         if work>CASE_SECONDS[name]-540:raise ValueError('acceptance case cannot fit qualification inspection, validation and bounded work in '+str(CASE_SECONDS[name])+' seconds')
         children[name]=(base,study,runtime,manifest_path,runtime_path)
     from oeis_learn.generalization.bootstrap import is_pending

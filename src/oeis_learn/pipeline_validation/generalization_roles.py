@@ -1,5 +1,7 @@
 """Resolve only explicitly authorized role mounts, never a shared input root."""
 from pathlib import Path
+import time
+from oeis_learn.generalization.budgets import remaining_seconds
 from oeis_learn.generalization.role_contracts import Role, ROLE_INPUTS, ROLE_OUTPUTS
 from .identity import confined
 from .supervision import diagnostic_program
@@ -40,6 +42,8 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     from contextlib import nullcontext
     from .supervision import launch,reclaim
     if not 0<seconds<=21600:raise ValueError('bounded role duration required')
+    deadline=time.monotonic()+seconds
+    cleanup_seconds=min(30,seconds/5)
     role=Role(role)
     if gpu and role not in {Role.LEARNER,Role.GENERATOR}:raise ValueError('GPU forbidden for this role')
     declared=mounts(root,role,channels,output=output)
@@ -49,7 +53,7 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
             raise ValueError('regular explicit input directory required')
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
-    runtime=dict(settings=settings,operation=operation,seconds=seconds,device='cuda' if gpu else 'cpu')
+    runtime=dict(settings=settings,operation=operation,seconds=remaining_seconds(deadline)-cleanup_seconds,device='cuda' if gpu else 'cpu')
     diagnostic=('validation' if role==Role.PREPARATION and operation=='validate-runtime' else
                 role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
     argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else
@@ -60,11 +64,13 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
         argv=argv,startup_diagnostics=bool(diagnostic),
         gpu=gpu,render_node=host.policy.get('render_node') if gpu else None,
         memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],network=False)
-    cleanup={}
+    cleanup=dict(deadline=deadline,allowance_seconds=cleanup_seconds)
     try:
         from .generalization_lifecycle import guard
         with guard(target),host.gpu_lock() if gpu else nullcontext():
-            (launcher or launch)(command,target/'supervision',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
+            work_seconds=remaining_seconds(deadline)-cleanup_seconds
+            if work_seconds<=0:raise TimeoutError('role startup exhausted work allowance')
+            (launcher or launch)(command,target/'supervision',seconds=work_seconds,stream_cap=1<<20,cleanup_seconds=cleanup_seconds,cleanup_state=cleanup)
     finally:
         reclaim(host.engine,name,target/'supervision',cleanup)
     result=json.loads((target/'result.json').read_text())
@@ -73,11 +79,12 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     return result
 
 
-def project_and_invoke(host,image,root,role,artifacts,*,output,operation,settings,seconds,gpu=False,source_roots=None):
+def project_and_invoke(host,image,root,role,artifacts,*,output,operation,settings,seconds,gpu=False,source_roots=None,artifact_sources=None):
     """Copy the declared verified files into disjoint, read-only channel views."""
     from oeis_learn.generalization.contracts import verify_artifact
     from .identity import confined
     import shutil
+    deadline=time.monotonic()+seconds
     root=Path(root);output=confined(root,output,exists=False)
     if output.exists():raise ValueError('fresh role invocation required')
     output.mkdir(parents=True,exist_ok=False)
@@ -92,14 +99,18 @@ def project_and_invoke(host,image,root,role,artifacts,*,output,operation,setting
                     if seen[ref['path']] != ref:raise ValueError('conflicting channel artifact')
                     continue
                 seen[ref['path']]=ref
-                source=Path((source_roots or {}).get(channel,root)).resolve()
-                source.relative_to(root.resolve())
-                payload=verify_artifact(source,ref)
+                source,original=(artifact_sources or {}).get(channel,{}).get(ref['path'],
+                    ((source_roots or {}).get(channel,root),ref))
+                if any(original[k]!=ref[k] for k in ('bytes','sha256')):raise ValueError('projected source identity differs')
+                source=Path(source).resolve();source.relative_to(root.resolve())
+                remaining_seconds(deadline)
+                payload=verify_artifact(source,original)
+                remaining_seconds(deadline)
                 path=confined(folder,ref['path'],exists=False);path.parent.mkdir(parents=True,exist_ok=True)
                 with path.open('xb') as stream:stream.write(payload)
             channels[channel]=str(folder.relative_to(root))
         return invoke(host,image,root,role,channels,output=str((output/'role').relative_to(root)),
-            operation=operation,settings=settings,seconds=seconds,gpu=gpu)
+            operation=operation,settings=settings,seconds=remaining_seconds(deadline),gpu=gpu)
     finally:
         # Keep operator originals and role outputs; delete only disposable views.
         shutil.rmtree(output/'private/input',ignore_errors=True)

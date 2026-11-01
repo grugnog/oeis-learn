@@ -1,5 +1,13 @@
 """Exact, conservative debit-before-work accounting at update boundaries."""
 from dataclasses import dataclass, asdict, replace
+import time
+
+
+def remaining_seconds(deadline):
+    left=deadline-time.monotonic()
+    if left<=0:raise TimeoutError("enclosing deadline exhausted before starting work")
+    return left
+
 
 
 def integer(value, minimum=0):

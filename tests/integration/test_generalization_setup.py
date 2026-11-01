@@ -26,7 +26,7 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
     session,children=load_session(tmp_path,result['session']['manifest'])
     assert session['version']=='generalization-acceptance-session/v2'
     replay_study,replay_runtime=children['replay-resume'][1:3]
-    assert replay_study['budgets']['seconds']==180
+    assert replay_study['budgets']['seconds']==600
     assert replay_runtime['evaluation']['seconds']==180
     assert replay_study['budgets']['target_tokens']==512
     assert replay_study['model']['architecture']==children['retained-eval'][1]['model']['architecture']
@@ -61,7 +61,7 @@ def test_replay_work_over_reservation_is_rejected_before_execution(tmp_path,monk
     load=session.load
     def oversized(*args,**kw):
         base,study,runtime=load(*args,**kw)
-        if study['progression']['stage']=='P4':study['budgets']['seconds']=400
+        if study['progression']['stage']=='P4':study['budgets']['seconds']=850
         return base,study,runtime
     monkeypatch.setattr(session,'load',oversized)
     with pytest.raises(ValueError,match='cannot fit'):

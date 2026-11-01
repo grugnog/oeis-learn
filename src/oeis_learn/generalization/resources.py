@@ -3,11 +3,12 @@ from .budgets import integer
 
 GIB=1024**3
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
-# Reassign twenty minutes of CPU qualification margin to retained-model acceptance.
-# Research budgets and the five-hour aggregate ceiling are unchanged.
-MINUTES=dict(preflight=45,qualification=120,preparation=10,cases=95,packaging=20,margin=10)
+# Acceptance-011 measured 26–45 second checkpoint writes; preserve the same
+# token/model work while reserving full persistence and recovery, not just updates.
+MINUTES=dict(preflight=45,qualification=120,preparation=10,cases=130,packaging=20,margin=10)
+PROOF_SECONDS=180
 CASE_SECONDS={'retained-eval':900,'refresh':900,'parameter-targets':900,
-              'replay-resume':2100,'failure-packaging':900}
+              'replay-resume':4200,'failure-packaging':900}
 SESSION_SECONDS=sum(MINUTES.values())*60
 
 
@@ -39,3 +40,27 @@ def compute_resources(*,physical_bytes,cgroup_bytes,effective_cpus,peak_bytes,he
     memory=min(physical_bytes*9//10,cgroup_bytes)
     if peak_bytes+headroom_bytes+native_bytes>memory or native_bytes>4*GIB: raise ValueError('measured peak plus reservations exceeds effective memory')
     return dict(memory_bytes=memory,cpus=min(16,effective_cpus),torch_intraop=2,torch_interop=1,native_threads=1,learners=1)
+
+
+def checkpoint_reservation(*,snapshot_bytes,weights_bytes,milestones,arms,seeds,acceptance_replay=False,selection=False):
+    """Peak live upper bounds for serial learners and single channel projections.
+
+    A retained run has initial/latest plus at most one state per milestone. One
+    active resume projection and one atomic replacement coexist with those runs.
+    Proofs project only each latest state plus initial weights, not entire stores.
+    Acceptance replay measures policies without publishing unused selected copies.
+    """
+    for value in (snapshot_bytes,weights_bytes,arms,seeds):integer(value,1)
+    integer(milestones)
+    retained=milestones+2
+    learners=arms*seeds+(2*seeds if acceptance_replay else 0)
+    phases=dict(training=(learners+1)*retained+1,proof=learners*retained+2)
+    if selection and not acceptance_replay:
+        phases['selection']=(learners+2)*retained+2
+    # Origins, live initializers, evaluation inputs and proof initial weights.
+    weight_copies=learners+6
+    peak=max(phases.values())
+    return dict(required_checkpoint_bytes=peak*snapshot_bytes+weight_copies*weights_bytes,
+                pinned_generations_reserved=peak,retained_per_run=retained,learner_runs=learners,
+                phase_generations=phases,weight_copies_reserved=weight_copies,
+                policy='serial-checkpoint-graph/v1')

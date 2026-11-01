@@ -210,7 +210,37 @@ def test_model_storage_reservation_blocks_before_any_update(tmp_path,monkeypatch
     study=dict(checkpoints=dict(milestones=[10,20]),seeds=[7])
     runtime=dict(training={'a':{},'b':{}},replay=None,storage=dict(checkpoint_bytes=32<<20))
     result=storage_preflight({},study,runtime)
-    assert result['parameter_bytes']==9*4 and result['pinned_generations_reserved']==12
+    assert result['parameter_bytes']==9*4 and result['pinned_generations_reserved']==13
     assert calls==['cpu']
     runtime['storage']['checkpoint_bytes']=result['required_checkpoint_bytes']-1
     with pytest.raises(ValueError,match='required pins'):storage_preflight({},study,runtime)
+
+
+def test_slow_preupdate_save_stops_with_resumable_debit(monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_training as training
+    clock=[0.];saved=[];updates=[]
+    monkeypatch.setattr(training.time,'monotonic',lambda:clock[0])
+    state=states();batches=[[dict(tokens=[3,2])]]
+    def save(state,ledger):
+        saved.append((json.loads(json.dumps(state)),ledger));clock[0]+=2
+    result=train_updates(state,Ledger(2),batches,update=updates.append,save=save,seconds=1)
+    assert result['status']=='PARTIAL' and not updates
+    state,ledger=saved[-1]
+    assert ledger.consumed==2 and ledger.pending and state['data']['cursor']==1
+    result=train_updates(state,ledger,batches,update=updates.append,save=lambda *a:None,seconds=1)
+    assert result['status']=='COMPLETE' and result['ledger'].consumed==2 and len(updates)==1
+
+
+def test_checkpoint_clock_includes_tensor_serialization(tmp_path):
+    clock=[0.];state=states();state['scheduler']={'learner_seconds':0.}
+    store=GeneralizationCheckpointStore(tmp_path,'contract',2)
+    def encode(value):
+        clock[0]+=1
+        return json.dumps(value).encode()
+    def scheduler():
+        state['scheduler']['learner_seconds']=clock[0]
+        return state['scheduler']
+    ref=store.save(state,Ledger(2),encode=encode,scheduler=scheduler)
+    loaded=store.load(ref,decode=json.loads)
+    assert loaded['states']['scheduler']['learner_seconds']==clock[0]-1
+    assert clock[0]>5

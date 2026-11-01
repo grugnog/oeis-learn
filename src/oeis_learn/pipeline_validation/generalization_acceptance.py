@@ -49,19 +49,28 @@ def check_training(inputs,output,settings,*,seconds):
 
 
 def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
-    from .generalization_commands import _resume_inputs,_copy
-    sources=[];settings=[]
+    import time
+    from oeis_learn.generalization.budgets import remaining_seconds
+    from oeis_learn.generalization.contracts import artifact_refs
+    from oeis_learn.generalization.resources import PROOF_SECONDS
+    deadline=time.monotonic()+(PROOF_SECONDS if runtime.get('replay') is not None else 60)
+    sources=[];settings=[];origins={}
     for ordinal,(root,result) in enumerate(runs):
-        parent,pointer,refs=_resume_inputs(workspace,str((root/'checkpoints'/result['checkpoint']['path']).relative_to(workspace)))
+        parent=root/'checkpoints';pointer=result['checkpoint']
+        record=json.loads(verify_artifact(parent,pointer))
         roster_ref=reference(parent/'retained.json',parent);roster=json.loads(verify_artifact(parent,roster_ref))
-        refs+=[roster_ref,*[c['weights'] for c in roster['checkpoints']]]
-        name=str(ordinal);target=output/'private/input'/name
-        _copy(target,[(parent,r) for r in refs])
-        sources.extend(dict(r,path=name+'/'+r['path']) for r in refs)
+        initial=next(c for c in roster['checkpoints'] if 'initial' in c['pins'])
+        refs={r['path']:r for r in [pointer,roster_ref,initial['weights'],*artifact_refs(record)]}
+        name=str(ordinal)
+        for ref in refs.values():
+            projected=dict(ref,path=name+'/'+ref['path'])
+            sources.append(projected);origins[projected['path']]=(parent,ref)
         settings.append(dict(directory=name,compatibility=result['compatibility'],cap=study['budgets']['target_tokens'],checkpoint=pointer,roster=roster_ref))
     return project_and_invoke(host,runtime['images'][0],workspace,'learner',
-        {'training_targets':[],'verified_training_replay':sources},source_roots={'training_targets':output/'private/input','verified_training_replay':output/'private/input'},
-        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=60)
+        {'training_targets':[],'verified_training_replay':sources},
+        artifact_sources={'verified_training_replay':origins},
+        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=remaining_seconds(deadline))
+
 
 
 def _training_runs(output,result):

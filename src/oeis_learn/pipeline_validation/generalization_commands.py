@@ -1,6 +1,8 @@
 """Canonical host orchestration; data/model work stays in installed roles."""
 import json
 import shutil
+import time
+from oeis_learn.generalization.budgets import remaining_seconds
 from pathlib import Path
 from .identity import confined,seal,write,digest
 from .generalization_runtime import load,execution_refs,learner_config
@@ -13,12 +15,14 @@ from oeis_learn.generalization.interfaces import EXIT_CODES
 def _document(root,ref):return json.loads(verify_artifact(root,ref,max_bytes=1<<20))
 
 
-def _copy(destination,inputs):
+def _copy(destination,inputs,*,deadline=None):
     """Combine explicit projections, rejecting path collisions before a launch."""
     destination=Path(destination);destination.mkdir(parents=True,exist_ok=True)
     refs={}
     for source,ref in inputs:
+        if deadline is not None:remaining_seconds(deadline)
         payload=verify_artifact(source,ref)
+        if deadline is not None:remaining_seconds(deadline)
         target=confined(destination,ref['path'],exists=False)
         if ref['path'] in refs and refs[ref['path']]!=ref:raise ValueError('conflicting projected input')
         if target.exists():
@@ -103,6 +107,7 @@ def train(host,workspace,output,base,study,runtime,plan,*,arms,seeds,resume=None
         raise ValueError('bounded acceptance-only interruption required')
     results=[]
     for config in configs:
+        deadline=time.monotonic()+config['seconds']
         name=digest([config['arm'],config['seed']])[7:23];folder=output/name
         aux=folder/'private/inputs';inputs=[];resume_ref=None
         initializer=plan['initializer']['weights'] if plan['initializer'] else None
@@ -116,12 +121,18 @@ def train(host,workspace,output,base,study,runtime,plan,*,arms,seeds,resume=None
             replay_root,pool_ref,tasks_ref=replay
             inputs.append((replay_root,pool_ref));training_refs.append(tasks_ref)
             settings['replay']=dict(pool=pool_ref,tasks=tasks_ref)
-        refs=_copy(aux,inputs)
+        sources={};refs=[]
+        for source,ref in inputs:
+            if ref['path'] in sources:
+                if sources[ref['path']]!=(source,ref):raise ValueError('conflicting projected input')
+                continue
+            sources[ref['path']]=(source,ref);refs.append(ref)
         result=project_and_invoke(host,runtime['images'][1],workspace,'learner',
             {'training_targets':training_refs,'verified_training_replay':refs},
-            source_roots={'training_targets':base,'verified_training_replay':aux},
+            source_roots={'training_targets':base,'verified_training_replay':workspace},
+            artifact_sources={'verified_training_replay':sources},
             output=str((folder/'execution').relative_to(workspace)),operation='train',settings=settings,
-            seconds=config['seconds'],gpu=True)
+            seconds=remaining_seconds(deadline),gpu=True)
         checkpoints=folder/'execution/role/private/learner/checkpoints'
         if (checkpoints/'retained.json').is_file():
             from .generalization_selection_io import remember_origin

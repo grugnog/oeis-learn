@@ -41,7 +41,8 @@ def _checkpoints(base,refs):
     return result
 
 
-def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=None):
+def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=None,publish_selection=True):
+    began=time.monotonic()
     from .generalization_commands import _copy
     from oeis_learn.fresh.bigint_state import expose_final,finish_final,final_plan
     view=runtime['evaluation']
@@ -62,7 +63,7 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
     prompts.mkdir(parents=True);truth.mkdir(parents=True);inputs.mkdir(parents=True)
     prompt_ref=_merge(base,view['prompts'],prompts/'prompts.json')
     truth_ref=_merge(base,view['targets'],truth/'truth.json')
-    allocation=seconds/(2*len(checkpoints));deadline=time.monotonic()+seconds
+    allocation=seconds/(2*len(checkpoints));deadline=began+seconds
     candidates=[];directories={};runs=[];missing=False;incomplete=False
     for key in checkpoints:
         if time.monotonic()>=deadline:
@@ -132,7 +133,7 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
                 settings=dict(targets=truth_ref,candidates=candidates,directories=directories,study=study['identity'],recipe=plan['recipe']),seconds=remaining/2)
             missing=decision['status']!='PASS'
     publication=None;pins=[]
-    if decision is not None and time.monotonic()<deadline:
+    if publish_selection and decision is not None and time.monotonic()<deadline:
         from .generalization_selection_io import publish_selected,persist_selected
         publication=publish_selected(host,workspace,output/'initializer',base,study,runtime,decision,available,seconds=min(60,(deadline-time.monotonic())/2))
         if publication['status']=='FAIL':missing=True
@@ -187,7 +188,7 @@ def replay(host,workspace,output,base,study,runtime,plan,*,acceptance_resume=Fal
                 _copy(evaluation_base,[(learner/'checkpoints',latest['weights'])])
                 write(evaluation_base/'checkpoint.json',latest)
                 evaluation_runtime['evaluation']['checkpoints']=[reference(evaluation_base/'checkpoint.json',evaluation_base)]
-                measured=evaluate(host,workspace,folder/run['arm']/'evaluation',evaluation_base,study,evaluation_runtime,plan,checkpoints=[latest['identity']])
+                measured=evaluate(host,workspace,folder/run['arm']/'evaluation',evaluation_base,study,evaluation_runtime,plan,checkpoints=[latest['identity']],publish_selection=not acceptance_resume)
                 evaluations.append(dict(arm=run['arm'],result=measured))
         resume_proof=None;paired_proof=None
         if acceptance_resume and paired['status']=='PASS':

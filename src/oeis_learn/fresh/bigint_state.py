@@ -295,7 +295,7 @@ class GeneralizationCheckpointStore:
         import io,torch
         return torch.load(io.BytesIO(value),map_location='cpu',weights_only=False)
 
-    def save(self,states,ledger,*,encode=None):
+    def save(self,states,ledger,*,encode=None,scheduler=None):
         from oeis_learn.generalization.state import snapshot,STATE_FIELDS
         from oeis_learn.generalization.contracts import verify_artifact
         from oeis_learn.pipeline_validation.identity import seal
@@ -313,9 +313,11 @@ class GeneralizationCheckpointStore:
             path=folder/(name+'.pt');write(path,data,immutable=True)
             ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=len(data))
             verify_artifact(self.root,ref);return ref
-        bound={key:blob(key,states[key]) for key in STATE_FIELDS-{'rng','data'}}
+        bound={key:blob(key,states[key]) for key in sorted(STATE_FIELDS-{'rng','data','scheduler'})}
         bound['rng']={key:blob('rng-'+key,value) for key,value in states['rng'].items()}
         bound['data']=states['data']
+        # Freeze accounting after expensive tensor serialization/hash verification.
+        bound['scheduler']=blob('scheduler',scheduler() if scheduler else states['scheduler'])
         manifest=snapshot(bound,contract=self.contract,ledger=ledger)
         path=folder/'state.json';write(path,manifest,immutable=True)
         ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=path.stat().st_size)

@@ -101,7 +101,11 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
             except ProcessLookupError:
                 pass
             try:
-                process.wait(timeout=max(0,cleanup_end-time.monotonic()))
+                # A client stuck in kernel I/O may not acknowledge SIGKILL. Keep
+                # an explicit share for engine removal even on that path.
+                reap=max(0,cleanup_end-time.monotonic())
+                if cleanup_state is not None:reap=min(1,reap/4)
+                process.wait(timeout=reap)
             except subprocess.TimeoutExpired:
                 cleanup_failure='process-group termination unacknowledged within cleanup deadline'
                 outcome='FAIL' if not interrupted else 'INTERRUPTED'
