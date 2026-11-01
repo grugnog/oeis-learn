@@ -323,25 +323,26 @@ def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_
     assert ('fixture CPU stop before HIP' if failure=='cpu' else 'fixture inspection failure') in log
 
 
-@pytest.mark.parametrize('failure',['malformed','empty','missing','contradictory','wrong-archive','report-after-pass','interrupted-publish',None,'negative-scope'])
+@pytest.mark.parametrize('failure',['malformed','empty','missing','contradictory','wrong-archive','report-after-pass','interrupted-publish',None,'negative-scope','negative-infrastructure'])
 def test_serial_finalization_never_exports_contradictory_success(tmp_path,monkeypatch,failure):
     from oeis_learn.pipeline_validation.bundle import pack,verify
     from oeis_learn.pipeline_validation.identity import seal,write
     from oeis_learn.pipeline_validation.generalization_preparation import reference
     import zipfile
-    h=helper();root=tmp_path/'run';scope='FAIL' if failure=='negative-scope' else 'PASS'
+    h=helper();root=tmp_path/'run';scope='FAIL' if failure in ('negative-scope','negative-infrastructure') else 'PASS'
     stages=[dict(name=n,operation=n,seconds=30,category='packaging',argv=[]) for n in ('report','verify-bundle')]
     def run(stage,root,seconds):
         if stage['operation']=='report':
             target=root/'report';target.mkdir();write(target/'summary.json',dict(selected_scope=scope))
             pack(target,mandatory=['summary.json'])
-            return 1 if failure in ('negative-scope','report-after-pass') else 0
+            return 1 if failure in ('negative-scope','negative-infrastructure','report-after-pass') else 0
         target=root/'verify-bundle';target.mkdir()
         if failure!='missing':
             record=seal(dict(selected_scope=scope,archive=reference(root/'report.zip',root),integrity='PASS',scientific_status='UNMEASURED'))
             if failure=='wrong-archive':record=seal(dict(record,archive=dict(record['archive'],sha256='sha256:'+'0'*64)))
             (target/'summary.json').write_text('{' if failure=='malformed' else '' if failure=='empty' else json.dumps(record))
-        return 1 if failure in ('negative-scope','malformed','empty','missing','contradictory') else 0
+            if failure!='negative-infrastructure':write(target/'result.json',seal(dict(version='generalization-verification-result/v1',status='COMPLETE',archive=record['archive'],summary=reference(target/'summary.json',target),exit_code=1 if failure=='negative-scope' else 0)))
+        return 1 if failure in ('negative-scope','negative-infrastructure','malformed','empty','missing','contradictory') else 0
     if failure=='interrupted-publish':
         from oeis_learn.pipeline_validation import generalization_finalization
         monkeypatch.setattr(generalization_finalization,'publish',lambda *a,**kw:(_ for _ in ()).throw(KeyboardInterrupt()))
@@ -355,3 +356,21 @@ def test_serial_finalization_never_exports_contradictory_success(tmp_path,monkey
         ledger=json.loads(z.read(path));assert ledger['status']==expected
         assert [r['stage'] for r in ledger['receipts']]==['report','verify-bundle']
     assert verify(root/'report.zip')['summary_state']==scope  # immutable original
+
+
+def test_canonical_verifier_does_not_publish_terminal_before_packaging(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import bundle,generalization_cli as cli,generalization_roles as roles
+    from oeis_learn import container_validation
+    from oeis_learn.pipeline_validation.identity import write
+    root=tmp_path/'report';root.mkdir();write(root/'summary.json',{'selected_scope':'FAIL'})
+    bundle.pack(root,mandatory=['summary.json'])
+    image='sha256:'+'a'*64
+    monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
+    monkeypatch.setattr(roles,'project_and_invoke',lambda *a,**kw:dict(status='PASS',verification=dict(software_status='FAIL',integrity='PASS',scientific_status='UNMEASURED')))
+    monkeypatch.setattr(bundle,'pack',lambda *a,**kw:(_ for _ in ()).throw(OSError('injected verifier packaging failure')))
+    args=SimpleNamespace(operation='verify-bundle',archive='report.zip',output='checked',image=image)
+    with pytest.raises(OSError,match='packaging failure'):
+        cli.verify_main(args,tmp_path,lambda a:SimpleNamespace(engine=SimpleNamespace(image=lambda value:value)))
+    assert json.loads((tmp_path/'checked/summary.json').read_text())['integrity']=='PASS'
+    assert not (tmp_path/'checked/result.json').exists()

@@ -29,3 +29,14 @@ Validation:63 diagnostics/canonical acceptance tests passed, including seven pre
 Production roles now use the same private scratch/cache and thread settings as qualification, mapped through their actual `/output/<role>` mount. The helper retains its historical `/work/output` default for existing callers, rejects escaping destinations/symlinks, and creates private0700 directories. The2GiB tmpfs ceiling matches qualification and remains within the existing container memory limit; no shared cache or extra host mount is introduced. Source closure changes invalidate old qualification reuse.
 
 Validation:87 tests passed across real Docker/Podman command construction, container validation and diagnostic subprocesses. Eight role/engine combinations check destination mapping, permissions, read-only inputs, network/device confinement and thread controls. This establishes command contracts, not actual engine/HIP qualification.
+
+## T104 follow-up — verifier terminal boundary (2026-11-01 UTC)
+
+Combined review found that a valid negative-scope verifier and a packaging error
+could both leave a FAIL summary and exit1. The canonical endpoint now publishes
+a sealed completion record only after packaging succeeds. Finalization requires
+that record to bind the archive, exact summary bytes and exit code, and includes
+it in the final export. New regressions inject failure after summary publication
+and verify that missing terminal evidence routes to recovery. The combined local
+selection passed412 tests, with6 subtests, one dependency skip and one HIP test
+deselected; detailed consolidated scope is recorded below.

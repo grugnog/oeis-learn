@@ -50,6 +50,9 @@ def test_final_controller_ledger_is_verified_without_rewriting_payloads(tmp_path
     archive=pack(report,mandatory=['summary.json','evidence.json','study.json'])
     summary=seal(dict(selected_scope='PASS',integrity='PASS',archive=reference(archive,root),scientific_status='UNMEASURED'))
     workflow=seal(dict(status='PASS',plan=[{'name':n} for n in ('report','verify-bundle')],receipts=[dict(stage=n,exit_code=0) for n in ('report','verify-bundle')]))
+    verification=root/'verify-bundle';verification.mkdir()
+    write(verification/'summary.json',summary)
+    write(verification/'result.json',seal(dict(version='generalization-verification-result/v1',status='COMPLETE',archive=summary['archive'],summary=reference(verification/'summary.json',verification),exit_code=0)))
     final=publish(root,workflow,summary)
     monkeypatch.setattr(bundles,'verify_bundle',lambda *a,**kw:dict(integrity='PASS',software_status='PASS'))
     assert verify_archive(final)['software_status']=='PASS'
@@ -57,5 +60,5 @@ def test_final_controller_ledger_is_verified_without_rewriting_payloads(tmp_path
     write(target/'workflow-final.json',seal(dict(workflow,status='FAIL')),exclusive=False)
     (target/'manifest.json').unlink()
     (root/'final-export.zip').unlink(missing_ok=True)
-    tampered=pack(target,mandatory=['summary.json','evidence.json','study.json','workflow-final.json','verification-final.json','report-manifest.json'])
+    tampered=pack(target,mandatory=['summary.json','evidence.json','study.json','workflow-final.json','verification-final.json','report-manifest.json','verification-terminal.json'])
     with pytest.raises(ValueError,match='workflow status'):verify_archive(tampered)

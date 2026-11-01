@@ -76,3 +76,13 @@ def verify_final_workflow(workflow,summary,scope):
         raise ValueError('final workflow failure contradicts scope')
     if failures and failures[0]!=(code or 1):raise ValueError('first failure differs from final scope')
     return scope
+
+
+
+def verify_verifier_terminal(record,*,summary,archive,exit_code):
+    from oeis_learn.pipeline_validation.identity import seal
+    if (not isinstance(record,dict) or set(record)!={'identity','version','status','archive','summary','exit_code'}
+        or seal(record)!=record or record['version']!='generalization-verification-result/v1'
+        or record['status']!='COMPLETE' or record['exit_code']!=exit_code
+        or record['summary']!=summary or record['archive']!=archive):
+        raise ValueError('canonical verifier did not finish packaging its outcome')

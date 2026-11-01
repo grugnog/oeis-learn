@@ -82,6 +82,10 @@ def verify_main(args,root,host_factory):
         scientific_status=result.get('verification',{}).get('scientific_status','UNMEASURED'))))
     pack(output,mandatory=['summary.json'])
     from oeis_learn.generalization.interfaces import EXIT_CODES
+    # Publish only after verifier packaging succeeds. A negative scope and an
+    # infrastructure failure may otherwise share exit1 and a prior FAIL summary.
+    write(output/'result.json',seal(dict(version='generalization-verification-result/v1',
+        status='COMPLETE',archive=ref,summary=reference(output/'summary.json',output),exit_code=EXIT_CODES[status])))
     return EXIT_CODES[status]
 
 

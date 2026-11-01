@@ -149,3 +149,21 @@ and reference identities. Sharing source or passing both image suites does not
 make separately built native binaries interchangeable. A mismatch still fails;
 its error now names canonical fields such as `verification.production` without
 printing source bodies, target values or arbitrary supplied keys.
+
+
+### Canonical verifier completion (T104/T109)
+
+`generalization verify-bundle` writes its sealed `summary.json`, packages the
+verification output, then writes sealed `result.json` with version
+`generalization-verification-result/v1`, status `COMPLETE`, the original archive
+reference, exact summary reference and canonical exit code. The terminal result
+is deliberately written after packaging. A negative verified scope and an
+infrastructure error can both return1; the summary alone is insufficient to
+distinguish them. Missing, malformed or contradictory completion records require
+partial recovery, never successful final publication.
+
+The serial wrapper preserves original report members byte-for-byte and adds
+`workflow-final.json`, `verification-final.json`, `verification-terminal.json`
+and `report-manifest.json` to its final export. Independent archive verification
+checks final stage order/outcome, summary/terminal binding and preservation of
+original members. This does not rewrite original qualification or report receipts.
