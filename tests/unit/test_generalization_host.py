@@ -62,3 +62,48 @@ def test_command_storage_scope_rejects_checkpoint_and_raw_growth(tmp_path):
     (tmp_path/'checkpoints/weights.pt').unlink();(tmp_path/'logs').mkdir();(tmp_path/'logs/output.log').write_bytes(b'x'*11)
     with scope(tmp_path,limits):
         with pytest.raises(ResourceBreach,match='raw_bytes'):guard(tmp_path/'observations').check()
+
+
+def test_private_runtime_scratch_is_accounted_but_not_command_evidence(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_lifecycle import inventory, scope, guard
+    from oeis_learn.pipeline_validation.runner import ResourceBreach
+    from oeis_learn.generalization.resources import CAPS
+    # Also exercise the same nesting used when this test runs in qualification.
+    tmp_path = tmp_path / '.runtime/pytest/qualification-fixture'
+    tmp_path.mkdir(parents=True)
+    scratch = tmp_path / '.runtime/pytest';scratch.mkdir(parents=True)
+    (scratch / 'checkpoint.pt').write_bytes(b'x' * 128)
+    (scratch / 'current').symlink_to(scratch / 'checkpoint.pt')
+    (tmp_path / 'result-proof.json').write_text('{}')
+    # The normal pytest alias is private, not an artifact reference or traversal.
+    refs = inventory(tmp_path, cap=16)
+    assert [r['path'] for r in refs] == ['result-proof.json']
+    with scope(tmp_path, CAPS):
+        watchdog = guard(tmp_path / 'disk')
+        watchdog.check()
+        assert watchdog.peak == 130
+    with scope(tmp_path, dict(CAPS, checkpoint_bytes=127)):
+        with pytest.raises(ResourceBreach, match='checkpoint_bytes'):
+            guard(tmp_path / 'disk').check()
+    (tmp_path / 'public-link').symlink_to(scratch / 'checkpoint.pt')
+    with pytest.raises(ValueError, match='symlink'):inventory(tmp_path)
+    with scope(tmp_path, CAPS):
+        with pytest.raises(ResourceBreach, match='symlink'):guard(tmp_path / 'disk').check()
+
+
+
+def test_runtime_root_symlink_remains_forbidden(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_lifecycle import inventory, scope, guard
+    from oeis_learn.pipeline_validation.runner import ResourceBreach
+    from oeis_learn.generalization.resources import CAPS
+    outer = tmp_path
+    tmp_path = outer / '.runtime/pytest/fixture';tmp_path.mkdir(parents=True)
+    target = tmp_path / 'target';target.mkdir()
+    (tmp_path / '.runtime').symlink_to(target, target_is_directory=True)
+    with pytest.raises(ValueError, match='symlink'):inventory(tmp_path)
+    with scope(tmp_path, CAPS):
+        with pytest.raises(ResourceBreach, match='symlink'):guard(tmp_path / 'disk').check()
+    # At the owning qualification scope, even a deliberately invalid runtime-root
+    # fixture is disposable and must not be mistaken for the real runtime root.
+    assert inventory(outer) == []
+    with scope(outer, CAPS):guard(outer / 'disk').check()

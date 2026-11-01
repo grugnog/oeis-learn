@@ -88,3 +88,40 @@ The skip is the real-model `wasmtime` dependency check; the deselection is the
 actual-HIP test. `git diff --check` passed. T103–T109 implementation is complete;
 T064–T067 retain fresh hardware/build/input/acceptance gates. No HIP command was
 run, no research campaign started and no CI wait performed.
+
+## T110 — qualification scratch containment (2026-10-31 Pacific)
+
+Acceptance-012's original recovery archive verifies (74 payloads plus manifest;
+SHA-256 `ff4a316cc43667a1c194150f9702319c30ef932a8ee6d80a80e251f3cd5d2736`).
+Preflight passed; CPU qualification exhausted `/tmp/bigint-pytest`, causing ENOSPC
+and incomplete tensor writes. The suite reports 33 failures, 1,146 passes and
+77 passing subtests. HIP qualification was blocked and no feature cases ran.
+The newly added real-model installed-resume CPU probe passed in 4.051 seconds.
+See [HIP evidence](hip-acceptance.md) for stage timings and the original failure.
+
+All five validation suites now share `--basetemp=/work/output/.runtime/pytest` and
+`tmp_path_retention_policy=failed`. The existing two explicit mounts and 2 GiB
+`/tmp` ceiling are unchanged. This routes checkpoint fixtures to private disk-backed
+output and releases successful fixtures during the suite. Failed fixtures remain
+locally available. Runtime scratch is excluded from command inventories and public
+receipts/bundles; its regular files still count against aggregate/category limits.
+Private symlinks are never traversed. Public symlinks and a replaced canonical
+runtime root remain errors, while intentionally invalid fixtures nested inside
+private pytest scratch do not become false outer-watchdog failures.
+
+Ten engine/suite command regressions were red before implementation. They exercise
+real command construction with recorded process/device boundaries, mount isolation,
+unchanged tmpfs size, scratch accounting and evidence exclusion. A real tiny pytest
+subprocess proves successful fixture cleanup and failed fixture retention. Separate
+lifecycle tests cover aliases, nested invalid-runtime fixtures, authoritative link
+rejection and a checkpoint-cap breach. No large tensor allocation is needed for
+these routing/containment counterexamples. Foundation's current implementation hash
+was refreshed; historical qualification and disposition statuses are unchanged.
+
+Final combined local gate: **425 passed, 1 skipped, 1 deselected, 6 subtests passed**.
+The skip remains the unavailable local `wasmtime` real-model dependency; the HIP
+test is excluded. The uploaded pinned-container CPU resume result is recorded
+separately above. `git diff --check` passed. No HIP command or CI wait occurred.
+T110 is complete; T064–T067 still require fresh images/inputs and consolidated
+acceptance. The next normal invocation uses fresh acceptance-013 paths and the
+unchanged 335-minute ceiling; no separate manual diagnostic probe is required.

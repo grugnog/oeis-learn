@@ -10,6 +10,13 @@
 
 ## Current status — 2026-11-01 UTC
 
+Latest operator update (2026-10-31 Pacific): acceptance-012 stopped at CPU
+qualification after pytest exhausted the container's 2 GiB `/tmp` tmpfs. No HIP
+qualification or feature cases ran. T110 repairs private disk-backed test scratch
+and its containment/evidence integration; see [HIP evidence](validation/hip-acceptance.md).
+The 335-minute acceptance ceiling is unchanged. The audit completion record below
+remains historical; T064–T067 are still pending fresh successful hardware evidence.
+
 T001–T063, T068–T102 and the audit repairs T103–T109 are implemented for their
 recorded scopes. T103–T109 cover watchdog lifetime, final workflow publication,
 bounded diagnostics, deadline accounting, private runtime configuration, full
@@ -501,3 +508,8 @@ Targeted HIP failure-class audit, 2026-11-01. This is not complete feature conve
 - [X] T107 **F4:** Align generalization production-role scratch/cache and thread controls with the effective qualified runtime through existing private writable output mounts. Make `container_runtime.private_runtime_environment` support the actual `/output/<role>` destination rather than hard-coding `/work/output`, preserve role isolation and disk accounting, and test real Engine command construction, path mapping, permissions, read-only inputs and qualification compatibility. Do not treat this configuration mismatch as a proven cause of a prior GPU failure. Per NFR-004/006/008 and plan portable role integration (partial).
 - [X] T108 **F6:** Extend measured storage preflight to cover peak live artifacts for the full replay/resume acceptance graph: paired, paused and resumed learners; retained states; proof inputs; temporary projection copies; and persistent auxiliary inputs. Share the explicit accounting policy with runtime enforcement and reject insufficient space before costly work; test a retained-model-size metadata fixture and exact-fit/over-cap transitions without allocating multi-GB tensors. Keep policy design in the single reopened Phase-B group, followed by routine integration; do not raise caps or prune required checkpoints without evidence. Per FR-024, NFR-006/007 and plan bounded checkpoint/acceptance decisions (partial).
 - [X] T109 **F7:** Add a combined cross-boundary regression matrix for the repaired failures using canonical orchestration and real command construction with recorded external process boundaries, including errors after successful child exit and post-training evaluation/proof/resume/export. Extend or relocate the bounded existing HIP coverage to exercise the installed generalization learner/full-state resume path within the same serial operator invocation; retain explicit device assertions and avoid duplicate qualification or a new manual probe. Explain the narrower scope of the existing finite-update smoke test, run local gates first, and leave actual hardware results pending until observed. Per NFR-003/005, SC-006/007 and plan C fixture workflow/D representative resume validation (partial).
+
+
+### Phase C/D — qualification test scratch containment
+
+- [X] T110 Repair `container_validation.py` pytest scratch routing after acceptance-012 exhausted the 2 GiB `/tmp` tmpfs. Put every validation suite's fixture tree under its existing private writable output mount, release successful-test scratch with pytest's supported retention policy and retain failed fixtures. Integrate private runtime scratch with command inventories and symlink-safe disk accounting so pytest aliases do not become false resource failures or evidence. Keep scratch excluded from public receipts/bundles but included in disk accounting, without increasing tmpfs/storage caps or dropping tests. Reproduce the command-contract defect for both engines and every suite, test real pytest retention, reconcile original 012 evidence, and commit/push before another consolidated run (NFR-003/004/005/006/007/008, SC-007).

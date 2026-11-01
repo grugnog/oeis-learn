@@ -14,6 +14,13 @@ def invocation(args,study,runtime):
 def inventory(root,*,cap=64<<30):
     refs=[];total=0
     for path in sorted(Path(root).rglob('*')):
+        # Runtime caches/test fixtures are disposable, never resume authority.
+        # rglob does not follow directory symlinks. Still reject replacing the
+        # runtime root itself; its creation belongs to the confinement helper.
+        parts=path.relative_to(root).parts
+        if '.runtime' in parts:
+            if parts.index('.runtime')==len(parts)-1 and path.is_symlink():raise ValueError('symlink runtime root')
+            continue
         if path.is_symlink():raise ValueError('symlink in command output')
         if not path.is_file() or path==Path(root)/'result.json':continue
         total+=path.stat().st_size
@@ -62,10 +69,15 @@ def guard(output):
         def check(self):
             super().check()
             categories=dict(checkpoint_bytes=0,shard_bytes=0,raw_bytes=0)
-            from itertools import chain
             seen=set()
-            for path in chain.from_iterable(folder.rglob('*') for folder in (root,*extra) if folder.exists()):
-                if path.is_symlink():raise ResourceBreach('symlink in study output')
+            for folder,path in ((folder,path) for folder in (root,*extra) if folder.exists() for path in folder.rglob('*')):
+                if path.is_symlink():
+                    # pytest uses current aliases and intentional link fixtures.
+                    # Do not follow these private links; regular scratch files
+                    # below still consume the same aggregate/category budgets.
+                    parts=path.relative_to(folder).parts
+                    if '.runtime' in parts and parts.index('.runtime')<len(parts)-1:continue
+                    raise ResourceBreach('symlink in study output')
                 try:
                     if not path.is_file():continue
                     parts=path.parts;info=path.stat();key=(info.st_dev,info.st_ino)

@@ -105,7 +105,7 @@ paths to exported copies and identifies projected, missing, truncated or omitted
 records, preserving the original hash for projections. It neither reruns
 work nor upgrades the original acceptance status.
 
-After the acceptance-010 replay runtime routing repair, use fresh `-011` paths.
+After the acceptance-012 qualification scratch repair (T110), use fresh `-013` paths.
 This single shell invocation rebuilds both images, freezes inputs, checks the
 serial plan, executes qualification and all cases, and packages/verifies results.
 Run from the project checkout after pulling `011-controlled-generalization`:
@@ -113,24 +113,30 @@ Run from the project checkout after pulling `011-controlled-generalization`:
 ```bash
 (
   set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  test ! -e run-state/generalization/acceptance-inputs-013
+  test ! -e run-state/generalization/acceptance-013
+  test ! -e run-state/generalization/acceptance-013.zip
   podman build --target qualification -t oeis-learn:generalization-cpu .
   podman build --target gpu -t oeis-learn:generalization-gpu .
   python3 scripts/generalization_inputs.py acceptance --engine podman \
     --imported run-state/generalization/uniform-import \
     --cpu-image oeis-learn:generalization-cpu \
     --gpu-image oeis-learn:generalization-gpu \
-    --output run-state/generalization/acceptance-inputs-011
+    --output run-state/generalization/acceptance-inputs-013
   python3 scripts/generalization_hip_serial.py --engine podman \
-    --manifest run-state/generalization/acceptance-inputs-011/generalization-acceptance.json \
-    --output run-state/generalization/acceptance-011 --dry-run
+    --manifest run-state/generalization/acceptance-inputs-013/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-013 --dry-run
   python3 scripts/generalization_hip_serial.py --engine podman \
-    --manifest run-state/generalization/acceptance-inputs-011/generalization-acceptance.json \
-    --output run-state/generalization/acceptance-011
+    --manifest run-state/generalization/acceptance-inputs-013/generalization-acceptance.json \
+    --output run-state/generalization/acceptance-013
 )
 ```
 
-Share `run-state/generalization/acceptance-011.zip`, including failures. Existing
-runs are preserved; there is no research extension or acceptance timeout increase.
+Share `run-state/generalization/acceptance-013.zip`, including failures. Existing
+runs are preserved. T110 changes only qualification scratch handling; the existing
+335-minute (5h35) serial ceiling remains, plus image-build time. No research is started.
 
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.
@@ -186,7 +192,7 @@ research but cannot establish acceptance coverage of an admitted replay update.
 
 Acceptance inputs have at most one seed and 4,096 target tokens. The loader also
 bounds each case's work to fit inspection, validation and work inside its reserved
-2100-second replay/resume or900-second other-case
+4200-second replay/resume or900-second other-case
 reservation. Preflight validates all four inputs and storage before expensive work.
 
 ## One consolidated HIP session
@@ -202,8 +208,8 @@ python3 scripts/generalization_hip_serial.py --engine docker \
 After the operator completes real image/input/preflight gates, the single normal
 invocation is the same command without `--dry-run`. It runs preflight, one original
 qualification, preparation, five serial cases, report and independent verify-bundle.
-The helper forwards the frozen CPU image. Reservations total 17,400 seconds plus
-600 seconds of recovery margin within five hours; they do not authorize research.
+The helper forwards the frozen CPU image. Reservations total 19,500 seconds plus
+600 seconds of recovery margin within 335 minutes; they do not authorize research.
 
 The helper preserves original receipts, bounded logs and failure status. A verified
 complete or partial report is copied to the session sibling ZIP. Report/verifier
@@ -303,7 +309,9 @@ See [local evidence](validation/local-checks.md), [algorithm review](validation/
 [hardware status](validation/hip-acceptance.md), [coverage audit](checklists/implementation.md)
 and [CLI contract](contracts/cli.md) for implementation and validation boundaries.
 
-The generated retained-model replay/resume fixture allows180 seconds for each learner invocation and180 seconds for each policy evaluation. Its outer limit is35 minutes; the remaining cases retain15 minutes each. Qualification reserves120 minutes, including35 minutes for the CPU/native suite, so the full serial reservation remains five hours. These are upper bounds, not runtime predictions. Preserve earlier frozen inputs and run directories; rebuild images and assemble a fresh numbered input/session after source changes.
+Qualification reserves 120 minutes, including 35 minutes for the CPU/native suite.
+Preserve earlier frozen inputs and run directories; rebuild images and assemble
+fresh numbered inputs/session after source changes. Current timing is below.
 
 
 ### Audit repair timing (T106/T108)

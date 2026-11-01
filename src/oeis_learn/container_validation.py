@@ -11,6 +11,10 @@ from .container_runtime import private_runtime_environment
 from .fresh.common import digest, file_hash, lock, read, write
 from contextlib import nullcontext
 
+# Checkpoint fixtures must not occupy the small container /tmp tmpfs. Retain
+# failed fixtures for diagnosis, but release passed-test scratch during the suite.
+PYTEST_SCRATCH_ARGS = ("--basetemp=/work/output/.runtime/pytest", "-o", "tmp_path_retention_policy=failed")
+
 ROOT = Path(__file__).resolve().parents[2]
 CPU_NODES = sorted(
     {
@@ -88,7 +92,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                 *([] if gpu else ["-m", "not gpu and not docker"]),
                 "-o",
                 "cache_dir=/work/output/.runtime/cache/pytest",
-                "--basetemp=/work/output/pytest",
+                *PYTEST_SCRATCH_ARGS,
                 "--junitxml=/work/output/results.xml",
             ],
         ),
@@ -169,7 +173,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     *([] if gpu else ["-m", "not gpu"]),
                     "-p",
                     "no:cacheprovider",
-                    "--basetemp=/tmp/bigint-pytest",
+                    *PYTEST_SCRATCH_ARGS,
                     "--junitxml=/work/output/results.xml",
                 ],
             ),
@@ -195,7 +199,7 @@ def _stages(host, suite, output, *, external_seconds=None):
         stages = [
             ("installed-audit", ["python", "-I", "-m", "oeis_learn.synthesis.retirement", "--installed", "--output", "/work/output/audit.json"]),
             ("bigint-retirement-regressions", ["python", "-m", "pytest", "-q", *nodes,
-                "-m", "not gpu and not docker", "-p", "no:cacheprovider", "--basetemp=/tmp/retirement-pytest",
+                "-m", "not gpu and not docker", "-p", "no:cacheprovider", *PYTEST_SCRATCH_ARGS,
                 "--junitxml=/work/output/results.xml"]),
         ]
     results = {}

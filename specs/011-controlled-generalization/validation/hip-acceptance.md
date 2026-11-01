@@ -1,19 +1,17 @@
 # HIP acceptance — original qualification passed; feature acceptance failed
 
-Current status after inspecting operator acceptance-011 (2026-11-01 UTC): its
-CPU/native and actual HIP qualification records passed; feature acceptance is
-FAIL / UNMEASURED. Independent inventory/hash verification passed. Verified replay
-progressed beyond the earlier restore-identity boundary and performed updates,
-then hit its 180-second external deadline during checkpoint persistence. Cleanup
-also exhausted its allowance. Full paired/resumed proof was not completed.
+Current status after inspecting operator acceptance-012 (2026-10-31 Pacific):
+preflight passed, CPU qualification failed from exhausted container `/tmp` scratch,
+and HIP qualification was BLOCKED by the failed CPU prerequisite. No feature cases
+ran. Independent bundle inventory/hash verification passed for the recovery archive.
+The new installed full-state resume probe passed on CPU in the pinned container;
+this is not HIP evidence. See the acceptance-012 section below.
 
-T103–T109 now repair the audited operational gaps and add installed learner/resume
-coverage to the existing HIP qualification invocation. Local combined validation
-passed 412 tests and 6 subtests, with one dependency skip and the HIP test excluded.
-No new local HIP result is claimed. T064–T067 remain open for fresh source/image
-qualification and complete feature acceptance. The acceptance-only ceiling is now
-335 minutes (5h35), including recovery reserves; it is not a runtime prediction.
-Earlier status statements below are historical records.
+T110 repairs qualification scratch routing across all five validation suites and
+both engine command paths, including private scratch inventory/guard integration.
+T064–T067 remain open for fresh source/image qualification and complete acceptance.
+The existing 335-minute serial ceiling and resource caps are unchanged. Earlier
+status statements below are historical records, not qualification of changed code.
 
 ## Historical local baseline, before operator runs
 
@@ -415,3 +413,38 @@ The broader T103–T109 repairs and local regressions are in
 also performs installed full-state learner/resume verification in the same serial
 qualification run; its execution on changed code is still pending. Preserve this
 original archive and do not transfer its PASS qualification to new source/images.
+
+## Operator acceptance-012 — qualification tmpfs exhaustion (2026-10-31 Pacific)
+
+`acceptance-012.zip` passes independent inventory/hash verification: 74 inventoried
+payloads plus the manifest, 383,055 archive bytes. SHA-256:
+`ff4a316cc43667a1c194150f9702319c30ef932a8ee6d80a80e251f3cd5d2736`.
+The final workflow records preflight PASS at 156.576 cumulative seconds, qualification
+FAIL at 691.687 seconds and report FAIL at 692.656 seconds. Report lacked the
+qualification authority because qualification failed; the wrapper correctly
+preserved FAIL / PACKAGE_FAILED / UNMEASURED recovery evidence.
+
+CPU qualification reports **33 failed, 1,146 passed, 8 deselected and 77 subtests
+passed in 329.17 seconds**. JUnit has 1,256 records, 33 failures, no errors or skips.
+The first recorded failure is checkpoint copying in
+`test_pilot_actual_worker_state_and_metric_resume[cpu]`, with ENOSPC under
+`/tmp/bigint-pytest`. Twenty-nine failures directly report ENOSPC; three subprocess
+failures have tensor-writer errors in captured stderr, and one subsequently reads
+an incomplete checkpoint (EOF). This pattern supports storage-exhaustion fallout;
+it does not demonstrate 33 independent algorithm defects.
+
+The real-model `test_installed_resume_probe_with_qualified_model_dependencies`
+passed in 4.051 seconds; its tiny CPU wiring counterpart also passed. Both image
+inspections passed. `hip.preflight` is BLOCKED by `cpu.semantic`; there is no actual
+HIP-test result or feature-acceptance result from this run.
+
+The canonical bigint CPU/GPU and retirement launchers explicitly selected `/tmp`
+for pytest, bypassing their configured disk-backed TMPDIR. The engine bounds this
+tmpfs to 2 GiB. T110 sends every validation suite's test scratch to
+`/work/output/.runtime/pytest` under the existing private writable output mount.
+Pytest releases passed-test fixtures and retains failed ones. Regular scratch files
+remain charged to disk/checkpoint limits, while private aliases are never followed
+or exported and scratch is excluded from command evidence inventories. Public
+symlinks and symlink runtime roots still fail closed. No tmpfs or storage cap was
+raised and no test was removed. Fresh images/inputs and a single acceptance-013 run
+are required; no standalone HIP probe is needed.

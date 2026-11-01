@@ -167,3 +167,15 @@ The serial wrapper preserves original report members byte-for-byte and adds
 and `report-manifest.json` to its final export. Independent archive verification
 checks final stage order/outcome, summary/terminal binding and preservation of
 original members. This does not rewrite original qualification or report receipts.
+
+
+### Qualification scratch (T110)
+
+All validation suites put pytest fixtures in `/work/output/.runtime/pytest` through
+an existing private output mount. The supported pytest retention policy releases
+passed-test fixtures and preserves failed fixtures locally. Runtime scratch is
+not command/resume evidence and is excluded from command inventories, public
+receipts and bundles. Its regular files remain subject to total/checkpoint disk
+limits. Private runtime symlinks are ignored without traversal; runtime-root and
+public evidence symlinks remain forbidden. The change neither increases resource
+caps nor skips any qualification test.
