@@ -7,7 +7,50 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: isolated Linear operand probe
+### Current next step: replay saved operands across fresh processes
+
+Linear-001's isolated loops were stable: native/flattened Linear match the captured
+output, while separate-bias formulations round differently but are stable. The full
+controls still differ, and capture changes a traced endpoint. The next test uses
+the already saved operands, with zero model loading or training updates:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/replay_linear.py \
+    --engine podman \
+    --run run-state/generalization/resume-linear-001 \
+    --output run-state/generalization/linear-processes-001
+)
+```
+
+Upload `run-state/generalization/linear-processes-001.zip`, pass or fail. Keep
+`resume-linear-001` intact: it supplies the trusted private operand capture. The
+runner verifies the original/copy hash before loading, inspects the immutable
+learner image and mounts only helper code, a copied operand directory and private
+output. It launches nine GPU processes serially, interleaving three repeats each
+of original settings, the earlier rocBLAS defaults, and an explicit addmm-Lt bypass
+request (`DISABLE_ADDMM_CUDA_LT=1`, `TORCH_BLAS_PREFER_HIPBLASLT=0`, plus the
+rocBLAS defaults). These are diagnostic configurations, not qualifying receipts.
+
+Each process runs the same64 operand-level evaluations. Public results compare
+variant output hashes across processes and report within-process/layout stability,
+actual versions/GPU architecture, requested flags and BLAS preference. Bounded
+hipBLASLt logging is enabled; absence of log lines alone is not proof of routing.
+The bypass arm tests an upstream hypothesis; that upstream report ultimately had
+a different embedding-backward cause. No library cause is assumed here.
+
+All original tensor contents remain private and are excluded from the archive.
+Partial results and bounded process/cleanup logs survive ordinary failures; missing
+cleanup acknowledgment or interruption stops new GPU work. PASS means measurement
+completion, not reproducibility. The nine process ceilings sum to27 minutes,
+plus bounded image/device setup and packaging; actual duration is unmeasured.
+No model run, rebuild, broad qualification, search or evaluation is performed.
+T064–T067 remain open.
+
+### Completed diagnostic: isolated Linear operand capture
 
 Deferred-001 found the first differing module: `encoder.s1_magnitude.mlp.3`
 (`Linear`), with matching input hashes and differing output hashes. The preceding

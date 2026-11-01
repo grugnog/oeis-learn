@@ -70,7 +70,28 @@ agree but traced runs differ, with one observer effect; this localizes a measure
 operation without proving the underlying kernel cause. T125 isolates its operands.
 T064–T067 remain open; no production change or tolerance relaxation is justified.
 
+Latest evidence, 2026-11-01 Pacific: linear-001 verifies (337.703s). Both captured
+operand sets match; all64 evaluations per capture are stable across tested offsets.
+Native/flattened Linear match the observed output; separate-bias variants are
+stable but round differently. Controls still differ and capture changes an endpoint,
+so the original divergence is not reproduced in the isolated loop. T126 replays
+saved operands across fresh GPU processes with zero model/training work.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T126 Reconcile linear-001's stable isolated evaluations and add a temporary
+  stdlib-host saved-operand replay runner: verify private capture hashes before
+  loading, isolate three fresh processes per experimental configuration, compare
+  cross-process variant hashes, preserve bounded cleanup/failure archives and
+  forbid operand export. Exercise both Engine constructors and corruption/binding
+  rejection. No model loading/training, production fix or feature qualification.
+
+T126 validation:99 local helper tests pass after four intended failures. Tests cover
+fresh-process schedule/classification, captured hash corruption, both real Engine
+constructors, cleanup failure and private-operand exclusion from failure archives.
+Production inventory is unchanged; no local HIP or CI wait. Actual cross-process
+replay is one operator command, nine isolated GPU processes, zero training updates.
+
 
 - [X] T125 Record deferred-001's first unequal Linear output from equal inputs.
   Add a bounded operand-level probe of that exact layer to the existing helper:

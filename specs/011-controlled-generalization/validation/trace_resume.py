@@ -85,7 +85,7 @@ def probe_linear(operands):
                     matches+=int(torch.equal(expected,actual));calls+=1
                     max_error=max(max_error,float((actual.double()-reference).abs().max()))
                 layouts.append(dict(offset_elements=offset,alignment_mod256=sorted(alignments),repeat_equal=layout_equal))
-            variants[name]=dict(repeat_equal=stable,calls=calls,layouts=layouts,observed_output_matches=matches,max_abs_vs_cpu_fp64=max_error)
+            variants[name]=dict(output_sha256='sha256:'+hashlib.sha256(first.contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()).hexdigest(),repeat_equal=stable,calls=calls,layouts=layouts,observed_output_matches=matches,max_abs_vs_cpu_fp64=max_error)
     return dict(shapes={k:list(t.shape) for k,t in operands.items()},variants=variants,
         operand_hashes={k:'sha256:'+hashlib.sha256(t.detach().contiguous().cpu().reshape(-1).view(torch.uint8).numpy().tobytes()).hexdigest()
                         for k,t in operands.items()},

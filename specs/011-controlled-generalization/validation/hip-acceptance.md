@@ -997,3 +997,48 @@ without repeating model capture. No extra backend setting or production change
 is introduced.93 local tests pass, including actual target capture/cleanup and
 private retention, exact integer controls and input bounds. No local HIP ran and
 CI was not awaited; production source inventory and T064–T067 remain unchanged.
+
+
+## Resume-linear-001: isolated loops stable; cross-process test is next
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`482521503e4c1ebad5bbf47d5f756c65fa0c48d3acbb8ec856c1e3bd4479d3b5`.
+All80 inventoried payloads plus manifest verify, no omissions; all five helper
+hashes match80dc2dc. Stage elapsed337.703s (5m38s), all stages PASS/exit0 and
+acknowledged cleanup. Controls differ; traced endpoints agree, with one observer
+effect. No full resume repair is established.
+
+Both private operand files have identical SHA256
+`8fa24d666400f6df1e576985d416152893e5575a3e04209863b12a64395a8385`.
+Inputs are[4,20,3072], weights[768,3072], bias[768], output[4,20,768], all contiguous
+with zero storage offset and256-byte alignment. All64 evaluations per capture
+(four variants × four offsets × four repeats) are stable within and across tested
+offsets. Native and flattened Linear match the captured output16/16; both separate
+bias formulations match0/16 and have a different stable rounding result. Maximum
+absolute errors versus CPU FP64 are2.855343327e-4 (native/flat) and2.257987841e-4
+(separate bias). Neither value defines an acceptance tolerance. The two captured
+operand hash sets and numerical reports agree across the observed processes.
+This does not reproduce the original differing Linear output in the isolated loop.
+
+T126 adds `replay_linear.py`: nine isolated fresh GPU processes, three repeats per
+configuration, interleaved to reduce ordering confounds. It consumes the retained
+trusted operand file, verifies original/copy hashes before deserialization, uses
+weights-only tensor loading in the immutable image and does no model loading,
+training, search or evaluation. Every process reports a logical output hash per
+variant for cross-process comparison, together with runtime provenance and the
+same bounded numerical statistics. Only copied operands/helper code/private output
+are mounted; raw tensors never enter the public archive. CPU/native source inventory
+and all feature gates remain unchanged.
+
+Configurations are original settings, the earlier requested rocBLAS defaults, and
+an explicit addmm-Lt bypass request. Primary sources checked:
+[PyTorch issue196164](https://github.com/pytorch/pytorch/issues/196164) contains the
+maintainer-requested `DISABLE_ADDMM_CUDA_LT=1`/`TORCH_BLAS_PREFER_HIPBLASLT=0`
+experiment and subsequent counterexamples; its ultimate embedding-backward race
+is a different observation from our forward Linear boundary. Therefore no cause or
+fix is imported from that report. Requested variables/preference and bounded
+hipBLASLt bench logs are retained; no per-kernel route guarantee is claimed.
+99 local tests pass after four intended failures, including corruption, both Engine
+constructors, cleanup failure and exclusion of private tensors from failure archives.
+No local HIP ran and CI was not awaited. Cross-process operation replay remains
+an operator measurement; T064–T067 stay open.
