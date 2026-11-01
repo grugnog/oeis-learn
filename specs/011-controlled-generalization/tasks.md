@@ -19,20 +19,46 @@ The accepted old source remains valid evidence only for its original closure.
 
 ### Reopened Phase B — research-scale preparation and persistence
 
-- [ ] T133 Reproduce and repair preparation scaling/bounds without changing
+- [X] T133 Reproduce and repair preparation scaling/bounds without changing
   deterministic quota ordering or cross-role isolation: full 32,768-row shards,
   fixed family mixtures, bulk exclusions, bounded manifest readers and research
-  preparation envelopes. Add independent differential and scale counterexamples.
-- [ ] T134 Audit full-state persistence at research scale and implement a frozen,
+  preparation envelopes and payload-free schema errors. Add independent differential
+  and scale counterexamples.
+- [X] T134 Audit full-state persistence at research scale and implement a frozen,
   bounded checkpoint policy if required. Preserve update-boundary restoration,
   actual work/time debits, milestone pins and exact interrupted/resumed behavior;
   never silently discard unaccounted work or reuse weights-only state.
 
-### Phase C/D — fresh paired pilot delivery
+T133/T134 local evidence:378 generalization tests pass, one local native-dependency
+case skips and one GPU test is deselected. The 32,768-row quota test bounds membership probes and80 randomized cases
+match the original independent greedy ordering. Bulk isolation matches independent
+source/group/variant/window checks and remains immutable on failed batches.
+Research preparation gets up to4 hours and validation up to1 hour; acceptance
+limits remain unchanged. Cohort variants support32,768 rows and projection readers
+allow16MiB manifests. Family quotas derive from verified descriptors.
 
-- [ ] T135 Assemble a deterministic research descriptor/cell blueprint with the
+Full-state cadence remains debit-before/update-after, preserving exact recovery.
+Only byte-identical serialized blobs reuse verified generation-local hard links;
+changed blobs are written and verified, latest moves last, and pruning a predecessor
+leaves a self-contained state. This reduces redundant writes without uncheckpointed
+updates or replenished budgets. No throughput or25M-completion claim is made;
+actual persistence time remains inside each frozen learner deadline.
+
+- [X] T135 Assemble a deterministic research descriptor/cell blueprint with the
   required coverage and sufficient refresh token capacity; wire it through canonical
   preparation and training, never acceptance fixtures or historical target imports.
+T135 design:32 equally weighted training descriptors (A4/B6/C2/D20),1024
+admitted rows/family/shard,12 shards and a27,267,072-token encoding floor. Four
+128-row protected cohorts use disjoint structural families and intended parameter
+support overlap. A local reference-only check passes all four cohorts with current
+cross-role exclusions. Native admission and full training-shard preparation remain
+unrun. Feasibility found no generator programs reaching the old32-node long bin;
+the new frozen cell plans explicitly use16 nodes (observed generic range1–18).
+This is a new benchmark definition, not a change to historical evaluation labels.
+The proposed study binds the complete pilot protocol identity in its hypothesis.
+
+### Phase C/D — fresh paired pilot delivery
+
 - [ ] T136 Implement the temporary serial pilot helper and public research export,
   with frozen controls/denominators, real checkpoint lineage, actual costs, original
   stage receipts, strict offline verification and partial/failure packaging. Exercise

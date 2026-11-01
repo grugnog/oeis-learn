@@ -301,18 +301,43 @@ class GeneralizationCheckpointStore:
         from oeis_learn.pipeline_validation.identity import seal
         if set(states)!=STATE_FIELDS:raise ValueError('complete prospective state required')
         encode=encode or self._encode
+        # Keep every debit/update boundary durable. Reuse only byte-identical
+        # immutable blobs, with generation-local hard links so pruning or copying
+        # one generation never leaves references into a deleted predecessor.
+        import hashlib,json,os,shutil,errno
+        previous={}
+        latest=self.root/'generalization-latest.json'
+        if latest.exists():
+            pointer=json.loads(latest.read_text())
+            parent=json.loads(verify_artifact(self.root,pointer))
+            if seal(parent)!=parent or parent.get('contract')!=self.contract:
+                raise ValueError('incompatible checkpoint deduplication parent')
+            previous={key:ref for key,ref in parent['states'].items() if key not in {'rng','data'}}
+            previous.update({'rng-'+key:ref for key,ref in parent['states']['rng'].items()})
         generation='generalization-'+uuid.uuid4().hex
         folder=self.root/generation;folder.mkdir(parents=True,exist_ok=False)
+        used=sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
         def blob(name,value):
+            nonlocal used
             data=encode(value)
             if not isinstance(data,bytes):raise ValueError('state serializer must return bytes')
-            import shutil
-            used=sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
+            # Logical bytes stay conservatively reserved even when storage shares
+            # an inode. A later projection may need an independent physical copy.
             if used+len(data)>self.MAX_BYTES or len(data)>shutil.disk_usage(self.root).free:
                 raise OSError('checkpoint storage reservation exhausted; existing pins retained')
-            path=folder/(name+'.pt');write(path,data,immutable=True)
-            ref=dict(path=str(path.relative_to(self.root)),sha256=file_hash(path),bytes=len(data))
-            verify_artifact(self.root,ref);return ref
+            path=folder/(name+'.pt')
+            sha='sha256:'+hashlib.sha256(data).hexdigest()
+            ref=dict(path=str(path.relative_to(self.root)),sha256=sha,bytes=len(data))
+            old=previous.get(name);linked=False
+            if old is not None and old['sha256']==sha and old['bytes']==len(data):
+                verify_artifact(self.root,old)
+                try:
+                    os.link(confined(self.root,old['path']),path);linked=True
+                except OSError as exc:
+                    if exc.errno not in {errno.EXDEV,errno.EPERM,errno.EOPNOTSUPP}:raise
+            if not linked:write(path,data,immutable=True)
+            verify_artifact(self.root,ref);used+=len(data)
+            return ref
         bound={key:blob(key,states[key]) for key in sorted(STATE_FIELDS-{'rng','data','scheduler'})}
         bound['rng']={key:blob('rng-'+key,value) for key,value in states['rng'].items()}
         bound['data']=states['data']

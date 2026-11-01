@@ -282,7 +282,7 @@ def execution_refs(root,study,runtime,*,preparation=False):
         refs.extend([study['data']['generator'],study['data']['descriptors'],study['data']['exclusions']])
         refs.extend(study['data']['manifests'])
         for ref in study['data']['manifests']:
-            cohort=json.loads(verify_artifact(root,ref,max_bytes=1<<20));refs.extend(artifact_refs(cohort))
+            cohort=json.loads(verify_artifact(root,ref,max_bytes=16<<20));refs.extend(artifact_refs(cohort))
         if runtime['replay'] is not None:refs.append(runtime['replay']['tasks'])
     unique={}
     for ref in refs:

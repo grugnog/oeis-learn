@@ -24,16 +24,23 @@ def choose(rows, *, count=128, quotas, structural=False, draw_cap=1_000_000):
         seen.add(row['id']); candidates.append(row)
     candidates.sort(key=lambda r:r['id'])
     chosen=[]; counts={k:0 for k in quotas}; families={k:set() for k in ('loop_active','branch_active')}
-    # Deterministic bounded greedy feasibility; a shortfall is explicit even if an
-    # alternate search could fill it. Never silently relax a marginal or family quota.
-    while candidates and len(chosen)<count:
-        def gain(r):
-            return sum(k in r['tags'] and counts[k]<v for k,v in quotas.items())+sum(structural and k in r['tags'] and len(fs)<2 and r['family'] not in fs for k,fs in families.items())
-        best=max(range(len(candidates)),key=lambda i:gain(candidates[i]))
-        row=candidates.pop(best); chosen.append(row)
-        for k in counts: counts[k]+=k in row['tags']
+    # Gains only decrease as quotas/family minima fill. Lazy upper bounds avoid
+    # rescanning a 32,768-row shard for every choice, preserving the original
+    # maximum-gain / smallest-id ordering exactly.
+    import heapq
+    def gain(r):
+        return sum(k in r['tags'] and counts[k]<v for k,v in quotas.items())+sum(structural and k in r['tags'] and len(fs)<2 and r['family'] not in fs for k,fs in families.items())
+    heap=[(-gain(r),r['id'],i) for i,r in enumerate(candidates)]
+    heapq.heapify(heap)
+    while heap and len(chosen)<count:
+        old,key,i=heapq.heappop(heap);row=candidates[i]
+        current=-gain(row)
+        if current!=old:
+            heapq.heappush(heap,(current,key,i));continue
+        chosen.append(row)
+        for k in counts:counts[k]+=k in row['tags']
         for k in families:
-            if k in row['tags']: families[k].add(row['family'])
+            if k in row['tags']:families[k].add(row['family'])
     shortfalls=[]
     if len(chosen)<count: shortfalls.append(f'rows:{count-len(chosen)}')
     shortfalls.extend(f'{k}:{v-counts[k]}' for k,v in sorted(quotas.items()) if counts[k]<v)

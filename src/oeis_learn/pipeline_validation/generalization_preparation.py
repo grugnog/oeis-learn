@@ -32,6 +32,7 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
     """execute is the qualified native client's externally deadline-bounded adapter."""
     if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:
         raise ValueError('invalid cohort role/holdout')
+    if type(length_boundary) is not int or not 1<=length_boundary<=4096:raise ValueError('bounded frozen length bin required')
     if not 0<seconds<=14400 or not 1<=draw_cap<=1_000_000: raise ValueError('preparation limits')
     output=Path(output)
     if output.exists(): raise ValueError('fresh preparation output required')
@@ -57,7 +58,7 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
             native=execute(exact['source'],tuple(exact['indices']))
             if native.get('outcome')!='ok' or tuple(native['values'])!=tuple(exact['values']): raise ValueError('native/reference disagreement')
             observation=observe(exact['source'],tuple(exact['indices']),stage=row['stage'])
-            tags=[row['stage'],'long' if observation.nodes>=length_boundary else 'short','above64' if observation.above_64_bits else 'within64']
+            tags=['family:'+row['family'],row['stage'],'long' if observation.nodes>=length_boundary else 'short','above64' if observation.above_64_bits else 'within64']
             if observation.loop_active:tags.append('loop_active')
             if observation.branch_active:tags.append('branch_active')
             exclusion=dict(id=exact['id'],role=role,family=row['family'],holdout=holdout,source=exact['source'],values=exact['values'],group=row['group'],variant=row['variant'])
@@ -110,7 +111,7 @@ def prepare_study(root,preparation,proposed,*,output,execute):
     if not 3<=len(cells)<=16 or len({c['name'] for c in cells})!=len(cells):raise ValueError('bounded unique cells required')
     for cell in cells:
         mode='refresh' if 'refresh' in cell else 'candidates'
-        if set(cell)!={'name','role','holdout','count','quotas','structural',mode} or mode=='refresh' and plan['version']!='generalization-materialization-plan/v2':
+        if set(cell)-{'length_boundary'}!={'name','role','holdout','count','quotas','structural',mode} or mode=='refresh' and plan['version']!='generalization-materialization-plan/v2':
             raise ValueError('unknown cell authority')
         if not cell['name'].replace('-','').replace('_','').isalnum():raise ValueError('invalid cell name')
         if mode=='candidates':verify_artifact(root,cell['candidates'],max_bytes=8<<30)
@@ -150,7 +151,8 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         if refresh_record is not None and refresh_record['draws']>available:raise ValueError('refresh draw reservation exceeds remaining preparation budget')
         ledger=prepare_cell(candidates,
             **{k:cell[k] for k in ('role','holdout','count','quotas','structural')},
-            output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available,unique_sources='refresh' in cell)
+            output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available,unique_sources='refresh' in cell,
+            length_boundary=cell.get('length_boundary',32))
         draws+=ledger['draws']
         if refresh_record is not None:write(folder/'refresh.json',refresh_record)
         if ledger['status']!='PASS':
@@ -158,9 +160,8 @@ def prepare_study(root,preparation,proposed,*,output,execute):
             write(output/'preparation-result.json',result);return result
         rows=json.loads((folder/'private/selected.json').read_text())
         choices[cell['name']]=CohortChoice(json.dumps(rows,sort_keys=True).encode(),())
-        for row in rows:
-            exclusions=exclusions.add(dict(id=row['id'],role=cell['role'],family=row['family'],holdout=cell['holdout'],
-                source=row['source'],values=row['values'],group=row['group'],variant=row['variant']))
+        exclusions=exclusions.add_many(dict(id=row['id'],role=cell['role'],family=row['family'],holdout=cell['holdout'],
+                source=row['source'],values=row['values'],group=row['group'],variant=row['variant']) for row in rows)
         protected='private/targets.json'
         extra_payloads=[]
         if cell['role']=='training':

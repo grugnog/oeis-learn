@@ -269,3 +269,46 @@ def test_installed_resume_probe_with_qualified_model_dependencies(tmp_path):
     from tests.integration.test_generalization_gpu import resume_probe
     from oeis_learn.fresh.bigint_config import resolve
     assert resume_probe(tmp_path/'probe',resolve(dict(version='bigint-bootstrap/v1')),'cpu')['resume_equal']
+
+
+def test_identical_checkpoint_blobs_are_linked_but_generations_stay_self_contained(tmp_path):
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100)
+    s=states();s['weights']={'fixture':[1,2]};s['optimizer']={'step':1}
+    encode=lambda value:json.dumps(value).encode()
+    first=store.save(s,Ledger(100),encode=encode)
+    s['data']['cursor']=1
+    second=store.save(s,Ledger(100),encode=encode)
+    a=json.loads((tmp_path/first['path']).read_text());b=json.loads((tmp_path/second['path']).read_text())
+    old=tmp_path/a['states']['weights']['path'];new=tmp_path/b['states']['weights']['path']
+    assert old!=new and old.stat().st_ino==new.stat().st_ino
+    import shutil
+    shutil.rmtree((tmp_path/first['path']).parent)
+    assert store.load(second,decode=json.loads)['states']==s
+    s['weights']['fixture'][0]=3
+    third=store.save(s,Ledger(100),encode=encode)
+    c=json.loads((tmp_path/third['path']).read_text())
+    assert (tmp_path/c['states']['weights']['path']).stat().st_ino!=new.stat().st_ino
+    assert store.load(third,decode=json.loads)['states']==s
+
+
+def test_checkpoint_dedup_does_not_publish_corrupt_reused_bytes(tmp_path):
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100)
+    s=states();s['weights']={'fixture':[1,2]}
+    encode=lambda value:json.dumps(value).encode()
+    first=store.save(s,Ledger(100),encode=encode)
+    record=json.loads((tmp_path/first['path']).read_text())
+    (tmp_path/record['states']['weights']['path']).write_bytes(b'corrupt')
+    with pytest.raises(ValueError):store.save(s,Ledger(100),encode=encode)
+    assert json.loads((tmp_path/'generalization-latest.json').read_text())==first
+
+
+def test_checkpoint_blob_copy_fallback_keeps_exact_state(tmp_path,monkeypatch):
+    import os,errno
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100)
+    s=states();s['weights']={'fixture':[1,2]}
+    encode=lambda value:json.dumps(value).encode()
+    first=store.save(s,Ledger(100),encode=encode)
+    def unsupported(*a,**k):raise OSError(errno.EOPNOTSUPP,'no hard links')
+    monkeypatch.setattr(os,'link',unsupported)
+    second=store.save(s,Ledger(100),encode=encode)
+    assert first!=second and store.load(second,decode=json.loads)['states']==s

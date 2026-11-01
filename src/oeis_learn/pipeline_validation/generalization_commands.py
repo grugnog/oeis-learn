@@ -143,6 +143,13 @@ def train(host,workspace,output,base,study,runtime,plan,*,arms,seeds,resume=None
     return dict(status='PASS',runs=results)
 
 
+def preparation_seconds(purpose,seconds):
+    """Research gets the registered four-hour ceiling; fixtures retain ten minutes."""
+    if purpose not in {'research','acceptance'} or type(seconds) not in (int,float) or not 0<seconds<=21600:
+        raise ValueError('bounded preparation purpose/time required')
+    return min(14400 if purpose=='research' else 600,seconds)
+
+
 def _execute(args,workspace,host_factory):
     workspace=Path(workspace)
     base,study,runtime=load(workspace,args.manifest,getattr(args,'runtime',None))
@@ -184,7 +191,7 @@ def _execute(args,workspace,host_factory):
     if args.operation=='preflight':
         from oeis_learn.generalization.resources import preflight
         resources=preflight(**runtime['storage'],available_bytes=shutil.disk_usage(workspace).free)
-        plan=_validate(host,workspace,output,base,study,runtime,seconds=600)
+        plan=_validate(host,workspace,output,base,study,runtime,seconds=3600 if runtime['purpose']=='research' else 600)
         return finish(dict(status='PASS',resources=resources,plan=plan,qualification_required=True))
     _qualification(host,workspace,output,base,study,runtime,args)
     if getattr(args,'reuse_run',None):
@@ -197,13 +204,13 @@ def _execute(args,workspace,host_factory):
             result=dict(result,**{k:str((output/(workspace/result[k]).relative_to(previous)).relative_to(workspace)) for k in ('manifest','runtime')})
         return finish(result,original=original['identity'])
     if args.operation=='prepare':
-        _validate(host,workspace,output,base,study,runtime)
+        _validate(host,workspace,output,base,study,runtime,seconds=3600 if runtime['purpose']=='research' else 300)
         refs=execution_refs(base,study,runtime,preparation=True)
         authority=_document(base,runtime['preparation'])
         result=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
             {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
             output=str((output/'preparation').relative_to(workspace)),operation='prepare',
-            settings=dict(preparation=authority,proposed=study),seconds=min(600,authority['budgets']['seconds']))
+            settings=dict(preparation=authority,proposed=study),seconds=preparation_seconds(runtime['purpose'],authority['budgets']['seconds']))
         if result['status']=='PASS':
             from .generalization_runtime import publish_runtime
             prepared=output/'preparation/role/private/prepared'
@@ -211,7 +218,7 @@ def _execute(args,workspace,host_factory):
             result=dict(result,manifest=str((prepared/'study.json').relative_to(workspace)),runtime=str((prepared/'runtime.json').relative_to(workspace)))
         return finish(result)
     if runtime['preparation'] is not None:raise ValueError('resolved prepared study/runtime required before model work')
-    plan=_validate(host,workspace,output,base,study,runtime)
+    plan=_validate(host,workspace,output,base,study,runtime,seconds=3600 if runtime['purpose']=='research' else 300)
     if args.operation=='train':result=train(host,workspace,output/'training',base,study,runtime,plan,arms=args.arms,seeds=args.seeds,resume=args.resume)
     elif args.operation=='evaluate':
         from .generalization_workflow import evaluate

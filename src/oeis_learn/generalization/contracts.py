@@ -25,9 +25,12 @@ def shape(kind, record):
     schemas, registry = _schemas()
     if kind not in schemas:
         raise ValueError('unknown authority kind')
-    errors = list(Draft202012Validator(schemas[kind], registry=registry).iter_errors(record))
-    if errors:
-        raise ValueError(str(errors[0].message))
+    error = next(Draft202012Validator(schemas[kind], registry=registry).iter_errors(record), None)
+    if error is not None:
+        # Schema messages may contain the entire protected source/term payload.
+        # Publish only the schema location and rule, never instance values/keys.
+        location = '/'.join(str(p) for p in list(error.absolute_schema_path)[:12])[:256]
+        raise ValueError(f'invalid {kind} at schema {location}: {error.validator}')
 
 
 @dataclass(frozen=True)

@@ -45,7 +45,7 @@
         "maxLength": 1024
       },
       "minItems": 1,
-      "maxItems": 4096,
+      "maxItems": 32768,
       "uniqueItems": true
     },
     "groups": {

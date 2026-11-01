@@ -89,3 +89,52 @@ minutes; serial total395 minutes (6h35), including20 packaging and10 emergency
 margin. Replay/retained evaluation envelopes remain as in T112. All model, token,
 seed, portfolio, storage and research budgets are unchanged. This addresses the
 measured acceptance-014 checkpoint-write timeout without relaxing success gates.
+
+
+### Fresh research preparation and persistence (T133/T134)
+
+Research preparation uses its existing four-hour limit instead of the acceptance
+600-second limit. Research custodian validation permits3600 seconds, including
+input projection; acceptance retains its300/600-second validation envelopes.
+A training shard may contain32,768 distinct variants; cohort JSON readers permit
+16MiB to hold its source/group/variant identities. Exact fixed-family quotas are
+expressed as `family:<verified-family-identity>` and derived only by preparation.
+Quota ordering and cross-role finite-window decisions retain their original meaning.
+
+Full state is still durable before each update debit is executed and after each
+completed update. Byte-identical serialized state components may share verified
+hard links across generation-local paths. Generations remain independently copyable;
+logical storage reservations do not assume deduplication. This changes persistence
+I/O, not numerical updates, checkpoint frequency, milestones or consumed budgets.
+Existing source/image qualification does not authorize these production changes.
+
+
+### Registered fresh P1 design (T135)
+
+The first fresh screen fixes32 training families from the first4096 generic
+sampler descriptors at seed20261016: A4/B6/C2/D20, each with at least three
+parameters. Each32,768-row shard admits1024 unique sources/family; twelve shards
+provide393,216 distinct examples and a27,267,072-token encoding floor. Static uses
+the first shard repeatedly; refreshed consumes the fixed twelve-shard stream once.
+Actual exclusions/native admission/token capacity remain mandatory; shortfalls
+block training without silently changing family proportions, support or quotas.
+
+Prepare selection and assessment first. Each has128 parameter and128 structural
+rows, with source/variant/group/finite-window isolation. Structural roles use
+disjoint generic families and require two loop-active and two branch-active families,
+explicit stage/magnitude quotas and32 rows in each length bin. Source-only feasibility
+found counted AST sizes1–18, so this prospective benchmark freezes `long >=16`,
+`short <16` rather than the infeasible default32. Cell plans carry the boundary;
+historical profiles retain their old definitions. Both structural rosters reserve
+large-magnitude loop support before choosing the remaining generic descriptors.
+
+The temporary protocol evaluates each arm's latest available checkpoint using only
+selection supervision, four matched controls, raw/rescue diagnostics and one shared
+absent-input bank/checkpoint. Partial or unequal training exposure remains descriptive
+and cannot support a matched25M-cap claim. No assessment is exposed or initializer
+promoted, and no confirmation starts automatically. Full-state cadence remains
+unchanged; six learner hours/arm is a ceiling, not a promise of reaching25M tokens.
+The complete single-session ceiling is60 hours including any fresh acceptance,
+preparation/validation, both learners, generation/scoring, export and recovery.
+The operator authorized a longer ceiling where useful; this is an explicit new
+campaign budget, not a runtime estimate or an extension of per-portfolio60 seconds.

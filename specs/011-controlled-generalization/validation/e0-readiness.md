@@ -171,3 +171,14 @@ input export, exclusion of extra private files, rejection of each corrupted inpu
 fresh-output protection, search bounds and symlink roots. The actual uploaded
 metadata independently passes canonical provenance verification. No production
 source closure changed and no HIP or CI wait ran.
+
+
+## Superseded next step: operator-approved fresh start
+
+The historical prompt/truth archive arrived and its exact metadata binding was
+verified. Those rows include source-free OEIS targets; the prospective selection
+path requires source programs. A historical scoring adapter would therefore be
+additional work, not merely input assembly. On2026-11-01 Pacific the operator
+approved deferring E0/P0 and executing fresh P1 instead. Preserve this review and
+historical files; do not interpret deferral as completion. Current research-scale
+repairs and delivery tasks are T132–T137.
