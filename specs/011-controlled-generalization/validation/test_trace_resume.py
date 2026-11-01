@@ -26,7 +26,8 @@ def test_first_divergence_names_phase_and_preserves_absence():
     assert helper.first_difference(old,[])['phase']=='missing_record'
 
 
-def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch):
+@pytest.mark.parametrize('layers',[False,True])
+def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch,layers):
     import sys,types,torch
     from oeis_learn.pipeline_validation import generalization_training as training
     module=types.ModuleType('oeis_learn.rl.sft_trainer')
@@ -51,7 +52,7 @@ def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch)
     expected=[p.detach().clone() for p in list(a.parameters())+list(b.parameters())]
     expected_rng=torch.get_rng_state()
     a,b,opt=models();clip=torch.nn.utils.clip_grad_norm_
-    undo=helper.install_trace(tmp_path/'trace.jsonl')
+    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=layers)
     try:training.torch_update(a,b,opt,device='cpu')([{'private':'never export'}])
     finally:undo()
     assert all(torch.equal(x,y) for x,y in zip(expected,list(a.parameters())+list(b.parameters())))
@@ -62,6 +63,11 @@ def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch)
     rows=[json.loads(line) for line in text.splitlines()]
     assert [r['phase'] for r in rows]==['execution','before','forward','backward','clip','after']
     assert rows[1]['weights']!=rows[-1]['weights']
+    if layers:
+        assert len(rows[2]['layer_events'])==2
+        assert rows[2]['layer_events'][0]['module']=='encoder'
+        assert not a._forward_hooks and not b._forward_hooks
+
 
 
 def test_instrumentation_bootstrap_is_scoped_and_does_not_install_for_validation(monkeypatch):
@@ -251,3 +257,43 @@ def test_policy_bootstrap_can_run_without_installing_any_tensor_observer(monkeyp
         assert scope['sentinel'] and calls==['cublas',None]
         assert training.torch_update is original
         assert 'def install_trace' not in roles.ROLE_PROGRAM
+
+
+
+def test_layer_difference_distinguishes_input_difference_from_operation_output():
+    a=[dict(module='encoder.linear',kind='Linear',input='a',output='x')]
+    b=[dict(module='encoder.linear',kind='Linear',input='a',output='y')]
+    result=helper.first_layer_difference(a,b)
+    assert result['module']=='encoder.linear' and result['input_equal'] and not result['output_equal']
+    b[0]['input']='b'
+    assert not helper.first_layer_difference(a,b)['input_equal']
+    assert helper.first_layer_difference(a,a)['equal']
+    assert helper.first_layer_difference(a,[])['reason']=='missing_event'
+
+
+def test_module_hooks_are_removed_when_forward_raises(tmp_path,monkeypatch):
+    import sys,types,torch,oeis_learn.rl
+    from oeis_learn.pipeline_validation import generalization_training as training
+    module=types.ModuleType('oeis_learn.rl.sft_trainer')
+    def logits(encoder,decoder):
+        encoder(torch.ones(1,2));raise RuntimeError('forward failure')
+    module.teacher_forced_logits=logits
+    monkeypatch.setitem(sys.modules,'oeis_learn.rl.sft_trainer',module)
+    monkeypatch.setattr(oeis_learn.rl,'sft_trainer',module,raising=False)
+    monkeypatch.setattr(training,'torch_update',lambda a,b,o,**kw:lambda batch:module.teacher_forced_logits(a,b))
+    a=torch.nn.Linear(2,2);b=torch.nn.Linear(2,1)
+    opt=torch.optim.SGD(list(a.parameters())+list(b.parameters()),lr=.01)
+    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=True)
+    try:
+        with pytest.raises(RuntimeError,match='forward failure'):training.torch_update(a,b,opt,device='cpu')([])
+    finally:undo()
+    assert not a._forward_hooks and not b._forward_hooks
+    assert module.teacher_forced_logits is logits
+
+
+def test_layer_trace_stage_propagation_and_bounded_read(tmp_path,monkeypatch):
+    args=SimpleNamespace(engine='podman',run='old',matrix='fresh',output='out',layers=True)
+    assert all(s['argv'][-1]=='--layers' for s in helper.plan(args))
+    path=tmp_path/'oversized';path.write_bytes(b'x'*((2<<20)+1))
+    monkeypatch.setattr(Path,'read_text',lambda *a,**kw:pytest.fail('must reject before reading'))
+    with pytest.raises(ValueError,match='trace byte cap'):helper.read_trace(path)

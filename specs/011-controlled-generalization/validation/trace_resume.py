@@ -29,9 +29,10 @@ def configure_policy(policy):
         ROCBLAS_DEFAULT_ATOMICS_MODE=os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE'])),file=sys.stderr,flush=True)
 
 
-def install_trace(path,policy='observe'):
+def install_trace(path,policy='observe',layers=False):
     """Observe the existing update; CPU readbacks synchronize and may affect timing."""
     import hashlib,json,os,random
+    from dataclasses import is_dataclass,fields
     from pathlib import Path
     import numpy as np
     import torch
@@ -57,6 +58,8 @@ def install_trace(path,policy='observe'):
                 h.update(type(value).__name__.encode())
                 for child in value:put(child)
                 h.update(b'end')
+            elif is_dataclass(value):put({f.name:getattr(value,f.name) for f in fields(value)})
+            elif isinstance(value,(torch.device,torch.dtype)):put(str(value))
             else:h.update(json.dumps([type(value).__name__,value],allow_nan=False).encode())
         put(value);return 'sha256:'+h.hexdigest()
     def emit(phase,update=0,**fields):
@@ -64,14 +67,14 @@ def install_trace(path,policy='observe'):
         if count>=32:raise ValueError('bounded trace record cap')
         record=dict(phase=phase,update=update,**fields)
         text=json.dumps(record,allow_nan=False)
-        if len(text)>8192:raise ValueError('bounded trace record bytes')
+        if len(text)>1<<20:raise ValueError('bounded trace record bytes')
         with path.open('a') as stream:stream.write(text+'\n')
         count+=1
     original=training.torch_update
     def factory(encoder,decoder,optimizer,*,device,scheduler=None):
         update=original(encoder,decoder,optimizer,device=device,scheduler=scheduler)
         emit('execution',torch=str(torch.__version__),hip=torch.version.hip,device=device,
-            diagnostic_policy=policy,blas_preference=str(torch.backends.cuda.preferred_blas_library()),
+            diagnostic_policy=policy,module_tracing=layers,blas_preference=str(torch.backends.cuda.preferred_blas_library()),
             device_name=torch.cuda.get_device_name() if device=='cuda' else 'cpu',
             execution=execution_observation(),threads=torch.get_num_threads(),
             environment={k:os.environ.get(k) for k in ('PYTHONHASHSEED','CUBLAS_WORKSPACE_CONFIG',
@@ -88,8 +91,23 @@ def install_trace(path,policy='observe'):
             if ordinal>4:raise ValueError('trace limited to four diagnostic updates')
             logits=sft.teacher_forced_logits;clip=torch.nn.utils.clip_grad_norm_
             def forward(*args,**kwargs):
-                result=logits(*args,**kwargs)
-                emit('forward',ordinal,logits=fingerprint(result));return result
+                events=[];handles=[]
+                def hook(name):
+                    def observed(module,inputs,keywords,result):
+                        if len(events)>=2048:raise ValueError('module event cap')
+                        events.append(dict(module=name,kind=type(module).__name__,
+                            input=fingerprint((inputs,keywords)),output=fingerprint(result)))
+                    return observed
+                try:
+                    if layers and ordinal==1:
+                        for prefix,model in (('encoder',encoder),('decoder',decoder)):
+                            for name,module in model.named_modules():
+                                handles.append(module.register_forward_hook(hook(prefix+('.'+name if name else '')),with_kwargs=True))
+                    result=logits(*args,**kwargs)
+                    emit('forward',ordinal,logits=fingerprint(result),**({'layer_events':events} if layers and ordinal==1 else {}))
+                    return result
+                finally:
+                    for handle in handles:handle.remove()
             def gradients(parameters,*args,**kwargs):
                 parameters=list(parameters)
                 emit('backward',ordinal,gradients=fingerprint([p.grad for p in parameters]))
@@ -113,13 +131,13 @@ def install_trace(path,policy='observe'):
 
 
 @contextmanager
-def instrument(policy='observe',*,tracing=True):
+def instrument(policy='observe',*,tracing=True,layers=False):
     from oeis_learn.pipeline_validation import generalization_roles as roles
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
     if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
-    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r})\n" if tracing else ''
+    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r})\n" if tracing else ''
     roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+(inspect.getsource(install_trace) if tracing else '')+
         "\nimport sys,json\nif sys.argv[-2]=='learner' and json.loads(sys.argv[-1])['operation']=='train':\n"
         f"    configure_policy({policy!r})\n"+observer+original)
@@ -135,7 +153,7 @@ def plan(args):
             needs=[] if name=='compatibility' else ['compatibility'],
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,'--run',args.run,
                   '--matrix',args.matrix,'--output',str(Path(args.output)/name),'--internal',name,
-                  '--policy',getattr(args,'policy','observe')]))
+                  '--policy',getattr(args,'policy','observe')]+(['--layers'] if getattr(args,'layers',False) else [])))
     return result
 
 
@@ -144,13 +162,27 @@ def first_difference(left,right):
     for index,(a,b) in enumerate(zip_longest(left,right)):
         if a==b:continue
         if a is None or b is None:return dict(equal=False,index=index,phase='missing_record')
-        return dict(equal=False,index=index,phase=a['phase'] if a['phase']==b['phase'] else 'phase_order',
+        result=dict(equal=False,index=index,phase=a['phase'] if a['phase']==b['phase'] else 'phase_order',
             update=a['update'],fields=sorted(k for k in set(a)|set(b) if a.get(k)!=b.get(k)))
+        if 'layer_events' in a and 'layer_events' in b:
+            result['first_layer_difference']=first_layer_difference(a['layer_events'],b['layer_events'])
+        return result
+    return dict(equal=True)
+
+
+def first_layer_difference(left,right):
+    from itertools import zip_longest
+    for index,(a,b) in enumerate(zip_longest(left,right)):
+        if a==b:continue
+        if a is None or b is None:return dict(equal=False,index=index,reason='missing_event')
+        if (a['module'],a['kind'])!=(b['module'],b['kind']):return dict(equal=False,index=index,reason='module_order')
+        return dict(equal=False,index=index,module=a['module'],kind=a['kind'],
+            input_equal=a['input']==b['input'],output_equal=a['output']==b['output'])
     return dict(equal=True)
 
 
 def read_trace(path,*,complete=True):
-    if path.stat().st_size>64<<10:raise ValueError('trace byte cap')
+    if path.stat().st_size>2<<20:raise ValueError('trace byte cap')
     rows=[json.loads(line) for line in path.read_text().splitlines()]
     if not rows or len(rows)>32 or rows[0].get('phase')!='execution':raise ValueError('trace header/record cap')
     expected=[('execution',0)]+[(phase,update) for update in (1,2)
@@ -188,7 +220,11 @@ def internal(args):
     ctx=dict(ctx,paused=ctx['new_paused'] if args.internal.startswith('new-') else ctx['paused'])
     traced=args.internal.endswith('-traced')
     try:
-        with (instrument() if getattr(args,'policy','observe')=='observe' else instrument(args.policy)) if traced else nullcontext():
+        manager=nullcontext()
+        if traced:
+            if getattr(args,'layers',False):manager=instrument(getattr(args,'policy','observe'),layers=True)
+            else:manager=instrument() if getattr(args,'policy','observe')=='observe' else instrument(args.policy)
+        with manager:
             result=probe_resume.train_branch('continue-a',ctx,host,output)
     finally:
         trace=output/'replay-resume/case/private/training'/digest(['verified_replay',ctx['seed']])[7:23]/'execution/role/update-trace.jsonl'
@@ -263,6 +299,7 @@ def main(argv=None):
     p.add_argument('--run',required=True);p.add_argument('--matrix',required=True);p.add_argument('--output',required=True)
     p.add_argument('--dry-run',action='store_true')
     p.add_argument('--policy',choices=['observe','rocblas'],default='observe')
+    p.add_argument('--layers',action='store_true',help='Hash module inputs/outputs in the first traced forward')
     p.add_argument('--internal',choices=['compatibility',*RUNS,'compare'],help=argparse.SUPPRESS)
     args=p.parse_args(argv)
     sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
@@ -281,7 +318,7 @@ def main(argv=None):
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
     import probe_resume
     output.mkdir(parents=True)
-    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,images=ctx['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,module_tracing=args.layers,images=ctx['runtime']['images'],helpers={
         n:file_hash(Path(__file__).with_name(n)) for n in ('trace_resume.py','test_trace_resume.py',
         'probe_resume.py','inspect_resume.py','diagnose_hip.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)

@@ -51,7 +51,28 @@ endpoint. This supports a candidate combined mitigation, not a proven individual
 cause. T122 tests fresh full versus paused/resumed execution without tensor tracing.
 Production policy and final T064–T067 gates remain unchanged.
 
+Latest evidence, 2026-11-01 Pacific: blas-fresh-001 verifies (200.294s), but
+fresh repeat equality passes and fresh full/resume equality fails in weights and
+optimizer. The combined BLAS policy is insufficient and must not be promoted.
+T123 adds module-level input/output observations to the existing controlled trace;
+no new numerical policy is proposed and T064–T067 remain open.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T123 Record blas-fresh-001 as failed exact resume, reject promotion of the
+  combined BLAS candidate, and extend the existing trace with bounded module
+  input/output fingerprints during the first continuation forward. Compare the
+  earliest differing module and whether its inputs match; preserve controls,
+  hook cleanup, stdlib host operation, private-value exclusions and failure export.
+  No speculative production fixes or numerical tolerance changes.
+
+T123 validation:86 local helper tests pass after three intended failing tests.
+CPU update/RNG preservation covers module tracing enabled/disabled; hook cleanup
+on forward failure, earliest-module input/output classification, stage propagation
+and bounded trace reads are tested. The same original-policy controls and eight
+updates remain; observation overhead is an explicit intervention. No production
+source inventory changed, no local HIP executed and CI was not awaited.
+
 
 - [X] T122 Reconcile blas-001's candidate mitigation and extend the existing
   fresh matrix with an explicit uninstrumented diagnostic policy. Apply the

@@ -246,7 +246,7 @@ def export(output):
             collect(root,destination/(name+'-diagnostics'))
             trace=root/'trace.json'
             if trace.is_file():
-                if trace.is_symlink() or trace.stat().st_size>64<<10:raise ValueError('bounded regular trace required')
+                if trace.is_symlink() or trace.stat().st_size>2<<20:raise ValueError('bounded regular trace required')
                 target='traces/'+name+'.json'
                 save(destination/target,json.loads(trace.read_text()));traces.append(target)
             result=root/'result.json'

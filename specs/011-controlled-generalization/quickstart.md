@@ -7,7 +7,48 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: fresh full/resume validation without tracing
+### Current next step: localize the differing forward module
+
+Blas-fresh-001 failed exact full/resume equality without tensor observers: fresh A
+and B agree, while the resumed endpoint differs in weights/optimizer and matches
+the earlier divergent endpoint. All initial comparisons and old/new pause values
+match. The combined BLAS configuration is insufficient; do not promote it into
+production. Continue with the original numerical policy and more specific forward
+observations in the same existing helper:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/trace_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --layers \
+    --output run-state/generalization/resume-layers-001
+)
+```
+
+Upload `run-state/generalization/resume-layers-001.zip`, pass or fail. Keep both
+input directories intact. Eight updates across the same four serial continuations:
+old/new controls and old/new traced. No candidate BLAS override, rebuild, broad test
+suite, search or evaluation. Qualification compatibility is rechecked first.
+
+The first traced forward records up to2048 ordered module events with input/output
+hashes and fixed model-module names/types. All input values stay private. Hooks
+include kwargs and are removed after forward success or failure. A comparison
+reports the first differing module, whether its inputs agree and whether outputs
+agree. Different inputs localize an upstream boundary; equal inputs with different
+outputs narrow the observed operation. Functional operations between modules and
+backend kernels remain unobserved, so do not infer a specific kernel cause.
+Traces are capped at2 MiB each and remain mandatory archive members on failure.
+They synchronize execution and may alter timing; compare traced endpoints against
+the uninstrumented controls. If the mismatch disappears under observation, report
+non-reproduction rather than a fix. Stage ceilings remain67 minutes; finer tracing
+has unmeasured actual HIP overhead. T064–T067 remain open.
+
+### Rejected candidate: fresh full/resume validation without tracing
 
 Blas-001 produced identical modified old/new continuation traces and final states,
 while the original-policy controls still differed. The modified endpoints reproduce

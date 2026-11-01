@@ -887,3 +887,40 @@ proof that configuration-only bootstrap leaves torch_update untouched. No instal
 production source changed, no local HIP ran and CI was not awaited.
 T064–T067 remain open. Promotion requires the uninstrumented fresh result, then an
 explicit production policy/qualification repair and final required validation.
+
+
+## Resume-blas-fresh-001: uninstrumented validation rejects sufficient mitigation
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`75e621ec4d3d9f709a8ec476d6bc032bdee1bbd9ed77aead00f7dece8ea16163`.
+All78 inventoried payloads plus manifest verify, no omissions. All six helper/test
+hashes match9f863af. Stage elapsed200.294s (3m20s); every stage completed with
+exit0 and acknowledged cleanup. `status=PASS` means the measurement completed:
+`repeat_equal=true`, `split_equal=false` is a failed exact-resume comparison.
+
+Fresh A/B match the original uninterrupted endpoint exactly. The resumed endpoint
+differs from both in weights/optimizer and exactly matches old-resumed. All six
+compared components other than weights/optimizer agree. All four initial-state
+comparisons and the new/old pause comparison match; no boundary comparisons are
+missing. Every learner branch records `requested_policy=rocblas` and
+`tensor_tracing=false`; split-rest starts from the exact new split-first pointer.
+The two uninterrupted runs and pause/resume all use the same candidate settings.
+
+This falsifies the claim that the combined BLAS configuration is sufficient for
+exact fresh full/resume under the tested conditions. The prior traced continuation
+agreement is narrower evidence and cannot support production promotion. It does
+not prove that tensor readbacks alone cause agreement, because different process
+runs also vary. No production change is made and no tolerance is loosened.
+
+T123 extends the existing trace with ordered module input/output hashes for the
+first continuation forward only. Original-policy old/new controls and traced
+continuations are retained, eight total updates. It handles kwargs and dataclass
+model inputs without disclosing values; all hooks unwind on error. CPU tests prove
+unchanged optimizer update/RNG and hook cleanup. Up to2048 module events are
+allowed, with1 MiB per record and2 MiB per trace, within the existing64 MiB archive
+cap. Failure packaging preserves traces. The first differing event reports module
+identity/type and input/output equality; functional operations between modules and
+individual backend kernels remain outside its measurement. Observation overhead
+can still affect reproduction and is compared against controls.86 local helper
+tests pass after three intended failures. No production source inventory changed,
+no local HIP ran and CI was not awaited. T064–T067 remain open.
