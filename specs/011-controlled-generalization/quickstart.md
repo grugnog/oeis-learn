@@ -7,7 +7,56 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: paired controls and update tracing
+### Current next step: explicit BLAS diagnostic configuration
+
+Trace-001 reproduced the numerical mismatch. The first observed difference is
+forward logits in the first continuation update (overall update2), despite equal
+restored input/weights/optimizer/RNG hashes. Both traced endpoints exactly match
+their respective controls. The association reverses relative to the earlier matrix:
+old now equals the original uninterrupted endpoint and new equals old-resumed.
+This is not a deterministic distinction between the old/new checkpoint contents.
+
+The next invocation tests a concrete runtime intervention in the existing helper:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/trace_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --policy rocblas \
+    --output run-state/generalization/resume-blas-001
+)
+```
+
+Upload `run-state/generalization/resume-blas-001.zip`, pass or fail. Four serial
+continuations perform eight updates total; retain both input directories. The
+controls use the original policy. Only the two traced learner processes request
+PyTorch's `cublas` (hipBLAS on ROCm) preference, `ROCBLAS_USE_HIPBLASLT=0` and
+`ROCBLAS_DEFAULT_ATOMICS_MODE=0`, before BLAS handles are created. No rebuild,
+broad test suite, search or evaluation is needed. The installed code is unchanged.
+Canonical compatibility still gates the original inputs/images; it does not
+qualify this experimental numerical configuration.
+
+The header records the accepted preference and requested environment. These are
+not measurements of every selected kernel or the effective handle atomics mode;
+the library API may override the environment. The diagnostic combines backend
+selection and handle defaults, so success would identify a candidate mitigation,
+not isolate one cause. `intervention_effect` compares controls to modified runs;
+`observer_effect` is null because policy and tracing both change. Compare paired
+modified endpoints and initial hashes before interpreting any improvement. New
+hashes of all named buffers (including non-persistent caches) and module training
+modes supplement the earlier pre-update state observations. Exact equality remains
+required and feature qualification remains false. A production change requires
+fresh qualification and uninterrupted/resumed validation under the chosen policy.
+
+The four-branch stage ceiling remains67 minutes; actual HIP overhead is unmeasured.
+Add `--dry-run` to inspect the plan without engine work.
+
+### Completed diagnostic: paired controls and update tracing
 
 Layout-001 confirms equal tensor representations and identical serialized numerical
 state. No learner or host production fix occurred between the differing and passing

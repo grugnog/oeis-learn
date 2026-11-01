@@ -788,3 +788,60 @@ learners or final comparison.77 local tests pass, including an actual CPU optimi
 update/RNG preservation test, both engine constructors and failure packaging.
 No local HIP or CI wait. One operator run is required for the new measurements;
 T064–T067 remain open.
+
+
+## Resume-trace-001: first observed divergence is forward logits
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`f5cf9449b9304cca2258b29c97550f0e64b009eb85a88bf04e48d52482322d3f`.
+All80 inventoried payloads plus manifest verify, with no omissions; all five
+helper hashes match7b41161. Stage elapsed243.718s (4m04s), all six stages PASS,
+exit0 and acknowledged cleanup. Measurement completion is not feature acceptance.
+
+| Comparison | Exact outcome |
+| --- | --- |
+| Old control versus new control | Unequal weights/optimizer |
+| Old control versus old traced | Equal in all six components |
+| New control versus new traced | Equal in all six components |
+| Old control/traced versus original uninterrupted | Equal |
+| New control/traced versus earlier resumed | Equal |
+
+The trace starts from equal batch/weights/optimizer/RNG hashes. The first differing
+record is logits from forward execution in continuation ordinal1 (overall update2).
+Raw gradients, clipped gradients and updated numerical state then differ. RNG
+hashes remain equal throughout. Actual policy observations match: Torch2.9.1,
+ROCm7.2.1, deterministic algorithms/error mode, FP32/highest, no TF32, MATH SDPA,
+MHA fastpath disabled, two threads and the same device name. Neither observed
+trace changes its endpoint relative to the corresponding uninstrumented control.
+This localizes the observed difference before optimizer mutation; it does not
+identify a faulty kernel or prove all forward inputs/non-persistent caches equal.
+The old/new endpoint association reverses relative to matrix-001/fresh-001, so
+checkpoint age/content does not consistently select one numerical outcome.
+
+Audit found a non-persistent positional cache in `GrowingPosition`; its tensors
+are initialized before use, and no demonstrated application defect was found.
+T121 adds hashes of all named buffers and module training modes before updates,
+as well as the actual BLAS preference. It corrects the old environment-observation
+label `ROCBLAS_ATOMICS_NOT_ALLOWED` (not an applied setting) to the documented
+`ROCBLAS_DEFAULT_ATOMICS_MODE`, and records `ROCBLAS_USE_HIPBLASLT`.
+
+Primary sources checked for the observed versions:
+- [PyTorch2.9 BLAS preference](https://docs.pytorch.org/docs/2.9/backends.html):
+  `cublas`/`cublaslt` preferences map to ROCm BLAS libraries, with possible fallback.
+- [ROCm7.2.1 environment controls](https://rocm.docs.amd.com/projects/rocBLAS/en/docs-7.2.1/reference/env-variables.html):
+  `ROCBLAS_USE_HIPBLASLT=0` selects Tensile; `ROCBLAS_DEFAULT_ATOMICS_MODE=0`
+  requests atomics-disabled handle defaults.
+- [ROCm7.2.1 design notes](https://rocm.docs.amd.com/projects/rocBLAS/en/docs-7.2.1/conceptual/rocblas-design-notes.html):
+  API settings override environment defaults; documented reproducibility also
+  depends on ISA, version, stream use and available temporary memory. Documentation
+  is a reason to test these controls, not evidence this run used atomic operations.
+
+`--policy rocblas` changes only the two traced diagnostic learner processes,
+retaining two original-policy controls. Accepted preference and requested settings
+are recorded; no per-kernel backend/handle query is claimed. Policy differences
+are reported as intervention_effect rather than observer_effect. The combined
+intervention can test a candidate mitigation but cannot isolate its individual
+cause or qualify production.80 local tests pass, including policy setup order,
+bootstrap isolation, effect labeling and unchanged default observation mode.
+No production qualification source changed, no local HIP ran, and CI was not awaited.
+T064–T067 remain open pending a measured repair and full required acceptance.

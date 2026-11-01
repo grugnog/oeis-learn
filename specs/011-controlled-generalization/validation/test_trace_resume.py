@@ -178,8 +178,58 @@ def test_real_checkpoint_comparison_reports_observer_effect_and_missing_endpoint
     assert result['observer_effect']==dict(old_equal=False,new_equal=True)
     assert result['first_trace_difference']['phase']=='forward'
     assert result['feature_qualified'] is False
+    traces=json.loads(trace_path.read_text())
+    for rows in traces.values():rows[0]['diagnostic_policy']='rocblas'
+    save(trace_path,traces)
+    helper.comparison_container(saved,tmp_path/'intervention',trace_path)
+    intervention=json.loads((tmp_path/'intervention/comparison.json').read_text())
+    assert intervention['observer_effect'] is None
+    assert intervention['intervention_effect']==dict(old_equal=False,new_equal=True)
+    assert intervention['diagnostic_policy']=='rocblas'
     shutil.rmtree(saved/'old-traced')
     helper.comparison_container(saved,tmp_path/'partial',trace_path)
     result=json.loads((tmp_path/'partial/comparison.json').read_text())
     assert not result['complete'] and result['missing']==['old-traced']
     assert result['traced_equal'] is None and result['first_trace_difference']['phase']=='forward'
+
+
+def test_rocblas_policy_sets_documented_controls_before_selecting_backend(monkeypatch):
+    import torch,os
+    calls=[]
+    def preferred(value=None):
+        calls.append((value,os.environ.get('ROCBLAS_USE_HIPBLASLT'),os.environ.get('ROCBLAS_DEFAULT_ATOMICS_MODE')))
+        return 'BlasBackend.Cublas'
+    monkeypatch.setattr(torch.backends.cuda,'preferred_blas_library',preferred)
+    for key in ('ROCBLAS_USE_HIPBLASLT','ROCBLAS_DEFAULT_ATOMICS_MODE'):monkeypatch.delenv(key,raising=False)
+    helper.configure_policy('rocblas')
+    assert calls==[('cublas','0','0'),(None,'0','0')]
+    with pytest.raises(ValueError):helper.configure_policy('unknown')
+
+
+def test_policy_is_propagated_to_every_stage():
+    args=SimpleNamespace(engine='podman',run='old',matrix='fresh',output='out',policy='rocblas')
+    assert all(s['argv'][-2:]==['--policy','rocblas'] for s in helper.plan(args))
+
+
+def test_diagnostic_policy_bootstrap_is_learner_only_and_restores_role_program(monkeypatch):
+    import torch
+    from oeis_learn.pipeline_validation import generalization_roles as roles
+    from oeis_learn.pipeline_validation import generalization_training as training
+    original=training.torch_update
+    monkeypatch.setattr(roles,'ROLE_PROGRAM','sentinel=True\n')
+    monkeypatch.setattr('sys.argv',['-c','learner',json.dumps(dict(operation='train'))])
+    calls=[]
+    monkeypatch.setattr(torch.backends.cuda,'preferred_blas_library',lambda value=None:calls.append(value) or 'BlasBackend.Cublas')
+    for key in ('ROCBLAS_USE_HIPBLASLT','ROCBLAS_DEFAULT_ATOMICS_MODE'):monkeypatch.delenv(key,raising=False)
+    # Avoid importing the learner's optional local native dependencies in this CPU test.
+    import sys,types,oeis_learn.rl
+    module=types.ModuleType('oeis_learn.rl.sft_trainer')
+    monkeypatch.setitem(sys.modules,'oeis_learn.rl.sft_trainer',module)
+    monkeypatch.setattr(oeis_learn.rl,'sft_trainer',module,raising=False)
+    try:
+        with helper.instrument('rocblas'):
+            scope={};exec(roles.ROLE_PROGRAM,scope)
+            assert scope['sentinel'] is True and calls==['cublas',None]
+            assert training.torch_update is not original
+    finally:training.torch_update=original
+    assert roles.ROLE_PROGRAM=='sentinel=True\n'

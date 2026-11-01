@@ -37,7 +37,25 @@ helper commit5ac9d72, and the learner image is unchanged. A later learner fix do
 not explain the fresh passing result. T120 adds controls plus per-update tracing;
 no causal defect or hardware-gate closure is claimed.
 
+Latest evidence, 2026-11-01 Pacific: trace-001 verifies (243.718s). Old/new
+controls differ and each equals its traced counterpart. Matching restored
+batch/weights/optimizer/RNG hashes first diverge at forward logits in overall
+update2, before optimizer mutation. Old now equals original, new equals the old
+resumed endpoint: association with checkpoint age reverses. T121 tests one
+explicit diagnostic backend configuration; no causal production fix is claimed.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T121 Reconcile trace-001 and add an explicit `--policy rocblas` temporary
+  experiment: original-policy controls plus paired traced continuations with
+  hipBLAS preference, Tensile selection and atomics-disabled handle defaults.
+  Verify accepted preference, record actual requests/preferences, model buffers
+  and module modes, correct environment metadata and label policy effects apart
+  from observer effects. Use ROCm7.2.1/PyTorch2.9 primary documentation and preserve
+  exact equality, original compatibility and diagnostic-only status.80 local tests
+  pass after two intended failures; production source inventory is unchanged.
+  Real HIP intervention effectiveness remains an operator measurement.
+
 
 - [X] T120 Record layout-001's identical serialized numerical states and add a
   disposable paired continuation trace with old/new uninstrumented controls.

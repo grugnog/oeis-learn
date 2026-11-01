@@ -12,7 +12,20 @@ ROOT=Path(__file__).resolve().parents[3] if len(Path(__file__).resolve().parents
 RUNS=('old-control','new-control','old-traced','new-traced')
 
 
-def install_trace(path):
+def configure_policy(policy):
+    """Experimental intervention confined to traced diagnostic learner processes."""
+    if policy=='observe':return
+    if policy!='rocblas':raise ValueError('unregistered diagnostic policy')
+    import os
+    # Set handle-creation defaults before importing Torch or creating BLAS handles.
+    os.environ.update(ROCBLAS_USE_HIPBLASLT='0',ROCBLAS_DEFAULT_ATOMICS_MODE='0')
+    import torch
+    torch.backends.cuda.preferred_blas_library('cublas')
+    if str(torch.backends.cuda.preferred_blas_library()).split('.')[-1].lower()!='cublas':
+        raise RuntimeError('requested hipBLAS preference was not accepted')
+
+
+def install_trace(path,policy='observe'):
     """Observe the existing update; CPU readbacks synchronize and may affect timing."""
     import hashlib,json,os,random
     from pathlib import Path
@@ -54,10 +67,11 @@ def install_trace(path):
     def factory(encoder,decoder,optimizer,*,device,scheduler=None):
         update=original(encoder,decoder,optimizer,device=device,scheduler=scheduler)
         emit('execution',torch=str(torch.__version__),hip=torch.version.hip,device=device,
+            diagnostic_policy=policy,blas_preference=str(torch.backends.cuda.preferred_blas_library()),
             device_name=torch.cuda.get_device_name() if device=='cuda' else 'cpu',
             execution=execution_observation(),threads=torch.get_num_threads(),
             environment={k:os.environ.get(k) for k in ('PYTHONHASHSEED','CUBLAS_WORKSPACE_CONFIG',
-                'HIPBLAS_WORKSPACE_CONFIG','ROCBLAS_ATOMICS_NOT_ALLOWED')})
+                'HIPBLAS_WORKSPACE_CONFIG','ROCBLAS_DEFAULT_ATOMICS_MODE','ROCBLAS_USE_HIPBLASLT')})
         ordinal=0
         def snapshot():
             return dict(weights=fingerprint(dict(encoder=encoder.state_dict(),decoder=decoder.state_dict())),
@@ -79,7 +93,9 @@ def install_trace(path):
                 emit('clip',ordinal,gradients=fingerprint([p.grad for p in parameters]),norm=fingerprint(result))
                 return result
             try:
-                emit('before',ordinal,batch=fingerprint(batch),**snapshot())
+                emit('before',ordinal,batch=fingerprint(batch),
+                    buffers=fingerprint(dict(encoder=dict(encoder.named_buffers()),decoder=dict(decoder.named_buffers()))),
+                    modes=fingerprint([[m.training for m in model.modules()] for model in (encoder,decoder)]),**snapshot())
                 sft.teacher_forced_logits=forward;torch.nn.utils.clip_grad_norm_=gradients
                 result=update(batch)
                 emit('after',ordinal,**snapshot())
@@ -93,14 +109,15 @@ def install_trace(path):
 
 
 @contextmanager
-def instrument():
+def instrument(policy='observe'):
     from oeis_learn.pipeline_validation import generalization_roles as roles
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
-    roles.ROLE_PROGRAM=(inspect.getsource(install_trace)+
+    if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
+    roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+inspect.getsource(install_trace)+
         "\nimport sys,json\nif sys.argv[-2]=='learner' and json.loads(sys.argv[-1])['operation']=='train':\n"
-        "    install_trace('/output/learner/update-trace.jsonl')\n"+original)
+        f"    configure_policy({policy!r})\n    install_trace('/output/learner/update-trace.jsonl',{policy!r})\n"+original)
     try:yield
     finally:roles.ROLE_PROGRAM=original
 
@@ -112,7 +129,8 @@ def plan(args):
             seconds=600 if name=='compatibility' else 300 if name=='compare' else 780,
             needs=[] if name=='compatibility' else ['compatibility'],
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,'--run',args.run,
-                  '--matrix',args.matrix,'--output',str(Path(args.output)/name),'--internal',name]))
+                  '--matrix',args.matrix,'--output',str(Path(args.output)/name),'--internal',name,
+                  '--policy',getattr(args,'policy','observe')]))
     return result
 
 
@@ -165,7 +183,7 @@ def internal(args):
     ctx=dict(ctx,paused=ctx['new_paused'] if args.internal.startswith('new-') else ctx['paused'])
     traced=args.internal.endswith('-traced')
     try:
-        with instrument() if traced else nullcontext():
+        with (instrument() if getattr(args,'policy','observe')=='observe' else instrument(args.policy)) if traced else nullcontext():
             result=probe_resume.train_branch('continue-a',ctx,host,output)
     finally:
         trace=output/'replay-resume/case/private/training'/digest(['verified_replay',ctx['seed']])[7:23]/'execution/role/update-trace.jsonl'
@@ -192,11 +210,15 @@ def comparison_container(saved=Path('/saved'),output=Path('/output'),trace_path=
     complete=all(n in states for n in RUNS)
     difference=first_difference(traces['old-traced'][1:],traces['new-traced'][1:]) if all(n in traces for n in ('old-traced','new-traced')) else None
     def equal(a,b):return comparisons.get(a+':'+b,{}).get('equal')
+    policies={r[0].get('diagnostic_policy','observe') for r in traces.values() if r}
+    intervention='rocblas' in policies
     save(output/'comparison.json',dict(status='PASS',feature_qualified=False,scientific_status='UNMEASURED',
         starting_completed_updates=1,trace_update_numbers='continuation ordinals: 1 is overall update 2',
         complete=complete,missing=missing,checkpoints=refs,comparisons=comparisons,traces=traces,
         control_equal=equal('old-control','new-control'),traced_equal=equal('old-traced','new-traced'),
-        observer_effect=dict(old_equal=equal('old-control','old-traced'),new_equal=equal('new-control','new-traced')),
+        diagnostic_policy='rocblas' if intervention else 'observe',
+        observer_effect=None if intervention else dict(old_equal=equal('old-control','old-traced'),new_equal=equal('new-control','new-traced')),
+        intervention_effect=dict(old_equal=equal('old-control','old-traced'),new_equal=equal('new-control','new-traced')) if intervention else None,
         first_trace_difference=difference,
         note='Readbacks synchronize execution and may change timing. First observed difference is not a backend diagnosis.'))
 
@@ -235,6 +257,7 @@ def main(argv=None):
     p.add_argument('--engine',choices=['docker','podman'],required=True)
     p.add_argument('--run',required=True);p.add_argument('--matrix',required=True);p.add_argument('--output',required=True)
     p.add_argument('--dry-run',action='store_true')
+    p.add_argument('--policy',choices=['observe','rocblas'],default='observe')
     p.add_argument('--internal',choices=['compatibility',*RUNS,'compare'],help=argparse.SUPPRESS)
     args=p.parse_args(argv)
     sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
@@ -253,7 +276,7 @@ def main(argv=None):
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
     import probe_resume
     output.mkdir(parents=True)
-    metadata=dict(source_run=args.run,matrix=args.matrix,images=ctx['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,images=ctx['runtime']['images'],helpers={
         n:file_hash(Path(__file__).with_name(n)) for n in ('trace_resume.py','test_trace_resume.py',
         'probe_resume.py','inspect_resume.py','diagnose_hip.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)
