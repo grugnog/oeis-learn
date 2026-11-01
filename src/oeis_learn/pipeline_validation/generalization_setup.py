@@ -37,7 +37,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
     fresh=dict(name='fresh',role='training',holdout='parameter',count=16,quotas={},structural=False,refresh=dict(seed=fixture['seed'],capacity=256,cursor=32,draws=32))
     cfg=dict(version='generalization-input-blueprint/v1',stage='E0',purpose='acceptance',hypothesis='Bounded mechanical software acceptance; no research claim',
         recipe=recipe,source_closure=source,images=images,initializer=None,descriptors=ds,exclusions=exclusions,cells=[static,*copy.deepcopy(shared)],training={},
-        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[str((root/(label+'-checkpoint.json')).relative_to(workspace)) for label in ('best','latest')],seconds=360,bank_seeds=None),
+        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[str((root/(label+'-checkpoint.json')).relative_to(workspace)) for label in ('best','latest')],seconds=720,bank_seeds=None),
         replay=None,seeds=[fixture['seed']],budgets=dict(target_tokens=0,seconds=30,draws=1000,memory_bytes=8<<30,storage_bytes=1<<30,log_bytes=1<<20,attempts=8),milestones=[],
         storage=dict(study_bytes=4<<30,checkpoint_bytes=2<<30,shard_bytes=256<<20,raw_bytes=256<<20,sharing_bytes=32<<20),sharing_policy='explicit')
     results={}
@@ -53,7 +53,7 @@ def assemble_acceptance(workspace,*,imported,images,output):
     cfg.update(stage='P3',cells=[static,*copy.deepcopy(shared)],training={a:dict(cells=['static'],data_mode='static',batch_size=4) for a in ('literal','parameterized')})
     assemble('parameter-targets',cfg)
     cfg.update(stage='P4',recipe=recipe,initializer=pending(e0study['identity']),training={a:dict(cells=['static'],data_mode='static',batch_size=4) for a in ('continued_sft','verified_replay')},
-        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=180,bank_seeds=None),
+        evaluation=dict(role='selection',cells=['selection-parameter','selection-structural'],checkpoints=[],seconds=1200,bank_seeds=None),
         replay=dict(cell='static',seconds=30,proposal_policy=DIAGNOSTIC))
     cfg['storage'].update(study_bytes=30<<30,checkpoint_bytes=26<<30)
     cfg['budgets']['seconds']=600

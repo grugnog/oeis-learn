@@ -10,6 +10,13 @@
 
 ## Current status — 2026-11-01 UTC
 
+Latest update after acceptance-013 (2026-10-31 Pacific): CPU/native and HIP
+qualification passed, including actual installed full-state resume. Both paired
+learners completed; continued-SFT post-training evaluation then timed out during
+process completion. The final negative archive independently verifies. T111/T112
+repair evaluation timing and enlarge acceptance-only envelopes to375 minutes
+(6h15). T064–T067 remain pending for the changed source; records below are historical.
+
 Latest operator update (2026-10-31 Pacific): acceptance-012 stopped at CPU
 qualification after pytest exhausted the container's 2 GiB `/tmp` tmpfs. No HIP
 qualification or feature cases ran. T110 repairs private disk-backed test scratch
@@ -195,7 +202,7 @@ Only adapters, registration, I/O and end-to-end wiring belong here. All decision
 
 - [X] T063 Run the appropriate local/qualification-container reference, contract and integration regressions, including historical v3/v4 behavior and new suites registered in `src/oeis_learn/container_validation.py`, and write the exact selection/results to `specs/011-controlled-generalization/validation/local-checks.md`; return algorithm defects to B before hardware.
 - [ ] T064 Prebuild and inspect the pinned qualification/GPU targets using `Dockerfile` and committed locks; record immutable images, whole source/build closure, hardware/resource observations and helper hash in the operator's `run-state/generalization/acceptance-inputs.json` without altering host drivers or source during the session.
-- [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the 335-minute ceiling including recovery (T106 supersedes T091), and stop before costly work if quotas/artifacts/resources are infeasible.
+- [ ] T065 Dry-run and preflight `scripts/generalization_hip_serial.py` with the reduced acceptance manifest under `run-state/generalization/`, verify all stage reservations fit the 375-minute ceiling including recovery (T112 supersedes T106/T091), and stop before costly work if quotas/artifacts/resources are infeasible.
 - [ ] T066 Execute exactly one normal serial HIP acceptance invocation via `scripts/generalization_hip_serial.py`, writing a fresh `run-state/generalization/acceptance-001/` plus its sibling archive; prove actual checkpoint load and finite HIP parameter updates, refresh, both target forms, verified replay and full-state resume, with qualification executed once per required scope.
 - [ ] T067 Independently verify the complete/partial archive with the canonical `generalization verify-bundle` endpoint and existing bundle checks in `src/oeis_learn/pipeline_validation/bundle.py`, reconciling all payload hashes, stage/attempt/family totals, omissions, costs and software/scientific statuses; preserve private states and sealed truth outside sharing output.
 - [X] T068 Record actual acceptance results and any minimal justified rerun/invalidated producer in `specs/011-controlled-generalization/validation/hip-acceptance.md`; a failed session remains failed and requires targeted repair/requalification, never an undocumented skip or a false PASS.
@@ -521,4 +528,4 @@ Targeted HIP failure-class audit, 2026-11-01. This is not complete feature conve
 
 ### Phase C/D — acceptance evaluation envelopes and 013 evidence
 
-- [ ] T112 Freeze enlarged acceptance-only evaluation envelopes and enclosing case/session reservations after acceptance-013 completed both learners but timed out after generator result publication. Check all remaining proof/resume envelopes, original archive/terminal verification, and combined regressions; preserve original evidence, scientific limits and research budgets, and publish one consolidated fresh-run command (NFR-003/005/006/007/008, SC-006/007).
+- [X] T112 Freeze enlarged acceptance-only evaluation envelopes and enclosing case/session reservations after acceptance-013 completed both learners but timed out after generator result publication. Check all remaining proof/resume envelopes, original archive/terminal verification, and combined regressions; preserve original evidence, scientific limits and research budgets, and publish one consolidated fresh-run command (NFR-003/005/006/007/008, SC-006/007).

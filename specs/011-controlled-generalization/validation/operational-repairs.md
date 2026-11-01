@@ -145,3 +145,37 @@ setup, torch setup and both engine command boundaries. Targeted evidence/scoring
 role-contract and runtime integration tests passed after the repair. This is the
 single reopened operational-policy group; T112 wires enlarged acceptance envelopes
 and records combined validation. No local HIP execution or CI wait.
+
+## T112 — complete evaluation envelopes and original 013 reconciliation
+
+Recorded 2026-10-31 Pacific. Acceptance-013 independently passes both archive hash
+verification and canonical generalization reconciliation, including final workflow
+and terminal verifier bindings. Software remains FAIL / science UNMEASURED. Its
+original CPU/native suite passed1,181 tests and77 subtests; HIP passed27 tests,
+including the actual two-update installed exact-resume probe. Both retained-model
+paired learners completed; continued-SFT post-training evaluation was killed at
+its process deadline despite a PASS result file. Cleanup and negative-scope final
+publication succeeded. Full acceptance paused/resumed proofs were not reached.
+
+Fresh acceptance inputs allow720 seconds for retained evaluation (two checkpoints)
+and1200 seconds per paired post-training policy. Enclosing cases are1500 seconds
+for retained evaluation and6000 for replay/resume. All other cases stay900 seconds;
+learners600, proofs180, search30, model/tokens/seeds/storage and original portfolios
+are unchanged. The maximum serial reservation is375 minutes (6h15), including
+20 minutes packaging and10 emergency margin. The remaining replay graph fits:
+4*600 +2*1200 +30 +2*180 +540 +120 =5850 <=6000 seconds. This is operational
+headroom, not a runtime prediction or authorization for research.
+
+The rest of the path was inspected through selection deadlines, proof projection,
+paired/paused/resumed training and final publication. Existing combined failure
+fixtures exercise evaluation, paired proof, resumed learning and resume proof;
+previous hardware results do not establish those unfinished retained-model steps.
+No success gate was removed and no PASS result bypasses process exit/cleanup checks.
+
+The final affected local selection passed **429 tests and6 subtests**, with one
+explicit local `wasmtime` dependency skip and one HIP deselection, in41.06 seconds.
+This includes updated full worst-case reservation/protected-margin tests and all
+six T111 counterexamples, which were red before repair. `git diff --check` passed.
+The original archive was not modified. No local HIP command or CI wait occurred.
+T111/T112 are implemented; T064–T067 require fresh evidence on changed source.
+The quickstart publishes one consolidated acceptance-014 invocation.

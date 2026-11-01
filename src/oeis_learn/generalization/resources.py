@@ -3,12 +3,12 @@ from .budgets import integer
 
 GIB=1024**3
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
-# Acceptance-011 measured 26–45 second checkpoint writes; preserve the same
-# token/model work while reserving full persistence and recovery, not just updates.
-MINUTES=dict(preflight=45,qualification=120,preparation=10,cases=130,packaging=20,margin=10)
+# Acceptance-013 completed paired learning but exhausted post-training evaluation.
+# Preserve scientific work limits; include evaluation startup, exit and recovery.
+MINUTES=dict(preflight=45,qualification=120,preparation=10,cases=170,packaging=20,margin=10)
 PROOF_SECONDS=180
-CASE_SECONDS={'retained-eval':900,'refresh':900,'parameter-targets':900,
-              'replay-resume':4200,'failure-packaging':900}
+CASE_SECONDS={'retained-eval':1500,'refresh':900,'parameter-targets':900,
+              'replay-resume':6000,'failure-packaging':900}
 SESSION_SECONDS=sum(MINUTES.values())*60
 
 

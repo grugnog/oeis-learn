@@ -15,14 +15,16 @@ def helper():
 def test_serial_plan_one_qualification_and_no_research(tmp_path):
     h=helper();plan=h.plan('docker','manifest.json','run-state/new')
     assert [p['operation'] for p in plan]==['preflight','qualify','prepare']+['acceptance']*5+['report','verify-bundle']
-    assert sum(p['seconds'] for p in plan)+600==20100
+    assert sum(p['seconds'] for p in plan)+600==22500
     stages={p['name']:p for p in plan}
-    assert stages['replay-resume']['seconds']==4200
+    assert stages['replay-resume']['seconds']==6000
     assert stages['qualify']['seconds']==7200
-    assert all(stages[name]['seconds']==900 for name in ('refresh','retained-eval','parameter-targets','failure-packaging'))
+    assert stages['retained-eval']['seconds']==1500
+    assert 720+540 <= stages['retained-eval']['seconds']
+    assert all(stages[name]['seconds']==900 for name in ('refresh','parameter-targets','failure-packaging'))
     # Four learners (paired, paused, resumed), two evaluations, search and two
     # proofs, plus qualification reinspection/validation and cleanup/I/O reserve.
-    assert 4*600+2*180+30+2*180+540+120<=stages['replay-resume']['seconds']
+    assert 4*600+2*1200+30+2*180+540+120<=stages['replay-resume']['seconds']
     from oeis_learn.generalization.resources import reserve_stage
     elapsed=0
     for stage in plan:
@@ -126,7 +128,7 @@ def test_cold_session_preflight_budget_fits_all_four_roles(tmp_path,monkeypatch)
     plan=helper().plan('podman','manifest','run')
     assert sum(seconds)+4*5+120<=plan[0]['seconds']
     result=json.loads((tmp_path/'preflight/result.json').read_text())
-    assert result['result']['reservations']['minutes']==335
+    assert result['result']['reservations']['minutes']==375
 
 
 def test_report_startup_and_packaging_fit_parent_budget(tmp_path,monkeypatch):

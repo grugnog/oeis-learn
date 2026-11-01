@@ -1,17 +1,17 @@
 # HIP acceptance — original qualification passed; feature acceptance failed
 
-Current status after inspecting operator acceptance-012 (2026-10-31 Pacific):
-preflight passed, CPU qualification failed from exhausted container `/tmp` scratch,
-and HIP qualification was BLOCKED by the failed CPU prerequisite. No feature cases
-ran. Independent bundle inventory/hash verification passed for the recovery archive.
-The new installed full-state resume probe passed on CPU in the pinned container;
-this is not HIP evidence. See the acceptance-012 section below.
+Current status after inspecting operator acceptance-013 (2026-10-31 Pacific):
+CPU/native and actual HIP qualification passed, including the installed exact-resume
+probe. Retained-eval, refresh and parameter-targets passed. Both P4 paired learners
+completed, then post-training continued-SFT evaluation hit its process deadline.
+The final archive independently verifies as FAIL / UNMEASURED with completed
+canonical verification and final controller evidence. This was not a packaging
+failure. Full paired acceptance resume/proof remains uncompleted.
 
-T110 repairs qualification scratch routing across all five validation suites and
-both engine command paths, including private scratch inventory/guard integration.
-T064–T067 remain open for fresh source/image qualification and complete acceptance.
-The existing 335-minute serial ceiling and resource caps are unchanged. Earlier
-status statements below are historical records, not qualification of changed code.
+T111 repairs evaluation startup/load/exit clock containment; T112 enlarges only
+acceptance evaluation envelopes and their enclosing reservations to375 minutes
+(6h15). T064–T067 remain open for the changed source. Earlier original qualification
+passes remain evidence of their exact source/image scope, not the new code.
 
 ## Historical local baseline, before operator runs
 
@@ -448,3 +448,45 @@ or exported and scratch is excluded from command evidence inventories. Public
 symlinks and symlink runtime roots still fail closed. No tmpfs or storage cap was
 raised and no test was removed. Fresh images/inputs and a single acceptance-013 run
 are required; no standalone HIP probe is needed.
+
+## Operator acceptance-013 — paired updates pass; evaluation process times out
+
+Inspected 2026-10-31 Pacific. Archive `acceptance-013.zip`:1,497,064 bytes,
+465 inventoried payloads plus manifest, SHA-256
+`7e7f91a9cf77bb29a71794020a29139f1c5c3ec5f449d29d1f3bd25c8ce72554`.
+Both basic inventory/hash verification and independent canonical
+`generalization_archive.verify_archive` reconciliation pass. The latter returns
+integrity PASS, software FAIL, scientific UNMEASURED, feature_qualified false.
+Final workflow/summary/terminal bindings also verify. Report and verifier exit1
+correctly encode the verified negative scope; they are not infrastructure errors.
+
+Original stdout:1,181 CPU/native tests and77 subtests passed (8 deselected),
+27 HIP tests passed. Original JUnit:1,258 CPU/native records (383.158 seconds),27 HIP records
+(351.942 seconds), zero failures/errors/skips. Duplicated diagnostic copies are
+not counted as additional runs. Actual HIP device evidence records finite forward
+and backward, changed parameters,2 updates and `resume_equal: true`; resume checkpoint
+`sha256:5c31560a3618dd7f6993e8d66c748b478ee5f1c60b570d3bc52fb02233a5d360`.
+This proves the bounded installed static resume probe, not the still-incomplete
+retained-model admitted-replay acceptance comparison.
+
+Workflow cumulative seconds:preflight130.702, qualification1132.888,
+prepare1173.074, retained-eval1287.145, refresh1306.888,
+parameter-targets1341.025, replay-resume1728.953, report1731.031,
+verification1732.299. The three earlier acceptance cases passed. Replay admission
+and both paired learners progressed:continued-SFT process109.889 seconds,
+verified-replay189.980 seconds, each exit0 / PASS / COMPLETE, acknowledged cleanup,
+and three logged updates. Final checkpoint writes reached roughly57 seconds.
+
+The first continued-SFT post-training generator wrote a PASS application result,
+but its process was killed with returncode-9 after71.996 seconds; supervision
+records TimeoutError. Cleanup was acknowledged in0.329 seconds, inside17.939 seconds.
+The outer case allowance was not exhausted. Source inspection and virtual-clock
+counterexamples show that model loading reset the internal clock and the internal
+allowance left no explicit process-startup/exit reserve. A PASS application result
+cannot overrule the failed process receipt. Full-state paired/resume proofs,
+paused/resumed retained learners and failure-packaging case were not reached.
+
+T111/T112 address these boundaries together, retaining original evidence and all
+scientific/proof/storage gates. See [operational repairs](operational-repairs.md)
+and the updated [one-command guide](../quickstart.md). One fresh acceptance-014
+session is the next hardware gate; no separate probe or diagnostic export is needed.

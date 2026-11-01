@@ -27,7 +27,8 @@ def test_generated_session_prepares_with_actual_isolation_and_pending_dependency
     assert session['version']=='generalization-acceptance-session/v2'
     replay_study,replay_runtime=children['replay-resume'][1:3]
     assert replay_study['budgets']['seconds']==600
-    assert replay_runtime['evaluation']['seconds']==180
+    assert replay_runtime['evaluation']['seconds']==1200
+    assert children['retained-eval'][2]['evaluation']['seconds']==720
     assert replay_study['budgets']['target_tokens']==512
     assert replay_study['model']['architecture']==children['retained-eval'][1]['model']['architecture']
     assert children['refresh'][1]['budgets']['seconds']==30

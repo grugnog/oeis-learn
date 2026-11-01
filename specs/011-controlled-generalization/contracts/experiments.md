@@ -47,3 +47,23 @@ After acceptance-008 exceeded its30-second retained-model learner deadline, gene
 Supersedes earlier acceptance-only timing allocations:335 minutes total, with preflight45, qualification120, preparation10, cases130, packaging20 and emergency margin10. Replay/resume reserves70 minutes; other cases retain15 minutes. Each replay learner gets600 seconds including input projection and up to30 seconds cleanup; current-policy evaluation remains180 seconds, each full-state proof gets180 seconds, search remains30 seconds. Four learners, two evaluations, search, two proofs,540 seconds inspection/validation and120 seconds I/O margin total3810 seconds within the4200-second case. The original model,512-token cap and single seed are unchanged. Acceptance-011 checkpoint writes reached26–45 seconds; the prior180-second learner envelope expired during persistence. The additional allowance is an operational margin, not a throughput claim.
 
 Checkpoint preflight uses `serial-checkpoint-graph/v1`: initial/latest plus milestone pins for each run, acceptance-only paused/resumed runs, one live resume projection, an atomic generation, proof latest states and separate weight-copy allowances. Input projections have one verified copy per channel; proof inputs include latest state plus initial weights, not entire checkpoint stores. Acceptance replay policy evaluation does not publish unused initializer/selected-state copies; research evaluation retains publication behavior. Existing26GiB P4/32GiB aggregate checkpoint ceilings remain in force. Any actual peak outside the declared accounting still fails under the runtime disk watchdog.
+
+
+### Acceptance-013 evaluation envelope amendment (T111/T112)
+
+Supersedes the T106 acceptance-only allocation above:375 minutes total, with
+preflight45, qualification120, preparation10, cases170, packaging20 and margin10.
+Retained-eval gets25 minutes, replay/resume100 minutes, other cases15 minutes each.
+The retained two-checkpoint evaluation scope gets720 seconds; each paired policy
+evaluation gets1200 seconds. For one policy this allocates600 seconds to generation,
+minus up to30 seconds container cleanup and30 seconds process startup/exit, leaving
+about540 seconds including model loading for the unchanged portfolios. This allows
+headroom for eight60-second prompt/control portfolios even without batching benefits.
+The retained checkpoint scopes are also enlarged so charged startup/exit does not
+reduce their previously passing effective work allowance.
+
+Replay/resume worst-case reservations are4*600 learners +2*1200 evaluations +30
+search +2*180 proofs +540 inspection/validation +120 I/O =5850 seconds, within6000.
+Retained evaluation720 +540 inspection/validation fits1500. Learner tokens512,
+single seed, model, portfolio attempts, per-target60-second limits, proof checks and
+storage caps are unchanged. Existing research recipes/budgets are unchanged.
