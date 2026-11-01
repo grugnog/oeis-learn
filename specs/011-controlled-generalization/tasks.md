@@ -37,6 +37,17 @@ bounded no-HIP metadata command obtains it without private weights or truth.
 The metadata command passes stdlib success/allowlist/hash, existing-output refusal
 and missing-input-before-output checks. No production source closure changed.
 
+- [X] T131 Audit uploaded E0 import metadata through canonical legacy provenance,
+  identify the exact historical corpus and checkpoint exposures, and supply a
+  bounded temporary no-HIP locator/exporter for the two missing already-exposed
+  evaluation files. Preserve original hashes, no tensor/final-data reads, fresh
+  outputs and the accepted production closure; test corruption and containment.
+
+Metadata-001 resolves the corpus identity but does not contain prompts/truth.
+The exact two files and one collector command are in validation/e0-readiness.md.
+19 targeted tests pass; actual metadata passes python -S canonical provenance.
+E0 research launch remains blocked on these payloads, not on a new HIP test.
+
 The dated entries below are historical, including their then-open hardware gates.
 
 ## Historical diagnostic status — 2026-11-01 UTC

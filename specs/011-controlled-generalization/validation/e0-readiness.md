@@ -118,3 +118,56 @@ to identify/freeze the E0 research roster and produce one bounded serial command
 through assembly, preflight, prepare, evaluation, report and canonical verification.
 The original raw source corpus or additional snapshot metadata may still be needed;
 their precise references must come from this inventory, not guessed paths.
+
+
+## Metadata-001 received: exact historical corpus identified
+
+All11 metadata members verify by length and SHA256. Both descriptors pass the
+canonical `verify_legacy` audit under python -S, without loading tensors.
+Uniform best:17,885,681 tokens /18,433 updates; latest:24,999,970 tokens /
+25,764 updates. Both use the original m100 FP32 recipe and remain weights-only.
+The earlier3-hour and behavior-selected snapshots are not in this import.
+
+The exact original prepared identity is
+`sha256:8a8ddc9b4f3160c5d6577126dc688eac3f555b4b7d58e29e01d6792f9c85609e`.
+Its roster has32 training-panel,128 parameter-development,128 structural-development
+and8 already-exposed OEIS-development rows (296 total). All128 structural rows
+are stage A and span18 families; these are historical limitations, not a new
+loop/branch structural benchmark. No sealed final cohort is requested or exported.
+
+Only two additional payloads are required to inspect that actual evaluation data:
+
+| Original file | Bytes | SHA256 |
+| --- | --- | --- |
+| prompts.json | 648182 | b76452d12425b0b525491c38e7ed6f9767ff56b4d5c3635d482c388b384ceaed |
+| private/truth.json | 878378 | a01b7d9487e79bfc63caf0b914248f1d6418123aad75d950d1a6a6998fb331ef |
+
+The temporary collector below searches at most100000 entries,12 descendant
+levels and60 seconds, skips symlinks/caches/checkpoints, and matches both file
+hashes plus the byte-identical prepared.json. It reads no weight file, no large
+examples/admissions file and no sealed final file. It exports the two **historical
+already-exposed** payloads with the11 audited metadata documents and a discovery
+inventory containing the matched source directory. It neither invokes HIP nor
+modifies the original run. It fails before export if the exact triple is absent.
+If the bounded search exhausts, retry with --search-root pointing at the original
+input parent; do not relax hash matching or substitute a different corpus.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 -S specs/011-controlled-generalization/validation/collect_e0_inputs.py
+)
+```
+
+Upload `run-state/generalization/e0-historical-inputs-001.zip`. This resolves the
+specific remaining local-data blocker without a broad file listing. The next E0
+launch must preserve the historical/exposed label and measured denominator; it
+must not relabel these rows as fresh assessment or fabricate new cohort coverage.
+
+Validation:19 discovery/legacy/input tests pass. Collector tests cover matched
+input export, exclusion of extra private files, rejection of each corrupted input,
+fresh-output protection, search bounds and symlink roots. The actual uploaded
+metadata independently passes canonical provenance verification. No production
+source closure changed and no HIP or CI wait ran.
