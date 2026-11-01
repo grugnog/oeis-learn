@@ -7,7 +7,47 @@ campaign is started by these instructions or by the acceptance helper.
 
 ## Faster diagnostic iteration after acceptance-015
 
-### Current next step: localize the differing forward module
+### Current next step: defer module reads until forward completion
+
+Layers-001 verified, but all202 module events and traced endpoints agree while
+controls differ. One traced endpoint also differs from its control. Per-module
+CPU readbacks are therefore an intervention in the observed behavior; this run
+did not locate the original divergence. The existing helper now supports deferred
+module capture, keeping the same controls and schedule:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 specs/011-controlled-generalization/validation/trace_resume.py \
+    --engine podman \
+    --run run-state/generalization/diagnostic-001 \
+    --matrix run-state/generalization/resume-fresh-001 \
+    --layers \
+    --defer-layers \
+    --output run-state/generalization/resume-deferred-001
+)
+```
+
+Upload `run-state/generalization/resume-deferred-001.zip`, pass or fail. Preserve
+both input directories. Eight updates, original numerical policy, no rebuild,
+broad qualification suite, search or evaluation. Compatibility is rechecked first.
+
+During the first traced forward, hooks clone observed tensor inputs/outputs on
+their existing device. Fingerprints are computed only after the entire original
+forward returns. The module hooks perform no CPU readbacks or explicit device
+synchronization; existing before/after update fingerprints still synchronize.
+Clones preserve values against later mutation. Capture is bounded to1 GiB of
+tensor data and100000 nodes per forward,2048 module events, and2 MiB per exported
+trace. All capture remains private until converted to hashes. The allocation and
+queued-copy work can still affect behavior, so compare controls and traced
+endpoints before attributing a first differing module. Missing reproduction is
+not a fix, and this probe cannot identify a backend kernel by itself. The original
+67-minute sum of stage ceilings remains; deferred capture's HIP overhead is
+unmeasured. Feature qualification remains false and T064–T067 remain open.
+
+### Completed diagnostic: synchronized module tracing
 
 Blas-fresh-001 failed exact full/resume equality without tensor observers: fresh A
 and B agree, while the resumed endpoint differs in weights/optimizer and matches

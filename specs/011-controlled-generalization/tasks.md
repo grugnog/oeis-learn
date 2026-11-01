@@ -57,7 +57,28 @@ optimizer. The combined BLAS policy is insufficient and must not be promoted.
 T123 adds module-level input/output observations to the existing controlled trace;
 no new numerical policy is proposed and T064–T067 remain open.
 
+Latest evidence, 2026-11-01 Pacific: layers-001 verifies (251.158s). Controls
+still differ, but both traced endpoints and all202 module events match. One traced
+endpoint differs from its control, so synchronized module tracing has an observer
+effect and cannot localize the original divergence. T124 defers module CPU reads
+until forward completion; no production fix or gate closure is claimed.
+
 ### Temporary diagnostic iteration (operator authorized 2026-10-31 Pacific)
+
+- [X] T124 Reconcile layers-001's observer effect and add deferred module capture
+  to the same temporary trace. Clone observed tensors on their current device,
+  defer CPU fingerprinting until forward completion, enforce memory/node/event
+  bounds and hook cleanup, preserve controls and disclose allocation/timing effects.
+  Test immutable capture and absence of CPU reads during capture. No production
+  backend change or claim that synchronized trace agreement resolves the failure.
+
+T124 validation:90 local helper tests pass after five intended failing tests.
+Tests cover immutable device-side capture,1 GiB memory rejection, no CPU reads
+inside the observed original forward, unchanged CPU update/RNG, and hook cleanup
+on failure in immediate/deferred modes. The same four-branch/eight-update schedule
+remains. No production inventory changed, no local HIP ran and CI was not awaited.
+Actual deferred-capture observer effects remain an operator measurement.
+
 
 - [X] T123 Record blas-fresh-001 as failed exact resume, reject promotion of the
   combined BLAS candidate, and extend the existing trace with bounded module

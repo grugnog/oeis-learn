@@ -924,3 +924,34 @@ individual backend kernels remain outside its measurement. Observation overhead
 can still affect reproduction and is compared against controls.86 local helper
 tests pass after three intended failures. No production source inventory changed,
 no local HIP ran and CI was not awaited. T064–T067 remain open.
+
+
+## Resume-layers-001: module synchronization changes the observed endpoint
+
+Reviewed2026-11-01 Pacific. ZIP SHA256:
+`731fb8452a449dd6928ab35f0b3b2a2e1ccccec7a516e29d6ce915d025eb77da`.
+All80 inventoried payloads plus manifest verify, with no omissions. All five
+helper hashes match2d026be. Stage elapsed251.158 seconds (4m11s), all stages
+PASS/exit0 and acknowledged cleanup. Feature qualification remains false.
+
+Original-policy controls differ in weights/optimizer. Both synchronized traced
+runs agree, including every phase and all202 ordered module input/output events.
+`observer_effect.old_equal=false`, `observer_effect.new_equal=true`: one observed
+endpoint differs from its corresponding uninstrumented control. No first differing
+module was captured. Agreement under this observer cannot repair or explain the
+original numerical mismatch. The run does not prove a particular synchronization,
+allocation or backend cause; several aspects of instrumentation change execution.
+
+T124 adds deferred capture to the same helper/schedule. Module hooks clone tensors
+on their existing device and retain bounded snapshots; CPU reads/hash computation
+occur only after the original whole forward returns. The before/after update trace
+still synchronizes, and the additional queued copies/allocations remain an explicit
+intervention assessed against the controls. Cloning prevents later in-place changes
+from corrupting the observation. At most1 GiB tensor data/100000 nodes is captured
+per forward, with the existing2048-event and2 MiB trace ceilings. No private tensors
+are exported. All hooks unwind on success or error. The mode and requested original
+policy accompany bundle metadata/header.90 local tests pass after five intended
+failures, including absence of CPU tensor reads inside the observed forward,
+immutable capture, memory rejection, CPU update/RNG parity and failure cleanup.
+No production source inventory changed, no local HIP ran and CI was not awaited.
+T064–T067 remain open; deferred-capture behavior requires one operator invocation.

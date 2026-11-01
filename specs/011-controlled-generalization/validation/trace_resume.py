@@ -29,7 +29,25 @@ def configure_policy(policy):
         ROCBLAS_DEFAULT_ATOMICS_MODE=os.environ['ROCBLAS_DEFAULT_ATOMICS_MODE'])),file=sys.stderr,flush=True)
 
 
-def install_trace(path,policy='observe',layers=False):
+def capture_value(value,budget):
+    """Snapshot on the existing device; no CPU transfer or tensor-value query."""
+    import torch
+    from dataclasses import is_dataclass,fields
+    budget['nodes']+=1
+    if budget['nodes']>100000:raise ValueError('capture node cap')
+    if isinstance(value,torch.Tensor):
+        budget['bytes']+=value.numel()*value.element_size()
+        if budget['bytes']>1<<30:raise ValueError('capture memory cap')
+        return value.detach().clone()
+    if isinstance(value,dict):return {k:capture_value(v,budget) for k,v in value.items()}
+    if isinstance(value,(tuple,list)):
+        result=[capture_value(v,budget) for v in value]
+        return tuple(result) if isinstance(value,tuple) else result
+    if is_dataclass(value):return {f.name:capture_value(getattr(value,f.name),budget) for f in fields(value)}
+    return value
+
+
+def install_trace(path,policy='observe',layers=False,defer_layers=False):
     """Observe the existing update; CPU readbacks synchronize and may affect timing."""
     import hashlib,json,os,random
     from dataclasses import is_dataclass,fields
@@ -74,7 +92,8 @@ def install_trace(path,policy='observe',layers=False):
     def factory(encoder,decoder,optimizer,*,device,scheduler=None):
         update=original(encoder,decoder,optimizer,device=device,scheduler=scheduler)
         emit('execution',torch=str(torch.__version__),hip=torch.version.hip,device=device,
-            diagnostic_policy=policy,module_tracing=layers,blas_preference=str(torch.backends.cuda.preferred_blas_library()),
+            diagnostic_policy=policy,module_tracing=layers,deferred_module_reads=defer_layers,
+            blas_preference=str(torch.backends.cuda.preferred_blas_library()),
             device_name=torch.cuda.get_device_name() if device=='cuda' else 'cpu',
             execution=execution_observation(),threads=torch.get_num_threads(),
             environment={k:os.environ.get(k) for k in ('PYTHONHASHSEED','CUBLAS_WORKSPACE_CONFIG',
@@ -91,12 +110,16 @@ def install_trace(path,policy='observe',layers=False):
             if ordinal>4:raise ValueError('trace limited to four diagnostic updates')
             logits=sft.teacher_forced_logits;clip=torch.nn.utils.clip_grad_norm_
             def forward(*args,**kwargs):
-                events=[];handles=[]
+                events=[];handles=[];budget=dict(bytes=0,nodes=0)
                 def hook(name):
                     def observed(module,inputs,keywords,result):
                         if len(events)>=2048:raise ValueError('module event cap')
-                        events.append(dict(module=name,kind=type(module).__name__,
-                            input=fingerprint((inputs,keywords)),output=fingerprint(result)))
+                        if defer_layers:
+                            events.append(dict(module=name,kind=type(module).__name__,
+                                input=capture_value((inputs,keywords),budget),output=capture_value(result,budget)))
+                        else:
+                            events.append(dict(module=name,kind=type(module).__name__,
+                                input=fingerprint((inputs,keywords)),output=fingerprint(result)))
                     return observed
                 try:
                     if layers and ordinal==1:
@@ -104,6 +127,11 @@ def install_trace(path,policy='observe',layers=False):
                             for name,module in model.named_modules():
                                 handles.append(module.register_forward_hook(hook(prefix+('.'+name if name else '')),with_kwargs=True))
                     result=logits(*args,**kwargs)
+                    if defer_layers:
+                        # The original complete forward has now returned. Only
+                        # here may captured tensors be read back and hashed.
+                        for event in events:
+                            event['input']=fingerprint(event['input']);event['output']=fingerprint(event['output'])
                     emit('forward',ordinal,logits=fingerprint(result),**({'layer_events':events} if layers and ordinal==1 else {}))
                     return result
                 finally:
@@ -131,14 +159,15 @@ def install_trace(path,policy='observe',layers=False):
 
 
 @contextmanager
-def instrument(policy='observe',*,tracing=True,layers=False):
+def instrument(policy='observe',*,tracing=True,layers=False,defer_layers=False):
     from oeis_learn.pipeline_validation import generalization_roles as roles
     original=roles.ROLE_PROGRAM
     # Installed role code and its canonical mounts/deadlines are unchanged. Only
     # this diagnostic process receives the separately hashed observer bootstrap.
     if policy not in {'observe','rocblas'}:raise ValueError('unregistered diagnostic policy')
-    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r})\n" if tracing else ''
-    roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+(inspect.getsource(install_trace) if tracing else '')+
+    observer=f"    install_trace('/output/learner/update-trace.jsonl',{policy!r},layers={layers!r},defer_layers={defer_layers!r})\n" if tracing else ''
+    roles.ROLE_PROGRAM=(inspect.getsource(configure_policy)+'\n'+
+        (inspect.getsource(capture_value)+'\n'+inspect.getsource(install_trace) if tracing else '')+
         "\nimport sys,json\nif sys.argv[-2]=='learner' and json.loads(sys.argv[-1])['operation']=='train':\n"
         f"    configure_policy({policy!r})\n"+observer+original)
     try:yield
@@ -153,7 +182,8 @@ def plan(args):
             needs=[] if name=='compatibility' else ['compatibility'],
             argv=[sys.executable,str(Path(__file__).resolve()),'--engine',args.engine,'--run',args.run,
                   '--matrix',args.matrix,'--output',str(Path(args.output)/name),'--internal',name,
-                  '--policy',getattr(args,'policy','observe')]+(['--layers'] if getattr(args,'layers',False) else [])))
+                  '--policy',getattr(args,'policy','observe')]+(['--layers'] if getattr(args,'layers',False) else [])+
+                  (['--defer-layers'] if getattr(args,'defer_layers',False) else [])))
     return result
 
 
@@ -222,7 +252,7 @@ def internal(args):
     try:
         manager=nullcontext()
         if traced:
-            if getattr(args,'layers',False):manager=instrument(getattr(args,'policy','observe'),layers=True)
+            if getattr(args,'layers',False):manager=instrument(getattr(args,'policy','observe'),layers=True,defer_layers=getattr(args,'defer_layers',False))
             else:manager=instrument() if getattr(args,'policy','observe')=='observe' else instrument(args.policy)
         with manager:
             result=probe_resume.train_branch('continue-a',ctx,host,output)
@@ -300,8 +330,10 @@ def main(argv=None):
     p.add_argument('--dry-run',action='store_true')
     p.add_argument('--policy',choices=['observe','rocblas'],default='observe')
     p.add_argument('--layers',action='store_true',help='Hash module inputs/outputs in the first traced forward')
+    p.add_argument('--defer-layers',action='store_true',help='Capture device tensors and read only after the whole forward')
     p.add_argument('--internal',choices=['compatibility',*RUNS,'compare'],help=argparse.SUPPRESS)
     args=p.parse_args(argv)
+    if args.defer_layers and not args.layers:p.error('--defer-layers requires --layers')
     sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
     from diagnose_hip import save,execute,run
     from oeis_learn.pipeline_validation.identity import confined,file_hash
@@ -318,7 +350,7 @@ def main(argv=None):
     from oeis_learn.pipeline_validation.generalization_lifecycle import scope
     import probe_resume
     output.mkdir(parents=True)
-    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,module_tracing=args.layers,images=ctx['runtime']['images'],helpers={
+    metadata=dict(source_run=args.run,matrix=args.matrix,policy=args.policy,module_tracing=args.layers,deferred_module_reads=args.defer_layers,images=ctx['runtime']['images'],helpers={
         n:file_hash(Path(__file__).with_name(n)) for n in ('trace_resume.py','test_trace_resume.py',
         'probe_resume.py','inspect_resume.py','diagnose_hip.py')})
     with scope(output,CAPS):record=execute(stages,output,runner=run,metadata=metadata)

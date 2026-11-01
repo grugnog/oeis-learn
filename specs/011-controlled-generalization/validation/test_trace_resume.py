@@ -26,12 +26,21 @@ def test_first_divergence_names_phase_and_preserves_absence():
     assert helper.first_difference(old,[])['phase']=='missing_record'
 
 
-@pytest.mark.parametrize('layers',[False,True])
-def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch,layers):
+@pytest.mark.parametrize('layers,deferred',[(False,False),(True,False),(True,True)])
+def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch,layers,deferred):
     import sys,types,torch
     from oeis_learn.pipeline_validation import generalization_training as training
     module=types.ModuleType('oeis_learn.rl.sft_trainer')
-    def logits(encoder,decoder,*args,**kwargs):return decoder(encoder(torch.ones(1,2)))
+    in_forward=[False]
+    def logits(encoder,decoder,*args,**kwargs):
+        in_forward[0]=True
+        try:return decoder(encoder(torch.ones(1,2)))
+        finally:in_forward[0]=False
+    cpu=torch.Tensor.cpu
+    def checked_cpu(tensor,*args,**kwargs):
+        if deferred:assert not in_forward[0], 'deferred capture read back during the original forward'
+        return cpu(tensor,*args,**kwargs)
+    monkeypatch.setattr(torch.Tensor,'cpu',checked_cpu)
     module.teacher_forced_logits=logits
     monkeypatch.setitem(sys.modules,'oeis_learn.rl.sft_trainer',module)
     import oeis_learn.rl
@@ -52,7 +61,7 @@ def test_trace_preserves_update_and_rng_and_restores_hooks(tmp_path,monkeypatch,
     expected=[p.detach().clone() for p in list(a.parameters())+list(b.parameters())]
     expected_rng=torch.get_rng_state()
     a,b,opt=models();clip=torch.nn.utils.clip_grad_norm_
-    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=layers)
+    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=layers,defer_layers=deferred)
     try:training.torch_update(a,b,opt,device='cpu')([{'private':'never export'}])
     finally:undo()
     assert all(torch.equal(x,y) for x,y in zip(expected,list(a.parameters())+list(b.parameters())))
@@ -271,7 +280,8 @@ def test_layer_difference_distinguishes_input_difference_from_operation_output()
     assert helper.first_layer_difference(a,[])['reason']=='missing_event'
 
 
-def test_module_hooks_are_removed_when_forward_raises(tmp_path,monkeypatch):
+@pytest.mark.parametrize('deferred',[False,True])
+def test_module_hooks_are_removed_when_forward_raises(tmp_path,monkeypatch,deferred):
     import sys,types,torch,oeis_learn.rl
     from oeis_learn.pipeline_validation import generalization_training as training
     module=types.ModuleType('oeis_learn.rl.sft_trainer')
@@ -283,7 +293,7 @@ def test_module_hooks_are_removed_when_forward_raises(tmp_path,monkeypatch):
     monkeypatch.setattr(training,'torch_update',lambda a,b,o,**kw:lambda batch:module.teacher_forced_logits(a,b))
     a=torch.nn.Linear(2,2);b=torch.nn.Linear(2,1)
     opt=torch.optim.SGD(list(a.parameters())+list(b.parameters()),lr=.01)
-    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=True)
+    undo=helper.install_trace(tmp_path/'trace.jsonl',layers=True,defer_layers=deferred)
     try:
         with pytest.raises(RuntimeError,match='forward failure'):training.torch_update(a,b,opt,device='cpu')([])
     finally:undo()
@@ -297,3 +307,25 @@ def test_layer_trace_stage_propagation_and_bounded_read(tmp_path,monkeypatch):
     path=tmp_path/'oversized';path.write_bytes(b'x'*((2<<20)+1))
     monkeypatch.setattr(Path,'read_text',lambda *a,**kw:pytest.fail('must reject before reading'))
     with pytest.raises(ValueError,match='trace byte cap'):helper.read_trace(path)
+
+
+
+def test_deferred_capture_clones_without_cpu_reads_and_obeys_bound(monkeypatch):
+    import torch
+    from dataclasses import dataclass
+    @dataclass
+    class Row:
+        tensor:object
+    x=torch.ones(3)
+    monkeypatch.setattr(torch.Tensor,'cpu',lambda *_:pytest.fail('capture must not read to CPU'))
+    budget=dict(bytes=0,nodes=0)
+    result=helper.capture_value(Row(x),budget)
+    x.add_(1)
+    assert torch.equal(result['tensor'],torch.ones(3))
+    assert budget['bytes']==12
+    with pytest.raises(ValueError,match='memory cap'):helper.capture_value(x,dict(bytes=1<<30,nodes=0))
+
+
+def test_deferred_plan_and_bootstrap_propagate_capture_mode():
+    args=SimpleNamespace(engine='podman',run='old',matrix='fresh',output='out',layers=True,defer_layers=True)
+    assert all(s['argv'][-2:]==['--layers','--defer-layers'] for s in helper.plan(args))
