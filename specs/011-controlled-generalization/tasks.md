@@ -513,3 +513,12 @@ Targeted HIP failure-class audit, 2026-11-01. This is not complete feature conve
 ### Phase C/D — qualification test scratch containment
 
 - [X] T110 Repair `container_validation.py` pytest scratch routing after acceptance-012 exhausted the 2 GiB `/tmp` tmpfs. Put every validation suite's fixture tree under its existing private writable output mount, release successful-test scratch with pytest's supported retention policy and retain failed fixtures. Integrate private runtime scratch with command inventories and symlink-safe disk accounting so pytest aliases do not become false resource failures or evidence. Keep scratch excluded from public receipts/bundles but included in disk accounting, without increasing tmpfs/storage caps or dropping tests. Reproduce the command-contract defect for both engines and every suite, test real pytest retention, reconcile original 012 evidence, and commit/push before another consolidated run (NFR-003/004/005/006/007/008, SC-007).
+
+
+### Reopened Phase B — evaluation clock containment
+
+- [X] T111 Charge installed generator initialization, native setup and retained-model loading to one enclosing computation allowance; reserve process startup/exit inside the existing role envelope without borrowing container cleanup time. Reject exhausted scopes before generation. Add virtual-clock counterexamples and real command boundary checks, preserve original portfolio semantics and fail-closed process success (NFR-006/007, SC-007).
+
+### Phase C/D — acceptance evaluation envelopes and 013 evidence
+
+- [ ] T112 Freeze enlarged acceptance-only evaluation envelopes and enclosing case/session reservations after acceptance-013 completed both learners but timed out after generator result publication. Check all remaining proof/resume envelopes, original archive/terminal verification, and combined regressions; preserve original evidence, scientific limits and research budgets, and publish one consolidated fresh-run command (NFR-003/005/006/007/008, SC-006/007).

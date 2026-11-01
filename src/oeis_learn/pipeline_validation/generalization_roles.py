@@ -53,7 +53,13 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
             raise ValueError('regular explicit input directory required')
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
-    runtime=dict(settings=settings,operation=operation,seconds=remaining_seconds(deadline)-cleanup_seconds,device='cuda' if gpu else 'cpu')
+    computation_seconds=remaining_seconds(deadline)-cleanup_seconds
+    if role==Role.GENERATOR and operation=='evaluate':
+        # The process deadline includes interpreter startup and exit. Leave those
+        # inside work, separate from the protected container cleanup allowance.
+        computation_seconds-=min(30,computation_seconds/5)
+    if computation_seconds<=0:raise TimeoutError('role setup exhausted computation allowance')
+    runtime=dict(settings=settings,operation=operation,seconds=computation_seconds,device='cuda' if gpu else 'cpu')
     diagnostic=('validation' if role==Role.PREPARATION and operation=='validate-runtime' else
                 role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
     argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else

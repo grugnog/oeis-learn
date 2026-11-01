@@ -131,6 +131,8 @@ def pin_selection(inputs,output,settings,*,seconds):
 
 
 def generator(inputs,output,settings,*,seconds):
+    deadline=time.monotonic()+seconds
+    from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.bigint_worker import client
     from .generalization_evaluation import evaluate_retained
@@ -140,7 +142,7 @@ def generator(inputs,output,settings,*,seconds):
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
-            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=seconds,bank_seeds=settings['bank_seeds'])
+            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'])
 
 
 def selection(inputs,output,settings,*,seconds):
@@ -234,6 +236,7 @@ HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_
 
 
 def main(argv=None):
+    began=time.monotonic()
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('role',choices=[r.value for r in Role]);parser.add_argument('runtime')
     args=parser.parse_args(argv);role=Role(args.role);runtime=json.loads(args.runtime)
@@ -250,7 +253,11 @@ def main(argv=None):
         else:
             selected=runtime['settings'].get('config',runtime['settings'])
             if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
-            result=handler(inputs,output,runtime['settings'],seconds=runtime['seconds'])
+            allowance=runtime['seconds']
+            if role==Role.GENERATOR and runtime['operation']=='evaluate':
+                from oeis_learn.generalization.budgets import remaining_seconds
+                allowance=remaining_seconds(began+allowance)
+            result=handler(inputs,output,runtime['settings'],seconds=allowance)
     except (KeyError,ValueError,OSError,RuntimeError,TimeoutError) as exc:
         result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc))
     write(output/'result.json',seal(result))

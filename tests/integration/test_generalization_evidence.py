@@ -89,3 +89,49 @@ def test_production_evaluation_uses_matched_drain_and_single_proposal_diagnostic
     result=evaluation.evaluate_retained(tmp_path,dict(path='weights',sha256='identity',bytes=7),prompts,{},tmp_path/'result',
         client=None,device='cpu',study='study',source='source')
     assert result['primary_attempts']['correct']==8 and result['raw_rescue_attempts']==1
+
+
+@pytest.mark.parametrize('load_seconds',[20,101])
+def test_retained_evaluation_charges_load_before_generation(tmp_path,monkeypatch,load_seconds):
+    import time
+    from oeis_learn.pipeline_validation import generalization_evaluation as evaluation,pilot_clocks
+    from oeis_learn.fresh import bigint_diagnostics
+    clock=[100.];monkeypatch.setattr(time,'monotonic',lambda:clock[0])
+    (tmp_path/'weights').write_bytes(b'fixture')
+    prompts=[dict(id='opaque',indices=list(map(str,range(20))),values=['0']*20)]
+    def load(*a,**kw):clock[0]+=load_seconds;return 'encoder','decoder',{}
+    monkeypatch.setattr(evaluation,'load_retained',load)
+    class Evidence:
+        def __init__(self,*a,**kw):self.clock_summary={'cost_complete':True,'identity':'clock'}
+        def finish(self):pass
+    monkeypatch.setattr(pilot_clocks,'FullClockEvidence',Evidence)
+    def generate(*a,**kw):
+        assert load_seconds<100, 'no work may start after loading exhausted the scope'
+        assert kw['deadline']==200., 'loading must not reset the deadline'
+        return {'records':{}}
+    monkeypatch.setattr(bigint_diagnostics,'generate',generate)
+    args=(tmp_path,dict(path='weights',sha256='identity',bytes=7),prompts,{},tmp_path/'out')
+    kw=dict(client=None,device='cpu',study='study',source='source',seconds=100)
+    if load_seconds>100:
+        with pytest.raises(TimeoutError):evaluation.evaluate_retained(*args,**kw)
+    else:assert evaluation.evaluate_retained(*args,**kw)['status']=='PASS'
+
+
+def test_generator_setup_is_charged_before_retained_evaluation(tmp_path,monkeypatch):
+    import time
+    from contextlib import contextmanager
+    from oeis_learn.pipeline_validation import generalization_role as role,generalization_evaluation as evaluation,sizing_execution
+    from oeis_learn.fresh import bigint_worker
+    from oeis_learn.generalization import contracts
+    clock=[100.];monkeypatch.setattr(time,'monotonic',lambda:clock[0])
+    def verify(*a,**kw):clock[0]+=5;return '[]'
+    @contextmanager
+    def client(*a,**kw):clock[0]+=10;yield None
+    monkeypatch.setattr(contracts,'verify_artifact',verify)
+    monkeypatch.setattr(bigint_worker,'client',client)
+    from contextlib import nullcontext
+    monkeypatch.setattr(sizing_execution,'execution_context',nullcontext)
+    def evaluate(*a,**kw):assert kw['seconds']==85;return {'status':'PASS'}
+    monkeypatch.setattr(evaluation,'evaluate_retained',evaluate)
+    settings=dict(checkpoint={},prompts={},recipe={},study='study',source='source',device='cpu',bank_seeds=None)
+    assert role.generator(dict(visible_prompts=tmp_path,frozen_weights=tmp_path),tmp_path/'out',settings,seconds=100)['status']=='PASS'

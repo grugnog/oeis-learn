@@ -107,9 +107,12 @@ def test_real_role_command_uses_qualified_private_runtime(tmp_path,monkeypatch,e
     for name in channels.values():(tmp_path/name).mkdir()
     observed=[]
     def launch(argv,output,**kw):
+        if selected==Role.GENERATOR:
+            runtime=json.loads(argv[-1])
+            assert 0 < runtime['seconds'] < kw['seconds']-4
         observed.extend(argv);(output.parent/'result.json').write_text('{"status":"PASS"}')
     roles.invoke(SimpleNamespace(engine=engine,policy={'memory_bytes':2<<30,'cpus':4}),
-        'sha256:'+'a'*64,tmp_path,selected,channels,output='out',operation='fixture',settings={},seconds=30,launcher=launch)
+        'sha256:'+'a'*64,tmp_path,selected,channels,output='out',operation='evaluate' if selected==Role.GENERATOR else 'fixture',settings={},seconds=30,launcher=launch)
     env=dict(observed[i+1].split('=',1) for i,x in enumerate(observed) if x=='--env')
     assert env['TMPDIR']==f'/output/{role_name}/.runtime/tmp'
     assert env['HOME']==f'/output/{role_name}/.runtime/home'

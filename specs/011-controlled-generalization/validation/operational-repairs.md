@@ -125,3 +125,23 @@ separately above. `git diff --check` passed. No HIP command or CI wait occurred.
 T110 is complete; T064–T067 still require fresh images/inputs and consolidated
 acceptance. The next normal invocation uses fresh acceptance-013 paths and the
 unchanged 335-minute ceiling; no separate manual diagnostic probe is required.
+
+## T111 — evaluation startup/load/exit containment (2026-10-31 Pacific)
+
+Acceptance-013's generator published a PASS application result but its process
+exceeded the external work deadline and was killed. The parent correctly retained
+FAIL. The installed evaluation clock previously restarted after model loading;
+the role also received almost the entire process-work allowance, leaving no
+explicit startup/exit reserve. The generator entrypoint now charges torch setup,
+the handler charges input/native setup, and retained evaluation starts its deadline
+before imports/validation/model loading and checks it before generation. Generator
+evaluation reserves min(30 seconds, 20% of process work) for process startup/exit,
+inside work and separate from container cleanup. A PASS result still cannot
+replace successful process termination. Original 60-second portfolio policies,
+attempt counts and scientific semantics remain unchanged.
+
+Six regressions failed before the change: delayed/exhausted model loading, native
+setup, torch setup and both engine command boundaries. Targeted evidence/scoring,
+role-contract and runtime integration tests passed after the repair. This is the
+single reopened operational-policy group; T112 wires enlarged acceptance envelopes
+and records combined validation. No local HIP execution or CI wait.

@@ -155,3 +155,19 @@ def test_projected_checkpoint_directories_preserve_original_selection_identity(t
         client=None,output=tmp_path/'selected',seconds=30,directories=directories)
     assert result['selected']==min(directories)
     assert result['candidates']==candidates
+
+
+def test_generator_entrypoint_charges_torch_initialization(tmp_path,monkeypatch):
+    import time,torch
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_role as role
+    from oeis_learn.generalization.role_contracts import Role
+    clock=[100.];monkeypatch.setattr(time,'monotonic',lambda:clock[0])
+    def threads(n):clock[0]+=12
+    monkeypatch.setattr(torch,'set_num_threads',threads)
+    monkeypatch.setattr(torch,'get_num_interop_threads',lambda:1)
+    monkeypatch.setattr(role,'ROLE_OUTPUTS',{Role.GENERATOR:SimpleNamespace(destination=str(tmp_path))})
+    def handler(*a,**kw):assert kw['seconds']==88;return dict(status='PASS')
+    monkeypatch.setitem(role.HANDLERS,(Role.GENERATOR,'evaluate'),handler)
+    runtime=dict(settings={},operation='evaluate',seconds=100,device='cpu')
+    assert role.main(['generator',json.dumps(runtime)])==0

@@ -63,6 +63,8 @@ def build_bank(decoder,checkpoint,seeds,*,deadline):
 def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None):
     """Existing matched/drained production portfolios, plus the shared bank control."""
     import time
+    deadline=time.monotonic()+seconds
+    from oeis_learn.generalization.budgets import remaining_seconds
     from pathlib import Path
     from oeis_learn.fresh.bigint_diagnostics import generate,_seal
     from oeis_learn.synthesis.admission import VisiblePrompt
@@ -81,7 +83,7 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
         result=seal(dict(status='PARTIAL',availability='unavailable',checkpoint=checkpoint['sha256'],reason='MISSING_ARTIFACT'))
         write(output/'evaluation.json',result);return result
     encoder,decoder,counts=load_retained(root,checkpoint,recipe,device=device)
-    deadline=time.monotonic()+seconds
+    remaining_seconds(deadline)
     bank=build_bank(decoder,checkpoint['sha256'],bank_seeds,deadline=deadline) if bank_seeds is not None else None
     evidence=FullClockEvidence(output/'attempts',prompts,source=source,work=study,policy=DRAIN)
     try:
