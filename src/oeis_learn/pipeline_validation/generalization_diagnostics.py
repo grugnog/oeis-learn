@@ -1,5 +1,6 @@
 """Bounded public control copies, with metadata-only discovery of nested roles."""
 import hashlib
+import json
 import os
 from pathlib import Path
 import stat
@@ -11,6 +12,8 @@ LOG_CAP=64<<10
 TOTAL_CAP=4<<20
 CASES=('parameter-targets','refresh','retained-eval','replay-resume')
 CONTROL=('process.json','cleanup.json','stdout.log','stderr.log')
+EXPORTED=frozenset({'COPIED','TRUNCATED','PROJECTED'})
+MESSAGE_CAP=2048
 ROLE_SCAN_ENTRIES=8192
 ROLE_SCAN_DIRS=2048
 ROLE_SCAN_ROLES=256
@@ -19,8 +22,22 @@ ROLE_SKIP=frozenset({'input','inputs','checkpoints','.runtime','native-cache',
                      'cache','caches','selected','cells'})
 
 
+def terminal_fields(result):
+    """Project bounded terminal diagnostics, excluding all other role payloads."""
+    statuses={'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}
+    if not isinstance(result,dict) or not isinstance(result.get('status'),str) or result['status'] not in statuses:
+        raise ValueError('invalid role terminal status')
+    fields={'status':result['status']}
+    for key in ('reason','error'):
+        value=result.get(key)
+        if isinstance(value,str):
+            marker='[truncated]'
+            fields[key]=value if len(value)<=MESSAGE_CAP else value[:MESSAGE_CAP-len(marker)]+marker
+    return fields
+
+
 def nested_controls(root):
-    """Discover only role/supervision controls; never read discovered payloads."""
+    """Discover control paths and results for projection, without reading payloads."""
     pending=[];names=[];omissions=[];entries=directories=roles=0
     for case in (*CASES,'failure-packaging'):
         relative=Path(case)/'case/private'
@@ -49,6 +66,7 @@ def nested_controls(root):
                         if roles>=ROLE_SCAN_ROLES:bounded=True;break
                         roles+=1
                         names.extend(str(path/'supervision'/name) for name in CONTROL)
+                        names.append(str(path/'result.json'))
                     else:pending.append((path,depth+1))
         except OSError as exc:
             omissions.append(dict(source=str(relative),status='OMITTED',reason=type(exc).__name__))
@@ -58,7 +76,7 @@ def nested_controls(root):
 
 
 def candidates(*,nested=()):
-    # Fixed public paths plus the four controls of bounded discovered roles.
+    # Fixed public paths plus controls and projected outcomes of bounded roles.
     # Prioritize terminal explanations before potentially large suite logs/XML.
     for stage in ('preflight','prepare',*CASES,'failure-packaging','report','verify-bundle'):
         for name in ('result.json','summary.json'):yield f'{stage}/{name}'
@@ -109,8 +127,11 @@ def collect(root,destination,*,cap=TOTAL_CAP):
     rows=[];used=0
     for name in candidates(nested=sorted(nested)):
         relative=Path(name)
+        projected=name in nested and relative.name=='result.json'
+        control_parent=relative.parent/'supervision' if projected else relative.parent
         # Archive paths must never expose private directories as public payloads.
-        export_path=(str(Path('nested-roles')/hashlib.sha256(str(relative.parent).encode()).hexdigest()/relative.name)
+        export_path=(str(Path('nested-roles')/hashlib.sha256(str(control_parent).encode()).hexdigest()/
+                         ('outcome.json' if projected else relative.name))
                      if name in nested else name)
         path=root/name;row=dict(source=name,export_path=export_path);rows.append(row)
         try:
@@ -137,11 +158,16 @@ def collect(root,destination,*,cap=TOTAL_CAP):
                 after=os.fstat(stream.fileno())
                 if len(data)>limit or (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):
                     raise ValueError('file changed during capture')
+            if projected:
+                row['original_sha256']='sha256:'+hashlib.sha256(data).hexdigest()
+                data=(json.dumps(terminal_fields(json.loads(data)),sort_keys=True)+'\n').encode()
+                status='PROJECTED'
+                if len(data)>cap-used:raise ValueError('total byte cap')
             target=destination/export_path;target.parent.mkdir(parents=True,exist_ok=True)
             with target.open('xb') as stream:stream.write(data)
             used+=len(data)
             row.update(status=status,exported_bytes=len(data),sha256='sha256:'+hashlib.sha256(data).hexdigest())
-        except (OSError,ValueError) as exc:
+        except (OSError,ValueError,RecursionError) as exc:
             row.update(status='OMITTED',reason=str(exc) if isinstance(exc,ValueError) else type(exc).__name__)
     rows.extend(omissions)
     result=seal(dict(version='generalization-diagnostics/v1',qualification_evidence=False,
@@ -163,7 +189,7 @@ def export(root,destination):
     write(destination/'summary.json',seal(dict(selected_scope='PARTIAL',
         reason='DIAGNOSTIC_EXPORT_ONLY',feature_qualified=False,scientific_status='UNMEASURED')))
     mandatory=['summary.json','diagnostics/index.json']
-    mandatory.extend('diagnostics/'+r['export_path'] for r in index['files'] if r['status'] in {'COPIED','TRUNCATED'})
+    mandatory.extend('diagnostics/'+r['export_path'] for r in index['files'] if r['status'] in EXPORTED)
     archive=pack(destination,mandatory=mandatory)
     verify(archive)
     return dict(archive=str(archive),qualification_evidence=False,exported_bytes=index['exported_bytes'])

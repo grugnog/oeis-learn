@@ -474,3 +474,7 @@ reference/counterexample tests. No additional research or HIP execution authoriz
 ### Phase C/D — diagnostic stack-walk mitigation
 
 - [X] T100 Replace scheduled cross-thread traceback dumps with timestamp-only heartbeats in role and image-inspection bootstraps after acceptance-009 exited139 during its first dump. Preserve external deadlines, phase markers, isolation and failure evidence; test pass/error/hang and frame churn with stack walking forbidden, document causal uncertainty and publish the repair (FR-033, NFR-007/008, SC-007).
+
+### Phase C/D — negative role outcome diagnostics
+
+- [X] T101 Capture bounded status/reason/error projections from nested role results, including negative application outcomes transported with exit0; exclude source/tensor/entry payloads and retain original hash plus explicit projection status. Emit negative role outcomes to existing bounded stderr and test normal/recovery/existing-run packaging, malformed/oversized results and message limits. Reconcile acceptance-010 and provide an existing-run export for its missing error before proposing another HIP run (FR-033, NFR-007/008, SC-007).

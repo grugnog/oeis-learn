@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import time
 
@@ -242,16 +243,18 @@ def main(argv=None):
     output=Path(ROLE_OUTPUTS[role].destination)
     inputs={m.channel:Path(m.destination) for m in ROLE_INPUTS[role]}
     handler=HANDLERS.get((role,runtime['operation']))
-    if handler is None:
-        write(output/'result.json',seal(dict(status='BLOCKED',reason='UNREGISTERED_ROLE_OPERATION')))
-        return 0
     try:
-        selected=runtime['settings'].get('config',runtime['settings'])
-        if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
-        result=handler(inputs,output,runtime['settings'],seconds=runtime['seconds'])
+        if handler is None:result=dict(status='BLOCKED',reason='UNREGISTERED_ROLE_OPERATION')
+        else:
+            selected=runtime['settings'].get('config',runtime['settings'])
+            if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
+            result=handler(inputs,output,runtime['settings'],seconds=runtime['seconds'])
     except (KeyError,ValueError,OSError,RuntimeError,TimeoutError) as exc:
         result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc))
     write(output/'result.json',seal(result))
+    if result.get('status')!='PASS':
+        from .generalization_diagnostics import terminal_fields
+        print('role-outcome: '+json.dumps(terminal_fields(result),sort_keys=True),file=sys.stderr,flush=True)
     # A terminal role result is transported even for a negative software outcome.
     # The canonical parent maps that result to the public exit status.
     return 0

@@ -12,6 +12,69 @@ def put(root,name,payload):
     return path
 
 
+@pytest.mark.parametrize('recovery',[False,True])
+def test_nested_role_outcome_survives_zero_exit_without_private_result_payload(tmp_path,recovery):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import export
+    root=tmp_path/'run';root.mkdir()
+    base='replay-resume/case/private/replay/seed/training/arm/execution/role/'
+    payload=json.dumps(dict(status='FAIL',reason='ValueError',error='fixture restore rejected',
+        entry={'source':'PRIVATE_PAYLOAD'},weights='PRIVATE_PAYLOAD')).encode()
+    put(root,base+'result.json',payload)
+    put(root,base+'supervision/process.json',b'{"outcome":"COMPLETE","returncode":0}')
+    if recovery:
+        ledger=dict(receipts=[dict(stage='replay-resume',exit_code=1)],status='FAIL')
+        put(root,'workflow.json',json.dumps(ledger).encode())
+        archive=helper().recover(root,ledger)
+    else:archive=export(root,tmp_path/'export')['archive']
+    with zipfile.ZipFile(archive) as z:
+        rows=json.loads(z.read('diagnostics/index.json'))['files']
+        row=next(r for r in rows if r['source']==base+'result.json')
+        assert row['status']=='PROJECTED'
+        assert row['original_sha256']=='sha256:'+__import__('hashlib').sha256(payload).hexdigest()
+        result=json.loads(z.read('diagnostics/'+row['export_path']))
+        assert result==dict(status='FAIL',reason='ValueError',error='fixture restore rejected')
+        assert all(b'PRIVATE_PAYLOAD' not in z.read(n) for n in z.namelist())
+
+
+def test_role_terminal_projection_bounds_messages_and_rejects_bad_status():
+    from oeis_learn.pipeline_validation.generalization_diagnostics import terminal_fields
+    result=terminal_fields(dict(status='FAIL',error='x'*3000,reason={'private':'value'},entry={'source':'secret'}))
+    assert set(result)=={'status','error'} and len(result['error'])<=2048
+    assert result['error'].endswith('[truncated]')
+    with pytest.raises(ValueError):terminal_fields(dict(status='arbitrary payload'))
+
+
+@pytest.mark.parametrize('invalid',['malformed','oversized','symlink','status','depth'])
+def test_nested_outcome_rejects_invalid_or_unsafe_result(tmp_path,invalid):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import collect,JSON_CAP
+    root=tmp_path/'run';root.mkdir()
+    name='replay-resume/case/private/replay/arm/role/result.json'
+    payload={'malformed':b'{','oversized':b'x'*(JSON_CAP+1),'symlink':b'{}',
+             'status':b'{"status": []}','depth':b'['*2000+b']'*2000}[invalid]
+    path=put(root,name,payload)
+    if invalid=='symlink':
+        path.unlink();path.symlink_to(put(tmp_path,'secret',b'PRIVATE_PAYLOAD'))
+    destination=tmp_path/'export'
+    result=collect(root,destination)
+    row=next(r for r in result['files'] if r['source']==name)
+    assert row['status']=='OMITTED'
+    assert not (destination/row['export_path']).exists()
+    assert b'PRIVATE_PAYLOAD' not in (destination/'index.json').read_bytes()
+
+
+def test_projected_outcome_obeys_encoded_total_cap(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_diagnostics import collect
+    root=tmp_path/'run';root.mkdir()
+    name='replay-resume/case/private/replay/arm/role/result.json'
+    # JSON escaping can make the projected record larger than its input.
+    payload=json.dumps(dict(status='FAIL',error='\u00e9'*100),ensure_ascii=False).encode()
+    put(root,name,payload)
+    result=collect(root,tmp_path/'export',cap=len(payload))
+    row=next(r for r in result['files'] if r['source']==name)
+    assert row['status']=='OMITTED' and row['reason']=='total byte cap'
+    assert result['exported_bytes']==0
+
+
 def test_heartbeat_survives_frame_churn_and_stops_after_body(tmp_path):
     import subprocess,sys
     from oeis_learn.pipeline_validation.supervision import diagnostic_program
@@ -107,6 +170,8 @@ def test_existing_run_diagnostic_export_is_stdlib_and_read_only(tmp_path):
     import os,subprocess,sys
     root=tmp_path/'run';root.mkdir();output=tmp_path/'export'
     put(root,'replay-resume/result.json',b'{"status":"FAIL","error":"original rejection"}')
+    nested='replay-resume/case/private/training/arm/role/result.json'
+    put(root,nested,b'{"status":"FAIL","error":"original role rejection","entry":{"source":"PRIVATE_PAYLOAD"}}')
     put(root,'summary.json',b'{"selected_scope":"FAIL"}')
     before={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
     command=[sys.executable,'-S','-m','oeis_learn.pipeline_validation.generalization_diagnostics',
@@ -119,6 +184,10 @@ def test_existing_run_diagnostic_export_is_stdlib_and_read_only(tmp_path):
     assert verify(archive)['summary_state']=='PARTIAL'
     with zipfile.ZipFile(archive) as z:
         assert z.read('diagnostics/replay-resume/result.json')==before['replay-resume/result.json']
+        row=next(r for r in json.loads(z.read('diagnostics/index.json'))['files'] if r['source']==nested)
+        assert row['status']=='PROJECTED'
+        assert json.loads(z.read('diagnostics/'+row['export_path']))==dict(status='FAIL',error='original role rejection')
+        assert all(b'PRIVATE_PAYLOAD' not in z.read(n) for n in z.namelist())
         assert json.loads(z.read('summary.json'))['feature_qualified'] is False
     assert {str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}==before
     original=archive.read_bytes()

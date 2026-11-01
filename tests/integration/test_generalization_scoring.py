@@ -38,7 +38,7 @@ def test_selection_rejects_assessment_truth_before_scoring(tmp_path):
     assert not (tmp_path/'out').exists()
 
 
-def test_role_distinguishes_handler_failure_from_unknown_operation(tmp_path,monkeypatch):
+def test_role_distinguishes_handler_failure_from_unknown_operation(tmp_path,monkeypatch,capsys):
     from types import SimpleNamespace
     from oeis_learn.pipeline_validation import generalization_role as role
     from oeis_learn.generalization.role_contracts import Role
@@ -49,6 +49,10 @@ def test_role_distinguishes_handler_failure_from_unknown_operation(tmp_path,monk
     assert role.main(['selection',json.dumps(runtime)])==0
     record=json.loads((tmp_path/'result.json').read_text())
     assert record['status']=='FAIL' and record['reason']=='KeyError'
+    line=capsys.readouterr().err.strip()
+    assert line.startswith('role-outcome: ')
+    diagnostic=json.loads(line.removeprefix('role-outcome: '))
+    assert diagnostic['status']=='FAIL' and diagnostic['error']==record['error']
 
 
 def test_retained_candidates_loss_and_behavior_use_same_selection_roster(tmp_path,monkeypatch):

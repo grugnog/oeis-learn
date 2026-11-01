@@ -90,16 +90,19 @@ containers or modifying that run, export to a fresh sibling directory:
 
 ```bash
 PYTHONPATH=src python3 -S -m oeis_learn.pipeline_validation.generalization_diagnostics \
-  --run run-state/generalization/acceptance-008 \
-  --output run-state/generalization/acceptance-008-diagnostics
+  --run run-state/generalization/acceptance-010 \
+  --output run-state/generalization/acceptance-010-diagnostics
 ```
 
 The resulting sibling ZIP is explicitly diagnostic-only. It includes bounded
 terminal case results, public case proofs and report/verifier role failures in
 addition to startup/qualification logs. Bounded metadata discovery also captures
 nested replay audit, training, evaluation and proof role supervision records,
-excluding private input/state payloads. The index maps original paths to exported
-copies and identifies missing, truncated or omitted records. It neither reruns
+plus bounded status/reason/error projections from their result files. Other result
+fields and private input/state payloads are excluded. Negative role outcomes also
+appear on stderr in future runs, even if the process exits0. The index maps original
+paths to exported copies and identifies projected, missing, truncated or omitted
+records, preserving the original hash for projections. It neither reruns
 work nor upgrades the original acceptance status.
 A successful command must still have
 original real-device evidence; setup, CPU tests and a dry run cannot establish it.

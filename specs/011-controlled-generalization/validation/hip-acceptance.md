@@ -304,3 +304,42 @@ startup/phase/engine logs, external containment and all acceptance/science limit
 The replacement only prints timestamps and never inspects frames. Fresh rebuilt
 images and acceptance-inputs-010 are required; run one consolidated acceptance-010
 invocation rather than separate hardware probes. T064–T067 remain open.
+
+
+## Operator acceptance-010 — missing negative role outcome (2026-11-01)
+
+Archive SHA-256:
+`bc28e3d8190ce92c1d8e3aa8397fea9c71df6be2118018604fa3da4467d79709`.
+Independent inventory/hash and canonical evidence checks pass for354 inventoried
+members. Retained-eval, refresh and parameter-targets pass; replay-resume fails;
+failure-packaging is missing. Software is FAIL, scientific status UNMEASURED and
+feature_qualified false. The pre-packaging workflow snapshot records replay failure
+at1388.11 cumulative seconds; it does not establish the final outer wrapper exit.
+
+Original qualification output records1120 CPU/native tests and77 subtests passed
+in339.34 seconds, and27 HIP tests passed in343.93 seconds. Original identities:
+
+- CPU: `sha256:6590aa333a952c4b823f3b87bca786254ee942ab9f231037e660c698270c144c`.
+- GPU: `sha256:a6112e942016395ea9b62b896f53d20f1f102417cd8dd51cc636dcbd6153e477`.
+- Source closure: `sha256:9d4e83502510e5eef6dfaf61fd740c832b754d6b3c8b760be6e245d847b3e75d`.
+
+All four replay audit processes completed. The first continued_sft learner emitted
+three completed updates and checkpoint writes in approximately86 seconds. The
+180-second allowance accommodated this execution; its log is not the independent
+paired finite-update proof, which was not completed. Timestamp heartbeats ran
+without the previous stack-dump crash in this run; this does not prove that earlier
+crash's cause.
+
+The verified_replay learner's process completed with exit0 in1.815868 seconds and
+acknowledged cleanup. It emitted Python-start but no batch-input marker or traceback.
+The canonical parent reports incomplete paired updates/replay/resume/admission.
+Installed role handling writes negative application results to `role/result.json`
+while returning0 for transport. The nested result was omitted from the archive,
+so the original failure reason is unknown. It is not evidence of another timeout;
+replay restoration/native setup is a possible location, not a diagnosed defect.
+
+T101 exports only bounded status/reason/error fields from existing nested results
+and emits negative outcomes on stderr in future images. Other role payload fields
+remain excluded. Export the existing acceptance-010 files with the quickstart's
+stdlib-only command before choosing another repair or HIP run. T064–T067 remain
+open; no changed source inherits this run's original qualification.

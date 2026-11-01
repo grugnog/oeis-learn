@@ -93,15 +93,23 @@ with a versioned `index.json`. A fixed path list selects preflight/preparation
 control results, validation role results and supervision process/cleanup records,
 qualification stage receipts and image-inspection logs. Bounded directory-metadata
 discovery under each canonical acceptance case's `case/private` directory also
-finds nested `role/supervision` controls: only `process.json`, `cleanup.json`,
-`stdout.log` and `stderr.log` may be read. Input, checkpoint, cache, selected and
+finds nested `role/supervision` controls: `process.json`, `cleanup.json`,
+`stdout.log` and `stderr.log`, plus `role/result.json` for terminal projection.
+Input, checkpoint, cache, selected and
 cell directories and symlinks are skipped; role directories are never descended.
-Other nested payloads, including role results and command files, are not read.
+Only registered terminal `status` and string `reason`/`error` fields from a nested
+result are exported; each message is capped at2048 characters, including a
+`[truncated]` suffix when needed. Other fields (including entries, candidate source
+and checkpoint/tensor data) are excluded. Malformed/oversized results are omitted.
+Command files and other nested payloads are not read.
 Discovery stops at8192 entries,2048 directories,256 roles or32 directory levels,
 with an explicit omission when a bound is reached. Nested control copies use
 `nested-roles/<source-parent-hash>/<filename>`; each index row's `source` and
-`export_path` preserve the mapping. Missing or inaccessible files
-and cap omissions are explicit. JSON files are copied whole up to 256 KiB; logs
+`export_path` preserve the mapping. The result projection shares its supervision
+directory as `outcome.json`, labeled `PROJECTED` with original size/hash and exported
+size/hash. Missing or inaccessible files and cap omissions are explicit. JSON files
+are read only up to256 KiB; allowed controls are copied whole, while nested results
+are projected as above. Logs
 retain an opening excerpt and final tail within 64 KiB. Exported payloads total at
 most 4 MiB plus the bounded discovery/fixed-list index. Truncated logs are labeled; the
 original files are unchanged. Diagnostic copies confer no qualification and
@@ -113,7 +121,10 @@ Qualification diagnostics also include the canonical `cpu.semantic`/`hip.preflig
 Their `results.xml` JUnit reports are preserved whole up to 2 MiB; larger XML is
 omitted explicitly rather than truncated into invalid XML. The existing 4 MiB
 aggregate payload limit still applies. No recursive pytest discovery is performed;
-the nested role scan reads only the four explicitly allowed control files.
+the nested role scan reads only the four controls and the projected result.
+Roles also emit negative terminal projections as `role-outcome: <JSON>` on bounded
+stderr. A transported result can fail even when its process exits0; process success
+never upgrades the application's status.
 
 Learner and generator roles also enable bounded engine startup diagnostics and
 pre-import Python-start markers/periodic30-second timestamp-only heartbeats.

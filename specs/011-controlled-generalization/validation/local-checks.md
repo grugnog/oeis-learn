@@ -738,3 +738,32 @@ supervisor/container/bundle selection: **349 passed,4 subtests passed,1 hardware
 test deselected in23.83 seconds**. The implementation digest was regenerated.
 No Docker/Podman/HIP command ran locally. This is a tested mitigation of the suspect
 diagnostic path, not new hardware qualification or proof that the crash is resolved.
+
+
+## T101 nested negative application outcomes — 2026-11-01
+
+Acceptance-010 contains a normal exit0 for the verified_replay learner but lacks
+its negative application result. Four regressions reproduced the missing archive
+projection and stderr outcome before implementation. The collector now reads
+nested role results within the existing256 KiB JSON bound and projects only a
+registered terminal status and string reason/error, each capped at2048 characters.
+The index labels PROJECTED records and retains original/exported hashes and sizes.
+All other fields are excluded; projections share the role's existing hashed
+supervision directory. Negative roles additionally emit the same bounded fields
+on captured stderr without changing the result or transport exit semantics.
+
+Normal session reports, recovery archives and the stdlib-only existing-run export
+are tested. Tests cover exit0 with FAIL result, private-field exclusion, malformed
+and excessively nested JSON, oversized results, symlinks, invalid statuses, message
+limits, encoded aggregate size limits and read-only export. The original suite
+selection passed357 tests; after adding deeply nested JSON handling and explicit
+stdlib nested-result coverage, final generalization/unit/contract/integration,
+container/supervisor/bundle checks passed **358 tests and4 subtests, with1 hardware
+test deselected, in24.38 seconds**. Artifact document/schema validation passes and
+the implementation identity was regenerated. No Docker/Podman/HIP command ran.
+
+The original verified_replay error remains unavailable in the uploaded archive.
+The quickstart provides one export from the existing acceptance-010 run, requiring
+no containers or model rerun. T064–T067 stay open. No replay algorithm or identity
+verification was changed based on an inferred cause, and no new hardware run is
+requested until the original error is available. CI is not awaited, as instructed.
