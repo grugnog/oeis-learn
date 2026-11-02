@@ -16,9 +16,9 @@ from oeis_learn.generalization.interfaces import EXIT_CODES
 from fresh_pilot_inputs import research_inputs,blueprint,BANK_SEEDS
 from fresh_pilot_report import measurement_plan,terminal_status,assemble_public,diagnostics
 
-CAMPAIGN_SECONDS=60*3600
+CAMPAIGN_SECONDS=72*3600
 REPORT_SECONDS=3600
-RESERVATIONS=dict(acceptance=23700,preflight=7200,prepare=21600,
+RESERVATIONS=dict(feasibility=22000,acceptance=23700,preflight=7200,prepare=28800,smoke=21600,
     **{'train-static':28800,'train-refreshed':28800,'generate-static':23400,
        'score-static':23400,'generate-refreshed':23400,'score-refreshed':23400})
 
@@ -119,11 +119,47 @@ def role(job_path,output):
         with scope(confined(ROOT,job['study_root']),runtime['storage']):
             result=project_and_invoke(host,image,ROOT,job['role'],job['artifacts'],source_roots=roots,
                 output=str((target/'execution').relative_to(ROOT)),operation=job['operation'],settings=job['settings'],
-                seconds=21600,gpu=job['role']=='generator')
+                seconds=protocol.get('role_seconds',21600),gpu=job['role']=='generator')
     except (Exception,KeyboardInterrupt) as exc:
         result=dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)[:2048])
     write(target/'result.json',seal(result))
     return EXIT_CODES.get(result.get('status'),1)
+
+
+def evaluate_arm(engine,qualified,research,manifest,study,protocol_ref,arm,checkpoint,
+                 weights_root,visible,truth,prompt_ref,truth_ref,recipe,command):
+    """Shared full/smoke wiring of the unchanged isolated generator and scorer."""
+    def relative(p):return str(Path(p).relative_to(ROOT))
+    generation=research/('generate-'+arm)
+    common=dict(version='fresh-pilot-role/v1',engine=engine,qualified=relative(qualified),
+        manifest=manifest,study=study['identity'],study_root=relative(research),protocol=protocol_ref,checkpoint=checkpoint)
+    job=seal(dict(common,role='generator',operation='evaluate',
+        artifacts={'visible_prompts':[prompt_ref],'frozen_weights':[checkpoint['weights']]},
+        source_roots={'visible_prompts':relative(visible),'frozen_weights':relative(weights_root)},
+        settings=dict(checkpoint=checkpoint['weights'],prompts=prompt_ref,recipe=recipe,study=study['identity'],
+            source=checkpoint['identity'],device='cuda',bank_seeds=BANK_SEEDS)))
+    job_path=research/'private/jobs'/('generate-'+arm+'.json');write(job_path,job)
+    _,status=command('generate-'+arm,[sys.executable,str(Path(__file__).resolve()),'role','--job',relative(job_path),
+        '--output',relative(generation)],generation)
+    if status not in {'PASS','PARTIAL'}:raise RuntimeError('generation failed')
+    generated=generation/'execution/role/generation';candidate_ref=reference(generated/'selections.json',generated)
+    scoring=research/('score-'+arm)
+    job=seal(dict(common,role='selection',operation='score',
+        artifacts={'selection_supervision':[truth_ref],'selection_candidates':[candidate_ref]},
+        source_roots={'selection_supervision':relative(truth),'selection_candidates':relative(generated)},
+        settings=dict(targets=truth_ref,candidates=candidate_ref,study=study['identity'])))
+    job_path=research/'private/jobs'/('score-'+arm+'.json');write(job_path,job)
+    _,status=command('score-'+arm,[sys.executable,str(Path(__file__).resolve()),'role','--job',relative(job_path),
+        '--output',relative(scoring)],scoring)
+    if status!='PASS':raise RuntimeError('selection scoring failed')
+    scored=read(scoring/'execution/role/selection/scoring.json',128<<20)
+    extra=[]
+    for name in ('evaluation.json','proposal-bank.json','selections.json'):
+        if (generated/name).is_file():extra.append((generated/name,'fresh/generation-'+arm+'/'+name))
+    if (generated/'attempts').is_dir():
+        for p in sorted((generated/'attempts').rglob('*')):
+            if p.is_file() and p.suffix in {'.json','.jsonl'}:extra.append((p,'fresh/generation-'+arm+'/attempts/'+str(p.relative_to(generated/'attempts'))))
+    return scored,extra
 
 
 def recovery(root,workflow):
@@ -190,6 +226,15 @@ def run(args):
         return original,status
     record()
     try:
+        feasibility=root/'feasibility'
+        result,status=command('feasibility',[sys.executable,str(Path(__file__).resolve()),'feasibility',
+            '--output',relative(feasibility)],feasibility)
+        if status!='PASS':raise RuntimeError('full source feasibility failed; no hardware launched')
+        design=read(feasibility/'private/design.json')
+        source_check=json.loads(verify_artifact(feasibility,result['feasibility']))
+        if seal(source_check)!=source_check or seal(design)!=design or source_check['protocol']!=design['identity'] or source_check['status']!='FEASIBLE':
+            raise ValueError('feasibility/protocol binding differs')
+        extra.append((feasibility/'feasibility.json','fresh/feasibility.json'))
         imported=confined(ROOT,args.imported)
         if args.qualified:
             qualified=confined(ROOT,args.qualified)
@@ -217,11 +262,11 @@ def run(args):
             raise ValueError('pilot requires matching qualification at64GiB/four CPUs')
         images=authority['images'];research=root/'research';research.mkdir()
         write(research/'source.json',collect_snapshot(ROOT))
-        design=research_inputs()
         write(research/'protocol-summary.json',seal(dict(version='fresh-pilot-public-protocol/v1',
             protocol=design['identity'],seed=20261016,training_shards=12,rows_per_shard=32768,
             rows_per_family=1024,training_families=32,selection_rows=256,assessment='SEALED',
-            target_tokens_per_arm=25_000_000,learner_seconds=21600,generation_seconds=21600,
+            numeric_law=design['numeric_law'],descriptor_screen=design['descriptor_screen'],
+            reference_workers=4,source_feasibility=source_check['identity'],target_tokens_per_arm=25_000_000,learner_seconds=21600,generation_seconds=21600,
             scoring_seconds=21600,length_boundary=16,bank_seeds=BANK_SEEDS,
             controls=['raw','rescue','equal_budget','shuffled','absent','template','bank'],
             interpretation='single-seed exploratory; matched exposure and95% primary completion required; no automatic advancement')))
@@ -238,6 +283,17 @@ def run(args):
         result,status=command('prepare',canonical(args.engine,images[0],'prepare',relative(prepared),command_args),prepared)
         if status!='PASS':raise RuntimeError('research preparation incomplete; no learner launched')
         manifest=result['result']['manifest']
+        from fresh_pilot_feasibility import verify_prepared
+        verify_prepared(source_check,ROOT/manifest.rsplit('/',1)[0])
+        smoke=root/'smoke'
+        job=seal(dict(version='fresh-pilot-smoke-job/v1',engine=args.engine,qualified=relative(qualified),
+            manifest=manifest,design=reference(research/'design/design.json',ROOT),
+            blueprint=reference(research/'design/blueprint.json',ROOT)))
+        job_path=root/'private/smoke-job.json';write(job_path,job)
+        _,status=command('smoke',[sys.executable,str(Path(__file__).resolve()),'smoke',
+            '--job',relative(job_path),'--output',relative(smoke)],smoke)
+        if status!='PASS':raise RuntimeError('paired smoke failed; full learners not launched')
+        extra.append((smoke/'result.json','fresh/smoke.json'))
         from oeis_learn.pipeline_validation.generalization_runtime import load
         base,study,runtime=load(ROOT,manifest)
         verify_artifact(base,runtime['recipe'],max_bytes=1<<20)
@@ -272,36 +328,10 @@ def run(args):
                 raise ValueError('paired random initial weights differ')
             recipe=json.loads(verify_artifact(base,runtime['recipe']))
             for arm in ('static','refreshed'):
-                checkpoint=selected[arm]['checkpoint'];weights_root=confined(ROOT,selected[arm]['weights_root'])
-                generation=research/('generate-'+arm)
-                common=dict(version='fresh-pilot-role/v1',engine=args.engine,qualified=relative(qualified),
-                    manifest=manifest,study=study['identity'],study_root=relative(research),protocol=protocol_ref,checkpoint=checkpoint)
-                job=seal(dict(common,role='generator',operation='evaluate',
-                    artifacts={'visible_prompts':[prompt_ref],'frozen_weights':[checkpoint['weights']]},
-                    source_roots={'visible_prompts':relative(visible),'frozen_weights':relative(weights_root)},
-                    settings=dict(checkpoint=checkpoint['weights'],prompts=prompt_ref,recipe=recipe,study=study['identity'],
-                        source=checkpoint['identity'],device='cuda',bank_seeds=BANK_SEEDS)))
-                job_path=research/'private/jobs'/('generate-'+arm+'.json');write(job_path,job)
-                _,status=command('generate-'+arm,[sys.executable,str(Path(__file__).resolve()),'role','--job',relative(job_path),
-                    '--output',relative(generation)],generation)
-                if status not in {'PASS','PARTIAL'}:raise RuntimeError('generation failed')
-                generated=generation/'execution/role/generation'
-                candidate_ref=reference(generated/'selections.json',generated)
-                scoring=research/('score-'+arm)
-                job=seal(dict(common,role='selection',operation='score',
-                    artifacts={'selection_supervision':[truth_ref],'selection_candidates':[candidate_ref]},
-                    source_roots={'selection_supervision':relative(truth),'selection_candidates':relative(generated)},
-                    settings=dict(targets=truth_ref,candidates=candidate_ref,study=study['identity'])))
-                job_path=research/'private/jobs'/('score-'+arm+'.json');write(job_path,job)
-                _,status=command('score-'+arm,[sys.executable,str(Path(__file__).resolve()),'role','--job',relative(job_path),
-                    '--output',relative(scoring)],scoring)
-                if (scoring/'execution/role/selection/scoring.json').is_file():scored[arm]=read(scoring/'execution/role/selection/scoring.json',128<<20)
-                for name in ('evaluation.json','proposal-bank.json','selections.json'):
-                    if (generated/name).is_file():extra.append((generated/name,'fresh/generation-'+arm+'/'+name))
-                if (generated/'attempts').is_dir():
-                    for p in sorted((generated/'attempts').rglob('*')):
-                        if p.is_file() and p.suffix in {'.json','.jsonl'}:extra.append((p,'fresh/generation-'+arm+'/attempts/'+str(p.relative_to(generated/'attempts'))))
-                if status!='PASS':raise RuntimeError('selection scoring failed')
+                scored[arm],artifacts=evaluate_arm(args.engine,qualified,research,manifest,study,protocol_ref,
+                    arm,selected[arm]['checkpoint'],confined(ROOT,selected[arm]['weights_root']),
+                    visible,truth,prompt_ref,truth_ref,recipe,command)
+                extra.extend(artifacts)
         workflow['status']='PASS' if all(s['status']=='PASS' for s in stages) else 'PARTIAL'
     except (Exception,KeyboardInterrupt) as exc:
         workflow['status']='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL'
@@ -316,7 +346,7 @@ def run(args):
                 public=root/'public'
                 extra.append((root/'workflow.json','fresh/workflow.json'))
                 extra.extend(diagnostics(root,root/'diagnostics'))
-                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py'):
+                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py'):
                     extra.append((HERE/name,'fresh/helper-'+name+'.txt'))
                 evidence=assemble_public(public,study=study,plan=plan,targets=targets,scored=scored,stages=stages,
                     qualified=qualified,selection=dict(policy='frozen latest available, partial exposure descriptive only',
@@ -343,6 +373,8 @@ def run(args):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     child=commands.add_parser('role');child.add_argument('--job',required=True);child.add_argument('--output',required=True)
+    smoke=commands.add_parser('smoke');smoke.add_argument('--job',required=True);smoke.add_argument('--output',required=True)
+    feasible=commands.add_parser('feasibility');feasible.add_argument('--output',required=True)
     diagnostic=commands.add_parser('diagnose');diagnostic.add_argument('--run',required=True);diagnostic.add_argument('--output',required=True)
     runner=commands.add_parser('run');runner.add_argument('--engine',choices=('docker','podman'),required=True)
     runner.add_argument('--imported',default='run-state/generalization/uniform-import')
@@ -350,11 +382,25 @@ def main(argv=None):
     runner.add_argument('--output',required=True);runner.add_argument('--dry-run',action='store_true')
     args=parser.parse_args(argv)
     try:
+        if args.command=='feasibility':
+            from fresh_pilot_feasibility import check
+            target=confined(ROOT,args.output,exists=False)
+            result=check(research_inputs(),target,workers=4)
+            # The command succeeded in establishing feasibility, not qualification.
+            (target/'result.json').rename(target/'feasibility.json')
+            write(target/'result.json',seal(dict(status='PASS' if result['status']=='FEASIBLE' else 'BLOCKED',
+                scope='source feasibility only',native_validation='NOT_RUN',hardware_validation='NOT_RUN',
+                feasibility=reference(target/'feasibility.json',target))))
+            return 0 if result['status']=='FEASIBLE' else 3
+        if args.command=='smoke':
+            from fresh_pilot_smoke import run as smoke_run
+            return smoke_run(sys.modules[__name__],args.job,args.output)
         if args.command=='role':return role(args.job,args.output)
         if args.command=='diagnose':return diagnose(args.run,args.output)
         if args.dry_run:
             print(json.dumps(dict(status='NOT_RUN',reservations=RESERVATIONS,campaign_seconds=CAMPAIGN_SECONDS,
                 report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,assessment='SEALED',historical='DEFERRED',
+                gates='full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research',
                 training='fresh static/refreshed, seed20261016,25M target-token cap/arm,6 learner hours/arm',
                 evaluation='latest available checkpoint; partial exposures descriptive; matched controls plus one shared bank/checkpoint'),indent=2));return 0
         return run(args)

@@ -30,7 +30,7 @@ a paired smoke gate and bounded CPU parallel generation; no HIP runs here.
 
 ### Phase C — one-command gates and evidence
 
-- [ ] T141 Wire full feasibility before hardware, then canonical preparation and
+- [X] T141 Wire full feasibility before hardware, then canonical preparation and
   an isolated small paired training/evaluation smoke before full learners. Bind
   inputs/results, prevent smoke outcomes from choosing the research design, retain
   bounded failure diagnostics and preserve qualification/resource isolation.

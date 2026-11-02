@@ -46,11 +46,11 @@ def test_dry_run_is_stdlib_only_and_never_touches_engine(tmp_path):
         '--cpu-image','cpu-tag','--gpu-image','gpu-tag','--output','run-state/not-created','--dry-run'],
         capture_output=True,text=True)
     assert done.returncode==0,done.stderr
-    assert '216000' in done.stdout and 'NOT_RUN' in done.stdout
+    assert str(m.CAMPAIGN_SECONDS) in done.stdout and 'NOT_RUN' in done.stdout
     assert not (m.ROOT/'run-state/not-created').exists()
 
 
-@pytest.mark.parametrize('failure',[None,'preflight','prepare','train-static','train-refreshed',
+@pytest.mark.parametrize('failure',[None,'feasibility','preflight','prepare','smoke','train-static','train-refreshed',
     'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization'])
 def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,failure):
     """Mock expensive processes, retain real controller/lineage/packaging checks."""
@@ -75,8 +75,11 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     imported=tmp_path/'imported';imported.mkdir()
     monkeypatch.setattr(m,'ROOT',tmp_path)
     monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda p:{})
-    monkeypatch.setattr(m,'research_inputs',lambda:seal(dict(version='synthetic-design')))
-    def blueprint(root,design,**kw):write(root/kw['output']/'design.json',design);return {}
+    design=seal(dict(version='synthetic-design',numeric_law='synthetic-law',descriptor_screen='synthetic-screen'))
+    import fresh_pilot_feasibility
+    monkeypatch.setattr(fresh_pilot_feasibility,'verify_prepared',lambda *a:None)
+    def blueprint(root,design,**kw):
+        write(root/kw['output']/'design.json',design);write(root/kw['output']/'blueprint.json',{});return {}
     monkeypatch.setattr(m,'blueprint',blueprint)
     monkeypatch.setattr(generalization_inputs,'assemble_study',lambda *a:dict(manifest='fake-study.json'))
     monkeypatch.setattr(generalization_runtime,'load',lambda *a:(base,study,runtime))
@@ -107,6 +110,10 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
         if name==failure:
             write(output/'result.json',seal(dict(status='FAIL')));return 1
         result=dict(status='PASS')
+        if name=='feasibility':
+            write(output/'private/design.json',design)
+            write(output/'feasibility.json',seal(dict(protocol=design['identity'],status='FEASIBLE')))
+            result['feasibility']=reference(output/'feasibility.json',output)
         if name=='prepare':result=dict(status='PASS',result=dict(manifest='resolved-study.json'))
         if name.startswith('train-'):
             arm=name.removeprefix('train-');learner=output/'training/run/execution/role/private/learner'
@@ -138,7 +145,8 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     if failure is None:assert code==0 and workflow['status']=='PASS'
     elif failure=='partial-training':assert code==3 and 'score-refreshed' in calls
     else:assert code==1 and workflow['status']=='FAIL'
-    if failure in {'preflight','prepare'}:assert not any(n.startswith('train-') for n in calls)
+    if failure in {'feasibility','preflight','prepare','smoke'}:assert not any(n.startswith('train-') for n in calls)
+    if failure=='feasibility':assert calls==['feasibility']
     if failure=='train-static':assert 'train-refreshed' not in calls
     if failure=='initialization':assert not any(n.startswith('generate-') for n in calls)
     if failure=='missing-verifier':assert archive.name=='recovery.zip'

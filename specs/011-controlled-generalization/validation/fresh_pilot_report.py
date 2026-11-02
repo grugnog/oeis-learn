@@ -7,7 +7,7 @@ from oeis_learn.generalization.interfaces import EXIT_CODES
 
 ARMS=('static','refreshed')
 CONTROLS=('raw','rescue','equal_budget','shuffled','absent','template','bank')
-REQUIRED=('preflight','prepare','train-static','train-refreshed','generate-static','score-static','generate-refreshed','score-refreshed','controller')
+REQUIRED=('feasibility','preflight','prepare','smoke','train-static','train-refreshed','generate-static','score-static','generate-refreshed','score-refreshed','controller')
 PUBLIC_CAP=500<<20  # reserve archive/manifest overhead within the canonical512MiB cap
 
 
@@ -48,6 +48,8 @@ def preparation_diagnostics(root):
                 counts[reason if reason in known else 'reference exclusion' if reason.startswith('excluded:') else 'OTHER']+=1
             shortfalls=[]
             for member in value['shortfalls']:
+                if member=='preparation_deadline':
+                    shortfalls.append(member);continue
                 if not isinstance(member,str) or not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',member):
                     raise ValueError('unknown shortfall label')
                 shortfalls.append(member)
@@ -58,13 +60,47 @@ def preparation_diagnostics(root):
     return seal(result)
 
 
+def feasibility_diagnostics(root):
+    """Metadata-only projection, including the last completed cell after timeout."""
+    import re
+    folder=Path(root)/'feasibility'
+    for name in ('feasibility.json','progress.json'):
+        path=folder/name
+        if not path.exists():continue
+        path=confined(root,path)
+        if path.stat().st_size>1<<20:raise ValueError('feasibility metadata cap')
+        value=json.loads(path.read_bytes())
+        if seal(value)!=value or value.get('version')!='fresh-pilot-feasibility/v1':raise ValueError('original source feasibility required')
+        if value['status'] not in {'FEASIBLE','BLOCKED','INTERRUPTED'}:raise ValueError('feasibility status')
+        result=dict(version='fresh-pilot-feasibility-diagnostics/v1',status=value['status'],
+            qualification_evidence=False,cells=[],original=reference(path,root))
+        if len(value['cells'])>16:raise ValueError('feasibility cell cap')
+        for cell in value['cells']:
+            if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',cell['name']):raise ValueError('cell name')
+            row=dict(name=cell['name'])
+            for key in ('draws','admitted','selected','tokens'):
+                if key in cell:
+                    n=cell[key]
+                    if type(n) is not int or not 0<=n<=1_000_000_000:raise ValueError('feasibility count')
+                    row[key]=n
+            if cell['status'] not in {'FEASIBLE','BLOCKED'}:raise ValueError('cell status')
+            row['status']=cell['status'];row['shortfalls']=[]
+            for item in cell['shortfalls']:
+                if item!='preparation_deadline' and not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',item):raise ValueError('shortfall label')
+                row['shortfalls'].append(item)
+            result['cells'].append(row)
+        if type(value.get('training_tokens')) is int:result['training_tokens']=value['training_tokens']
+        return seal(result)
+    return None
+
+
 def diagnostics(root,destination):
     """Bounded control-only walk for this temporary multi-stage layout."""
     import os,stat
     from oeis_learn.pipeline_validation.generalization_diagnostics import control_fields,terminal_fields
     root=Path(root);destination=Path(destination);destination.mkdir(parents=True)
     skip={'public','recovery','diagnostics','acceptance-inputs','design','inputs','checkpoints',
-          'cells','scorer','visible','generation','selection','qualified','selected','.runtime','native-cache','command-export'}
+          'cells','ledgers','scorer','visible','generation','selection','qualified','selected','.runtime','native-cache','command-export'}
     files=[];used=0;entries=0
     try:
         summary=preparation_diagnostics(root)
@@ -74,6 +110,13 @@ def diagnostics(root,destination):
         else:target.unlink();used=0
     except (OSError,ValueError,KeyError,TypeError) as exc:
         files.append(dict(source='research-preparation-ledgers',status='OMITTED',reason=type(exc).__name__))
+    try:
+        summary=feasibility_diagnostics(root)
+        if summary is not None:
+            target=destination/'feasibility-summary.json';write(target,summary);used+=target.stat().st_size
+            files.append(dict(source='source-feasibility',status='PROJECTED',artifact=reference(target,destination)))
+    except (OSError,ValueError,KeyError,TypeError) as exc:
+        files.append(dict(source='source-feasibility',status='OMITTED',reason=type(exc).__name__))
     for parent,dirs,names in os.walk(root,followlinks=False):
         dirs[:]=sorted(d for d in dirs if d not in skip and not (Path(parent)/d).is_symlink())
         entries+=len(dirs)+len(names)

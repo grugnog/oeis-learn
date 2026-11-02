@@ -201,3 +201,25 @@ admitted rows. The existing four-second allowance per candidate is reserved with
 one <=32-second batch and the enclosing preparation deadline. There is no hidden
 retry and no extra native worker/process reservation. This amortizes transport
 without changing the fitting portfolios or learner workload.
+
+
+### Gated single-invocation revision (T141)
+
+The v2 runner supersedes the60-hour ceiling with72 hours after builds, including
+a separate6-hour source feasibility allowance,6-hour paired smoke allowance and
+6-hour native preparation envelope plus validation/cleanup headroom. Both learners
+remain25M/6 hours; generation/scoring remain6 hours/arm; finalization keeps one hour.
+Failed source feasibility starts no hardware, failed native preparation starts no
+smoke learner, and failed smoke starts no full research learner. The wrapper never
+skips qualification based on a reference-only result.
+
+The same-model smoke takes one already native-admitted example/family from each of
+the first two shards. Batch size stays16. Its target-token cap is first-shard tokens
+plus the larger of the next static/refreshed16-row batch costs (<=16,384), ensuring
+three updates and actual fresh-row consumption. Learners get900 seconds each.
+Canonical finite-weight proofs verify changed finite parameters. One deterministic
+selection prompt/stratum exercises all seven existing controls with1800-second
+generator/scorer envelopes. All outcomes must be recorded, with valid upstream and
+scoring records; negative or correctly censored proposals are allowed. No accuracy
+threshold, checkpoint ranking, initializer publication or assessment scoring occurs.
+The smoke is separate software evidence and cannot contribute to research results.

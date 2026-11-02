@@ -185,3 +185,17 @@ def test_preparation_failure_projection_rejects_links_and_unrecognized_labels(tm
     with pytest.raises(ValueError,match='shortfall'):m.preparation_diagnostics(tmp_path)
     ledger.unlink();ledger.symlink_to(tmp_path/'outside.json');write(tmp_path/'outside.json',{})
     with pytest.raises(ValueError,match='symlink'):m.preparation_diagnostics(tmp_path)
+
+
+def test_reference_shortfall_and_timeout_progress_are_exported_without_sources(tmp_path):
+    import json
+    from oeis_learn.pipeline_validation.identity import write,seal
+    record=seal(dict(version='fresh-pilot-feasibility/v1',status='BLOCKED',training_tokens=200,
+        cells=[dict(name='refresh-11',status='BLOCKED',draws=100,admitted=60,selected=60,tokens=200,
+                    shortfalls=['rows:4'],source='PRIVATE SOURCE',values=['PRIVATE TERMS'])]))
+    write(tmp_path/'run/feasibility/progress.json',record)
+    files=m.diagnostics(tmp_path/'run',tmp_path/'report')
+    summary=json.loads((tmp_path/'report/feasibility-summary.json').read_text())
+    assert summary['cells'][0]['shortfalls']==['rows:4'] and summary['training_tokens']==200
+    assert 'PRIVATE' not in json.dumps(summary)
+    assert any(p.name=='feasibility-summary.json' for p,_ in files)

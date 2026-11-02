@@ -1,0 +1,111 @@
+import json
+from pathlib import Path
+import sys
+import pytest
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+import fresh_pilot_smoke as m
+from oeis_learn.pipeline_validation.identity import seal,write,digest
+from oeis_learn.pipeline_validation.generalization_preparation import reference
+
+
+def outcomes(targets):
+    from fresh_pilot_report import CONTROLS
+    return dict(result=dict(outcomes={r['id']:{c:dict(success=False,complete=False,
+        upstream=dict(complete=False),scoring=dict(outcome='no_selected_candidate')) for c in CONTROLS} for r in targets}))
+
+
+def test_smoke_accepts_recorded_negatives_and_censoring_but_not_missing_scoring():
+    targets=[dict(id='one'),dict(id='two')];scored=outcomes(targets)
+    assert m.scoring_recorded(scored,targets)
+    scored['result']['outcomes']['one']['raw']['scoring']['outcome']='scoring_incomplete'
+    assert not m.scoring_recorded(scored,targets)
+    scored=outcomes(targets);scored['result']['outcomes']['one'].pop('bank')
+    assert not m.scoring_recorded(scored,targets)
+
+
+def test_reduced_data_has_same32_families_and_budget_reaches_fresh_rows(tmp_path):
+    from fresh_pilot_inputs import research_inputs,blueprint
+    from oeis_learn.generalization.refresh import RefreshPlan
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.generalization.budgets import charge_tokens
+    design=research_inputs()
+    cfg=blueprint(tmp_path,design,recipe='recipe.json',source='source.json',images=['cpu','gpu'],feature='feature.json',output='design')
+    prepared=tmp_path/'prepared';write(prepared/'study.json',{})
+    stream=RefreshPlan(design['descriptors'],seed=design['seed'],capacity=1_000_000)
+    for ordinal,cell in enumerate(cfg['cells']):
+        if cell['role']=='training':
+            rows,_=stream.take(64*ordinal,64)
+            rows=[dict(r,tags=['family:'+r['family']]) for r in rows]
+        else:rows=design['cohorts'][ordinal]['rows'][:2]
+        write(prepared/'cells'/cell['name']/'private/selected.json',rows)
+    job=dict(manifest='prepared/study.json',blueprint=reference(tmp_path/'design/blueprint.json',tmp_path),design=reference(tmp_path/'design/design.json',tmp_path))
+    cfg,protocol=m.reduced_blueprint(tmp_path,job,tmp_path/'smoke')
+    train=[json.loads((tmp_path/c['candidates']).read_text()) for c in cfg['cells'] if c['role']=='training']
+    assert [len(rows) for rows in train]==[32,32]
+    assert len({r['family'] for rows in train for r in rows})==32
+    assert {r['source'] for r in train[0]}.isdisjoint(r['source'] for r in train[1])
+    tokens=lambda rows:charge_tokens([encode_body(r['source']) for r in rows],bos=1,pad=0)
+    assert cfg['budgets']['target_tokens']>=tokens(train[0])+tokens(train[1][:16])
+    assert cfg['budgets']['target_tokens']>=tokens(train[0])+tokens(train[0][:16])
+    assert cfg['budgets']['target_tokens']<=tokens(train[0]+train[1])
+    assert cfg['initializer'] is None and cfg['budgets']['seconds']==900
+    assert cfg['hypothesis'].endswith(protocol['identity'])
+
+
+@pytest.mark.parametrize('failure',[None,'preflight','prepare','train-static','train-refreshed',
+    'generate-static','score-static','generate-refreshed','score-refreshed','proof','initialization','zero_updates','scoring'])
+def test_smoke_gates_canonical_boundaries_and_keeps_failures(tmp_path,monkeypatch,failure):
+    import fresh_pilot as api
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from oeis_learn.pipeline_validation import generalization_inputs as inputs,generalization_runtime as runtime,generalization_acceptance as acceptance,generalization_lifecycle as lifecycle
+    import foundation_local
+    monkeypatch.setattr(api,'ROOT',tmp_path)
+    monkeypatch.setattr(foundation_local,'Host',lambda args:SimpleNamespace(args=args))
+    monkeypatch.setattr(lifecycle,'guard',lambda *a:nullcontext())
+    write(tmp_path/'recipe.json',{})
+    (tmp_path/'qualified').mkdir()
+    study=dict(identity=digest('study'));images=['cpu','gpu'];base=tmp_path/'prepared';base.mkdir()
+    refs=[];targets=[]
+    for i,stratum in enumerate(('parameter','structural')):
+        row=dict(id=str(i),stratum=stratum);targets.append(row)
+        write(base/f'truth{i}.json',[row]);write(base/f'prompts{i}.json',[dict(id=str(i))])
+        write(base/f'cohort{i}.json',dict(role='selection',private_payloads=[reference(base/f'truth{i}.json',base)],public_payloads=[reference(base/f'prompts{i}.json',base)]))
+        refs.append(reference(base/f'cohort{i}.json',base))
+    study['data']=dict(manifests=refs)
+    sidecar=dict(storage={},images=images,recipe=reference(tmp_path/'recipe.json',tmp_path))
+    # Runtime artifact paths are relative to base.
+    write(base/'recipe.json',{});sidecar['recipe']=reference(base/'recipe.json',base)
+    monkeypatch.setattr(runtime,'load',lambda *a:(base,study,sidecar))
+    monkeypatch.setattr(inputs,'assemble_study',lambda *a:dict(manifest='smoke-study.json'))
+    def reduced(root,job,output):
+        p=seal(dict(first_shard_tokens=10));write(output/'protocol.json',p)
+        return dict(images=images),p
+    monkeypatch.setattr(m,'reduced_blueprint',reduced)
+    monkeypatch.setattr(acceptance,'training_proof',lambda *a:dict(status='FAIL' if failure=='proof' else 'PASS'))
+    monkeypatch.setattr(api,'latest_checkpoint',lambda learner,result,**kw:(dict(initialization=kw['arm'] if failure=='initialization' else 'common'),learner))
+    calls=[]
+    def invoke(argv,logs,**kw):
+        name=logs.name;calls.append(name);output=tmp_path/argv[argv.index('--output')+1]
+        result=dict(status='FAIL' if failure==name else 'PASS')
+        if name=='prepare':result['result']=dict(manifest='resolved.json')
+        if name.startswith('train-'):
+            (output/'training/learner').mkdir(parents=True)
+            result['result']=dict(runs=[dict(root='learner',result=dict(tokens=20,updates=0 if failure=='zero_updates' else 3))])
+        write(output/'result.json',seal(result));return 1 if failure==name else 0
+    monkeypatch.setattr(api,'invoke',invoke)
+    def evaluate(engine,qualified,folder,manifest,study,protocol,arm,*args):
+        command=args[-1]
+        for stage in ('generate-','score-'):
+            output=folder/(stage+arm);command(stage+arm,['fake','--output',str(output.relative_to(tmp_path))],output)
+        return dict(result=dict(outcomes={})) if failure=='scoring' else outcomes(targets),[]
+    monkeypatch.setattr(api,'evaluate_arm',evaluate)
+    job=seal(dict(version='fresh-pilot-smoke-job/v1',engine='podman',qualified='qualified',manifest='full.json',design={},blueprint={}))
+    write(tmp_path/'job.json',job)
+    code=m.run(api,'job.json','smoke')
+    assert code==(0 if failure is None else 1),(tmp_path/'smoke/result.json').read_text()
+    result=json.loads((tmp_path/'smoke/result.json').read_text())
+    assert result['status']==('PASS' if failure is None else 'FAIL')
+    if failure in m.LIMITS:assert failure in calls
+    if failure in {'preflight','prepare'}:assert not any(n.startswith('train-') for n in calls)
+    if failure in {'proof','initialization','zero_updates'}:assert not any(n.startswith('generate-') for n in calls)

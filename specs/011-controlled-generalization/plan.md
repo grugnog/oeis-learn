@@ -219,3 +219,21 @@ CPU measurements and publishes the handoff. Reference workers are bounded and
 ordered; GPU learners/inference remain serial. Current-source native/HIP acceptance
 and a reduced paired end-to-end smoke must pass before the full learners. Smoke
 outcomes gate software health only, never model quality or protocol selection.
+
+
+T141 integration: the temporary runner now checks full source feasibility before
+any engine/HIP activity, verifies canonical native preparation selected the same
+ordered rows, and runs an isolated same-model smoke study before full learners.
+The smoke admits one row/family in two32-row shards, uses the original batch16 and
+an exact computed token cap sufficient to update beyond the first shard, and
+requires existing finite-weight proofs and matching initial hashes. Two fixed
+selection prompts exercise all seven controls through the same generator/scorer
+adapter as full evaluation. Recorded negative/censored synthesis outcomes are
+valid; missing scoring or nonfinite/absent updates block research. Smoke weights
+never initialize research. Metadata-only source shortfalls survive recovery.
+
+The consolidated ceiling is72 hours after builds: source feasibility6 hours,
+native research preparation6 hours plus host/validation headroom, paired smoke
+6 hours, original acceptance395 minutes, unchanged two6-hour learners and four
+6-hour evaluation/scoring roles, with one hour protected for finalization. Explicit
+outer stage reservations total less than71 hours. These are ceilings, not ETAs.
