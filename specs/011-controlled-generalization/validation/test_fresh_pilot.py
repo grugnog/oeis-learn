@@ -183,3 +183,23 @@ def test_role_uses_canonical_qualification_and_exact_frozen_generation(tmp_path,
     write(tmp_path/'job.json',job)
     assert m.role('job.json','role-output')==(1 if changed else 0)
     assert used==([] if changed else ['qualification','generation'])
+
+
+def test_existing_run_diagnostics_never_launch_and_leave_originals_intact(tmp_path,monkeypatch):
+    import json,zipfile
+    from oeis_learn.pipeline_validation.identity import seal,write
+    from oeis_learn.pipeline_validation.bundle import verify
+    monkeypatch.setattr(m,'ROOT',tmp_path)
+    def forbidden(*a,**kw):raise AssertionError('diagnose must not execute work')
+    monkeypatch.setattr(m,'invoke',forbidden)
+    write(tmp_path/'original/workflow.json',seal(dict(status='FAIL',stages=[])))
+    before=(tmp_path/'original/workflow.json').read_bytes()
+    base=tmp_path/'original/research/prepare/preparation/role/private/prepared'
+    write(base/'preparation-result.json',seal(dict(status='BLOCKED',cell='refresh-01',reason='QUOTA_SHORTFALL')))
+    assert m.main(['diagnose','--run','original','--output','exported'])==0
+    assert (tmp_path/'original/workflow.json').read_bytes()==before
+    verify(tmp_path/'exported.zip')
+    with zipfile.ZipFile(tmp_path/'exported.zip') as z:
+        summary=json.loads(z.read('diagnostics/preparation-summary.json'))
+        assert summary['terminal']['cell']=='refresh-01'
+    assert m.main(['diagnose','--run','original','--output','original/export'])==2

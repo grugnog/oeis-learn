@@ -158,3 +158,30 @@ def test_public_export_rejects_oversized_or_symlinked_extra(tmp_path,monkeypatch
     link=tmp_path/'link.log';link.symlink_to(original)
     with pytest.raises(ValueError,match='regular'):m.assemble_public(tmp_path/'out2',study=study,plan=plan,targets=rows,
         scored={},stages=[],qualified=tmp_path/'qualified',selection={},extra=[(link,'fresh/link.log')])
+
+
+def test_preparation_failure_export_keeps_counts_and_cell_without_protected_values(tmp_path):
+    from oeis_learn.pipeline_validation.identity import seal,write,digest
+    base=tmp_path/'research/prepare/preparation/role/private/prepared'
+    write(base/'preparation-result.json',seal(dict(status='BLOCKED',reason='QUOTA_SHORTFALL',cell='static',study=None)))
+    write(base/'cells/static/ledger.json',seal(dict(version='generalization-cell-preparation/v1',role='training',status='BLOCKED',draws=20,
+        shortfalls=['rows:4','family:'+digest('family')+':4'],
+        rejections=[dict(draw=1,reason='cross-role exclusion'),dict(draw=2,reason='SECRET protected program/terms')],
+        private_payload='SECRET')))
+    write(base/'cells/static/private/targets.json',dict(secret='SECRET'))
+    extra=m.diagnostics(tmp_path,tmp_path/'diagnostics')
+    summary=m.preparation_diagnostics(tmp_path)
+    assert summary['terminal']['cell']=='static'
+    assert summary['cells'][0]['shortfalls'][0]=='rows:4'
+    assert summary['cells'][0]['rejection_counts']=={'cross-role exclusion':1,'OTHER':1}
+    assert 'SECRET' not in ''.join(p.read_text() for p,_ in extra)
+
+
+def test_preparation_failure_projection_rejects_links_and_unrecognized_labels(tmp_path):
+    from oeis_learn.pipeline_validation.identity import seal,write
+    ledger=tmp_path/'research/prepare/preparation/role/private/prepared/cells/static/ledger.json'
+    write(ledger,seal(dict(version='generalization-cell-preparation/v1',role='training',status='BLOCKED',draws=1,
+        shortfalls=['SECRET'],rejections=[])))
+    with pytest.raises(ValueError,match='shortfall'):m.preparation_diagnostics(tmp_path)
+    ledger.unlink();ledger.symlink_to(tmp_path/'outside.json');write(tmp_path/'outside.json',{})
+    with pytest.raises(ValueError,match='symlink'):m.preparation_diagnostics(tmp_path)

@@ -11,6 +11,53 @@ REQUIRED=('preflight','prepare','train-static','train-refreshed','generate-stati
 PUBLIC_CAP=500<<20  # reserve archive/manifest overhead within the canonical512MiB cap
 
 
+def preparation_diagnostics(root):
+    """Read only original cell ledgers; exclude target/source/term payloads."""
+    import re
+    from collections import Counter
+    base=Path(root)/'research/prepare/preparation/role/private/prepared'
+    result=dict(version='fresh-pilot-preparation-diagnostics/v1',cells=[],qualification_evidence=False)
+    def bounded(path):
+        path=confined(root,path)
+        if not path.is_file() or path.stat().st_size>32<<20:raise ValueError('cell control size cap')
+        value=json.loads(path.read_bytes())
+        if seal(value)!=value:raise ValueError('cell control identity mismatch')
+        return value
+    terminal=base/'preparation-result.json'
+    if terminal.exists():
+        value=bounded(terminal)
+        result['terminal']={k:value[k] for k in ('status','reason','cell') if k in value and
+            isinstance(value[k],str) and re.fullmatch(r'[A-Za-z0-9_-]{1,128}',value[k])}
+    cells=base/'cells'
+    known={'native/reference disagreement','cross-role exclusion','duplicate refresh source',
+        'excluded:input_integer_limit','descriptor family mismatch','concrete descriptor grounding mismatch','nonmechanical origin'}
+    if cells.is_dir():
+        paths=sorted(cells.iterdir())
+        if len(paths)>16:raise ValueError('cell count cap')
+        for folder in paths:
+            if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',folder.name):raise ValueError('cell name')
+            ledger=folder/'ledger.json'
+            if not ledger.exists():continue
+            value=bounded(ledger)
+            if value.get('version')!='generalization-cell-preparation/v1':raise ValueError('original cell ledger required')
+            if value.get('status') not in {'PASS','BLOCKED'} or value.get('role') not in {'training','selection','assessment'}:
+                raise ValueError('cell status/role')
+            counts=Counter()
+            for row in value['rejections']:
+                reason=row.get('reason','')
+                counts[reason if reason in known else 'reference exclusion' if reason.startswith('excluded:') else 'OTHER']+=1
+            shortfalls=[]
+            for member in value['shortfalls']:
+                if not isinstance(member,str) or not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',member):
+                    raise ValueError('unknown shortfall label')
+                shortfalls.append(member)
+            if type(value['draws']) is not int or not 0<=value['draws']<=1_000_000:raise ValueError('draw count')
+            result['cells'].append(dict(cell=folder.name,status=value['status'],role=value['role'],draws=value['draws'],
+                rejected=sum(counts.values()),rejection_counts=dict(counts),shortfalls=shortfalls,
+                original=reference(ledger,root)))
+    return seal(result)
+
+
 def diagnostics(root,destination):
     """Bounded control-only walk for this temporary multi-stage layout."""
     import os,stat
@@ -19,6 +66,14 @@ def diagnostics(root,destination):
     skip={'public','recovery','diagnostics','acceptance-inputs','design','inputs','checkpoints',
           'cells','scorer','visible','generation','selection','qualified','selected','.runtime','native-cache','command-export'}
     files=[];used=0;entries=0
+    try:
+        summary=preparation_diagnostics(root)
+        target=destination/'preparation-summary.json';write(target,summary);used=target.stat().st_size
+        if summary['cells'] or 'terminal' in summary:
+            files.append(dict(source='research-preparation-ledgers',status='PROJECTED',artifact=reference(target,destination)))
+        else:target.unlink();used=0
+    except (OSError,ValueError,KeyError,TypeError) as exc:
+        files.append(dict(source='research-preparation-ledgers',status='OMITTED',reason=type(exc).__name__))
     for parent,dirs,names in os.walk(root,followlinks=False):
         dirs[:]=sorted(d for d in dirs if d not in skip and not (Path(parent)/d).is_symlink())
         entries+=len(dirs)+len(names)

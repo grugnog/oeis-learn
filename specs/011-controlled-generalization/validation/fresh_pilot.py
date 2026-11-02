@@ -142,6 +142,25 @@ def recovery(root,workflow):
     return archive
 
 
+def diagnose(run_root,output):
+    """Export existing control evidence without containers, preparation or learning."""
+    from oeis_learn.pipeline_validation.bundle import pack,verify
+    root=confined(ROOT,run_root);destination=confined(ROOT,output,exists=False)
+    if destination.exists() or destination.with_suffix('.zip').exists() or root==destination or root in destination.parents or destination in root.parents:
+        raise ValueError('fresh diagnostic output disjoint from original run required')
+    workflow=read(root/'workflow.json')
+    if seal(workflow)!=workflow:raise ValueError('original sealed workflow required')
+    destination.mkdir(parents=True)
+    write(destination/'workflow.json',workflow)
+    write(destination/'summary.json',dict(selected_scope=workflow['status'],scientific_status='UNMEASURED',
+        qualification_evidence=False,scope='read-only diagnostic export; no new execution'))
+    files=diagnostics(root,destination/'diagnostics')
+    archive=pack(destination,mandatory=['workflow.json','summary.json',*['diagnostics/'+p.name for p,_ in files]])
+    verify(archive)
+    print(json.dumps(dict(status='DIAGNOSTIC_EXPORTED',archive=str(archive.relative_to(ROOT))),indent=2))
+    return 0
+
+
 def run(args):
     from oeis_learn.fresh.common import write as replace
     from oeis_learn.pipeline_validation.generalization_inputs import assemble_study
@@ -324,6 +343,7 @@ def run(args):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     child=commands.add_parser('role');child.add_argument('--job',required=True);child.add_argument('--output',required=True)
+    diagnostic=commands.add_parser('diagnose');diagnostic.add_argument('--run',required=True);diagnostic.add_argument('--output',required=True)
     runner=commands.add_parser('run');runner.add_argument('--engine',choices=('docker','podman'),required=True)
     runner.add_argument('--imported',default='run-state/generalization/uniform-import')
     runner.add_argument('--cpu-image');runner.add_argument('--gpu-image');runner.add_argument('--qualified')
@@ -331,6 +351,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     try:
         if args.command=='role':return role(args.job,args.output)
+        if args.command=='diagnose':return diagnose(args.run,args.output)
         if args.dry_run:
             print(json.dumps(dict(status='NOT_RUN',reservations=RESERVATIONS,campaign_seconds=CAMPAIGN_SECONDS,
                 report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,assessment='SEALED',historical='DEFERRED',

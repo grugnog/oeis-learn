@@ -67,6 +67,22 @@ or HIP. Advanced reuse through `--qualified PATH` requires an original current-s
 qualified root at the exact64GiB/four-CPU resources; acceptance-016 does not qualify
 this changed source. The default above handles that requirement automatically.
 
+For a preparation failure, export the preserved run's original control records before
+starting any retry. This command performs no engine or HIP work, leaves the original
+run untouched and includes a public projection of the failed cell, quota deficits and
+rejection counts. Existing target/source/term payloads remain private:
+
+```bash
+python3 -S specs/011-controlled-generalization/validation/fresh_pilot.py diagnose \
+  --run run-state/generalization/fresh-p1-20261101T235037Z \
+  --output "run-state/generalization/fresh-p1-diagnostics-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Share the archive printed by this command. The first fresh pilot's recovery archive
+shows acceptance PASS and preparation QUOTA_SHORTFALL after3h39m; it does not contain
+the original cell ledgers needed to explain that shortfall. Longer time limits alone
+are not supported by that evidence. Diagnosis is pending; no learning outcome exists.
+
 ### Historical diagnostic: untraced fresh validation with explicit addmm bypass
 
 Processes-001 reproduced native Linear variation across fresh GPU processes with

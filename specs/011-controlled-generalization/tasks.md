@@ -59,6 +59,19 @@ The proposed study binds the complete pilot protocol identity in its hypothesis.
 
 ### Phase C/D — fresh paired pilot delivery
 
+- [X] T138 Repair preparation-failure diagnostic projection after the first fresh
+  pilot stopped on QUOTA_SHORTFALL. Capture the original failed cell, exact bounded
+  quota deficits and rejection counts from sealed per-cell ledgers; keep protected
+  payloads excluded. Add a read-only `fresh_pilot.py diagnose` command for existing
+  runs so the missing evidence requires no repeated HIP work. Local helper suite:
+  34 passed, including source/term redaction, symlink/unknown-label rejection and
+  original-run immutability. The uploaded recovery archive passes member/hash and
+  workflow-identity checks. Acceptance exited0; preparation stopped BLOCKED after
+  13,122.89 seconds, below its deadline, and no learner launched. The archive omitted
+  the failed cell and quota ledger; actual admission/design diagnosis remains
+  blocked until the preserved original ledgers are exported. No timeout increase,
+  quota relaxation or new hardware run is justified by this archive alone.
+
 - [X] T136 Implement the temporary serial pilot helper and public research export,
   with frozen controls/denominators, real checkpoint lineage, actual costs, original
   stage receipts, strict offline verification and partial/failure packaging. Exercise
