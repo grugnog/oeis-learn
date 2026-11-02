@@ -81,7 +81,7 @@ def run(api,job_path,output):
     if target.exists():raise ValueError('fresh smoke output required')
     target.mkdir(parents=True)
     stages=[];record=dict(version='fresh-pilot-smoke-result/v1',status='FAIL',stages=stages,
-        scientific_status='UNMEASURED',scope='software smoke only; weights discarded from research lineage')
+        scientific_status='UNMEASURED',scope='software smoke only; weights never initialize research')
     began=time.monotonic()
     def rel(path):return str(Path(path).relative_to(root))
     def command(name,argv,destination):

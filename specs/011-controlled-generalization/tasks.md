@@ -27,6 +27,8 @@ a paired smoke gate and bounded CPU parallel generation; no HIP runs here.
   Use the existing native execute protocol in batches of at most eight after exclusions.
   Preserve selection ordering and native agreement for published examples; test
   serial/parallel equivalence, collisions, later-shard exhaustion and containment.
+  Final review additionally fails on unacknowledged worker exit and any native
+  disagreement, even when other rows could fill the quota; do not finish later shards.
 
 ### Phase C — one-command gates and evidence
 

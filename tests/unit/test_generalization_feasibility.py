@@ -110,3 +110,30 @@ def test_native_batch_reorders_ids_and_rejects_missing_or_duplicate_responses():
     class Bad:
         def request(self,*a,**kw):return dict(complete=True,results=[dict(candidate_id='0')]*3)
     with pytest.raises(ValueError):native_batch(Bad(),rows,deadline=time.monotonic()+10)
+
+
+def test_unacknowledged_worker_exit_cannot_be_success():
+    from oeis_learn.generalization.preparation import OrderedWorkers
+    class Stuck:
+        def is_alive(self):return True
+        def terminate(self):pass
+        def kill(self):pass
+        def join(self,*a):pass
+    class Pipe:
+        def close(self):pass
+    workers=OrderedWorkers(2);workers.children=[(Stuck(),Pipe())]
+    with pytest.raises(RuntimeError,match='exit unacknowledged'):workers.__exit__(None,None,None)
+    assert len(workers.children)==1
+
+
+def test_native_disagreement_stops_even_if_surviving_rows_fill_quota():
+    from oeis_learn.generalization.preparation import scan
+    from oeis_learn.synthesis.reference import evaluate
+    rows=[BigintSampler().sample(i*16) for i in range(128)];calls=[]
+    def native(source,indices):
+        calls.append(source)
+        if len(calls)==1:return dict(outcome='ok',values=['999999']*100)
+        r=evaluate(source,indices);return dict(outcome=r.outcome,values=r.values)
+    choice,ledger=scan(rows,role='training',holdout='parameter',count=1,quotas={},structural=False,execute=native,seconds=20)
+    assert ledger['status']=='BLOCKED' and not choice.complete
+    assert len(calls)<=64 and 'native_validation_failed' in ledger['shortfalls']

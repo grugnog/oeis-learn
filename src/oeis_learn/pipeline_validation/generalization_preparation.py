@@ -131,7 +131,8 @@ def prepare_study(root,preparation,proposed,*,output,execute,workers=1):
         draws+=ledger['draws']
         if refresh_record is not None:write(folder/'refresh.json',refresh_record)
         if ledger['status']!='PASS':
-            result=seal(dict(status='BLOCKED',reason='QUOTA_SHORTFALL',cell=cell['name'],study=None))
+            reason='NATIVE_VALIDATION_FAILED' if 'native_validation_failed' in ledger['shortfalls'] else 'BUDGET_EXHAUSTED' if 'preparation_deadline' in ledger['shortfalls'] else 'QUOTA_SHORTFALL'
+            result=seal(dict(status='BLOCKED',reason=reason,cell=cell['name'],study=None))
             write(output/'preparation-result.json',result);return result
         rows=json.loads((folder/'private/selected.json').read_text())
         choices[cell['name']]=CohortChoice(json.dumps(rows,sort_keys=True).encode(),())

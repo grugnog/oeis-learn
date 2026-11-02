@@ -84,10 +84,13 @@ class OrderedWorkers:
         for process,_ in self.children:process.join(max(0,deadline-time.monotonic()))
         for process,_ in self.children:
             if process.is_alive():process.kill()
-        for process,_ in self.children:
+        survivors=[]
+        for process,pipe in self.children:
             process.join(.2)
-            if not process.is_alive():process.close()
-        self.children=[]
+            if process.is_alive():survivors.append((process,pipe))
+            else:process.close()
+        self.children=survivors
+        if survivors:raise RuntimeError('reference worker exit unacknowledged; external termination required')
 
 
 def exclusion_record(row,role,holdout):
@@ -103,7 +106,7 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
     if not 0<seconds<=21600 or not 1<=draw_cap<=1_000_000:raise ValueError('preparation limits')
     exclusions=exclusions if exclusions is not None else ExclusionIndex()
     seen_sources=set(seen_sources or ())|{r[4] for r in exclusions.records if r[1]==role}
-    deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0;expired=False
+    deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0;expired=False;native_failed=False
     iterator=iter(candidates)
     with OrderedWorkers(workers) as pool:
         while seen<draw_cap:
@@ -139,13 +142,15 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
                 if len(native)!=len(chunk):raise ValueError('incomplete native batch response')
                 for (draw,row),actual in zip(chunk,native):
                     if execute is not None and (actual.get('outcome')!='ok' or tuple(actual.get('values',()))!=tuple(row['values'])):
+                        native_failed=True
                         rejections.append(dict(draw=draw,reason='native/reference disagreement'))
                     else:admitted.append(row)
                 if time.monotonic()>=deadline:expired=True;break
             if progress and seen%1024==0:progress(seen,len(admitted))
-            if expired:break
+            if expired or native_failed:break
     choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
     if expired:choice=CohortChoice(choice.payload,choice.shortfalls+('preparation_deadline',))
+    if native_failed:choice=CohortChoice(choice.payload,choice.shortfalls+('native_validation_failed',))
     ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=sorted(rejections,key=lambda row:row['draw']),
         admitted=len(admitted),shortfalls=list(choice.shortfalls),
         status=('PASS' if execute is not None else 'FEASIBLE') if choice.complete else 'BLOCKED',

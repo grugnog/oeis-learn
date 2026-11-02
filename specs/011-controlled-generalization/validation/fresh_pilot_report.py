@@ -48,7 +48,7 @@ def preparation_diagnostics(root):
                 counts[reason if reason in known else 'reference exclusion' if reason.startswith('excluded:') else 'OTHER']+=1
             shortfalls=[]
             for member in value['shortfalls']:
-                if member=='preparation_deadline':
+                if member in {'preparation_deadline','native_validation_failed'}:
                     shortfalls.append(member);continue
                 if not isinstance(member,str) or not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',member):
                     raise ValueError('unknown shortfall label')
@@ -86,8 +86,15 @@ def feasibility_diagnostics(root):
             if cell['status'] not in {'FEASIBLE','BLOCKED'}:raise ValueError('cell status')
             row['status']=cell['status'];row['shortfalls']=[]
             for item in cell['shortfalls']:
-                if item!='preparation_deadline' and not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',item):raise ValueError('shortfall label')
+                if item not in {'preparation_deadline','native_validation_failed'} and not re.fullmatch(r'(?:rows|[ABCD]|short|long|within64|above64|loop_active|branch_active|loop_active_families|branch_active_families|family:sha256:[a-f0-9]{64}):[0-9]{1,7}',item):raise ValueError('shortfall label')
                 row['shortfalls'].append(item)
+            row['rejection_counts']={}
+            known={'cross-role exclusion','duplicate refresh source','native/reference disagreement',
+                'excluded:input_integer_limit','descriptor family mismatch','concrete descriptor grounding mismatch','nonmechanical origin'}
+            for reason,n in cell.get('rejection_counts',{}).items():
+                if type(n) is not int or not 0<=n<=1_000_000:raise ValueError('rejection count')
+                label=reason if reason in known else 'OTHER'
+                row['rejection_counts'][label]=row['rejection_counts'].get(label,0)+n
             result['cells'].append(row)
         if type(value.get('training_tokens')) is int:result['training_tokens']=value['training_tokens']
         return seal(result)

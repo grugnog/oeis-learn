@@ -132,6 +132,10 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
         tmp_path/'role',dict(preparation=freeze('preparation',prep).record(),proposed=study),seconds=60)
     assert role_result['study']==result['study']
     assert (tmp_path/'role/private/prepared/study.json').is_file()
+    failed=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'native-failed',
+        execute=lambda *_:dict(outcome='ok',values=['999999']*100))
+    assert failed['status']=='BLOCKED' and failed['reason']=='NATIVE_VALIDATION_FAILED'
+    assert not (tmp_path/'native-failed/study.json').exists()
 
     plans[2]['candidates']=plans[0]['candidates']
     changed=artifact('collision.json',dict(version='generalization-materialization-plan/v1',cells=plans))
