@@ -237,3 +237,14 @@ native research preparation6 hours plus host/validation headroom, paired smoke
 6 hours, original acceptance395 minutes, unchanged two6-hour learners and four
 6-hour evaluation/scoring roles, with one hour protected for finalization. Explicit
 outer stage reservations total less than71 hours. These are ceilings, not ETAs.
+
+
+T142 local evidence: all16 source-feasibility cells passed, including393,216
+selected training examples and30,525,661 actual target tokens, in33m39s on this
+CPU environment. Final affected regressions:446 pass,1 native-dependency skip,
+1 GPU deselection. Twelve broader foundation tests are unavailable locally because
+`wasmtime` is absent; the pinned-container/native/HIP gates remain required.
+The original full data inputs match the final protocol; the public aggregate feasibility
+summary records the operational-only smoke/campaign amendment explicitly. Final
+Phase-B containment review makes unacknowledged worker exit and native mismatch
+fail closed before later shards. Readiness is software/source-only, not hardware.

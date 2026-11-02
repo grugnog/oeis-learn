@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-30
 
-**Status**: Phases A/B implemented; reconciliation repaired and locally revalidated; Phase C/D pending
+**Status**: Software implementation complete through T142; v2 full source feasibility passed; current-source native/container/HIP validation pending
 
 **Input**: Independently assess the supplied research reports and primary sources, integrate the completed pilot findings, and specify the next changes. Concentrate complex algorithm work into one phase and HIP validation into as few runs as possible, ideally one serial invocation with shareable results.
 
@@ -160,6 +160,9 @@ As the workstation operator, I can invoke one serial workflow performing qualifi
 - **FR-034**: Software acceptance and scientific outcome MUST be separate statuses. A passing workflow with censored measurements or no gain MUST not claim scientific success. Negative research results do not fail otherwise correct software acceptance.
 - **FR-035**: Unless the operator records the fresh-start alternative below, the default research sequence MUST be: bounded evaluation extension; limited uniform-seed replication; a static-versus-refreshed training pilot on the new frozen benchmark; then separately controlled structural-support, target-representation and replay comparisons. All these capabilities remain implementation scope; execution gates do not defer their implementation. Each stage MUST identify its exact arms, prerequisites, budget and stop/advance decision before execution.
 - **FR-036**: When historical replication is executed, it MUST add uniform 25M-token runs at seeds 20261017 and 20261018 to the historical 20261016 reference, without repeating family-balanced or decay arms. Historical evidence may be reused only when compatible and available; otherwise the baseline must be regenerated or explicitly declared unavailable. The first learning intervention MUST compare fresh static and refreshed-within-support training at seed 20261016 with a 25M-token cap per arm, holding model, family support and sampling policy fixed. Its initial outcome is exploratory; extension to the other two paired seeds requires valid coverage, complete accounting and adequate completion, and uses a decision frozen before assessment. No positive accuracy gain is required to complete a valid negative experiment.
+- **FR-037**: The revised fresh P1 campaign MUST establish source-only feasibility for all four protected cohorts and all12 training shards before hardware work. Every family quota, cross-shard source-uniqueness rule, exact isolation rule and actual admitted target-token capacity MUST pass. A nominal encoding floor or a subset of cells is insufficient. Revisions to the roster or numeric law receive a new frozen identity and apply equally to both arms; source feasibility is never native/HIP qualification.
+- **FR-038**: After current-source acceptance and native preparation, the revised fresh P1 campaign MUST pass a bounded same-model paired smoke before full learners. It MUST exercise finite parameter changes, actual fresh-row consumption and the canonical generator/scorer path on a fixed selection-only subset. Recorded negative/censored synthesis outcomes MUST NOT be treated as model-quality failures. Missing results, unaccounted work or failed native/finite-update proofs block the full run. Smoke weights/results MUST NOT initialize, select or enter the scientific comparison.
+
 
 ### Research sequence and advancement
 
@@ -192,6 +195,8 @@ Research execution order is distinct from implementation phases. The complete fe
 - **NFR-006 — Workstation and containment**: Respect the project's single-learner workstation, portable container workflow and bounded execution. Aggregate memory, queues, workers, caches, checkpoints, logs, disk and wall budgets MUST be explicit/enforced. No host driver changes, new host services or unbounded online generation are required.
 - **NFR-007 — Failure and sharing**: Preflight MUST report stages, identities, budgets and required artifacts before costly work. Every terminal path MUST preserve a machine-readable ledger and verified complete bundle or explicitly partial bundle with bounded log tail and restart guidance. Reusing completed stages requires validated identities/artifacts; learner restart obeys FR-024.
 - **NFR-008 — Compatibility and reproducibility**: Historical commands/recipes/evidence MUST retain their meaning. Identical preparation inputs reproduce membership/target identities. Hardware timing variation is measured, not mistaken for determinism. No speed or HIP-readiness claim is accepted without actual target-hardware evidence.
+- **NFR-009 — Bounded CPU parallel preparation**: Parallel source/reference generation MUST preserve deterministic input/selection order, frozen seeds and identical admission decisions; bound workers, in-flight rows and cleanup. Unacknowledged worker exit MUST fail closed. Native batching MUST retain per-program identity and exact agreement and stop on disagreement without finishing later shards. GPU learners/inference remain serial under the qualified resource contract.
+
 
 ### Key Entities *(include if feature involves data)*
 

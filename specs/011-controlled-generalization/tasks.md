@@ -39,9 +39,23 @@ a paired smoke gate and bounded CPU parallel generation; no HIP runs here.
 
 ### Phase D — local verification and handoff
 
-- [ ] T142 Run complete revised source feasibility, affected CPU regressions and
+- [X] T142 Run complete revised source feasibility, affected CPU regressions and
   failure-path tests; refresh CI bindings, document measured CPU evidence and
   unmeasured hardware/runtime limits, commit/push each group without waiting for CI.
+
+T139/T140 cover FR-014–016/037 and NFR-001/006/009; T141 covers FR-038
+and NFR-003/007; T142 records the actual evidence for NFR-005/008. Final affected
+regression suite:446 passed,1 unavailable-native test skipped,1 GPU test deselected.
+The broader pre-final-review run had509 passes and12 import failures, all missing
+local `wasmtime`, plus6 skips/1 GPU deselection; pinned-container checks remain
+required. The full reference check selected393,216 training examples across all12
+shards, every1,024/family quota, and30,525,661 target tokens in2,018.96 seconds.
+Its complete data inputs equal the final protocol (only smoke/campaign controls
+changed afterward); see the aggregate summary in `validation/fresh-pilot-readiness.md`. Detailed
+per-cell feasibility records remain local after publication review rejected their
+public disclosure; implementation and tests are unaffected.
+Current-source native/HIP execution is still pending. No CI wait or HIP command
+was performed here; all changes are committed/pushed to the existing PR branch.
 
 ## Fresh-start delivery — 2026-11-01 Pacific
 

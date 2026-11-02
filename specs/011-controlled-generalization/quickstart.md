@@ -12,9 +12,10 @@ the historical artifacts without using them as fresh validation or paired seeds.
 P1 uses static versus refreshed mechanical training from identical random weights,
 seed20261016, literal targets, fixed model/support/mixture and no replay.
 
-T132–T137 are implemented and locally checked. The temporary runner performs
-current-source acceptance once, then research preparation, both learners, matched
-selection evaluation, reporting and independent archive verification. Keep sealed
+T139–T142 revise the failed v1 design. The temporary runner first checks all four
+protected cohorts and all12 training shards on CPU, then performs current-source
+acceptance, canonical native preparation, a small same-model paired smoke, both
+full learners, matched selection evaluation, reporting and archive verification. Keep sealed
 assessment out of adaptive decisions. Acceptance-016 remains original evidence for
 ef886a7; the production changes below require fresh acceptance. No fresh HIP or
 scientific result is claimed until this command runs on the operator's machine.
@@ -28,12 +29,11 @@ checkout, with the existing pinned versions and numerical execution policy.
 ```bash
 (
   set -e
-  git fetch origin 011-controlled-generalization
   git switch 011-controlled-generalization
-  git merge --ff-only origin/011-controlled-generalization
+  git pull --ff-only origin 011-controlled-generalization
 
   PILOT_ENGINE="${PILOT_ENGINE:-podman}"
-  PILOT_RUN="run-state/generalization/fresh-p1-$(date -u +%Y%m%dT%H%M%SZ)"
+  PILOT_RUN="run-state/generalization/fresh-p1-v2-$(date -u +%Y%m%dT%H%M%SZ)"
   "$PILOT_ENGINE" build --target qualification -t oeis-learn:generalization-cpu .
   "$PILOT_ENGINE" build --target gpu -t oeis-learn:generalization-gpu .
   python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py run \
@@ -50,13 +50,19 @@ The final JSON prints the archive to upload: normally `<PILOT_RUN>/report.zip`, 
 still requires reading that JSON and sharing the archive. Preserve the full private
 run and imported files locally; the shareable archive deliberately excludes tensors,
 optimizer/RNG state and protected target payloads. Existing outputs are never
-overwritten. If acceptance or preparation fails, research does not start.
+overwritten. Failed CPU feasibility starts no hardware. Failed acceptance/native preparation
+starts no smoke learner; failed smoke starts no full learner.
 
-This freezes a **60-hour total ceiling after image builds**, not an estimated runtime.
+This freezes a **72-hour total ceiling after image builds**, not an estimated runtime.
 Each learner gets at most6 hours/25M target tokens; each arm's generation and scoring
 gets up to6 hours each. Setup, qualification, validation, checkpoint persistence,
-cleanup and final reporting have separate reservations. Qualification and research
-use64GiB/four CPUs, with64GiB reserved per research root. Checkpoint/input projections
+cleanup and final reporting have separate reservations. CPU feasibility and the
+paired smoke each have a6-hour outer ceiling; native preparation has6 hours of
+work plus validation/cleanup headroom. CPU reference generation uses four ordered
+workers; canonical preparation uses up to three plus one native client, with
+existing native execute requests batched eight at a time. GPU work stays serial. Qualification and research
+use64GiB/four CPUs, with64GiB reserved per study root. The smoke has its own
+bounded root and retains diagnostic checkpoints; allow additional disk headroom. Checkpoint/input projections
 and image storage need free disk space as well; measured preflight remains mandatory.
 Partial learners are evaluated for diagnosis, but unequal/partial exposure cannot
 support a matched25M comparison. No assessment scoring or automatic next experiment
@@ -78,10 +84,20 @@ python3 -S specs/011-controlled-generalization/validation/fresh_pilot.py diagnos
   --output "run-state/generalization/fresh-p1-diagnostics-$(date -u +%Y%m%dT%H%M%SZ)"
 ```
 
-Share the archive printed by this command. The first fresh pilot's recovery archive
-shows acceptance PASS and preparation QUOTA_SHORTFALL after3h39m; it does not contain
-the original cell ledgers needed to explain that shortfall. Longer time limits alone
-are not supported by that evidence. Diagnosis is pending; no learning outcome exists.
+Share the archive printed by this command. The original v1 failure is now explained:
+20,634/32,768 training rows admitted,11 empty families and43,817 cross-role exclusions.
+Its three-parameter filter allowed fixed arithmetic segments that collided with
+protected20-term windows. Do not rerun that frozen design unchanged.
+
+V2 keeps the exact isolation rules and A4/B6/C2/D20 mixture, screens for numeric
+variation, and explicitly widens coefficients from[-16,16] to[-1024,1024] for both
+arms. The local full reference check selected393,216 unique-source training rows
+and30,525,661 target tokens in about34 minutes. This is CPU/source evidence only;
+it does not predict native preparation or HIP throughput. The smoke uses the full
+model, two32-row training shards, at least three updates/arm and two selection
+prompts. It verifies finite changed weights and fresh-row consumption. Recorded
+negative/censored synthesis is allowed; missing results or failed accounting block
+full training. Smoke weights and scores never select or initialize research.
 
 ### Historical diagnostic: untraced fresh validation with explicit addmm bypass
 
