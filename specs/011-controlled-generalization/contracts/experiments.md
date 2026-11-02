@@ -192,3 +192,12 @@ The research preparation allowance is now six hours (including reference/native
 work), matching the existing maximum role envelope; acceptance stays ten minutes.
 This is an operational ceiling, not a measured native ETA. Full CPU feasibility has
 a separate six-hour ceiling. Current-source qualification must be regenerated.
+
+
+T140 native transport review: surviving candidates use existing `execute` requests
+in batches of at most eight, with response IDs reordered/validated and every100-term
+result compared independently. Missing/duplicate/foreign results cannot become
+admitted rows. The existing four-second allowance per candidate is reserved within
+one <=32-second batch and the enclosing preparation deadline. There is no hidden
+retry and no extra native worker/process reservation. This amortizes transport
+without changing the fitting portfolios or learner workload.

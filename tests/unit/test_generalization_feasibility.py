@@ -80,3 +80,33 @@ def test_observed_materialization_matches_independent_coverage():
         exact,coverage=materialize_observed(row)
         assert exact==materialize(row)
         assert coverage==observe(row['source'],tuple(map(str,range(100))),stage=row['stage'])
+
+
+def test_batched_native_matches_serial_and_never_receives_excluded_rows():
+    from oeis_learn.generalization.preparation import scan
+    from oeis_learn.synthesis.reference import evaluate
+    sampler=BigintSampler();rows=[sampler.sample(i*16) for i in range(20)]
+    def serial(source,indices):
+        r=evaluate(source,indices);return dict(outcome=r.outcome,values=r.values)
+    def batched(*args):raise AssertionError('batch adapter should be used')
+    calls=[]
+    def batch(rows):
+        calls.append(len(rows));return [serial(r['source'],r['indices']) for r in rows]
+    batched.batch=batch
+    kwargs=dict(role='training',holdout='parameter',count=10,quotas={},structural=False,seconds=20)
+    a,al=scan(rows,execute=serial,**kwargs);b,bl=scan(rows,execute=batched,**kwargs)
+    assert (a.payload,al)==(b.payload,bl) and max(calls)<=8
+
+
+def test_native_batch_reorders_ids_and_rejects_missing_or_duplicate_responses():
+    from oeis_learn.pipeline_validation.generalization_role import native_batch
+    rows=[materialize(row) for row in collision_rows()]
+    class Native:
+        def request(self,op,candidates,indices,**kw):
+            assert op=='execute' and len(candidates)==3 and tuple(indices)==tuple(rows[0]['indices'])
+            return dict(complete=True,results=[dict(candidate_id=str(i),outcome='ok',values=rows[i]['values']) for i in (2,0,1)])
+    result=native_batch(Native(),rows,deadline=time.monotonic()+10)
+    assert [r['values'] for r in result]==[r['values'] for r in rows]
+    class Bad:
+        def request(self,*a,**kw):return dict(complete=True,results=[dict(candidate_id='0')]*3)
+    with pytest.raises(ValueError):native_batch(Bad(),rows,deadline=time.monotonic()+10)

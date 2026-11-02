@@ -123,9 +123,9 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
         def __init__(self,*args,**kwargs):pass
         def __enter__(self):return self
         def __exit__(self,*args):pass
-        def execute(self,src,indices,*,deadline):
-            assert deadline>time.monotonic()
-            return native(src,indices)
+        def request(self,op,rows,indices,*,deadline):
+            assert op=='execute' and deadline>time.monotonic()
+            return dict(complete=True,results=[dict(native(r['source'],indices),candidate_id=r['candidate_id']) for r in rows])
     monkeypatch.setattr(native_module,'SynthesisClient',Native)
     (tmp_path/'custodian').mkdir()
     role_result=preparation({'mechanical_sources':incoming,'isolation_truth':tmp_path/'custodian'},

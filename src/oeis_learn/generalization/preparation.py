@@ -111,6 +111,7 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
             if not batch:break
             try:results=pool.map(batch,deadline=deadline)
             except TimeoutError:expired=True;break
+            pending=[]
             for row,(result,error) in zip(batch,results):
                 if time.monotonic()>=deadline:expired=True;break
                 seen+=1
@@ -124,19 +125,28 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
                     if reasons:
                         rejections.append(dict(draw=seen,reason='cross-role exclusion',rules=list(reasons)))
                         continue
-                    if execute is not None:
-                        native=execute(exact['source'],tuple(exact['indices']))
-                        if native.get('outcome')!='ok' or tuple(native['values'])!=tuple(exact['values']):raise ValueError('native/reference disagreement')
                     tags=['family:'+row['family'],row['stage'],'long' if observation.nodes>=length_boundary else 'short','above64' if observation.above_64_bits else 'within64']
                     if observation.loop_active:tags.append('loop_active')
                     if observation.branch_active:tags.append('branch_active')
-                    admitted.append(dict(exact,role=role,holdout=holdout,tags=tags))
+                    pending.append((seen,dict(exact,role=role,holdout=holdout,tags=tags)))
                 except ValueError as exc:rejections.append(dict(draw=seen,reason=str(exc)))
+            for start in range(0,len(pending),8):
+                chunk=pending[start:start+8]
+                if time.monotonic()>=deadline:expired=True;break
+                if execute is None:native=[None]*len(chunk)
+                elif hasattr(execute,'batch'):native=execute.batch([row for _,row in chunk])
+                else:native=[execute(row['source'],tuple(row['indices'])) for _,row in chunk]
+                if len(native)!=len(chunk):raise ValueError('incomplete native batch response')
+                for (draw,row),actual in zip(chunk,native):
+                    if execute is not None and (actual.get('outcome')!='ok' or tuple(actual.get('values',()))!=tuple(row['values'])):
+                        rejections.append(dict(draw=draw,reason='native/reference disagreement'))
+                    else:admitted.append(row)
+                if time.monotonic()>=deadline:expired=True;break
             if progress and seen%1024==0:progress(seen,len(admitted))
             if expired:break
     choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
     if expired:choice=CohortChoice(choice.payload,choice.shortfalls+('preparation_deadline',))
-    ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=rejections,
+    ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=sorted(rejections,key=lambda row:row['draw']),
         admitted=len(admitted),shortfalls=list(choice.shortfalls),
         status=('PASS' if execute is not None else 'FEASIBLE') if choice.complete else 'BLOCKED',
         native_validation='PERFORMED' if execute is not None else 'NOT_RUN'))

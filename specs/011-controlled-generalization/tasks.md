@@ -24,6 +24,7 @@ a paired smoke gate and bounded CPU parallel generation; no HIP runs here.
   streams; freeze a new protocol and report deficits without native/HIP claims.
 - [X] T140 Check exclusions before native work, share one reference execution for
   values/coverage, and add bounded ordered CPU workers with timeout/error cleanup.
+  Use the existing native execute protocol in batches of at most eight after exclusions.
   Preserve selection ordering and native agreement for published examples; test
   serial/parallel equivalence, collisions, later-shard exhaustion and containment.
 

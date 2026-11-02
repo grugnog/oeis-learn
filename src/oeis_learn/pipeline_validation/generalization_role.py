@@ -11,6 +11,20 @@ from oeis_learn.generalization.role_contracts import Role,ROLE_INPUTS,ROLE_OUTPU
 from .identity import seal,write
 
 
+def native_batch(native,rows,*,deadline):
+    """Use the existing bounded protocol; preserve per-candidate identity/order."""
+    if not 1<=len(rows)<=8 or any(row['indices']!=rows[0]['indices'] for row in rows):
+        raise ValueError('bounded same-index native batch required')
+    response=native.request('execute',[dict(candidate_id=str(i),source=row['source']) for i,row in enumerate(rows)],
+        rows[0]['indices'],deadline=min(deadline,time.monotonic()+4*len(rows)))
+    values=response['results'];ids=[r['candidate_id'] for r in values]
+    expected=[str(i) for i in range(len(rows))]
+    if len(ids)!=len(set(ids)) or set(ids)-set(expected):raise ValueError('invalid native batch response IDs')
+    if response['complete'] and set(ids)!=set(expected):raise ValueError('incomplete native batch response')
+    found=dict(zip(ids,values))
+    return [found.get(i,dict(outcome='resource_exhausted',values=[])) for i in expected]
+
+
 def preparation(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import validate
     from oeis_learn.synthesis.client import SynthesisClient
@@ -32,6 +46,7 @@ def preparation(inputs,output,settings,*,seconds):
         with SynthesisClient(authority.identity,cache_root=output/'private/native-cache') as native:
             def execute(source,indices):
                 return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))
+            execute.batch=lambda rows:native_batch(native,rows,deadline=deadline)
             return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1))
 
 
