@@ -5,7 +5,27 @@ from oeis_learn.generalization.refresh import RefreshPlan
 from oeis_learn.pipeline_validation.identity import seal,write,digest
 
 SEED=20261016
+NUMERIC_LAW='independent-uniform-integers[-1024,1024]/v1'
 BANK_SEEDS=list(range(20261101,20261109))
+
+
+def diverse(descriptor):
+    """Source-only screen, independent of holdouts or model outcomes.
+
+    Reject fixed/near-fixed20-term difference windows across16 numeric variants.
+    This removes additive-only families and parameter-independent long branches;
+    it is a distribution choice, not proof that all later quotas are feasible.
+    """
+    from collections import Counter
+    from oeis_learn.data.bigint_programs import materialize
+    rows,_=RefreshPlan([descriptor],seed=SEED+301,capacity=4096).take(0,16)
+    windows=Counter()
+    for row in rows:
+        try:values=list(map(int,materialize(row)['values']))
+        except ValueError:return False
+        differences=[b-a for a,b in zip(values,values[1:])]
+        windows.update({tuple(differences[i:i+19]) for i in range(81)})
+    return max(windows.values(),default=16)<=2
 
 
 def research_inputs():
@@ -21,11 +41,11 @@ def research_inputs():
     from oeis_learn.decoder.bigint_codec import encode_body
     sampler=BigintSampler(SEED);catalog={}
     for ordinal in range(4096):
-        d=sampler.descriptor(ordinal)
+        d=seal(dict(sampler.descriptor(ordinal),numeric_law=NUMERIC_LAW))
         catalog.setdefault(d['family'],d)
     wanted=Counter(A=4,B=6,C=2,D=20);training=[];used=set()
     for d in catalog.values():
-        if len(d['parameter_names'])>=3 and wanted[d['stage']]:
+        if len(d['parameter_names'])>=3 and wanted[d['stage']] and diverse(d):
             training.append(d);used.add(d['family']);wanted[d['stage']]-=1
     if any(wanted.values()):raise ValueError('bounded training descriptor shortfall')
     cohorts=[]
@@ -56,15 +76,9 @@ def research_inputs():
     cells=[dict(name='static' if i==0 else f'refresh-{i:02}',role='training',holdout='parameter',
         count=32768,quotas=quotas.copy(),structural=False,length_boundary=16,
         refresh=dict(seed=SEED,capacity=1_000_000,cursor=65536*i,draws=65536)) for i in range(12)]
-    # Literal coding is compositional; enumerate the entire allowed numeric domain
-    # for uniform assignments to find the shortest integer encoding. Actual token
-    # capacity and native/reference admission remain canonical preparation gates.
-    floor=sum(1024*min(len(encode_body(ground(d['parameter_source'],
-        {p:str(v) for p in d['parameter_names']})))-1 for v in range(-16,17)) for d in training)*12
-    if floor<25_000_000:raise ValueError('bounded research refresh token capacity shortfall')
-    return seal(dict(version='fresh-pilot-design/v1',seed=SEED,descriptors=training,
-        training=cells,cohorts=cohorts,token_capacity_floor=floor,bank_seeds=BANK_SEEDS,
-        target_tokens=25_000_000,learner_seconds=21600,preparation_seconds=14400,
+    return seal(dict(version='fresh-pilot-design/v2',seed=SEED,descriptors=training,
+        training=cells,cohorts=cohorts,numeric_law=NUMERIC_LAW,descriptor_screen='16-variant-difference-window/v1',bank_seeds=BANK_SEEDS,
+        target_tokens=25_000_000,learner_seconds=21600,preparation_seconds=21600,feasibility_seconds=21600,reference_workers=4,
         generation_seconds=21600,scoring_seconds=21600,campaign_seconds=60*3600,
         primary='latest available per arm; matched-cap comparison only if both learners complete; selection supervision only',
         controls=['raw','rescue','equal_budget','shuffled','absent','template','bank'],
@@ -86,7 +100,7 @@ def blueprint(workspace,design,*,recipe,source,images,feature,output):
     from oeis_learn.pipeline_validation.identity import confined
     root=Path(workspace);target=confined(root,output,exists=False)
     if target.exists():raise ValueError('fresh research design root required')
-    if seal(design)!=design or design['version']!='fresh-pilot-design/v1':raise ValueError('intact frozen design required')
+    if seal(design)!=design or design['version']!='fresh-pilot-design/v2':raise ValueError('intact frozen design required')
     target.mkdir(parents=True)
     def put(name,value):
         p=target/name;write(p,value);return str(p.relative_to(root))

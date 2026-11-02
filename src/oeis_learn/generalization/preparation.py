@@ -1,0 +1,143 @@
+"""Ordered bounded source admission shared by feasibility and native preparation."""
+import multiprocessing
+import time
+from itertools import islice
+from .contracts import digest
+from .cohorts import choose,CohortChoice
+from .coverage import materialize_observed
+from .exclusions import ExclusionIndex
+from oeis_learn.pipeline_validation.identity import seal
+
+
+def reference_candidate(row):
+    from oeis_learn.data.bigint_programs import canonical_family
+    from .targets import ground
+    try:
+        if row['origin']!='generic_random':raise ValueError('nonmechanical origin')
+        if canonical_family(row['parameter_source'])!=row['family']:raise ValueError('descriptor family mismatch')
+        if ground(row['parameter_source'],row.get('assignment',{}))!=row['source']:raise ValueError('concrete descriptor grounding mismatch')
+        row=dict(row,variant=str(row['variant']))
+        row.setdefault('group',digest([row['family'],row['variant']]))
+        return materialize_observed(row),None
+    except ValueError as exc:return None,str(exc)
+
+
+def _worker(pipe,function):
+    try:
+        while True:
+            item=pipe.recv()
+            if item is None:return
+            try:pipe.send((True,[function(row) for row in item]))
+            except Exception as exc:pipe.send((False,type(exc).__name__))
+    except (EOFError,BrokenPipeError):pass
+    finally:pipe.close()
+
+
+class OrderedWorkers:
+    """At most64 rows in flight; caller owns each child and its bounded cleanup.
+
+    Results commit in input order, regardless of completion order. Native callbacks
+    stay in the parent, with one client and the existing externally bounded deadline.
+    No process pool internals, implicit unbounded queues, or hidden retries.
+    """
+    def __init__(self,count,*,function=reference_candidate):
+        if type(count) is not int or not 1<=count<=4:raise ValueError('one to four reference workers required')
+        self.count=count;self.function=function;self.children=[]
+
+    def __enter__(self):
+        if self.count>1:
+            try:
+                ctx=multiprocessing.get_context('spawn')
+                for _ in range(self.count):
+                    parent,child=ctx.Pipe();process=ctx.Process(target=_worker,args=(child,self.function),daemon=True)
+                    process.start();child.close();self.children.append((process,parent))
+            except BaseException:
+                self.__exit__(None,None,None);raise
+        return self
+
+    def map(self,rows,*,deadline):
+        if len(rows)>64:raise ValueError('bounded reference batch required')
+        if time.monotonic()>=deadline:raise TimeoutError('reference deadline exhausted')
+        if not self.children:
+            result=[]
+            for row in rows:
+                if time.monotonic()>=deadline:raise TimeoutError('reference deadline exhausted')
+                result.append(self.function(row))
+            return result
+        chunks=[rows[i::self.count] for i in range(self.count)]
+        for (_,pipe),chunk in zip(self.children,chunks):pipe.send(chunk)
+        result=[None]*len(rows)
+        for i,(_,pipe) in enumerate(self.children):
+            remaining=deadline-time.monotonic()
+            if remaining<=0 or not pipe.poll(remaining):raise TimeoutError('reference worker deadline exhausted')
+            try:ok,values=pipe.recv()
+            except EOFError as exc:raise RuntimeError('reference worker exited') from exc
+            if not ok:raise RuntimeError('reference worker failed: '+values)
+            for j,value in enumerate(values):result[i+j*self.count]=value
+        return result
+
+    def __exit__(self,*args):
+        for process,pipe in self.children:
+            pipe.close()
+            if process.is_alive():process.terminate()
+        deadline=time.monotonic()+1
+        for process,_ in self.children:process.join(max(0,deadline-time.monotonic()))
+        for process,_ in self.children:
+            if process.is_alive():process.kill()
+        for process,_ in self.children:
+            process.join(.2)
+            if not process.is_alive():process.close()
+        self.children=[]
+
+
+def exclusion_record(row,role,holdout):
+    return dict(id=row['id'],role=role,holdout=holdout,
+        **{key:row[key] for key in ('family','source','values','group','variant')})
+
+
+def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=None,
+         draw_cap=1_000_000,seconds=21600,length_boundary=32,unique_sources=False,
+         seen_sources=None,workers=1,progress=None):
+    if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:raise ValueError('invalid cohort role/holdout')
+    if type(length_boundary) is not int or not 1<=length_boundary<=4096:raise ValueError('bounded frozen length bin required')
+    if not 0<seconds<=21600 or not 1<=draw_cap<=1_000_000:raise ValueError('preparation limits')
+    exclusions=exclusions if exclusions is not None else ExclusionIndex()
+    seen_sources=set(seen_sources or ())|{r[4] for r in exclusions.records if r[1]==role}
+    deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0;expired=False
+    iterator=iter(candidates)
+    with OrderedWorkers(workers) as pool:
+        while seen<draw_cap:
+            batch=list(islice(iterator,min(64,draw_cap-seen)))
+            if not batch:break
+            try:results=pool.map(batch,deadline=deadline)
+            except TimeoutError:expired=True;break
+            for row,(result,error) in zip(batch,results):
+                if time.monotonic()>=deadline:expired=True;break
+                seen+=1
+                try:
+                    if unique_sources:
+                        from .refresh import claim_source
+                        claim_source(row['source'],seen_sources)
+                    if error:raise ValueError(error)
+                    exact,observation=result
+                    reasons=exclusions.reasons(exclusion_record(exact,role,holdout))
+                    if reasons:
+                        rejections.append(dict(draw=seen,reason='cross-role exclusion',rules=list(reasons)))
+                        continue
+                    if execute is not None:
+                        native=execute(exact['source'],tuple(exact['indices']))
+                        if native.get('outcome')!='ok' or tuple(native['values'])!=tuple(exact['values']):raise ValueError('native/reference disagreement')
+                    tags=['family:'+row['family'],row['stage'],'long' if observation.nodes>=length_boundary else 'short','above64' if observation.above_64_bits else 'within64']
+                    if observation.loop_active:tags.append('loop_active')
+                    if observation.branch_active:tags.append('branch_active')
+                    admitted.append(dict(exact,role=role,holdout=holdout,tags=tags))
+                except ValueError as exc:rejections.append(dict(draw=seen,reason=str(exc)))
+            if progress and seen%1024==0:progress(seen,len(admitted))
+            if expired:break
+    choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
+    if expired:choice=CohortChoice(choice.payload,choice.shortfalls+('preparation_deadline',))
+    ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=rejections,
+        admitted=len(admitted),shortfalls=list(choice.shortfalls),
+        status=('PASS' if execute is not None else 'FEASIBLE') if choice.complete else 'BLOCKED',
+        native_validation='PERFORMED' if execute is not None else 'NOT_RUN'))
+    return choice,ledger

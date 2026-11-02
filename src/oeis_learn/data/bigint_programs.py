@@ -162,10 +162,10 @@ class BigintSampler:
         )
 
 
-def materialize(row, limits=ResourceProfile()):
+def materialize(row, limits=ResourceProfile(), *, observer=None):
     """Independent exact 100-index oracle; production cross-check is qualification."""
     indices = tuple(map(str, range(100)))
-    result = evaluate(row["source"], indices, limits)
+    result = evaluate(row["source"], indices, limits, observer=observer)
     if result.outcome != "ok":
         raise ValueError(f"excluded:{result.reason}")
     # Inputs to the learning representation have their own stricter bound.

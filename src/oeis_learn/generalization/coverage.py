@@ -31,6 +31,10 @@ def observe(source, indices, *, stage, limits=ResourceProfile()):
         elif kind=='branch': counts['true' if value else 'false']+=1
     result=evaluate(source,indices,limits,observer=observer)
     if result.outcome!='ok': raise ValueError('coverage execution failed: '+str(result.reason))
+    return _coverage(source,result.values,counts,stage,limits)
+
+
+def _coverage(source,values,counts,stage,limits):
     program=parse(source,limits)
     ops=Counter()
     def visit(node):
@@ -39,7 +43,7 @@ def observe(source, indices, *, stage, limits=ResourceProfile()):
             for child in node[1:]: visit(child)
     for node in (*program.statements, program.result): visit(node)
     return Coverage(stage,len(source.encode()),sum(ops.values()),counts['loops'],counts['true'],counts['false'],
-                    any(abs(canonical_integer(v,bits=limits.intermediate_bits)).bit_length()>64 for v in result.values),tuple(sorted(ops.items())))
+                    any(abs(canonical_integer(v,bits=limits.intermediate_bits)).bit_length()>64 for v in values),tuple(sorted(ops.items())))
 
 
 def distribution(observations, *, length_boundary):
@@ -50,3 +54,15 @@ def distribution(observations, *, length_boundary):
             counts[tag]+=1
         counts['loop_active']+=c.loop_active; counts['branch_active']+=c.branch_active
     return dict(counts)
+
+
+def materialize_observed(row,limits=ResourceProfile()):
+    """One independent execution supplies exact values and executed coverage."""
+    from oeis_learn.data.bigint_programs import materialize
+    counts=Counter()
+    def observer(kind,value):
+        if kind=='loop':counts['loops']+=value
+        elif kind=='branch':counts['true' if value else 'false']+=1
+    if row['stage'] not in ('A','B','C','D'):raise ValueError('unknown mechanical stage')
+    exact=materialize(row,limits,observer=observer)
+    return exact,_coverage(row['source'],exact['values'],counts,row['stage'],limits)

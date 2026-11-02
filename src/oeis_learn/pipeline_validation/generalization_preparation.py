@@ -1,9 +1,7 @@
 """Bounded materialization and immutable per-cell publication adapters."""
 from pathlib import Path
 import time
-from oeis_learn.data.bigint_programs import materialize
-from oeis_learn.generalization.coverage import observe
-from oeis_learn.generalization.cohorts import choose,project,publish
+from oeis_learn.generalization.cohorts import project,publish
 from oeis_learn.generalization.exclusions import ExclusionIndex
 from oeis_learn.generalization.contracts import digest
 from .identity import write,seal,file_hash
@@ -28,46 +26,19 @@ def draw_candidates(root,descriptors,cell):
 
 
 def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execute,
-                 exclusions=None,draw_cap=1_000_000,seconds=14400,length_boundary=32,unique_sources=False):
-    """execute is the qualified native client's externally deadline-bounded adapter."""
-    if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:
-        raise ValueError('invalid cohort role/holdout')
+                 exclusions=None,draw_cap=1_000_000,seconds=21600,length_boundary=32,unique_sources=False,
+                 seen_sources=None,workers=1):
+    """Only native-validated cells can publish learner/scorer payloads."""
+    from oeis_learn.generalization.preparation import scan
+    if not callable(execute):raise ValueError('native validation callback required')
     if type(length_boundary) is not int or not 1<=length_boundary<=4096:raise ValueError('bounded frozen length bin required')
-    if not 0<seconds<=14400 or not 1<=draw_cap<=1_000_000: raise ValueError('preparation limits')
     output=Path(output)
-    if output.exists(): raise ValueError('fresh preparation output required')
+    if output.exists():raise ValueError('fresh preparation output required')
     output.mkdir(parents=True,exist_ok=False)
-    deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0
-    exclusions=exclusions if exclusions is not None else ExclusionIndex()
-    seen_sources={r[4] for r in exclusions.records if r[1]==role}
-    for row in candidates:
-        if seen>=draw_cap or time.monotonic()>=deadline: break
-        seen+=1
-        try:
-            if row['origin']!='generic_random': raise ValueError('nonmechanical origin')
-            from oeis_learn.data.bigint_programs import canonical_family
-            from oeis_learn.generalization.targets import ground
-            if canonical_family(row['parameter_source'])!=row['family']:raise ValueError('descriptor family mismatch')
-            if ground(row['parameter_source'],row.get('assignment',{}))!=row['source']:raise ValueError('concrete descriptor grounding mismatch')
-            if unique_sources:
-                from oeis_learn.generalization.refresh import claim_source
-                claim_source(row['source'],seen_sources)
-            row=dict(row,variant=str(row['variant']))
-            row.setdefault('group',digest([row['family'],row['variant']]))
-            exact=materialize(row)
-            native=execute(exact['source'],tuple(exact['indices']))
-            if native.get('outcome')!='ok' or tuple(native['values'])!=tuple(exact['values']): raise ValueError('native/reference disagreement')
-            observation=observe(exact['source'],tuple(exact['indices']),stage=row['stage'])
-            tags=['family:'+row['family'],row['stage'],'long' if observation.nodes>=length_boundary else 'short','above64' if observation.above_64_bits else 'within64']
-            if observation.loop_active:tags.append('loop_active')
-            if observation.branch_active:tags.append('branch_active')
-            exclusion=dict(id=exact['id'],role=role,family=row['family'],holdout=holdout,source=exact['source'],values=exact['values'],group=row['group'],variant=row['variant'])
-            if exclusions.reasons(exclusion): raise ValueError('cross-role exclusion')
-            admitted.append(dict(exact,role=role,holdout=holdout,tags=tags))
-        except ValueError as exc:
-            rejections.append(dict(draw=seen,reason=str(exc)))
-    choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
-    ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=rejections,shortfalls=list(choice.shortfalls),status='PASS' if choice.complete else 'BLOCKED'))
+    choice,ledger=scan(candidates,role=role,holdout=holdout,count=count,quotas=quotas,
+        structural=structural,execute=execute,exclusions=exclusions,draw_cap=draw_cap,
+        seconds=seconds,length_boundary=length_boundary,unique_sources=unique_sources,
+        seen_sources=seen_sources,workers=workers)
     write(output/'ledger.json',ledger)
     if not choice.complete:return ledger
     visible=[];protected=[]
@@ -89,7 +60,7 @@ def publish_study(choices,preparation,proposed,manifests,*,root,output):
     return resolved
 
 
-def prepare_study(root,preparation,proposed,*,output,execute):
+def prepare_study(root,preparation,proposed,*,output,execute,workers=1):
     """Materialize a frozen cell plan and publish only after all role cells pass.
 
     The native callback is supplied by the isolated preparation role. Its enclosing
@@ -107,6 +78,7 @@ def prepare_study(root,preparation,proposed,*,output,execute):
     plan=json.loads(verify_artifact(root,prep['generator']))
     if set(plan)!={'version','cells'} or plan['version'] not in {'generalization-materialization-plan/v1','generalization-materialization-plan/v2'}:
         raise ValueError('frozen materialization plan required')
+    from oeis_learn.generalization.refresh import LAWS
     cells=plan['cells']
     if not 3<=len(cells)<=16 or len({c['name'] for c in cells})!=len(cells):raise ValueError('bounded unique cells required')
     for cell in cells:
@@ -115,7 +87,7 @@ def prepare_study(root,preparation,proposed,*,output,execute):
             raise ValueError('unknown cell authority')
         if not cell['name'].replace('-','').replace('_','').isalnum():raise ValueError('invalid cell name')
         if mode=='candidates':verify_artifact(root,cell['candidates'],max_bytes=8<<30)
-        elif prep['numeric_law']!='independent-uniform-integers[-16,16]/v1':raise ValueError('refresh numeric law differs from frozen preparation')
+        elif prep['numeric_law'] not in LAWS:raise ValueError('unknown refresh numeric law')
     if {c['role'] for c in cells}!=set(prep['roles']):raise ValueError('complete role roster required')
     quota=Counter()
     for c in cells:quota.update(c['quotas'])
@@ -138,10 +110,12 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         with path.open('xb') as stream:stream.write(data)
         copied[ref['path']]=ref
     exclusions=ExclusionIndex(json.loads(verify_artifact(root,prep['exclusions'])))
-    training_capacity=0
+    descriptors=json.loads(verify_artifact(root,prep['descriptors']))
+    if any(d['numeric_law']!=prep['numeric_law'] for d in descriptors):raise ValueError('refresh numeric law differs from frozen preparation')
+    training_capacity=0;training_sources=set()
     choices={};manifests=[];by_role={role:[] for role in prep['roles']}
-    deadline=time.monotonic()+min(14400,prep['budgets']['seconds']);draws=0
-    for cell in cells:
+    deadline=time.monotonic()+min(21600,prep['budgets']['seconds']);draws=0
+    for cell_number,cell in enumerate(cells):
         remaining=deadline-time.monotonic();available=min(1_000_000,prep['budgets']['draws'])-draws
         if remaining<=0 or available<=0:
             result=seal(dict(status='BLOCKED',reason='BUDGET_EXHAUSTED',study=None))
@@ -152,7 +126,8 @@ def prepare_study(root,preparation,proposed,*,output,execute):
         ledger=prepare_cell(candidates,
             **{k:cell[k] for k in ('role','holdout','count','quotas','structural')},
             output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available,unique_sources='refresh' in cell,
-            length_boundary=cell.get('length_boundary',32))
+            length_boundary=cell.get('length_boundary',32),workers=workers,
+            seen_sources=training_sources if cell['role']=='training' else None)
         draws+=ledger['draws']
         if refresh_record is not None:write(folder/'refresh.json',refresh_record)
         if ledger['status']!='PASS':
@@ -160,7 +135,11 @@ def prepare_study(root,preparation,proposed,*,output,execute):
             write(output/'preparation-result.json',result);return result
         rows=json.loads((folder/'private/selected.json').read_text())
         choices[cell['name']]=CohortChoice(json.dumps(rows,sort_keys=True).encode(),())
-        exclusions=exclusions.add_many(dict(id=row['id'],role=cell['role'],family=row['family'],holdout=cell['holdout'],
+        if cell['role']=='training':training_sources.update(digest(row['source']) for row in rows)
+        # Same-role windows never exclude. Once protected cells are complete,
+        # retain training source hashes only, not millions of unused window tuples.
+        if any(c['role']!=cell['role'] for c in cells[cell_number+1:]):
+            exclusions=exclusions.add_many(dict(id=row['id'],role=cell['role'],family=row['family'],holdout=cell['holdout'],
                 source=row['source'],values=row['values'],group=row['group'],variant=row['variant']) for row in rows)
         protected='private/targets.json'
         extra_payloads=[]

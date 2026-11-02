@@ -202,3 +202,20 @@ and accounting gates, preserve actual partial outcomes and package public result
 Changing production code or authoritative contracts invalidates reuse of the old
 source closure; perform any necessary fresh acceptance in the same serial operator
 invocation before research. Never use acceptance-sized data as the new benchmark.
+
+
+## Feasible pilot revision (T139–T142)
+
+Keep the20-term exact cross-role window rule. Replace v1's parameter-count-only
+roster selection with deterministic source-behavior screening and an explicitly
+versioned wider coefficient law, shared by both arms. Validate every protected
+cell and all12 fixed training shards with the same admission/quota code before
+hardware work. Actual admitted target tokens, not a nominal floor, establish
+one-pass capacity. Reference feasibility is not native qualification.
+
+All sampling, admission, worker ordering/containment and feasibility policies are
+in one reopened Phase B. C wires these into the temporary runner; D records actual
+CPU measurements and publishes the handoff. Reference workers are bounded and
+ordered; GPU learners/inference remain serial. Current-source native/HIP acceptance
+and a reduced paired end-to-end smoke must pass before the full learners. Smoke
+outcomes gate software health only, never model quality or protocol selection.

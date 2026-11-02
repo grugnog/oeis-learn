@@ -159,3 +159,36 @@ The complete single-session ceiling is60 hours including any fresh acceptance,
 preparation/validation, both learners, generation/scoring, export and recovery.
 The operator authorized a longer ceiling where useful; this is an explicit new
 campaign budget, not a runtime estimate or an extension of per-portfolio60 seconds.
+
+
+### Superseding feasible P1 design (T139/T140, 2026-11-02 Pacific)
+
+The v1 roster is retired for future runs: actual first-shard admission was20,634
+of32,768, including11 empty families. The new `fresh-pilot-design/v2` retains
+A4/B6/C2/D20 and every quota/isolation rule, but freezes coefficients independently
+uniform over[-1024,1024] and screens descriptors on16 independent source variants.
+No19-difference window (a20-term segment up to translation) may occur in more than
+two screen variants. This explicitly conditions the descriptor distribution on
+numeric variation; it is not a comparison to the historical[-16,16] distribution.
+Both research arms share exactly the new roster, law and quotas. The screening
+rule is only a candidate filter, never proof of full admission or semantic novelty.
+
+Before any hardware stage, the temporary helper checks all four protected cohorts
+and all12 training shards using the canonical reference admission/quota policy.
+Every selected training source is unique across shards; actual encoded loss-target
+tokens must cover25M. The report is FEASIBLE, never native/HIP PASS. Canonical native
+preparation must still pass and select the same ordered rows before learning.
+Native disagreement or any changed selection blocks the campaign.
+
+CPU reference generation uses at most four ordered workers,64 in-flight rows,
+explicit deadlines and bounded termination. Native preparation uses up to three
+reference workers plus its existing single native client within four qualified CPUs.
+One reference execution supplies values/coverage; exact cross-role exclusions run
+before native work. Once only training cells remain, retaining training source
+hashes suffices for uniqueness: same-role windows never exclude one another.
+Protected windows remain exact tuples. GPU work remains serial.
+
+The research preparation allowance is now six hours (including reference/native
+work), matching the existing maximum role envelope; acceptance stays ten minutes.
+This is an operational ceiling, not a measured native ETA. Full CPU feasibility has
+a separate six-hour ceiling. Current-source qualification must be regenerated.

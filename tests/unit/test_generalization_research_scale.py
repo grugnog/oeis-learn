@@ -101,7 +101,7 @@ def test_full_static_shard_variant_manifest_is_supported():
 
 def test_research_preparation_envelope_is_not_acceptance_smoke_limit():
     from oeis_learn.pipeline_validation.generalization_commands import preparation_seconds
-    assert preparation_seconds('research',21600)==14400
+    assert preparation_seconds('research',21600)==21600
     assert preparation_seconds('research',1800)==1800
     assert preparation_seconds('acceptance',900)==600
     assert preparation_seconds('acceptance',180)==180

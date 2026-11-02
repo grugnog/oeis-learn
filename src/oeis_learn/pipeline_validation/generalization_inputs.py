@@ -162,7 +162,11 @@ def assemble_study(workspace,blueprint,output):
         evaluation['checkpoints']=[_checkpoint(workspace,path,target,'retained/'+str(i)) for i,path in enumerate(evaluation['checkpoints'])]
     runtime=dict(version='generalization-runtime/v2',purpose=cfg['purpose'],recipe=recipe_ref,images=cfg['images'],preparation=None,training=cfg['training'],evaluation=evaluation,replay=cfg['replay'],assessment=None,feature=feature,storage=cfg['storage'])
     study,runtime=bind(study,runtime);validate_policy(study,runtime)
-    prep=seal(dict(version='generalization-preparation/v3',proposed_study=study['identity'],generator=generator,numeric_law='independent-uniform-integers[-16,16]/v1',descriptors=refs['descriptors'],
+    descriptors=_json(confined(workspace,cfg['descriptors']))
+    laws={d['numeric_law'] for d in descriptors}
+    if len(laws)>1:raise ValueError('mixed preparation numeric laws')
+    law=next(iter(laws),'independent-uniform-integers[-16,16]/v1')
+    prep=seal(dict(version='generalization-preparation/v3',proposed_study=study['identity'],generator=generator,numeric_law=law,descriptors=refs['descriptors'],
         roles=['training','selection','assessment'],quotas=dict(quotas),exclusions=refs['exclusions'],seeds=cfg['seeds'],budgets=cfg['budgets'],
         study_settings={k:study[k] for k in ('recipe','arms','model','precision','checkpoints')}))
     write(target/'preparation.json',prep);runtime=seal(dict(runtime,preparation=reference(target/'preparation.json',target)))

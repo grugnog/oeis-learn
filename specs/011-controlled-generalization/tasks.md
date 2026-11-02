@@ -8,6 +8,38 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Feasible fresh pilot revision — 2026-11-02 Pacific
+
+The original frozen design failed: first shard20,634/32,768 rows,11 empty
+families,43,817 cross-role exclusions and1,085 duplicate sources. No learner ran.
+T135's four-cohort check was insufficient to establish training feasibility.
+The operator authorizes a revised distribution, full source-only feasibility,
+a paired smoke gate and bounded CPU parallel generation; no HIP runs here.
+
+### Reopened Phase B — feasibility and deterministic preparation
+
+- [X] T139 Add versioned wider numeric sampling, deterministic behavioral descriptor
+  screening and a bounded full12-shard reference feasibility pass. Preserve exact
+  exclusions, family quotas, source uniqueness, token accounting and historical
+  streams; freeze a new protocol and report deficits without native/HIP claims.
+- [X] T140 Check exclusions before native work, share one reference execution for
+  values/coverage, and add bounded ordered CPU workers with timeout/error cleanup.
+  Preserve selection ordering and native agreement for published examples; test
+  serial/parallel equivalence, collisions, later-shard exhaustion and containment.
+
+### Phase C — one-command gates and evidence
+
+- [ ] T141 Wire full feasibility before hardware, then canonical preparation and
+  an isolated small paired training/evaluation smoke before full learners. Bind
+  inputs/results, prevent smoke outcomes from choosing the research design, retain
+  bounded failure diagnostics and preserve qualification/resource isolation.
+
+### Phase D — local verification and handoff
+
+- [ ] T142 Run complete revised source feasibility, affected CPU regressions and
+  failure-path tests; refresh CI bindings, document measured CPU evidence and
+  unmeasured hardware/runtime limits, commit/push each group without waiting for CI.
+
 ## Fresh-start delivery — 2026-11-01 Pacific
 
 User-approved next experiment: fresh P1 static versus refreshed, seed20261016.

@@ -7,6 +7,10 @@ from oeis_learn.pipeline_validation.identity import seal
 from oeis_learn.data.bigint_programs import canonical_family
 
 
+LAWS={'independent-uniform-integers[-16,16]/v1':(-16,16),
+      'independent-uniform-integers[-1024,1024]/v1':(-1024,1024)}
+
+
 def claim_source(source,seen):
     """Charge the draw but reject an already materialized refresh source."""
     key=digest(source)
@@ -23,14 +27,16 @@ class RefreshPlan:
         if type(seed) is not int or not 0<=seed<2**32 or type(capacity) is not int or not 1<=capacity<=1_000_000 or not descriptors:
             raise ValueError('invalid bounded refresh')
         for d in descriptors:
-            if seal(d)!=d or d['version']!='generalization-descriptor/v1' or d['numeric_law']!='independent-uniform-integers[-16,16]/v1' or canonical_family(d['parameter_source'])!=d['family']:
+            if seal(d)!=d or d['version']!='generalization-descriptor/v1' or d['numeric_law'] not in LAWS or canonical_family(d['parameter_source'])!=d['family']:
                 raise ValueError('changed descriptor/law')
+        if len({d['numeric_law'] for d in descriptors})!=1:raise ValueError('mixed numeric laws')
         if len({d['family'] for d in descriptors})!=len(descriptors): raise ValueError('duplicate fixed family')
         object.__setattr__(self,'descriptors',json.dumps(descriptors,sort_keys=True).encode())
         object.__setattr__(self,'seed',seed); object.__setattr__(self,'capacity',capacity)
+        object.__setattr__(self,'_identity',digest([descriptors,seed,capacity]))
 
     @property
-    def identity(self): return digest([json.loads(self.descriptors),self.seed,self.capacity])
+    def identity(self): return self._identity
 
     def take(self,cursor,count):
         from .targets import ground
@@ -40,7 +46,7 @@ class RefreshPlan:
         for ordinal in range(cursor,cursor+count):
             d=descriptors[ordinal%len(descriptors)]
             rng=random.Random(int(digest([self.identity,ordinal])[7:],16))
-            assignment={name:str(rng.randint(-16,16)) for name in d['parameter_names']}
+            assignment={name:str(rng.randint(*LAWS[d['numeric_law']])) for name in d['parameter_names']}
             source=ground(d['parameter_source'],assignment)
             rows.append(dict(id=digest([self.identity,ordinal]),descriptor=d['identity'],family=d['family'],stage=d['stage'],
                              variant=digest(assignment),assignment=assignment,parameter_source=d['parameter_source'],source=source,origin='generic_random'))

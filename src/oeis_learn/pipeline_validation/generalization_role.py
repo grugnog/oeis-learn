@@ -15,7 +15,7 @@ def preparation(inputs,output,settings,*,seconds):
     from oeis_learn.generalization.contracts import validate
     from oeis_learn.synthesis.client import SynthesisClient
     from .generalization_preparation import prepare_study
-    if set(settings)!={'preparation','proposed'}:raise ValueError('closed preparation role settings required')
+    if set(settings)-{'workers'}!={'preparation','proposed'}:raise ValueError('closed preparation role settings required')
     authority=validate('preparation',settings['preparation'])
     deadline=time.monotonic()+seconds
     # Assemble only the explicitly mounted preparation inputs. Other role roots,
@@ -32,7 +32,7 @@ def preparation(inputs,output,settings,*,seconds):
         with SynthesisClient(authority.identity,cache_root=output/'private/native-cache') as native:
             def execute(source,indices):
                 return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))
-            return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute)
+            return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1))
 
 
 def validate_runtime(inputs,output,settings,*,seconds):

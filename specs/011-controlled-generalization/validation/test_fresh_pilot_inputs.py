@@ -27,7 +27,9 @@ def test_registered_research_scale_and_fixed_mixture(design):
         assert c['refresh']['draws']==65536 and c['refresh']['capacity']==1_000_000
         cursors.append(c['refresh']['cursor'])
     assert cursors==[65536*i for i in range(12)]
-    assert design['token_capacity_floor']>=25_000_000
+    assert design['numeric_law']==module.NUMERIC_LAW
+    assert design['version']=='fresh-pilot-design/v2'
+    assert all(d['numeric_law']==module.NUMERIC_LAW for d in design['descriptors'])
     assert len(design['training'])+len(design['cohorts'])==16
 
 
