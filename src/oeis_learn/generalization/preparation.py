@@ -6,6 +6,7 @@ from .contracts import digest
 from .cohorts import choose,CohortChoice
 from .coverage import materialize_observed
 from .exclusions import ExclusionIndex
+from .resources import PREPARATION_SECONDS
 from oeis_learn.pipeline_validation.identity import seal
 
 
@@ -103,7 +104,7 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
          seen_sources=None,workers=1,progress=None,observer=None):
     if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:raise ValueError('invalid cohort role/holdout')
     if type(length_boundary) is not int or not 1<=length_boundary<=4096:raise ValueError('bounded frozen length bin required')
-    if not 0<seconds<=21600 or not 1<=draw_cap<=1_000_000:raise ValueError('preparation limits')
+    if not 0<seconds<=PREPARATION_SECONDS or not 1<=draw_cap<=1_000_000:raise ValueError('preparation limits')
     exclusions=exclusions if exclusions is not None else ExclusionIndex()
     seen_sources=set(seen_sources or ())|{r[4] for r in exclusions.records if r[1]==role}
     began=time.monotonic();deadline=began+seconds;admitted=[];rejections=[];seen=0;expired=False;native_failed=False

@@ -139,3 +139,29 @@ def test_replay_acceptance_requires_finite_updates_in_both_arms(tmp_path,monkeyp
     monkeypatch.setattr(generalization_workflow,'replay',lambda *a,**kw:dict(status='PASS',rounds=1,runs=[dict(cumulative_discoveries=1,search={},paired={'runs':[{'result':{}},{'result':{}}]},resume={'status':'PASS'})]))
     result=run_case('replay-resume',None,tmp_path,tmp_path/'case',tmp_path,s,r,{},qualification=digest('fixture'))
     assert result['status']=='FAIL'
+
+
+def test_research_preparation_allowance_is_independent_of_learner_budget(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_inputs import assemble_study
+    from oeis_learn.generalization.contracts import freeze
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_study
+    from oeis_learn.synthesis.reference import evaluate
+    cfg=blueprint(tmp_path);cfg['purpose']='research';cfg['preparation_seconds']=86400
+    write(tmp_path/'feature.json',{'fixture':'not qualification'});cfg['feature']='feature.json'
+    result=assemble_study(tmp_path,cfg,'long-preparation')
+    base=tmp_path/'long-preparation';study=json.loads((base/'study.json').read_text())
+    prep=json.loads((base/'preparation.json').read_text())
+    assert prep['work_seconds']==86400 and prep['budgets']==study['budgets']==cfg['budgets']
+    def native(source,indices):
+        r=evaluate(source,indices);return dict(outcome=r.outcome,values=r.values)
+    outcome=prepare_study(base,freeze('preparation',prep),study,output=tmp_path/'prepared-long',execute=native,seconds=86340)
+    assert outcome['status']=='PASS'
+    published=json.loads((tmp_path/'prepared-long/study.json').read_text())
+    assert published['budgets']==cfg['budgets']
+    for version in ('generalization-preparation/v1','generalization-preparation/v2'):
+        legacy=dict(prep,version=version);legacy.pop('proposed_study')
+        with pytest.raises(ValueError):freeze('preparation',legacy)
+    cfg['purpose']='acceptance'
+    with pytest.raises(ValueError,match='preparation allowance'):assemble_study(tmp_path,cfg,'forbidden-acceptance')
+    cfg['purpose']='research';cfg['preparation_seconds']=86401
+    with pytest.raises(ValueError,match='preparation allowance'):assemble_study(tmp_path,cfg,'over-limit')

@@ -4,6 +4,7 @@ import time
 from oeis_learn.generalization.cohorts import project,publish
 from oeis_learn.generalization.exclusions import ExclusionIndex
 from oeis_learn.generalization.contracts import digest
+from oeis_learn.generalization.resources import PREPARATION_SECONDS
 from .identity import write,seal,file_hash
 
 
@@ -79,7 +80,7 @@ def prepare_study(root,preparation,proposed,*,output,execute,workers=1,seconds=N
     container deadline bounds both native and independent-reference work.
     """
     began=time.monotonic()
-    if seconds is not None and not 0<seconds<=21600:raise ValueError('preparation allowance')
+    if seconds is not None and not 0<seconds<=PREPARATION_SECONDS:raise ValueError('preparation allowance')
     import json
     from collections import Counter
     from oeis_learn.generalization.contracts import validate,verify_artifact,artifact_refs,freeze
@@ -128,7 +129,7 @@ def prepare_study(root,preparation,proposed,*,output,execute,workers=1,seconds=N
     if any(d['numeric_law']!=prep['numeric_law'] for d in descriptors):raise ValueError('refresh numeric law differs from frozen preparation')
     training_capacity=0;training_sources=set()
     choices={};manifests=[];by_role={role:[] for role in prep['roles']}
-    allowance=min(21600,prep['budgets']['seconds'],seconds if seconds is not None else 21600)
+    allowance=min(PREPARATION_SECONDS,prep.get('work_seconds',prep['budgets']['seconds']),seconds if seconds is not None else PREPARATION_SECONDS)
     deadline=began+allowance-min(60,allowance/5);draws=0
     for cell_number,cell in enumerate(cells):
         remaining=deadline-time.monotonic();available=min(1_000_000,prep['budgets']['draws'])-draws

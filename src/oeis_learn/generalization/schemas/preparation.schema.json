@@ -250,6 +250,11 @@
     "proposed_study": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "work_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
     }
   },
   "required": [
@@ -324,6 +329,20 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "work_seconds"
+        ]
+      },
+      "then": {
+        "properties": {
+          "version": {
+            "const": "generalization-preparation/v3"
           }
         }
       }

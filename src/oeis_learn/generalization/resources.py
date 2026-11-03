@@ -2,6 +2,7 @@
 from .budgets import integer
 
 GIB=1024**3
+PREPARATION_SECONDS=24*3600  #operational work; separate from scientific learner exposure
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
 # Acceptance-013 completed paired learning but exhausted post-training evaluation.
 # Preserve scientific work limits; include evaluation startup, exit and recovery.

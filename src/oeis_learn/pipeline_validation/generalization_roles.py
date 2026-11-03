@@ -41,7 +41,10 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     import json,uuid
     from contextlib import nullcontext
     from .supervision import launch,reclaim
-    if not 0<seconds<=21600:raise ValueError('bounded role duration required')
+    from oeis_learn.generalization.resources import PREPARATION_SECONDS
+    role=Role(role)
+    ceiling=PREPARATION_SECONDS if role==Role.PREPARATION and operation=='prepare' else 21600
+    if not 0<seconds<=ceiling:raise ValueError('bounded role duration required')
     deadline=time.monotonic()+seconds
     cleanup_seconds=min(30,seconds/5)
     role=Role(role)

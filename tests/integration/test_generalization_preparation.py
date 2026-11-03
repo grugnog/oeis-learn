@@ -223,3 +223,22 @@ def test_refresh_preparation_consumes_duplicate_draws_without_training_them(tmp_
     chosen=json.loads((tmp_path/'unique/private/selected.json').read_text())
     assert len({r['source'] for r in chosen})==2
     assert any(r['reason']=='duplicate refresh source' for r in result['rejections'])
+
+
+def test_long_preparation_role_has_real_outer_and_inner_headroom(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_roles import invoke
+    for name in ('mechanical','truth'):(tmp_path/name).mkdir()
+    captured={}
+    class Engine:
+        def command(self,**kw):
+            captured['runtime']=json.loads(kw['argv'][-1]);return ['fake-container']
+        def remove(self,name,timeout):pass
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=64<<30,cpus=4))
+    def launch(argv,output,**kw):
+        captured['outer']=kw['seconds'];(tmp_path/'out/result.json').write_text('{"status":"PASS"}')
+    invoke(host,'image',tmp_path,'preparation',{'mechanical_sources':'mechanical','isolation_truth':'truth'},
+        output='out',operation='prepare',settings={},seconds=86400,launcher=launch)
+    assert 86000<captured['runtime']['seconds']<captured['outer']<86400
+    with pytest.raises(ValueError,match='duration'):
+        invoke(host,'image',tmp_path,'generator',{},output='forbidden',operation='evaluate',settings={},seconds=86400)

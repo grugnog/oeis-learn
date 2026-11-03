@@ -144,10 +144,11 @@ def train(host,workspace,output,base,study,runtime,plan,*,arms,seeds,resume=None
 
 
 def preparation_seconds(purpose,seconds):
-    """Research gets the registered six-hour ceiling; fixtures retain ten minutes."""
-    if purpose not in {'research','acceptance'} or type(seconds) not in (int,float) or not 0<seconds<=21600:
+    """Research gets its registered operational allowance; fixtures retain ten minutes."""
+    from oeis_learn.generalization.resources import PREPARATION_SECONDS
+    if purpose not in {'research','acceptance'} or type(seconds) not in (int,float) or not 0<seconds<=PREPARATION_SECONDS:
         raise ValueError('bounded preparation purpose/time required')
-    return min(21600 if purpose=='research' else 600,seconds)
+    return min(PREPARATION_SECONDS if purpose=='research' else 600,seconds)
 
 
 def _execute(args,workspace,host_factory):
@@ -210,7 +211,7 @@ def _execute(args,workspace,host_factory):
         result=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
             {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
             output=str((output/'preparation').relative_to(workspace)),operation='prepare',
-            settings=dict(preparation=authority,proposed=study,workers=max(1,min(3,int(host.policy['cpus'])-1))),seconds=preparation_seconds(runtime['purpose'],authority['budgets']['seconds']))
+            settings=dict(preparation=authority,proposed=study,workers=max(1,min(3,int(host.policy['cpus'])-1))),seconds=preparation_seconds(runtime['purpose'],authority.get('work_seconds',authority['budgets']['seconds'])))
         if result['status']=='PASS':
             from .generalization_runtime import publish_runtime
             prepared=output/'preparation/role/private/prepared'

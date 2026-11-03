@@ -301,3 +301,22 @@ installed/checkout source closure, immutable CPU image, helper hashes, engine fa
 operator host fingerprint and resource policy, no older than72 hours. This proof
 never replaces full source feasibility, current-source acceptance, native research
 preparation or the paired smoke. Old research outputs are not mutated or reused.
+
+
+## Operator-approved larger operational margins (T147–T148)
+
+Supersedes the six-hour preparation and30-minute diagnostic ceilings above.
+The optional `work_seconds` field in v3 preparation authority binds a research-only
+operational allowance independently of the study's learner budgets. Blueprints may
+set `preparation_seconds`; absent fields retain historical behavior. The full pilot
+now registers24 hours for preparation,28 hours for its enclosing command and96
+hours for the campaign. Acceptance remains capped at600 preparation seconds; other
+roles retain their frozen scientific budgets. Per-program fuel/memory/time bounds,
+external supervision and cleanup/publication reserves remain enforced.
+
+The representative CPU/native check permits90 minutes and requires3× extrapolated
+cell timing plus7200 seconds of overhead to fit below86400 minus120 seconds of
+nested reserves. These are conservative operational limits, not predicted durations.
+A new frozen protocol/helper/source identity invalidates prior throughput receipts;
+rebuild the CPU image before measuring. No scientific data, model, token or training
+exposure is changed by this operational amendment.

@@ -103,7 +103,11 @@ def assemble_study(workspace,blueprint,output):
     """Paths in the blueprint are workspace-relative; output references are local."""
     workspace=Path(workspace);target=_fresh(workspace,output)
     cfg=_json(confined(workspace,blueprint)) if isinstance(blueprint,str) else copy.deepcopy(blueprint)
-    if set(cfg) not in (BLUEPRINT_FIELDS,BLUEPRINT_FIELDS|{'feature'}) or cfg['version']!='generalization-input-blueprint/v1':raise ValueError('closed versioned input blueprint required')
+    if set(cfg)-{'feature','preparation_seconds'}!=BLUEPRINT_FIELDS or cfg['version']!='generalization-input-blueprint/v1':raise ValueError('closed versioned input blueprint required')
+    if 'preparation_seconds' in cfg:
+        from oeis_learn.generalization.resources import PREPARATION_SECONDS
+        if cfg['purpose']!='research' or type(cfg['preparation_seconds']) is not int or not 0<cfg['preparation_seconds']<=PREPARATION_SECONDS:
+            raise ValueError('bounded research preparation allowance required')
     stage=cfg['stage']
     if stage not in RECIPES or stage=='P0':raise ValueError('use historical pilot-followup for P0')
     # Verify all direct input paths before creating output. Deep checks remain in
@@ -169,6 +173,7 @@ def assemble_study(workspace,blueprint,output):
     prep=seal(dict(version='generalization-preparation/v3',proposed_study=study['identity'],generator=generator,numeric_law=law,descriptors=refs['descriptors'],
         roles=['training','selection','assessment'],quotas=dict(quotas),exclusions=refs['exclusions'],seeds=cfg['seeds'],budgets=cfg['budgets'],
         study_settings={k:study[k] for k in ('recipe','arms','model','precision','checkpoints')}))
+    if 'preparation_seconds' in cfg:prep=seal(dict(prep,work_seconds=cfg['preparation_seconds']))
     write(target/'preparation.json',prep);runtime=seal(dict(runtime,preparation=reference(target/'preparation.json',target)))
     from .generalization_runtime import preparation_views,load
     preparation_views(target,study,runtime,prep)

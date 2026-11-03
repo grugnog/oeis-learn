@@ -52,6 +52,7 @@ def validate_execution(root,study,runtime):
     if study['precision']!='fp32':raise ValueError('qualified prospective precision is fp32')
     if runtime['preparation'] is not None:
         prep=authority('preparation',json.loads(verify_artifact(root,runtime['preparation'],max_bytes=1<<20))).record()
+        if 'work_seconds' in prep and runtime['purpose']!='research':raise ValueError('explicit preparation work allowance requires research purpose')
         if study['version']=='generalization-study/v3' and (prep['version']!='generalization-preparation/v3' or prep['proposed_study']!=study['identity']):
             raise ValueError('preparation must bind the exact proposed study')
         if any(study.get(k)!=v for k,v in prep['study_settings'].items()) or any(study[k]!=prep[k] for k in ('seeds','budgets')):

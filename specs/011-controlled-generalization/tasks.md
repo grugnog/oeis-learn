@@ -8,6 +8,19 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Larger operational margins — operator request, 2026-11-02 Pacific
+
+### Reopened Phase B — separate operational preparation authority
+
+- [X] T147 Add an optional bounded v3 preparation work allowance independent of learner budgets. Preserve legacy defaults and acceptance limits; propagate 24 hours through command, role, study and scan deadlines while retaining cleanup/publication reserves and per-program bounds. Test schema/binding, actual command boundaries and unchanged learner exposure.
+
+T147 validation: 56 affected tests passed, including actual role deadline capture,
+v3 schema enforcement and unchanged published learner exposure. No HIP executed.
+
+### Phase C/D — generous campaign and throughput envelopes
+
+- [ ] T148 Freeze 24-hour preparation, 28-hour outer preparation and 96-hour campaign ceilings. Allow 90 minutes for the representative diagnostic and require 3× timing plus two hours of overhead below the preparation work allowance. Update the exact nested-envelope tests, guides and CI implementation binding; commit/push each group without HIP execution or waiting for CI.
+
 ## Native throughput readiness — operator request, 2026-11-02 Pacific
 
 ### Reopened Phase B — representative measurement and conservative gate

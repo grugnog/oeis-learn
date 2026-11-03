@@ -363,3 +363,15 @@ The recovery projection validates its closed shape and finite bounded numbers;
 a cell with progress but no terminal ledger is explicitly INCOMPLETE. A snapshot
 may lag the interrupted operation by the current bounded batch. Completed ledgers
 retain their original authority and existing version.
+
+
+## Independent operational preparation allowance
+
+`generalization-preparation/v3` optionally binds `work_seconds`, an integer from1
+to86400, for research preparation. It is separate from `budgets.seconds`, which
+continues to match the proposed study and govern learner exposure. The assembly
+blueprint accepts optional `preparation_seconds` for research and emits this field.
+Legacy v1/v2 authorities reject it; omission retains the existing budget fallback.
+Acceptance cannot opt into this extension and its command retains the600-second
+preparation cap. The field changes the preparation artifact identity and remains
+subject to the enclosing command deadline and cleanup/publication reserves.
