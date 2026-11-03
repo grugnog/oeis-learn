@@ -53,7 +53,7 @@ def test_dry_run_is_stdlib_only_and_never_touches_engine(tmp_path):
 @pytest.mark.parametrize('resuming,failure',[
     (resuming,failure) for resuming in (False,True)
     for failure in (None,'feasibility','preflight','prepare','smoke','train-static','train-refreshed',
-        'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization')
+        'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization','projection')
     if not resuming or failure not in {'feasibility','preflight','prepare'}])
 def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,failure,resuming):
     """Mock expensive processes, retain real controller/lineage/packaging checks."""
@@ -88,6 +88,12 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     monkeypatch.setattr(generalization_runtime,'load',lambda *a:(base,study,runtime))
     monkeypatch.setattr(generalization_lifecycle,'guard',lambda *a:nullcontext())
     calls=[];saved={}
+    import fresh_pilot_storage
+    def project(workspace,manifest,output):
+        if failure=='projection':raise ValueError('execution projection exceeds peak shard reservation')
+        destination=workspace/output;destination.mkdir(parents=True)
+        return str((destination/'study.json').relative_to(workspace)),seal(dict(test_only=True,storage=dict(peak_shard_bytes=0)))
+    monkeypatch.setattr(fresh_pilot_storage,'project',project)
     def public(output,**kwargs):
         from fresh_pilot_report import REQUIRED
         saved.update(kwargs);assert kwargs['plan']['required_stages']==list(REQUIRED)
@@ -119,6 +125,8 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
             result['feasibility']=reference(output/'feasibility.json',output)
         if name=='prepare':result=dict(status='PASS',result=dict(manifest='resolved-study.json'))
         if name.startswith('train-'):
+            assert output.parent==tmp_path/'pilot/execution'
+            assert argv[argv.index('--manifest')+1]=='pilot/execution/private/prepared/study.json'
             arm=name.removeprefix('train-');learner=output/'training/run/execution/role/private/learner'
             cp=learner/'checkpoints';cp.mkdir(parents=True);(cp/'blob.pt').write_bytes(b'synthetic weights')
             checkpoint=seal(dict(weights=reference(cp/'blob.pt',cp),tokens=20,updates=1,
@@ -166,7 +174,7 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     code=m.run(args)
     if resuming:
         assert not set(calls)&{'feasibility','preflight','prepare'}
-        assert calls[0]=='smoke'
+        assert calls[0]=='smoke' if failure!='projection' else not calls
         assert (previous/'workflow.json').read_bytes()==original_parent
         assert not (tmp_path/'pilot/research/design').exists()
     workflow=json.loads((tmp_path/'pilot/workflow.json').read_text());archive=tmp_path/workflow['archive']
@@ -179,7 +187,8 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     if failure is None:assert code==0 and workflow['status']=='PASS'
     elif failure=='partial-training':assert code==3 and 'score-refreshed' in calls
     else:assert code==1 and workflow['status']=='FAIL'
-    if failure in {'feasibility','preflight','prepare','smoke'}:assert not any(n.startswith('train-') for n in calls)
+    if failure in {'feasibility','preflight','prepare','smoke','projection'}:assert not any(n.startswith('train-') for n in calls)
+    if failure=='projection':assert 'smoke' not in calls
     if failure=='feasibility':assert calls==['feasibility']
     if failure=='train-static':assert 'train-refreshed' not in calls
     if failure=='initialization':assert not any(n.startswith('generate-') for n in calls)

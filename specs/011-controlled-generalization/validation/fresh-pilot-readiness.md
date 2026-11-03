@@ -265,3 +265,50 @@ PreparedBatches/Ledger exposure; seven focused budget/native-plan counterexample
 passed; then 121 helper regressions passed after wiring the pre-learner guard.
 The already-exercised canonical fixture was excluded from that last run. Source
 and CI bindings remain unchanged; host dry-run and documented Bash syntax pass.
+
+
+## Verified paired smoke and research storage repair (T153–T154)
+
+The uploaded report for `fresh-p1-continued-20261103T144804Z` has SHA256
+`5b3f417bc85a0d382c4cae2eb3e5873ce1c4d9131a4ded023d29941995fc0c9a`.
+Both report and verification archives pass member/hash verification; the verifier
+binds this exact report. Integrity PASS does not change selected scope FAIL or
+scientific status INCONCLUSIVE. All3584 planned outcomes remain unresolved.
+
+Actual paired smoke passed in475.6 seconds: static completed3 updates/3742 tokens;
+refreshed completed3 updates/3729 tokens, beyond the2468-token first shard. Both
+have finite changed weights and identical initial weights. Generation and scoring
+passed for both arms. These diagnostic weights never initialize research.
+
+Full static training stopped in8.36 seconds at the storage guard before runtime
+validation launched; its receipt has `ResourceBreach: study reservation exceeded:
+shard_bytes` and no learner output. Original prepared cell JSON is7,620,788,693
+bytes (7.10GiB). Required execution cell payloads are3,803,289,860 bytes (3.54GiB);
+copying those beside the entire audit tree breaches8GiB. No timeout or scientific
+learning result is implied.
+
+The temporary wrapper now preserves the original preparation tree and copies only
+the canonical execution closure into `execution/private/prepared`. Study/runtime
+bytes and every referenced payload stay unchanged. Twice the required cell bytes
+is7.08GiB, below8GiB including the16MiB margin; full checkpoint/raw reservations
+are additionally included in the64GiB peak plan. Copying streams and hashes each
+file. The plan is checked before smoke, and all full learners/evaluation share the
+bounded `execution/` root. Canonical role projections still enforce isolation and
+remove their disposable copies; audit evidence is never deleted or relabelled.
+The public `execution-view.json` links original and projected manifests and lists
+hashes/sizes, never private data. Failure recovery preserves that receipt.
+
+Continue from the original `fresh-p1-v2-20261103T035534Z` parent, with a fresh output
+root. Preparation, acceptance and throughput evidence are revalidated and reused;
+paired smoke runs again before full learning. No image rebuild or new preparation
+is needed. Source/qualified image identities and scientific budgets are unchanged.
+The72-hour throughput freshness and224GiB free-space checks still apply. Preserve
+the original parent and both uploaded failure archives. This repair does not assert
+that full-duration learning/evaluation has been measured successfully.
+
+Local verification:28 storage/smoke tests passed, including canonical preparation
+and validation of the projected closure. Then127 helper regressions passed, with
+that already-run canonical fixture deselected. Fresh/resumed controller tests
+check projected manifest routing and no smoke/learner launch after a failed peak
+plan. Host dry-run under python -S and28 Bash blocks pass. Production source and
+CI disposition identities remain unchanged. No local HIP or CI wait.

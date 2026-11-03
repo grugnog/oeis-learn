@@ -21,7 +21,13 @@ bindings remain unchanged. No local HIP execution.
 
 ### Phase C/D — isolated active root and operator retry
 
-- [ ] T154 Integrate the verified execution view for fresh and continued pilots, preserve preparation provenance in public/recovery receipts, and keep all active learners/evaluation under one bounded execution root. Record actual paired smoke success and failed research launch, test both controller paths, commit/push each group and provide the original-parent retry without rebuilding or repeating preparation.
+- [X] T154 Integrate the verified execution view for fresh and continued pilots, preserve preparation provenance in public/recovery receipts, and keep all active learners/evaluation under one bounded execution root. Record actual paired smoke success and failed research launch, test both controller paths, commit/push each group and provide the original-parent retry without rebuilding or repeating preparation.
+
+T154 validation: 127 helper regressions passed, with only the canonical fixture
+already passed in T153 deselected. Fresh/resumed controller cases enforce the new
+manifest/root and reject peak-storage failure before smoke/training. Host dry-run
+works under python -S; all28 documented Bash blocks parse. Actual uploaded smoke
+passes, but full research remains INCONCLUSIVE. No local HIP or CI wait.
 
 ## Exact smoke exposure repair — 2026-11-03 Pacific
 

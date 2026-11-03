@@ -1123,3 +1123,35 @@ fresh numbered inputs/session after source changes. Current timing is below.
 ### Current acceptance timing (T113)
 
 Fresh acceptance inputs freeze a395-minute (6h35) outer ceiling, including a100-minute replay/resume case and25-minute retained-eval, refresh and target-format cases. Replay learner envelopes remain600 seconds; small-model learners and all full-state proofs get180 seconds. Retained evaluation gets720 seconds total; each post-training policy evaluation gets1200 seconds. This supersedes older timing instructions; it is not an expected runtime. Reassemble inputs after rebuilding the changed source closure. No additional manual diagnostic invocation is required.
+
+
+### Retry after the verified paired smoke (T153–T154)
+
+The144804Z report proves paired smoke success, followed by a pre-learner shard
+storage breach. The wrapper now creates an exact, bounded execution view while
+preserving the larger preparation audit tree. Full outputs are under `execution/`;
+`execution-view.json` records original/projected manifest hashes and peak storage.
+No image rebuild, data regeneration or repeat of original acceptance is required.
+The smoke repeats (previously about8 minutes), then the two unchanged learners
+have up to6 hours each, followed by frozen generation/scoring. The96-hour campaign
+ceiling is a safety envelope, not an ETA; full training throughput is unmeasured.
+The original throughput proof must remain under72 hours old and compatible.
+
+From the repository root:
+
+```bash
+(
+  set -euo pipefail
+  git switch 011-controlled-generalization
+  git pull --ff-only origin 011-controlled-generalization
+
+  python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py run \
+    --engine podman \
+    --resume-prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+    --output "run-state/generalization/fresh-p1-continued-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+Keep the original prepared parent unchanged. Share the final `report.zip` and
+`verified.zip`, or `recovery.zip` if canonical reporting cannot complete. The
+readiness note records the exact uploaded report identity and observed failure.

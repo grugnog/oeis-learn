@@ -173,7 +173,7 @@ def recovery(root,workflow):
         feature_qualified=False,scope='diagnostic recovery only; no completed research claim'))
     diagnostic_files=diagnostics(root,folder/'diagnostics')
     mandatory=['workflow.json','summary.json',*['diagnostics/'+p.name for p,_ in diagnostic_files]]
-    for name in ('resume.json','parent-workflow.json','parent-preparation-summary.json'):
+    for name in ('resume.json','parent-workflow.json','parent-preparation-summary.json','execution-view.json'):
         if (root/name).is_file():
             write(folder/name,read(root/name));mandatory.append(name)
     archive=pack(folder,mandatory=mandatory,optional_cap=8<<20)
@@ -327,6 +327,15 @@ def run(args):
             from fresh_pilot_feasibility import verify_prepared
             verify_prepared(source_check,ROOT/manifest.rsplit('/',1)[0])
             design_root=research/'design'
+        # Preparation audit files remain immutable in their original root. The
+        # active study contains exactly the canonical execution closure, whose
+        # peak includes one temporary serial role projection.
+        from fresh_pilot_storage import project
+        execution=root/'execution'
+        execution_manifest,view=project(ROOT,manifest,relative(execution/'private/prepared'))
+        write(root/'execution-view.json',view)
+        extra.append((root/'execution-view.json','fresh/execution-view.json'))
+        print('execution-storage-plan: '+json.dumps(view['storage'],sort_keys=True),flush=True)
         smoke=root/'smoke'
         job=seal(dict(version='fresh-pilot-smoke-job/v1',engine=args.engine,qualified=relative(qualified),
             manifest=manifest,design=reference(design_root/'design.json',ROOT),
@@ -337,6 +346,7 @@ def run(args):
         if status!='PASS':raise RuntimeError('paired smoke failed; full learners not launched')
         extra.append((smoke/'result.json','fresh/smoke.json'))
         from oeis_learn.pipeline_validation.generalization_runtime import load
+        research=execution;manifest=execution_manifest
         base,study,runtime=load(ROOT,manifest)
         verify_artifact(base,runtime['recipe'],max_bytes=1<<20)
         extra.append((confined(base,runtime['recipe']['path']),'fresh/recipe.json'))
@@ -388,7 +398,7 @@ def run(args):
                 public=root/'public'
                 extra.append((root/'workflow.json','fresh/workflow.json'))
                 extra.extend(diagnostics(root,root/'diagnostics'))
-                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py'):
+                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py','fresh_pilot_storage.py'):
                     extra.append((HERE/name,'fresh/helper-'+name+'.txt'))
                 evidence=assemble_public(public,study=study,plan=plan,targets=targets,scored=scored,stages=stages,
                     qualified=qualified,selection=dict(policy='frozen latest available, partial exposure descriptive only',
