@@ -272,3 +272,32 @@ C/D adds bounded atomic per-cell progress and redacted recovery projections. Cou
 and phase durations are diagnostic, never admission or qualification authority.
 No coefficient law, cohort membership, seed, training or evaluation budget changes.
 Actual native speedup and six-hour feasibility remain unmeasured until execution.
+
+
+## CPU/native throughput readiness (T145–T146)
+
+The operator requests a short representative check before another full campaign.
+Keep the measurement policy in one reopened Phase B and orchestration in C/D;
+all code lives in temporary validation helpers. Probe every protected cell and
+one full training shard through canonical prepare_cell (including selection and
+payload writes), then sample the middle and final training cursors. All32 training
+families must satisfy quotas. Retain exact100-term native/reference comparisons,
+protected exclusions, source uniqueness, the production batch-eight callback and
+three reference workers at64GiB/four CPUs. Two fresh clients verify native restart
+consistency. No model/imported weights/HIP device or research initialization is used.
+
+Bound the diagnostic container to30 minutes, including cleanup; reserve60 seconds
+inside work for reporting. Estimate12 full65536-draw shards using the slowest
+measured training-cell seconds/draw, double this and protected-cell elapsed time,
+and add3600 seconds for unmeasured full-study publication/validation. Require this
+to fit below the six-hour preparation envelope less its90-second reserves. This
+is a conservative engineering gate, not a statistical confidence level: rare costs,
+load/thermal changes and later model/generation/scoring behavior remain unmeasured.
+No automatic budget escalation or scientific design change follows a failed probe.
+
+An independent CPU-only command packages metadata and bounded logs on success or
+failure. A full run requires the original compatible PASS receipt, bound to the
+installed/checkout source closure, immutable CPU image, helper hashes, engine facts,
+operator host fingerprint and resource policy, no older than72 hours. This proof
+never replaces full source feasibility, current-source acceptance, native research
+preparation or the paired smoke. Old research outputs are not mutated or reused.

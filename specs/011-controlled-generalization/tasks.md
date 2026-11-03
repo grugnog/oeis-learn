@@ -8,6 +8,19 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Native throughput readiness — operator request, 2026-11-02 Pacific
+
+### Reopened Phase B — representative measurement and conservative gate
+
+- [X] T145 Implement a temporary, frozen CPU/native probe using canonical preparation and native batching: complete protected cohorts, one full32768-row/65536-draw training cell, middle/end2048-draw samples with every family represented, and two cold-worker consistency checks. Use one bounded30-minute container invocation at64GiB/four CPUs and three reference workers. Require exact native agreement, complete quotas, acknowledged cleanup and a conservative estimate (twice the slowest observed training cost per draw across all12 shards, twice protected cost, plus one hour of unmeasured final-publication overhead) within the preparation work allowance. Test boundary, missing/invalid evidence, scope and deterministic sampling cases; never label this a statistical confidence interval or full campaign guarantee.
+
+T145 local policy tests:13 passed. Actual native measurements remain pending
+on the operator machine; this check introduces no unmeasured success claim.
+
+### Phase C/D — portable CPU command, evidence binding and full-run gate
+
+- [ ] T146 Add a stdlib-only throughput command, immutable image/source/helper/resource binding, bounded atomic partial metrics, verified aggregate-only ZIP export, and a compatible fresh proof requirement before the full pilot starts. Add orchestration/containment/reuse counterexamples, document the exact CPU-only command and remaining learning/evaluation uncertainty, commit and push each group. No local HIP command or CI wait; actual native timings require the operator's container run.
+
 ## Preparation timeout repair — 2026-11-03
 
 ### Reopened Phase B — bounded native setup reuse and deadlines
