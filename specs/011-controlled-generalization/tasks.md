@@ -21,7 +21,13 @@ Qualified production source and prior continuation helper identities are unchang
 
 ### Phase C/D — pre-learner consistency and continuation handoff
 
-- [ ] T152 Verify native-prepared smoke selections and actual training token arrays against the frozen source/batch plan before either learner starts. Preserve aggregate mismatch details in recovery diagnostics, document reuse of the original prepared parent, test affected helpers and push both groups. No local HIP or CI wait.
+- [X] T152 Verify native-prepared smoke selections and actual training token arrays against the frozen source/batch plan before either learner starts. Preserve aggregate mismatch details in recovery diagnostics, document reuse of the original prepared parent, test affected helpers and push both groups. No local HIP or CI wait.
+
+T152 validation: 121 helper regressions passed; the canonical preparation/batching
+fixture was exercised separately in T151 (17 tests passed). Source/token/cost drift
+is blocked before learners, and the plan-drift boundary test starts no training.
+The host dry-run works under `python -S`; Bash examples parse. Qualified production
+source and CI implementation bindings remain unchanged. No local HIP or CI wait.
 
 ## Resume after prepared-data success — 2026-11-03 Pacific
 

@@ -59,7 +59,7 @@ def test_reduced_data_has_same32_families_and_budget_reaches_fresh_rows(tmp_path
 
 
 @pytest.mark.parametrize('failure',[None,'preflight','prepare','train-static','train-refreshed',
-    'generate-static','score-static','generate-refreshed','score-refreshed','proof','initialization','zero_updates','scoring'])
+    'generate-static','score-static','generate-refreshed','score-refreshed','proof','initialization','zero_updates','scoring','plan_drift'])
 def test_smoke_gates_canonical_boundaries_and_keeps_failures(tmp_path,monkeypatch,failure):
     import fresh_pilot as api
     from types import SimpleNamespace
@@ -85,9 +85,13 @@ def test_smoke_gates_canonical_boundaries_and_keeps_failures(tmp_path,monkeypatc
     monkeypatch.setattr(runtime,'load',lambda *a:(base,study,sidecar))
     monkeypatch.setattr(inputs,'assemble_study',lambda *a:dict(manifest='smoke-study.json'))
     def reduced(root,job,output):
-        p=seal(dict(first_shard_tokens=10));write(output/'protocol.json',p)
+        p=seal(dict(first_shard_tokens=10,target_tokens=30));write(output/'protocol.json',p)
         return dict(images=images),p
     monkeypatch.setattr(m,'reduced_blueprint',reduced)
+    def verify_plan(*a):
+        if failure=='plan_drift':raise ValueError('native smoke selection differs from frozen source plan')
+        return dict(minimum_updates=3)
+    monkeypatch.setattr(m,'verify_smoke_plan',verify_plan)
     monkeypatch.setattr(acceptance,'training_proof',lambda *a:dict(status='FAIL' if failure=='proof' else 'PASS'))
     monkeypatch.setattr(api,'latest_checkpoint',lambda learner,result,**kw:(dict(initialization=kw['arm'] if failure=='initialization' else 'common'),learner))
     calls=[]
@@ -113,7 +117,7 @@ def test_smoke_gates_canonical_boundaries_and_keeps_failures(tmp_path,monkeypatc
     result=json.loads((tmp_path/'smoke/result.json').read_text())
     assert result['status']==('PASS' if failure is None else 'FAIL')
     if failure in m.LIMITS:assert failure in calls
-    if failure in {'preflight','prepare'}:assert not any(n.startswith('train-') for n in calls)
+    if failure in {'preflight','prepare','plan_drift'}:assert not any(n.startswith('train-') for n in calls)
     if failure in {'proof','initialization','zero_updates'}:assert not any(n.startswith('generate-') for n in calls)
 
 

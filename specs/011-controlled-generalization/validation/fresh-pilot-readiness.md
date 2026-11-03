@@ -233,3 +233,35 @@ blocks parse. Production source identity still equals
 the actual reviewed throughput binding. CI implementation binding is unchanged.
 No local HIP, image build or CI wait was performed. Actual continuation remains
 pending on the operator machine after space is freed.
+
+
+## Small-smoke token-cap correction (T151–T152)
+
+Recovery(4) passed canonical ZIP verification. Continuation reused feasibility,
+acceptance and all large native-prepared cells. Free disk was 715933028352 bytes,
+well above the required reservation. Small preflight/native preparation passed;
+the static learner exited successfully after two real updates, followed by the
+wrapper error `smoke did not consume beyond first shard`. Full learners never
+started. This is a diagnostic budget/planning defect, not evidence of HIP failure.
+
+The old 3723-token cap was derived by quota-reducing the large parent's selected
+rows. Small native preparation selects from the exact 2048-draw prefix instead;
+row identities and program lengths can differ. The repair source-selects those
+exact prefixes with canonical exclusions/refresh admission, computes each 16-row
+batch charge, and freezes enough tokens for both arms' first three updates below
+the existing 16384-token ceiling and available refresh capacity. Native-prepared
+source order, encoded targets and per-batch charges must match before model work.
+The actual batching/Ledger regression reproduces two updates under an insufficient
+parent-derived cap and three under the exact cap. A canonical preparation fixture
+also exercises actual PreparedBatches consumption beyond the first shard.
+
+Use a new continuation output with the original 20261103T035534Z prepared parent;
+do not resume the failed diagnostic learner or use its weights for research.
+Qualified production source, images, scientific model/data/token budgets and
+original acceptance stay unchanged. No new local HIP run or CI wait is performed.
+
+Local validation: 17 smoke tests passed with canonical prepared data and actual
+PreparedBatches/Ledger exposure; seven focused budget/native-plan counterexamples
+passed; then 121 helper regressions passed after wiring the pre-learner guard.
+The already-exercised canonical fixture was excluded from that last run. Source
+and CI bindings remain unchanged; host dry-run and documented Bash syntax pass.

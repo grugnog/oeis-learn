@@ -52,6 +52,15 @@ specific continuation; its checkpoint state requires a separate explicit resume.
 Read-only `--dry-run` prints the plan but does not verify originals or run hardware.
 The final JSON prints `report.zip` or a diagnostic `recovery.zip` to share.
 
+The first continuation (`fresh-p1-continued-20261103T142058Z`) reached small
+native preparation and a successful two-update static HIP learner, then correctly
+blocked full training at the three-update smoke gate. Its old 3723-token cap came
+from a different subset of the parent shard. T151–T152 now source-select the exact
+small prefixes before freezing the cap and compare the native-prepared token arrays
+before any learner starts. Retry using the command above, still naming the original
+`fresh-p1-v2-20261103T035534Z` parent. A new output timestamp preserves this failed
+smoke. Full preparation and acceptance are reused again; images need no rebuild.
+
 ## CPU/native throughput readiness for a new campaign
 
 Run this CPU-only diagnostic before another full campaign. It needs no imported

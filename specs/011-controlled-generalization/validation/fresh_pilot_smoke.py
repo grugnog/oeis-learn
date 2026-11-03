@@ -154,6 +154,8 @@ def run(api,job_path,output):
         result,_=command('prepare',api.canonical(engine,images[0],'prepare',rel(output),
             ['--manifest',manifest,'--qualification',job['qualified']]),output)
         manifest=result['result']['manifest'];base,study,runtime=load(root,manifest)
+        record['batch_plan']=verify_smoke_plan(base,study,runtime,protocol)
+        print('smoke-batch-plan: '+json.dumps(record['batch_plan'],sort_keys=True),flush=True)
         # One deterministic selection prompt/stratum, chosen before model work.
         targets=[];prompts=[]
         for ref in study['data']['manifests']:
@@ -180,7 +182,7 @@ def run(api,job_path,output):
                 if len(runs)!=1:raise ValueError('single smoke learner required')
                 training=runs[0]['result'];learner=confined(output/'training',runs[0]['root'])
                 if training['updates']<3 or training['tokens']<=protocol['first_shard_tokens']:
-                    raise ValueError('smoke did not consume beyond first shard')
+                    raise ValueError(f"smoke exposure shortfall arm={arm} updates={training['updates']} tokens={training['tokens']} minimum_updates=3 first_shard_tokens={protocol['first_shard_tokens']} target_tokens={protocol['target_tokens']}")
                 checkpoint,weights=api.latest_checkpoint(learner,training,study=study['identity'],arm=arm)
                 proof=training_proof(host,root,target/('proof-'+arm),runtime,study,[(learner,training)])
                 if proof['status']!='PASS':raise ValueError('finite smoke update proof failed')
