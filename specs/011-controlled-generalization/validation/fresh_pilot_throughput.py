@@ -4,10 +4,12 @@ import math
 from pathlib import Path
 import time
 
-POLICY='fresh-pilot-throughput/v1'
-SECONDS=1800
-WORK_SECONDS=1710  #60 seconds for terminal reporting,30 for external cleanup
-PREPARATION_WORK_SECONDS=21480  #30 cleanup +30 process exit +60 study reporting
+from oeis_learn.generalization.resources import PREPARATION_SECONDS
+
+POLICY='fresh-pilot-throughput/v2'
+SECONDS=90*60
+WORK_SECONDS=SECONDS-90  #60 seconds for terminal reporting,30 for external cleanup
+PREPARATION_WORK_SECONDS=PREPARATION_SECONDS-120  #30 cleanup +30 process exit +60 study reporting
 RESOURCES=dict(memory_bytes=64<<30,cpus=4,reference_workers=3,native_batch=8)
 SAMPLE_DRAWS=2048
 
@@ -64,11 +66,11 @@ def assess(report):
         raise ValueError('measurement exceeded or contradicted its work envelope')
     protected=sum(r['elapsed_seconds'] for r in cells[:4])
     slowest=max(r['elapsed_seconds']/r['draws'] for r in cells[4:])
-    estimate=2*(protected+slowest*12*65536)+3600
+    estimate=3*(protected+slowest*12*65536)+7200
     return dict(status='PASS' if estimate<=PREPARATION_WORK_SECONDS else 'BLOCKED',
         conservative_seconds=estimate,preparation_work_seconds=PREPARATION_WORK_SECONDS,
-        headroom_seconds=PREPARATION_WORK_SECONDS-estimate,safety_multiplier=2,
-        unmeasured_overhead_seconds=3600,slowest_training_seconds_per_draw=slowest,
+        headroom_seconds=PREPARATION_WORK_SECONDS-estimate,safety_multiplier=3,
+        unmeasured_overhead_seconds=7200,slowest_training_seconds_per_draw=slowest,
         scope='preparation throughput only; no statistical confidence interval or campaign guarantee')
 
 

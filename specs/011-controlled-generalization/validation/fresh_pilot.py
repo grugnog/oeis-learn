@@ -16,9 +16,9 @@ from oeis_learn.generalization.interfaces import EXIT_CODES
 from fresh_pilot_inputs import research_inputs,blueprint,BANK_SEEDS
 from fresh_pilot_report import measurement_plan,terminal_status,assemble_public,diagnostics
 
-CAMPAIGN_SECONDS=72*3600
+CAMPAIGN_SECONDS=96*3600
 REPORT_SECONDS=3600
-RESERVATIONS=dict(feasibility=22000,acceptance=23700,preflight=7200,prepare=28800,smoke=21600,
+RESERVATIONS=dict(feasibility=22000,acceptance=23700,preflight=7200,prepare=28*3600,smoke=21600,
     **{'train-static':28800,'train-refreshed':28800,'generate-static':23400,
        'score-static':23400,'generate-refreshed':23400,'score-refreshed':23400})
 

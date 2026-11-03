@@ -10,7 +10,7 @@ The scientific status remains UNMEASURED.
 Run this CPU-only diagnostic before another full campaign. It needs no imported
 weights, GPU image or HIP device. It prepares four full protected cohorts, the full
 first training shard, and middle/end samples across all32 families, then checks two
-fresh native workers. The container invocation is bounded to30 minutes; image build
+fresh native workers. The container invocation is bounded to 90 minutes; image build
 and small host setup/export costs are separate. Failure/timeout also produces a
 verified aggregate report ZIP. No training or full campaign starts automatically.
 
@@ -31,9 +31,9 @@ verified aggregate report ZIP. No training or full campaign starts automatically
 
 Share the printed `<PROBE_RUN>/report.zip`. PASS requires complete exact native
 agreement and family quotas, restart consistency, acknowledged cleanup, and an
-estimate inside the preparation work budget: twice the slowest measured training
-cost per draw extrapolated to12 full shards, twice protected preparation cost,
-and an additional hour for unmeasured full-study publication/validation. This is
+estimate inside the preparation work budget: three times the slowest measured training
+cost per draw extrapolated to 12 full shards, three times protected preparation cost,
+and two additional hours for unmeasured full-study publication/validation. This is
 an engineering margin, not a statistical confidence interval or guarantee for
 learning/evaluation. BLOCKED means insufficient timing headroom; FAIL includes
 incomplete/timeout/containment/identity evidence. Neither permits a full run.
@@ -91,12 +91,14 @@ optimizer/RNG state and protected target payloads. Existing outputs are never
 overwritten. Failed CPU feasibility starts no hardware. Failed acceptance/native preparation
 starts no smoke learner; failed smoke starts no full learner.
 
-This freezes a **72-hour total ceiling after image builds**, not an estimated runtime.
+This freezes a **96-hour total ceiling after image builds**, not an estimated runtime.
 Each learner gets at most6 hours/25M target tokens; each arm's generation and scoring
 gets up to6 hours each. Setup, qualification, validation, checkpoint persistence,
 cleanup and final reporting have separate reservations. CPU feasibility and the
-paired smoke each have a6-hour outer ceiling; native preparation has6 hours of
-work plus validation/cleanup headroom. CPU reference generation uses four ordered
+paired smoke each have a6-hour outer ceiling; native preparation has a 24-hour operational allowance
+(with two minutes reserved for cleanup/publication) and a 28-hour enclosing command
+for validation/setup headroom. These limits supersede the earlier six-hour
+preparation limit; the learner budgets remain unchanged. CPU reference generation uses four ordered
 workers; canonical preparation uses up to three plus one native client, with
 existing native execute requests batched eight at a time. GPU work stays serial. Qualification and research
 use64GiB/four CPUs, with64GiB reserved per study root. The smoke has its own

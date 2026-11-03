@@ -23,13 +23,14 @@ def measurements(rate=.005):
 
 def test_conservative_gate_uses_slowest_late_window_and_never_average():
     report=measurements();assert m.assess(report)['status']=='PASS'
-    report['cells'][-1]['elapsed_seconds']=50
+    report['cells'][-1]['elapsed_seconds']=100
     result=m.assess(seal(report))
-    assert result['status']=='BLOCKED' and result['conservative_seconds']>2*50/2048*12*65536
+    assert result['status']=='BLOCKED' and result['conservative_seconds']>3*100/2048*12*65536
 
 
 @pytest.mark.parametrize('change',[
     lambda r:r['cells'].pop(),lambda r:r.update(restart_equal=False),
+    lambda r:r.update(version='fresh-pilot-throughput/v1'),
     lambda r:r['cells'][4].update(families=31),lambda r:r['cells'][4].update(minimum_family_rows=1023),
     lambda r:r['cells'][4].update(native_rows=100),lambda r:r['cells'][0].update(native_validation='NOT_RUN'),
     lambda r:r['cells'][4].update(draws=64000),lambda r:r['cells'][4].update(elapsed_seconds=-1),
@@ -101,7 +102,7 @@ def test_host_cpu_only_command_and_failure_archive(tmp_path,monkeypatch,failure)
     captured=[]
     def launch(argv,logs,**kw):
         captured.extend(argv)
-        assert 0<kw['seconds']<1800 and kw['cleanup_seconds']==30
+        assert 0<kw['seconds']<m.SECONDS and kw['cleanup_seconds']==30
         write(logs/'process.json',dict(outcome='FAIL' if failure in {'timeout','nonzero'} else 'COMPLETE',
             returncode=1 if failure=='nonzero' else -9 if failure=='timeout' else 0))
         (logs/'stderr.log').write_text('bounded diagnostic\n')
@@ -157,11 +158,25 @@ def test_installed_source_mismatch_fails_before_any_native_work(tmp_path,monkeyp
 
 
 def test_headroom_boundary_matches_nested_preparation_reserves():
-    assert m.PREPARATION_WORK_SECONDS==21600-30-30-60
+    assert m.PREPARATION_WORK_SECONDS==86400-30-30-60
     for offset,status in [(-.1,'PASS'),(.1,'BLOCKED')]:
         report=measurements()
         protected=sum(r['elapsed_seconds'] for r in report['cells'][:4])
-        rate=(m.PREPARATION_WORK_SECONDS+offset-3600-2*protected)/(2*12*65536)
+        rate=(m.PREPARATION_WORK_SECONDS+offset-7200-3*protected)/(3*12*65536)
         for row in report['cells'][4:]:
             row['elapsed_seconds']=row['draws']*rate
-        assert m.assess(seal(report))['status']==status
+        report['elapsed_seconds']=sum(row['elapsed_seconds'] for row in report['cells'])+100
+        result=m.assess(seal(report))
+        assert result['status']==status
+        assert result['safety_multiplier']==3 and result['unmeasured_overhead_seconds']==7200
+
+
+def test_operational_envelopes_cover_every_stage_and_cleanup():
+    import fresh_pilot as runner
+    from oeis_learn.generalization.resources import PREPARATION_SECONDS
+    assert m.SECONDS==90*60 and m.WORK_SECONDS==m.SECONDS-60-30
+    assert PREPARATION_SECONDS==24*3600
+    assert m.PREPARATION_WORK_SECONDS==PREPARATION_SECONDS-120
+    assert runner.RESERVATIONS['prepare']==28*3600
+    assert runner.CAMPAIGN_SECONDS==96*3600
+    assert sum(runner.RESERVATIONS.values())+runner.REPORT_SECONDS<runner.CAMPAIGN_SECONDS

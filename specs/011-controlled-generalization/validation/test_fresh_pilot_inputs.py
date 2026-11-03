@@ -17,6 +17,9 @@ def design():return module.research_inputs()
 
 def test_registered_research_scale_and_fixed_mixture(design):
     assert design['seed']==20261016
+    assert design['preparation_seconds']==24*3600
+    assert design['campaign_seconds']==96*3600
+    assert design['learner_seconds']==21600
     assert len(design['descriptors'])==32
     assert {d['stage'] for d in design['descriptors']}==set('ABCD')
     assert len(design['training'])==12
@@ -68,10 +71,15 @@ def test_blueprint_is_fresh_and_cannot_consume_imported_weights(design,tmp_path,
     assert cfg['training']['refreshed']['cells']==[c['name'] for c in design['training']]
     assert cfg['evaluation'] is None and cfg['replay'] is None
     assert cfg['budgets']['target_tokens']==25_000_000
+    assert cfg['budgets']['seconds']==21600
+    assert cfg['preparation_seconds']==86400
     result=assemble_study(tmp_path,cfg,'assembled')
     import json
     study=json.loads((tmp_path/result['manifest']).read_text())
     assert study['model']['initialization']=='random'
+    prep=json.loads((tmp_path/'assembled/preparation.json').read_text())
+    assert prep['work_seconds']==86400
+    assert prep['budgets']==study['budgets']==cfg['budgets']
     assert study['seeds']==[20261016] and study['arms']==['static','refreshed']
 
     from oeis_learn.pipeline_validation.generalization_runtime import load,validate_execution

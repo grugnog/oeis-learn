@@ -68,7 +68,7 @@ def inside(job_path,output):
     from oeis_learn.pipeline_validation.identity import digest,file_hash
     from oeis_learn.experiments.source_snapshot import source_snapshot
     from fresh_pilot_inputs import research_inputs
-    from fresh_pilot_throughput import measure,save
+    from fresh_pilot_throughput import POLICY,measure,save
     began=time.monotonic();job=bounded(Path(job_path));root=Path(output);phase='source-binding'
     try:
         if digest(source_snapshot())!=job['binding']['source']:raise ValueError('installed source differs from checkout')
@@ -78,7 +78,7 @@ def inside(job_path,output):
         seconds=job['work_seconds']-(time.monotonic()-began)
         phase='measurement';result=measure(design,root/'measurement',seconds=seconds)
     except (Exception,KeyboardInterrupt) as exc:
-        result=dict(version='fresh-pilot-throughput/v1',status='INCOMPLETE',phase=phase,reason=type(exc).__name__)
+        result=dict(version=POLICY,status='INCOMPLETE',phase=phase,reason=type(exc).__name__)
         save(root/'measurement/metrics.json',result)
     return 0  # host maps the explicit measured verdict; exit alone never grants PASS
 

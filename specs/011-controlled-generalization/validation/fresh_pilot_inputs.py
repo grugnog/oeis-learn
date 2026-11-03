@@ -2,6 +2,7 @@
 from pathlib import Path
 from oeis_learn.data.bigint_programs import BigintSampler
 from oeis_learn.generalization.refresh import RefreshPlan
+from oeis_learn.generalization.resources import PREPARATION_SECONDS
 from oeis_learn.pipeline_validation.identity import seal,write,digest
 
 SEED=20261016
@@ -78,8 +79,8 @@ def research_inputs():
         refresh=dict(seed=SEED,capacity=1_000_000,cursor=65536*i,draws=65536)) for i in range(12)]
     return seal(dict(version='fresh-pilot-design/v2',seed=SEED,descriptors=training,
         training=cells,cohorts=cohorts,numeric_law=NUMERIC_LAW,descriptor_screen='16-variant-difference-window/v1',bank_seeds=BANK_SEEDS,
-        target_tokens=25_000_000,learner_seconds=21600,preparation_seconds=21600,feasibility_seconds=21600,reference_workers=4,
-        generation_seconds=21600,scoring_seconds=21600,campaign_seconds=72*3600,
+        target_tokens=25_000_000,learner_seconds=21600,preparation_seconds=PREPARATION_SECONDS,feasibility_seconds=21600,reference_workers=4,
+        generation_seconds=21600,scoring_seconds=21600,campaign_seconds=96*3600,
         smoke=dict(version='paired-source-smoke/v1',families=32,rows_per_family=1,shards=2,
             budget='max(first static shard + next16 static/refreshed examples)',
             learner_seconds=900,role_seconds=1800,selection_rows_per_stratum=1,
@@ -120,7 +121,7 @@ def blueprint(workspace,design,*,recipe,source,images,feature,output):
         descriptors=ds,exclusions=ex,cells=cells,
         training={'static':dict(cells=['static'],data_mode='static',batch_size=16),
                   'refreshed':dict(cells=[c['name'] for c in design['training']],data_mode='refresh',batch_size=16)},
-        evaluation=None,replay=None,seeds=[SEED],
+        evaluation=None,replay=None,seeds=[SEED],preparation_seconds=design['preparation_seconds'],
         budgets=dict(target_tokens=25_000_000,seconds=21600,draws=1_000_000,
             memory_bytes=64<<30,storage_bytes=8<<30,log_bytes=4<<30,attempts=8),
         milestones=[4_000_000,8_000_000,16_000_000,25_000_000],

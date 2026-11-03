@@ -48,9 +48,9 @@ refresh changes between them. Source feasibility uses no model or assessment sco
    isolated generator/scorer roles and canonical report/verify-bundle. Smoke weights
    never initialize research, and smoke measurements never enter its denominator.
 
-The72-hour outer ceiling after builds includes stage/setup/cleanup reservations and
+The 96-hour outer ceiling after builds includes stage/setup/cleanup reservations and
 one hour protected for finalization. Feasibility and smoke each get six hours;
-native research preparation gets six hours plus validation headroom. These are
+native research preparation gets 24 hours inside a 28-hour enclosing command. These are
 ceilings, not expected durations. Full learner/generator throughput is unmeasured;
 25M completion within six learner hours is not promised.
 
@@ -153,14 +153,18 @@ software checks, not a native/HIP performance measurement.
 
 Before another full run, execute `fresh_pilot.py throughput` as documented in
 `../quickstart.md`. This is CPU-only and produces `report.zip` on PASS, BLOCKED or
-failure. The30-minute diagnostic includes complete protected cohorts, one full
+failure. The 90-minute diagnostic includes complete protected cohorts, one full
 training shard, middle/end stream samples and cold-worker restart consistency.
 It uses canonical native batching, preparation, exclusions and payload publication
 at64GiB/four CPUs, with three ordered reference workers. The timing gate uses the
-slowest training-cell time/draw across all12 shards with a2× margin, doubles the
-protected cost and adds3600 seconds for unmeasured full-study overhead. The bound
-is21480 seconds, preserving30-second cleanup,30-second process exit and60-second
-study reporting reserves inside the six-hour role envelope. No limits are raised.
+slowest training-cell time/draw across all 12 shards with a 3× margin, triples the
+protected cost and adds 7200 seconds for unmeasured full-study overhead. The bound
+is 86280 seconds, preserving 30-second cleanup, 30-second process exit and 60-second
+study reporting reserves inside the 24-hour role envelope. These T147–T148
+limits supersede the earlier six-hour/30-minute limits recorded above. The v2
+throughput policy and new helper/source identities require a rebuilt CPU image
+and a fresh probe. The optional preparation authority `work_seconds` is independent
+of the unchanged six-hour learner budget. Legacy authorities keep their defaults.
 
 The full runner now requires `--throughput PATH` pointing to an original PASS
 output, no older than72 hours and compatible with its image/source/helpers/engine
@@ -178,3 +182,12 @@ performance remain NOT_RUN here; the container engine is unavailable. No CI wait
 or HIP execution was performed. This gate supports preparation-runtime readiness,
 not a statistical confidence percentage or guarantee of learner/evaluation success;
 current-source acceptance and the existing same-model paired smoke remain mandatory.
+
+
+T147–T148 margin amendment validation: 138 affected tests passed. The registered
+24-hour preparation authority reaches the isolated role without the old six-hour
+clamp; published learner budgets stay unchanged. Boundary tests exercise both
+sides of the 3× plus two-hour gate, and all stage reservations plus final reporting
+fit within 96 hours. The host CLI runs under `python -S` and all 26 documented Bash
+blocks parse. These are software checks; actual CPU/native throughput still awaits
+the operator probe. No HIP command or CI wait was performed.

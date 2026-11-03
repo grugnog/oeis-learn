@@ -19,7 +19,13 @@ v3 schema enforcement and unchanged published learner exposure. No HIP executed.
 
 ### Phase C/D — generous campaign and throughput envelopes
 
-- [ ] T148 Freeze 24-hour preparation, 28-hour outer preparation and 96-hour campaign ceilings. Allow 90 minutes for the representative diagnostic and require 3× timing plus two hours of overhead below the preparation work allowance. Update the exact nested-envelope tests, guides and CI implementation binding; commit/push each group without HIP execution or waiting for CI.
+- [X] T148 Freeze 24-hour preparation, 28-hour outer preparation and 96-hour campaign ceilings. Allow 90 minutes for the representative diagnostic and require 3× timing plus two hours of overhead below the preparation work allowance. Update the exact nested-envelope tests, guides and CI implementation binding; commit/push each group without HIP execution or waiting for CI.
+
+T148 validation: 138 affected tests passed, including exact forecast boundaries,
+old policy rejection, real container command construction, preparation authority
+assembly and unchanged learner budgets. Host help/dry-run pass under `python -S`;
+26 documented Bash blocks parse. CI implementation binding verified. Actual
+native timings remain NOT_RUN locally; no HIP execution or CI wait.
 
 ## Native throughput readiness — operator request, 2026-11-02 Pacific
 
