@@ -5,7 +5,54 @@ pinned CPU/native and actual HIP qualification, all five feature cases and canon
 archive verification. See [the evidence review](validation/acceptance-016-review.md).
 The scientific status remains UNMEASURED.
 
-## Current next step: CPU/native throughput readiness
+## Current next step: continue the prepared 20261103T035534Z run
+
+The CPU/native probe passed. The subsequent campaign passed acceptance, full
+source feasibility and all 16 native preparation cells (6675 seconds), then stopped
+before smoke assembly because only about 61.2 GiB remained free. No full learner
+started. Preserve the complete original run directory, throughput directory,
+imported artifacts and both exact qualified images.
+
+Free at least **224 GiB on the workspace filesystem** before continuing: 64 GiB
+for remaining research, 64 GiB for the separate smoke, another 64 GiB kept free for canonical
+checks, and 32 GiB of headroom.
+`df -h .` checks filesystem availability; `podman system df -v` helps identify
+container storage usage. Do not blindly prune all unused images: the exact image
+pair recorded in the original `acceptance/report/qualified/qualification.json`
+is required. No image rebuild is needed for this temporary-helper update.
+
+```bash
+(
+  set -euo pipefail
+  git switch 011-controlled-generalization
+  git pull --ff-only origin 011-controlled-generalization
+  python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py run \
+    --engine podman \
+    --resume-prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+    --output "run-state/generalization/fresh-p1-continued-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+The wrapper verifies the original inventories, qualification/feature evidence,
+source and image identities, prepared selections and matching throughput receipt
+(still subject to its 72-hour freshness limit). Only the known predecessor host
+controller may migrate; measured preparation helpers and installed source must
+match exactly. The original failed run remains unchanged. New outputs and a
+public continuation record go into the new directory; large input data stays in
+its original location. Do not move or alter the old run during continuation.
+
+The corrected small smoke keeps its descriptor/cursor refresh authority with two
+2048-draw prefixes and one selected row per family. It runs before the full paired
+learners, evaluation and canonical packaging. Failed smoke still blocks learners.
+Each full arm retains its original six-hour/25M-token cap; the new invocation has
+its own bounded 96-hour campaign envelope because no full learner exposure has
+been consumed. A run that already started a full learner is rejected by this
+specific continuation; its checkpoint state requires a separate explicit resume.
+
+Read-only `--dry-run` prints the plan but does not verify originals or run hardware.
+The final JSON prints `report.zip` or a diagnostic `recovery.zip` to share.
+
+## CPU/native throughput readiness for a new campaign
 
 Run this CPU-only diagnostic before another full campaign. It needs no imported
 weights, GPU image or HIP device. It prepares four full protected cohorts, the full

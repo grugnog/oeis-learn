@@ -336,7 +336,7 @@ allow only the known predecessor controller hash to migrate to the new host
 continuation wrapper. Production code, contracts, images and qualification remain
 unchanged. The original throughput proof retains its 72-hour freshness requirement.
 
-Require 160 GiB free (64 GiB remaining research, 64 GiB separate smoke, 32 GiB
+Require 224 GiB free (64 GiB remaining research, 64 GiB separate smoke, 64 GiB continuously free, 32 GiB
 headroom) before new hardware work. Do not delete artifacts or lower canonical
 storage checks. New outputs live in a disjoint root; original prepared input paths
 remain references, and original failures remain evidence rather than being changed

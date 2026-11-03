@@ -191,3 +191,45 @@ sides of the 3× plus two-hour gate, and all stage reservations plus final repor
 fit within 96 hours. The host CLI runs under `python -S` and all 26 documented Bash
 blocks parse. These are software checks; actual CPU/native throughput still awaits
 the operator probe. No HIP command or CI wait was performed.
+
+
+## Prepared-run recovery reviewed 2026-11-03 Pacific (T149–T150)
+
+`recovery(3).zip` passed canonical archive inventory/hash verification. Original
+workflow `sha256:3a093092474e604018242d32f939eac24498244e3df6c184eaebe01354937313`
+records acceptance exit 0, source feasibility PASS in 1022 seconds, preflight PASS,
+and native preparation PASS in 6675 seconds. All 16 cell ledgers passed. The smoke
+failed after 2.07 seconds with `ValueError: insufficient storage reservation`;
+the final preparation disk monitor reported 65,664,630,784 bytes free (61.2 GiB).
+The canonical runtime needs the full 64 GiB reservation still available. No full
+learner started, so the scientific status remains UNMEASURED.
+
+T149 also repairs the smoke's fixed-candidate blueprint, which was inconsistent
+with its declared refreshed arm. A new canonical assembly/preparation/resolved
+runtime test exercises the boundary previously hidden by mocked assembly. The
+small diagnostic retains two original training cursors and 2048 draws per cursor,
+32 families, original numeric law, protected cohorts and native verification.
+The full scientific data, model, seed and exposure remain unchanged.
+
+T150 continues only this verified pre-learning boundary in a disjoint run root.
+Original preparation inventories are streamed and hashed, original selection order
+is compared to the source-feasibility record, and qualification/feature evidence,
+production closure, image pair, host/resources and fresh original throughput proof
+are checked. Canonical consumers still re-inspect qualification compatibility.
+224 GiB free is required up front; no destructive cleanup is performed. The exact
+command is in the quickstart. Successful earlier stages are explicitly reused;
+the parent FAIL workflow and original references remain in success/failure exports.
+No image rebuild or repeat of full preparation/acceptance is required when all
+these checks pass. The known old controller hash is the sole throughput-helper
+migration exception; measured code and production source must remain identical.
+
+
+Local continuation validation: 114 helper tests passed, then 52 focused tests after
+the final disk-policy/FEASIBLE-status audit. The 224 GiB reserve covers two 64 GiB
+output roots while leaving the canonical 64 GiB free-space requirement plus a
+32 GiB margin. The runtime remains stdlib-only on the host; all 27 documented Bash
+blocks parse. Production source identity still equals
+`sha256:df68fb0a2a70ed6025ea06084e900f0dbaced51037498a8d18bd3367868eb58b`,
+the actual reviewed throughput binding. CI implementation binding is unchanged.
+No local HIP, image build or CI wait was performed. Actual continuation remains
+pending on the operator machine after space is freed.

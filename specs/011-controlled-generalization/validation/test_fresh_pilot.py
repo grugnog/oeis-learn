@@ -50,9 +50,12 @@ def test_dry_run_is_stdlib_only_and_never_touches_engine(tmp_path):
     assert not (m.ROOT/'run-state/not-created').exists()
 
 
-@pytest.mark.parametrize('failure',[None,'feasibility','preflight','prepare','smoke','train-static','train-refreshed',
-    'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization'])
-def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,failure):
+@pytest.mark.parametrize('resuming,failure',[
+    (resuming,failure) for resuming in (False,True)
+    for failure in (None,'feasibility','preflight','prepare','smoke','train-static','train-refreshed',
+        'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization')
+    if not resuming or failure not in {'feasibility','preflight','prepare'}])
+def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,failure,resuming):
     """Mock expensive processes, retain real controller/lineage/packaging checks."""
     import json
     from types import SimpleNamespace
@@ -142,9 +145,37 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
     import fresh_pilot_throughput_host
     args.throughput='throughput';write(tmp_path/'throughput/result.json',seal(dict(status='PASS')))
     monkeypatch.setattr(fresh_pilot_throughput_host,'require_for_run',lambda a:(dict(identity=digest('throughput'),binding=dict(image='sha256:'+'1'*64)),dict(protocol=design['identity'])))
+    import fresh_pilot_resume
+    monkeypatch.setattr(fresh_pilot_resume,'disk_preflight',lambda *a:dict(free_bytes=256<<30,required_free_bytes=224<<30))
+    if resuming:
+        previous=tmp_path/'previous'
+        write(previous/'research/design/design.json',design);write(previous/'research/design/blueprint.json',{})
+        write(previous/'research/protocol-summary.json',{})
+        write(previous/'feasibility/feasibility.json',{})
+        prior_stages=[dict(stage=name,status='PASS',exit_code=0,elapsed_seconds=1,command=['original'],originals=[])
+            for name in ('feasibility','preflight','prepare')]
+        parent=seal(dict(status='FAIL',stages=prior_stages,acceptance=dict(exit_code=0)))
+        write(previous/'workflow.json',parent)
+        context=dict(old=previous,qualified=qualified,images=['sha256:'+'1'*64,'sha256:'+'2'*64],
+            manifest='resolved-study.json',design=design,source_check={},workflow=parent)
+        args.resume_prepared='previous'
+        monkeypatch.setattr(fresh_pilot_resume,'prepared_inputs',lambda *a:context)
+        monkeypatch.setattr(fresh_pilot_resume,'continuation_record',lambda *a:seal(dict(parent=parent['identity'])))
+        monkeypatch.setattr(fresh_pilot_resume,'throughput_proof',lambda *a:(tmp_path/'throughput',dict(identity=digest('throughput')),dict(protocol=design['identity'])))
+        original_parent=(previous/'workflow.json').read_bytes()
     code=m.run(args)
+    if resuming:
+        assert not set(calls)&{'feasibility','preflight','prepare'}
+        assert calls[0]=='smoke'
+        assert (previous/'workflow.json').read_bytes()==original_parent
+        assert not (tmp_path/'pilot/research/design').exists()
     workflow=json.loads((tmp_path/'pilot/workflow.json').read_text());archive=tmp_path/workflow['archive']
     assert archive.is_file();verify(archive)
+    if resuming:
+        assert workflow['resume'] and all(s['execution']=='REUSED' for s in workflow['stages'][:3])
+        if failure=='smoke':
+            import zipfile
+            with zipfile.ZipFile(archive) as z:assert 'parent-workflow.json' in z.namelist() and 'resume.json' in z.namelist()
     if failure is None:assert code==0 and workflow['status']=='PASS'
     elif failure=='partial-training':assert code==3 and 'score-refreshed' in calls
     else:assert code==1 and workflow['status']=='FAIL'

@@ -11,9 +11,13 @@ from oeis_learn.pipeline_validation.generalization_preparation import reference
 
 def test_storage_gate_reports_actual_shortfall_and_keeps_margin(tmp_path,monkeypatch):
     monkeypatch.setattr(m.shutil,'disk_usage',lambda _:SimpleNamespace(free=65664630784))
-    with pytest.raises(ValueError,match='160 GiB free; available 61.2 GiB'):m.disk_preflight(tmp_path)
-    monkeypatch.setattr(m.shutil,'disk_usage',lambda _:SimpleNamespace(free=160<<30))
-    assert m.disk_preflight(tmp_path)['required_free_bytes']==160<<30
+    with pytest.raises(ValueError,match='224 GiB free; available 61.2 GiB'):m.disk_preflight(tmp_path)
+    monkeypatch.setattr(m.shutil,'disk_usage',lambda _:SimpleNamespace(free=224<<30))
+    assert m.disk_preflight(tmp_path)['required_free_bytes']==224<<30
+    from oeis_learn.generalization.resources import CAPS
+    assert m.REQUIRED_FREE_BYTES-2*CAPS['study_bytes']>=CAPS['study_bytes']+(32<<30)
+    monkeypatch.setattr(m.shutil,'disk_usage',lambda _:SimpleNamespace(free=m.REQUIRED_FREE_BYTES-1))
+    with pytest.raises(ValueError):m.disk_preflight(tmp_path)
 
 
 @pytest.fixture
@@ -50,7 +54,7 @@ def original(tmp_path,monkeypatch):
     for i in range(16):
         rows=[dict(id=str(i))];name='cell-'+str(i)
         write(base/'cells'/name/'private/selected.json',rows)
-        cells.append(dict(name=name,status='PASS',selection=digest([str(i)])))
+        cells.append(dict(name=name,status='FEASIBLE',selection=digest([str(i)])))
     feasible=seal(dict(status='FEASIBLE',protocol=design['identity'],cells=cells))
     write(old/'feasibility/feasibility.json',feasible)
     write(old/'feasibility/result.json',seal(dict(status='PASS',feasibility=reference(old/'feasibility/feasibility.json',old/'feasibility'))))

@@ -173,6 +173,9 @@ def recovery(root,workflow):
         feature_qualified=False,scope='diagnostic recovery only; no completed research claim'))
     diagnostic_files=diagnostics(root,folder/'diagnostics')
     mandatory=['workflow.json','summary.json',*['diagnostics/'+p.name for p,_ in diagnostic_files]]
+    for name in ('resume.json','parent-workflow.json','parent-preparation-summary.json'):
+        if (root/name).is_file():
+            write(folder/name,read(root/name));mandatory.append(name)
     archive=pack(folder,mandatory=mandatory,optional_cap=8<<20)
     verify(archive)
     return archive
@@ -205,7 +208,14 @@ def run(args):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.container_runtime import Engine
     from fresh_pilot_throughput_host import require_for_run
-    throughput_receipt,throughput_report=require_for_run(args)
+    from fresh_pilot_resume import prepared_inputs,throughput_proof,disk_preflight
+    resumed=None
+    if getattr(args,'resume_prepared',None):
+        resumed=prepared_inputs(ROOT,args.resume_prepared,args.output,args.engine)
+        throughput_path,throughput_receipt,throughput_report=throughput_proof(sys.modules[__name__],resumed,args.engine)
+    else:
+        throughput_receipt,throughput_report=require_for_run(args)
+        disk_preflight(ROOT)
     root=confined(ROOT,args.output,exists=False)
     if root.exists() or root.with_suffix('.zip').exists():raise ValueError('fresh pilot output required')
     root.mkdir(parents=True);started=time.monotonic();stages=[]
@@ -229,73 +239,98 @@ def run(args):
         return original,status
     record()
     try:
-        feasibility=root/'feasibility'
-        result,status=command('feasibility',[sys.executable,str(Path(__file__).resolve()),'feasibility',
-            '--output',relative(feasibility)],feasibility)
-        if status!='PASS':raise RuntimeError('full source feasibility failed; no hardware launched')
-        design=read(feasibility/'private/design.json')
-        source_check=json.loads(verify_artifact(feasibility,result['feasibility']))
-        if seal(source_check)!=source_check or seal(design)!=design or source_check['protocol']!=design['identity'] or source_check['status']!='FEASIBLE':
-            raise ValueError('feasibility/protocol binding differs')
-        if throughput_report['protocol']!=design['identity']:raise ValueError('throughput protocol differs from frozen design')
-        extra.append((feasibility/'feasibility.json','fresh/feasibility.json'))
-        extra.append((confined(ROOT,args.throughput)/'result.json','fresh/throughput-receipt.json'))
-        imported=confined(ROOT,args.imported)
-        if args.qualified:
-            qualified=confined(ROOT,args.qualified)
+        if resumed is not None:
+            from fresh_pilot_resume import continuation_record
+            from fresh_pilot_report import preparation_diagnostics
+            parent=resumed['old'];qualified=resumed['qualified'];images=resumed['images']
+            manifest=resumed['manifest'];design=resumed['design'];source_check=resumed['source_check']
+            research=root/'research';research.mkdir()
+            design_root=parent/'research/design'
+            continuation=continuation_record(ROOT,resumed,throughput_receipt)
+            write(root/'resume.json',continuation)
+            write(root/'parent-workflow.json',resumed['workflow'])
+            write(root/'parent-preparation-summary.json',preparation_diagnostics(parent))
+            workflow['resume']=reference(root/'resume.json',root)
+            workflow['acceptance']=dict(resumed['workflow']['acceptance'],reused_from=str(parent.relative_to(ROOT)))
+            stages.extend(dict(stage,execution='REUSED',parent_workflow=resumed['workflow']['identity'])
+                for stage in resumed['workflow']['stages'][:3])
+            extra.extend([(root/'resume.json','fresh/resume.json'),
+                (root/'parent-workflow.json','fresh/parent-workflow.json'),
+                (root/'parent-preparation-summary.json','fresh/parent-preparation-summary.json'),
+                (parent/'feasibility/feasibility.json','fresh/feasibility.json'),
+                (parent/'research/protocol-summary.json','fresh/protocol.json'),
+                (throughput_path/'result.json','fresh/throughput-receipt.json')])
+            record()
+            print('Verified original feasibility, acceptance and preparation; continuing at smoke',flush=True)
         else:
-            if not args.cpu_image or not args.gpu_image:raise ValueError('prebuilt CPU and GPU image tags required')
-            from oeis_learn.pipeline_validation.generalization_setup import assemble_acceptance
-            import generalization_hip_serial as serial
-            engine=Engine(args.engine);images=[engine.image(args.cpu_image),engine.image(args.gpu_image)]
-            setup=assemble_acceptance(ROOT,imported=args.imported,images=images,output=relative(root/'acceptance-inputs'))
-            acceptance=root/'acceptance'
-            frozen=serial.plan(args.engine,setup['session']['manifest'],relative(acceptance),image=images[0])
-            for item in frozen:
-                index=item['argv'].index('generalization')
-                item['argv'][index:index]=['--memory-gib','64','--cpus','4']
-            allowance(time.monotonic()-started,RESERVATIONS['acceptance'])
-            from oeis_learn.generalization.resources import CAPS
-            with scope(acceptance,CAPS,extra_roots=[root/'acceptance-inputs']):code=serial.execute(frozen,acceptance)
-            workflow['acceptance']=dict(exit_code=code,archive=relative(acceptance.with_suffix('.zip')));record()
-            if code:raise RuntimeError('current-source acceptance did not pass; research not started')
-            qualified=acceptance/'report/qualified'
-        authority=read(qualified/'qualification.json')
-        if json.loads(verify_artifact(qualified,authority['source_closure']))!=collect_snapshot(ROOT):
-            raise ValueError('qualification source closure changed')
-        if authority['resources']['memory_bytes']!=64<<30 or authority['resources']['cpus']!=4:
-            raise ValueError('pilot requires matching qualification at64GiB/four CPUs')
-        images=authority['images']
-        if images[0]!=throughput_receipt['binding']['image']:raise ValueError('CPU image changed after throughput check')
-        research=root/'research';research.mkdir()
-        write(research/'source.json',collect_snapshot(ROOT))
-        write(research/'protocol-summary.json',seal(dict(version='fresh-pilot-public-protocol/v1',
-            protocol=design['identity'],seed=20261016,training_shards=12,rows_per_shard=32768,
-            rows_per_family=1024,training_families=32,selection_rows=256,assessment='SEALED',
-            numeric_law=design['numeric_law'],descriptor_screen=design['descriptor_screen'],
-            reference_workers=4,source_feasibility=source_check['identity'],target_tokens_per_arm=25_000_000,learner_seconds=21600,generation_seconds=21600,
-            scoring_seconds=21600,length_boundary=16,bank_seeds=BANK_SEEDS,
-            controls=['raw','rescue','equal_budget','shuffled','absent','template','bank'],
-            interpretation='single-seed exploratory; matched exposure and95% primary completion required; no automatic advancement')))
-        extra.append((research/'protocol-summary.json','fresh/protocol.json'))
-        cfg=blueprint(ROOT,design,recipe=relative(imported/'provenance/recipe.json'),source=relative(research/'source.json'),
-            images=images,feature=relative(qualified/'feature.json'),output=relative(research/'design'))
-        assembly=assemble_study(ROOT,cfg,relative(research/'inputs'))
-        manifest=assembly['manifest']
-        command_args=['--manifest',manifest,'--qualification',relative(qualified)]
-        preflight=research/'preflight'
-        _,status=command('preflight',canonical(args.engine,images[0],'preflight',relative(preflight),['--manifest',manifest]),preflight)
-        if status!='PASS':raise RuntimeError('research preflight failed')
-        prepared=research/'prepare'
-        result,status=command('prepare',canonical(args.engine,images[0],'prepare',relative(prepared),command_args),prepared)
-        if status!='PASS':raise RuntimeError('research preparation incomplete; no learner launched')
-        manifest=result['result']['manifest']
-        from fresh_pilot_feasibility import verify_prepared
-        verify_prepared(source_check,ROOT/manifest.rsplit('/',1)[0])
+            feasibility=root/'feasibility'
+            result,status=command('feasibility',[sys.executable,str(Path(__file__).resolve()),'feasibility',
+                '--output',relative(feasibility)],feasibility)
+            if status!='PASS':raise RuntimeError('full source feasibility failed; no hardware launched')
+            design=read(feasibility/'private/design.json')
+            source_check=json.loads(verify_artifact(feasibility,result['feasibility']))
+            if seal(source_check)!=source_check or seal(design)!=design or source_check['protocol']!=design['identity'] or source_check['status']!='FEASIBLE':
+                raise ValueError('feasibility/protocol binding differs')
+            if throughput_report['protocol']!=design['identity']:raise ValueError('throughput protocol differs from frozen design')
+            extra.append((feasibility/'feasibility.json','fresh/feasibility.json'))
+            extra.append((confined(ROOT,args.throughput)/'result.json','fresh/throughput-receipt.json'))
+            imported=confined(ROOT,args.imported)
+            if args.qualified:
+                qualified=confined(ROOT,args.qualified)
+            else:
+                if not args.cpu_image or not args.gpu_image:raise ValueError('prebuilt CPU and GPU image tags required')
+                from oeis_learn.pipeline_validation.generalization_setup import assemble_acceptance
+                import generalization_hip_serial as serial
+                engine=Engine(args.engine);images=[engine.image(args.cpu_image),engine.image(args.gpu_image)]
+                setup=assemble_acceptance(ROOT,imported=args.imported,images=images,output=relative(root/'acceptance-inputs'))
+                acceptance=root/'acceptance'
+                frozen=serial.plan(args.engine,setup['session']['manifest'],relative(acceptance),image=images[0])
+                for item in frozen:
+                    index=item['argv'].index('generalization')
+                    item['argv'][index:index]=['--memory-gib','64','--cpus','4']
+                allowance(time.monotonic()-started,RESERVATIONS['acceptance'])
+                from oeis_learn.generalization.resources import CAPS
+                with scope(acceptance,CAPS,extra_roots=[root/'acceptance-inputs']):code=serial.execute(frozen,acceptance)
+                workflow['acceptance']=dict(exit_code=code,archive=relative(acceptance.with_suffix('.zip')));record()
+                if code:raise RuntimeError('current-source acceptance did not pass; research not started')
+                qualified=acceptance/'report/qualified'
+            authority=read(qualified/'qualification.json')
+            if json.loads(verify_artifact(qualified,authority['source_closure']))!=collect_snapshot(ROOT):
+                raise ValueError('qualification source closure changed')
+            if authority['resources']['memory_bytes']!=64<<30 or authority['resources']['cpus']!=4:
+                raise ValueError('pilot requires matching qualification at64GiB/four CPUs')
+            images=authority['images']
+            if images[0]!=throughput_receipt['binding']['image']:raise ValueError('CPU image changed after throughput check')
+            research=root/'research';research.mkdir()
+            write(research/'source.json',collect_snapshot(ROOT))
+            write(research/'protocol-summary.json',seal(dict(version='fresh-pilot-public-protocol/v1',
+                protocol=design['identity'],seed=20261016,training_shards=12,rows_per_shard=32768,
+                rows_per_family=1024,training_families=32,selection_rows=256,assessment='SEALED',
+                numeric_law=design['numeric_law'],descriptor_screen=design['descriptor_screen'],
+                reference_workers=4,source_feasibility=source_check['identity'],target_tokens_per_arm=25_000_000,learner_seconds=21600,generation_seconds=21600,
+                scoring_seconds=21600,length_boundary=16,bank_seeds=BANK_SEEDS,
+                controls=['raw','rescue','equal_budget','shuffled','absent','template','bank'],
+                interpretation='single-seed exploratory; matched exposure and95% primary completion required; no automatic advancement')))
+            extra.append((research/'protocol-summary.json','fresh/protocol.json'))
+            cfg=blueprint(ROOT,design,recipe=relative(imported/'provenance/recipe.json'),source=relative(research/'source.json'),
+                images=images,feature=relative(qualified/'feature.json'),output=relative(research/'design'))
+            assembly=assemble_study(ROOT,cfg,relative(research/'inputs'))
+            manifest=assembly['manifest']
+            command_args=['--manifest',manifest,'--qualification',relative(qualified)]
+            preflight=research/'preflight'
+            _,status=command('preflight',canonical(args.engine,images[0],'preflight',relative(preflight),['--manifest',manifest]),preflight)
+            if status!='PASS':raise RuntimeError('research preflight failed')
+            prepared=research/'prepare'
+            result,status=command('prepare',canonical(args.engine,images[0],'prepare',relative(prepared),command_args),prepared)
+            if status!='PASS':raise RuntimeError('research preparation incomplete; no learner launched')
+            manifest=result['result']['manifest']
+            from fresh_pilot_feasibility import verify_prepared
+            verify_prepared(source_check,ROOT/manifest.rsplit('/',1)[0])
+            design_root=research/'design'
         smoke=root/'smoke'
         job=seal(dict(version='fresh-pilot-smoke-job/v1',engine=args.engine,qualified=relative(qualified),
-            manifest=manifest,design=reference(research/'design/design.json',ROOT),
-            blueprint=reference(research/'design/blueprint.json',ROOT)))
+            manifest=manifest,design=reference(design_root/'design.json',ROOT),
+            blueprint=reference(design_root/'blueprint.json',ROOT)))
         job_path=root/'private/smoke-job.json';write(job_path,job)
         _,status=command('smoke',[sys.executable,str(Path(__file__).resolve()),'smoke',
             '--job',relative(job_path),'--output',relative(smoke)],smoke)
@@ -315,7 +350,7 @@ def run(args):
         prompt_ref=_merge(base,prompt_refs,visible/'prompts.json');truth_ref=_merge(base,truth_refs,truth/'targets.json')
         targets=read(truth/'targets.json')
         plan=measurement_plan(study,targets);write(research/'measurement-plan.json',plan)
-        protocol_ref=reference(research/'design/design.json',ROOT)
+        protocol_ref=reference(design_root/'design.json',ROOT)
         command_args=['--manifest',manifest,'--qualification',relative(qualified)]
         with scope(research,runtime['storage']),guard(research/'private/disk'):
             for arm in ('static','refreshed'):
@@ -353,7 +388,7 @@ def run(args):
                 public=root/'public'
                 extra.append((root/'workflow.json','fresh/workflow.json'))
                 extra.extend(diagnostics(root,root/'diagnostics'))
-                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py'):
+                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py'):
                     extra.append((HERE/name,'fresh/helper-'+name+'.txt'))
                 evidence=assemble_public(public,study=study,plan=plan,targets=targets,scored=scored,stages=stages,
                     qualified=qualified,selection=dict(policy='frozen latest available, partial exposure descriptive only',
@@ -387,6 +422,7 @@ def main(argv=None):
     probe.add_argument('--cpu-image',required=True);probe.add_argument('--output',required=True)
     runner=commands.add_parser('run');runner.add_argument('--engine',choices=('docker','podman'),required=True)
     runner.add_argument('--imported',default='run-state/generalization/uniform-import')
+    runner.add_argument('--resume-prepared',help='original failed pre-learning run with completed preparation; keep it immutable')
     runner.add_argument('--throughput',help='original compatible PASS CPU/native throughput output')
     runner.add_argument('--cpu-image');runner.add_argument('--gpu-image');runner.add_argument('--qualified')
     runner.add_argument('--output',required=True);runner.add_argument('--dry-run',action='store_true')
@@ -412,8 +448,10 @@ def main(argv=None):
         if args.command=='diagnose':return diagnose(args.run,args.output)
         if args.dry_run:
             print(json.dumps(dict(status='NOT_RUN',reservations=RESERVATIONS,campaign_seconds=CAMPAIGN_SECONDS,
-                report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,assessment='SEALED',historical='DEFERRED',
-                gates='compatible recent CPU/native throughput proof, full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research',
+                report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,required_free_gib=224,
+                resume_prepared=args.resume_prepared,assessment='SEALED',historical='DEFERRED',
+                gates=('verify original feasibility/acceptance/preparation and throughput; reuse inputs; rerun smoke; full research'
+                    if args.resume_prepared else 'compatible recent CPU/native throughput proof, full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research'),
                 training='fresh static/refreshed, seed20261016,25M target-token cap/arm,6 learner hours/arm',
                 evaluation='latest available checkpoint; partial exposures descriptive; matched controls plus one shared bank/checkpoint'),indent=2));return 0
         return run(args)

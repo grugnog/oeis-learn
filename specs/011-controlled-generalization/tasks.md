@@ -22,7 +22,15 @@ reviewed throughput receipt. No local HIP execution.
 
 ### Phase C/D — continuation and operator handoff
 
-- [ ] T150 Integrate an explicit prepared-run continuation into the temporary wrapper, writing a new run root and preserving prior failure evidence. Reuse qualified images and original data without copying large payloads or repeating completed work. Run smoke then canonical paired training/evaluation/export, retain provenance in success/failure archives, document exact disk checks and continuation command, commit and push each group. No local HIP or CI wait.
+- [X] T150 Integrate an explicit prepared-run continuation into the temporary wrapper, writing a new run root and preserving prior failure evidence. Reuse qualified images and original data without copying large payloads or repeating completed work. Run smoke then canonical paired training/evaluation/export, retain provenance in success/failure archives, document exact disk checks and continuation command, commit and push each group. No local HIP or CI wait.
+
+T150 validation: 114 helper regressions passed, followed by 52 focused controller/
+reuse tests after tightening the disk bound to 224 GiB and checking original
+FEASIBLE cell statuses against the uploaded recovery. Tests cover successful
+continuation, every downstream failure, no repeated completed stages, unchanged
+parent files, retained failure exports, and disk exhaustion before work. Host CLI
+and continuation dry-run pass under `python -S`; 27 Bash examples parse. Production
+source and CI implementation bindings remain unchanged. No HIP or CI wait.
 
 ## Larger operational margins — operator request, 2026-11-02 Pacific
 

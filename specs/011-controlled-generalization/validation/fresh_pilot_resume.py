@@ -7,20 +7,21 @@ from oeis_learn.pipeline_validation.identity import confined,seal,file_hash
 from oeis_learn.pipeline_validation.generalization_preparation import reference
 from oeis_learn.generalization.contracts import verify_artifact
 
-REQUIRED_FREE_BYTES=160<<30  #64 GiB research +64 GiB smoke +32 GiB margin
+REQUIRED_FREE_BYTES=224<<30  #64 GiB research +64 GiB smoke +64 GiB remaining free +32 GiB margin
 PREDECESSOR_CONTROLLER='sha256:ff841f86855822f880933796088890667b8a6ac9856c46f4abaef92044f67c10'
 
 
 def disk_preflight(root):
     free=shutil.disk_usage(root).free
     if free<REQUIRED_FREE_BYTES:
-        raise ValueError(f'continuation needs at least 160 GiB free; available {free/(1<<30):.1f} GiB; preserve the original run and free space before retrying')
+        raise ValueError(f'pilot needs at least 224 GiB free; available {free/(1<<30):.1f} GiB; preserve the original run and free space before retrying')
     return dict(free_bytes=free,required_free_bytes=REQUIRED_FREE_BYTES)
 
 
 def document(path,*,sealed=True,cap=16<<20):
     if path.is_symlink() or not path.is_file() or path.stat().st_size>cap:raise ValueError('bounded original document required')
     value=json.loads(path.read_bytes())
+    if not isinstance(value,dict):raise ValueError('original document object required')
     if sealed and seal(value)!=value:raise ValueError('original document identity mismatch')
     return value
 
@@ -98,7 +99,7 @@ def prepared_inputs(workspace,previous,output,engine):
     source_check=json.loads(verify_artifact(old/'feasibility',feasible['feasibility']))
     if (feasible['status']!='PASS' or seal(design)!=design or design['identity'] not in study['hypothesis']
         or design['identity'] not in cfg['hypothesis'] or source_check['protocol']!=design['identity']
-        or len(source_check['cells'])!=16 or any(c['status']!='PASS' for c in source_check['cells'])):
+        or len(source_check['cells'])!=16 or any(c['status']!='FEASIBLE' for c in source_check['cells'])):
         raise ValueError('complete original frozen protocol/feasibility required')
     verify_prepared(source_check,base)
     # These original control results are reported as reused, with original timing.
@@ -118,7 +119,7 @@ def throughput_proof(api,context,engine):
     paths=list(parent.glob('*/result.json'))
     if len(paths)>1024:raise ValueError('throughput search bound; keep originals in the run parent')
     for path in paths:
-        try:value=document(path)
+        try:value=document(confined(parent,str(path.relative_to(parent))))
         except (ValueError,OSError):continue
         if value.get('identity')==context['workflow']['throughput'] and (path.parent/'probe/measurement/metrics.json').is_file():matches.append(path.parent)
     if len(matches)!=1:raise ValueError('one original throughput run matching the previous workflow required')
@@ -131,3 +132,19 @@ def throughput_proof(api,context,engine):
     if report['protocol']!=context['design']['identity']:raise ValueError('throughput protocol changed')
     if any(host.engine.image(image)!=image for image in context['images']):raise ValueError('qualified images unavailable or changed')
     return matches[0],receipt,report
+
+
+def continuation_record(workspace,context,throughput):
+    """Public control references only; no data, tensors or protected targets."""
+    root=Path(workspace);old=context['old'];here=Path(__file__).resolve().parent
+    if document(old/'workflow.json')!=context['workflow']:raise ValueError('parent workflow changed during validation')
+    return seal(dict(version='fresh-pilot-continuation/v1',boundary='before-smoke-before-full-learning',
+        parent_workflow=reference(old/'workflow.json',root),
+        original_preparation=reference(old/'research/prepare/result.json',root),
+        prepared_manifest=reference(confined(root,context['manifest']),root),
+        protocol=context['design']['identity'],throughput=throughput['identity'],
+        qualified=reference(context['qualified']/'qualification.json',root),
+        reused_stages=['feasibility','preflight','prepare'],acceptance='original producer; canonical consumers recheck compatibility',
+        disk=context['space'],images=context['images'],assessment='SEALED',
+        helpers={name:file_hash(here/name) for name in ('fresh_pilot.py','fresh_pilot_resume.py','fresh_pilot_smoke.py')},
+        predecessor_controller=PREDECESSOR_CONTROLLER,scientific_status='UNMEASURED'))
