@@ -100,20 +100,27 @@ def exclusion_record(row,role,holdout):
 
 def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=None,
          draw_cap=1_000_000,seconds=21600,length_boundary=32,unique_sources=False,
-         seen_sources=None,workers=1,progress=None):
+         seen_sources=None,workers=1,progress=None,observer=None):
     if role not in {'training','selection','assessment'} or holdout not in {'parameter','structural'}:raise ValueError('invalid cohort role/holdout')
     if type(length_boundary) is not int or not 1<=length_boundary<=4096:raise ValueError('bounded frozen length bin required')
     if not 0<seconds<=21600 or not 1<=draw_cap<=1_000_000:raise ValueError('preparation limits')
     exclusions=exclusions if exclusions is not None else ExclusionIndex()
     seen_sources=set(seen_sources or ())|{r[4] for r in exclusions.records if r[1]==role}
-    deadline=time.monotonic()+seconds;admitted=[];rejections=[];seen=0;expired=False;native_failed=False
+    began=time.monotonic();deadline=began+seconds;admitted=[];rejections=[];seen=0;expired=False;native_failed=False
+    timings=dict(reference_seconds=0.0,native_seconds=0.0,selection_seconds=0.0);native_rows=0
+    def observe(phase):
+        if observer:observer(dict(phase=phase,draws=seen,admitted=len(admitted),native_rows=native_rows,
+            elapsed_seconds=time.monotonic()-began,**timings))
+    observe('reference')
     iterator=iter(candidates)
     with OrderedWorkers(workers) as pool:
         while seen<draw_cap:
             batch=list(islice(iterator,min(64,draw_cap-seen)))
             if not batch:break
+            started=time.monotonic()
             try:results=pool.map(batch,deadline=deadline)
             except TimeoutError:expired=True;break
+            finally:timings['reference_seconds']+=time.monotonic()-started
             pending=[]
             for row,(result,error) in zip(batch,results):
                 if time.monotonic()>=deadline:expired=True;break
@@ -136,9 +143,15 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
             for start in range(0,len(pending),8):
                 chunk=pending[start:start+8]
                 if time.monotonic()>=deadline:expired=True;break
-                if execute is None:native=[None]*len(chunk)
-                elif hasattr(execute,'batch'):native=execute.batch([row for _,row in chunk])
-                else:native=[execute(row['source'],tuple(row['indices'])) for _,row in chunk]
+                observe('native' if execute is not None else 'reference')
+                started=time.monotonic()
+                try:
+                    if execute is None:native=[None]*len(chunk)
+                    elif hasattr(execute,'batch'):native=execute.batch([row for _,row in chunk])
+                    else:native=[execute(row['source'],tuple(row['indices'])) for _,row in chunk]
+                finally:
+                    if execute is not None:timings['native_seconds']+=time.monotonic()-started
+                if execute is not None:native_rows+=len(native)
                 if len(native)!=len(chunk):raise ValueError('incomplete native batch response')
                 for (draw,row),actual in zip(chunk,native):
                     if execute is not None and (actual.get('outcome')!='ok' or tuple(actual.get('values',()))!=tuple(row['values'])):
@@ -147,13 +160,17 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
                     else:admitted.append(row)
                 if time.monotonic()>=deadline:expired=True;break
             if progress and seen%1024==0:progress(seen,len(admitted))
+            observe('reference')
             if expired or native_failed:break
     # No cohort can publish after exhaustion. Do not spend the reporting reserve
     # sorting/encoding a large partial cohort that cannot be used.
+    observe('selection');started=time.monotonic()
     choice=CohortChoice(b'[]',('preparation_deadline',)) if expired else choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
+    timings['selection_seconds']+=time.monotonic()-started
     if native_failed:choice=CohortChoice(choice.payload,choice.shortfalls+('native_validation_failed',))
     ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=sorted(rejections,key=lambda row:row['draw']),
         admitted=len(admitted),shortfalls=list(choice.shortfalls),
         status=('PASS' if execute is not None else 'FEASIBLE') if choice.complete else 'BLOCKED',
         native_validation='PERFORMED' if execute is not None else 'NOT_RUN'))
+    observe('complete' if choice.complete else 'blocked')
     return choice,ledger

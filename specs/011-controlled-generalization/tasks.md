@@ -20,7 +20,13 @@ to the existing pinned-container test gate; they cannot run in this session
 
 ### Phase C/D — preparation progress and evidence
 
-- [ ] T144 Persist atomic bounded per-cell progress with reference/native/selection timings and counts, including interrupted cells; project only validated control metadata into recovery. Record the verified six-hour timeout and completed-cell scope, test failure paths, refresh CI bindings and publish changes without HIP execution or waiting for CI. Keep the scientific design and existing ceilings unchanged; throughput remains unmeasured until the repaired native path runs.
+- [X] T144 Persist atomic bounded per-cell progress with reference/native/selection timings and counts, including interrupted cells; project only validated control metadata into recovery. Record the verified six-hour timeout and completed-cell scope, test failure paths, refresh CI bindings and publish changes without HIP execution or waiting for CI. Keep the scientific design and existing ceilings unchanged; throughput remains unmeasured until the repaired native path runs.
+
+T144 affected local verification:109 Python tests passed, covering deterministic
+membership, native disagreement, deadline exhaustion, interrupted progress,
+redacted recovery and the consolidated runner/smoke contracts. The implementation
+binding was refreshed. Native Rust tests and target throughput remain pending;
+no HIP command or CI wait was performed.
 
 ## Feasible fresh pilot revision — 2026-11-02 Pacific
 

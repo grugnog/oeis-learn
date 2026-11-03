@@ -35,10 +35,22 @@ def prepare_cell(candidates,*,role,holdout,count,quotas,structural,output,execut
     output=Path(output)
     if output.exists():raise ValueError('fresh preparation output required')
     output.mkdir(parents=True,exist_ok=False)
+    last_progress=[None];reported_phases=set()
+    def progress(value):
+        # One atomic snapshot on first phase entry, then every30 seconds while scanning.
+        # It is deliberately outside the immutable cohort/ledger identity.
+        now=value['elapsed_seconds']
+        if value['phase'] in reported_phases and last_progress[0] is not None and now-last_progress[0]<30 and value['phase'] not in {'selection','complete','blocked'}:return
+        record=seal(dict(version='generalization-cell-progress/v1',role=role,**value))
+        pending=output/'progress.json.next'
+        write(pending,record,exclusive=False);pending.replace(output/'progress.json')
+        last_progress[0]=now;reported_phases.add(value['phase'])
+        import sys,json
+        print('preparation-progress: '+json.dumps(dict(cell=output.name,**value),sort_keys=True),file=sys.stderr,flush=True)
     choice,ledger=scan(candidates,role=role,holdout=holdout,count=count,quotas=quotas,
         structural=structural,execute=execute,exclusions=exclusions,draw_cap=draw_cap,
         seconds=seconds,length_boundary=length_boundary,unique_sources=unique_sources,
-        seen_sources=seen_sources,workers=workers)
+        seen_sources=seen_sources,workers=workers,observer=progress)
     write(output/'ledger.json',ledger)
     if not choice.complete:return ledger
     visible=[];protected=[]

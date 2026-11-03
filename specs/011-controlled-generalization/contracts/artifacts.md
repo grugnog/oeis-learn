@@ -350,3 +350,16 @@ startup environment. Historical model commands and generic gpu suite defaults
 retain their former settings. The repair changes installed source, so earlier
 qualification must not be reused for the repaired package. Full required validation
 remains pending until the fresh canonical serial acceptance completes.
+
+
+## Diagnostic preparation progress: `generalization-cell-progress/v1`
+
+One atomic, bounded `cells/<cell>/progress.json` snapshot records role, phase,
+draws, admitted rows, completed native rows, total elapsed seconds and separate
+reference/native/selection seconds. It contains no sources, exact terms, family
+labels or targets. The snapshot is sealed but remains diagnostic only: it is not
+part of cohort identity, cannot authorize publication, and cannot resume work.
+The recovery projection validates its closed shape and finite bounded numbers;
+a cell with progress but no terminal ledger is explicitly INCOMPLETE. A snapshot
+may lag the interrupted operation by the current bounded batch. Completed ledgers
+retain their original authority and existing version.

@@ -103,3 +103,47 @@ Native/reference mismatch, different selected rows, missing proof, unacknowledge
 worker exit or missing canonical verification cannot promote the run to success. A native
 disagreement ends preparation after the current bounded reference batch, even if
 other candidates could fill the quota; later shards are not executed.
+
+
+## 2026-11-03 preparation timeout and repair
+
+The original recovery archive for `fresh-p1-v2-20261102T162615Z` passes the
+canonical archive inventory/hash verifier. Its controller records a successful
+source-feasibility stage (1,027.91 seconds), acceptance exit0 and preflight PASS.
+The inner preparation process records TimeoutError, returncode -9 and elapsed
+21,570.25 seconds; reclamation was acknowledged in0.19 seconds. The outer command's
+remaining two hours were host-stage headroom, not additional inner-role work time.
+
+Four protected cells and the first training cell have original PASS ledgers.
+No native/reference disagreement appears in those completed ledgers. The archive
+has no ledger for the interrupted cell, so its exact progress/cause within native
+preparation cannot be reconstructed. No research learner started; science remains
+UNMEASURED. This is a timeout, not the earlier coefficient/quota failure.
+
+Code audit found per-candidate compilation of the unchanged BigInt guest plus
+repeated reading/hashing of the installed worker executable, despite a persistent
+worker and batched transport. T143 retains one installed artifact snapshot and one
+compiled shared runtime per native worker generation. Every candidate still has a
+fresh candidate module, stores/instances, clocks, fuel and memory limits; all source
+and native checks remain mandatory. No result cache, new distribution or budget
+increase is introduced. The same audit found the inner study reset its six-hour
+clock rather than consuming the role allowance; setup/draw costs now consume that
+allowance and publication/exit retain bounded reserves.
+
+T144 writes atomic per-cell diagnostic snapshots on first phase entry and every30
+seconds during ongoing scanning, plus selection/terminal snapshots. These expose
+counts and elapsed reference/native/selection durations without source/target terms.
+A last snapshot may precede interruption by the current bounded batch; it is not a
+resume checkpoint or qualification. Recovery includes it even without a cell ledger.
+
+Both images must be rebuilt before the next consolidated command; changed native
+and Python sources invalidate old qualification reuse. The data design and72-hour
+campaign ceiling remain unchanged. A speedup and completion within six hours are
+unmeasured; phase timings from the next run will establish actual native throughput.
+Rust reuse/differential tests are part of the existing pinned-container gate and
+were not run locally because Cargo and Docker/Podman are unavailable. No HIP or CI
+wait was performed in this repair session.
+
+Affected local verification:109 Python tests passed in52.64 seconds. The updated
+implementation disposition binding validates all68 existing records. These are
+software checks, not a native/HIP performance measurement.

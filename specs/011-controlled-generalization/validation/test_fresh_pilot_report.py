@@ -201,3 +201,23 @@ def test_reference_shortfall_and_timeout_progress_are_exported_without_sources(t
     assert summary['cells'][0]['rejection_counts']=={'cross-role exclusion':39,'OTHER':1}
     assert 'PRIVATE' not in json.dumps(summary)
     assert any(p.name=='feasibility-summary.json' for p,_ in files)
+
+
+def test_interrupted_cell_progress_is_diagnostic_only_and_redacted(tmp_path):
+    import json
+    from oeis_learn.pipeline_validation.identity import seal,write
+    cell=tmp_path/'research/prepare/preparation/role/private/prepared/cells/refresh-01'
+    record=dict(version='generalization-cell-progress/v1',role='training',phase='native',
+        draws=1024,admitted=1000,native_rows=1000,elapsed_seconds=40,
+        reference_seconds=2,native_seconds=35,selection_seconds=0)
+    write(cell/'progress.json',seal(record))
+    result=m.preparation_diagnostics(tmp_path)
+    assert result['qualification_evidence'] is False
+    assert result['cells'][0]['status']=='INCOMPLETE'
+    assert result['cells'][0]['progress']['native_rows']==1000
+    m.diagnostics(tmp_path,tmp_path/'export')
+    exported=json.loads((tmp_path/'export/preparation-summary.json').read_text())
+    assert exported==result
+    for extra in ({'source':'private program'},{'native_rows':1025},{'phase':'private program'},{'native_seconds':-1}):
+        write(cell/'progress.json',seal(dict(record,**extra)),exclusive=False)
+        with pytest.raises(ValueError):m.preparation_diagnostics(tmp_path)

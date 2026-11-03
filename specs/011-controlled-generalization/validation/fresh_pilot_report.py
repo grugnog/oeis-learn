@@ -23,6 +23,21 @@ def preparation_diagnostics(root):
         value=json.loads(path.read_bytes())
         if seal(value)!=value:raise ValueError('cell control identity mismatch')
         return value
+    def progress_record(path):
+        import math
+        value=bounded(path)
+        counts=('draws','admitted','native_rows')
+        timings=('elapsed_seconds','reference_seconds','native_seconds','selection_seconds')
+        if set(value)!={'version','identity','role','phase',*counts,*timings} or value['version']!='generalization-cell-progress/v1':
+            raise ValueError('original bounded progress required')
+        if value['role'] not in {'training','selection','assessment'} or value['phase'] not in {'reference','native','selection','complete','blocked'}:
+            raise ValueError('progress role/phase')
+        for key in counts:
+            if type(value[key]) is not int or not 0<=value[key]<=1_000_000:raise ValueError('progress count')
+        if value['admitted']>value['draws'] or value['native_rows']>value['draws']:raise ValueError('progress coverage')
+        for key in timings:
+            if type(value[key]) not in (int,float) or not math.isfinite(value[key]) or not 0<=value[key]<=86400:raise ValueError('progress time')
+        return dict(**{k:value[k] for k in ('role','phase',*counts,*timings)},original=reference(path,root))
     terminal=base/'preparation-result.json'
     if terminal.exists():
         value=bounded(terminal)
@@ -37,7 +52,10 @@ def preparation_diagnostics(root):
         for folder in paths:
             if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',folder.name):raise ValueError('cell name')
             ledger=folder/'ledger.json'
-            if not ledger.exists():continue
+            progress=progress_record(folder/'progress.json') if (folder/'progress.json').exists() else None
+            if not ledger.exists():
+                if progress is not None:result['cells'].append(dict(cell=folder.name,status='INCOMPLETE',progress=progress))
+                continue
             value=bounded(ledger)
             if value.get('version')!='generalization-cell-preparation/v1':raise ValueError('original cell ledger required')
             if value.get('status') not in {'PASS','BLOCKED'} or value.get('role') not in {'training','selection','assessment'}:
@@ -57,6 +75,7 @@ def preparation_diagnostics(root):
             result['cells'].append(dict(cell=folder.name,status=value['status'],role=value['role'],draws=value['draws'],
                 rejected=sum(counts.values()),rejection_counts=dict(counts),shortfalls=shortfalls,
                 original=reference(ledger,root)))
+            if progress is not None:result['cells'][-1]['progress']=progress
     return seal(result)
 
 

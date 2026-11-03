@@ -152,3 +152,37 @@ def test_expired_scan_preserves_ledger_without_sorting_partial_payload(monkeypat
         quotas={},structural=False,execute=None,seconds=1)
     assert not choice.complete and ledger['status']=='BLOCKED'
     assert ledger['shortfalls']==['preparation_deadline'] and choice.rows==()
+
+
+def test_partial_native_progress_survives_interruption_without_admission(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_cell
+    from oeis_learn.pipeline_validation.identity import seal
+    calls=[]
+    def interrupted(source,indices):
+        calls.append(source);raise RuntimeError('native interrupted')
+    with pytest.raises(RuntimeError,match='native interrupted'):
+        prepare_cell(collision_rows(),role='training',holdout='parameter',count=1,quotas={},
+            structural=False,execute=interrupted,output=tmp_path/'cell',seconds=20)
+    progress=json.loads((tmp_path/'cell/progress.json').read_text())
+    assert seal(progress)==progress and progress['role']=='training'
+    assert progress['phase']=='native' and progress['native_rows']==0
+    assert not (tmp_path/'cell/ledger.json').exists()
+    assert not (tmp_path/'cell/private/selected.json').exists()
+    assert not (tmp_path/'cell/progress.json.next').exists()
+
+
+def test_native_timing_and_counts_do_not_change_cohort_identity(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_cell
+    from oeis_learn.synthesis.reference import evaluate
+    def native(source,indices):
+        r=evaluate(source,indices);return dict(outcome=r.outcome,values=r.values)
+    ledgers=[]
+    for n in ('a','b'):
+        ledgers.append(prepare_cell(collision_rows(),role='training',holdout='parameter',count=2,
+            quotas={},structural=False,execute=native,output=tmp_path/n,seconds=20))
+        progress=json.loads((tmp_path/n/'progress.json').read_text())
+        assert progress['phase']=='complete' and progress['native_rows']==3
+        assert progress['admitted']==3 and progress['native_seconds']>0
+        assert progress['reference_seconds']>0 and progress['selection_seconds']>0
+    assert ledgers[0]==ledgers[1]
+    assert (tmp_path/'a/private/selected.json').read_bytes()==(tmp_path/'b/private/selected.json').read_bytes()
