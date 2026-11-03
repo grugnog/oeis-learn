@@ -147,3 +147,34 @@ wait was performed in this repair session.
 Affected local verification:109 Python tests passed in52.64 seconds. The updated
 implementation disposition binding validates all68 existing records. These are
 software checks, not a native/HIP performance measurement.
+
+
+## CPU/native throughput precheck (T145–T146)
+
+Before another full run, execute `fresh_pilot.py throughput` as documented in
+`../quickstart.md`. This is CPU-only and produces `report.zip` on PASS, BLOCKED or
+failure. The30-minute diagnostic includes complete protected cohorts, one full
+training shard, middle/end stream samples and cold-worker restart consistency.
+It uses canonical native batching, preparation, exclusions and payload publication
+at64GiB/four CPUs, with three ordered reference workers. The timing gate uses the
+slowest training-cell time/draw across all12 shards with a2× margin, doubles the
+protected cost and adds3600 seconds for unmeasured full-study overhead. The bound
+is21480 seconds, preserving30-second cleanup,30-second process exit and60-second
+study reporting reserves inside the six-hour role envelope. No limits are raised.
+
+The full runner now requires `--throughput PATH` pointing to an original PASS
+output, no older than72 hours and compatible with its image/source/helpers/engine
+facts/operator host/resources. All original metric/process/cleanup hashes are
+verified; late image changes are rejected. A failed or partial probe never permits
+a full run. The ZIP is a diagnostic export, not reusable qualification or a study.
+It contains aggregate metrics and bounded logs; generated terms stay private.
+
+Local verification:108 affected Python tests passed, followed by23 focused tests
+including the exact headroom boundary. Coverage includes the canonical
+preparation path with an independent reference stand-in, actual CPU-only engine
+command construction, timeout/corruption/cleanup recovery and stale/tampered proof
+rejection. CLI help/dry-run remain stdlib-only. Native timing and actual target
+performance remain NOT_RUN here; the container engine is unavailable. No CI wait
+or HIP execution was performed. This gate supports preparation-runtime readiness,
+not a statistical confidence percentage or guarantee of learner/evaluation success;
+current-source acceptance and the existing same-model paired smoke remain mandatory.

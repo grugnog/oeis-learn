@@ -7,7 +7,7 @@ import time
 POLICY='fresh-pilot-throughput/v1'
 SECONDS=1800
 WORK_SECONDS=1710  #60 seconds for terminal reporting,30 for external cleanup
-PREPARATION_WORK_SECONDS=21510
+PREPARATION_WORK_SECONDS=21480  #30 cleanup +30 process exit +60 study reporting
 RESOURCES=dict(memory_bytes=64<<30,cpus=4,reference_workers=3,native_batch=8)
 SAMPLE_DRAWS=2048
 

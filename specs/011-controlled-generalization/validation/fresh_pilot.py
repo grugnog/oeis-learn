@@ -204,11 +204,14 @@ def run(args):
     from oeis_learn.pipeline_validation.generalization_workflow import _merge
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.container_runtime import Engine
+    from fresh_pilot_throughput_host import require_for_run
+    throughput_receipt,throughput_report=require_for_run(args)
     root=confined(ROOT,args.output,exists=False)
     if root.exists() or root.with_suffix('.zip').exists():raise ValueError('fresh pilot output required')
     root.mkdir(parents=True);started=time.monotonic();stages=[]
     workflow=dict(version='fresh-pilot-workflow/v1',status='PARTIAL',stages=stages,
-        research_authorized=True,campaign_seconds=CAMPAIGN_SECONDS,assessment='SEALED')
+        research_authorized=True,campaign_seconds=CAMPAIGN_SECONDS,assessment='SEALED',
+        throughput=throughput_receipt['identity'])
     study=None;plan=None;targets=None;qualified=None;scored={};selected={};extra=[];archive=None
     def relative(p):return str(Path(p).relative_to(ROOT))
     def record():replace(root/'workflow.json',seal(workflow))
@@ -234,7 +237,9 @@ def run(args):
         source_check=json.loads(verify_artifact(feasibility,result['feasibility']))
         if seal(source_check)!=source_check or seal(design)!=design or source_check['protocol']!=design['identity'] or source_check['status']!='FEASIBLE':
             raise ValueError('feasibility/protocol binding differs')
+        if throughput_report['protocol']!=design['identity']:raise ValueError('throughput protocol differs from frozen design')
         extra.append((feasibility/'feasibility.json','fresh/feasibility.json'))
+        extra.append((confined(ROOT,args.throughput)/'result.json','fresh/throughput-receipt.json'))
         imported=confined(ROOT,args.imported)
         if args.qualified:
             qualified=confined(ROOT,args.qualified)
@@ -260,7 +265,9 @@ def run(args):
             raise ValueError('qualification source closure changed')
         if authority['resources']['memory_bytes']!=64<<30 or authority['resources']['cpus']!=4:
             raise ValueError('pilot requires matching qualification at64GiB/four CPUs')
-        images=authority['images'];research=root/'research';research.mkdir()
+        images=authority['images']
+        if images[0]!=throughput_receipt['binding']['image']:raise ValueError('CPU image changed after throughput check')
+        research=root/'research';research.mkdir()
         write(research/'source.json',collect_snapshot(ROOT))
         write(research/'protocol-summary.json',seal(dict(version='fresh-pilot-public-protocol/v1',
             protocol=design['identity'],seed=20261016,training_shards=12,rows_per_shard=32768,
@@ -376,12 +383,18 @@ def main(argv=None):
     smoke=commands.add_parser('smoke');smoke.add_argument('--job',required=True);smoke.add_argument('--output',required=True)
     feasible=commands.add_parser('feasibility');feasible.add_argument('--output',required=True)
     diagnostic=commands.add_parser('diagnose');diagnostic.add_argument('--run',required=True);diagnostic.add_argument('--output',required=True)
+    probe=commands.add_parser('throughput');probe.add_argument('--engine',choices=('docker','podman'),required=True)
+    probe.add_argument('--cpu-image',required=True);probe.add_argument('--output',required=True)
     runner=commands.add_parser('run');runner.add_argument('--engine',choices=('docker','podman'),required=True)
     runner.add_argument('--imported',default='run-state/generalization/uniform-import')
+    runner.add_argument('--throughput',help='original compatible PASS CPU/native throughput output')
     runner.add_argument('--cpu-image');runner.add_argument('--gpu-image');runner.add_argument('--qualified')
     runner.add_argument('--output',required=True);runner.add_argument('--dry-run',action='store_true')
     args=parser.parse_args(argv)
     try:
+        if args.command=='throughput':
+            from fresh_pilot_throughput_host import run as throughput_run
+            return throughput_run(args.engine,args.cpu_image,args.output)
         if args.command=='feasibility':
             from fresh_pilot_feasibility import check
             target=confined(ROOT,args.output,exists=False)
@@ -400,7 +413,7 @@ def main(argv=None):
         if args.dry_run:
             print(json.dumps(dict(status='NOT_RUN',reservations=RESERVATIONS,campaign_seconds=CAMPAIGN_SECONDS,
                 report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,assessment='SEALED',historical='DEFERRED',
-                gates='full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research',
+                gates='compatible recent CPU/native throughput proof, full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research',
                 training='fresh static/refreshed, seed20261016,25M target-token cap/arm,6 learner hours/arm',
                 evaluation='latest available checkpoint; partial exposures descriptive; matched controls plus one shared bank/checkpoint'),indent=2));return 0
         return run(args)

@@ -290,7 +290,7 @@ Bound the diagnostic container to30 minutes, including cleanup; reserve60 second
 inside work for reporting. Estimate12 full65536-draw shards using the slowest
 measured training-cell seconds/draw, double this and protected-cell elapsed time,
 and add3600 seconds for unmeasured full-study publication/validation. Require this
-to fit below the six-hour preparation envelope less its90-second reserves. This
+to fit below the six-hour preparation envelope less its120-second reserves. This
 is a conservative engineering gate, not a statistical confidence level: rare costs,
 load/thermal changes and later model/generation/scoring behavior remain unmeasured.
 No automatic budget escalation or scientific design change follows a failed probe.

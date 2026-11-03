@@ -139,6 +139,9 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
         write(output/'result.json',seal(result));return m.EXIT_CODES[result['status']]
     monkeypatch.setattr(m,'invoke',invoke)
     args=SimpleNamespace(output='pilot',engine='podman',imported='imported',qualified='qualified')
+    import fresh_pilot_throughput_host
+    args.throughput='throughput';write(tmp_path/'throughput/result.json',seal(dict(status='PASS')))
+    monkeypatch.setattr(fresh_pilot_throughput_host,'require_for_run',lambda a:(dict(identity=digest('throughput'),binding=dict(image='sha256:'+'1'*64)),dict(protocol=design['identity'])))
     code=m.run(args)
     workflow=json.loads((tmp_path/'pilot/workflow.json').read_text());archive=tmp_path/workflow['archive']
     assert archive.is_file();verify(archive)

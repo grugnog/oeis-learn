@@ -5,7 +5,40 @@ pinned CPU/native and actual HIP qualification, all five feature cases and canon
 archive verification. See [the evidence review](validation/acceptance-016-review.md).
 The scientific status remains UNMEASURED.
 
-## Current next step: fresh paired P1 pilot
+## Current next step: CPU/native throughput readiness
+
+Run this CPU-only diagnostic before another full campaign. It needs no imported
+weights, GPU image or HIP device. It prepares four full protected cohorts, the full
+first training shard, and middle/end samples across all32 families, then checks two
+fresh native workers. The container invocation is bounded to30 minutes; image build
+and small host setup/export costs are separate. Failure/timeout also produces a
+verified aggregate report ZIP. No training or full campaign starts automatically.
+
+```bash
+(
+  set -e
+  git switch 011-controlled-generalization
+  git pull --ff-only origin 011-controlled-generalization
+  PILOT_ENGINE="${PILOT_ENGINE:-podman}"
+  PROBE_RUN="run-state/generalization/native-throughput-$(date -u +%Y%m%dT%H%M%SZ)"
+  "$PILOT_ENGINE" build --target qualification -t oeis-learn:generalization-cpu .
+  python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py throughput \
+    --engine "$PILOT_ENGINE" \
+    --cpu-image oeis-learn:generalization-cpu \
+    --output "$PROBE_RUN"
+)
+```
+
+Share the printed `<PROBE_RUN>/report.zip`. PASS requires complete exact native
+agreement and family quotas, restart consistency, acknowledged cleanup, and an
+estimate inside the preparation work budget: twice the slowest measured training
+cost per draw extrapolated to12 full shards, twice protected preparation cost,
+and an additional hour for unmeasured full-study publication/validation. This is
+an engineering margin, not a statistical confidence interval or guarantee for
+learning/evaluation. BLOCKED means insufficient timing headroom; FAIL includes
+incomplete/timeout/containment/identity evidence. Neither permits a full run.
+
+## Subsequent step: fresh paired P1 pilot
 
 The operator approved a fresh start on 2026-11-01 Pacific. Defer E0 and P0; preserve
 the historical artifacts without using them as fresh validation or paired seeds.
@@ -20,7 +53,10 @@ assessment out of adaptive decisions. Acceptance-016 remains original evidence f
 ef886a7; the production changes below require fresh acceptance. No fresh HIP or
 scientific result is claimed until this command runs on the operator's machine.
 
-From the repository root, update the **existing PR branch** and run the following.
+After reviewing a PASS throughput report, set `PILOT_THROUGHPUT` to that exact
+output directory (the directory, not its ZIP). The original receipt is valid for
+72 hours only on matching source, helpers, immutable CPU image, engine/host facts
+and resources. It does not replace qualification. Then run the following.
 It assumes the already imported files remain at
 `run-state/generalization/uniform-import`. Set `PILOT_ENGINE=docker` before the block
 if using Docker; otherwise it uses Podman. Both images must be rebuilt from this
@@ -33,10 +69,12 @@ checkout, with the existing pinned versions and numerical execution policy.
   git pull --ff-only origin 011-controlled-generalization
 
   PILOT_ENGINE="${PILOT_ENGINE:-podman}"
+  : "${PILOT_THROUGHPUT:?Set this to the PASS native-throughput output directory}"
   PILOT_RUN="run-state/generalization/fresh-p1-v2-$(date -u +%Y%m%dT%H%M%SZ)"
   "$PILOT_ENGINE" build --target qualification -t oeis-learn:generalization-cpu .
   "$PILOT_ENGINE" build --target gpu -t oeis-learn:generalization-gpu .
   python3 -u specs/011-controlled-generalization/validation/fresh_pilot.py run \
+    --throughput "$PILOT_THROUGHPUT" \
     --engine "$PILOT_ENGINE" \
     --cpu-image oeis-learn:generalization-cpu \
     --gpu-image oeis-learn:generalization-gpu \

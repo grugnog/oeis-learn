@@ -19,7 +19,14 @@ on the operator machine; this check introduces no unmeasured success claim.
 
 ### Phase C/D — portable CPU command, evidence binding and full-run gate
 
-- [ ] T146 Add a stdlib-only throughput command, immutable image/source/helper/resource binding, bounded atomic partial metrics, verified aggregate-only ZIP export, and a compatible fresh proof requirement before the full pilot starts. Add orchestration/containment/reuse counterexamples, document the exact CPU-only command and remaining learning/evaluation uncertainty, commit and push each group. No local HIP command or CI wait; actual native timings require the operator's container run.
+- [X] T146 Add a stdlib-only throughput command, immutable image/source/helper/resource binding, bounded atomic partial metrics, verified aggregate-only ZIP export, and a compatible fresh proof requirement before the full pilot starts. Add orchestration/containment/reuse counterexamples, document the exact CPU-only command and remaining learning/evaluation uncertainty, commit and push each group. No local HIP command or CI wait; actual native timings require the operator's container run.
+
+T146 local validation:108 affected tests passed, followed by23 focused tests including
+the exact nested deadline boundary. CLI help/dry-run work under `python -S` and
+the documented Bash blocks parse. Actual CPU/native timing is NOT_RUN locally
+because no Docker/Podman engine is available. The operator runs the CPU-only
+command next; no HIP or CI wait was performed. The proof gate requires matching
+original artifacts and containment, and the scientific campaign remains gated.
 
 ## Preparation timeout repair — 2026-11-03
 
