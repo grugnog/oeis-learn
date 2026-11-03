@@ -365,3 +365,20 @@ still need three updates; refresh must consume the second shard. Preserve the
 source, schema, image or qualification changes are needed. Retry from the original
 20261103T035534Z parent in another fresh output root; failed smoke weights are not
 research initializers. Retain the independent native check and fail closed on drift.
+
+
+## Active execution closure (T153–T154)
+
+The 20261103T144804Z continuation passed the full paired HIP smoke in475.6s,
+then canonical runtime validation hit the8GiB shard ceiling before launching a
+research learner. Original cell JSON totals7,620,788,693bytes; validation's copied
+closure is additional live storage. Preserve original audit evidence unchanged.
+The temporary wrapper projects exactly execution_refs plus byte-identical study
+and runtime authorities into a fresh active execution root. Check twice the
+execution cell bytes plus16MiB margin against8GiB; also reserve32GiB checkpoints,
+4GiB raw output and input copies inside64GiB. Canonical channel copies are serial
+and removed on exit. Place all new learners/evaluation in the active root, apart
+from the retained preparation audit tree, for both fresh and continued campaigns.
+The224GiB free-space gate covers retained and active roots; no resource ceiling,
+source/image/qualification identity, cohort or scientific budget changes. Preserve
+original and projected manifest references in a public receipt and recovery.

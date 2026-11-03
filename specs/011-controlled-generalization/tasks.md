@@ -8,6 +8,21 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Research execution storage repair — 2026-11-03 Pacific
+
+### Reopened Phase B — exact execution closure and peak storage
+
+- [X] T153 Reproduce the uploaded shard reservation failure. Preserve immutable preparation evidence and construct a byte-identical canonical execution closure in a separate active root. Bound source plus the largest serial channel copy, checkpoint/raw reservations and margin before any new HIP work. Test actual watchdog accounting, tampering, original immutability and canonical runtime validation.
+
+T153 validation: 28 storage/smoke tests passed, including canonical assembly,
+preparation and runtime validation of the projected closure, actual disk watchdog
+accounting and original/tampered-byte counterexamples. Production source and CI
+bindings remain unchanged. No local HIP execution.
+
+### Phase C/D — isolated active root and operator retry
+
+- [ ] T154 Integrate the verified execution view for fresh and continued pilots, preserve preparation provenance in public/recovery receipts, and keep all active learners/evaluation under one bounded execution root. Record actual paired smoke success and failed research launch, test both controller paths, commit/push each group and provide the original-parent retry without rebuilding or repeating preparation.
+
 ## Exact smoke exposure repair — 2026-11-03 Pacific
 
 ### Reopened Phase B — derive exposure from the exact small selection

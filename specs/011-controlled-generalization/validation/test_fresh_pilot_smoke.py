@@ -166,6 +166,13 @@ def test_smoke_prepares_and_passes_real_refresh_runtime_validation(tmp_path,monk
     assert prepare_study(base,prep,study,output=output,execute=native,seconds=120)['status']=='PASS'
     resolved,sidecar=publish_runtime(base,output,study,runtime)
     validate_execution(output,resolved,sidecar)
+    from fresh_pilot_storage import project
+    projected,receipt=project(tmp_path,str((output/'study.json').relative_to(tmp_path)),'execution/private/prepared')
+    projected_base,projected_study,projected_runtime=load(tmp_path,projected)
+    assert (projected_study,projected_runtime)==(resolved,sidecar)
+    validate_execution(projected_base,projected_study,projected_runtime)
+    assert receipt['storage']['peak_shard_bytes']<sidecar['storage']['shard_bytes']
+    assert not (projected_base/'cells/static/private/selected.json').exists()
     for name in ('static','refresh-01'):
         assert json.loads((output/'cells'/name/'private/selected.json').read_text())==json.loads((tmp_path/'smoke-design'/(name+'.json')).read_text())
     assert resolved['budgets']['target_tokens']==protocol['target_tokens']
