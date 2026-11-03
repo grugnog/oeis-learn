@@ -36,7 +36,9 @@ def test_reduced_data_has_same32_families_and_budget_reaches_fresh_rows(tmp_path
         if cell['role']=='training':
             rows,_=stream.take(64*ordinal,64)
             rows=[dict(r,tags=['family:'+r['family']]) for r in rows]
-        else:rows=design['cohorts'][ordinal]['rows'][:2]
+        else:
+            from oeis_learn.generalization.preparation import reference_candidate
+            rows=[reference_candidate(r)[0][0] for r in design['cohorts'][ordinal]['rows'][:2]]
         write(prepared/'cells'/cell['name']/'private/selected.json',rows)
     job=dict(manifest='prepared/study.json',blueprint=reference(tmp_path/'design/blueprint.json',tmp_path),design=reference(tmp_path/'design/design.json',tmp_path))
     cfg,protocol=m.reduced_blueprint(tmp_path,job,tmp_path/'smoke')
@@ -163,3 +165,51 @@ def test_smoke_prepares_and_passes_real_refresh_runtime_validation(tmp_path,monk
     for name in ('static','refresh-01'):
         assert json.loads((output/'cells'/name/'private/selected.json').read_text())==json.loads((tmp_path/'smoke-design'/(name+'.json')).read_text())
     assert resolved['budgets']['target_tokens']==protocol['target_tokens']
+    from oeis_learn.pipeline_validation.generalization_training import PreparedBatches,train_updates
+    from oeis_learn.generalization.budgets import Ledger
+    for arm in ('static','refreshed'):
+        view=sidecar['training'][arm]
+        batches=PreparedBatches(output,view['shards'],batch_size=16,mode=view['data_mode'],updates=3)
+        actual=train_updates(dict(data=dict(cursor=0,pending_batch=None)),Ledger(protocol['target_tokens']),batches,
+            update=lambda _:None,save=lambda *_:None,seconds=10)
+        assert actual['ledger'].updates==3 and actual['ledger'].consumed>protocol['first_shard_tokens']
+
+
+
+def test_exact_batch_budget_handles_parent_selection_with_shorter_programs():
+    from oeis_learn.generalization.budgets import Ledger
+    from oeis_learn.pipeline_validation.generalization_training import train_updates
+    # A parent-derived cap of 32*10 +16*10 permits only two 16*15 batches.
+    batches=[[dict(id=str(i),tokens=[2]*15) for i in range(16)] for _ in range(4)]
+    state=lambda:dict(data=dict(cursor=0,pending_batch=None))
+    old=train_updates(state(),Ledger(480),batches,update=lambda _:None,save=lambda *_:None,seconds=10)
+    assert old['ledger'].updates==2
+    assert m.batch_budget([480,480],[480,480])==1440
+    new=train_updates(state(),Ledger(m.batch_budget([240,240],[240,240])),batches,
+        update=lambda _:None,save=lambda *_:None,seconds=10)
+    assert new['ledger'].updates==3 and new['ledger'].consumed==720
+
+
+@pytest.mark.parametrize('change',[None,'order','tokens','costs','cap','batch_size'])
+def test_native_smoke_plan_must_match_frozen_exact_sources_and_tokens(tmp_path,change):
+    from oeis_learn.decoder.bigint_codec import encode_body
+    arrays=[];refs=[]
+    for shard in range(2):
+        rows=[dict(source=f'(program (return (int {i+shard*32})))') for i in range(32)]
+        rows=[dict(r,tokens=encode_body(r['source'])) for r in rows];arrays.append(rows)
+        write(tmp_path/f'{shard}.json',rows);refs.append(reference(tmp_path/f'{shard}.json',tmp_path))
+    charges=[m.batch_charges(rows) for rows in arrays];cap=m.batch_budget(*charges)
+    protocol=seal(dict(minimum_updates=3,batch_charges=charges,target_tokens=cap,first_shard_tokens=sum(charges[0]),
+        training_sources=[digest([r['source'] for r in rows]) for rows in arrays]))
+    runtime=dict(training=dict(static=dict(batch_size=16,shards=refs[:1]),refreshed=dict(batch_size=16,shards=refs)))
+    study=dict(budgets=dict(target_tokens=cap))
+    if change=='order':
+        arrays[1].reverse();write(tmp_path/'1.json',arrays[1],exclusive=False);refs[1].update(reference(tmp_path/'1.json',tmp_path))
+    if change=='tokens':
+        arrays[1][0]['tokens']=[2];write(tmp_path/'1.json',arrays[1],exclusive=False);refs[1].update(reference(tmp_path/'1.json',tmp_path))
+    if change=='costs':protocol['batch_charges'][1][0]+=1;protocol=seal(protocol)
+    if change=='cap':study['budgets']['target_tokens']-=1
+    if change=='batch_size':runtime['training']['static']['batch_size']=8
+    if change:
+        with pytest.raises(ValueError):m.verify_smoke_plan(tmp_path,study,runtime,protocol)
+    else:assert m.verify_smoke_plan(tmp_path,study,runtime,protocol)['minimum_updates']==3

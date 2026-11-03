@@ -8,6 +8,21 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Exact smoke exposure repair — 2026-11-03 Pacific
+
+### Reopened Phase B — derive exposure from the exact small selection
+
+- [X] T151 Reproduce the two-update smoke failure; source-select the exact bounded smoke refresh prefixes with canonical exclusions before freezing its token cap. Derive both arms' first three batch charges from those rows and require sufficient fresh capacity. Test through the real PreparedBatches and train_updates/Ledger, including a parent-selection counterexample and unchanged refreshed-row requirements.
+
+T151 validation: 17 smoke tests passed, including exact small-shard native/reference
+preparation, canonical runtime validation and three real PreparedBatches/Ledger
+updates per arm. Seven focused budget/selection/token drift tests also passed.
+Qualified production source and prior continuation helper identities are unchanged.
+
+### Phase C/D — pre-learner consistency and continuation handoff
+
+- [ ] T152 Verify native-prepared smoke selections and actual training token arrays against the frozen source/batch plan before either learner starts. Preserve aggregate mismatch details in recovery diagnostics, document reuse of the original prepared parent, test affected helpers and push both groups. No local HIP or CI wait.
+
 ## Resume after prepared-data success — 2026-11-03 Pacific
 
 ### Reopened Phase B — safe reuse and representative smoke

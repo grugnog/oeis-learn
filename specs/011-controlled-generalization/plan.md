@@ -349,3 +349,19 @@ existing small token cap still reaches the second shard. Protected cohorts,
 native agreement and canonical refresh verification remain mandatory. This fixes
 fixed-candidate materialization that was incompatible with its declared refresh
 mode. No new admission or learning algorithm is introduced.
+
+
+## Exact small-smoke exposure (T151–T152)
+
+Recovery(4) verifies successful original reuse and small native preparation, then
+an actual static smoke learner completed only two updates under a 3723-token cap.
+The prior cap used a quota-reduced subset of the large parent selection. Selecting
+32 rows from a 2048-draw prefix need not produce that same subset or token cost.
+Use canonical source admission/exclusions for the exact two smoke prefixes first,
+freeze their source order and exact first-three-batch charges, then require native
+preparation and emitted token arrays to match before launching a learner. Both arms
+still need three updates; refresh must consume the second shard. Preserve the
+16384-token, 900-second small diagnostic bounds. No scientific learner, installed
+source, schema, image or qualification changes are needed. Retry from the original
+20261103T035534Z parent in another fresh output root; failed smoke weights are not
+research initializers. Retain the independent native check and fail closed on drift.

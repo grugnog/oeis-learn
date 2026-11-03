@@ -6,7 +6,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from oeis_learn.pipeline_validation.identity import seal,write,confined
+from oeis_learn.pipeline_validation.identity import seal,write,confined,digest
 from oeis_learn.pipeline_validation.generalization_preparation import reference
 from oeis_learn.generalization.contracts import verify_artifact
 from oeis_learn.generalization.budgets import charge_tokens
@@ -16,25 +16,46 @@ LIMITS={'preflight':1200,'prepare':1800,'train-static':2100,'train-refreshed':21
         'generate-static':2400,'score-static':2400,'generate-refreshed':2400,'score-refreshed':2400}
 
 
+def batch_budget(static,refreshed):
+    """Both arms must afford their first three complete batches."""
+    if len(static)!=2 or len(refreshed)!=2 or any(type(n) is not int or n<=0 for n in static+refreshed):
+        raise ValueError('two positive batch charges per shard required')
+    cap=sum(static)+max(static[0],refreshed[0])
+    if not 0<cap<=16384 or cap>sum(static+refreshed):raise ValueError('bounded smoke capacity shortfall')
+    return cap
+
+
+def batch_charges(rows):
+    if len(rows)!=32:raise ValueError('exact32-row smoke shard required')
+    return [charge_tokens([encode_body(r['source']) for r in rows[i:i+16]],bos=1,pad=0) for i in (0,16)]
+
+
 def reduced_blueprint(root,job,output):
     """Freeze two32-row shards from the already native-admitted data."""
-    from oeis_learn.generalization.cohorts import choose
+    from oeis_learn.generalization.preparation import scan,exclusion_record
+    from oeis_learn.generalization.exclusions import ExclusionIndex
+    from oeis_learn.pipeline_validation.generalization_preparation import draw_candidates
     cfg=json.loads(verify_artifact(root,job['blueprint']))
     design=json.loads(verify_artifact(root,job['design'],max_bytes=16<<20))
     if seal(design)!=design or design['identity'] not in cfg['hypothesis']:raise ValueError('bound original protocol required')
     if design['smoke']['version']!='paired-source-smoke/v1':raise ValueError('frozen smoke policy required')
     prepared=confined(root,job['manifest']).parent
     target=Path(output);target.mkdir(parents=True)
-    cells=[];training=[]
+    cells=[];training=[];exclusion=ExclusionIndex();seen=set()
     for original in cfg['cells']:
         if original['role']=='training' and len(training)==2:continue
-        rows=json.loads((prepared/'cells'/original['name']/'private/selected.json').read_bytes())
         cell={k:v for k,v in original.items() if k not in {'refresh','candidates'}}
         if original['role']=='training':
             cell.update(count=32,quotas={'family:'+d['family']:1 for d in design['descriptors']})
-            choice=choose(rows,count=32,quotas=cell['quotas'])
-            if not choice.complete:raise ValueError('smoke family support incomplete')
-            rows=list(choice.rows);training.append(rows)
+            cell['refresh']=dict(original['refresh'],draws=2048)
+            candidates,_=draw_candidates(root,reference(confined(root,cfg['descriptors']),root),cell)
+            choice,ledger=scan(candidates,**{k:cell[k] for k in ('role','holdout','count','quotas','structural','length_boundary')},
+                execute=None,exclusions=exclusion,unique_sources=True,seen_sources=seen,workers=3,seconds=900)
+            if not choice.complete:raise ValueError('smoke source selection incomplete')
+            rows=list(choice.rows);training.append(rows);seen.update(digest(r['source']) for r in rows)
+        else:
+            rows=json.loads((prepared/'cells'/original['name']/'private/selected.json').read_bytes())
+            exclusion=exclusion.add_many(exclusion_record(r,cell['role'],cell['holdout']) for r in rows)
         path=target/(cell['name']+'.json');write(path,rows)
         if original['role']=='training':
             # Preserve the canonical descriptor/cursor authority. A fixed candidate
@@ -43,13 +64,12 @@ def reduced_blueprint(root,job,output):
         else:cell['candidates']=str(path.relative_to(root))
         cells.append(cell)
     if len(training)!=2:raise ValueError('two prepared smoke shards required')
-    def tokens(rows):return charge_tokens([encode_body(row['source']) for row in rows],bos=1,pad=0)
-    # Enough for the first full shard and a batch of new rows in BOTH arms.
-    cap=tokens(training[0])+max(tokens(training[0][:16]),tokens(training[1][:16]))
-    if not 0<cap<=16384 or tokens(training[0]+training[1])<cap:raise ValueError('bounded smoke capacity shortfall')
+    charges=[batch_charges(rows) for rows in training]
+    cap=batch_budget(*charges)
     protocol=seal(dict(version='fresh-pilot-smoke/v1',parent_protocol=design['identity'],
         bank_seeds=design['bank_seeds'],role_seconds=1800,target_tokens=cap,
-        first_shard_tokens=tokens(training[0]),minimum_updates=3,selection_rows=2,
+        first_shard_tokens=sum(charges[0]),minimum_updates=3,selection_rows=2,
+        batch_charges=charges,training_sources=[digest([r['source'] for r in rows]) for rows in training],
         gate='finite changed weights; fresh rows consumed; all scoring outcomes recorded; zero accuracy threshold',
         purpose='software diagnostic only; never scientific comparison or initializer'))
     write(target/'protocol.json',protocol)
@@ -59,6 +79,27 @@ def reduced_blueprint(root,job,output):
                   'refreshed':dict(cells=[c['name'] for c in cells[-2:]],data_mode='refresh',batch_size=16)})
     write(target/'blueprint.json',cfg)
     return cfg,protocol
+
+
+def verify_smoke_plan(base,study,runtime,protocol):
+    """Check actual native-prepared training bytes before model initialization."""
+    if seal(protocol)!=protocol or protocol['minimum_updates']!=3:raise ValueError('frozen three-update smoke plan required')
+    checked=[]
+    for arm,count in (('static',1),('refreshed',2)):
+        view=runtime['training'][arm]
+        if view['batch_size']!=16 or len(view['shards'])!=count:raise ValueError('smoke batch/shard layout changed')
+        for i,ref in enumerate(view['shards']):
+            rows=json.loads(verify_artifact(base,ref,max_bytes=8<<20))
+            if digest([r['source'] for r in rows])!=protocol['training_sources'][i]:raise ValueError('native smoke selection differs from frozen source plan')
+            if any(r['tokens']!=encode_body(r['source']) for r in rows):raise ValueError('smoke target token encoding differs')
+            costs=batch_charges(rows)
+            if costs!=protocol['batch_charges'][i]:raise ValueError('native smoke batch costs differ')
+            if arm=='refreshed':checked.append(costs)
+    cap=batch_budget(*checked)
+    if cap!=protocol['target_tokens'] or cap!=study['budgets']['target_tokens'] or sum(checked[0])!=protocol['first_shard_tokens']:
+        raise ValueError('smoke exposure differs from frozen budget')
+    return dict(target_tokens=cap,first_shard_tokens=sum(checked[0]),minimum_updates=3,
+        minimum_tokens_by_arm=dict(static=sum(checked[0])+checked[0][0],refreshed=sum(checked[0])+checked[1][0]))
 
 
 def scoring_recorded(scoring,targets):
