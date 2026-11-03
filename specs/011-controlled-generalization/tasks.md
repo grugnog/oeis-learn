@@ -8,6 +8,22 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Resume after prepared-data success — 2026-11-03 Pacific
+
+### Reopened Phase B — safe reuse and representative smoke
+
+- [X] T149 Validate read-only reuse of original successful feasibility, qualification and preparation before any full learner started; reject altered evidence, source/image/protocol drift and unsupported restart points. Reserve conservative remaining disk headroom before hardware work. Keep the small smoke's original descriptor/cursor refresh authority and test canonical preparation/runtime validation rather than mocked assembly alone.
+
+T149 local validation: 28 smoke/original-reuse tests passed, including canonical
+assembly, preparation with a reference stand-in, and resolved refresh validation.
+A subsequent 20-test policy run covers predecessor/helper/source/image/age/tampering
+counterexamples. Production source closure remains unchanged and matches the
+reviewed throughput receipt. No local HIP execution.
+
+### Phase C/D — continuation and operator handoff
+
+- [ ] T150 Integrate an explicit prepared-run continuation into the temporary wrapper, writing a new run root and preserving prior failure evidence. Reuse qualified images and original data without copying large payloads or repeating completed work. Run smoke then canonical paired training/evaluation/export, retain provenance in success/failure archives, document exact disk checks and continuation command, commit and push each group. No local HIP or CI wait.
+
 ## Larger operational margins — operator request, 2026-11-02 Pacific
 
 ### Reopened Phase B — separate operational preparation authority

@@ -40,7 +40,11 @@ def test_reduced_data_has_same32_families_and_budget_reaches_fresh_rows(tmp_path
         write(prepared/'cells'/cell['name']/'private/selected.json',rows)
     job=dict(manifest='prepared/study.json',blueprint=reference(tmp_path/'design/blueprint.json',tmp_path),design=reference(tmp_path/'design/design.json',tmp_path))
     cfg,protocol=m.reduced_blueprint(tmp_path,job,tmp_path/'smoke')
-    train=[json.loads((tmp_path/c['candidates']).read_text()) for c in cfg['cells'] if c['role']=='training']
+    train=[json.loads((tmp_path/'smoke'/(c['name']+'.json')).read_text()) for c in cfg['cells'] if c['role']=='training']
+    refresh=[c for c in cfg['cells'] if c['role']=='training']
+    assert [c['refresh']['cursor'] for c in refresh]==[0,65536]
+    assert all(c['refresh']['draws']==2048 and 'candidates' not in c for c in refresh)
+    assert cfg['preparation_seconds']==900
     assert [len(rows) for rows in train]==[32,32]
     assert len({r['family'] for rows in train for r in rows})==32
     assert {r['source'] for r in train[0]}.isdisjoint(r['source'] for r in train[1])
@@ -109,3 +113,53 @@ def test_smoke_gates_canonical_boundaries_and_keeps_failures(tmp_path,monkeypatc
     if failure in m.LIMITS:assert failure in calls
     if failure in {'preflight','prepare'}:assert not any(n.startswith('train-') for n in calls)
     if failure in {'proof','initialization','zero_updates'}:assert not any(n.startswith('generate-') for n in calls)
+
+
+def test_smoke_prepares_and_passes_real_refresh_runtime_validation(tmp_path,monkeypatch):
+    """Exercise the real assembly -> preparation -> resolved runtime boundary."""
+    import shutil
+    from tests.integration.test_generalization_inputs import blueprint as fixture_blueprint
+    from fresh_pilot_inputs import research_inputs,blueprint
+    from oeis_learn.pipeline_validation.generalization_inputs import assemble_study
+    from oeis_learn.pipeline_validation.generalization_runtime import load,publish_runtime,validate_execution
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_cell,prepare_study,draw_candidates
+    from oeis_learn.generalization.contracts import validate
+    from oeis_learn.generalization.exclusions import ExclusionIndex
+    from oeis_learn.generalization.preparation import exclusion_record
+    from oeis_learn.synthesis.reference import evaluate
+    monkeypatch.setattr(shutil,'disk_usage',lambda *_:type('Disk',(),dict(free=256<<30))())
+    fixture=fixture_blueprint(tmp_path);write(tmp_path/'feature.json',{'fixture':'not qualification'})
+    design=research_inputs()
+    cfg=blueprint(tmp_path,design,recipe=fixture['recipe'],source=fixture['source_closure'],images=fixture['images'],feature='feature.json',output='design')
+    prepared=tmp_path/'original';write(prepared/'study.json',{})
+    def native(source,indices):
+        result=evaluate(source,indices);return dict(outcome=result.outcome,values=list(result.values))
+    exclusion=ExclusionIndex();seen=set();training=0
+    for cell in cfg['cells']:
+        if cell['role']=='training':
+            if training==2:break
+            training+=1
+            cell=dict(cell,count=32,quotas={k:1 for k in cell['quotas']},refresh=dict(cell['refresh'],draws=2048))
+        candidates=dict(cell)
+        if 'candidates' in candidates:candidates['candidates']=reference(tmp_path/candidates['candidates'],tmp_path)
+        rows,_=draw_candidates(tmp_path,reference(tmp_path/cfg['descriptors'],tmp_path),candidates)
+        folder=prepared/'cells'/cell['name']
+        ledger=prepare_cell(rows,**{k:cell[k] for k in ('role','holdout','count','quotas','structural','length_boundary')},
+            output=folder,execute=native,exclusions=exclusion,seen_sources=seen,unique_sources=cell['role']=='training',seconds=120)
+        assert ledger['status']=='PASS'
+        selected=json.loads((folder/'private/selected.json').read_text())
+        if cell['role']=='training':seen.update(digest(r['source']) for r in selected)
+        else:exclusion=exclusion.add_many(exclusion_record(r,cell['role'],cell['holdout']) for r in selected)
+    job=dict(manifest='original/study.json',blueprint=reference(tmp_path/'design/blueprint.json',tmp_path),design=reference(tmp_path/'design/design.json',tmp_path))
+    reduced,protocol=m.reduced_blueprint(tmp_path,job,tmp_path/'smoke-design')
+    assembly=assemble_study(tmp_path,reduced,'smoke-inputs')
+    base,study,runtime=load(tmp_path,assembly['manifest'])
+    validate_execution(base,study,runtime)
+    prep=validate('preparation',json.loads((base/'preparation.json').read_text()))
+    output=tmp_path/'smoke-prepared'
+    assert prepare_study(base,prep,study,output=output,execute=native,seconds=120)['status']=='PASS'
+    resolved,sidecar=publish_runtime(base,output,study,runtime)
+    validate_execution(output,resolved,sidecar)
+    for name in ('static','refresh-01'):
+        assert json.loads((output/'cells'/name/'private/selected.json').read_text())==json.loads((tmp_path/'smoke-design'/(name+'.json')).read_text())
+    assert resolved['budgets']['target_tokens']==protocol['target_tokens']

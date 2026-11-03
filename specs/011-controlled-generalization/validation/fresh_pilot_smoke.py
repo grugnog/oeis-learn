@@ -36,7 +36,12 @@ def reduced_blueprint(root,job,output):
             if not choice.complete:raise ValueError('smoke family support incomplete')
             rows=list(choice.rows);training.append(rows)
         path=target/(cell['name']+'.json');write(path,rows)
-        cell['candidates']=str(path.relative_to(root));cells.append(cell)
+        if original['role']=='training':
+            # Preserve the canonical descriptor/cursor authority. A fixed candidate
+            # list cannot satisfy the declared refresh arm's runtime verifier.
+            cell['refresh']=dict(original['refresh'],draws=2048)
+        else:cell['candidates']=str(path.relative_to(root))
+        cells.append(cell)
     if len(training)!=2:raise ValueError('two prepared smoke shards required')
     def tokens(rows):return charge_tokens([encode_body(row['source']) for row in rows],bos=1,pad=0)
     # Enough for the first full shard and a batch of new rows in BOTH arms.
@@ -49,7 +54,7 @@ def reduced_blueprint(root,job,output):
         purpose='software diagnostic only; never scientific comparison or initializer'))
     write(target/'protocol.json',protocol)
     cfg.update(hypothesis='Paired source smoke '+protocol['identity'],cells=cells,
-        milestones=[cap],budgets=dict(cfg['budgets'],target_tokens=cap,seconds=900),
+        milestones=[cap],budgets=dict(cfg['budgets'],target_tokens=cap,seconds=900),preparation_seconds=900,
         training={'static':dict(cells=[cells[-2]['name']],data_mode='static',batch_size=16),
                   'refreshed':dict(cells=[c['name'] for c in cells[-2:]],data_mode='refresh',batch_size=16)})
     write(target/'blueprint.json',cfg)

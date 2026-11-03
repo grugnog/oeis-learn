@@ -320,3 +320,32 @@ nested reserves. These are conservative operational limits, not predicted durati
 A new frozen protocol/helper/source identity invalidates prior throughput receipts;
 rebuild the CPU image before measuring. No scientific data, model, token or training
 exposure is changed by this operational amendment.
+
+
+## Prepared-run continuation (T149–T150)
+
+The 20261103T035534Z run passed acceptance and all 16 native preparation cells in
+6675 seconds, then failed before smoke assembly with insufficient storage. The
+last disk monitor recorded about 61.2 GiB free, below the unchanged 64 GiB study
+reservation. Preserve this original failed run and all prepared private payloads.
+A narrowly scoped temporary continuation accepts only a failed/interrupted smoke
+boundary with no full learners started. Revalidate original receipts/inventories,
+source and image identities, source-feasibility selection agreement and the frozen
+protocol. Preserve throughput policy/source/image/resource checks; explicitly
+allow only the known predecessor controller hash to migrate to the new host
+continuation wrapper. Production code, contracts, images and qualification remain
+unchanged. The original throughput proof retains its 72-hour freshness requirement.
+
+Require 160 GiB free (64 GiB remaining research, 64 GiB separate smoke, 32 GiB
+headroom) before new hardware work. Do not delete artifacts or lower canonical
+storage checks. New outputs live in a disjoint root; original prepared input paths
+remain references, and original failures remain evidence rather than being changed
+to PASS. A new bounded campaign allowance cannot reset consumed learner exposure:
+this continuation is allowed only before either full learner has started.
+
+The smoke retains the original descriptors, numeric law, seed and first two
+training cursors with a 2048-draw prefix and one selected row per family. Its
+existing small token cap still reaches the second shard. Protected cohorts,
+native agreement and canonical refresh verification remain mandatory. This fixes
+fixed-candidate materialization that was incompatible with its declared refresh
+mode. No new admission or learning algorithm is introduced.
