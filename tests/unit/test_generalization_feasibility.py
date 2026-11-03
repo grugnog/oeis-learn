@@ -137,3 +137,18 @@ def test_native_disagreement_stops_even_if_surviving_rows_fill_quota():
     choice,ledger=scan(rows,role='training',holdout='parameter',count=1,quotas={},structural=False,execute=native,seconds=20)
     assert ledger['status']=='BLOCKED' and not choice.complete
     assert len(calls)<=64 and 'native_validation_failed' in ledger['shortfalls']
+
+
+def test_expired_scan_preserves_ledger_without_sorting_partial_payload(monkeypatch):
+    from oeis_learn.generalization import preparation as p
+    clock=[0.0]
+    original=p.reference_candidate
+    def slow(row):
+        result=original(row);clock[0]+=2;return result
+    monkeypatch.setattr(p.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(p.OrderedWorkers,'map',lambda self,rows,**kw:[slow(r) for r in rows])
+    monkeypatch.setattr(p,'choose',lambda *a,**kw:pytest.fail('expired partial cohort selection'))
+    choice,ledger=p.scan(collision_rows(),role='training',holdout='parameter',count=1,
+        quotas={},structural=False,execute=None,seconds=1)
+    assert not choice.complete and ledger['status']=='BLOCKED'
+    assert ledger['shortfalls']==['preparation_deadline'] and choice.rows==()

@@ -26,6 +26,7 @@ def native_batch(native,rows,*,deadline):
 
 
 def preparation(inputs,output,settings,*,seconds):
+    from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import validate
     from oeis_learn.synthesis.client import SynthesisClient
     from .generalization_preparation import prepare_study
@@ -47,7 +48,7 @@ def preparation(inputs,output,settings,*,seconds):
             def execute(source,indices):
                 return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))
             execute.batch=lambda rows:native_batch(native,rows,deadline=deadline)
-            return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1))
+            return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1),seconds=remaining_seconds(deadline))
 
 
 def validate_runtime(inputs,output,settings,*,seconds):
@@ -275,7 +276,7 @@ def main(argv=None):
             selected=runtime['settings'].get('config',runtime['settings'])
             if 'device' in selected and selected['device']!=runtime['device']:raise ValueError('role device capability mismatch')
             allowance=runtime['seconds']
-            if role==Role.GENERATOR and runtime['operation']=='evaluate':
+            if (role,runtime['operation']) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare')}:
                 from oeis_learn.generalization.budgets import remaining_seconds
                 allowance=remaining_seconds(began+allowance)
             result=handler(inputs,output,runtime['settings'],seconds=allowance)

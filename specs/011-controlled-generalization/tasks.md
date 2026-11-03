@@ -8,6 +8,20 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Preparation timeout repair — 2026-11-03
+
+### Reopened Phase B — bounded native setup reuse and deadlines
+
+- [X] T143 Retain one immutable BigInt guest/engine and installed execution identity per native worker generation; keep candidate modules, stores, fuel, memory, clocks and results independent. Preserve per-evaluation setup charging and existing resource/transport limits. Test repeated execution, failure recovery, changed resources and fresh worker state. Propagate the enclosing preparation deadline through input copies, draws and scans; reserve terminal publication/exit time.
+
+T143 Python counterexamples:34 passed. Rust reuse/differential tests are added
+to the existing pinned-container test gate; they cannot run in this session
+(no Cargo or container engine). Native speedup and hardware qualification are pending.
+
+### Phase C/D — preparation progress and evidence
+
+- [ ] T144 Persist atomic bounded per-cell progress with reference/native/selection timings and counts, including interrupted cells; project only validated control metadata into recovery. Record the verified six-hour timeout and completed-cell scope, test failure paths, refresh CI bindings and publish changes without HIP execution or waiting for CI. Keep the scientific design and existing ceilings unchanged; throughput remains unmeasured until the repaired native path runs.
+
 ## Feasible fresh pilot revision — 2026-11-02 Pacific
 
 The original frozen design failed: first shard20,634/32,768 rows,11 empty

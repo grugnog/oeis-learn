@@ -148,8 +148,9 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
                 if time.monotonic()>=deadline:expired=True;break
             if progress and seen%1024==0:progress(seen,len(admitted))
             if expired or native_failed:break
-    choice=choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
-    if expired:choice=CohortChoice(choice.payload,choice.shortfalls+('preparation_deadline',))
+    # No cohort can publish after exhaustion. Do not spend the reporting reserve
+    # sorting/encoding a large partial cohort that cannot be used.
+    choice=CohortChoice(b'[]',('preparation_deadline',)) if expired else choose(admitted,count=count,quotas=quotas,structural=structural,draw_cap=draw_cap)
     if native_failed:choice=CohortChoice(choice.payload,choice.shortfalls+('native_validation_failed',))
     ledger=seal(dict(version='generalization-cell-preparation/v1',role=role,draws=seen,rejections=sorted(rejections,key=lambda row:row['draw']),
         admitted=len(admitted),shortfalls=list(choice.shortfalls),

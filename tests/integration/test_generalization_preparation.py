@@ -137,6 +137,21 @@ def test_complete_preparation_publishes_new_study_and_cross_role_isolation(tmp_p
     assert failed['status']=='BLOCKED' and failed['reason']=='NATIVE_VALIDATION_FAILED'
     assert not (tmp_path/'native-failed/study.json').exists()
 
+    # Slow draw construction consumes the caller's allowance. It must not reset
+    # a six-hour scan or launch native work after the enclosing clock expired.
+    from oeis_learn.pipeline_validation import generalization_preparation as adapter
+    original_draw=adapter.draw_candidates
+    clock=[0.0]
+    def delayed_draw(*args):
+        rows=original_draw(*args);clock[0]+=11;return rows
+    with monkeypatch.context() as patch:
+        patch.setattr(adapter.time,'monotonic',lambda:clock[0])
+        patch.setattr(adapter,'draw_candidates',delayed_draw)
+        expired=prepare_study(incoming,freeze('preparation',prep),study,output=tmp_path/'expired',
+            execute=lambda *_:pytest.fail('native after enclosing deadline'),seconds=10)
+    assert expired['reason']=='BUDGET_EXHAUSTED' and expired['cell']=='training'
+    assert not (tmp_path/'expired/cells/training/ledger.json').exists()
+
     plans[2]['candidates']=plans[0]['candidates']
     changed=artifact('collision.json',dict(version='generalization-materialization-plan/v1',cells=plans))
     prep['generator']=changed;study['data']['generator']=changed

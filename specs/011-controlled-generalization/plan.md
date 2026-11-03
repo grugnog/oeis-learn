@@ -248,3 +248,27 @@ The original full data inputs match the final protocol; the public aggregate fea
 summary records the operational-only smoke/campaign amendment explicitly. Final
 Phase-B containment review makes unacknowledged worker exit and native mismatch
 fail closed before later shards. Readiness is software/source-only, not hardware.
+
+
+## Native preparation timeout repair (T143–T144)
+
+The 20261102T162615Z run passed source feasibility and acceptance; research
+preparation's supervisor killed the inner worker at21,570 seconds. Four protected
+cells and the static training cell have PASS ledgers, but no interrupted-cell
+ledger survived. No learner started. Do not reinterpret this as a quota failure.
+
+One reopened Phase B owns setup reuse and shared-deadline accounting. The framed
+native service retains exactly one installed guest byte snapshot, binary identity,
+and lazily compiled BigInt engine/module per process generation. Candidate modules,
+stores, guest instances, memory, fuel and clocks remain fresh; no result cache or
+admission bypass is introduced. Existing compilation setup charges remain in each
+evaluation's resource budget. Worker retirement drops the snapshot and compiled
+module; a new worker loads its own installed artifacts. Fit still creates its own
+runtime. Qualification exercises the same dispatcher with a fresh context.
+
+Preparation receives the role's remaining allowance, debits copies and draws,
+and reserves terminal publication/exit time inside its existing six-hour envelope.
+C/D adds bounded atomic per-cell progress and redacted recovery projections. Counts
+and phase durations are diagnostic, never admission or qualification authority.
+No coefficient law, cohort membership, seed, training or evaluation budget changes.
+Actual native speedup and six-hour feasibility remain unmeasured until execution.

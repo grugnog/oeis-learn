@@ -54,13 +54,14 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
     computation_seconds=remaining_seconds(deadline)-cleanup_seconds
-    if role==Role.GENERATOR and operation=='evaluate':
+    if (role,operation) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare')}:
         # The process deadline includes interpreter startup and exit. Leave those
         # inside work, separate from the protected container cleanup allowance.
         computation_seconds-=min(30,computation_seconds/5)
     if computation_seconds<=0:raise TimeoutError('role setup exhausted computation allowance')
     runtime=dict(settings=settings,operation=operation,seconds=computation_seconds,device='cuda' if gpu else 'cpu')
-    diagnostic=('validation' if role==Role.PREPARATION and operation=='validate-runtime' else
+    diagnostic=('preparation' if role==Role.PREPARATION and operation=='prepare' else
+                'validation' if role==Role.PREPARATION and operation=='validate-runtime' else
                 role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
     argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else
           ['python','-m','oeis_learn.pipeline_validation.generalization_role'])

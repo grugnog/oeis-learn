@@ -60,12 +60,14 @@ def publish_study(choices,preparation,proposed,manifests,*,root,output):
     return resolved
 
 
-def prepare_study(root,preparation,proposed,*,output,execute,workers=1):
+def prepare_study(root,preparation,proposed,*,output,execute,workers=1,seconds=None):
     """Materialize a frozen cell plan and publish only after all role cells pass.
 
     The native callback is supplied by the isolated preparation role. Its enclosing
     container deadline bounds both native and independent-reference work.
     """
+    began=time.monotonic()
+    if seconds is not None and not 0<seconds<=21600:raise ValueError('preparation allowance')
     import json
     from collections import Counter
     from oeis_learn.generalization.contracts import validate,verify_artifact,artifact_refs,freeze
@@ -114,7 +116,8 @@ def prepare_study(root,preparation,proposed,*,output,execute,workers=1):
     if any(d['numeric_law']!=prep['numeric_law'] for d in descriptors):raise ValueError('refresh numeric law differs from frozen preparation')
     training_capacity=0;training_sources=set()
     choices={};manifests=[];by_role={role:[] for role in prep['roles']}
-    deadline=time.monotonic()+min(21600,prep['budgets']['seconds']);draws=0
+    allowance=min(21600,prep['budgets']['seconds'],seconds if seconds is not None else 21600)
+    deadline=began+allowance-min(60,allowance/5);draws=0
     for cell_number,cell in enumerate(cells):
         remaining=deadline-time.monotonic();available=min(1_000_000,prep['budgets']['draws'])-draws
         if remaining<=0 or available<=0:
@@ -123,6 +126,10 @@ def prepare_study(root,preparation,proposed,*,output,execute,workers=1):
         folder=output/'cells'/cell['name']
         candidates,refresh_record=draw_candidates(root,prep['descriptors'],cell)
         if refresh_record is not None and refresh_record['draws']>available:raise ValueError('refresh draw reservation exceeds remaining preparation budget')
+        remaining=deadline-time.monotonic()
+        if remaining<=0:
+            result=seal(dict(status='BLOCKED',reason='BUDGET_EXHAUSTED',cell=cell['name'],study=None))
+            write(output/'preparation-result.json',result);return result
         ledger=prepare_cell(candidates,
             **{k:cell[k] for k in ('role','holdout','count','quotas','structural')},
             output=folder,execute=execute,exclusions=exclusions,seconds=remaining,draw_cap=available,unique_sources='refresh' in cell,
