@@ -11,12 +11,12 @@
 ## Observable continuation follow-up — 2026-11-04 UTC
 
 Plan: [validation/observable-evaluation-plan.md](validation/observable-evaluation-plan.md).
-Execution is currently blocked by the disconnected workspace exec service; no
-implementation or validation is claimed for these tasks.
+Workspace execution recovered after the initial outage; tasks are marked only
+after implementation and validation complete.
 
 ### Reopened Phase B — outcome-blind observability policy
 
-- [ ] T168 Implement the bounded three-way classification policy: certified within-family polynomial/path continuation, independently witnessed ambiguity, or unresolved. Freeze scope and roster, write independent counterexamples first, preserve assessment isolation and distinguish historical diagnostic projection from prospective evaluation.
+- [X] T168 Implement the bounded three-way classification policy: certified within-family polynomial/path continuation, independently witnessed ambiguity, or unresolved. Freeze scope and roster, write independent counterexamples first, preserve assessment isolation and distinguish historical diagnostic projection from prospective evaluation.
 
 ### Phase C — exact bank-original provenance
 

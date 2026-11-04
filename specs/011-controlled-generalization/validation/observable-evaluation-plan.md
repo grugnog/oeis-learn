@@ -134,11 +134,15 @@ evidence is insufficient. A diagnostic projection alone needs no HIP.
 
 Requirements: FR-033/034/035, SC-001/004, NFR-001/002/003/004/006/007/008.
 
-## Current execution blocker
+## Execution recovery
 
-During continuation on2026-11-04 the workspace exec service disconnected; recovery
-also timed out. GitHub reads remain available. This plan can be reviewed and
-published, but required failing-test observations, implementation tests and local
-source-inventory regeneration cannot currently execute. Leave T168–T170 unchecked
-until those steps actually complete; do not publish untested production repairs
-as completed work.
+The workspace exec service initially disconnected and recovery timed out. The
+plan was published through GitHub with tasks unchecked. Execution recovered
+later in the same turn; implementation then resumed with local failing-test
+observations and validation. No production repair was published during the outage.
+
+The existing `discovery/polynomial_certificate.py` uses SymPy and a different
+logical IR; it does not support the parameterized bigint branch contract or a
+stdlib-only host. The temporary helper therefore uses conservative degree bounds
+on the existing independent bigint parser, with the explicit root-count proof
+above. It adds no production polynomial engine or dependency.
