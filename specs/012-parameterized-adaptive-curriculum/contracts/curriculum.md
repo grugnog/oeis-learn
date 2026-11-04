@@ -63,7 +63,8 @@ actual non-padding target tokens; A/B loss is not a cross-representation accurac
 metric. B/C definitions and opportunities are identical.
 
 For each family keep at most eight completed panel observations and an EMA with
-coefficient 0.25. With positive previous loss `l_prev`, calculate clipped relative
+coefficient 0.25. Use the smoothed panel losses as `l_prev` and `l_now`. With positive previous loss
+`l_prev`, calculate clipped relative
 change `d = clip((l_prev - l_now)/max(l_prev, 1e-6), -1, 1)` using matched panel
 identities. Define progress `g=max(d,0)` and regression `r=max(-d,0)`. Neither high
 absolute loss nor a solver timeout alone supplies progress. Fewer than two valid
@@ -123,6 +124,9 @@ reservation and cadence. At the ceiling, skip future optional measurements with
 explicit censored events; keep safe exploration/review and last valid bounded
 priorities. Two consecutive failed full loss panels or exhaustion before all
 families receive a post-initial observation makes adaptive evidence INCOMPLETE.
+Two full semantic rotations with no completed observation for a family mark that
+family's retention evidence INCOMPLETE; missing terminal coverage stays unavailable.
+The report cannot claim demonstrated spaced retention from loss-only measurements.
 No automatic cap increase, hidden extra solver attempts or fallback mastery.
 Final export separates operational PASS from scientific interpretability.
 
