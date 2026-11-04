@@ -20,7 +20,9 @@ T166 validation: independent counterexamples were observed failing before implem
 
 ### Phase C/D — execution and scientific diagnosis
 
-- [ ] T167 Run the audit on the supplied full hourly pilot archive, inspect multiple passing/failing/unresolved before-and-after programs from both arms, audit relevant production paths, and record limitations and next-step decisions. Commit/push each grouping; no retraining, HIP or CI wait. Provide one bounded CPU/native follow-up only if a concrete unresolved question needs it.
+- [X] T167 Run the audit on the supplied full hourly pilot archive, inspect multiple passing/failing/unresolved before-and-after programs from both arms, audit relevant production paths, and record limitations and next-step decisions. Commit/push each grouping; no retraining, HIP or CI wait. Provide one bounded CPU/native follow-up only if a concrete unresolved question needs it.
+
+T167 validation: audited the original576-member archive,16,360 completed generation/token/source pairs,29,280 native assignment groundings and1,512 selected visible verifications; reviewed25 deterministic before/after cases from both arms. Family-hash joins and independent constructed witnesses identify55 selection tasks in families admitting same-prefix/different-continuation ambiguity; neither arm solved these. All4,089 completed primary originals executed independently, with one separately retained1-second follow-up after a local100ms audit deadline; original audit censoring is unchanged. The audit records207 bank original-source metadata defects with explicit hash-bound recovery, preserving original scores and production qualification. 103 relevant tests passed; the final all-source execution extension's23 tests passed again. See [the analysis](validation/post-pilot-analysis.md), [case review](validation/post-pilot-cases.md) and [census](validation/post-pilot-census.json). No HIP/native operator run, retraining, assessment access or CI wait was needed. Bank metadata repair and any changed evaluation protocol are explicitly future work, not completed here.
 
 ## Qualified full-data handoff — 2026-11-04 UTC
 
