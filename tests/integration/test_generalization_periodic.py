@@ -130,3 +130,18 @@ def test_interrupted_journal_after_new_snapshot_does_not_discard_saved_work(tmp_
     full=training.run_torch(tmp_path,tmp_path/'full',cfg)
     assert resumed['status']=='PASS' and resumed['discarded_tokens']==0 and resumed['updates']==32
     same_weights(loaded(tmp_path/'resumed',resumed,cfg),loaded(tmp_path/'full',full,cfg))
+
+
+def test_selection_metadata_copy_preserves_closed_hourly_recovery_accounting(tmp_path,fixture):
+    from oeis_learn.pipeline_validation.identity import seal,digest
+    cfg,_,_,_=fixture;r=training.run_torch(tmp_path,tmp_path/'part',cfg,stop_after_updates=3)
+    prior=tmp_path/'part/checkpoints';roster=json.loads((prior/'retained.json').read_text())
+    decision=seal(dict(version='generalization-selected-pins/v1',roster=roster['identity'],decision=digest('selection'),
+        selected=roster['latest'],best_loss=roster['latest'],reason='selected'))
+    store=GeneralizationCheckpointStore(prior,r['compatibility'],cfg['target_tokens'])
+    pointer=store.selected_copy(tmp_path/'selected',roster,decision)
+    resumed=training.run_torch(tmp_path,tmp_path/'resumed',cfg,resume=(tmp_path/'selected',pointer))
+    assert resumed['status']=='PASS' and resumed['discarded_tokens']==0
+    journal=json.loads((prior/'generalization-progress.json').read_text());journal=seal(dict(journal,closed=False))
+    (prior/'generalization-progress.json').write_text(json.dumps(journal))
+    with pytest.raises(ValueError,match='closed'):store.selected_copy(tmp_path/'unsafe',roster,decision)

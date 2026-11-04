@@ -17,6 +17,8 @@
 
 T161–T162 validation: 56 affected policy, real tiny-Torch, recovery and forecast checks passed; one installed-model check skipped for missing wasmtime. Tests cover exact clean continuation, interruption after parameter mutation, publication between pointer/journal writes, missing/stale journals, cumulative discarded exposure/time, required milestone pins, no extra update after exhausted allowance, two versus 65 full saves for 32 updates, and bounded whole-run loss/throughput trends. A resumed run that exhausts its budget with discarded exposure remains explicitly PARTIAL. No HIP speed claim.
 
+T162 follow-up: selection metadata copies also retain validated closed journals and cumulative clocks; active/unclosed journals cannot be converted into resume authority. Eight real tiny-Torch periodic cases pass, including selected-copy continuation.
+
 ### Phase C/D — canonical resume, progress packaging and measured handoff
 
 - [ ] T163 Project the original journal and supervised recovery timing through canonical learner resume; expose committed/charged/discarded exposure and recoverable checkpoint progress; exercise periodic persistence in installed acceptance, update the temporary paired probe/report and forecast for snapshot overhead. Refresh CI/source bindings, run affected local checks, document one-invocation hardware follow-up, commit and push each grouping without HIP or CI waits.

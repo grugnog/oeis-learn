@@ -448,6 +448,16 @@ class GeneralizationCheckpointStore:
         latest=read(self.root/'generalization-latest.json')
         restored=self.load(latest,decode=decode)
         state=restored['states'];ledger=restored['ledger']
+        progress=None;progress_path=self.root/'generalization-progress.json'
+        if progress_path.exists() or progress_path.is_symlink():
+            from oeis_learn.pipeline_validation.generalization_persistence import recover,journal
+            progress=read(progress_path)
+            if not progress.get('closed'):raise ValueError('selection requires a closed periodic checkpoint journal')
+            if progress['checkpoint']!=latest:raise ValueError('selection journal does not name latest state')
+            accounting=recover(progress,contract=self.contract,checkpoint=latest,ledger=ledger,
+                discarded_tokens=state['scheduler'].get('discarded_tokens',0),learner_seconds=state['scheduler']['learner_seconds'],
+                seconds_cap=progress['elapsed_seconds'])
+            state['scheduler'].update({k:v for k,v in accounting.items() if k!='rolled_back'})
         history={};descriptors={}
         for descriptor in by_id.values():
             checked=self.describe(descriptor['state'],initialization=descriptor['initialization'],
@@ -472,6 +482,10 @@ class GeneralizationCheckpointStore:
         pointer=target.save(state,ledger,encode=encode)
         history[pointer['sha256']]=pointer
         target.retain(history,tuple(history))
+        if progress is not None:
+            write(target.root/'generalization-progress.json',journal(contract=self.contract,checkpoint=pointer,ledger=ledger,
+                discarded_tokens=state['scheduler']['discarded_tokens'],elapsed_seconds=state['scheduler']['learner_seconds'],
+                invocation_base_seconds=progress['invocation_base_seconds'],closed=True))
         return pointer
 
     def retain(self,history,pins):
