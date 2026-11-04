@@ -50,3 +50,15 @@ def test_capacity_no_due_and_incidental_cannot_promote():
     with pytest.raises(ValueError):q.commit(update=2,event_id='u2',designated=None,grade=True,exposed=['a'])
     assert sum(review_slot(i) for i in range(32))==8
     assert 24/32*.25==.1875
+
+
+def test_no_due_fallback_is_uniform_family_not_kernel_credit():
+    import random
+    from oeis_learn.generalization.review import ReviewQueue,review_choice
+    q=ReviewQueue({'a':'fa','b':'fb'})
+    q.commit(update=1,event_id='acquire',designated=None,grade=None,exposed=['a','b'])
+    rng=random.Random(1);before=q.snapshot()
+    choices=[review_choice(q,completed_updates=24,families=['fa','fb'],rng=rng) for _ in range(20)]
+    assert {c['family'] for c in choices}=={'fa','fb'}
+    assert all(c['channel']=='fallback' and c['anchor'] is None for c in choices)
+    assert q.snapshot()==before
