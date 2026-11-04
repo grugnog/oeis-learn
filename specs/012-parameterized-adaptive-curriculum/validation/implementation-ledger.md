@@ -69,3 +69,13 @@ pair/ground/codec/control-taint rules. PAC adds only a whole-row over-eight-para
 fallback with exact grounding and independent literal execution; malformed grounding
 or undeclared sharing still rejects. Unsupported parameter proposals never reach
 encoding/fitting as parameter targets. No historical target or fitter limit changes.
+
+## B3 — T013–T015
+
+`test_generalization_curriculum.py`: **6 passed**. Independent exact fractions
+match Graves sharing (first alpha=1/2), signed/zero/missing feedback differs,
+selection-time denominators and monotone action-bound feedback prevent replay.
+Extreme finite logweights retain the 1/128–97/128 probability bounds. Past-only
+20/80 quantiles, warmup/ties, 4,096-value Algorithm R reservoir, independent family
+Fisher–Yates streams, skip cursors and rotating two-of-eight probes restore exactly
+through JSON. This is pure policy proof, not installed learner or HIP evidence.

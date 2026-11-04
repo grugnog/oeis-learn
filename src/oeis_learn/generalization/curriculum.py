@@ -74,7 +74,7 @@ class Exp3S:
     def observe(self,selection,reward,*,event_id,role):
         if role!='training' or self.pending is None or selection!=self.pending:
             raise ValueError('pending selection-time probability and training feedback required')
-        if not isinstance(event_id,str) or not event_id or event_id==self.last_feedback:
+        if event_id!=f"feedback/{selection['action']}" or event_id==self.last_feedback:
             raise ValueError('unique feedback event required')
         if reward is not None and not -1<=finite(reward)<=1:raise ValueError('scaled reward range')
         if reward is not None:
@@ -110,3 +110,97 @@ class Exp3S:
                 raise ValueError('pending selected action')
             if finite(p['probability'])!=k.probabilities()[k.families.index(p['family'])]:raise ValueError('selection probability mismatch')
         return k
+
+
+class RewardScaler:
+    """Past-only interpolated quantiles and Algorithm R uniform reservoir."""
+    VERSION='pac-past-quantile-reservoir/v1'
+    def __init__(self,*,seed):
+        self.rng=random.Random(stream_seed(seed,'reward-reservoir'))
+        self.values=[];self.seen=0
+
+    @staticmethod
+    def quantile(values,fraction):
+        ordered=sorted(values);index=(len(ordered)-1)*fraction;lo=math.floor(index);hi=math.ceil(index)
+        return ordered[lo]*(hi-index)+ordered[hi]*(index-lo) if lo!=hi else ordered[lo]
+
+    def observe(self,gain,tokens):
+        finite(gain);integer(tokens,1);x=finite(gain/tokens)
+        q20=q80=None;reward=0.;status='warmup'
+        if len(self.values)>=5:
+            q20=self.quantile(self.values,.2);q80=self.quantile(self.values,.8)
+            if q20==q80:status='degenerate'
+            else:
+                # Rescale before subtraction to avoid overflow on finite extremes.
+                scale=max(abs(x),abs(q20),abs(q80),1.)
+                position=0. if x<=q20 else 1. if x>=q80 else (x/scale-q20/scale)/(q80/scale-q20/scale)
+                reward=2*min(1.,max(0.,position))-1;status='scaled'
+        self.seen+=1
+        if len(self.values)<4096:self.values.append(x)
+        else:
+            j=self.rng.randrange(self.seen)
+            if j<4096:self.values[j]=x
+        return dict(raw_gain=gain,charged_tokens=tokens,work_gain=x,q20=q20,q80=q80,reward=reward,status=status)
+
+    def snapshot(self):return dict(version=self.VERSION,values=list(self.values),seen=self.seen,rng=rng_state(self.rng),quantile_rule='linear-past-20-80/v1')
+
+    @classmethod
+    def restore(cls,state):
+        if set(state)!={'version','values','seen','rng','quantile_rule'} or state['version']!=cls.VERSION or state['quantile_rule']!='linear-past-20-80/v1':raise ValueError('reward scaler policy mismatch')
+        integer(state['seen'])
+        if len(state['values'])!=min(4096,state['seen']):raise ValueError('reservoir/seen mismatch')
+        for value in state['values']:finite(value)
+        result=cls(seed=0);result.values=list(state['values']);result.seen=state['seen'];result.rng=rng_restore(state['rng']);return result
+
+
+class FamilyStream:
+    """Separate Fisher–Yates stream; skipped filler IDs consume cursor, not tokens."""
+    VERSION='pac-family-fisher-yates/v1'
+    def __init__(self,family,rows,*,seed):
+        if not isinstance(family,str) or not family or not rows or len(set(rows))!=len(rows) or any(not isinstance(r,str) or not r for r in rows):raise ValueError('distinct family rows required')
+        self.family=family;self.rows=list(rows);self.rng=random.Random(stream_seed(seed,'family-rows',family))
+        self.permutation=list(rows);self.epoch=0;self.cursor=0;self.skipped=0;self._shuffle()
+
+    def _shuffle(self):
+        for i in range(len(self.permutation)-1,0,-1):
+            j=self.rng.randrange(i+1);self.permutation[i],self.permutation[j]=self.permutation[j],self.permutation[i]
+
+    def take(self,count,*,exclude=()):
+        integer(count,1);exclude=set(exclude)
+        if not exclude<=set(self.rows) or count>len(set(self.rows)-exclude):raise ValueError('distinct filler capacity')
+        result=[]
+        while len(result)<count:
+            if self.cursor==len(self.rows):
+                self.cursor=0;self.epoch+=1;self.permutation=list(self.rows);self._shuffle()
+            row=self.permutation[self.cursor];self.cursor+=1
+            if row in exclude or row in result:self.skipped+=1
+            else:result.append(row)
+        return result
+
+    def snapshot(self):
+        return dict(version=self.VERSION,family=self.family,rows=list(self.rows),permutation=list(self.permutation),
+                    epoch=self.epoch,cursor=self.cursor,skipped=self.skipped,rng=rng_state(self.rng))
+
+    @classmethod
+    def restore(cls,state,*,family,rows):
+        if (set(state)!={'version','family','rows','permutation','epoch','cursor','skipped','rng'} or state['version']!=cls.VERSION
+            or state['family']!=family or state['rows']!=list(rows) or sorted(state['permutation'])!=sorted(rows)):
+            raise ValueError('family stream inventory mismatch')
+        for key in ('epoch','cursor','skipped'):integer(state[key])
+        if state['cursor']>len(rows):raise ValueError('row cursor out of bounds')
+        result=cls(family,rows,seed=0)
+        for key in ('permutation','epoch','cursor','skipped'):setattr(result,key,copy.deepcopy(state[key]))
+        result.rng=rng_restore(state['rng']);return result
+
+
+class ProbeRotation:
+    def __init__(self,probes):
+        if len(probes)!=8 or len(set(probes))!=8:raise ValueError('eight independent probes required')
+        self.probes=list(probes);self.cursor=0
+    def take(self):
+        result=[self.probes[self.cursor],self.probes[(self.cursor+1)%8]];self.cursor=(self.cursor+2)%8;return result
+    def snapshot(self):return dict(version='pac-two-of-eight/v1',probes=list(self.probes),cursor=self.cursor)
+    @classmethod
+    def restore(cls,state,*,probes):
+        if set(state)!={'version','probes','cursor'} or state['version']!='pac-two-of-eight/v1' or state['probes']!=list(probes) or type(state['cursor']) is not int or state['cursor'] not in (0,2,4,6):raise ValueError('probe rotation mismatch')
+        result=cls(probes);result.cursor=state['cursor'];return result
