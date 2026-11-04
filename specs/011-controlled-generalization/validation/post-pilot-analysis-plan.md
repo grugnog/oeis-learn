@@ -76,3 +76,32 @@ C/D evidence separately. Do not wait for CI.
 Requirements: FR-033/034/035, SC-001/004, NFR-001/002/003/006/007/008. Existing
 qualification remains unchanged; this diagnostic cannot satisfy or reopen a HIP
 gate by itself.
+
+### Evidence-discovered exception, before completing T166
+
+The first real audit rejected the bank control's original-source/hash mismatch.
+All207 selected bank envelopes have transformed text in the original-source field;
+the hash still names a retained proposal-bank source. Keep strict rejection for
+unexplained mismatches. For this exact legacy defect only, explicitly record each
+finding and perform a diagnostic-only join to the unique archived bank source by
+its original hash, then run all remaining grounding/reference checks. Never rewrite
+the envelope or hide this recovery in the clean-check count. The other six controls
+still use strict original-envelope validation. Production metadata repair is a
+separate follow-up; this analysis preserves the qualified runtime.
+
+Before closing Phase B, add a source-only observability check: match public
+selection-family hashes to the frozen sampler's seed20261016 catalog0..4095;
+inspect its independent-index branch guards and parameter references. Report
+parameters in paths never taken at indices0..19 but taken at20..99. This is a
+syntactic information-availability diagnosis, not reconstruction of actual target
+coefficients, a hidden-truth rescore or a numerical accuracy ceiling. Keep all
+assessment rows inaccessible. Counterexamples cover the19/20 boundary and late
+equality guards. Inspect failed fits using fitting completion, not the duplicated
+candidate-level generation-completion flag.
+
+The family visibility census is additionally checked with constructed coefficient
+assignments2 versus3 and independent100-index execution: only a same-prefix,
+different-continuation witness is evidence of family-level ambiguity. A cancelled
+parameter is not counted as a witness; resource-limited verification is unavailable,
+not proof of no ambiguity. These are constructed programs, not recovered held-out
+coefficient assignments or new scores.

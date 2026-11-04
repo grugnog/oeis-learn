@@ -14,7 +14,9 @@ Plan: [validation/post-pilot-analysis-plan.md](validation/post-pilot-analysis-pl
 
 ### Reopened Phase B — bounded candidate evidence analysis
 
-- [ ] T166 Implement the read-only archive audit, independent token/AST/grounding and visible-execution checks, paired outcome comparison, deterministic balanced case selection and verified diagnostic export. Write counterexample tests first; preserve missing evidence, original censoring and qualified production code.
+- [X] T166 Implement the read-only archive audit, independent token/AST/grounding and visible-execution checks, paired outcome comparison, deterministic balanced case selection and verified diagnostic export. Write counterexample tests first; preserve missing evidence, original censoring and qualified production code.
+
+T166 validation: independent counterexamples were observed failing before implementation. The temporary stdlib-only audit checks all retained token/source pairs and native assignment groundings, preserves original scoring, explicitly records legacy bank-envelope recovery, and constructs reference-executed family ambiguity witnesses without target coefficients. Local focused and reused-diagnostic checks pass; original pilot archive is read-only. Qualified production source is unchanged. See the analysis plan for the evidence-discovered bank metadata exception.
 
 ### Phase C/D — execution and scientific diagnosis
 
