@@ -104,3 +104,45 @@ def inspect(command):
         pinned_generations=len(pins),unreferenced_generation_count=len(all_generations-generations),
         verified_bytes=total,verified_files=len(checked),resume_authorized=False,
         scope='saved-state integrity and accounting only; no scientific or resume approval'))
+
+
+def collect(root):
+    root=Path(root);runs=[]
+    for layout in ('execution','research'):
+        for arm in ('static','refreshed'):
+            relative=layout+'/train-'+arm;command=confined(root,relative,exists=False)
+            if not (command/'result.json').is_file() or not (command/'training').is_dir():continue
+            row=dict(arm=arm,command_path=relative)
+            try:row.update(status='VERIFIED',checkpoint=inspect(command))
+            except Exception as exc:row.update(status='UNVERIFIED',error_type=type(exc).__name__)
+            runs.append(row)
+    return seal(dict(version='fresh-pilot-checkpoint-summary/v1',runs=runs,
+        status='PASS' if runs and all(r['status']=='VERIFIED' for r in runs) else 'BLOCKED',
+        qualification_evidence=False,resume_authorized=False))
+
+
+def main(argv=None):
+    import argparse
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.bundle import pack,verify
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run',required=True,help='original stopped pilot root; read only')
+    parser.add_argument('--output',required=True,help='fresh sibling diagnostic output root')
+    args=parser.parse_args(argv)
+    try:
+        root=confined(ROOT,args.run);output=confined(ROOT,args.output,exists=False)
+        if output.exists() or output.with_suffix('.zip').exists() or root==output or root in output.parents or output in root.parents:
+            raise ValueError('fresh disjoint diagnostic output required')
+        result=collect(root)
+        write(output/'checkpoints.json',result)
+        write(output/'summary.json',dict(selected_scope=result['status'],scientific_status='UNMEASURED',
+            scope='read-only saved checkpoint integrity/accounting diagnostic; no learning or resume authorization'))
+        archive=pack(output,mandatory=['summary.json','checkpoints.json']);verify(archive)
+        print(json.dumps(dict(status=result['status'],archive=str(archive.relative_to(ROOT)),runs=result['runs']),indent=2))
+        return 0 if result['status']=='PASS' else 2
+    except Exception as exc:
+        print('Checkpoint diagnostic failed: '+type(exc).__name__,file=sys.stderr)
+        return 1
+
+
+if __name__=='__main__':raise SystemExit(main())

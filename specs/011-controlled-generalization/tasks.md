@@ -20,7 +20,13 @@ or nonfinite scheduler content. No model state deserialization or HIP execution.
 
 ### Phase C/D — one CPU diagnostic and future failure capture
 
-- [ ] T156 Provide a stdlib-only checkpoint diagnostic ZIP command and integrate its public aggregates into future wrapper reports/recovery. Preserve original files and failure status. Record the six-hour timeout, observed checkpoint overhead and missing evidence needed before a safe continuation; test, commit and push each group without HIP or CI waits.
+- [X] T156 Provide a stdlib-only checkpoint diagnostic ZIP command and integrate its public aggregates into future wrapper reports/recovery. Preserve original files and failure status. Record the six-hour timeout, observed checkpoint overhead and missing evidence needed before a safe continuation; test, commit and push each group without HIP or CI waits.
+
+T156 validation: 59 checkpoint/report/controller tests passed, including automatic
+failure capture, scalar-only ZIP export and fail-closed corrupt/missing states.
+Host help runs under python -S; production source and CI bindings stay unchanged.
+No HIP execution, image rebuild or CI wait. This diagnostic does not repair the
+identified learner deadline or checkpoint overhead defects.
 
 Recovery decision is blocked on the original checkpoint contents, omitted from the
 uploaded report. Do not restart from the original pre-learning parent: a research

@@ -143,6 +143,14 @@ def diagnostics(root,destination):
             files.append(dict(source='source-feasibility',status='PROJECTED',artifact=reference(target,destination)))
     except (OSError,ValueError,KeyError,TypeError) as exc:
         files.append(dict(source='source-feasibility',status='OMITTED',reason=type(exc).__name__))
+    try:
+        from fresh_pilot_checkpoint import collect
+        summary=collect(root)
+        if summary['runs']:
+            target=destination/'checkpoint-summary.json';write(target,summary);used+=target.stat().st_size
+            files.append(dict(source='original-learner-checkpoints',status='PROJECTED',artifact=reference(target,destination)))
+    except (OSError,ValueError,KeyError,TypeError) as exc:
+        files.append(dict(source='original-learner-checkpoints',status='OMITTED',reason=type(exc).__name__))
     for parent,dirs,names in os.walk(root,followlinks=False):
         dirs[:]=sorted(d for d in dirs if d not in skip and not (Path(parent)/d).is_symlink())
         entries+=len(dirs)+len(names)

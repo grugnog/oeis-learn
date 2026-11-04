@@ -312,3 +312,49 @@ that already-run canonical fixture deselected. Fresh/resumed controller tests
 check projected manifest routing and no smoke/learner launch after a failed peak
 plan. Host dry-run under python -S and28 Bash blocks pass. Production source and
 CI disposition identities remain unchanged. No local HIP or CI wait.
+
+
+## Six-hour learner timeout and saved-state diagnostic (T155–T156)
+
+`report(2).zip` verifies with SHA256
+`d7013ba7cc34fa262271523a4ff253a2bc652bff280f988c009462cd322a3a97`.
+Run `fresh-p1-continued-20261103T151303Z` reused preparation, passed paired smoke
+in477.8s and full canonical runtime validation in918.9s. The storage repair held:
+validation peak was7,607,547,854bytes and free space remained about650GiB.
+The static learner was externally killed after21570.7s; its entire canonical
+train command took22500.1s including validation. Cleanup acknowledged in1.22s.
+No refreshed learner or scientific generation/scoring ran; all3584 outcomes are
+unresolved. This archive has integrity PASS, selected scope FAIL and scientific
+status INCONCLUSIVE.
+
+Code audit confirms that learner role computation currently lacks the separate
+process-exit allowance used by preparation/generation. The update loop may spend
+its entire remaining allowance on updates and checkpoint saves before final roster
+publication. It can overrun at an update/save boundary, meeting the external kill.
+This defect is not fixed by the storage projection or by metadata collection.
+
+The retained early log sample contains10 complete update pairs (median0.339s)
+and19 save pairs (median3.702s). Two full-state saves surround each update; each
+serializes/hashes state, and retention re-verifies pinned blobs. Existing hardlink
+deduplication avoids some physical copies but not serialization/hash work. Logs stop
+emitting phase events after128, so this sample cannot establish whole-run throughput.
+Checkpoint overhead and terminal reserves need review before another full run.
+
+The canonical receipt lists initial and later complete generations plus an
+incomplete generation. It omits private state contents, so the exact latest pointer,
+committed/reserved tokens, update count and stored learner clock are unknown here.
+Do not rerun the pre-learning continuation command and silently reset exposure.
+Preserve the151303Z run and original035534Z preparation parent.
+
+`fresh_pilot_checkpoint.py` is a stdlib-only, read-only CPU diagnostic. It verifies
+published latest/pins and all their blobs against the original command inventory,
+streams hashes, rejects symlinks/drift, and exports scalar accounting only. It
+never deserializes weights/optimizer/RNG; scheduler decoding rejects globals and
+persistent references. Its ZIP is diagnostic evidence, not resume authorization.
+Future report/recovery exports collect the same aggregates automatically.
+
+Local validation: eight policy counterexamples passed, followed by59 diagnostic,
+controller and report tests. Host help works under python -S. Qualified production
+source and CI bindings remain unchanged. No HIP, image build or CI wait. Recovery
+selection remains blocked on the original private checkpoint evidence; the next
+operator action is the CPU command in the quickstart, not another full run.

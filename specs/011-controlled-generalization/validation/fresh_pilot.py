@@ -398,7 +398,7 @@ def run(args):
                 public=root/'public'
                 extra.append((root/'workflow.json','fresh/workflow.json'))
                 extra.extend(diagnostics(root,root/'diagnostics'))
-                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py','fresh_pilot_storage.py'):
+                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py','fresh_pilot_storage.py','fresh_pilot_checkpoint.py'):
                     extra.append((HERE/name,'fresh/helper-'+name+'.txt'))
                 evidence=assemble_public(public,study=study,plan=plan,targets=targets,scored=scored,stages=stages,
                     qualified=qualified,selection=dict(policy='frozen latest available, partial exposure descriptive only',

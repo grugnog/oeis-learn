@@ -60,3 +60,39 @@ def test_scheduler_rejects_executable_pickle_and_nonfinite_values(tmp_path):
         buf=io.BytesIO()
         with zipfile.ZipFile(buf,'w') as z:z.writestr('archive/data.pkl',pickle.dumps(value))
         with pytest.raises(ValueError):m.scheduler_seconds(buf.getvalue())
+
+
+def test_cli_packages_only_aggregates_and_preserves_original(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.bundle import verify
+    run=tmp_path/'pilot';fixture(run,True)
+    monkeypatch.setattr(m,'ROOT',tmp_path)
+    assert m.main(['--run','pilot','--output','metadata'])==0
+    archive=tmp_path/'metadata.zip'
+    assert verify(archive)['summary_state']=='PASS'
+    with zipfile.ZipFile(archive) as z:
+        assert set(z.namelist())=={'summary.json','checkpoints.json','manifest.json'}
+        assert not any(word in b''.join(z.read(n) for n in z.namelist()) for word in [b'PRIVATE',b'pickle',b'PARTIAL'])
+    assert m.collect(run)['runs'][0]['checkpoint']['committed_tokens']==1000
+    assert m.main(['--run','pilot','--output','pilot/metadata'])!=0
+
+
+def test_automatic_failure_export_includes_checkpoint_accounting(tmp_path):
+    import fresh_pilot_report as reports
+    run=tmp_path/'pilot';fixture(run)
+    files=reports.diagnostics(run,run/'diagnostics')
+    checkpoint=[p for p,name in files if name.endswith('checkpoint-summary.json')]
+    assert len(checkpoint)==1
+    summary=json.loads(checkpoint[0].read_text())
+    assert summary['runs'][0]['checkpoint']['original_status']=='FAIL'
+    assert summary['runs'][0]['checkpoint']['updates']==2
+
+
+def test_no_checkpoint_or_corruption_cannot_report_verified(tmp_path,monkeypatch):
+    run=tmp_path/'pilot';run.mkdir()
+    assert m.collect(run)['status']=='BLOCKED'
+    _,_,folder,_=fixture(run);(folder/'weights.pt').write_bytes(b'bad')
+    result=m.collect(run)
+    assert result['status']=='BLOCKED' and result['runs'][0]['status']=='UNVERIFIED'
+    assert set(result['runs'][0])=={'arm','command_path','status','error_type'}
+    monkeypatch.setattr(m,'ROOT',tmp_path)
+    assert m.main(['--run','pilot','--output','invalid'])!=0

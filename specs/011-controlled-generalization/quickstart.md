@@ -1155,3 +1155,30 @@ From the repository root:
 Keep the original prepared parent unchanged. Share the final `report.zip` and
 `verified.zip`, or `recovery.zip` if canonical reporting cannot complete. The
 readiness note records the exact uploaded report identity and observed failure.
+
+
+### Inspect saved work after the six-hour learner timeout (T155–T156)
+
+The151303Z continuation launched the static learner and saved checkpoints before
+its external deadline. Do not repeat the previous pre-learning command: preserve
+this run and obtain its saved exposure/time metadata first. This command uses only
+host Python, hashes the latest/pinned checkpoint files, and emits a small ZIP. It
+does not use HIP, load tensor/optimizer state, change originals or authorize resume.
+Expect disk-reading time for several GiB, rather than another training run.
+
+```bash
+(
+  set -euo pipefail
+  git switch 011-controlled-generalization
+  git pull --ff-only origin 011-controlled-generalization
+
+  python3 specs/011-controlled-generalization/validation/fresh_pilot_checkpoint.py \
+    --run run-state/generalization/fresh-p1-continued-20261103T151303Z \
+    --output "run-state/generalization/checkpoint-audit-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+Share the printed archive path. Diagnostic PASS means the saved files/accounting
+verified, not that the failed research completed. Exact committed versus pending
+exposure and elapsed learner time determine the safe continuation; finalization
+reserves and checkpoint serialization overhead remain follow-up work.
