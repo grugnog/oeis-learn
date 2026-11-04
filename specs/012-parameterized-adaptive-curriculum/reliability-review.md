@@ -6,6 +6,12 @@ between established failure, plausible mechanism and missing evidence. Every row
 must have an implementation/test owner in tasks before the next HIP handoff.
 B/C denote the critical phases in [plan.md](plan.md); D owns combined local gates.
 
+The [task ownership matrix](tasks.md#reliability-ownership-before-hardware) maps
+all 14 original classes and four added policy risks to implementation tasks,
+counterexamples, evidence and recovery. These are planned owners, not passing
+results. T064 must reconcile actual local checks before handoff; actual HIP proof
+remains in T068–T072.
+
 | Failure class and source | Prevention / owner | Required regression or injection | Exported evidence and recovery |
 | --- | --- | --- | --- |
 | Engine identity and qualification/production environment mismatch ([audit](../011-controlled-generalization/validation/hip-failure-audit.md), T107) | C: canonical engine inspection and shared `container_runtime.private_runtime_environment`; compare actual role commands, mounts, threads, scratch | Docker and Podman command construction for every new role; mismatched engine/image/source rejected before work | Requested/observed engine and policy identities; requalify only incompatible closure |

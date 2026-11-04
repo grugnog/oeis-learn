@@ -1,6 +1,6 @@
 # Validation guide and later operator handoff
 
-Status: specification and plan only. The proposed PAC wrapper and recipe are not
+Status: specification, plan and [task breakdown](tasks.md) complete. The proposed PAC wrapper and recipe are not
 implemented. Do not reuse the old failed 256-task prospective command as a 012 run.
 No HIP command is ready in this document; phase D will publish and validate it.
 
@@ -10,7 +10,7 @@ From the repository root:
 
 ```sh
 SPECIFY_FEATURE_DIRECTORY=specs/012-parameterized-adaptive-curriculum \
-  bash .specify/scripts/bash/check-prerequisites.sh --json --require-spec
+  bash .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks
 python3 -S scripts/foundation_run.py --help
 python3 -S scripts/generalization_inputs.py --help
 git diff --check
@@ -18,8 +18,8 @@ git diff --check
 
 Expected: the 012 spec/plan and design artifacts resolve; both existing host entrypoints
 show help without third-party host dependencies. These checks validate planning
-and entrypoints, not PAC behavior or hardware readiness. `tasks.md` is intentionally
-absent until the tasks workflow.
+and entrypoints, not PAC behavior or hardware readiness. All 74 tasks remain open;
+implementation starts with phase A and actual operator validation is phase E.
 
 ## Required original workstation inputs
 
