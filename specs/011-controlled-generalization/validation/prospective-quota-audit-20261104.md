@@ -1,7 +1,8 @@
 # Prospective quota audit and proposed scope amendment
 
-Status: T176 evidence reconciled. Proposed amendment below is **not applied**;
-the existing256-row run command still fails closed. Do not repeat it unchanged.
+Status: T176 evidence reconciled; structural-only scope accepted by the operator
+on2026-11-04. See the [implementation plan](structural-comparison-plan.md).
+The amendment is not yet implemented; do not repeat the old256-row command.
 
 ## Original evidence
 
@@ -59,7 +60,7 @@ across12 shards, but their coefficients are neither necessarily uniform after
 exclusion/selection nor independent. Do not infer complete2,049-value coverage
 from that count. No assessment payload was read in this analysis.
 
-## Recommended next comparison (requires a scope decision)
+## Accepted next comparison (implementation pending)
 
 Run the existing primary **structural** comparison independently of parameter
 cohort feasibility:128 rows across27 unchanged families, comprising68 certified,
@@ -96,4 +97,5 @@ Validation:62 prospective policy/controller tests passed, including the15 new
 independent-formula collision cases. Archive verification and diff checks passed.
 
 No scientific policy, production source, images, seeds or budgets changed in this
-audit. The implementation decision remains open; no HIP was run or requested.
+audit. The structural scope is now accepted; no implementation or HIP execution is
+claimed by this audit.

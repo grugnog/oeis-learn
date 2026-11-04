@@ -1,15 +1,15 @@
 # Validation and first-pilot guide
 
-## Current next step: choose the fresh evaluation scope
+## Current next step: implement the accepted structural-only comparison
 
-The read-only diagnostic export has been received and verified. Five parameter
-families have zero surviving candidates, leaving25 required tasks unfilled. Do not
-repeat the full run or diagnostic-export command. The [quota audit and proposed
-amendment](validation/prospective-quota-audit-20261104.md) recommend preserving the
-128-task structural primary comparison and explicitly deferring the parameter
-secondary comparison. This scope change has not been applied. T175/T176 are
-complete; T174 remains incomplete. Keep the failed run's compatible qualification
-and original inputs. No new HIP run or assessment scoring is requested yet.
+The operator accepted structural-only evaluation on2026-11-04. Follow the
+[implementation and training decision plan](validation/structural-comparison-plan.md).
+The next comparison uses retained weights on128 structural tasks and explicitly
+defers parameter evaluation. The current runner still assumes both strata; do not
+run its previous command yet. Keep the compatible qualification and all original
+exclusion inputs. Parameterized-target P3 is the next training direction; reuse a provably matched
+existing literal checkpoint as control where possible. No retraining is needed
+merely to establish the retained baseline.
 
 ## Historical completed full pilot with hourly snapshots (2026-11-04)
 

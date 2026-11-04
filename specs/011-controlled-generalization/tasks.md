@@ -8,6 +8,19 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Accepted structural-only comparison — implementation pending
+
+Plan: [validation/structural-comparison-plan.md](validation/structural-comparison-plan.md).
+Operator accepted this scope on2026-11-04; several hours of later training are
+available. The immediate comparison reuses retained checkpoints.
+
+- [ ] T177 [Phase B] Write counterexamples and implement explicit structural-only design/admission/summary scope: preserve2,288 draws,27-family/128-task allocation and all exclusions; bind a new design, defer parameter endpoint and gate primary completion only on certified structural tasks. Keep old design reproducible.
+- [ ] T178 [Phase C] Thread declared scope through temporary publication/controller/export; adapt existing independent audit/case-review functions to the prospective archive without weakening the historical256-task guard. Retain original qualification reuse and bounded failure evidence.
+- [ ] T179 [Phase D] Run affected tests and CLI checks, verify production closure, commit/push each grouping and provide one consolidated structural preparation/evaluation/export command with honest limits and runtime estimates. Do not wait for CI.
+- [ ] T180 [Operator] Run structural admission and both retained evaluations, reconcile the archive and inspect passing/failing before/after outputs. Record T174's replacement scope explicitly; report this as selection evidence, not unseen confirmation.
+
+- [ ] T181 [Planning gate before research handoff] Audit exact retained static-control reuse for a parameterized-target P3 arm: initialization, concrete data/order, model/optimizer, token budget and provenance. Freeze the P3 comparison before baseline outcomes and define remaining implementation tasks; do not claim the retained-only wrapper already trains P3 or silently substitute an unmatched control.
+
 ## Phase C/D — prospective preparation failure evidence (2026-11-04)
 
 - [X] T175 Reproduce/fix qualified-export path rejection, preserve the original failure alongside packaging failures, capture the prospective preparation layout's quota/progress ledgers and bounded family availability counts, and add a read-only existing-run export. Keep source/qualification identity, seed, reservoir, quotas, exclusions and inference budgets unchanged. Test the real archive packer with pinned build paths and failed preparation; gate any scientific design change or another HIP run on the missing original ledger evidence.
@@ -16,7 +29,7 @@ T175 validation:166 affected tests passed, including the real qualified archive 
 
 - [X] T176 Operator evidence: export the existing `observable-eval-20261104T193226Z` preparation quota ledger with the read-only diagnostic command; reconcile deficient families before choosing a frozen cohort amendment or resuming T174. No hardware run is required for this evidence retrieval.
 
-T176 evidence: verified `report(6).zip` and reconciled five completely unfilled parameter-family quotas (25 tasks). All62 prospective tests passed. Fifteen source-only synthetic counterexamples verify the low-support branch collision mechanism; they do not prove exhaustive original support saturation. See [the audit and explicit proposed scope amendment](validation/prospective-quota-audit-20261104.md). The exact256-row design remains unchanged pending the scientific scope decision; T174 remains incomplete.
+T176 evidence: verified `report(6).zip` and reconciled five completely unfilled parameter-family quotas (25 tasks). All62 prospective tests passed. Fifteen source-only synthetic counterexamples verify the low-support branch collision mechanism; they do not prove exhaustive original support saturation. See [the audit and explicit proposed scope amendment](validation/prospective-quota-audit-20261104.md). The historical256-row design remains reproducible; structural-only scope is accepted for T177–T180. T174 remains incomplete.
 
 ## Prospective retained-checkpoint evaluation — 2026-11-04 UTC
 

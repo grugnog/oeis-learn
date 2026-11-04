@@ -1,10 +1,10 @@
 # Prospective retained-checkpoint evaluation — 2026-11-04
 
-Status: T171–T173 implemented; T174 completed qualification but failed parameter
-cohort admission. T175/T176 recovered and audited the evidence. The
-[proposed structural-only amendment](prospective-quota-audit-20261104.md) awaits a
-scientific scope decision. The original plan below is retained unchanged; do not
-repeat its hardware command yet.
+Status: structural-only scope accepted by the operator on2026-11-04. Follow the
+[structural comparison implementation plan](structural-comparison-plan.md).
+T174 completed qualification but failed the old parameter cohort. T175/T176
+recovered and audited that evidence. The original256-row plan below is historical;
+the scoped implementation is pending, so do not repeat its old command.
 
 The operator requested continuation through the next hardware handoff. Reuse both
 completed hourly-pilot latest checkpoints; do not retrain. This is a new selection
