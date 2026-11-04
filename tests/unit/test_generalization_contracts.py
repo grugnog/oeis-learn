@@ -50,3 +50,38 @@ def test_p4_cannot_freeze_random_initialization_without_common_retained_authorit
     assert study['model']['initialization']=='random'
     with pytest.raises(ValueError,match='initializer|initialization'):
         freeze('study',study)
+
+
+def pac_shell():
+    from oeis_learn.pipeline_validation.identity import digest
+    h=digest('fixture')
+    return dict(version='PAC-screen/v1',arms=['B','C'],comparison_factors=['allocation_and_review'],seed=20261016,
+                initializer=h,initializer_kind='random',pool=h,probes=h,targets=h,inventory=h,
+                policy='pac-exp3s-leitner/v1',budget_graph=[],metrics=['certified_family_macro'],
+                control=h,control_mode='reference-only',frozen=True,outcomes_seen=False,
+                target_tokens=25_000_000,model=h,optimizer=h,backend=h,order=h,source=h)
+
+
+def test_pac_closed_shell_and_unknown_version():
+    from oeis_learn.generalization.contracts import pac_record,pac_public
+    raw=pac_shell();frozen=pac_record('experiment',raw,sealed=False)
+    assert pac_public('experiment',frozen.record())==frozen.record()
+    for extra in ({'hidden_terms':[]},{'version':'PAC-screen/v2'},{'policy':'visit-scheduler/v1'}):
+        with pytest.raises(ValueError):pac_record('experiment',dict(raw,**extra),sealed=False)
+    with pytest.raises(ValueError):pac_record('adaptive',dict(version='visit-scheduler/v1'),sealed=False)
+    with pytest.raises(ValueError):pac_record('unregistered',raw,sealed=False)
+    changed=frozen.record();changed['seed']+=1
+    with pytest.raises(ValueError):pac_record('experiment',changed)
+
+
+def test_all_pac_object_shapes_are_closed():
+    schema=json.loads(Path('src/oeis_learn/generalization/schemas/pac.schema.json').read_text())
+    def walk(node):
+        if isinstance(node,dict):
+            if node.get('type')=='object':
+                assert node['additionalProperties'] is False
+                assert set(node['required'])==set(node['properties'])
+            for value in node.values():walk(value)
+        elif isinstance(node,list):
+            for value in node:walk(value)
+    walk(schema)
