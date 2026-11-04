@@ -8,8 +8,14 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .container_runtime import private_runtime_environment
+from .pipeline_validation.generalization_execution import startup_environment as generalization_environment
+from .pipeline_validation.generalization_execution import POLICY_ID as GENERALIZATION_EXECUTION
 from .fresh.common import digest, file_hash, lock, read, write
 from contextlib import nullcontext
+
+# Checkpoint fixtures must not occupy the small container /tmp tmpfs. Retain
+# failed fixtures for diagnosis, but release passed-test scratch during the suite.
+PYTEST_SCRATCH_ARGS = ("--basetemp=/work/output/.runtime/pytest", "-o", "tmp_path_retention_policy=failed")
 
 ROOT = Path(__file__).resolve().parents[2]
 CPU_NODES = sorted(
@@ -46,7 +52,10 @@ GPU_NODES = [
 ]
 
 
-def _stages(host, suite, output, *, external_seconds=None):
+def _stages(host, suite, output, *, external_seconds=None,generalization_policy=None):
+    # bigint-gpu includes the installed prospective resume test. Generic/historical
+    # GPU qualification and historical model commands retain their defaults.
+    if generalization_policy is None:generalization_policy=suite=='bigint-gpu'
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     invocation_started = time.monotonic()
@@ -88,7 +97,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                 *([] if gpu else ["-m", "not gpu and not docker"]),
                 "-o",
                 "cache_dir=/work/output/.runtime/cache/pytest",
-                "--basetemp=/work/output/pytest",
+                *PYTEST_SCRATCH_ARGS,
                 "--junitxml=/work/output/results.xml",
             ],
         ),
@@ -115,6 +124,8 @@ def _stages(host, suite, output, *, external_seconds=None):
             if p.name != "test_bigint_gpu.py"
         ]
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
+        bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','contract','integration')
+                       for p in sorted((ROOT/'tests'/area).glob('test_generalization_*.py'))]
         bigint_cpu += [
             "tests/unit/test_pilot_followup.py",
             "tests/unit/test_pilot_followup_host.py",
@@ -129,6 +140,7 @@ def _stages(host, suite, output, *, external_seconds=None):
         nodes = (
             [
                 "tests/integration/test_bigint_gpu.py",
+                "tests/integration/test_generalization_gpu.py::test_generalization_device_load_and_finite_update",
                 "tests/integration/test_bigint_workflow.py::test_integrated_device_checkpoint_update[cuda]",
                 "tests/unit/test_bigint_soak.py::test_engineering_uses_actual_trainer_and_checkpoint[cuda]",
                 "tests/unit/test_pipeline_pilot_runtime.py::test_token_weighting_masks_padding_and_keeps_exact_match_distinct[cuda]",
@@ -166,7 +178,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     *([] if gpu else ["-m", "not gpu"]),
                     "-p",
                     "no:cacheprovider",
-                    "--basetemp=/tmp/bigint-pytest",
+                    *PYTEST_SCRATCH_ARGS,
                     "--junitxml=/work/output/results.xml",
                 ],
             ),
@@ -192,7 +204,7 @@ def _stages(host, suite, output, *, external_seconds=None):
         stages = [
             ("installed-audit", ["python", "-I", "-m", "oeis_learn.synthesis.retirement", "--installed", "--output", "/work/output/audit.json"]),
             ("bigint-retirement-regressions", ["python", "-m", "pytest", "-q", *nodes,
-                "-m", "not gpu and not docker", "-p", "no:cacheprovider", "--basetemp=/tmp/retirement-pytest",
+                "-m", "not gpu and not docker", "-p", "no:cacheprovider", *PYTEST_SCRATCH_ARGS,
                 "--junitxml=/work/output/results.xml"]),
         ]
     results = {}
@@ -208,6 +220,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                 "argv": argv,
                 "runtime": host.policy["runtime"],
                 "observed_environment": results.get("environment", {}).get("files"),
+                **({'generalization_execution':GENERALIZATION_EXECUTION} if generalization_policy and gpu else {}),
             }
         )
         if receipt.exists() and not (gpu and name == "environment"):
@@ -245,6 +258,7 @@ def _stages(host, suite, output, *, external_seconds=None):
             },
             environment={
                 **private_runtime_environment(out),
+                **(generalization_environment() if generalization_policy and gpu else {}),
                 "PYTHONPATH": "/opt/oeis-build/src",
                 "OMP_NUM_THREADS": "2" if external_seconds is not None else str(host.policy["cpus"]),
                 **({'MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','RAYON_NUM_THREADS':'1'} if external_seconds is not None else {}),
@@ -253,6 +267,7 @@ def _stages(host, suite, output, *, external_seconds=None):
                     {
                         "OEIS_REQUIRE_BIGINT_BUILD": "1",
                         "OEIS_REQUIRE_BIGINT_GPU": "1" if gpu else "0",
+                        **({"OEIS_GENERALIZATION_DEVICE_EVIDENCE":"/work/output/generalization-device.json"} if gpu else {}),
                     }
                     if suite.startswith("bigint-")
                     else {}
@@ -407,9 +422,11 @@ def validate(host, suite, output):
 
 def inspect_current_image(host, image, output, *, seconds=600):
     """Compare every installed package byte and packaged build snapshot before reuse."""
-    from .pipeline_validation.supervision import launch, reclaim
+    from .pipeline_validation.supervision import launch, reclaim, diagnostic_program
     from .pipeline_validation.identity import write as public_write
     from .experiments.source_snapshot import collect_snapshot
+    cleanup_seconds=30
+    if seconds<=cleanup_seconds:raise ValueError('image inspection must reserve execution and cleanup time')
     output = Path(output)
     output.mkdir(parents=True)
     inputs = output / 'inputs'
@@ -418,22 +435,26 @@ def inspect_current_image(host, image, output, *, seconds=600):
     name = 'oeis-package-inspect-' + uuid.uuid4().hex
     code = (
         "import json; from pathlib import Path; "
+        "print(f'inspection: source-snapshot unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "from oeis_learn.experiments.source_snapshot import source_snapshot; "
         "expected=json.loads(Path('/work/input/expected.json').read_text()); "
         "actual=source_snapshot(); assert actual==expected, 'current installed package/source mismatch'; "
+        "print(f'inspection: packaged-artifacts unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "from oeis_learn.fresh.bigint_config import packaged_artifacts; "
         "from oeis_learn.fresh.common import file_hash; "
         "artifacts=packaged_artifacts(); "
         "assert file_hash('/opt/oeis-build-info/bigint-dependency-smoke.wasm')==artifacts['guest_sha256'], 'changed packaged guest'; "
+        "print(f'inspection: complete unix={time.time():.6f}',file=sys.stderr,flush=True); "
         "print(json.dumps(dict(source=actual,artifacts=artifacts),sort_keys=True))"
     )
     command = host.engine.command(image=image, name=name,
         mounts=[(inputs, '/work/input', False), (output, '/work/output', True)],
-        argv=['python','-c',code], auto_remove=False, gpu=False,
+        argv=['python','-u','-c',diagnostic_program(code,'inspection')], auto_remove=False, gpu=False, startup_diagnostics=True,
         memory_bytes=min(host.policy['memory_bytes'], 2 << 30), cpus=host.policy['cpus'],
         workdir='/tmp', environment=private_runtime_environment(output))
-    cleanup_state={}
+    cleanup_state={'allowance_seconds':cleanup_seconds}
     try:
-        launch(command, output / 'logs', seconds=seconds,stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
+        launch(command, output / 'logs', seconds=seconds-cleanup_seconds,cleanup_seconds=cleanup_seconds,
+               stream_cap=host.policy.get('pipeline_budgets',{}).get('stream_bytes',8<<20),cleanup_state=cleanup_state,grace_seconds=.25)
     finally:
         reclaim(host.engine,name,output,cleanup_state)

@@ -1,0 +1,60 @@
+{
+  "advance_feedback": "selection_only",
+  "arms": [
+    "static",
+    "refreshed"
+  ],
+  "assessment_role": "sealed_assessment",
+  "automatic_run_authorized": false,
+  "changing_factors": [
+    "refresh"
+  ],
+  "confirmation_seeds": [
+    20261016,
+    20261017,
+    20261018
+  ],
+  "fixed_training_examples": 32768,
+  "fresh_assessment_if_adaptive": true,
+  "identity": "sha256:a2b4cc82e2fe71c78488cdedf53f632e867613383f3f4f02b885438385734814",
+  "inference": {
+    "attempts": 8,
+    "seconds": 60,
+    "total_terms": 100,
+    "visible_terms": 20
+  },
+  "missing_seed16": "report_missing_never_fabricate",
+  "policy": {
+    "changing_factor": "refresh",
+    "learner_seconds": 21600,
+    "milestones": [
+      4000000,
+      8000000,
+      16000000,
+      25000000
+    ],
+    "seeds": [
+      20261016,
+      20261017,
+      20261018
+    ],
+    "stage": "P1-confirm",
+    "tokens": 25000000
+  },
+  "preparation_required": [
+    "source_closure",
+    "descriptor_roster",
+    "numeric_law",
+    "exact_coverage_quotas",
+    "role_manifests",
+    "selection_cohort",
+    "assessment_cohort",
+    "qualified_runtime"
+  ],
+  "replay": false,
+  "replay_limits": null,
+  "selection_role": "selection_supervision",
+  "status": "PREPARATION_REQUIRED",
+  "target_format": "literal",
+  "version": "generalization-recipe-template/v1"
+}

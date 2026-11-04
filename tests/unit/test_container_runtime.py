@@ -9,6 +9,19 @@ IMAGE = "sha256:" + "a" * 64
 
 
 @pytest.mark.parametrize("name", ["docker", "podman"])
+def test_startup_diagnostics_preserve_command_and_containment(name):
+    engine = Engine(name, executable=name, details={})
+    options = dict(image=IMAGE, name="diagnostic", mounts=[], argv=["python", "-c", "pass"])
+    ordinary = engine.command(**options)
+    diagnostic = engine.command(**options, startup_diagnostics=True)
+    if name == "podman":
+        assert diagnostic[:3] == ["podman", "--log-level=debug", "run"]
+        assert diagnostic[:1] + diagnostic[2:] == ordinary
+    else:
+        assert diagnostic == ordinary
+
+
+@pytest.mark.parametrize("name", ["docker", "podman"])
 def test_role_bounds_and_mounts_are_portable(tmp_path, name):
     source, output = tmp_path / "inputs", tmp_path / "output"
     source.mkdir()
@@ -108,3 +121,13 @@ def test_cleanup_filters_exact_run_and_attempts_all_reclamations():
             engine.cleanup("token")
     assert "label=oeis.run=token" in call.call_args.args[0]
     assert remove.call_count == 2
+
+
+def test_runtime_environment_uses_explicit_mount_and_rejects_escape(tmp_path):
+    from oeis_learn.container_runtime import private_runtime_environment
+    assert private_runtime_environment(tmp_path)['HOME']=='/work/output/.runtime/home'
+    assert private_runtime_environment(tmp_path,destination='/output/learner')['TMPDIR']=='/output/learner/.runtime/tmp'
+    for destination in ('relative','/output/../inputs','/'):
+        with pytest.raises(ValueError):private_runtime_environment(tmp_path,destination=destination)
+    (tmp_path/'.runtime/tmp').rmdir();(tmp_path/'.runtime/tmp').symlink_to(tmp_path)
+    with pytest.raises(ValueError,match='symlink'):private_runtime_environment(tmp_path)

@@ -98,3 +98,42 @@ python3 scripts/foundation_run.py --engine podman validate \
 See [the Phase 4 evidence](specs/008-bigint-constant-synthesis/validation/phase-4.md)
 for the current pass/pending gates. Retirement is not permission to launch a
 research screen or change a checkpoint's profile.
+
+### Controlled generalization
+
+The `011-controlled-generalization` feature exposes `generalization preflight`,
+`qualify`, `prepare`, `evaluate`, `train`, `replay`, `acceptance`, `report` and
+`verify-bundle` through the portable host CLI. Frozen study/runtime inputs bind
+role-specific files, model/image identities, budgets and original qualification.
+Training supports complete resume and selection pinning; evaluation can publish a
+verified literal initializer for subsequent pilots. Replay runs paired continued
+SFT/current-policy evaluation with separate discovery accounting.
+
+The [command guide](specs/011-controlled-generalization/quickstart.md) describes the
+sealed runtime and four-input acceptance session. The serial helper runs five
+bounded cases, reuses verified original producers, preserves failure and writes a
+verified complete/partial archive. Research reports consume an explicit reconciled
+public evidence inventory. Opt-in `pilot-followup --arms uniform --qualification`
+preserves historical defaults.
+
+CPU/reference and fixture integration tests pass. Pinned-container/native and
+actual HIP acceptance remain unexecuted here; this is not hardware qualification
+or a new research result. See the [implementation audit](specs/011-controlled-generalization/checklists/implementation.md).
+After acceptance, the operator-authorized research order is E0 evaluation, P0
+uniform replication, then P1 static/refresh; P2/P3/P4 use separately frozen studies.
+
+Generalization input assembly is available without an engine or host packages:
+`python3 scripts/generalization_inputs.py --help`. It verifies legacy uniform
+best/latest weights as explicitly weights-only, assembles frozen study/runtime
+inputs and binds the four-case serial session. See
+[the input guide](specs/011-controlled-generalization/quickstart.md).
+Example blueprints contain unresolved paths and image IDs; assembly does not create
+P4 initializer evidence or establish native/container/HIP qualification.
+
+For the imported uniform run, `generalization_inputs.py acceptance` inspects the
+two explicitly built image tags and constructs the reduced inputs and session.
+The same serial acceptance invocation evaluates retained weights, publishes a
+new selection-based initializer and resolves replay/resume. No bootstrap training
+run or handwritten initializer receipt is needed. Its deterministic replay
+diagnostic is labeled as software evidence, with zero model discoveries; it is
+forbidden in research mode. Follow the command guide above.

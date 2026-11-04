@@ -49,3 +49,55 @@ class DiskBounds(unittest.TestCase):
             with DiskWatchdog(root,root/'stage',cap=1<<20,free_reserve=0):
                 (root/'public.json').write_text('{}')
             self.assertTrue((root/'stage/disk.json').is_file())
+
+
+def test_late_monitor_cannot_signal_successor_or_restored_handler(tmp_path,monkeypatch):
+    import signal,threading
+    import pytest
+    from oeis_learn.pipeline_validation import disk
+    entered=threading.Event();release=threading.Event();sent=[]
+    class Slow(DiskWatchdog):
+        def check(self):
+            if threading.current_thread() is not threading.main_thread():
+                entered.set();release.wait(5);raise ResourceBreach('late breach')
+    monkeypatch.setattr(disk,'POLL_SECONDS',.01,raising=False)
+    monkeypatch.setattr(disk,'JOIN_SECONDS',.02,raising=False)
+    monkeypatch.setattr(signal,'pthread_kill',lambda *args:sent.append(args))
+    monkeypatch.setattr(disk.os,'kill',lambda *args:sent.append(args))
+    prior=signal.getsignal(signal.SIGUSR1)
+    guard=Slow(tmp_path,tmp_path/'old',free_reserve=0)
+    guard.__enter__();assert entered.wait(2)
+    try:
+        with pytest.raises(ResourceBreach,match='accounting did not stop'):
+            guard.__exit__(None,None,None)
+        assert signal.getsignal(signal.SIGUSR1)==prior
+        with DiskWatchdog(tmp_path,tmp_path/'new',free_reserve=0):
+            release.set();guard.thread.join(2)
+        assert not sent
+    finally:release.set();guard.thread.join(2)
+    assert signal.getsignal(signal.SIGUSR1)==prior
+
+
+def test_nested_watchdog_dispatches_actual_breached_scope(tmp_path):
+    import signal
+    import pytest
+    from oeis_learn.pipeline_validation import disk
+    prior=signal.getsignal(signal.SIGUSR1)
+    with DiskWatchdog(tmp_path,tmp_path/'outer',free_reserve=0) as outer:
+        with DiskWatchdog(tmp_path,tmp_path/'inner',free_reserve=0):
+            outer.breach='outer breach'
+            try:
+                with pytest.raises(ResourceBreach,match='outer breach'):
+                    disk._dispatch_breach(signal.SIGUSR1,None)
+            finally:outer.breach=None
+    assert signal.getsignal(signal.SIGUSR1)==prior
+
+
+def test_keyboard_interrupt_preserved_and_watchdog_restored(tmp_path):
+    import signal
+    import pytest
+    prior=signal.getsignal(signal.SIGUSR1)
+    with pytest.raises(KeyboardInterrupt):
+        with DiskWatchdog(tmp_path,tmp_path/'interrupt',free_reserve=0) as guard:
+            guard.breach='disk failure';raise KeyboardInterrupt
+    assert signal.getsignal(signal.SIGUSR1)==prior

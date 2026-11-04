@@ -1,0 +1,15 @@
+{
+  "categories": {
+    "ambiguous": 55,
+    "certified": 153,
+    "unresolved": 48
+  },
+  "elapsed_seconds": 5.631270546000451,
+  "original_mutated": false,
+  "protocol": "sha256:725d54628ef32a36a1c315143287475700c7f2b6db3e14a5d12b9e58731cf537",
+  "qualified": false,
+  "scientific_status": "UNCHANGED",
+  "selected_scope": "PASS",
+  "source_bundle": "sha256:b5c0ea49c89b62b819856054b2f4ae82672a8304a4351d18acb8a51f2f1dd494",
+  "version": "observable-diagnostic-summary/v1"
+}

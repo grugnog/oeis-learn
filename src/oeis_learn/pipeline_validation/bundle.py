@@ -10,7 +10,12 @@ EXCLUDED = {'input','inputs','private','cache','caches','.runtime','pytest','__p
 
 
 def public(path):
-    return path.suffix in {'.json','.jsonl','.xml','.log','.md','.txt','.csv','.html'} and not (set(path.parts)&EXCLUDED or path.suffix in {'.pt','.pth','.bin','.ckpt','.zip','.lock'} or 'truth' in path.name or 'weights' in path.name)
+    # Original qualification receipts bind these exact build-input paths. They
+    # must survive both direct projection and the archive's payloads/ envelope.
+    parts=path.parts[1:] if path.parts[:1]==('payloads',) else path.parts
+    pinned=(parts in {('build','Dockerfile'),('build','pyproject.toml'),('build','uv.lock')} or
+            len(parts)==4 and parts[:2]==('build','crates') and parts[-1]=='Cargo.lock')
+    return (pinned or path.suffix in {'.json','.jsonl','.xml','.log','.md','.txt','.csv','.html'}) and not (set(path.parts)&EXCLUDED or 'truth' in path.name or 'weights' in path.name)
 
 
 def pack(root, *, mandatory, cap=512<<20, optional_cap=128<<20, member_cap=None):

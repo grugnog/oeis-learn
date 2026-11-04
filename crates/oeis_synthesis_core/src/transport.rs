@@ -14,6 +14,7 @@ pub fn serve(backend:&mut dyn ExecutionBackend)->Result<(),String>{
     let resources:Resources=serde_json::from_str(&std::env::var("OEIS_SYNTHESIS_RESOURCES").map_err(|_|"missing resource profile")?).map_err(|e|e.to_string())?;
     resources.validate()?;
     let input=io::stdin();let mut input=input.lock();let output=io::stdout();let mut output=output.lock();
+    let mut context=diagnostic::DispatchContext::default();
     loop {
         let mut header=[0u8;4];
         match input.read(&mut header[..1]) {Ok(0)=>return Ok(()),Ok(_)=>(),Err(e)=>return Err(e.to_string())}
@@ -33,7 +34,7 @@ pub fn serve(backend:&mut dyn ExecutionBackend)->Result<(),String>{
             // Keep the numerical profile immutable; the supervisor owns the aggregate deadline.
             let limits=resources.clone();
             let raw=serde_json::to_vec(&json!({"request":one,"limits":limits,"evidence":candidate.evidence,"reference_sha256":reference})).map_err(|e|e.to_string())?;
-            let mut result=match diagnostic::dispatch(&raw,backend){Ok(v)=>v,Err(reason)=>json!({"outcome":"invalid_source","reason":reason,"assignments":[],"admitted":false})};
+            let mut result=match diagnostic::dispatch_with_context(&raw,backend,&mut context){Ok(v)=>v,Err(reason)=>json!({"outcome":"invalid_source","reason":reason,"assignments":[],"admitted":false})};
             result["candidate_id"]=json!(candidate.candidate_id);completed+=1;
             let unstarted:Vec<_>=request.candidates[completed..].iter().map(|c|&c.candidate_id).collect();
             send(&mut output,&json!({"protocol":VERSION,"request_id":request.request_id,"worker_generation":request.worker_generation,"contract_sha256":contract,"results":[result],"unstarted":unstarted,"complete":false}))?;

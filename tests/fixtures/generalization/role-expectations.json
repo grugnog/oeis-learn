@@ -1,0 +1,30 @@
+{
+  "assessment": [
+    "assessment_truth",
+    "frozen_assessment_authorization",
+    "frozen_assessment_candidates"
+  ],
+  "fitter": [
+    "visible_prompts",
+    "generated_candidates"
+  ],
+  "generator": [
+    "visible_prompts",
+    "frozen_weights"
+  ],
+  "learner": [
+    "training_targets",
+    "verified_training_replay"
+  ],
+  "preparation": [
+    "mechanical_sources",
+    "isolation_truth"
+  ],
+  "report": [
+    "public_evidence"
+  ],
+  "selection": [
+    "selection_supervision",
+    "selection_candidates"
+  ]
+}

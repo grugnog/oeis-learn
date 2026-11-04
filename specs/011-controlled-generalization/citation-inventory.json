@@ -1,0 +1,828 @@
+[
+  {
+    "report": "1",
+    "number": 1,
+    "label": "1. DeepCoder: Learning to Write Programs \\- OpenReview,",
+    "url": "https://openreview.net/forum?id=ByldLrqlx",
+    "primary_source_id": "deepcoder",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 2,
+    "label": "2. DEEPCODER: LEARNING TO WRITE PROGRAMS \\- OpenReview,",
+    "url": "https://openreview.net/pdf?id=ByldLrqlx",
+    "primary_source_id": "deepcoder",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 3,
+    "label": "3. DeepCoder: Learning to Write Programs,",
+    "url": "https://www.cs.columbia.edu/~suman/harry_slides.pdf",
+    "primary_source_id": "deepcoder",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 4,
+    "label": "4. Improving Neural Symbolic Regression with a Diverse Prior ... \\- arXiv,",
+    "url": "https://arxiv.org/html/2610.17994v1",
+    "primary_source_id": "diverseprior",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 5,
+    "label": "5. Scalable Neural Symbolic Regression using Control Variables \\- arXiv,",
+    "url": "https://arxiv.org/html/2306.04718v2",
+    "primary_source_id": "controlvariables",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 6,
+    "label": "6. deep symbolic regression: recovering mathematical expressions from,",
+    "url": "https://openreview.net/references/pdf?id=y3D1flpNZj",
+    "primary_source_id": "dsr",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 7,
+    "label": "7. Deep symbolic regression: Recovering mathematical expressions,",
+    "url": "https://arxiv.org/abs/1912.04871",
+    "primary_source_id": "dsr",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 8,
+    "label": "8. Deep Symbolic Regression: Recovering Mathematical Expressions,",
+    "url": "https://www.boguta.si/literature/deep-symbolic-regression",
+    "primary_source_id": "dsr",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 9,
+    "label": "9. End-to-end Symbolic Regression with Transformers,",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/42eb37cdbefd7abae0835f4b67548c39-Abstract-Conference.html",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 10,
+    "label": "10. End-to-end Symbolic Regression with Transformers,",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/42eb37cdbefd7abae0835f4b67548c39-Paper-Conference.pdf",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 11,
+    "label": "11. Pierre-Alexandre Kamienny \\| ISIR,",
+    "url": "https://www.isir.upmc.fr/personnel/kamienny/?lang=en",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "1",
+    "number": 12,
+    "label": "12. Neural Program Synthesis with a Differentiable Fixer \\- arXiv,",
+    "url": "https://arxiv.org/html/2006.10924",
+    "primary_source_id": "differentiablefixer",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 13,
+    "label": "13. Execution-Guided Neural Program Synthesis \\- OpenReview,",
+    "url": "https://openreview.net/forum?id=H1gfOiAqYm",
+    "primary_source_id": "executionguided-original",
+    "review_disposition": "U"
+  },
+  {
+    "report": "1",
+    "number": 14,
+    "label": "14. Execution-Guided Neural Program Synthesis (@ ICLR 2019),",
+    "url": "https://gpoesia.com/notes/execution-guided-neural-program-synthesis/",
+    "primary_source_id": "executionguided-original",
+    "review_disposition": "U"
+  },
+  {
+    "report": "1",
+    "number": 15,
+    "label": "15. Competition-level code generation with AlphaCode \\| Request PDF,",
+    "url": "https://www.researchgate.net/publication/366137000_Competition-level_code_generation_with_AlphaCode",
+    "primary_source_id": "alphacode",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 16,
+    "label": "16. Competition-Level Code Generation with AlphaCode \\- ar5iv \\- arXiv,",
+    "url": "https://ar5iv.labs.arxiv.org/html/2203.07814",
+    "primary_source_id": "alphacode",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 17,
+    "label": "17. Grammar-Aligned Decoding \\- arXiv,",
+    "url": "https://arxiv.org/html/2405.21047v4",
+    "primary_source_id": "grammaraligned",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 18,
+    "label": "18. Constrained Sampling for Language Models Should Be Easy \\- NIPS,",
+    "url": "https://papers.nips.cc/paper_files/paper/2025/file/5681251fa039cf49d6d11b906eded1b3-Paper-Conference.pdf",
+    "primary_source_id": "constrainedsampling",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 19,
+    "label": "19. Constrained Sampling for Language Models Should Be Easy,",
+    "url": "https://www.alphaxiv.org/abs/2506.05754",
+    "primary_source_id": "constrainedsampling",
+    "review_disposition": "M"
+  },
+  {
+    "report": "1",
+    "number": 20,
+    "label": "20. Improving Grammar Constraints Generation Alignment by Sampling,",
+    "url": "https://www.lamsade.dauphine.fr/~cazenave/papers/GBFSGS_rework.pdf",
+    "primary_source_id": "alignment",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 21,
+    "label": "21. L2G-SR: Learning to Guide LLM-based Symbolic Regression \\- arXiv,",
+    "url": "https://arxiv.org/html/2610.20685v1",
+    "primary_source_id": "l2gsr",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 22,
+    "label": "22. L2G-SR: Learning to Guide LLM-based Symbolic Regression \\- arXiv,",
+    "url": "https://arxiv.org/pdf/2610.20685",
+    "primary_source_id": "l2gsr",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 23,
+    "label": "23. vastlik/symformer \\- GitHub,",
+    "url": "https://github.com/vastlik/symformer",
+    "primary_source_id": "symformer",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 24,
+    "label": "24. End-to-end symbolic regression using transformer-based architecture,",
+    "url": "https://colab.ws/articles/10.48550%2FarXiv.2205.15764",
+    "primary_source_id": "symformer",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 25,
+    "label": "25. Symbolic regression via MDLformer-guided \\- FIB-LAB,",
+    "url": "https://fi.ee.tsinghua.edu.cn/public/publications/23c6426c-f020-11f0-b382-2aaffa21d846.pdf",
+    "primary_source_id": "mdlformer",
+    "review_disposition": "S"
+  },
+  {
+    "report": "1",
+    "number": 26,
+    "label": "26. LEARNING-AIDED PROGRAM SYNTHESIS AND VERIFICATION,",
+    "url": "https://www.cis.upenn.edu/~mhnaik/theses/xujie_si_thesis.pdf",
+    "primary_source_id": "thesis",
+    "review_disposition": "B"
+  },
+  {
+    "report": "1",
+    "number": 27,
+    "label": "27. A Psychology-Driven User Agent for Recommender Systems \\- arXiv,",
+    "url": "https://arxiv.org/html/2610.13989v1",
+    "primary_source_id": "psychology",
+    "review_disposition": "B"
+  },
+  {
+    "report": "1",
+    "number": 28,
+    "label": "28. Effective Grammar-Constrained Decoding via Reinforcement Learning,",
+    "url": "https://arxiv.org/pdf/2609.39869",
+    "primary_source_id": "grcrl",
+    "review_disposition": "S"
+  },
+  {
+    "report": "2",
+    "number": 1,
+    "label": "1. Neural Symbolic Regression that Scales,",
+    "url": "https://proceedings.mlr.press/v139/biggio21a/biggio21a.pdf",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 2,
+    "label": "2. End-to-end Symbolic Regression with Transformers,",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/42eb37cdbefd7abae0835f4b67548c39-Paper-Conference.pdf",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 3,
+    "label": "3. Deep Symbolic Regression for Recurrent Sequences \\- arXiv,",
+    "url": "https://arxiv.org/html/2201.04600v2",
+    "primary_source_id": "recurrence",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 4,
+    "label": "4. Deep Symbolic Regression for Recurrent Sequences,",
+    "url": "https://proceedings.mlr.press/v162/d-ascoli22a/d-ascoli22a.pdf",
+    "primary_source_id": "recurrence",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 5,
+    "label": "5. Neural Symbolic Regression that scales,",
+    "url": "https://proceedings.mlr.press/v139/biggio21a.html",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 6,
+    "label": "6. End-to-end Symbolic Regression with Transformers \\| OpenReview,",
+    "url": "https://openreview.net/forum?id=GoOuIrDHG_Y",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 7,
+    "label": "7. (PDF) HRFT: Mining High-Frequency Risk Factor Collections End-to,",
+    "url": "https://www.researchgate.net/publication/382867833_HRFT_Mining_High-Frequency_Risk_Factor_Collections_End-to-End_via_Transformer",
+    "primary_source_id": "hrft",
+    "review_disposition": "S"
+  },
+  {
+    "report": "2",
+    "number": 8,
+    "label": "8. HRFT: Mining High-Frequency Risk Factor Collections End-to ... \\- arXiv,",
+    "url": "https://arxiv.org/html/2408.01271v4",
+    "primary_source_id": "hrft",
+    "review_disposition": "S"
+  },
+  {
+    "report": "2",
+    "number": 9,
+    "label": "9. End-to-end symbolic regression with transformers \\[논문 퀵 리뷰\\] \\- Liner,",
+    "url": "https://liner.com/ko/review/endtoend-symbolic-regression-with-transformers",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 10,
+    "label": "10. facebookresearch/recur: symbolic regression \\- GitHub,",
+    "url": "https://github.com/facebookresearch/recur",
+    "primary_source_id": "recurrence",
+    "review_disposition": "M"
+  },
+  {
+    "report": "2",
+    "number": 11,
+    "label": "11. Hermite normal form \\- FLINT,",
+    "url": "https://flintlib.org/doc/fmpz_mat/hnf.html",
+    "primary_source_id": "flint-hnf",
+    "review_disposition": "B"
+  },
+  {
+    "report": "2",
+    "number": 12,
+    "label": "12. Hermite and Smith normal forms \\- Algorithms \\- FLINT,",
+    "url": "https://flintlib.org/doc/algorithms/linear-algebra/hermite-smith.html",
+    "primary_source_id": "flint-algorithms",
+    "review_disposition": "B"
+  },
+  {
+    "report": "2",
+    "number": 13,
+    "label": "13. Berlekamp–Massey algorithm \\- Wikipedia,",
+    "url": "https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "2",
+    "number": 14,
+    "label": "14. Berlekamp-Massey Algorithm \\-- from Wolfram MathWorld,",
+    "url": "https://mathworld.wolfram.com/Berlekamp-MasseyAlgorithm.html",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "2",
+    "number": 15,
+    "label": "15. (PDF) The Berlekamp-Massey Algorithm revisited \\- ResearchGate,",
+    "url": "https://www.researchgate.net/publication/220538005_The_Berlekamp-Massey_Algorithm_revisited",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "3",
+    "number": 1,
+    "label": "1. Neural Symbolic Regression that Scales,",
+    "url": "https://proceedings.mlr.press/v139/biggio21a/biggio21a.pdf",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 2,
+    "label": "2. Neural Symbolic Regression that scales,",
+    "url": "https://proceedings.mlr.press/v139/biggio21a.html",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 3,
+    "label": "3. \\[2106.06427\\] Neural Symbolic Regression that Scales \\- arXiv,",
+    "url": "https://arxiv.org/abs/2106.06427",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 4,
+    "label": "4. SymposiumOrganization/NeuralSymbolicRegressionThatScales,",
+    "url": "https://github.com/SymposiumOrganization/NeuralSymbolicRegressionThatScales",
+    "primary_source_id": "nesymres",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 5,
+    "label": "5. End-to-end Symbolic Regression with Transformers,",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/42eb37cdbefd7abae0835f4b67548c39-Abstract-Conference.html",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 6,
+    "label": "6. End-to-end Symbolic Regression with Transformers \\| OpenReview,",
+    "url": "https://openreview.net/forum?id=GoOuIrDHG_Y",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 7,
+    "label": "7. End-to-end Symbolic Regression with Transformers,",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/42eb37cdbefd7abae0835f4b67548c39-Paper-Conference.pdf",
+    "primary_source_id": "e2e",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 8,
+    "label": "8. Transformer-based Planning for Symbolic Regression \\- alphaXiv,",
+    "url": "https://www.alphaxiv.org/abs/2303.06833",
+    "primary_source_id": "planning",
+    "review_disposition": "S"
+  },
+  {
+    "report": "3",
+    "number": 9,
+    "label": "9. Measuring Compositional Generalization: A Comprehensive Method,",
+    "url": "https://www.researchgate.net/publication/338116058_Measuring_Compositional_Generalization_A_Comprehensive_Method_on_Realistic_Data",
+    "primary_source_id": "dbca",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 10,
+    "label": "10. MEASURING COMPOSITIONAL GENERALIZATION \\- OpenReview,",
+    "url": "https://openreview.net/pdf?id=SygcCnNKwr",
+    "primary_source_id": "dbca",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 11,
+    "label": "11. Measuring Compositional Generalization:A Comprehensive Method,",
+    "url": "https://arxiv.org/html/1912.09713v2",
+    "primary_source_id": "dbca",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 12,
+    "label": "12. Measuring Compositional Generalization \\| Google Open Source Blog,",
+    "url": "https://opensource.googleblog.com/2020/03/measuring-compositional-generalization.html",
+    "primary_source_id": "dbca",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 13,
+    "label": "13. COGS: A Compositional Generalization Challenge Based on,",
+    "url": "https://www.researchgate.net/publication/347232897_COGS_A_Compositional_Generalization_Challenge_Based_on_Semantic_Interpretation",
+    "primary_source_id": "cogs",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 14,
+    "label": "14. \\[PDF\\] COGS: A Compositional Generalization Challenge Based on,",
+    "url": "https://www.semanticscholar.org/paper/COGS%3A-A-Compositional-Generalization-Challenge-on-Kim-Linzen/b20ddcbd239f3fa9acc603736ac2e4416302d074",
+    "primary_source_id": "cogs",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 15,
+    "label": "15. Prescriptive Scaling Laws for Data Constrained Training \\- arXiv,",
+    "url": "https://arxiv.org/pdf/2605.01640",
+    "primary_source_id": "prescriptive",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 16,
+    "label": "16. \\[2305.16264\\] Scaling Data-Constrained Language Models \\- arXiv,",
+    "url": "https://arxiv.org/abs/2305.16264",
+    "primary_source_id": "dataconstrained",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 17,
+    "label": "17. Scaling Laws for Data Filtering \\- Emergent Mind,",
+    "url": "https://api.emergentmind.com/papers/2404.07177",
+    "primary_source_id": "filtering",
+    "review_disposition": "S"
+  },
+  {
+    "report": "3",
+    "number": 18,
+    "label": "18. Grokking: Generalization Beyond Overfitting on Small Algorithmic,",
+    "url": "https://www.alphaxiv.org/abs/2201.02177",
+    "primary_source_id": "grokking",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 19,
+    "label": "19. GROKKING: GENERALIZATION BEYOND OVERFIT \\- MATH-AI,",
+    "url": "https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf",
+    "primary_source_id": "grokking",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 20,
+    "label": "20. Generalization Beyond Overfitting on Small Algorithmic Datasets,",
+    "url": "https://arxiv.org/abs/2201.02177",
+    "primary_source_id": "grokking",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 21,
+    "label": "21. GitHub \\- nilsleut/Grokking-Generalization-Beyond-Overfitting,",
+    "url": "https://github.com/nilsleut/Grokking-Generalization-Beyond-Overfitting",
+    "primary_source_id": "grokking",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 22,
+    "label": "22. Omnigrok: Grokking Beyond Algorithmic Data \\- OpenReview,",
+    "url": "https://openreview.net/forum?id=zDiHoIWa0q1",
+    "primary_source_id": "omnigrok",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 23,
+    "label": "23. Program Synthesis with Equivalence Reduction,",
+    "url": "https://pages.cs.wisc.edu/~aws/papers/vmcai19.pdf",
+    "primary_source_id": "equivalence",
+    "review_disposition": "M"
+  },
+  {
+    "report": "3",
+    "number": 24,
+    "label": "24. Program Synthesis \\- Microsoft,",
+    "url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2017/10/program_synthesis_now.pdf",
+    "primary_source_id": "synthesissurvey",
+    "review_disposition": "B"
+  },
+  {
+    "report": "3",
+    "number": 25,
+    "label": "25. Inductive Program Synthesis Guided by Observational Program,",
+    "url": "https://par.nsf.gov/biblio/10497577-inductive-program-synthesis-guided-observational-program-similarity",
+    "primary_source_id": "observational",
+    "review_disposition": "U"
+  },
+  {
+    "report": "3",
+    "number": 26,
+    "label": "26. Lecture 3 \\- People \\| MIT CSAIL,",
+    "url": "https://people.csail.mit.edu/asolar/SynthesisCourse/Lecture3.htm",
+    "primary_source_id": "lecture",
+    "review_disposition": "B"
+  },
+  {
+    "report": "4",
+    "number": 1,
+    "label": "1. \\[PDF\\] Learning Program Synthesis for Integer Sequences from Scratch,",
+    "url": "https://www.semanticscholar.org/paper/Learning-Program-Synthesis-for-Integer-Sequences-Gauthier-Urban/7658f56be043f2d883eaeaef40998d79cf15a26f",
+    "primary_source_id": "oeis",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 2,
+    "label": "2. Learning Program Synthesis for Integer Sequences from Scratch,",
+    "url": "https://arxiv.org/html/2202.11908v3",
+    "primary_source_id": "oeis",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 3,
+    "label": "3. Learning Program Synthesis for Integer Sequences from Scratch,",
+    "url": "https://arxiv.org/pdf/2202.11908",
+    "primary_source_id": "oeis",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 4,
+    "label": "4. Improvements in Program Synthesis for Integer Sequences 0.85.4pt, [http\\://aitp-conference.org/2023/slides/TG.pdf](http://aitp-conference.org/2023/slides/TG.pdf)",
+    "url": "http://aitp-conference.org/2023/slides/TG.pdf",
+    "primary_source_id": "improvementsslides",
+    "review_disposition": "B"
+  },
+  {
+    "report": "4",
+    "number": 5,
+    "label": "5. Alien Codes and Their Automated and Human Explanations 0.85.4pt, [http\\://grid01.ciirc.cvut.cz/\\~mptp/cicm25oeis.pdf](http://grid01.ciirc.cvut.cz/~mptp/cicm25oeis.pdf)",
+    "url": "http://grid01.ciirc.cvut.cz/~mptp/cicm25oeis.pdf",
+    "primary_source_id": "alienexplanations",
+    "review_disposition": "U"
+  },
+  {
+    "report": "4",
+    "number": 6,
+    "label": "6. DreamCoder: Growing generalizable, interpretable knowledge with,",
+    "url": "https://www.alphaxiv.org/abs/2006.8381v1",
+    "primary_source_id": "dreamcoder",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 7,
+    "label": "7. DreamCoder: Building interpretable hierarchical knowledge,",
+    "url": "https://www.cs.cornell.edu/~ellisk/documents/dreamcoder_with_supplement.pdf",
+    "primary_source_id": "dreamcoder",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 8,
+    "label": "8. Bootstrapping Inductive Program Synthesis with Wake-Sleep Library,",
+    "url": "https://www.neurosymbolic.org/papers/EllisWNSMHCST21.pdf",
+    "primary_source_id": "dreamcoder",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 9,
+    "label": "9. growing generalizable, interpretable knowledge with wake–sleep,",
+    "url": "https://www.researchgate.net/publication/371306616_DreamCoder_growing_generalizable_interpretable_knowledge_with_wake-sleep_Bayesian_program_learning",
+    "primary_source_id": "dreamcoder",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 10,
+    "label": "10. Improving Inductive Program Synthesis with Probabilistic Chunking,",
+    "url": "https://project-archive.inf.ed.ac.uk/ug4/20233908/ug4_proj.pdf",
+    "primary_source_id": "chunking",
+    "review_disposition": "B"
+  },
+  {
+    "report": "4",
+    "number": 11,
+    "label": "11. Lean-STaR: Learning to Interleave Thinking and Proving \\- arXiv,",
+    "url": "https://arxiv.org/html/2407.10040v1",
+    "primary_source_id": "leanstar",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 12,
+    "label": "12. Scaling Self-Training for Problem-Solving with Language Models,",
+    "url": "https://arxiv.org/html/2312.06585v4",
+    "primary_source_id": "restem",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 13,
+    "label": "13. Scaling Self-Training for Problem-Solving with Language Models,",
+    "url": "https://www.alexalemi.com/publications/self-training.pdf",
+    "primary_source_id": "restem",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 14,
+    "label": "14. DIFFUSION ALIGNMENT AS VARIATIONAL EXPECTATION,",
+    "url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/3469b211b829b39d2b0cfd3b880a869c-Paper-Conference.pdf",
+    "primary_source_id": "diffusionem",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 15,
+    "label": "15. Mining or Synthesis? Rethinking Exploration Efficiency in Iterative,",
+    "url": "https://aclanthology.org/2026.findings-emnlp.1097.pdf",
+    "primary_source_id": "mining",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 16,
+    "label": "16. Self-Improving Language Models with Prioritized Hindsight Replay,",
+    "url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/butt24a/butt24a.pdf",
+    "primary_source_id": "codeit",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 17,
+    "label": "17. Self-Improving Language Models for Evolutionary Program Synthesis,",
+    "url": "https://arxiv.org/html/2507.14172v2",
+    "primary_source_id": "evolutionary",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 18,
+    "label": "18. Group Prioritized Off-Policy Optimization for LLM Reasoning \\- arXiv,",
+    "url": "https://arxiv.org/html/2606.01281v1",
+    "primary_source_id": "groupprioritized",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 19,
+    "label": "19. GRPO: Group Relative Policy Optimization \\- Victor Dibia,",
+    "url": "https://victordibia.com/explainers/grpo/",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "4",
+    "number": 20,
+    "label": "20. RL for LLMs I: The Token-Level MDP and Off-Policy Policy Gradients,",
+    "url": "https://www.parkjaewan.com/blog/llm-rl-basics",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "4",
+    "number": 21,
+    "label": "21. PRINCIPLED POLICY OPTIMIZATION FOR LLMS VIA SELF,",
+    "url": "https://openreview.net/pdf?id=HVciz8hi1c",
+    "primary_source_id": "selfpolicy",
+    "review_disposition": "U"
+  },
+  {
+    "report": "4",
+    "number": 22,
+    "label": "22. Soft Sequence Policy Optimization \\- arXiv,",
+    "url": "https://arxiv.org/html/2602.19327v2",
+    "primary_source_id": "softsequence",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 23,
+    "label": "23. Reinforcement Learning \\| RLHF and Post-Training Book by Nathan,",
+    "url": "https://rlhfbook.com/c/06-policy-gradients",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "4",
+    "number": 24,
+    "label": "24. Rethinking Training-Inference Mismatch in LLM Reinforcement,",
+    "url": "https://arxiv.org/pdf/2609.32444",
+    "primary_source_id": "mismatch",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 25,
+    "label": "25. Alien Coding \\- arXiv,",
+    "url": "https://arxiv.org/pdf/2301.11479",
+    "primary_source_id": "alien",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 26,
+    "label": "26. Improvements in Program Synthesis for Integer Sequences, [http\\://aitp-conference.org/2023/abstract/AITP\\_2023\\_paper\\_8.pdf](http://aitp-conference.org/2023/abstract/AITP_2023_paper_8.pdf)",
+    "url": "http://aitp-conference.org/2023/abstract/AITP_2023_paper_8.pdf",
+    "primary_source_id": "improvementsabstract",
+    "review_disposition": "B"
+  },
+  {
+    "report": "4",
+    "number": 27,
+    "label": "27. Alien Coding \\- arXiv,",
+    "url": "https://arxiv.org/html/2301.11479v2",
+    "primary_source_id": "alien",
+    "review_disposition": "M"
+  },
+  {
+    "report": "4",
+    "number": 28,
+    "label": "28. An Expectation-Maximization Perspective on Reinforcement ... \\- arXiv,",
+    "url": "https://arxiv.org/html/2504.18587v2",
+    "primary_source_id": "emrl",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 29,
+    "label": "29. (PDF) Operator equalisation for bloat free genetic programming and,",
+    "url": "https://www.researchgate.net/publication/257564492_Operator_equalisation_for_bloat_free_genetic_programming_and_a_survey_of_bloat_control_methods",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "4",
+    "number": 30,
+    "label": "30. INT: AN INEQUALITY BENCHMARK FOR EVALUATING,",
+    "url": "https://openreview.net/pdf?id=O6LPudowNQm",
+    "primary_source_id": "int",
+    "review_disposition": "B"
+  },
+  {
+    "report": "4",
+    "number": 31,
+    "label": "31. Advantage Clipped Policy Optimization \\- arXiv,",
+    "url": "https://arxiv.org/pdf/2609.36816",
+    "primary_source_id": "advantageclipped",
+    "review_disposition": "S"
+  },
+  {
+    "report": "4",
+    "number": 32,
+    "label": "32. Daily Papers \\- Hugging Face,",
+    "url": "https://huggingface.co/papers?q=KL+estimator",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  },
+  {
+    "report": "4",
+    "number": 33,
+    "label": "33. An in-depth Walkthrough of GRPO in NeMo RL,",
+    "url": "https://docs.nvidia.com/nemo/rl/0.4.0/guides/grpo.html",
+    "primary_source_id": null,
+    "review_disposition": "X",
+    "review_note": "Secondary explainer, listing, biography, or unreviewed peripheral reference; no requirement or factual conclusion relies on this citation."
+  }
+]

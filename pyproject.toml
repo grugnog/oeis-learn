@@ -79,3 +79,5 @@ markers = ["gpu: requires an actual HIP accelerator", "docker: requires the pinn
 "oeis_learn.experiments" = ["*.schema.json"]
 
 "oeis_learn.synthesis" = ["*.schema.json", "retired-fingerprints.json"]
+
+"oeis_learn.generalization" = ["schemas/*.schema.json"]

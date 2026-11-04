@@ -1,0 +1,161 @@
+{
+  "$id": "https://oeis-learn.invalid/generalization/checkpoint.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "generalization-checkpoint/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        },
+        "kind": {
+          "const": "full_state"
+        },
+        "weights": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "state": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "initialization": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "minLength": 71,
+              "maxLength": 71
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "compatibility": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "kind",
+        "weights",
+        "state",
+        "initialization",
+        "parent",
+        "tokens",
+        "updates",
+        "pins",
+        "compatibility"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "generalization-checkpoint/v2"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        },
+        "kind": {
+          "const": "weights_only"
+        },
+        "weights": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "state": {
+          "type": "null"
+        },
+        "initialization": {
+          "type": "null"
+        },
+        "parent": {
+          "type": "null"
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "compatibility": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "minLength": 71,
+          "maxLength": 71
+        },
+        "provenance": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "kind",
+        "weights",
+        "state",
+        "initialization",
+        "parent",
+        "tokens",
+        "updates",
+        "pins",
+        "compatibility",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

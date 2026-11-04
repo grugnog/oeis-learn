@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/weights-only.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "weights_only"
+    },
+    "weights": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "initialization": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    }
+  },
+  "required": [
+    "kind",
+    "weights",
+    "initialization"
+  ],
+  "additionalProperties": false
+}

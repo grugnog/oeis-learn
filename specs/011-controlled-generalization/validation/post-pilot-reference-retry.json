@@ -1,0 +1,24 @@
+{
+  "allowance_seconds": 1,
+  "arm": "refreshed",
+  "coverage": 20,
+  "elapsed_seconds": 0.0011018909999620519,
+  "first_values": [
+    "0",
+    "-177",
+    "-354",
+    "-531",
+    "-708"
+  ],
+  "ordinal": 3,
+  "original_audit_status": "failure:deadline; coverage0",
+  "outcome": "ok",
+  "purpose": "bounded follow-up to one local100ms reference deadline; original audit unchanged",
+  "qualified": false,
+  "reason": null,
+  "source": "( program ( local $b0 bigint ) ( if ( lt $index ( int 11 ) ) ( then ( set $b0 ( add ( mul $index ( int -178 ) ) $index ) ) ) ( else ( set $b0 ( add ( add ( mul $index ( int 951 ) ) ( int 640 ) ) $index ) ) ) ) ( return ( get $b0 ) ) )",
+  "source_bundle": "sha256:b5c0ea49c89b62b819856054b2f4ae82672a8304a4351d18acb8a51f2f1dd494",
+  "source_sha256": "sha256:cc6b8443f7a2d39156e823c7b4fbf4fae5eef2defd2fa481c95af395ac9966cf",
+  "task": "sha256:0315a16b4ea4e944a95f37983b9479bb8c187d3a5398d5a2b4d9731b97348657",
+  "visible_match": false
+}

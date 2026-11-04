@@ -1,0 +1,23 @@
+{
+  "design": "sha256:4e3f89df0d372671c6aaee84d22758a74b04fc105f89ac4a8d1dd52e36e8ed98",
+  "rows": 256,
+  "seconds": 13.048534655000367,
+  "cells": [
+    {
+      "stratum": "parameter",
+      "status": "FEASIBLE",
+      "shortfalls": [],
+      "draws": 2400,
+      "admitted": 2400
+    },
+    {
+      "stratum": "structural",
+      "status": "FEASIBLE",
+      "shortfalls": [],
+      "draws": 2288,
+      "admitted": 2281
+    }
+  ],
+  "native_validation": "NOT_RUN",
+  "original_corpus_exclusions": "PENDING_OPERATOR_FILES"
+}

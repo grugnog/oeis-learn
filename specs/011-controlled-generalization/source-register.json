@@ -1,0 +1,832 @@
+{
+  "reviewed_at": "2026-10-30",
+  "repository_revision": "fba656c4147484e4a8383eab99a0a0599bf20771",
+  "report_inputs": [
+    {
+      "filename": "1_ Neural Program Synthesis Analysis(3).md",
+      "bytes": 33862,
+      "sha256": "d49dfe3c35d84ef088e52df096a5627029278e2815b751fa875edd0eb92f66a9"
+    },
+    {
+      "filename": "2_ Integer Program Synthesizer Research(3).md",
+      "bytes": 195632,
+      "sha256": "9b7eda445463f8f465e6bbbd2251d13f1fc49537cbca40925db5fa1fd996053a"
+    },
+    {
+      "filename": "3_ Synthesis Structural Generalization Research(3).md",
+      "bytes": 48555,
+      "sha256": "7dad37d5698ecce363e6e4b89d58d7338383b282ed091d00f6df0f8374a5700d"
+    },
+    {
+      "filename": "4_ Program Synthesis Search Distillation(3).md",
+      "bytes": 57780,
+      "sha256": "291d495228ac998dc5844f8a430ceda93b2daac63b9eec31fa2a75b6e938276f"
+    }
+  ],
+  "sources": [
+    {
+      "id": "nesymres",
+      "title": "Neural Symbolic Regression that Scales",
+      "url": "https://proceedings.mlr.press/v139/biggio21a/biggio21a.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Methods, data construction, benchmark definitions and main results",
+      "retrieval": {
+        "name": "nesymres",
+        "url": "https://proceedings.mlr.press/v139/biggio21a/biggio21a.pdf",
+        "status": "retrieved",
+        "bytes": 4829572,
+        "sha256": "58e1657065ee691c7dda50694c49cb3bd2e9f74fa935cc63d53af78df6d03601"
+      }
+    },
+    {
+      "id": "e2e",
+      "title": "End-to-end Symbolic Regression with Transformers",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/42eb37cdbefd7abae0835f4b67548c39-Paper-Conference.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Methods and constant/refinement ablations, including Table 2",
+      "retrieval": {
+        "name": "e2e",
+        "url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/42eb37cdbefd7abae0835f4b67548c39-Paper-Conference.pdf",
+        "status": "retrieved",
+        "bytes": 693753,
+        "sha256": "5b3bc0688ea7045aceab57d9a04e3572a5452f1f31605bc04eab29549819e7a5"
+      }
+    },
+    {
+      "id": "recurrence",
+      "title": "Deep Symbolic Regression for Recurrent Sequences",
+      "url": "https://proceedings.mlr.press/v162/d-ascoli22a/d-ascoli22a.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Synthetic integer/recurrent setup, representation and finite evaluation protocol",
+      "retrieval": {
+        "name": "recurrence",
+        "url": "https://proceedings.mlr.press/v162/d-ascoli22a/d-ascoli22a.pdf",
+        "status": "retrieved",
+        "bytes": 1597429,
+        "sha256": "bfc56908606c7bed109024abfe720e27947fdb75e4a057e2b055fe1cb9a7b000"
+      }
+    },
+    {
+      "id": "oeis",
+      "title": "Learning Program Synthesis for Integer Sequences from Scratch",
+      "url": "https://arxiv.org/pdf/2202.11908",
+      "reading_scope": "M",
+      "scope_detail": "Search/check/learn method, budgets and experiments",
+      "retrieval": {
+        "name": "oeis",
+        "url": "https://arxiv.org/pdf/2202.11908",
+        "status": "retrieved",
+        "bytes": 278492,
+        "sha256": "de9cb07540c0470e0306899a41706fec5d5baade10773d5f0d953699f597ab11"
+      }
+    },
+    {
+      "id": "alien",
+      "title": "Alien Coding",
+      "url": "https://arxiv.org/pdf/2301.11479",
+      "reading_scope": "M",
+      "scope_detail": "Search/check/learn method, retained objectives and additional-term evaluation with timeouts",
+      "retrieval": {
+        "name": "alien",
+        "url": "https://arxiv.org/pdf/2301.11479",
+        "status": "retrieved",
+        "bytes": 845675,
+        "sha256": "d4b97e72d3e891625b1b5190e1329668a16170e89b6958f934dcf04fc34c42ab"
+      }
+    },
+    {
+      "id": "dreamcoder",
+      "title": "DreamCoder: Building interpretable hierarchical knowledge representations with wake-sleep Bayesian program learning",
+      "url": "https://www.cs.cornell.edu/~ellisk/documents/dreamcoder_with_supplement.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Wake/sleep method and component-ablation passage; author manuscript, not all supplement pages",
+      "retrieval": {
+        "name": "dreamcoder",
+        "url": "https://www.cs.cornell.edu/~ellisk/documents/dreamcoder_with_supplement.pdf",
+        "status": "retrieved",
+        "bytes": 10311343,
+        "sha256": "97e74b45b3e38aa0e2e25f02e0be841484c4ecceb975ddfc187c638a0872484b"
+      }
+    },
+    {
+      "id": "restem",
+      "title": "Beyond Human Data: Scaling Self-Training for Problem-Solving with Language Models",
+      "url": "https://arxiv.org/pdf/2312.06585",
+      "reading_scope": "M",
+      "scope_detail": "EM algorithm, restart policy, experiment design and per-problem sample cap",
+      "retrieval": {
+        "name": "restem",
+        "url": "https://arxiv.org/pdf/2312.06585",
+        "status": "retrieved",
+        "bytes": 761238,
+        "sha256": "5ca8f5dd8ba3d8368867ffbba936306f0b3c77c09f5390be00f6915bd49f4964"
+      }
+    },
+    {
+      "id": "codeit",
+      "title": "CodeIt: Self-Improving Language Models with Prioritized Hindsight Replay",
+      "url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/butt24a/butt24a.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Training provenance, hindsight construction, iterative protocol and component ablations",
+      "retrieval": {
+        "name": "codeit",
+        "url": "https://raw.githubusercontent.com/mlresearch/v235/main/assets/butt24a/butt24a.pdf",
+        "status": "retrieved",
+        "bytes": 1304582,
+        "sha256": "abf5d7f9bdb792a8df93ddd045ec768d26655a9b4be81f1f6d76df9121f253db"
+      }
+    },
+    {
+      "id": "dbca",
+      "title": "Measuring Compositional Generalization: A Comprehensive Method on Realistic Data",
+      "url": "https://arxiv.org/pdf/1912.09713",
+      "reading_scope": "M",
+      "scope_detail": "Atom/compound divergence definitions, split construction and main evaluation",
+      "retrieval": {
+        "name": "dbca",
+        "url": "https://arxiv.org/pdf/1912.09713",
+        "status": "retrieved",
+        "bytes": 2162587,
+        "sha256": "ee3b29af6eab5388ac1ef09871c547341727ab5d461ba1baab146f5ebf5ffc67"
+      }
+    },
+    {
+      "id": "cogs",
+      "title": "COGS: A Compositional Generalization Challenge Based on Semantic Interpretation",
+      "url": "https://aclanthology.org/2020.emnlp-main.731.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Abstract and benchmark construction/generalization-case table",
+      "retrieval": {
+        "name": "cogs",
+        "url": "https://aclanthology.org/2020.emnlp-main.731.pdf",
+        "status": "retrieved",
+        "bytes": 626703,
+        "sha256": "5e379d68d1ddf7539da0869a76a519630b636dc699fbb73123a8e56c0890e0fc"
+      }
+    },
+    {
+      "id": "dataconstrained",
+      "title": "Scaling Data-Constrained Language Models",
+      "url": "https://arxiv.org/pdf/2305.16264",
+      "reading_scope": "M",
+      "scope_detail": "Training/scaling setup and repetition results, including Figure 4",
+      "retrieval": {
+        "name": "dataconstrained",
+        "url": "https://arxiv.org/pdf/2305.16264",
+        "status": "retrieved",
+        "bytes": 2160774,
+        "sha256": "4935b8dc51e0f4183bc7e66d87cbf5e0a776f6d97b44e992ff9c675b8ea5f3ec"
+      }
+    },
+    {
+      "id": "grokking",
+      "title": "Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets",
+      "url": "https://arxiv.org/pdf/2201.02177",
+      "reading_scope": "M",
+      "scope_detail": "Main experimental setup and regularization comparisons",
+      "retrieval": {
+        "name": "grokking",
+        "url": "https://arxiv.org/pdf/2201.02177",
+        "status": "retrieved",
+        "bytes": 1786159,
+        "sha256": "305dbd1256e1ac198dde517dda42b4f0a7eb9a9d3f4c03527c125b03eb9c62fc"
+      }
+    },
+    {
+      "id": "omnigrok",
+      "title": "Omnigrok: Grokking Beyond Algorithmic Data",
+      "url": "https://arxiv.org/pdf/2210.01117",
+      "reading_scope": "M",
+      "scope_detail": "Abstract, LU mechanism and teacher-student example; no universal extrapolation",
+      "retrieval": {
+        "name": "omnigrok",
+        "url": "https://arxiv.org/pdf/2210.01117",
+        "status": "retrieved",
+        "bytes": 1883736,
+        "sha256": "b13aa4d19d7dedfac98a79f7918535e9cd34b0bc9f565322bd2df56fff8e7b3f"
+      }
+    },
+    {
+      "id": "prescriptive",
+      "title": "Prescriptive Scaling Laws for Data Constrained Training",
+      "url": "https://arxiv.org/pdf/2605.01640",
+      "reading_scope": "M",
+      "scope_detail": "Training setup, repetition-penalty model and validation sections 3–5",
+      "retrieval": {
+        "name": "prescriptive",
+        "url": "https://arxiv.org/pdf/2605.01640",
+        "status": "retrieved",
+        "bytes": 782873,
+        "sha256": "04da1e7e98a25c542d16eaa6f15108fa265ba204ae946e2f2d07c0300bf57441"
+      }
+    },
+    {
+      "id": "diverseprior",
+      "title": "Improving Neural Symbolic Regression with a Diverse Prior and Post-training Alignment",
+      "url": "https://arxiv.org/pdf/2610.17994",
+      "reading_scope": "M",
+      "scope_detail": "Prior/post-training methods, benchmark results and ablations in section 4.4",
+      "retrieval": {
+        "name": "diverseprior",
+        "url": "https://arxiv.org/pdf/2610.17994",
+        "status": "retrieved",
+        "bytes": 964690,
+        "sha256": "16de12f6c87f4d643d15d61f01777b14b18da296c23410992f9e28aeffd66255"
+      }
+    },
+    {
+      "id": "star",
+      "title": "STaR: Bootstrapping Reasoning With Reasoning",
+      "url": "https://arxiv.org/pdf/2203.14465",
+      "reading_scope": "M",
+      "scope_detail": "Section 3 algorithm and rationalization; supplemental primary source",
+      "retrieval": {
+        "name": "star",
+        "url": "https://arxiv.org/pdf/2203.14465",
+        "status": "retrieved",
+        "bytes": 771851,
+        "sha256": "d22a472fce2631755849988a78d78ad6d80999166eb4bac4f5315c97dfdf6d9a"
+      }
+    },
+    {
+      "id": "deepseekmath",
+      "title": "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models",
+      "url": "https://arxiv.org/pdf/2402.03300",
+      "reading_scope": "M",
+      "scope_detail": "Section 4.1 GRPO objective/normalization; supplemental primary source",
+      "retrieval": {
+        "name": "deepseekmath",
+        "url": "https://arxiv.org/pdf/2402.03300",
+        "status": "retrieved",
+        "bytes": 1844642,
+        "sha256": "6cc20b3c5b8d25b8b53868fc4ec1792c144f07d67bdf7395138efd4422197e7b"
+      }
+    },
+    {
+      "id": "ppo",
+      "title": "Proximal Policy Optimization Algorithms",
+      "url": "https://arxiv.org/pdf/1707.06347",
+      "reading_scope": "M",
+      "scope_detail": "Section 3 clipped surrogate; supplemental primary source",
+      "retrieval": {
+        "name": "ppo",
+        "url": "https://arxiv.org/pdf/1707.06347",
+        "status": "retrieved",
+        "bytes": 2923532,
+        "sha256": "e78feadadbdbb0b601b3c2bcc81404722cd431a489b307545f9b7bea1e8c4f5b"
+      }
+    },
+    {
+      "id": "equivalence",
+      "title": "Program Synthesis with Equivalence Reduction",
+      "url": "https://pages.cs.wisc.edu/~aws/papers/vmcai19.pdf",
+      "reading_scope": "M",
+      "scope_detail": "Equivalence assumptions and distinction from observational equivalence",
+      "retrieval": {
+        "name": "equivalence",
+        "url": "https://pages.cs.wisc.edu/~aws/papers/vmcai19.pdf",
+        "status": "retrieved",
+        "bytes": 658751,
+        "sha256": "161f6a6daae6a6ad85b556bd7e3d2d19c08ada087dc70599b62b673359ef28da"
+      }
+    },
+    {
+      "id": "grammaraligned",
+      "title": "Grammar-Aligned Decoding",
+      "url": "https://arxiv.org/pdf/2405.21047",
+      "reading_scope": "M",
+      "scope_detail": "Abstract and constrained-distribution formulation/examples",
+      "retrieval": {
+        "name": "grammaraligned",
+        "url": "https://arxiv.org/pdf/2405.21047",
+        "status": "retrieved",
+        "bytes": 2405758,
+        "sha256": "a5cb8a149be6e006c2e24307e419bbabd15be3b96e267fd7397c3cdf27bf32b4"
+      }
+    },
+    {
+      "id": "constrainedsampling",
+      "title": "Constrained Sampling for Language Models Should Be Easy",
+      "url": "https://arxiv.org/pdf/2506.05754",
+      "reading_scope": "M",
+      "scope_detail": "Abstract and constrained-distribution formulation; no adoption of the sampler",
+      "retrieval": {
+        "name": "constrainedsampling",
+        "url": "https://arxiv.org/pdf/2506.05754",
+        "status": "retrieved",
+        "bytes": 18369499,
+        "sha256": "1bdc471569c89712a4993a6b68b308f30bf195a1ff992b63dfe492bf86a50a8f"
+      }
+    },
+    {
+      "id": "deepcoder",
+      "title": "DeepCoder: Learning to Write Programs",
+      "url": "https://arxiv.org/pdf/1611.01989",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "deepcoder",
+        "url": "https://arxiv.org/pdf/1611.01989",
+        "status": "retrieved",
+        "bytes": 604790,
+        "sha256": "161376a7c8893cbb1f6b4159829e04fa75f76256533fae6fd6b9c40384ee4467"
+      }
+    },
+    {
+      "id": "dsr",
+      "title": "Deep Symbolic Regression: Recovering Mathematical Expressions from Data via Risk-Seeking Policy Gradients",
+      "url": "https://arxiv.org/pdf/1912.04871",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "dsr",
+        "url": "https://arxiv.org/pdf/1912.04871",
+        "status": "retrieved",
+        "bytes": 4931247,
+        "sha256": "7130eddf39b951784f2b19eeb51b922ceac897ecbed5227fdfc9a510db38f8e3"
+      }
+    },
+    {
+      "id": "alphacode",
+      "title": "Competition-Level Code Generation with AlphaCode",
+      "url": "https://arxiv.org/pdf/2203.07814",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "alphacode",
+        "url": "https://arxiv.org/pdf/2203.07814",
+        "status": "retrieved",
+        "bytes": 3797220,
+        "sha256": "4facd32698069e8eda5e3714f12be8519dbe2a184e9386e37a9939d7f4030bea"
+      }
+    },
+    {
+      "id": "symformer",
+      "title": "SymFormer: End-to-end symbolic regression using transformer-based architecture",
+      "url": "https://arxiv.org/pdf/2205.15764",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "symformer",
+        "url": "https://arxiv.org/pdf/2205.15764",
+        "status": "retrieved",
+        "bytes": 4171984,
+        "sha256": "24bfbf023c237b6cad16aa13fbca3868bba64b8413163c55d3e4ca3dc105d633"
+      }
+    },
+    {
+      "id": "differentiablefixer",
+      "title": "Neural Program Synthesis with a Differentiable Fixer",
+      "url": "https://arxiv.org/pdf/2006.10924",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "differentiablefixer",
+        "url": "https://arxiv.org/pdf/2006.10924",
+        "status": "retrieved",
+        "bytes": 466870,
+        "sha256": "cb3d0a92d8661146f667cd192c77e4f3ea253ad2b315172bd68adf6dbe842632"
+      }
+    },
+    {
+      "id": "planning",
+      "title": "Transformer-based Planning for Symbolic Regression",
+      "url": "https://arxiv.org/pdf/2303.06833",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "planning",
+        "url": "https://arxiv.org/pdf/2303.06833",
+        "status": "retrieved",
+        "bytes": 17479838,
+        "sha256": "b189db7e276ad3d7dde41e269bc068b86fcb8c4003a40234699e4023387a9761"
+      }
+    },
+    {
+      "id": "leanstar",
+      "title": "Lean-STaR: Learning to Interleave Thinking and Proving",
+      "url": "https://arxiv.org/pdf/2407.10040",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "leanstar",
+        "url": "https://arxiv.org/pdf/2407.10040",
+        "status": "retrieved",
+        "bytes": 4024810,
+        "sha256": "39ad15a6fcdbd1009d4f3b89bd628c8ec8ab9217b45ccd5852f7576868aa09b6"
+      }
+    },
+    {
+      "id": "evolutionary",
+      "title": "Self-Improving Language Models for Evolutionary Program Synthesis: A Case Study on ARC-AGI",
+      "url": "https://arxiv.org/pdf/2507.14172",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "evolutionary",
+        "url": "https://arxiv.org/pdf/2507.14172",
+        "status": "retrieved",
+        "bytes": 1279889,
+        "sha256": "4ab830cba97e6f696d3bfa95594e6d3c07cece79753f1d74a146b8aa90ff2ae6"
+      }
+    },
+    {
+      "id": "emrl",
+      "title": "An Expectation-Maximization Perspective on Reinforcement Learning for LLM Reasoning",
+      "url": "https://arxiv.org/pdf/2504.18587",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "emrl",
+        "url": "https://arxiv.org/pdf/2504.18587",
+        "status": "retrieved",
+        "bytes": 2311171,
+        "sha256": "21aa70b8f6ed61b609d11d44125261bd41608a3339e5273c64f343467ea77ae7"
+      }
+    },
+    {
+      "id": "filtering",
+      "title": "Scaling Laws for Data Filtering—Data Curation cannot be Compute Agnostic",
+      "url": "https://arxiv.org/pdf/2404.07177",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "filtering",
+        "url": "https://arxiv.org/pdf/2404.07177",
+        "status": "retrieved",
+        "bytes": 984878,
+        "sha256": "052fd444dd3e221130c09038382d2e6cc37b8b04759d395eb129e0613403d7d9"
+      }
+    },
+    {
+      "id": "controlvariables",
+      "title": "Scalable Neural Symbolic Regression using Control Variables",
+      "url": "https://arxiv.org/pdf/2306.04718",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "controlvariables",
+        "url": "https://arxiv.org/pdf/2306.04718",
+        "status": "retrieved",
+        "bytes": 611254,
+        "sha256": "8c5ee224858f857c38679139fd2452e7a2ed70a45cecaf36b7ec4e92ec255cf4"
+      }
+    },
+    {
+      "id": "hrft",
+      "title": "HRFT: Mining High-Frequency Risk Factor Collections End-to-End via Transformer",
+      "url": "https://arxiv.org/pdf/2408.01271",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "hrft",
+        "url": "https://arxiv.org/pdf/2408.01271",
+        "status": "retrieved",
+        "bytes": 1094699,
+        "sha256": "5a60b041057818288632938f2c8781ccf6f43a0aa255d10687e08d2f3579fca7"
+      }
+    },
+    {
+      "id": "l2gsr",
+      "title": "L2G-SR: Learning to Guide LLM-based Symbolic Regression",
+      "url": "https://arxiv.org/pdf/2610.20685",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "l2gsr",
+        "url": "https://arxiv.org/pdf/2610.20685",
+        "status": "retrieved",
+        "bytes": 1285686,
+        "sha256": "83292f50df39a49eb007dd7bf61b1bbfdd2e993d991f5cfa616b6bdf2f54f9d5"
+      }
+    },
+    {
+      "id": "grcrl",
+      "title": "GrammarRL: Effective Grammar-Constrained Decoding via Reinforcement Learning",
+      "url": "https://arxiv.org/pdf/2609.39869",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "grcrl",
+        "url": "https://arxiv.org/pdf/2609.39869",
+        "status": "retrieved",
+        "bytes": 649653,
+        "sha256": "ca8bb2806a6f102464ff0be8731046d825f5092392b42ffd1f338f1f8fad431f"
+      }
+    },
+    {
+      "id": "groupprioritized",
+      "title": "RLVR without Ineffective Samples: Group Prioritized Off-Policy Optimization for LLM Reasoning",
+      "url": "https://arxiv.org/pdf/2606.01281",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "groupprioritized",
+        "url": "https://arxiv.org/pdf/2606.01281",
+        "status": "retrieved",
+        "bytes": 935260,
+        "sha256": "fd76694f39d2e1266c70f5f1da3acfd6d961af14172205b957f2f85745ae3f13"
+      }
+    },
+    {
+      "id": "softsequence",
+      "title": "Soft Sequence Policy Optimization",
+      "url": "https://arxiv.org/pdf/2602.19327",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "softsequence",
+        "url": "https://arxiv.org/pdf/2602.19327",
+        "status": "retrieved",
+        "bytes": 660051,
+        "sha256": "49e6dafde59296a24795256be18281527f711e56ddf7a49e28a9e1f0cc31f989"
+      }
+    },
+    {
+      "id": "mismatch",
+      "title": "Rethinking Training–Inference Mismatch in LLM Reinforcement Learning",
+      "url": "https://arxiv.org/pdf/2609.32444",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "mismatch",
+        "url": "https://arxiv.org/pdf/2609.32444",
+        "status": "retrieved",
+        "bytes": 1734074,
+        "sha256": "13e07bca6a0968de258cbd17f2d1218b547fdd98362859aa0faa66e0c842f4e9"
+      }
+    },
+    {
+      "id": "advantageclipped",
+      "title": "Towards Better Training Signal: Advantage Clipped Policy Optimization",
+      "url": "https://arxiv.org/pdf/2609.36816",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "advantageclipped",
+        "url": "https://arxiv.org/pdf/2609.36816",
+        "status": "retrieved",
+        "bytes": 1263367,
+        "sha256": "2b8db4a929589f5156b58bd39c8941a5849718e7c5a455645c612003c51383fd"
+      }
+    },
+    {
+      "id": "diffusionem",
+      "title": "Diffusion Alignment as Variational Expectation-Maximization",
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/3469b211b829b39d2b0cfd3b880a869c-Paper-Conference.pdf",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "diffusionem",
+        "url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/3469b211b829b39d2b0cfd3b880a869c-Paper-Conference.pdf",
+        "status": "retrieved",
+        "bytes": 6093405,
+        "sha256": "4074fe6b9938a78998ddc72ff190731e71250bde8ed576fe1afbdc60bd9633c8"
+      }
+    },
+    {
+      "id": "mining",
+      "title": "Mining or Synthesis? Rethinking Exploration Efficiency in Iterative Alignment of Mathematical Reasoning",
+      "url": "https://aclanthology.org/2026.findings-emnlp.1097.pdf",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "mining",
+        "url": "https://aclanthology.org/2026.findings-emnlp.1097.pdf",
+        "status": "retrieved",
+        "bytes": 887472,
+        "sha256": "84ee54034cbbb19016d768273137df6a2628ad0a043e5bd2412108c67d4a2be4"
+      }
+    },
+    {
+      "id": "alignment",
+      "title": "Improving Grammar Constraints Generation Alignment by Sampling Highly Probable Playouts",
+      "url": "https://www.lamsade.dauphine.fr/~cazenave/papers/GBFSGS_rework.pdf",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "alignment",
+        "url": "https://www.lamsade.dauphine.fr/~cazenave/papers/GBFSGS_rework.pdf",
+        "status": "retrieved",
+        "bytes": 570389,
+        "sha256": "99c00560f77cc78e319681b31ccfe286962e68be5bd547470fcc9c3578a57415"
+      }
+    },
+    {
+      "id": "mdlformer",
+      "title": "Symbolic regression via MDLformer-guided search: from minimizing prediction error to minimizing description length",
+      "url": "https://fi.ee.tsinghua.edu.cn/public/publications/23c6426c-f020-11f0-b382-2aaffa21d846.pdf",
+      "reading_scope": "S",
+      "scope_detail": "Abstract/intro and selected method passage screened; no effect-size or implementation mandate derived",
+      "retrieval": {
+        "name": "mdlformer",
+        "url": "https://fi.ee.tsinghua.edu.cn/public/publications/23c6426c-f020-11f0-b382-2aaffa21d846.pdf",
+        "status": "retrieved",
+        "bytes": 1277895,
+        "sha256": "426b14820e533b373914e3df56e1df03d84776a0f8ca03670256f0ba13bb0880"
+      }
+    },
+    {
+      "id": "int",
+      "title": "INT: An Inequality Benchmark for Evaluating Generalization in Theorem Proving",
+      "url": "https://arxiv.org/pdf/2007.02924",
+      "reading_scope": "B",
+      "scope_detail": "Abstract/introduction; retrieved primary arXiv copy after OpenReview failed",
+      "retrieval": {
+        "name": "int",
+        "url": "https://arxiv.org/pdf/2007.02924",
+        "status": "retrieved",
+        "bytes": 996671,
+        "sha256": "c1519617edddd7b04d83c8513a0bc8787e955853b3bb1ec01c1560519e59cc12"
+      }
+    },
+    {
+      "id": "psychology",
+      "title": "A Psychology-Driven User Agent for Recommender Systems",
+      "url": "https://arxiv.org/pdf/2610.13989",
+      "reading_scope": "B",
+      "scope_detail": "Abstract read; unrelated to the pilot conditioning mechanism; excluded",
+      "retrieval": {
+        "name": "psychology",
+        "url": "https://arxiv.org/pdf/2610.13989",
+        "status": "retrieved",
+        "bytes": 4694677,
+        "sha256": "ba65d3a391bbc9fdd0863edd141b416aa5a6926bae449ee1cf0118e71bd78d2e"
+      }
+    },
+    {
+      "id": "thesis",
+      "title": "Learning-Aided Program Synthesis and Verification",
+      "url": "https://www.cis.upenn.edu/~mhnaik/theses/xujie_si_thesis.pdf",
+      "reading_scope": "B",
+      "scope_detail": "Thesis abstract read; broad background, not an experimental basis",
+      "retrieval": {
+        "name": "thesis",
+        "url": "https://www.cis.upenn.edu/~mhnaik/theses/xujie_si_thesis.pdf",
+        "status": "retrieved",
+        "bytes": 2307374,
+        "sha256": "a64edc3d029b085fa5f7f21931691dfc73df39227db63760866b4cdb309d93e8"
+      }
+    },
+    {
+      "id": "synthesissurvey",
+      "title": "Program Synthesis",
+      "url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2017/10/program_synthesis_now.pdf",
+      "reading_scope": "B",
+      "scope_detail": "Contents screened; not used as primary empirical evidence",
+      "retrieval": {
+        "name": "synthesissurvey",
+        "url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2017/10/program_synthesis_now.pdf",
+        "status": "retrieved",
+        "bytes": 3169829,
+        "sha256": "6393f78739e4e311c881dcdf647c3c5b366f01e8f49cd88a22fcf1a938198cd6"
+      }
+    },
+    {
+      "id": "chunking",
+      "title": "Improving Inductive Program Synthesis with Probabilistic Chunking",
+      "url": "https://project-archive.inf.ed.ac.uk/ug4/20233908/ug4_proj.pdf",
+      "reading_scope": "B",
+      "scope_detail": "Abstract screened; language-abstraction proposal outside scope",
+      "retrieval": {
+        "name": "chunking",
+        "url": "https://project-archive.inf.ed.ac.uk/ug4/20233908/ug4_proj.pdf",
+        "status": "retrieved",
+        "bytes": 1158547,
+        "sha256": "7e9aa5989c77b7eb0589f31e89b7dae792bcb9f6ebc5e31cc1d87d36b86eb7fd"
+      }
+    },
+    {
+      "id": "improvementsabstract",
+      "title": "Improvements in Program Synthesis for Integer Sequences",
+      "url": "https://aitp-conference.org/2023/abstract/AITP_2023_paper_8.pdf",
+      "reading_scope": "B",
+      "scope_detail": "Complete short AITP abstract read; cross-checked against Alien Coding",
+      "retrieval": {
+        "name": "improvementsabstract",
+        "url": "https://aitp-conference.org/2023/abstract/AITP_2023_paper_8.pdf",
+        "status": "retrieved",
+        "bytes": 288499,
+        "sha256": "4253b2667f16b0b13a41a956f2192055b9f04980e458ec067e703fa3afe71772"
+      }
+    },
+    {
+      "id": "improvementsslides",
+      "title": "Improvements in Program Synthesis for Integer Sequences — slides",
+      "url": "https://aitp-conference.org/2023/slides/TG.pdf",
+      "reading_scope": "B",
+      "scope_detail": "Retrieved; numerical claims checked in underlying paper/abstract, not relied on independently",
+      "retrieval": {
+        "name": "improvementsslides",
+        "url": "https://aitp-conference.org/2023/slides/TG.pdf",
+        "status": "retrieved",
+        "bytes": 1302128,
+        "sha256": "8d4a4013668c9dfae64241e56dc47839c0ae294edec413bee5047f4dfc809de4"
+      }
+    },
+    {
+      "id": "flint-hnf",
+      "title": "FLINT Hermite normal form documentation",
+      "url": "https://flintlib.org/doc/fmpz_mat/hnf.html",
+      "reading_scope": "B",
+      "scope_detail": "HNF API contracts inspected; no new solver requirement adopted",
+      "retrieval": {
+        "name": "flint-hnf",
+        "url": "https://flintlib.org/doc/fmpz_mat/hnf.html",
+        "status": "retrieved",
+        "bytes": 98207,
+        "sha256": "2583092f836a3226d0c60bf0498577db1816a0d9270b90e307abfefcadd49556"
+      }
+    },
+    {
+      "id": "flint-algorithms",
+      "title": "FLINT Hermite and Smith normal forms algorithms",
+      "url": "https://flintlib.org/doc/algorithms/linear-algebra/hermite-smith.html",
+      "reading_scope": "B",
+      "scope_detail": "Retrieved/context screened; no complexity or applicability claim adopted",
+      "retrieval": {
+        "name": "flint-algorithms",
+        "url": "https://flintlib.org/doc/algorithms/linear-algebra/hermite-smith.html",
+        "status": "retrieved",
+        "bytes": 257905,
+        "sha256": "6fcc601e869870170ea7a976730c2edd5065261ac8127bdfa7231ce9058b76e8"
+      }
+    },
+    {
+      "id": "lecture",
+      "title": "Program Synthesis course, Lecture 3",
+      "url": "https://people.csail.mit.edu/asolar/SynthesisCourse/Lecture3.htm",
+      "reading_scope": "B",
+      "scope_detail": "HTML retrieved; background not relied on",
+      "retrieval": {
+        "name": "lecture",
+        "url": "https://people.csail.mit.edu/asolar/SynthesisCourse/Lecture3.htm",
+        "status": "not-pdf",
+        "bytes": 33685
+      }
+    },
+    {
+      "id": "int-openreview",
+      "title": "INT — supplied OpenReview route",
+      "url": "https://openreview.net/pdf?id=O6LPudowNQm",
+      "reading_scope": "U",
+      "scope_detail": "403; primary arXiv copy successfully read as int",
+      "retrieval": {
+        "status": "unavailable",
+        "error": "HTTP 403 at supplied OpenReview route"
+      }
+    },
+    {
+      "id": "executionguided-original",
+      "title": "Execution-Guided Neural Program Synthesis",
+      "url": "https://openreview.net/pdf?id=H1gfOiAqYm",
+      "reading_scope": "U",
+      "scope_detail": "403; excluded from supporting evidence",
+      "retrieval": {
+        "name": "executionguided-original",
+        "url": "https://openreview.net/pdf?id=H1gfOiAqYm",
+        "status": "unavailable",
+        "error": "curl: (22) The requested URL returned error: 403"
+      }
+    },
+    {
+      "id": "selfpolicy",
+      "title": "Principled Policy Optimization for LLMs via Self… (supplied truncated title)",
+      "url": "https://openreview.net/pdf?id=HVciz8hi1c",
+      "reading_scope": "U",
+      "scope_detail": "403; title lookup did not resolve an authoritative accessible copy; excluded",
+      "retrieval": {
+        "name": "selfpolicy",
+        "url": "https://openreview.net/pdf?id=HVciz8hi1c",
+        "status": "unavailable",
+        "error": "curl: (22) The requested URL returned error: 403"
+      }
+    },
+    {
+      "id": "observational",
+      "title": "Inductive Program Synthesis Guided by Observational Program Similarity",
+      "url": "https://par.nsf.gov/servlets/purl/10497577",
+      "reading_scope": "U",
+      "scope_detail": "503; excluded; finite-equivalence distinction checked in Smith/Albarghouthi",
+      "retrieval": {
+        "name": "observational",
+        "url": "https://par.nsf.gov/servlets/purl/10497577",
+        "status": "unavailable",
+        "error": "curl: (22) The requested URL returned error: 503"
+      }
+    },
+    {
+      "id": "alienexplanations",
+      "title": "Alien Codes and Their Automated and Human Explanations",
+      "url": "https://grid01.ciirc.cvut.cz/~mptp/cicm25oeis.pdf",
+      "reading_scope": "U",
+      "scope_detail": "503; excluded; earlier primary OEIS papers used separately",
+      "retrieval": {
+        "name": "alienexplanations",
+        "url": "https://grid01.ciirc.cvut.cz/~mptp/cicm25oeis.pdf",
+        "status": "unavailable",
+        "error": "curl: (22) The requested URL returned error: 503"
+      }
+    }
+  ]
+}

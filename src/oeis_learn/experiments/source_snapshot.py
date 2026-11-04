@@ -30,6 +30,7 @@ def collect_snapshot(root):
         "specs/005-trustworthy-synthesis-readiness/contracts",
         "specs/008-bigint-constant-synthesis/contracts",
         "specs/009-pipeline-throughput/contracts",
+        "specs/011-controlled-generalization/contracts",
     ):
         files.update(
             p

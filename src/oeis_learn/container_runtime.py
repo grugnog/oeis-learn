@@ -15,20 +15,23 @@ from pathlib import Path
 IMAGE_ID = re.compile(r"(?:sha256:)?[0-9a-f]{64}")
 
 
-def private_runtime_environment(output):
+def private_runtime_environment(output, *, destination="/work/output"):
     """Put compiler scratch/cache in this role's existing writable output mount.
 
     ROCm/LLVM can exceed the small /tmp tmpfs during the first backward pass.
     Use disk-backed, role-private directories without exposing shared caches or
     any additional host paths. These files are disposable, not training evidence.
     """
+    from pathlib import PurePosixPath
+    if not isinstance(destination,str) or not destination.startswith("/") or destination=="/" or ".." in PurePosixPath(destination).parts:
+        raise ValueError("explicit confined output mount destination required")
     output = Path(output).resolve(strict=True)
     root = output / ".runtime"
     for path in (root, root / "tmp", root / "home", root / "cache"):
         if path.is_symlink():
             raise ValueError(f"runtime directory cannot be a symlink: {path}")
         path.mkdir(mode=0o700, exist_ok=True)
-    base = "/work/output/.runtime"
+    base = destination.rstrip("/") + "/.runtime"
     return {
         "TMPDIR": base + "/tmp",
         "TMP": base + "/tmp",
@@ -177,6 +180,7 @@ class Engine:
         labels=None,
         tmp_bytes=64 << 20,
         auto_remove=True,
+        startup_diagnostics=False,
     ):
         image = normalized_image(image)
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}", name):
@@ -187,6 +191,7 @@ class Engine:
             raise ValueError("explicit command and device/network capabilities required")
         args = [
             self.executable,
+            *(["--log-level=debug"] if startup_diagnostics and self.name == "podman" else []),
             "run",
             "--name",
             name,

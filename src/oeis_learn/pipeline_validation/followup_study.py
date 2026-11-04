@@ -1,11 +1,18 @@
 """Prospective paired SFT stages reuse source/data qualification and isolated scoring."""
 import copy,json,shutil
 from pathlib import Path
+from dataclasses import replace
 from .identity import seal,write,confined,file_hash,digest
 from .diagnostics import Diagnostics,registry as diagnostic_registry
 from .diagnostics_contract import plan as diagnostic_plan
 from .followup_training import profile
 from .registry import Stage
+
+
+def requested_arms(value):
+    if value is None:return ('uniform','family_balanced','decay')
+    if list(value)!=['uniform']:raise ValueError('only the explicit uniform replication roster is registered')
+    return ('uniform',)
 
 
 class Study(Diagnostics):
@@ -25,12 +32,12 @@ class Study(Diagnostics):
 
     def finalize(self,output,invocation,receipts):
         rows=[]
-        for arm in ('uniform','family_balanced','decay'):
+        for arm in requested_arms(getattr(self.args,'arms',None)):
             path=invocation/'stages'/('followup.'+arm)/'train/weights.json'
             if path.exists():rows.append(json.loads(path.read_text()))
         write(output/'study.json',seal(dict(version='pipeline-followup-study-result/v1',arms=rows,training=True,resume=False,
-            final_access='SEALED',promotion='saved-weight evaluation and seed confirmation required')))
-        return dict(study='COMPLETE' if len(rows)==3 and all(r['state']=='PASS' for r in receipts.values()) else 'PARTIAL')
+            final_access='SEALED',promotion='saved-weight evaluation and seed confirmation required',historical_seed16='UNAVAILABLE_IN_THIS_INVOCATION' if self.args.seed!=20261016 else 'CURRENT_RUN_ONLY')))
+        return dict(study='COMPLETE' if len(rows)==len(requested_arms(getattr(self.args,'arms',None))) and all(r['state']=='PASS' for r in receipts.values()) else 'PARTIAL')
 
 
 def main(args,root,host_factory):
@@ -38,8 +45,9 @@ def main(args,root,host_factory):
     from .runner import execute
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .closures import dependency_closure
+    arms=requested_arms(getattr(args,'arms',None))
     contract=diagnostic_plan(operation='models',snapshots=[0],training_rows=32)
-    contract.update(version='pipeline-followup-study/v1',scope='pilot-followup-study',operation='train',training=True,profiles=[profile(a,args.tokens,args.seed) for a in ('uniform','family_balanced','decay')])
+    contract.update(version='pipeline-followup-study/v1',scope='pilot-followup-study',operation='train',training=True,profiles=[profile(a,args.tokens,args.seed) for a in arms])
     contract['budgets'].update(global_seconds=129600,phase_seconds={'1':3600,'2':1800,'4':110000,'5':300})
     from .pilot_clocks import DRAIN
     contract['evaluation_policy']=DRAIN
@@ -48,7 +56,11 @@ def main(args,root,host_factory):
     if engine=='auto':engine=next((n for n in ('docker','podman') if shutil.which(n)),'docker')
     stages=[s for s in diagnostic_registry(contract,engine) if s.adapter!='diagnostics-model']
     parent=('hip.preflight','cpu.'+engine+'.semantic','diagnostics.import')
-    stages.extend(Stage('followup.'+a,4,parent,seconds=33000,adapter='followup-train') for a in ('uniform','family_balanced','decay'))
+    if getattr(args,'qualification',None):
+        stages=[replace(s,prerequisites=()) for s in stages if s.adapter in {'diagnostics-collect','diagnostics-import'}]
+        stages.append(Stage('generalization.qualification',1,seconds=600,adapter='generalization-qualification'))
+        parent=('generalization.qualification','diagnostics.import')
+    stages.extend(Stage('followup.'+a,4,parent,seconds=33000,adapter='followup-train') for a in arms)
     if args.scope_report:
         from dataclasses import asdict
         print(json.dumps(dict(contract=contract,stages=[asdict(s) for s in stages]),indent=2));return 0

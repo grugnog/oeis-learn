@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/visible-prompt.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "indices": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "not": {
+          "pattern": "\\s"
+        },
+        "maxLength": 4934
+      },
+      "minItems": 20,
+      "maxItems": 20
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "not": {
+          "pattern": "\\s"
+        },
+        "maxLength": 4934
+      },
+      "minItems": 20,
+      "maxItems": 20
+    }
+  },
+  "required": [
+    "id",
+    "indices",
+    "values"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/replay.schema.json",
+  "$comment": "Phase A shape contract only. Identity bytes, provenance, isolation, execution and admission require Phase B verification.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "generalization-replay/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "task": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "role": {
+      "const": "training"
+    },
+    "track": {
+      "const": "generic_only"
+    },
+    "origin_checkpoint": {
+      "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+    },
+    "original_source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536
+    },
+    "final_source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536
+    },
+    "assignment": {
+      "type": "object",
+      "maxProperties": 8,
+      "propertyNames": {
+        "pattern": "^p[0-7]$",
+        "maxLength": 2
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "not": {
+          "pattern": "\\s"
+        },
+        "maxLength": 4934
+      }
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 1,
+      "maxItems": 1024
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "oracle": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "production": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "reference": {
+          "$ref": "https://oeis-learn.invalid/generalization/common.schema.json#/$defs/artifact"
+        },
+        "indices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)$",
+            "not": {
+              "pattern": "\\s"
+            },
+            "maxLength": 4934
+          },
+          "minItems": 100,
+          "maxItems": 100
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)$",
+            "not": {
+              "pattern": "\\s"
+            },
+            "maxLength": 4934
+          },
+          "minItems": 100,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "oracle",
+        "production",
+        "reference",
+        "indices",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "admission_order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "task_cap": {
+      "const": 2
+    },
+    "capacity": {
+      "const": 4096
+    },
+    "batch_fraction": {
+      "const": 0.25
+    },
+    "sampler_cursor": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "eviction_history": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "minLength": 71,
+        "maxLength": 71
+      },
+      "minItems": 0,
+      "maxItems": 1000000
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "task",
+    "role",
+    "track",
+    "origin_checkpoint",
+    "original_source",
+    "final_source",
+    "assignment",
+    "tokens",
+    "verification",
+    "admission_order",
+    "task_cap",
+    "capacity",
+    "batch_fraction",
+    "sampler_cursor",
+    "eviction_history"
+  ],
+  "additionalProperties": false
+}
