@@ -1,15 +1,17 @@
 # Validation and first-pilot guide
 
-## Current next step: implement the accepted structural-only comparison
+## Current status: 011 merge closeout; research follow-up moves to 012
 
-The operator accepted structural-only evaluation on2026-11-04. Follow the
-[implementation and training decision plan](validation/structural-comparison-plan.md).
-The next comparison uses retained weights on128 structural tasks and explicitly
-defers parameter evaluation. The current runner still assumes both strata; do not
-run its previous command yet. Keep the compatible qualification and all original
-exclusion inputs. Parameterized-target P3 is the next training direction; reuse a provably matched
-existing literal checkpoint as control where possible. No retraining is needed
-merely to establish the retained baseline.
+See the [merge review and012 handoff](validation/merge-closeout.md). Software
+acceptance and the original full pilot are complete; the fresh structural-only
+comparison is not implemented or executed. T174 and T177–T181 remain unchecked
+with explicit dispositions. Do not repeat the old256-row prospective command.
+
+Create012 for parameterized targets and adaptive family scheduling/spaced review,
+including the unfinished structural evaluation and old-control reuse audit.
+The [structural comparison plan](validation/structural-comparison-plan.md) is
+input to that spec, not a ready command. Preserve original corpus/checkpoints,
+qualification and evidence. Historical commands below retain their original scope.
 
 ## Historical completed full pilot with hourly snapshots (2026-11-04)
 

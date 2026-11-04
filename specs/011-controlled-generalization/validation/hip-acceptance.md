@@ -1,4 +1,15 @@
-# HIP acceptance — original qualification passed; feature acceptance failed
+# HIP acceptance — software acceptance passed; historical attempts retained
+
+Current closeout: original software acceptance passed in acceptance-016 and later
+current-source acceptance passed in `observable-eval-20261104T193226Z`. The latter's
+original qualification and all five feature-case references were reverified from
+`report(6).zip`, with its source inventory matching the current production closure.
+Its later research preparation failed; this does not invalidate the separately
+verified software acceptance and does not count as a successful experiment.
+See [merge closeout](merge-closeout.md) for current limits and pending follow-ups.
+
+## Historical status after acceptance-014
+
 
 Current status after acceptance-014 (2026-10-31 Pacific): CPU/native and HIP
 qualification, retained evaluation and refresh passed. The parameterized learner

@@ -1347,3 +1347,14 @@ Targeted HIP failure-class audit, 2026-11-01. This is not complete feature conve
 ### Phase C/D — small-model persistence envelopes
 
 - [X] T113 Raise generated refresh/target-format acceptance learners from30 to180 seconds and both acceptance proof envelopes to180 seconds after acceptance-014 expired during a parameterized checkpoint write. Account for both proofs in case feasibility; enlarge both small-model cases to25 minutes within a395-minute serial ceiling, preserving all scientific/model/token/storage limits and research recipes. Test generated inputs, nested worst-case reservations, protected recovery margin and proof allocation; audit the remaining preparation/search/evaluation/report/verification/cleanup limits against recorded evidence, independently reconcile 014 evidence, then commit and push one consolidated fresh-run guide (NFR-003/005/006/007/008, SC-007).
+
+
+## Merge closeout — 2026-11-04
+
+The operator permits merging011 with incomplete research follow-ups. See
+[the audited closeout and012 handoff](validation/merge-closeout.md).
+T174 remains an incomplete/superseded256-row experiment; T177–T181 carry into012
+as explicit prerequisites/follow-ups and remain unchecked here. All175 checked
+tasks retain their historical scope. New adaptive scheduling/spaced review belongs
+to012, not an implicit completion claim for011. No new implementation task is
+created by this disposition; do not duplicate or silently close the six open items.

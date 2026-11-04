@@ -1,5 +1,9 @@
 # Structural-only comparison: accepted scope and implementation plan
 
+Merge disposition: carry this unfinished work into012, together with adaptive
+family scheduling and spaced review. See [011 closeout](merge-closeout.md).
+The fixed/adaptive parameterized-arm comparison is not yet specified here.
+
 The operator accepted the structural-only comparison on2026-11-04 and stated that
 several hours of further training are acceptable. This plan recommends the order
 of work; it does not claim that the scoped runner is implemented or that the P3

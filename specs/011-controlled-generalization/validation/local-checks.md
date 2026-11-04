@@ -1,3 +1,11 @@
+# Current closeout validation — 2026-11-04
+
+182 affected tests passed (30.19seconds), including current implementation binding;
+original qualified acceptance closure was independently reverified against the
+current production source. See [merge closeout](merge-closeout.md) for precise
+scope, CI snapshot and deferred tasks. No new local HIP/native/container execution
+is claimed. All earlier NOT RUN/open-gate statements below are historical records.
+
 # Reconstruction validation — 2026-10-31
 
 The verified reconstruction passes all 242 generalization tests within a broader
