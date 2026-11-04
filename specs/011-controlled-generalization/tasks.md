@@ -20,7 +20,9 @@ T171 validation: observed13 missing-policy counterexamples failing, then18 focus
 
 ### Phase C — consolidated evaluation-only handoff
 
-- [ ] T172 Implement a temporary bounded controller that verifies original inputs, consumes one current-source qualification, prepares the fresh cohort and invokes existing retained generator/scorer roles with no learner. Freeze complete protocol before inference; enforce isolation, generous stage limits, disk bounds and verified success/failure exports.
+- [X] T172 Implement a temporary bounded controller that verifies original inputs, consumes one current-source qualification, prepares the fresh cohort and invokes existing retained generator/scorer roles with no learner. Freeze complete protocol before inference; enforce isolation, generous stage limits, disk bounds and verified success/failure exports.
+
+T172 validation: 142 affected local tests passed, including real resolved E0 schema/runtime checks, real engine command construction, canonical generator/scorer job wiring, failed-gate suppression, native output tampering, checkpoint/exclusion input boundaries, immutable input projections and verified failure exports. The shared temporary scorer wrapper now accepts a frozen scoring-specific1200-second inner envelope under its1800-second outer stage; historical protocols retain their prior default. Source closure remains the reviewed bank-fix snapshot. No HIP executed.
 
 ### Phase D — validation and operator gate
 

@@ -119,7 +119,8 @@ def role(job_path,output):
         with scope(confined(ROOT,job['study_root']),runtime['storage']):
             result=project_and_invoke(host,image,ROOT,job['role'],job['artifacts'],source_roots=roots,
                 output=str((target/'execution').relative_to(ROOT)),operation=job['operation'],settings=job['settings'],
-                seconds=protocol.get('role_seconds',21600),gpu=job['role']=='generator')
+                seconds=(protocol.get('scoring_role_seconds',protocol.get('role_seconds',21600))
+                         if job['role']=='selection' else protocol.get('role_seconds',21600)),gpu=job['role']=='generator')
     except (Exception,KeyboardInterrupt) as exc:
         result=dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)[:2048])
     write(target/'result.json',seal(result))

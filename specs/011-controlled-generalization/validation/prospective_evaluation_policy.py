@@ -20,7 +20,7 @@ def design(prior):
     return seal(dict(version='prospective-retained-design/v1',seed=SEED,numeric_law=LAW,
         parent_classification=PRIOR,classification_policy=prior['policy'],families=prior['families'],cells=cells,
         counts=dict(Counter(r['category'] for r in prior['roster'].values())),
-        checkpoints=prior['checkpoints'],bank_seeds=list(range(20261101,20261109)),role_seconds=21600,
+        checkpoints=prior['checkpoints'],bank_seeds=list(range(20261101,20261109)),role_seconds=21600,scoring_role_seconds=1200,
         inference=dict(visible_terms=20,total_terms=100,attempts=8,seconds=60,policy='portfolio-clock60-matched-drain/v2'),
         controls=['raw','rescue','equal_budget','shuffled','absent','template','bank'],
         decision=dict(primary='certified structural family-macro equal_budget confirmed success',
@@ -132,6 +132,8 @@ def prepare(protocol,originals,output,*,execute,seconds=14000,workers=3):
         draws=len(candidates),reference_rejections=reference_rejections,excluded=len(bad),original_rows=original_count,
         exclusion_rules=dict(Counter(rule for rules in bad.values() for rule in rules)),
         selected=len(selected),roster=mapping,native_ledgers=[l['identity'] for l in ledgers],
+        files=[reference(root/'cells'/s/n,root) for s in ('parameter','structural')
+               for n in ('prompts.json','private/targets.json','private/selected.json','ledger.json')],
         assessment='exclusion-only in custodian; no scoring',
         originals=[{k:v for k,v in item.items() if k!='root'} for item in originals]))
     write(root/'summary.json',summary)

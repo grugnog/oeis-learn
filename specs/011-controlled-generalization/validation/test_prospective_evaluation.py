@@ -132,3 +132,245 @@ def test_family_macro_and_incomplete_denominators():
     assert result['primary_interpretable'] is False
     scores['refreshed'].pop('0')
     with pytest.raises(ValueError):p.summarize(mapping,scores,['equal_budget'])
+
+
+def prepared_fixture(tmp_path,monkeypatch):
+    import prospective_evaluation as h
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    d=small_design();root=tmp_path/'new';root.mkdir()
+    def native(s,i):return dict(outcome='ok',values=evaluate(s,i).values)
+    summary=policy().prepare(d,[],root/'prepare/cohort',execute=native,seconds=60,workers=1)
+    parent=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['study']
+    parent['data']['sharing_policy']='explicit'
+    recipe=dict(version='fixture-model/v1',model=dict(seed=7,width=8),learning=dict(learning_rate=.001))
+    parent['model'].update(profile=recipe['version'],architecture=digest({'width':8}))
+    runtime=dict(purpose='research',storage=dict(study_bytes=2<<30,checkpoint_bytes=1<<30,shard_bytes=256<<20,raw_bytes=128<<20,sharing_bytes=64<<20))
+    q=tmp_path/'qualified';q.mkdir();write(q/'qualification.json',seal(dict(status='fixture')));write(q/'feature.json',seal(dict(status='fixture')))
+    ref=reference(q/'qualification.json',tmp_path)
+    context=dict(study=parent,runtime=runtime,recipe=recipe,originals=[],checkpoints={},preparation=ref,parent_manifest=ref)
+    authority=dict(images=[digest('cpu'),digest('gpu')]);monkeypatch.setattr(h,'ROOT',tmp_path)
+    # Keep production source identity deterministic without asking the fixture root to be a repo.
+    import oeis_learn.experiments.source_snapshot as source
+    monkeypatch.setattr(source,'collect_snapshot',lambda _:dict(fixture=True))
+    return h,root,context,d,q,authority,summary
+
+
+def test_real_resolved_E0_schema_runtime_and_no_training(tmp_path,monkeypatch):
+    h,root,context,d,q,a,summary=prepared_fixture(tmp_path,monkeypatch)
+    base,study,runtime,protocol=h.publish_inputs(root,context,d,q,a,summary)
+    from oeis_learn.pipeline_validation.generalization_runtime import load,validate_execution,execution_refs
+    actual=load(tmp_path,str((base/'study.json').relative_to(tmp_path)))
+    assert actual==(base,study,runtime)
+    verified=validate_execution(base,study,runtime)
+    assert verified['training']=={} and study['budgets']['target_tokens']==0
+    assert runtime['assessment'] is None and runtime['evaluation']['role']=='selection'
+    assert protocol['identity'] in study['hypothesis']
+    execution_refs(base,study,runtime)
+    assert all(set(p)=={'id','indices','values'} for p in json.loads((base/'visible/prompts.json').read_text()))
+    assert not (base/'visible/targets.json').exists()
+
+
+def test_native_output_tamper_blocks_freeze(tmp_path,monkeypatch):
+    h,root,context,d,q,a,summary=prepared_fixture(tmp_path,monkeypatch)
+    target=root/'prepare/cohort/cells/parameter/private/targets.json';rows=json.loads(target.read_text())
+    rows[0]['values'][99]='999999';target.write_text(json.dumps(rows))
+    with pytest.raises(ValueError):h.publish_inputs(root,context,d,q,a,summary)
+    assert not (root/'research/protocol.json').exists()
+
+
+@pytest.mark.parametrize('failure',[None,'launch','cleanup','result'])
+def test_native_host_real_command_private_projection_and_fail_closed(tmp_path,monkeypatch,failure):
+    import prospective_evaluation as h
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import supervision,generalization_lifecycle
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    import oeis_learn.experiments.source_snapshot as source
+    monkeypatch.setattr(h,'ROOT',tmp_path);monkeypatch.setattr(source,'collect_snapshot',lambda _:dict(fixture=True))
+    engine=Engine('podman',executable='podman',details={});monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(h,'host_for',lambda _:SimpleNamespace(engine=engine));monkeypatch.setattr(generalization_lifecycle,'guard',lambda _:nullcontext())
+    old=tmp_path/'assessment.json';old.write_text('[]');ref=reference(old,tmp_path)
+    context=dict(originals=[dict(name='assessment-parameter',role='assessment',holdout='parameter',count=0,ref=ref)])
+    target=tmp_path/'prepare';d=small_design();commands=[];cleanup=[]
+    def launch(argv,logs,**kw):
+        commands.append(argv);logs.mkdir(parents=True)
+        assert '--network=none' in argv and '--read-only' in argv and '--device' not in argv
+        mounts=[argv[i+1] for i,a in enumerate(argv) if a=='--mount']
+        assert len(mounts)==3 and sum('readonly' in m for m in mounts)==2
+        assert not any('src='+str(tmp_path)+',' in m for m in mounts)
+        assert (target.parent/'private/cohort-inputs/exclusions/cell-0.json').read_text()=='[]'
+        assert kw['seconds']<h.LIMITS['prepare']
+        if failure=='launch':raise TimeoutError('fixture')
+        write(logs/'process.json',dict(outcome='COMPLETE',returncode=0))
+        write(target/'cohort/summary.json',seal(dict(status='PASS',design=d['identity'],files=[])))
+        write(target/'result.json',seal(dict(status='FAIL' if failure=='result' else 'PASS',summary=reference(target/'cohort/summary.json',target))))
+    def reclaim(engine,name,logs,state):
+        cleanup.append(True);write(logs/'cleanup.json',dict(acknowledged=failure!='cleanup',within_bound=True))
+    monkeypatch.setattr(supervision,'launch',launch);monkeypatch.setattr(supervision,'reclaim',reclaim)
+    if failure:
+        with pytest.raises((TimeoutError,ValueError)):h.native_prepare('podman',digest('image'),context,d,target)
+    else:assert h.native_prepare('podman',digest('image'),context,d,target)['status']=='PASS'
+    assert len(commands)==1 and cleanup==[True] and old.read_text()=='[]'
+
+
+@pytest.mark.parametrize('failure',[None,'qualification','prepare','preflight','generate-static','score-static'])
+def test_controller_real_job_wiring_and_no_inference_after_failed_gate(tmp_path,monkeypatch,failure):
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    import fresh_pilot as api
+    import fresh_pilot_training_probe as probe
+    from oeis_learn.pipeline_validation import generalization_lifecycle
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.generalization_runtime import validate_execution
+    h,root,context,d,q,authority,summary=prepared_fixture(tmp_path,monkeypatch)
+    monkeypatch.setattr(api,'ROOT',tmp_path)
+    monkeypatch.setattr(h,'design',lambda _:d)
+    monkeypatch.setattr(h,'lineage',lambda *_:context)
+    monkeypatch.setattr(h.shutil,'disk_usage',lambda _:SimpleNamespace(free=256<<30))
+    monkeypatch.setattr(generalization_lifecycle,'scope',lambda *a,**k:nullcontext())
+    for arm in ('static','refreshed'):
+        weights=tmp_path/('weights-'+arm);weights.mkdir();(weights/'weights.pt').write_bytes(b'fixture')
+        context['checkpoints'][arm]=dict(checkpoint=seal(dict(weights=reference(weights/'weights.pt',weights))),weights_root=weights.name)
+    events=[]
+    def qualification(*a):
+        events.append('qualification')
+        if failure=='qualification':raise ValueError('fixture qualification failure')
+        return q,authority
+    def native(*a):
+        events.append('prepare')
+        if failure=='prepare':raise ValueError('fixture native failure')
+        return summary
+    monkeypatch.setattr(probe,'qualified',qualification);monkeypatch.setattr(h,'native_prepare',native)
+    def invoke(argv,logs,*,seconds):
+        stage=logs.name;events.append(stage);output=tmp_path/argv[argv.index('--output')+1];output.mkdir(parents=True)
+        if failure==stage:
+            write(output/'result.json',seal(dict(status='FAIL')));return 1
+        if stage=='preflight':
+            base=tmp_path/argv[argv.index('--manifest')+1];s=json.loads(base.read_text());r=json.loads(base.with_name('runtime.json').read_text())
+            validate_execution(base.parent,s,r)
+        else:
+            job=json.loads((tmp_path/argv[argv.index('--job')+1]).read_text())
+            protocol=json.loads((tmp_path/job['protocol']['path']).read_text())
+            assert protocol['identity'] in json.loads((root/'research/study.json').read_text())['hypothesis']
+            assert job['checkpoint']==context['checkpoints']['static' if stage.endswith('static') else 'refreshed']['checkpoint']
+            if stage.startswith('generate'):
+                assert set(job['artifacts'])=={'visible_prompts','frozen_weights'}
+                assert all('truth' not in r and 'assessment' not in r for r in job['source_roots'].values())
+                assert protocol['role_seconds']+600<seconds
+                g=output/'execution/role/generation'
+                write(g/'selections.json',{k:dict(selections={c:None for c in protocol['controls']}) for k in protocol['roster']})
+                write(g/'proposal-bank.json',{});write(g/'evaluation.json',dict(status='PASS'))
+            else:
+                assert set(job['artifacts'])=={'selection_supervision','selection_candidates'}
+                assert protocol['scoring_role_seconds']+500<seconds
+                candidates=job['settings']['candidates'];rows=json.loads((tmp_path/job['source_roots']['selection_candidates']/candidates['path']).read_text())
+                write(output/'execution/role/selection/scoring.json',dict(candidates=candidates,result=dict(outcomes={k:{c:dict(candidate_sha256=None,success=False,complete=True) for c in protocol['controls']} for k in rows})))
+        write(output/'result.json',seal(dict(status='PASS')));return 0
+    monkeypatch.setattr(api,'invoke',invoke)
+    args=SimpleNamespace(engine='podman',pilot='old',prepared='original',qualified='qualified',imported='uniform',cpu_image=None,gpu_image=None)
+    result=h.execute(args,root)
+    if failure:
+        assert result==1 and events[-1]==failure and not (root/'measurements.json').exists()
+    else:
+        assert result==0
+        assert events==['qualification','prepare','preflight','generate-static','score-static','generate-refreshed','score-refreshed']
+        assert read_json(root/'measurements.json')['primary_interpretable']
+    assert all('train' not in stage for stage in events)
+
+
+def read_json(path):return json.loads(path.read_text())
+
+
+def test_failure_export_is_verified_and_excludes_private_truth(tmp_path,monkeypatch):
+    import prospective_evaluation as h
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.bundle import verify
+    import zipfile
+    root=tmp_path/'new';root.mkdir();monkeypatch.setattr(h,'ROOT',tmp_path)
+    write(root/'workflow.json',seal(dict(status='FAIL',stages=[],qualification=None)))
+    write(root/'private/truth/secret.json',{'secret':'do not export'})
+    archive=h.export(root);verify(archive)
+    with zipfile.ZipFile(archive) as z:
+        assert all('secret' not in n and 'truth' not in n for n in z.namelist())
+        assert json.loads(z.read('summary.json'))['selected_scope']=='FAIL'
+
+
+@pytest.mark.parametrize('failure',[None,'worker-exit','packaging'])
+def test_outer_controller_and_export_failures_are_preserved(tmp_path,monkeypatch,failure):
+    from types import SimpleNamespace
+    import prospective_evaluation as h
+    import fresh_pilot as api
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.bundle import verify
+    import zipfile
+    monkeypatch.setattr(h,'ROOT',tmp_path);monkeypatch.setattr(api,'ROOT',tmp_path)
+    for n in ('pilot','prepared','imported','qualified'):(tmp_path/n).mkdir()
+    calls=[]
+    def invoke(argv,logs,*,seconds):
+        calls.append((argv[2],seconds));root=tmp_path/'new'
+        if argv[2]=='work':
+            write(root/'workflow.json',seal(dict(status='PASS',stages=[],qualification=None)))
+            return 1 if failure=='worker-exit' else 0
+        if failure=='packaging':return 1
+        archive=h.export(root);write(root/'archive-result.json',seal(dict(archive=reference(archive,root))));return 0
+    monkeypatch.setattr(api,'invoke',invoke)
+    args=SimpleNamespace(command='run',engine='podman',pilot='pilot',prepared='prepared',imported='imported',qualified='qualified',output='new',cpu_image=None,gpu_image=None)
+    assert h.run(args)==(0 if failure is None else 1)
+    assert calls==[('work',h.CAMPAIGN_SECONDS-h.REPORT_SECONDS),('package',h.REPORT_SECONDS-120)]
+    archive=tmp_path/'new'/('emergency.zip' if failure=='packaging' else 'report.zip');verify(archive)
+    with zipfile.ZipFile(archive) as z:
+        assert json.loads(z.read('summary.json'))['selected_scope']==('PASS' if failure is None else 'FAIL')
+    with pytest.raises(ValueError):h.run(args)
+
+
+@pytest.mark.parametrize('scoring_seconds',[None,1200])
+def test_real_shared_scorer_role_respects_frozen_inner_envelope(tmp_path,monkeypatch,scoring_seconds):
+    from types import SimpleNamespace
+    import fresh_pilot as api
+    import foundation_local
+    from oeis_learn.pipeline_validation import generalization_commands,generalization_runtime,generalization_roles
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    monkeypatch.setattr(api,'ROOT',tmp_path)
+    monkeypatch.setattr(foundation_local,'Host',lambda args:SimpleNamespace(args=args))
+    images=[digest('cpu'),digest('gpu')];write(tmp_path/'qualified/qualification.json',dict(images=images))
+    protocol=dict(role_seconds=21600)
+    if scoring_seconds is not None:protocol['scoring_role_seconds']=scoring_seconds
+    protocol=seal(protocol);write(tmp_path/'protocol.json',protocol)
+    study=dict(identity=digest('study'),hypothesis=protocol['identity']);runtime=dict(purpose='research',images=images,storage={})
+    monkeypatch.setattr(generalization_runtime,'load',lambda *a:(tmp_path,study,runtime))
+    calls=[]
+    monkeypatch.setattr(generalization_commands,'_qualification',lambda *a:calls.append('qualified'))
+    def invoke(*a,**kw):
+        assert a[1]==images[0] and a[3]=='selection' and not kw['gpu']
+        assert kw['seconds']==(21600 if scoring_seconds is None else scoring_seconds)
+        calls.append('scored');return dict(status='PASS')
+    monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
+    (tmp_path/'truth').mkdir();(tmp_path/'candidates').mkdir();(tmp_path/'study').mkdir()
+    job=seal(dict(version='fresh-pilot-role/v1',engine='podman',qualified='qualified',manifest='study.json',
+        study=study['identity'],study_root='study',protocol=reference(tmp_path/'protocol.json',tmp_path),checkpoint=seal(dict(fixture=True)),
+        role='selection',operation='score',artifacts={'selection_supervision':[],'selection_candidates':[]},
+        source_roots={'selection_supervision':'truth','selection_candidates':'candidates'},settings=dict(study=study['identity'])))
+    write(tmp_path/'job.json',job)
+    assert api.role('job.json','output')==0 and calls==['qualified','scored']
+
+
+@pytest.mark.parametrize('damage',['missing','tampered'])
+def test_lineage_missing_or_changed_original_blocks_before_checkpoint_access(tmp_path,monkeypatch,damage):
+    p=policy()
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    original=tmp_path/'prepared/research/prepare';original.mkdir(parents=True);(tmp_path/'pilot').mkdir()
+    cell=original/'preparation/role/private/prepared/cells/selection-parameter/private/selected.json'
+    write(cell,[]);ref=reference(cell,original)
+    receipt=seal(dict(status='PASS',stage='prepare',original=None,inventory=[ref] if damage=='tampered' else []))
+    write(original/'result.json',receipt);monkeypatch.setattr(p,'PARENT_PREPARATION',receipt['identity'])
+    if damage=='tampered':cell.write_text('[{}]')
+    with pytest.raises(ValueError,match='original exclusion (cell missing|input changed)'):
+        p.lineage(tmp_path,'pilot','prepared',{})
