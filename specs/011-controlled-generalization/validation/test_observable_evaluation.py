@@ -95,3 +95,15 @@ def test_protocol_family_bindings_reject_cross_arm_disagreement():
             roster[digest([arm,'equal_budget',task])]=dict(family=arm,cell=arm+'/equal_budget/parameter')
     with pytest.raises(ValueError,match='paired task/family'):
         m.freeze_protocol({'identity':'x'},{'roster':roster},tasks,{}, {},deadline=time.monotonic()+5)
+
+
+def test_failure_export_and_overwrite_are_explicit(tmp_path):
+    import json
+    out=tmp_path/'result'
+    with pytest.raises(RuntimeError):m.run(tmp_path/'missing.zip',out,seconds=1)
+    summary=json.loads((out/'summary.json').read_text())
+    assert summary['selected_scope']=='FAIL' and summary['qualified'] is False
+    assert m.verify_input(out.with_suffix('.zip'))['summary_state']=='FAIL'
+    before=(out/'summary.json').read_bytes()
+    with pytest.raises(FileExistsError):m.run(tmp_path/'missing.zip',out,seconds=1)
+    assert (out/'summary.json').read_bytes()==before

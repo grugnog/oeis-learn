@@ -26,7 +26,9 @@ T168/T169 validation: 36 classification/audit tests passed after independent cou
 
 ### Phase C/D — retained evaluation projection and handoff
 
-- [ ] T170 Execute the policy against the verified original pilot, publish a fresh derived protocol/category mapping and original-score projection with explicit uncertainty, inspect representative cases, run local regressions and source checks, and commit/push each group. No training, assessment access, HIP or CI wait unless separately needed and recorded.
+- [X] T170 Execute the policy against the verified original pilot, publish a fresh derived protocol/category mapping and original-score projection with explicit uncertainty, inspect representative cases, run local regressions and source checks, and commit/push each group. No training, assessment access, HIP or CI wait unless separately needed and recorded.
+
+T170 validation: the verified original archive yields153 certified within-family tasks,55 witnessed ambiguous tasks and48 unresolved classifications. Historical primary scores project to109/153 versus110/153 on the certified subset; all original totals/censoring remain unchanged. The new sealed protocol is `sha256:725d54628ef32a36a1c315143287475700c7f2b6db3e14a5d12b9e58731cf537`; real offline execution took5.63 seconds. 66 focused tests passed, then all14 classification tests passed with the failure-export regression. Three broader handoff checks remain environment-blocked by missing wasmtime, explicitly recorded. See [results and next-step requirements](validation/observable-evaluation-results.md). No new experiment, HIP, assessment access or CI wait.
 
 ## Post-pilot candidate audit — 2026-11-04 UTC
 

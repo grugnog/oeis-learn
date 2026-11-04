@@ -1,0 +1,52 @@
+{
+  "identity": "sha256:1c1c178a0495fae674955c571d05be67ed3fe319179d90a1887a72793bf26511",
+  "legacy_bank_recoveries": {
+    "refreshed": 109,
+    "static": 98
+  },
+  "protocol": "sha256:725d54628ef32a36a1c315143287475700c7f2b6db3e14a5d12b9e58731cf537",
+  "results": {
+    "refreshed": {
+      "ambiguous": {
+        "classification_tasks": 55,
+        "evaluation_complete": 49,
+        "evaluation_unresolved": 6,
+        "successes": 0
+      },
+      "certified": {
+        "classification_tasks": 153,
+        "evaluation_complete": 151,
+        "evaluation_unresolved": 2,
+        "successes": 110
+      },
+      "unresolved": {
+        "classification_tasks": 48,
+        "evaluation_complete": 35,
+        "evaluation_unresolved": 13,
+        "successes": 18
+      }
+    },
+    "static": {
+      "ambiguous": {
+        "classification_tasks": 55,
+        "evaluation_complete": 53,
+        "evaluation_unresolved": 2,
+        "successes": 0
+      },
+      "certified": {
+        "classification_tasks": 153,
+        "evaluation_complete": 150,
+        "evaluation_unresolved": 3,
+        "successes": 109
+      },
+      "unresolved": {
+        "classification_tasks": 48,
+        "evaluation_complete": 37,
+        "evaluation_unresolved": 11,
+        "successes": 19
+      }
+    }
+  },
+  "scope": "post-hoc projection of previously inspected selection; not prospective scientific evidence",
+  "version": "observable-score-projection/v1"
+}

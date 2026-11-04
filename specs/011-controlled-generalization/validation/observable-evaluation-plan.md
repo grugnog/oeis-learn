@@ -1,6 +1,6 @@
 # Observable continuation evaluation and bank provenance — 2026-11-04
 
-Status: implementation plan; T168–T170 are not completed. This follows the
+Status: T168–T170 completed; see [execution evidence](observable-evaluation-results.md). This follows the
 [retained pilot audit](post-pilot-analysis.md). It does not change historical
 P1 scores, train a model, open assessment, or authorize an automatic hardware run.
 
