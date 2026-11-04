@@ -163,3 +163,32 @@ def resolve_study(preparation, proposed, manifests, *, shortfalls=(), root=None)
     from .initializers import verify_initializer
     verify_initializer(root,resolved.record(),allow_pending=True)
     return resolved
+
+
+# PAC deliberately has a separate entry point. Historical study/preparation
+# validators cannot be bypassed by changing a recipe string or resealing P3.
+PAC_PRIVATE_KINDS = frozenset({'inventory', 'target_pair', 'observation', 'review',
+                              'adaptive', 'transaction', 'checkpoint'})
+
+
+def pac_record(kind, record, *, sealed=True):
+    """Validate one closed PAC record, without asserting policy/native readiness."""
+    from jsonschema import Draft202012Validator
+    schema = _schemas()[0]['pac']
+    if kind not in {r['$ref'].split('/')[-1] for r in schema['oneOf']}:
+        raise ValueError('unknown PAC record kind')
+    candidate = record if sealed else seal(record)
+    validator = Draft202012Validator(dict(schema, oneOf=[{'$ref': '#/$defs/' + kind}]))
+    if not validator.is_valid(candidate):
+        raise ValueError('invalid closed PAC ' + kind)
+    if seal(candidate) != candidate:
+        raise ValueError('PAC canonical identity mismatch')
+    return FrozenAuthority('pac:' + kind, json.dumps(candidate, sort_keys=True, allow_nan=False).encode())
+
+
+def pac_public(kind, record):
+    """Only explicitly public shells may cross the shared-report boundary."""
+    authority = pac_record(kind, record)
+    if kind in PAC_PRIVATE_KINDS:
+        raise ValueError('private PAC record requires an explicit bounded projection')
+    return authority.record()
