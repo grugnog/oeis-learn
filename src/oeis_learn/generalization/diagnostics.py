@@ -78,3 +78,45 @@ class FeedbackCoverage:
         if any(n>=2 and f not in state['retention_incomplete'] for f,n in state['missing_rotations'].items()):raise ValueError('lost retention incompleteness')
         obj=cls(families);obj.censored_rewards=state['censored_rewards'];obj.invalid_review_blocks=state['invalid_review_blocks']
         obj.missing_rotations=dict(state['missing_rotations']);obj.retention_incomplete=set(state['retention_incomplete']);obj.pauses=list(state['pauses']);return obj
+
+
+def observer_schedule(completed_updates,*,arm,families,anchors,seed,final=False):
+    """Frozen opportunities, not fabricated observed values or extra gradients."""
+    import random
+    from .budgets import integer
+    from .curriculum import stream_seed
+    integer(completed_updates)
+    if arm not in {'B','C','D'} or len(families)!=32 or len(set(families))!=32 or len(anchors)!=128 or len(set(anchors))!=128 or type(final) is not bool:
+        raise ValueError('frozen PAC observer inventory')
+    common=None
+    if completed_updates%256==0 or final:
+        panel=(completed_updates+255)//256
+        start=(panel*4)%32
+        common=dict(loss_probes=256,semantic_families=list(families[start:start+4]),semantic_probes=32,
+                    attempts_per_probe=1,seconds_per_probe=5,kernel_credit=False,anchor_promotion=False)
+    cycle,pos=divmod(completed_updates,32)
+    reward=None;grade=None
+    if not final and pos in ((0,8,16,24) if arm=='D' else (0,8,16)):
+        number=cycle*(4 if arm=='D' else 3)+pos//8
+        family=families[random.Random(stream_seed(seed,'shadow-uniform-family',str(number))).randrange(32)] if arm=='B' else None
+        reward=dict(block=number,family=family,pre_update=completed_updates,post_update=completed_updates+8,
+                    probes_per_evaluation=2,shadow=arm=='B',policy_required=arm!='B',selection_bound=arm!='B')
+    if not final and arm!='D' and pos>=24:
+        grade=dict(anchor=anchors[(cycle*8+pos-24)%128] if arm=='B' else None,shadow=arm=='B',
+                   changes_gradient_order=False if arm=='B' else True,requires_acquired_anchor=True)
+    return dict(common=common,reward_start=reward,grade_opportunity=grade)
+
+
+def observation_forecast(updates,*,arm):
+    """Reserve all started blocks plus common initial/final panels and restoration."""
+    from .budgets import integer
+    integer(updates)
+    if arm not in {'B','C','D'}:raise ValueError('PAC observation arm')
+    cycles,remainder=divmod(updates,32)
+    blocks=(updates+7)//8 if arm=='D' else cycles*3+(min(remainder,24)+7)//8
+    grades=0 if arm=='D' else cycles*8+max(0,remainder-24)
+    common=1+updates//256+int(updates%256!=0)
+    return dict(reward_blocks=blocks,reward_probe_evaluations=4*blocks,grade_opportunities=grades,
+                common_loss_probes=common*256,semantic_attempts=common*32,semantic_seconds=common*32*5,
+                mode_rng_restorations=2*blocks+grades+2*common,publication_events=common,
+                required_reward=arm!='B',costs_equal_across_arms=False)

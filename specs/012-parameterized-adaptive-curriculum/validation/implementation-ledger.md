@@ -79,3 +79,18 @@ Extreme finite logweights retain the 1/128–97/128 probability bounds. Past-onl
 20/80 quantiles, warmup/ties, 4,096-value Algorithm R reservoir, independent family
 Fisher–Yates streams, skip cursors and rotating two-of-eight probes restore exactly
 through JSON. This is pure policy proof, not installed learner or HIP evidence.
+
+## B4 — T016–T019
+
+Review tests: **35 passed** across the full 34-case run plus the added fallback
+case (also reran all non-cycle cases). All 32 cycle offsets each execute 8,704
+updates with 128 simultaneous obligations and repeated failures, checking <=512
+due delay and <=8,704 exposure intervals only while training continues. Acquisition,
+incidental practice, missing grades, impossible capacity and terminal reporting
+remain distinct; failed/invalid commits cannot promote an anchor.
+
+Diagnostics tests: **3 passed**. Persistent censored-reward/grade pauses, two missing
+semantic rotations, common 256-update panels, B shadow observations, C acquired-anchor
+opportunities and D's extra rewards are separately defined and counted. Forecasts
+include initial/final panels and started partial-block reserves. No monitoring
+result is kernel credit or an anchor grade. Actual observation costs await C/E.
