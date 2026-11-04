@@ -6,6 +6,35 @@
 
 ## Summary
 
+### Qualified full-data handoff (T164–T165)
+
+The hourly probe `training-hourly-probe-20261104T083935Z` passed on the
+qualified source corresponding to `bfd04a2`. Its conservative forecast is
+18,619.51 seconds per arm, within the frozen 21,600-second learner allowance.
+It is performance evidence, not a research result or independent qualification.
+The full corpus remains in `fresh-p1-v2-20261103T035534Z`; do not continue the
+exhausted `fresh-p1-continued-20261103T151303Z` learner or rewrite its authority.
+
+Single reopened Phase B: verify original sealed canonical inventories, full
+protocol/feasibility and current probe evidence; reject conflicting lineage or
+policy. Construct a new study identity from the verified prepared study, changing
+only the source reference and execution binding for the current image/feature
+authority. Preserve every data reference, scientific choice, seed, budget and
+checkpoint milestone. Record the old and new identities and exact transition.
+The probe's original train receipts and qualification must match; recompute the
+forecast from those original training results, not the summary's PASS flag.
+
+Routine C/D: an explicit temporary `--rebind-prepared` / `--training-probe`
+path reuses preparation, projects its exact execution closure once, validates
+the new resolved runtime through canonical preflight, then runs existing paired
+smoke, fresh full training and selection evaluation. Canonical consumers still
+recheck the current machine/source/images and feature evidence. No regenerated
+corpus, old learner resume, qualification relabeling or production-policy change.
+Keep original preparation/failed training/probe files immutable, archive public
+lineage and original aggregate probe evidence on failure as well as success, and
+retain all existing inner/outer limits and disk margins. Host tests live beside
+temporary helpers so this handoff does not invalidate the qualified source closure.
+
 Implement the complete evaluation, corpus-refresh, target-comparison and verified-replay capability, then use it for a staged research campaign. The operator-approved next research run is a fresh paired static-versus-refreshed pilot; historical E0 evaluation and P0 seed replication are deferred. Execution order does not remove broader changes from implementation scope.
 
 Use the existing portable host wrapper, container roles, exact native fitter, independent reference evaluator, checkpoint store, pipeline runner and evidence packaging. Add a prospective `generalization` policy layer with strict role-specific data contracts. Separate qualification identity from study identity so canonical endpoints can share one original qualified producer without weakening study provenance.

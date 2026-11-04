@@ -8,6 +8,16 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Qualified full-data handoff — 2026-11-04 UTC
+
+### Reopened Phase B — immutable data reuse and explicit source transition
+
+- [ ] T164 Verify the original preparation inventory, frozen full protocol and successful hourly probe against original canonical receipts; independently recompute its forecast. Create a distinct study/runtime bound to current qualification by changing only source, images and feature authority, preserving all scientific choices and prepared payload bytes. Test tampering, incompatible protocols, missing receipts, changed policies and immutable parent evidence before implementation.
+
+### Phase C/D — one-command full pilot handoff
+
+- [ ] T165 Integrate explicit prepared-data rebinding into the temporary controller; retain current native preflight and paired smoke before fresh full learners, truthful reused-stage lineage and failure archives. Test stage ordering and failures; preserve the qualified production closure, document exact commands and runtime expectations, commit/push each group without HIP or CI waits.
+
 ## Hourly recovery snapshots and frequent progress — 2026-11-04 UTC
 
 ### Reopened Phase B — checkpoint cadence, crash accounting and progress
