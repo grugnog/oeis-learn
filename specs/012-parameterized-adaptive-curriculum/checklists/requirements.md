@@ -41,3 +41,13 @@ Stories 1/2 cover FR-001–011; story 3 covers FR-012–018; story 4 covers
 FR-019–026; story 5 covers FR-027–029. FR-030–031 and the NFRs apply across the
 acceptance and operator scenarios. These checks establish design readiness only;
 none asserts implementation, native feasibility, HIP acceptance or a positive result.
+
+## Research-driven revision review — 2026-11-04
+
+Rechecked the same 16 items after the operator accepted published EXP3.S family
+allocation plus bounded review. FR-012–020 now specify algorithm fidelity,
+block-attributable rewards, per-example recall, incidental exposure, missing
+feedback and resumable block state. FR-031 keeps the optional bandit-only ablation
+explicit and off by default. The default two new arms, structural scope, generous
+timeout policy and two critical phases remain intact. Published guarantees are
+not claimed for the full state-changing training/review wrapper.

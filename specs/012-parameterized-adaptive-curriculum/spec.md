@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-04
 
-**Status**: Draft — specification/design reviewed; implementation and hardware evidence pending
+**Status**: Draft — revised after primary-source bandit/review research; implementation and hardware evidence pending
 
 **Input**: Build on merged 011 / PR #62 to compare parameterized program targets with literal targets, and adaptive family allocation plus spaced review with a fixed family mixture. Complete structural-only evaluation prerequisites, concentrate essential complex work in dedicated phases, minimize operator HIP invocations and prevent recurrence of 011 reliability failures.
 
@@ -20,7 +20,7 @@ As a researcher, I want a fresh, frozen structural evaluation and trustworthy co
 
 **Acceptance Scenarios**:
 
-1. **Given** the accepted 011 structural allocation, **when** preparation succeeds, **then** exactly 128 tasks from 27 families are frozen:68 certified, 26 ambiguous and 34 unresolved; parameter evaluation is explicitly deferred.
+1. **Given** the accepted 011 structural allocation, **when** preparation succeeds, **then** exactly 128 tasks from 27 families are frozen: 68 certified, 26 ambiguous and 34 unresolved; parameter evaluation is explicitly deferred.
 2. **Given** a quota shortfall, missing original input or native/reference disagreement, **when** admission runs, **then** no research learner/generator starts and exported evidence identifies affected families, original failure and restart boundary.
 3. **Given** an old literal checkpoint, **when** reuse is considered, **then** initialization, ordered data, model/optimizer, exposure and execution compatibility are established or the checkpoint is labeled an unmatched reference.
 
@@ -49,7 +49,7 @@ As a researcher, I want practice to follow useful learning progress and measured
 **Acceptance Scenarios**:
 
 1. **Given** a learnable improving family and a persistently high-error family, **when** allocation updates, **then** high error alone cannot monopolize training and every family retains exploration.
-2. **Given** previously learned examples, **when** independent reviews succeed repeatedly, **then** intervals lengthen within a bound; failures shorten them, and scheduled practice performs an actual charged learner update.
+2. **Given** previously learned examples, **when** independent reviews succeed repeatedly, **then** each reviewed example advances through bounded review intervals on its own target-recall evidence; failure returns it to frequent review, and scheduled practice performs an actual charged learner update. A separate family probe cannot promote that example.
 3. **Given** unavailable or timed-out probes, **when** feedback is processed, **then** no success, failure, mastery or forgetting is invented.
 4. **Given** different family lengths/costs, **when** exposure is audited, **then** probabilities, selection reasons, examples, tokens and elapsed cost explain allocation.
 
@@ -77,13 +77,14 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 
 **Acceptance Scenarios**:
 
-1. **Given** literal-fixed A, parameterized-fixed B and parameterized-adaptive C, **when** comparisons are reported, **then** B–A addresses representation and C–B addresses allocation plus review; neither isolates review alone.
+1. **Given** literal-fixed A, parameterized-fixed B and parameterized bandit-plus-review C, **when** comparisons are reported, **then** B–A addresses representation and C–B addresses the combined package. Only a separately frozen optional bandit-only D supports C–D attribution to replacing ordinary bandit practice with scheduled review; no review-only benefit is claimed without it.
 2. **Given** positive, negative or inconclusive single-seed findings, **when** reporting finishes, **then** no automatic winner, extra seeds or assessment-based policy change occurs.
 3. **Given** available passing/failing attempts, **when** cases are selected for review, **then** original/parameterized/fitted sources and reasons are retained, with unavailable categories explicitly stated.
 
 ### Edge Cases
 
-- Cold-start/equal priorities; noisy or stale feedback; persistent errors without progress; cheap families dominating; review demand exceeding its reserved capacity.
+- Cold-start/equal weights; selection-time versus later probabilities; incorrect first sharing update; reward sign loss; misattributed cross-family trends; noisy or stale feedback; persistent errors without progress; cheap families dominating; review demand exceeding its reserved capacity.
+- Initial acquisition mistaken for retained recall; incidental practice omitted from review clocks; a grade survives a failed optimizer update; simultaneous due anchors exceed service capacity.
 - Memorized examples remain easy while unseen instances from the same training family deteriorate; unavailable diagnostic pools; ambiguous continuation or solver timeout mistaken for incompetence.
 - Repeated parameters, protected guards, nonlinear targets, parameter-count limits, unsafe grounding and semantically equivalent programs with different target text.
 - Historical initialization/order evidence missing; source/image/backend mismatch; weights-only data presented as resumable state.
@@ -102,7 +103,7 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 - **FR-003**: A MUST be a verified compatible retained control or a separately frozen fresh matched control. Otherwise label it unmatched and withhold causal B–A claims; B–C validity remains separately assessable. Compatibility includes ordered concrete inputs, initial weights, model/optimizer, exposure, diagnostic intervention and execution policy.
 - **FR-004**: B/C MUST use the same finite 32-family training support and underlying concrete pool. No online generation, support expansion, different numeric law, reinforcement learning, search-discovered demonstrations or hidden refresher corpus belongs to this first intervention.
 - **FR-005**: Complete 011 T177–T180's structural-only prerequisites and T181's control audit without relabeling T174 complete. Initial selection MUST contain 128 tasks/27 families, with 68 certified tasks/18 families as primary, 26 ambiguous and 34 unresolved tasks separately reported.
-- **FR-006**: Preserve reviewed structural draw identities/quotas, original exclusions,20 visible/100 scoring terms, eight attempts, 60-second matched portfolios, seven controls and bank seeds. All 16 original exclusion inputs remain required; parameter evaluation reads DEFERRED.
+- **FR-006**: Preserve reviewed structural draw identities/quotas, original exclusions, 20 visible/100 scoring terms, eight attempts, 60-second matched portfolios, seven controls and bank seeds. All 16 original exclusion inputs remain required; parameter evaluation reads DEFERRED.
 - **FR-007**: Every frozen quota and native agreement check MUST pass before research learning/inference. Export per-family availability before/after exclusion, rejection counts, deficits, timings and input identities without protected terms. Never silently reseed, add draws, relax quotas or substitute families.
 
 #### Target and feedback isolation
@@ -114,18 +115,18 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 
 #### Adaptive practice and review
 
-- **FR-012**: Freeze a family policy combining bounded progress/retention evidence, uncertainty/staleness and measured cost. Use aggregate observations with actual counts; never manufacture within-visit success ordering or independent-trial confidence for correlated attempts.
-- **FR-013**: Every family MUST retain a declared exploration floor and finite review-opportunity bound. Cap concentration, handle cold starts deterministically and reject impossible review schedules before training.
-- **FR-014**: Maintain a bounded representative review set of existing training examples plus separate transfer probes. Successful reviews lengthen and failed reviews shorten declared bounded intervals; missing/censored evidence does not alter mastery as if measured.
+- **FR-012**: Use a named, faithful published EXP3.S variant for family allocation, with selection-time importance weighting, explicit exploration, fixed-share updates and numerical conformance fixtures. Freeze reward definition, scaling, cost proxy and every departure in the surrounding training/review policy; a custom priority score or legacy class name MUST NOT be presented as that algorithm.
+- **FR-013**: Every family MUST retain a declared exploration probability floor. State the resulting concentration bound and actual exposure separately; do not silently clip probabilities into a different algorithm. Review anchors MUST have a finite service-opportunity bound, including synchronized deadlines, initial acquisition and terminal-budget truncation; reject impossible schedules before training.
+- **FR-014**: Maintain bounded per-example review state for representative existing training examples, using a declared Leitner-style adaptation. Each acquired example's own pre-update recall observation may promote its queue; a completed failure returns it to the shortest interval. Missing/censored grades cannot promote mastery. Record incidental committed exposure and acquisition separately; retain independent family probes to measure transfer.
 - **FR-015**: Review choices MUST perform charged updates within the same learner allowance, not only create events or add unreported tokens. Repeated-example review and other practice MUST be separately counted.
-- **FR-016**: Feedback MUST use a fixed bounded cadence rather than full generation/fitting every batch. Normalized target loss, semantic success and execution completion remain distinct measurements; proxy loss is not semantic mastery.
-- **FR-017**: Diagnostics MUST have explicit ceilings and missing-feedback rules. Sampling remains valid when feedback is unavailable; persistent diagnostic failure produces a declared incomplete/inconclusive result rather than silent successful adaptation.
-- **FR-018**: B/C MUST share measurement definitions/opportunities. Charge all diagnostics/controller costs and expose distribution reweighting; independent evaluation MUST retain its fixed denominator.
+- **FR-016**: Measure a chosen family's learning-progress reward on the same separate training probe before and after an identified bounded contiguous training block, with no intervening other-family or review updates. Preserve signed progress and observed counts. All-family trends are diagnostics, not retrospective credit to the most recently selected arm. Do not run full generation/fitting per batch; target recall, loss, semantic success and execution completion remain distinct.
+- **FR-017**: Diagnostics and reward observation MUST have explicit work/time ceilings and missing-feedback rules. A censored reward is not an observed zero: preserve completed training and debit, suppress its reward update, and report missing coverage. Persistent failure pauses or marks the adaptive result incomplete under a frozen rule; no silent successful adaptation or automatic feedback-policy switch.
+- **FR-018**: Compared new arms MUST share measurement definitions and bounded opportunities, with common family panels for comparable retention. Selected-family reward observations remain policy-conditioned and must not be called matched evaluation. Charge all controller/diagnostic costs, expose distribution reweighting and preserve fixed evaluation denominators.
 
 #### Recovery, operations and evidence
 
-- **FR-019**: Resume MUST bind model/optimizer, random state, data order, family statistics/probabilities, review queue/intervals, probe rotation/results, feedback IDs, pending batch and token/time ledgers. Reject incompatible policies, versions, inventories and execution environments.
-- **FR-020**: Reservation, update, feedback and review advancement MUST have explicit commit ordering. Recover from the last complete checkpoint without duplicated decisions; spent-but-lost work remains charged and reported. Never restore a newer scheduler journal onto older model weights.
+- **FR-019**: Resume MUST bind model/optimizer, random state, data order, bandit logweights and valid-update/action counters, reward-scaling history, selection-time probabilities, pre/post probe and pending block state, per-anchor acquisition/queue/due/exposure state, feedback IDs, pending batch and token/time ledgers. Reject incompatible policies, versions, inventories and execution environments.
+- **FR-020**: Reservation, optimizer update, reward processing and review advancement MUST have explicit commit ordering. A partial block cannot receive a fabricated complete reward, and an unsuccessful optimizer update cannot promote review state. Restore the last complete checkpoint without duplicated actions/feedback; spent-but-lost work remains charged. Never restore a newer policy journal onto older model weights.
 - **FR-021**: Normally persist full recovery snapshots about hourly, plus initial/final and declared milestone pins, at update boundaries. Keep frequent lightweight progress. Slow atomic publication has its own bounded allowance; previous complete state remains usable on failure.
 - **FR-022**: Preflight MUST verify exact input locations/inventories, control compatibility, finite data/probe capacity, target/model limits, source/images/runtime/resources, peak simultaneous disk use and nested deadlines before costly stages. Bounded discovery failure names an explicit root/inventory requirement.
 - **FR-023**: Reuse original compatible producer evidence and immutable completed stages only after dependency validation. Production changes invalidate affected qualification; temporary-helper changes bind new execution plans separately. Old failed evidence stays failed.
@@ -139,7 +140,7 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 - **FR-028**: Primary structural interpretation requires at least 65/68 certified tasks completed in each compared arm. Distinguish classification ambiguity from unresolved execution. Single-seed findings remain exploratory; adaptive exposure does not alter evaluation denominators.
 - **FR-029**: Deterministically review at least 12 available case/arm records spanning shared/arm-exclusive successes, continuation errors, no-fit, timeouts/decode failures and simple-control wins; retain before/after sources/assignments where available and state missing categories/data.
 - **FR-030**: Small software acceptance MUST exercise actual finite accelerator updates, actual checkpoint evaluation, paired targets, adaptive feedback, real review updates, compatible exact pause/resume and failure export. Neither full research training nor a positive learning result is required for acceptance.
-- **FR-031**: Research execution requires a separately frozen operator choice. One invocation may qualify then run an already authorized campaign; failed gates suppress dependent research. No automatic extra seeds, winner adoption or assessment exposure.
+- **FR-031**: Research execution requires a separately frozen operator choice. The default screen remains B/C plus a qualified or labeled A reference. An optional bandit-only D requires explicit arm selection, matching initialization/data, added complete resource reservations and distinct interpretation. One invocation may qualify then run the already authorized scope; no automatic ablation, extra seeds, winner adoption or assessment exposure.
 
 ### Non-Functional Requirements
 
@@ -157,9 +158,9 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 - **Experiment contract**: Frozen arms, policy versions, source/environment, control/data lineage, budgets and decision rules.
 - **Target pair**: Concrete program, paired views, grounding proof, parameter sharing and fallback disposition.
 - **Family inventory**: Allowed training families, examples, independent probes and exclusion commitments.
-- **Family observation**: Counts, loss/verified outcomes, completion, cost, exposure and immutable event identity.
-- **Review state**: Representative example IDs, practice/review history, bounded due intervals and mastery evidence.
-- **Adaptive state**: Family histories/probabilities, review queues, random/cursor state and committed/pending decisions.
+- **Family observation**: Selected block/probability, matched pre/post probe, signed reward and scaling provenance, diagnostic counts, completion, cost and immutable event identity.
+- **Review state**: Per-anchor acquisition, queue level, due/last-exposure update, grade identity and practice/review history; target recall remains distinct from semantic competence.
+- **Adaptive state**: Published-kernel weights/counters, reward-scaling state, review queue, random/cursor state and complete pending block/observation state.
 - **Control receipt**: Evidence establishing or rejecting a matched historical comparison, distinct from weights-only reuse.
 - **Run evidence**: Original stage references, results or incomplete reasons, costs, logs and recovery boundaries.
 
@@ -169,7 +170,7 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 
 - **SC-001**: All 128 structural tasks and category/family totals reconcile, or research never starts and every shortfall is reported.
 - **SC-002**: Every target pair passes independent grounding; every unsupported row retains a counted safe disposition without denominator loss.
-- **SC-003**: Controlled fixtures demonstrate learning-frontier allocation, exploration, bounded review opportunities and actual retention updates; noisy/unavailable feedback cannot fabricate competence.
+- **SC-003**: Independent numerical fixtures reproduce the selected EXP3.S variant, and controlled scenarios demonstrate exploration, bounded per-example review and actual charged retention updates; noisy/unavailable feedback cannot fabricate competence.
 - **SC-004**: Qualified pause/resume fixtures match uninterrupted model/optimizer, next examples, adaptive/review state and charged exposure with zero duplicate feedback IDs for clean boundary pauses; crash recovery additionally accounts for discarded work.
 - **SC-005**: One normal operator invocation completes small acceptance and verifiable evidence without intermediate manual commands; every injected failure has a truthful bounded recovery record.
 - **SC-006**: 100% of reported arm/family aggregates and exposure/cost totals are reconstructible from exported evidence, with explicit missing measurements.
@@ -181,9 +182,9 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 ## Assumptions
 
 - Merged 011 at `efce05d64294cb013d7075802e44560ce1d45b05` supplies the foundation. Six unchecked follow-ups are inherited, not retroactively completed.
-- The initial screen uses one paired seed and 25M target tokens per new arm. Several hours per learner are acceptable; cadence/mixture/operational limits are explicit planning defaults to freeze, not measured optima.
+- The initial screen uses one paired seed and 25M target tokens per new arm. Several hours per learner are acceptable; bandit parameters, block size, review cadence and operational limits are explicit planning defaults to freeze, not measured optima.
 - B/C start from identical fresh random initialization. A reuse requires complete matching evidence; otherwise a fresh A or reference-only path is chosen before research, not improvised after outcomes.
-- The first policy combines adaptive allocation and scheduled review on a fixed finite pool. Review-only ablations, support/refresh changes and multi-seed confirmation are later research.
+- The first policy combines the Graves et al. EXP3.S fixed-share kernel with a bounded per-example Leitner adaptation on a fixed finite pool. The optional bandit-only ablation is supported but off by default. RbF/MIR, review-only ablations, support/refresh changes and multi-seed confirmation are deferred; no theorem establishes optimal final accuracy for this combined policy.
 - Original private inputs/checkpoints and compatible images remain on the workstation. Missing originals require a specific preflight action or separately frozen replacement, not invented provenance.
 - Existing repository evidence and prior public archives suffice for design; no chat/file resend is needed now. Actual control compatibility and performance calibration require operator-side originals later.
 - This specification/design does not run training/HIP, establish efficiency gains or automatically authorize a research campaign.
