@@ -50,3 +50,14 @@ referencing 0.37.0 (validator/test versions from committed lock). This is a targ
 pure-Python environment, **not** the pinned qualification image. Docker/Podman,
 PyTorch, native synthesis and HIP are unavailable; none is reported PASS.
 Phase A is complete; installed dispatch, tensors and hardware remain pending.
+
+## B1 — T007–T010
+
+Structural scope tests: **3 passed**, including byte-identical original draw stream,
+all 16 missing-cell counterexamples, native disagreement and non-retryable completed
+shortage. PAC control/freeze tests: **2 passed** (`test_generalization_execution.py
+-k pac`; existing tensor tests excluded because torch is unavailable). Cohort tests:
+**5 passed**, including 32,768 rows/32 families, distinct anchors/probes, unchanged
+row order, finite draw bounds, source/output duplicates, native mismatch and final
+collision rejection. Structural admission consumes verified custodian observations;
+these fixtures do not establish native execution or actual input feasibility.

@@ -80,3 +80,27 @@ class ExclusionIndex:
         return new
 
     def add(self,row):return self.add_many((row,))
+
+
+def pac_probe_exclusions(gradient,probes,*,final_collision_ids):
+    """Custodian-side metadata policy, after source/output canonicalization.
+
+    The installed custodian must derive final_collision_ids against *all* sealed
+    final-evaluation inputs. An explicit empty set is a measured no-collision result,
+    not permission for a learner to inspect hidden data or omit that check.
+    """
+    if final_collision_ids is None:raise ValueError('custodian final-evaluation check required')
+    ids={r['id'] for r in probes}
+    if not set(final_collision_ids)<=ids:raise ValueError('unknown final collision ID')
+    sources={r['source_hash'] for r in gradient};outputs={r['output_hash'] for r in gradient}
+    windows={r['window_hash'] for r in gradient};seen_s=set();seen_o=set();bad={};shared=0
+    for row in probes:
+        reasons=[]
+        if row['source_hash'] in sources|seen_s:reasons.append('exact_source')
+        if row['output_hash'] in outputs|seen_o:reasons.append('full_output')
+        if row['id'] in final_collision_ids:reasons.append('final_evaluation')
+        if reasons:bad[row['id']]=reasons
+        else:
+            seen_s.add(row['source_hash']);seen_o.add(row['output_hash'])
+            shared+=row['window_hash'] in windows
+    return bad,shared
