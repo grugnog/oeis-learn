@@ -98,7 +98,7 @@ mathematical, admission, transaction and resource rules are fixed for C to consu
 
 ### B7 — US5: Denominators and permissible conclusions (P2)
 
-- [ ] T026 [P] [US5] Add independent equal-total/different-family, paired-discordance, missing-arm and censored-completion fixtures to `tests/unit/test_generalization_metrics.py`; distinguish 64/68 from 65/68 complete, ambiguity from unresolved execution, task resampling from seed uncertainty, and token allowance from useful exposure or matched wall time.
+- [X] T026 [P] [US5] Add independent equal-total/different-family, paired-discordance, missing-arm and censored-completion fixtures to `tests/unit/test_generalization_metrics.py`; distinguish 64/68 from 65/68 complete, ambiguity from unresolved execution, task resampling from seed uncertainty, and token allowance from useful exposure or matched wall time.
 - [ ] T027 [US5] Implement/reuse structural aggregation and comparison admission in `src/oeis_learn/generalization/metrics.py` and `src/oeis_learn/generalization/reconciliation.py`: fixed certified family-macro denominator, paired task counts, >=65/68 per compared arm, separately reported ambiguous/unresolved/censored strata, B–A only with matched A, C–B package, optional D–B allocation and C–D review substitution, explicit missing history and no automatic winner or positive-gain acceptance gate.
 
 ## Phase C — Critical installed execution and provenance integration
