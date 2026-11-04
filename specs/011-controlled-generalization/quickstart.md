@@ -1,11 +1,68 @@
 # Validation and first-pilot guide
 
+## Current next step: full pilot with hourly snapshots (2026-11-04)
+
+The reviewed `training-hourly-probe-20261104T083935Z` passed current-source
+qualification, native preparation, both actual HIP learners and finite changed-weight
+proofs. Its conservative forecast is 18,619.51 seconds (5h10m) per 25M-token arm;
+the frozen learner cap remains 21,600 seconds (6h). This is a short-run forecast,
+not a generalization result or a guarantee for long-run/full-shard throughput.
+
+Use this command on the existing branch. No image rebuild, new qualification,
+full corpus regeneration or additional operator probe is requested. Keep the
+complete original preparation, hourly probe (including its private canonical
+receipts/checkpoints and qualification), imported recipe inputs and qualified images.
+At least 224 GiB must be free. Do not modify these directories while running.
+
+```bash
+(
+  set -e
+  cd /home/owen/workspace/oies-learn
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  python3 -S specs/011-controlled-generalization/validation/fresh_pilot.py run \
+    --engine podman \
+    --rebind-prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+    --training-probe run-state/generalization/training-hourly-probe-20261104T083935Z \
+    --output "run-state/generalization/fresh-p1-hourly-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+The temporary handoff verifies original bytes, qualification source/images/resources
+and original probe measurements, then creates a distinct study with an explicit
+hourly persistence amendment. Data, model, batch16, seed20261016, 25M tokens/arm,
+six learner hours/arm and 4/8/16/25M milestones are unchanged. Static repeats the
+first 32,768-row shard; refreshed traverses the 12 prepared shards (393,216 rows).
+Both start from the same fresh random initialization; the previous failed learner
+is preserved and supplies no weights or refunded exposure to this new study.
+
+One command runs current full-data custodian preflight, the small paired
+learning/generation/scoring smoke, fresh serial full learners, selection evaluation
+and canonical report verification. Cached native admission remains attributed to
+the original preparation; current preflight validates its resolved execution
+closure. Canonical consumers independently recheck hardware qualification. A failed
+gate blocks later learners and produces diagnostic evidence. Assessment stays sealed.
+
+The short probe suggests roughly 2.3 hours of steady learning per arm; budgeting
+5h10m per arm includes a 2× margin, measured snapshot overhead and another 30 minutes.
+Full-data validation previously took about 15 minutes per invocation; hashing/copying
+and the small smoke add overhead. Full selection generation/scoring throughput is
+still unmeasured: each has a six-hour inner ceiling per arm (up to 24 hours combined).
+The controller retains its generous 96-hour outer safety ceiling and reporting
+reserve. Allow an overnight/multi-day window; those ceilings are not duration forecasts.
+Initial/hourly/milestone/final snapshots retain resumability; small progress journals
+and bounded loss/throughput trends continue between snapshots. The final JSON names
+the `report.zip` or `recovery.zip` to share.
+
+Everything below describes earlier qualification/continuation procedures. The old
+`--resume-prepared` command is **not** the next command after this source transition.
+
 All nine generalization commands are registered. Acceptance-016 passed the
 pinned CPU/native and actual HIP qualification, all five feature cases and canonical
 archive verification. See [the evidence review](validation/acceptance-016-review.md).
 The scientific status remains UNMEASURED.
 
-## Current next step: continue the prepared 20261103T035534Z run
+## Historical handoff: continue the prepared 20261103T035534Z run
 
 The CPU/native probe passed. The subsequent campaign passed acceptance, full
 source feasibility and all 16 native preparation cells (6675 seconds), then stopped

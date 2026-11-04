@@ -177,3 +177,69 @@ def test_original_preparation_mismatch_fails_closed(prepared,monkeypatch,defect)
         value['inventory']=[r for r in value['inventory'] if not r['path'].endswith('/runtime.json')]
         value=seal(value);write(path,value,exclusive=False);monkeypatch.setattr(m,'PARENT_PREPARATION',value['identity'])
     with pytest.raises((ValueError,OSError,KeyError)):m.prepared_evidence(root,old,engine)
+
+
+@pytest.mark.parametrize('overlap',['old','old/new','probe','probe/new','.'])
+def test_overlap_is_rejected_before_any_writes(probe,overlap):
+    from types import SimpleNamespace
+    root,folder,qualified,authority,record=probe;(root/'old').mkdir()
+    before=sorted(str(p) for p in root.rglob('*'))
+    args=SimpleNamespace(rebind_prepared='old',training_probe='probe',output=overlap)
+    with pytest.raises(ValueError,match='disjoint'):m.paths(root,args)
+    assert before==sorted(str(p) for p in root.rglob('*'))
+
+
+@pytest.mark.parametrize('conflict',['resume_prepared','throughput','qualified','cpu_image','gpu_image'])
+def test_conflicting_modes_rejected_before_io(tmp_path,conflict):
+    from types import SimpleNamespace
+    args=SimpleNamespace(rebind_prepared='missing',training_probe='missing',output='new',**{conflict:'different'})
+    with pytest.raises(ValueError,match='no other'):m.paths(tmp_path,args)
+    assert not list(tmp_path.iterdir())
+
+
+def test_transition_projects_once_and_preserves_original_payloads(tmp_path,monkeypatch,pair):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.resources import CAPS
+    from oeis_learn.pipeline_validation import generalization_runtime as runtime_api
+    from oeis_learn.experiments import source_snapshot
+    import fresh_pilot_training_probe as probe_api
+    import fresh_pilot_resume, fresh_pilot_report
+    monkeypatch.setattr(fresh_pilot_resume.shutil,'disk_usage',lambda _ :SimpleNamespace(free=256<<30))
+    old=tmp_path/'old';base=old/'prepared';probe=tmp_path/'probe';qualified=probe/'qualified';target=tmp_path/'new';target.mkdir()
+    study,runtime,design=pair
+    write(base/'old-source.json',{'source':'old'});write(base/'data.json',{'training':'original'})
+    runtime=dict(runtime,images=['sha256:'+'1'*64,'sha256:'+'2'*64],storage=CAPS)
+    study,runtime=bind(dict(study,source_closure=reference(base/'old-source.json',base)),runtime)
+    write(base/'study.json',study);write(base/'runtime.json',runtime)
+    data_ref=reference(base/'data.json',base)
+    monkeypatch.setattr(runtime_api,'execution_refs',lambda base,s,r:[data_ref,s['source_closure']])
+    cfg=dict(hypothesis=study['hypothesis'],source_closure='old/source.json',feature='old/feature.json',images=runtime['images'])
+    ctx=dict(old=old,manifest='old/prepared/study.json',study=study,runtime=runtime,design=design,cfg=cfg,preparation='old-preparation')
+    for p in ('research/prepare/result.json','feasibility/result.json'):write(old/p,seal(dict(status='PASS')))
+    write(old/'research/protocol-summary.json',seal(dict(protocol=design['identity'])))
+    stages=[dict(stage=n,status='PASS',exit_code=0,originals=[str(old/p)]) for n,p in
+        [('feasibility','feasibility/result.json'),('prepare','research/prepare/result.json')]]
+    write(old/'workflow.json',seal(dict(stages=stages)))
+    write(qualified/'qualification.json',{});write(qualified/'feature.json',{})
+    write(probe/'result.json',seal(dict(status='PASS')))
+    before={p:p.read_bytes() for p in old.rglob('*') if p.is_file()}
+    monkeypatch.setattr(m,'paths',lambda *a:(old,probe,qualified))
+    gates=[]
+    monkeypatch.setattr(probe_api,'qualified',lambda *a:(gates.append('qualification') or qualified,dict(images=runtime['images'])))
+    monkeypatch.setattr(m,'prepared_evidence',lambda *a:gates.append('preparation') or ctx)
+    monkeypatch.setattr(m,'probe_evidence',lambda *a:gates.append('probe') or json.loads((probe/'result.json').read_text()))
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda *a:{'source':'current'})
+    monkeypatch.setattr(fresh_pilot_report,'preparation_diagnostics',lambda *a:{'status':'original'})
+    result=m.transition(tmp_path,SimpleNamespace(engine='podman'),target)
+    destination=tmp_path/result['execution_manifest'];new,sidecar=json.loads(destination.read_text()),json.loads(destination.with_name('runtime.json').read_text())
+    assert gates==['qualification','preparation','probe']
+    verify_binding(new,sidecar)
+    assert new['data']==study['data'] and sidecar['training']==runtime['training']
+    assert (destination.parent/'data.json').read_bytes()==(base/'data.json').read_bytes()
+    assert before=={p:p.read_bytes() for p in old.rglob('*') if p.is_file()}
+    assert result['lineage']['learner_resume'] is False and result['manifest']=='old/prepared/study.json'
+    assert result['reused']['prepare']['execution']=='REUSED'
+    assert result['design']['checkpoint_policy']=='hourly/v1'
+    cfg_new=json.loads((target/'research/design/blueprint.json').read_text())
+    assert cfg_new['hypothesis']==new['hypothesis'] and cfg_new['source_closure'].endswith('current-qualified-source.json')
+    assert len(list(target.rglob('data.json')))==1

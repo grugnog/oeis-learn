@@ -51,10 +51,10 @@ def test_dry_run_is_stdlib_only_and_never_touches_engine(tmp_path):
 
 
 @pytest.mark.parametrize('resuming,failure',[
-    (resuming,failure) for resuming in (False,True)
+    (resuming,failure) for resuming in (False,True,'rebind')
     for failure in (None,'feasibility','preflight','prepare','smoke','train-static','train-refreshed',
         'generate-static','score-static','generate-refreshed','score-refreshed','partial-training','missing-verifier','initialization','projection')
-    if not resuming or failure not in {'feasibility','preflight','prepare'}])
+    if not resuming or failure not in ({'feasibility','prepare'} if resuming=='rebind' else {'feasibility','preflight','prepare'})])
 def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,failure,resuming):
     """Mock expensive processes, retain real controller/lineage/packaging checks."""
     import json
@@ -171,19 +171,41 @@ def test_serial_command_boundaries_and_failure_packaging(tmp_path,monkeypatch,fa
         monkeypatch.setattr(fresh_pilot_resume,'continuation_record',lambda *a:seal(dict(parent=parent['identity'])))
         monkeypatch.setattr(fresh_pilot_resume,'throughput_proof',lambda *a:(tmp_path/'throughput',dict(identity=digest('throughput')),dict(protocol=design['identity'])))
         original_parent=(previous/'workflow.json').read_bytes()
+        if resuming=='rebind':
+            import fresh_pilot_rebind
+            args.rebind_prepared='previous';args.training_probe='probe';args.resume_prepared=None
+            monkeypatch.setattr(fresh_pilot_rebind,'paths',lambda *a:None)
+            def transition(root,args,target):
+                manifest,view=project(root,'resolved-study.json','pilot/execution/private/prepared')
+                blueprint(root,design,output='pilot/research/design')
+                for name in ('rebind.json','training-probe.json','parent-preparation-summary.json','execution-view.json','research/protocol-summary.json'):
+                    write(target/name,seal(dict(fixture=True)))
+                return dict(context,execution_manifest=manifest,view=view,design_root=target/'research/design',
+                    probe=dict(identity=digest('hourly-probe')),reused={s['stage']:dict(s,execution='REUSED') for s in prior_stages})
+            monkeypatch.setattr(fresh_pilot_rebind,'transition',transition)
     code=m.run(args)
-    if resuming:
+    if resuming is True:
         assert not set(calls)&{'feasibility','preflight','prepare'}
         assert calls[0]=='smoke' if failure!='projection' else not calls
         assert (previous/'workflow.json').read_bytes()==original_parent
         assert not (tmp_path/'pilot/research/design').exists()
     workflow=json.loads((tmp_path/'pilot/workflow.json').read_text());archive=tmp_path/workflow['archive']
     assert archive.is_file();verify(archive)
-    if resuming:
+    if resuming is True:
         assert workflow['resume'] and all(s['execution']=='REUSED' for s in workflow['stages'][:3])
         if failure=='smoke':
             import zipfile
             with zipfile.ZipFile(archive) as z:assert 'parent-workflow.json' in z.namelist() and 'resume.json' in z.namelist()
+    if resuming=='rebind':
+        assert not set(calls)&{'feasibility','prepare'}
+        assert calls[0]=='preflight' if failure!='projection' else not calls
+        assert (previous/'workflow.json').read_bytes()==original_parent
+        if failure not in {'projection','preflight'}:
+            assert [s['stage'] for s in workflow['stages'][:4]]==['feasibility','preflight','prepare','smoke']
+            assert [s.get('execution') for s in workflow['stages'][:3]]==['REUSED',None,'REUSED']
+        if failure in {'preflight','smoke'}:
+            import zipfile
+            with zipfile.ZipFile(archive) as z:assert {'rebind.json','training-probe.json'}<=set(z.namelist())
     if failure is None:assert code==0 and workflow['status']=='PASS'
     elif failure=='partial-training':assert code==3 and 'score-refreshed' in calls
     else:assert code==1 and workflow['status']=='FAIL'

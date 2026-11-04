@@ -111,10 +111,15 @@ def test_public_report_canonical_roundtrip_and_original_controller_failure(tmp_p
         original=tmp_path/(name+'.json');write(original,seal(dict(status=status if name=='controller' else 'PASS',synthetic=True)))
         stages.append(dict(stage=name,status=status if name=='controller' else 'PASS',
             exit_code=EXIT_CODES[status] if name=='controller' else 0,elapsed_seconds=1,command=['synthetic'],originals=[str(original)]))
+    from oeis_learn.pipeline_validation.identity import digest
+    stages[0].update(execution='REUSED',parent_workflow=digest('old-workflow'),source_transition=digest('new-source-transition'))
     public=tmp_path/'public'
     record=m.assemble_public(public,study=study,plan=plan,targets=rows,scored={},stages=stages,
         qualified=qualified,selection=dict(assessment='SEALED'))
     assert record['software_status']==status
+    reused=json.loads((public/'fresh/stages'/(''+m.REQUIRED[0]+'.json')).read_text())
+    assert reused['execution']=='REUSED' and reused['parent_workflow']==digest('old-workflow')
+    assert reused['source_transition']==digest('new-source-transition')
     assert 'protected' not in (public/'fresh/measurement-plan.json').read_text()
     host=SimpleNamespace(engine=SimpleNamespace(image=lambda value:value))
     monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)

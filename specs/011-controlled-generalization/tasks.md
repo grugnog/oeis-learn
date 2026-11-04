@@ -18,7 +18,9 @@ T164 validation: 45 local transition/probe/forecast tests pass after observing t
 
 ### Phase C/D — one-command full pilot handoff
 
-- [ ] T165 Integrate explicit prepared-data rebinding into the temporary controller; retain current native preflight and paired smoke before fresh full learners, truthful reused-stage lineage and failure archives. Test stage ordering and failures; preserve the qualified production closure, document exact commands and runtime expectations, commit/push each group without HIP or CI waits.
+- [X] T165 Integrate explicit prepared-data rebinding into the temporary controller; retain current native preflight and paired smoke before fresh full learners, truthful reused-stage lineage and failure archives. Test stage ordering and failures; preserve the qualified production closure, document exact commands and runtime expectations, commit/push each group without HIP or CI waits.
+
+T165 validation: 186 affected temporary controller, transition, reuse, projection, probe, forecast, smoke and report tests passed in 314.92 seconds. A final 106-test controller/transition/report run passed after retaining explicit reused-stage lineage in canonical public archives. All 911 source-snapshot entries match qualified commit `bfd04a203d580c70c9aee389c3c02241865267eb`; all 68 review dispositions remain valid. Standard-library-only help and dry-run pass. Tests cover one projection, disjoint paths, current preflight before smoke, no learner after failed gates, immutable originals, fresh paired initialization and diagnostic archive lineage. No HIP execution or CI wait; full research remains an operator run, with the exact command at the top of quickstart.
 
 ## Hourly recovery snapshots and frequent progress — 2026-11-04 UTC
 

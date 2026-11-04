@@ -1,5 +1,17 @@
 # Fresh paired pilot handoff — 2026-11-02 Pacific
 
+**2026-11-04 update (T164–T165):** the hourly probe passed actual HIP at the
+source equivalent to `bfd04a2`; steady windows imply about 2.3h learning per arm,
+with a conservative 5h10m forecast against the unchanged 6h cap. Use the new
+`--rebind-prepared` command at the top of [quickstart.md](../quickstart.md).
+It verifies and reuses full preparation plus current qualification, explicitly
+amends the persistence protocol, performs current full-data preflight and paired
+smoke, then launches fresh learners and selection evaluation. Original failed
+learners and old-source receipts remain unchanged. New code is temporary helper/
+documentation only, preserving the qualified production closure. Full research and
+generalization remain unmeasured; generation/scoring duration is not forecast.
+The older full-build/preparation sequence below is retained as historical context.
+
 T139–T142 replace the infeasible v1 design and add gates before expensive work.
 Use the single consolidated command at the top of [quickstart.md](../quickstart.md)
 on existing branch `011-controlled-generalization`, PR#62. No HIP/container run was

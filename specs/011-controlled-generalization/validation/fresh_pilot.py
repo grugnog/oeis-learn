@@ -173,7 +173,7 @@ def recovery(root,workflow):
         feature_qualified=False,scope='diagnostic recovery only; no completed research claim'))
     diagnostic_files=diagnostics(root,folder/'diagnostics')
     mandatory=['workflow.json','summary.json',*['diagnostics/'+p.name for p,_ in diagnostic_files]]
-    for name in ('resume.json','parent-workflow.json','parent-preparation-summary.json','execution-view.json'):
+    for name in ('resume.json','parent-workflow.json','parent-preparation-summary.json','execution-view.json','rebind.json','training-probe.json'):
         if (root/name).is_file():
             write(folder/name,read(root/name));mandatory.append(name)
     archive=pack(folder,mandatory=mandatory,optional_cap=8<<20)
@@ -209,8 +209,13 @@ def run(args):
     from oeis_learn.container_runtime import Engine
     from fresh_pilot_throughput_host import require_for_run
     from fresh_pilot_resume import prepared_inputs,throughput_proof,disk_preflight
-    resumed=None
-    if getattr(args,'resume_prepared',None):
+    resumed=None;rebound=None;rebinding=bool(getattr(args,'rebind_prepared',None))
+    if rebinding:
+        from fresh_pilot_rebind import paths
+        paths(ROOT,args)
+        throughput_receipt=None
+    elif getattr(args,'training_probe',None):raise ValueError('--training-probe requires --rebind-prepared')
+    elif getattr(args,'resume_prepared',None):
         resumed=prepared_inputs(ROOT,args.resume_prepared,args.output,args.engine)
         throughput_path,throughput_receipt,throughput_report=throughput_proof(sys.modules[__name__],resumed,args.engine)
     else:
@@ -221,7 +226,7 @@ def run(args):
     root.mkdir(parents=True);started=time.monotonic();stages=[]
     workflow=dict(version='fresh-pilot-workflow/v1',status='PARTIAL',stages=stages,
         research_authorized=True,campaign_seconds=CAMPAIGN_SECONDS,assessment='SEALED',
-        throughput=throughput_receipt['identity'])
+        throughput=throughput_receipt['identity'] if throughput_receipt else None)
     study=None;plan=None;targets=None;qualified=None;scored={};selected={};extra=[];archive=None
     def relative(p):return str(Path(p).relative_to(ROOT))
     def record():replace(root/'workflow.json',seal(workflow))
@@ -239,7 +244,27 @@ def run(args):
         return original,status
     record()
     try:
-        if resumed is not None:
+        if rebinding:
+            from fresh_pilot_rebind import transition
+            rebound=transition(ROOT,args,root)
+            qualified=rebound['qualified'];images=rebound['images'];manifest=rebound['manifest']
+            design=rebound['design'];design_root=rebound['design_root']
+            workflow['throughput']=rebound['probe']['identity']
+            workflow['source_transition']=reference(root/'rebind.json',root)
+            workflow['acceptance']=dict(exit_code=0,reused_from=relative(qualified),
+                qualification=reference(qualified/'qualification.json',ROOT),scope='original producer; canonical consumers recheck current compatibility')
+            stages.append(rebound['reused']['feasibility']);record()
+            extra.extend([(root/'rebind.json','fresh/rebind.json'),(root/'training-probe.json','fresh/training-probe.json'),
+                (root/'parent-preparation-summary.json','fresh/parent-preparation-summary.json'),
+                (rebound['old']/'feasibility/feasibility.json','fresh/feasibility.json'),
+                (root/'research/protocol-summary.json','fresh/protocol.json')])
+            preflight=root/'research/preflight'
+            _,status=command('preflight',canonical(args.engine,images[0],'preflight',relative(preflight),
+                ['--manifest',rebound['execution_manifest']]),preflight)
+            if status!='PASS':raise RuntimeError('rebound full-data preflight failed; no learner launched')
+            stages.append(rebound['reused']['prepare']);record()
+            print('Verified original data and hourly probe; current full-data preflight passed; continuing at smoke',flush=True)
+        elif resumed is not None:
             from fresh_pilot_resume import continuation_record
             from fresh_pilot_report import preparation_diagnostics
             parent=resumed['old'];qualified=resumed['qualified'];images=resumed['images']
@@ -332,8 +357,11 @@ def run(args):
         # peak includes one temporary serial role projection.
         from fresh_pilot_storage import project
         execution=root/'execution'
-        execution_manifest,view=project(ROOT,manifest,relative(execution/'private/prepared'))
-        write(root/'execution-view.json',view)
+        if rebound is not None:
+            execution_manifest,view=rebound['execution_manifest'],rebound['view']
+        else:
+            execution_manifest,view=project(ROOT,manifest,relative(execution/'private/prepared'))
+            write(root/'execution-view.json',view)
         extra.append((root/'execution-view.json','fresh/execution-view.json'))
         print('execution-storage-plan: '+json.dumps(view['storage'],sort_keys=True),flush=True)
         smoke=root/'smoke'
@@ -398,7 +426,7 @@ def run(args):
                 public=root/'public'
                 extra.append((root/'workflow.json','fresh/workflow.json'))
                 extra.extend(diagnostics(root,root/'diagnostics'))
-                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py','fresh_pilot_storage.py','fresh_pilot_checkpoint.py'):
+                for name in ('fresh_pilot.py','fresh_pilot_inputs.py','fresh_pilot_report.py','fresh_pilot_feasibility.py','fresh_pilot_smoke.py','fresh_pilot_resume.py','fresh_pilot_storage.py','fresh_pilot_checkpoint.py','fresh_pilot_rebind.py'):
                     extra.append((HERE/name,'fresh/helper-'+name+'.txt'))
                 evidence=assemble_public(public,study=study,plan=plan,targets=targets,scored=scored,stages=stages,
                     qualified=qualified,selection=dict(policy='frozen latest available, partial exposure descriptive only',
@@ -433,6 +461,8 @@ def main(argv=None):
     runner=commands.add_parser('run');runner.add_argument('--engine',choices=('docker','podman'),required=True)
     runner.add_argument('--imported',default='run-state/generalization/uniform-import')
     runner.add_argument('--resume-prepared',help='original failed pre-learning run with completed preparation; keep it immutable')
+    runner.add_argument('--rebind-prepared',help='reviewed original full preparation for a new qualified-source study; never learner resume')
+    runner.add_argument('--training-probe',help='reviewed successful hourly probe, including original canonical receipts and qualification')
     runner.add_argument('--throughput',help='original compatible PASS CPU/native throughput output')
     runner.add_argument('--cpu-image');runner.add_argument('--gpu-image');runner.add_argument('--qualified')
     runner.add_argument('--output',required=True);runner.add_argument('--dry-run',action='store_true')
@@ -459,8 +489,9 @@ def main(argv=None):
         if args.dry_run:
             print(json.dumps(dict(status='NOT_RUN',reservations=RESERVATIONS,campaign_seconds=CAMPAIGN_SECONDS,
                 report_seconds=REPORT_SECONDS,memory_gib=64,cpus=4,required_free_gib=224,
-                resume_prepared=args.resume_prepared,assessment='SEALED',historical='DEFERRED',
-                gates=('verify original feasibility/acceptance/preparation and throughput; reuse inputs; rerun smoke; full research'
+                resume_prepared=args.resume_prepared,rebind_prepared=args.rebind_prepared,training_probe=args.training_probe,assessment='SEALED',historical='DEFERRED',
+                gates=('verify original full data and hourly probe; create new source-bound study; current full-data preflight; paired smoke; fresh full research'
+                    if args.rebind_prepared else 'verify original feasibility/acceptance/preparation and throughput; reuse inputs; rerun smoke; full research'
                     if args.resume_prepared else 'compatible recent CPU/native throughput proof, full12-shard CPU feasibility, current-source acceptance, native preparation, paired smoke, full research'),
                 training='fresh static/refreshed, seed20261016,25M target-token cap/arm,6 learner hours/arm',
                 evaluation='latest available checkpoint; partial exposures descriptive; matched controls plus one shared bank/checkpoint'),indent=2));return 0

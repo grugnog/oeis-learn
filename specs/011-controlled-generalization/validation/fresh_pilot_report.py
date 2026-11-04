@@ -318,9 +318,13 @@ def assemble_public(output,*,study,plan,targets,scored,stages,qualified,selectio
             originals.append(copy(Path(path),f'fresh/originals/{name}-{i}.json'))
         if not originals and stage['status'] not in {'FAIL','INTERRUPTED'}:
             raise ValueError('nonfailure stage requires its original terminal result')
-        record=seal(dict(version='fresh-pilot-stage/v1',study=study['identity'],stage=name,
+        record=dict(version='fresh-pilot-stage/v1',study=study['identity'],stage=name,
             status=stage['status'],exit_code=stage['exit_code'],elapsed_seconds=stage['elapsed_seconds'],
-            command=stage['command'],original_artifacts=originals))
+            command=stage['command'],original_artifacts=originals)
+        if stage.get('execution')=='REUSED':
+            record.update(execution='REUSED',parent_workflow=stage['parent_workflow'])
+            if 'source_transition' in stage:record['source_transition']=stage['source_transition']
+        record=seal(record)
         put(f'fresh/stages/{name}.json',record)
         ledger['receipts'].append(dict(stage=name,status=stage['status'],study=study['identity'],original=record['identity']))
     for source,name in extra:copy(Path(source),name)

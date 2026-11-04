@@ -5,7 +5,7 @@ study, not a resume, qualification producer or general-purpose migration tool.
 """
 import json
 from pathlib import Path
-from oeis_learn.pipeline_validation.identity import seal,write,confined
+from oeis_learn.pipeline_validation.identity import seal,write,confined,file_hash
 from oeis_learn.pipeline_validation.generalization_preparation import reference
 from oeis_learn.generalization.contracts import verify_artifact
 from fresh_pilot_resume import document,command_receipt
@@ -123,3 +123,85 @@ def probe_evidence(root,folder,preparation,parent_protocol,qualified,authority):
     forecast=assess(results,protocol['first_shard_tokens'],research_milestones=protocol['research_milestones'])
     if forecast!=record['forecast'] or forecast['status']!='PASS':raise ValueError('original measurements do not support full-run forecast')
     return record
+
+
+def paths(root,args):
+    """Reject overlaps and ambiguous modes before creating even a workflow file."""
+    if (not getattr(args,'training_probe',None) or any(getattr(args,k,None) for k in
+        ('resume_prepared','throughput','qualified','cpu_image','gpu_image'))):
+        raise ValueError('rebind requires --training-probe and no other qualification/resume mode')
+    old=confined(root,args.rebind_prepared);probe=confined(root,args.training_probe)
+    new=confined(root,args.output,exists=False)
+    record=document(probe/'result.json')
+    if record['identity']!=APPROVED_PROBE:raise ValueError('reviewed hourly probe required')
+    qualified=confined(root,record['qualification']['path']).parent
+    for original in (old,probe,qualified):
+        if original==new or original in new.parents or new in original.parents:raise ValueError('new disjoint handoff root required')
+    return old,probe,qualified
+
+
+def transition(root,args,target):
+    """Verify before copying, then publish a new exact execution closure once."""
+    from types import SimpleNamespace
+    from fresh_pilot_training_probe import qualified as verify_qualification
+    from fresh_pilot_resume import disk_preflight
+    from fresh_pilot_storage import project,peak_plan
+    from fresh_pilot_report import preparation_diagnostics
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.pipeline_validation.generalization_runtime import load,execution_refs
+    old,probe,qualified=paths(root,args)
+    space=disk_preflight(root)
+    qualified,authority=verify_qualification(root,SimpleNamespace(qualified=str(qualified.relative_to(root)),engine=args.engine),target)
+    context=prepared_evidence(root,old,args.engine)
+    record=probe_evidence(root,probe,context['preparation'],context['design']['identity'],qualified,authority)
+    summary=document(old/'research/protocol-summary.json')
+    if summary['protocol']!=context['design']['identity']:raise ValueError('original protocol summary differs')
+    workflow=document(old/'workflow.json');reused={}
+    for name,path in (('feasibility',old/'feasibility/result.json'),('prepare',old/'research/prepare/result.json')):
+        matches=[s for s in workflow['stages'] if s['stage']==name]
+        if len(matches)!=1 or matches[0]['status']!='PASS' or matches[0]['exit_code']!=0 or matches[0]['originals']!=[str(path)]:
+            raise ValueError('original reused stage provenance differs')
+        reused[name]=dict(matches[0],execution='REUSED',parent_workflow=workflow['identity'])
+    # Validate the transition before allocating its execution projection.
+    source=collect_snapshot(root)
+    feature=reference(qualified/'feature.json',qualified)
+    amend(context['study'],context['runtime'],context['design'],{},authority['images'],feature)
+    relative=lambda p:str(p.relative_to(root))
+    execution=target/'execution/private/prepared'
+    manifest,view=project(root,context['manifest'],relative(execution))
+    write(execution/'current-qualified-source.json',source)
+    study,runtime,design=amend(context['study'],context['runtime'],context['design'],
+        reference(execution/'current-qualified-source.json',execution),authority['images'],feature)
+    # Only the new projection is changed; old authorities remain in their original tree.
+    write(execution/'study.json',study,exclusive=False);write(execution/'runtime.json',runtime,exclusive=False)
+    load(root,manifest)
+    refs=execution_refs(execution,study,runtime)
+    refs.extend(reference(execution/n,execution) for n in ('study.json','runtime.json'))
+    view=seal(dict(version='fresh-pilot-rebound-execution-view/v1',original_manifest=view['original_manifest'],
+        manifest=reference(execution/'study.json',root),runtime=reference(execution/'runtime.json',root),
+        files=refs,storage=peak_plan(refs,runtime['storage']),scope='new source/persistence authority; identical prepared data; original audit retained'))
+    write(target/'execution-view.json',view)
+    design_root=target/'research/design'
+    write(design_root/'design.json',design)
+    cfg=dict(context['cfg'],hypothesis=study['hypothesis'],images=authority['images'],
+        source_closure=relative(execution/'current-qualified-source.json'),feature=relative(qualified/'feature.json'))
+    write(design_root/'blueprint.json',cfg)
+    write(target/'research/protocol-summary.json',seal(dict(summary,protocol=design['identity'],
+        parent_protocol=context['design']['identity'],checkpoint_policy='hourly/v1',original_preparation=context['preparation'])))
+    write(target/'training-probe.json',record)
+    write(target/'parent-preparation-summary.json',preparation_diagnostics(old))
+    lineage=seal(dict(version='fresh-pilot-source-transition/v1',mode='new-study-fresh-initialization',
+        original_preparation=reference(old/'research/prepare/result.json',root),
+        original_manifest=reference(confined(root,context['manifest']),root),original_study=context['study']['identity'],
+        new_manifest=reference(execution/'study.json',root),new_study=study['identity'],
+        original_source=context['study']['source_closure'],new_source=study['source_closure'],
+        original_protocol=context['design']['identity'],new_protocol=design['identity'],
+        persistence=dict(original=context['design']['checkpoint_policy'],current='hourly/v1'),
+        qualification=reference(qualified/'qualification.json',root),training_probe=reference(probe/'result.json',root),
+        images=authority['images'],disk=space,reused_stages=['feasibility','prepare'],assessment='SEALED',
+        scientific_status='UNMEASURED',learner_resume=False,
+        helpers={n:file_hash(Path(__file__).parent/n) for n in ('fresh_pilot.py','fresh_pilot_rebind.py','fresh_pilot_storage.py','fresh_pilot_smoke.py')}))
+    write(target/'rebind.json',lineage)
+    for stage in reused.values():stage['source_transition']=lineage['identity']
+    return dict(context,qualified=qualified,images=authority['images'],execution_manifest=manifest,view=view,
+        design=design,design_root=design_root,probe=record,reused=reused,lineage=lineage)
