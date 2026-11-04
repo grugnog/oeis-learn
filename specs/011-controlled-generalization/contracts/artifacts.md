@@ -375,3 +375,36 @@ Legacy v1/v2 authorities reject it; omission retains the existing budget fallbac
 Acceptance cannot opt into this extension and its command retains the600-second
 preparation cap. The field changes the preparation artifact identity and remains
 subject to the enclosing command deadline and cleanup/publication reserves.
+
+### Periodic research accounting and observation (T161–T163)
+
+New canonical research learner configs bind `checkpoint_policy: hourly/v1`;
+acceptance configs retain `per-update/v1`. The installed resume qualification
+probe explicitly exercises the hourly policy. Direct historical fixture callers
+without the field retain dense semantics. Config policy participates in the
+checkpoint compatibility identity.
+
+`generalization-progress-journal/v1` is a small sealed, closed JSON record with
+`contract`, `checkpoint` (path/bytes/SHA-256), `ledger` (original token ledger),
+`discarded_tokens`, cumulative `elapsed_seconds`, `invocation_base_seconds`,
+`closed`, and `identity`. It contains no model tensors, examples, RNG payloads or
+pending-batch contents. `closed=true` requires a matching complete terminal
+snapshot; a failed write cannot mark an uncommitted snapshot closed. Snapshot and
+journal publication are individually atomic. A new snapshot ahead of the previous
+journal is accepted only when it accounts for at least that journal's ledger.
+
+A periodic resume requires the latest full snapshot and its original journal.
+Canonical roles project both, plus original supervisor process/cleanup records
+when present; only acknowledged termination supplies elapsed time. Missing crash
+time conservatively spends the frozen allowance. Discarded charged exposure is
+carried in scheduler state and future admission; descriptors continue to describe
+committed weight exposure. `RECOVERED_WITH_DISCARDED_EXPOSURE` remains PARTIAL at
+budget exhaustion. An older selected snapshot is not an implicit rollback request.
+
+`generalization-training-timing/v1` additionally identifies the checkpoint policy,
+journal writes, maximum full-snapshot duration, recent loss/gradient norm, live
+and recoverable counters, 64 recent complete windows and up to128 coalesced trend
+bins. Numeric progress is bounded and finite; unobserved loss is null. Public
+projections whitelist aggregate fields and checkpoint hashes, excluding arbitrary
+nested private payloads. Timing is diagnostic evidence, not qualification or
+scientific acceptance by itself.

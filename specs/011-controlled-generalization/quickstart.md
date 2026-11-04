@@ -1271,3 +1271,83 @@ If acceptance itself fails, also share `<probe-root>/acceptance.zip` when emitte
 `--help` and orchestration require only host stdlib; model/native work stays in the
 installed canonical container roles. No HIP validation was performed when this
 implementation was committed.
+
+## Hourly recovery and independent training progress (T161–T163)
+
+The operator approved up to approximately **60 minutes of lost model progress**
+on an interruption. Newly frozen research configurations now use `hourly/v1`:
+full model/optimizer/RNG/data/replay snapshots are written at initialization,
+required milestone boundaries, approximately hourly, and orderly termination.
+A boundary is checked after a completed update; a slow operation can cross it.
+The existing publication/cleanup reserves and external deadlines still apply.
+Dense `per-update/v1` acceptance remains available, while the installed HIP resume
+probe exercises hourly persistence at forced complete boundaries. This supersedes
+the every-update full-snapshot description in T157–T160 above.
+
+Small atomic accounting records are written before and after updates, and progress
+is refreshed after each completed update. The learner's `timing.json` contains:
+
+- Live committed tokens/updates, total charged tokens, discarded tokens, and the
+  last fully recoverable tokens/updates/checkpoint reference.
+- Last observed training loss and gradient norm when supplied by the real learner.
+- The most recent 64 eight-update throughput/loss windows after four warm-up
+  updates; a coalesced whole-invocation trend retains at most 128 bins, preserving
+  total measured tokens, time and weighted loss observations.
+- Checkpoint count, total and maximum snapshot duration, serialized/reused/verified
+  bytes, journal write count, publication time and total invocation time.
+
+No unbounded per-update tensor history or log is needed. Full-run diagnostic
+bundles and the small paired probe include aggregate timing/progress/trend data;
+source programs, examples, tensors and private batch contents remain local.
+A checkpoint audit describes **recoverable** state; live progress may be newer.
+Keep each original run's `timing.json`, accounting journal and supervisor receipts
+with its checkpoint chain when cleaning up, including failed/partial runs.
+
+On canonical resume, the latest complete snapshot restores exact model, optimizer,
+RNG, cursor and replay state. Any later charged exposure in the journal remains
+charged as discarded work. Already consumed time is carried forward using the
+original supervisor's elapsed time only when process/container cleanup was
+acknowledged. Missing crash-time evidence conservatively exhausts the remaining
+frozen wall allowance; it does not fabricate a refundable interval. Missing or
+malformed journals and older-than-latest periodic resume points are rejected.
+Clean checkpoint-boundary stops still resume exactly. Selection metadata copies
+preserve closed recovery accounting and reject active journals.
+
+If discarded work prevents reaching the original model-token target before the
+charged budget is exhausted, the result is explicitly
+`PARTIAL / RECOVERED_WITH_DISCARDED_EXPOSURE`. It cannot silently qualify as the
+original matched-exposure comparison. An explicit subsequent decision is needed
+for a revised budget/study; this implementation never extends one automatically.
+
+The next hardware check is still the same small paired probe, with current images
+and qualification. Its forecast now includes the measured maximum full-snapshot
+cost for hourly saves, original research milestones and initial/final saves, then
+applies the existing twofold margin and 30-minute allowance. The short probe does
+not need to run for an hour to test cadence; local controlled-clock tests exercise
+the hourly boundary, and hardware acceptance tests complete checkpoint resume.
+Actual speed and runtime remain unmeasured until the new probe completes.
+
+One operator invocation from `/home/owen/workspace/oies-learn`:
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  podman build --target qualification -t oeis-learn:generalization-cpu .
+  podman build --target gpu -t oeis-learn:generalization-gpu .
+  python3 -S specs/011-controlled-generalization/validation/fresh_pilot_training_probe.py \
+    --engine podman \
+    --prepared-run run-state/generalization/fresh-p1-v2-20261103T035534Z \
+    --imported run-state/generalization/uniform-import \
+    --cpu-image oeis-learn:generalization-cpu \
+    --gpu-image oeis-learn:generalization-gpu \
+    --output "run-state/generalization/training-hourly-probe-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+Upload the printed `report.zip` after any outcome. Current-source acceptance is
+performed once within that invocation, and its `acceptance.zip` remains separately
+available if that stage fails. Source changes invalidate the previous probe's
+qualification; do not pass its old `--qualified` path. Builds and generous stage
+ceilings remain as described above. No full research learner launches automatically.

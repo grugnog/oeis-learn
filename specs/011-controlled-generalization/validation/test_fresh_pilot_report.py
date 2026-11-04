@@ -221,3 +221,21 @@ def test_interrupted_cell_progress_is_diagnostic_only_and_redacted(tmp_path):
     for extra in ({'source':'private program'},{'native_rows':1025},{'phase':'private program'},{'native_seconds':-1}):
         write(cell/'progress.json',seal(dict(record,**extra)),exclusive=False)
         with pytest.raises(ValueError):m.preparation_diagnostics(tmp_path)
+
+
+def test_training_progress_export_retains_trends_without_private_fields(tmp_path):
+    import json
+    from oeis_learn.pipeline_validation.identity import write
+    row=dict(version='generalization-training-timing/v1',checkpoint_policy='hourly/v1',journal_writes=100,
+        last_loss=2.,last_gradient_norm=1.,windows=[dict(tokens=100,updates=8,seconds=2.,through_updates=12,mean_loss=2.,source='SECRET')],
+        trend=[dict(tokens=100,updates=8,seconds=2.,through_updates=12,mean_loss=2.)],
+        progress=dict(tokens=100,charged_tokens=120,discarded_tokens=20,recoverable_tokens=80,updates=10,recoverable_updates=8,
+            checkpoint=dict(sha256='sha256:'+'a'*64,path='SECRET'),pending_batch=['SECRET']))
+    write(tmp_path/'execution/train-static/training/run/execution/role/private/learner/timing.json',row)
+    files=m.diagnostics(tmp_path,tmp_path/'diagnostics')
+    text=''.join(p.read_text() for p,_ in files)
+    assert 'SECRET' not in text and 'recoverable_tokens' in text and 'mean_loss' in text
+    result=m.training_timing(row)
+    assert result['progress']['charged_tokens']==120 and len(result['trend'])==1
+    with pytest.raises(ValueError):m.training_timing(dict(row,trend=[{}]*129))
+    with pytest.raises(ValueError):m.training_timing(dict(row,last_loss=float('nan')))

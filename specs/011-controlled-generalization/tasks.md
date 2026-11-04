@@ -21,7 +21,17 @@ T162 follow-up: selection metadata copies also retain validated closed journals 
 
 ### Phase C/D — canonical resume, progress packaging and measured handoff
 
-- [ ] T163 Project the original journal and supervised recovery timing through canonical learner resume; expose committed/charged/discarded exposure and recoverable checkpoint progress; exercise periodic persistence in installed acceptance, update the temporary paired probe/report and forecast for snapshot overhead. Refresh CI/source bindings, run affected local checks, document one-invocation hardware follow-up, commit and push each grouping without HIP or CI waits.
+- [X] T163 Project the original journal and supervised recovery timing through canonical learner resume; expose committed/charged/discarded exposure and recoverable checkpoint progress; exercise periodic persistence in installed acceptance, update the temporary paired probe/report and forecast for snapshot overhead. Refresh CI/source bindings, run affected local checks, document one-invocation hardware follow-up, commit and push each grouping without HIP or CI waits.
+
+T163 validation: 495 generalization unit/contract/integration and affected temporary
+helper tests passed; one installed-model test skipped for missing wasmtime and the
+actual HIP test was deselected. An additional 31 checkpoint-diagnostic/report
+checks passed, including discarded-token scalar validation and privacy filtering.
+Canonical CPU resume exercised original journal plus acknowledged supervisor time;
+installed acceptance's real-device resume probe now selects hourly persistence.
+All 68 review dispositions verify, and host probe help runs under `python -S`.
+No HIP command, full research launch or CI wait occurred. Current-source images
+and qualification are required for the documented single-invocation paired probe.
 
 ## Reliable learner persistence — 2026-11-04 UTC
 

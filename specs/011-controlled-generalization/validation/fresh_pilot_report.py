@@ -120,6 +120,38 @@ def feasibility_diagnostics(root):
     return None
 
 
+def training_timing(value):
+    """Bounded aggregate projection; never export arbitrary nested worker payloads."""
+    import math,re
+    if value.get('version')!='generalization-training-timing/v1':raise ValueError('training timing version required')
+    def numbers(row,keys):
+        result={}
+        for key in keys:
+            if key not in row:continue
+            n=row[key]
+            if n is not None and (type(n) not in (int,float) or not math.isfinite(n)):raise ValueError('finite numeric progress required')
+            result[key]=n
+        return result
+    fields=('checkpoint_seconds','update_seconds','checkpoint_calls','journal_writes','invocation_seconds',
+        'max_checkpoint_seconds','publication_seconds','publication_reserve_seconds','last_loss','last_gradient_norm')
+    result=dict(version=value['version'],**numbers(value,fields))
+    if 'checkpoint_policy' in value:
+        if value['checkpoint_policy'] not in {'hourly/v1','per-update/v1'}:raise ValueError('registered persistence policy required')
+        result['checkpoint_policy']=value['checkpoint_policy']
+    for key,limit in (('windows',64),('trend',128)):
+        if key not in value:continue
+        if not isinstance(value[key],list) or len(value[key])>limit:raise ValueError('timing window bound')
+        result[key]=[numbers(w,('updates','tokens','seconds','through_updates','loss_sum','loss_observations','mean_loss')) for w in value[key]]
+    if 'checkpoint_io' in value:result['checkpoint_io']=numbers(value['checkpoint_io'],('serialized_bytes','reused_tensor_bytes','verified_bytes','verification_cache_hits'))
+    if 'progress' in value:
+        result['progress']=numbers(value['progress'],('tokens','charged_tokens','discarded_tokens','updates','recoverable_tokens','recoverable_updates'))
+        sha=value['progress'].get('checkpoint',{}).get('sha256')
+        if sha is not None:
+            if not re.fullmatch(r'sha256:[0-9a-f]{64}',sha):raise ValueError('checkpoint digest required')
+            result['progress']['checkpoint_sha256']=sha
+    return result
+
+
 def diagnostics(root,destination):
     """Bounded control-only walk for this temporary multi-stage layout."""
     import os,stat
@@ -157,7 +189,7 @@ def diagnostics(root,destination):
         if entries>16384:
             files.append(dict(status='OMITTED',reason='diagnostic discovery bound'));break
         for name in sorted(names):
-            if name not in {'result.json','process.json','cleanup.json','disk.json','stdout.log','stderr.log'}:continue
+            if name not in {'result.json','process.json','cleanup.json','disk.json','timing.json','stdout.log','stderr.log'}:continue
             path=Path(parent)/name;source=str(path.relative_to(root));row=dict(source=source);files.append(row)
             try:
                 if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):raise ValueError('regular control required')
@@ -171,7 +203,7 @@ def diagnostics(root,destination):
                 else:
                     if size>256<<10:raise ValueError('control JSON cap')
                     value=json.loads(path.read_bytes())
-                    data=(json.dumps((terminal_fields if name=='result.json' else control_fields)(value),sort_keys=True)+'\n').encode()
+                    data=(json.dumps((training_timing if name=='timing.json' else terminal_fields if name=='result.json' else control_fields)(value),sort_keys=True)+'\n').encode()
                 if used+len(data)>4<<20:raise ValueError('diagnostic byte cap')
                 target=destination/(digest(source)[7:]+'-'+name);target.write_bytes(data);used+=len(data)
                 row.update(status='PROJECTED' if name.endswith('.json') else 'COPIED' if size<=65536 else 'TRUNCATED',

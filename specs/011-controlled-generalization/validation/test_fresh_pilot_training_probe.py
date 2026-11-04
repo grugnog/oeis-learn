@@ -24,7 +24,7 @@ def test_probe_canonical_order_failure_packaging_and_no_research(tmp_path,monkey
     monkeypatch.setattr(fresh_pilot_resume,'disk_preflight',lambda *a:{})
     monkeypatch.setattr(m,'original_job',lambda *a:({},'old-receipt'))
     monkeypatch.setattr(m,'qualified',lambda *a:(qualified,dict(images=['cpu','gpu'])))
-    protocol=seal(dict(version='fresh-pilot-training-probe/v1',first_shard_tokens=16000))
+    protocol=seal(dict(version='fresh-pilot-training-probe/v1',first_shard_tokens=16000,checkpoint_policy='hourly/v1',research_milestones=3))
     monkeypatch.setattr(fresh_pilot_smoke,'reduced_blueprint',lambda *a,**kw:({},protocol))
     monkeypatch.setattr(inputs,'assemble_study',lambda *a:dict(manifest='study.json'))
     monkeypatch.setattr(runtime,'load',lambda *a:(tmp_path,dict(identity='study'),dict(storage={})))
@@ -40,8 +40,8 @@ def test_probe_canonical_order_failure_packaging_and_no_research(tmp_path,monkey
         if operation=='prepare':result['manifest']='prepared.json'
         if operation=='train':
             windows=[dict(updates=8,tokens=8000,seconds=2,through_updates=n) for n in (12,20,28)]
-            training=dict(status='PASS',tokens=32000,charged_tokens=32000,pending_tokens=0,updates=32,
-                timing=dict(windows=windows,invocation_seconds=60))
+            training=dict(status='PASS',tokens=32000,charged_tokens=32000,discarded_tokens=0,checkpoint_policy='hourly/v1',pending_tokens=0,updates=32,
+                timing=dict(version='generalization-training-timing/v1',windows=windows,invocation_seconds=60,checkpoint_policy='hourly/v1',max_checkpoint_seconds=1.,checkpoint_calls=2,journal_writes=65))
             if failure=='forecast':training['timing']['windows'][0]['seconds']=4
             result['runs']=[dict(root=stage,result=training)]
             (output/'training'/stage).mkdir(parents=True)

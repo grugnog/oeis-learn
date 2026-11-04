@@ -145,3 +145,35 @@ def test_selection_metadata_copy_preserves_closed_hourly_recovery_accounting(tmp
     journal=json.loads((prior/'generalization-progress.json').read_text());journal=seal(dict(journal,closed=False))
     (prior/'generalization-progress.json').write_text(json.dumps(journal))
     with pytest.raises(ValueError,match='closed'):store.selected_copy(tmp_path/'unsafe',roster,decision)
+
+
+def test_canonical_resume_projects_journal_and_original_supervised_elapsed(tmp_path,fixture,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_commands as commands,generalization_role as role,generalization_selection_io
+    from oeis_learn.generalization.contracts import verify_artifact
+    cfg,cost,_,failure=fixture;failure[0]=5
+    old=tmp_path/'old/training/run/execution/role/private/learner'
+    with pytest.raises(InterruptedError):training.run_torch(tmp_path,old,cfg)
+    prior=old/'checkpoints';pointer=json.loads((prior/'generalization-latest.json').read_text())
+    supervisor=old.parents[1]/'supervision';supervisor.mkdir()
+    (supervisor/'process.json').write_text(json.dumps(dict(outcome='FAIL',returncode=-9,cleanup_failure=None,elapsed_seconds=1.)))
+    (supervisor/'cleanup.json').write_text(json.dumps(dict(within_bound=True)))
+    failure[0]=None
+    monkeypatch.setattr(commands,'learner_config',lambda *a:dict(cfg))
+    monkeypatch.setattr(generalization_selection_io,'remember_origin',lambda *a:None)
+    captured={}
+    def invoke(host,image,workspace,name,artifacts,**kw):
+        captured.update(kw['settings'])
+        projected=tmp_path/kw['output']/'private/input';inputs={}
+        for channel,refs in artifacts.items():
+            folder=projected/channel;folder.mkdir(parents=True);inputs[channel]=folder
+            for ref in refs:
+                source,original=kw.get('artifact_sources',{}).get(channel,{}).get(ref['path'],(kw['source_roots'][channel],ref))
+                p=folder/ref['path'];p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(verify_artifact(source,original))
+        assert (inputs['verified_training_replay']/'generalization-progress.json').is_file()
+        return role.learner(inputs,tmp_path/kw['output']/'role',kw['settings'],seconds=kw['seconds'])
+    monkeypatch.setattr(commands,'project_and_invoke',invoke)
+    result=commands.train(None,tmp_path,tmp_path/'new/training',tmp_path,{},dict(images=['cpu','gpu'],purpose='research'),
+        dict(recipe=cfg['recipe'],initializer=None),arms=['static'],seeds=[7],resume=str((prior/pointer['path']).relative_to(tmp_path)))
+    assert set(captured['resume_supervision'])=={'process','cleanup'}
+    assert result['status']=='PARTIAL' and result['runs'][0]['result']['discarded_tokens']==5*cost
+    assert result['runs'][0]['result']['tokens']==27*cost

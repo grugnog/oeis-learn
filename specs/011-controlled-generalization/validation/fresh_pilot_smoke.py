@@ -74,6 +74,8 @@ def reduced_blueprint(root,job,output,*,probe=False):
         batch_charges=charges,training_sources=[digest([r['source'] for r in rows]) for rows in training],
         gate='finite changed weights; fresh rows consumed; all scoring outcomes recorded; zero accuracy threshold',
         purpose='software diagnostic only; never scientific comparison or initializer'))
+    if probe:protocol=seal(dict(protocol,checkpoint_policy='hourly/v1',research_milestones=len(cfg['milestones']),
+        gate='finite changed weights; refreshed exposure; complete timing windows; measured snapshot overhead'))
     write(target/'protocol.json',protocol)
     cfg.update(hypothesis='Paired source smoke '+protocol['identity'],cells=cells,
         milestones=[cap],budgets=dict(cfg['budgets'],target_tokens=cap,seconds=1800 if probe else 900),preparation_seconds=1800 if probe else 900,

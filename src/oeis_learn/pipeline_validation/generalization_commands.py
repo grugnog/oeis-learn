@@ -91,6 +91,11 @@ def _resume_inputs(workspace,value):
     pointers=[pointer,*pins.values()];refs={}
     for name in ('generalization-latest.json','generalization-pins.json'):
         ref=reference(root/name,root);refs[name]=ref
+    journal=root/'generalization-progress.json'
+    if journal.exists():
+        ref=reference(confined(root,'generalization-progress.json'),root)
+        if ref['bytes']>1<<20:raise ValueError('progress journal size cap')
+        refs[ref['path']]=ref
     for ref in pointers:
         refs[ref['path']]=ref
         for child in artifact_refs(_document(root,ref)):
@@ -115,6 +120,19 @@ def train(host,workspace,output,base,study,runtime,plan,*,arms,seeds,resume=None
         if resume is not None:
             prior,resume_ref,refs=_resume_inputs(workspace,resume);inputs.extend((prior,ref) for ref in refs)
         settings=dict(config=config,resume=resume_ref,initializer=initializer)
+        if resume is not None and config['checkpoint_policy']=='hourly/v1':
+            # Only the original canonical role supervisor can establish the time
+            # of an unclean invocation. Do not infer elapsed work from wall dates.
+            if prior.parts[-4:]==('role','private','learner','checkpoints'):
+                supervision=prior.parents[2]/'supervision'
+                if all((supervision/n).is_file() for n in ('process.json','cleanup.json')):
+                    proof={}
+                    for key in ('process','cleanup'):
+                        path=confined(workspace,str((supervision/(key+'.json')).relative_to(workspace)))
+                        ref=reference(path,supervision)
+                        if ref['bytes']>64<<10:raise ValueError('supervised recovery record size cap')
+                        inputs.append((supervision,ref));proof[key]=ref
+                    settings['resume_supervision']=proof
         if stop_after_updates is not None:settings['stop_after_updates']=stop_after_updates
         training_refs=list(config['shards'])
         if replay is not None and config['arm']=='verified_replay':

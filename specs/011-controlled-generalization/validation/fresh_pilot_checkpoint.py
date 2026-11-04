@@ -15,7 +15,7 @@ from oeis_learn.generalization.contracts import artifact_refs
 from oeis_learn.generalization.budgets import Ledger
 
 
-def scheduler_seconds(payload):
+def scheduler_accounting(payload):
     """Decode only the scalar scheduler dict; reject globals and persistent IDs."""
     class Scalars(pickle.Unpickler):
         def find_class(self,*args):raise ValueError('scheduler must contain scalars only')
@@ -24,11 +24,17 @@ def scheduler_seconds(payload):
         names=[n for n in archive.namelist() if n.endswith('/data.pkl')]
         if len(names)!=1 or archive.getinfo(names[0]).file_size>1<<20:raise ValueError('bounded scheduler pickle required')
         value=Scalars(io.BytesIO(archive.read(names[0]))).load()
-    if not isinstance(value,dict) or set(value)!={'learner_seconds'}:raise ValueError('scalar learner clock required')
+    if not isinstance(value,dict) or 'learner_seconds' not in value or set(value)-{'learner_seconds','discarded_tokens'}:raise ValueError('scalar learner clock required')
     seconds=value['learner_seconds']
     if type(seconds) not in (int,float) or not math.isfinite(seconds) or not 0<=seconds<=1e9:
         raise ValueError('invalid persisted learner seconds')
-    return seconds
+    discarded=value.get('discarded_tokens',0)
+    if type(discarded) is not int or not 0<=discarded<=1_000_000_000:raise ValueError('bounded discarded token count required')
+    return dict(learner_seconds=seconds,discarded_tokens=discarded)
+
+
+def scheduler_seconds(payload):
+    return scheduler_accounting(payload)['learner_seconds']
 
 
 def document(path):
@@ -92,14 +98,16 @@ def inspect(command):
     if account.pending and latest['states']['data']['pending_batch'] is None:raise ValueError('pending debit without batch')
     scheduler=latest['states']['scheduler']
     if scheduler['bytes']>1<<20:raise ValueError('scheduler size cap')
-    elapsed=scheduler_seconds(confined(base,scheduler['path']).read_bytes())
+    clock=scheduler_accounting(confined(base,scheduler['path']).read_bytes())
+    elapsed=clock['learner_seconds'];discarded=clock['discarded_tokens']
+    if discarded+account.consumed>account.cap:raise ValueError('saved charged exposure exceeds cap')
     all_generations={Path(p).relative_to(base.relative_to(command)).parts[0] for p in by_path
         if Path(p).is_relative_to(base.relative_to(command)) and len(Path(p).relative_to(base.relative_to(command)).parts)>1}
     return seal(dict(version='fresh-pilot-checkpoint-diagnostic/v1',command=receipt['identity'],
         original_status=receipt['status'],study=receipt['study'],state=pointer,
         contract=latest['contract'],target_token_cap=account.cap,
         committed_tokens=account.consumed-(account.pending[1] if account.debited else 0),
-        charged_tokens=account.consumed,updates=account.updates,pending_tokens=account.pending[1] if account.pending else 0,
+        charged_tokens=account.consumed+discarded,discarded_tokens=discarded,updates=account.updates,pending_tokens=account.pending[1] if account.pending else 0,
         pending_debited=account.debited,learner_seconds=elapsed,
         pinned_generations=len(pins),unreferenced_generation_count=len(all_generations-generations),
         verified_bytes=total,verified_files=len(checked),resume_authorized=False,

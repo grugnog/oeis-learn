@@ -121,3 +121,44 @@ with three unrelated handoff imports blocked by absent wasmtime and one installe
 model check skipped. All 68 review dispositions still bind to the implementation.
 No HIP command or CI wait occurred. The next evidence is the current-source paired
 training probe report, not another full research attempt.
+
+### Hourly checkpoint decision and implementation (T161–T163, 2026-11-04 UTC)
+
+`report(3).zip` (SHA-256
+`7936f84e388c6d6726328946fdeb70f450bd0ae56db8845e681f005af060dca1`)
+contains the completed 71121f6 probe. Its inventory, result/protocol/preparation
+seals and five helper identities were checked, and its forecast was recalculated.
+Both learners and finite-weight proofs reported PASS. Static completed 32 updates
+and 39,688 tokens in 352.84 seconds; refreshed completed 31 updates and 38,642 tokens
+in 344.86 seconds. Checkpoint regions consumed 337.20 and 329.83 seconds respectively.
+The archive is a bounded aggregate report, not the underlying full acceptance or
+checkpoint proof payloads. Its BLOCKED result is the conservative runtime gate,
+not a process failure. The user explicitly approved up to approximately one hour
+of lost model progress after interruption.
+
+The new hourly policy separates complete recoverable snapshots from small durable
+accounting/progress records. It does not change the model, batches, optimizer,
+learning targets, RNG progression or loss calculation during uninterrupted work.
+Current-source checkpoint compatibility includes the selected policy. Complete
+state remains atomic and byte-verified. Recovery can lose unsaved model updates,
+but preserves later token charges and the original supervised elapsed time. If
+that leaves insufficient charged budget to reach the scientific exposure target,
+the run stays PARTIAL; no revised comparison or budget is silently authorized.
+Without trustworthy original supervisor termination timing, crash time is not
+refunded. Selected metadata copies also preserve closed journal accounting.
+
+Recent windows plus a bounded coalesced whole-invocation trend retain loss,
+gradient norm, exposure and throughput information. Snapshot timing is explicitly
+included in the temporary probe's conservative full-run projection, so a short
+checkpoint-free window cannot masquerade as zero persistence cost. Full-run
+failure diagnostics retain this aggregate progress independently of the older
+recoverable snapshot. No HIP performance claim follows from local fixture timing.
+
+
+T163 local validation completed with 495 passing generalization/helper tests,
+one missing-wasmtime skip and one explicitly deselected HIP test. The final scalar
+checkpoint-diagnostic/report checks added 31 passes; all 68 review dispositions
+still verify. Canonical CPU wiring projects the original small journal and bounded
+supervisor process/cleanup records into the learner, independently of private
+training data. The installed actual-device resume gate now uses the hourly policy;
+its target-hardware execution remains pending in the next consolidated invocation.

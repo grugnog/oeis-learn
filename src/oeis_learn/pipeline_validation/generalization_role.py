@@ -81,7 +81,7 @@ def report(inputs,output,settings,*,seconds):
 
 def learner(inputs,output,settings,*,seconds):
     from oeis_learn.fresh.bigint_worker import generalization_train
-    if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay','stop_after_updates'}:
+    if not {'config','resume'}<=set(settings) or set(settings)-{'config','resume','initializer','replay','stop_after_updates','resume_supervision'}:
         raise ValueError('closed learner role settings required')
     config=settings['config']
     deadline=time.monotonic()+seconds
@@ -89,6 +89,13 @@ def learner(inputs,output,settings,*,seconds):
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
     resume=(inputs['verified_training_replay'],settings['resume']) if settings['resume'] is not None else None
     extra=dict(initializer=settings.get('initializer'),initializer_root=inputs['verified_training_replay'],stop_after_updates=settings.get('stop_after_updates'))
+    if settings.get('resume_supervision') is not None:
+        from .generalization_persistence import supervised_elapsed
+        from oeis_learn.generalization.contracts import verify_artifact
+        proof=settings['resume_supervision']
+        if resume is None or set(proof)!={'process','cleanup'}:raise ValueError('original resume supervision required')
+        process,cleanup=(json.loads(verify_artifact(inputs['verified_training_replay'],proof[k],max_bytes=64<<10)) for k in ('process','cleanup'))
+        extra['resume_elapsed']=supervised_elapsed(process,cleanup)
     if settings.get('replay') is not None:
         from oeis_learn.synthesis.client import SynthesisClient
         from oeis_learn.generalization.contracts import verify_artifact

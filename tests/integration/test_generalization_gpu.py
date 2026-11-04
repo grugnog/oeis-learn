@@ -59,7 +59,7 @@ def resume_probe(root,recipe,device):
     (root/'rows.json').write_text(json.dumps([row]));shard=reference(root/'rows.json',root)
     tokens=charge_tokens([row['tokens']],bos=1,pad=0)
     config=dict(study=digest('generalization-resume-qualification'),arm='static',seed=7,recipe=recipe,
-        shards=[shard],data_mode='static',batch_size=1,target_tokens=2*tokens,milestones=[tokens],seconds=180,device=device)
+        shards=[shard],data_mode='static',batch_size=1,target_tokens=2*tokens,milestones=[tokens],seconds=180,device=device,checkpoint_policy='hourly/v1')
     def run(name,*,prior=None,stop=None):
         settings=dict(config=config,resume=prior['checkpoint'] if prior else None)
         if stop is not None:settings['stop_after_updates']=stop

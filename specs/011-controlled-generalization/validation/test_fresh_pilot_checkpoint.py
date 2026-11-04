@@ -8,12 +8,12 @@ from oeis_learn.pipeline_validation.generalization_preparation import reference
 from oeis_learn.generalization.budgets import Ledger
 
 
-def fixture(root,pending=False):
+def fixture(root,pending=False,discarded=None):
     command=root/'execution/train-static';cp=command/'training/run/execution/role/private/learner/checkpoints'
     cp.mkdir(parents=True)
     folder=cp/'generalization-complete';folder.mkdir()
     (folder/'weights.pt').write_bytes(b'PRIVATE WEIGHTS')
-    with zipfile.ZipFile(folder/'scheduler.pt','w') as z:z.writestr('archive/data.pkl',pickle.dumps(dict(learner_seconds=21560.)))
+    with zipfile.ZipFile(folder/'scheduler.pt','w') as z:z.writestr('archive/data.pkl',pickle.dumps(dict(learner_seconds=21560.,**({'discarded_tokens':discarded} if discarded is not None else {}))))
     ledger=Ledger(25000000,consumed=1000,updates=2)
     if pending:ledger=ledger.reserve('next-batch',100)
     state=seal(dict(version='generalization-learner-state/v1',kind='full_state',contract=digest('config'),boundary='before_or_after_complete_update',
@@ -96,3 +96,16 @@ def test_no_checkpoint_or_corruption_cannot_report_verified(tmp_path,monkeypatch
     assert set(result['runs'][0])=={'arm','command_path','status','error_type'}
     monkeypatch.setattr(m,'ROOT',tmp_path)
     assert m.main(['--run','pilot','--output','invalid'])!=0
+
+
+def test_saved_rollback_accounting_is_reported_without_loading_any_tensors(tmp_path):
+    command,_,_,_=fixture(tmp_path,discarded=500)
+    result=m.inspect(command)
+    assert result['committed_tokens']==1000 and result['charged_tokens']==1500 and result['discarded_tokens']==500
+    assert result['resume_authorized'] is False
+
+
+@pytest.mark.parametrize('discarded',[-1,True,1.5,25000000])
+def test_invalid_discarded_checkpoint_accounting_is_rejected(tmp_path,discarded):
+    command,_,_,_=fixture(tmp_path,discarded=discarded)
+    with pytest.raises(ValueError):m.inspect(command)

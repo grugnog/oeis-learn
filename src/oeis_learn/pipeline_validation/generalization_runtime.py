@@ -301,4 +301,5 @@ def learner_config(study,runtime,recipe,arm,seed):
     view=runtime['training'][arm]
     return dict(study=study['identity'],arm=arm,seed=seed,recipe=recipe,shards=view['shards'],
         data_mode=view['data_mode'],batch_size=view['batch_size'],target_tokens=study['budgets']['target_tokens'],
-        milestones=study['checkpoints']['milestones'],seconds=study['budgets']['seconds'],device='cuda')
+        milestones=study['checkpoints']['milestones'],seconds=study['budgets']['seconds'],device='cuda',
+        checkpoint_policy='hourly/v1' if runtime['purpose']=='research' else 'per-update/v1')

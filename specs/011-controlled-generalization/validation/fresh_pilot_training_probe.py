@@ -144,24 +144,28 @@ def execute(args,target,record):
             output,result=command('train-'+arm,['--manifest',manifest,'--qualification',rel(qualification),'--arms',arm,'--seeds','20261016'])
             runs=result['result']['runs']
             if len(runs)!=1:raise ValueError('one paired probe learner required')
-            training=runs[0]['result'];learner=confined(output/'training',runs[0]['root'])
+            training=runs[0]['result']
+            if training.get('checkpoint_policy')!=protocol['checkpoint_policy']:raise ValueError('measured checkpoint policy differs from protocol')
+            learner=confined(output/'training',runs[0]['root'])
             checkpoint,_=api.latest_checkpoint(learner,training,study=study['identity'],arm=arm)
             initials.append(checkpoint['initialization'])
             # Original metadata only: no weights, sources, terms or pending batches.
-            record['training'][arm]={k:training[k] for k in ('status','tokens','charged_tokens','pending_tokens','updates','timing')}
+            record['training'][arm]={k:training[k] for k in ('status','tokens','charged_tokens','discarded_tokens','checkpoint_policy','pending_tokens','updates','timing')}
+            from fresh_pilot_report import training_timing
+            record['training'][arm]['timing']=training_timing(training['timing'])
             results[arm]=training
             proof=training_proof(host,root,target/('proof-'+arm),runtime,study,[(learner,training)])
             record['proofs'][arm]=dict(status=proof['status'])
             if proof['status']!='PASS':raise ValueError('finite changed-weight proof failed')
     if len(set(initials))!=1:raise ValueError('probe initial weights differ')
     record['initialization']=initials[0]
-    record['forecast']=assess(results,protocol['first_shard_tokens'])
+    record['forecast']=assess(results,protocol['first_shard_tokens'],research_milestones=protocol['research_milestones'])
     record['status']=record['forecast']['status']
 
 
 def package(target,record):
     """Bounded aggregate-only ZIP; no recursive inclusion of private run trees."""
-    from fresh_pilot_report import preparation_diagnostics
+    from fresh_pilot_report import preparation_diagnostics,training_timing
     try:record['preparation']=preparation_diagnostics(target)
     except (OSError,ValueError,KeyError):record['preparation']=dict(status='UNAVAILABLE')
     # Partial worker timing survives even when a canonical command times out.
@@ -172,7 +176,7 @@ def package(target,record):
         if len(paths)==1:
             try:
                 value=api.read(confined(folder,str(paths[0].relative_to(folder))),cap=1<<20)
-                if value.get('version')=='generalization-training-timing/v1':record['partial_timings'][arm]=value
+                if value.get('version')=='generalization-training-timing/v1':record['partial_timings'][arm]=training_timing(value)
             except (OSError,ValueError):pass
     write(target/'result.json',seal(record),exclusive=False)
     archive=target/'report.zip'
@@ -198,7 +202,7 @@ def main(argv=None):
     target.mkdir(parents=True)
     began=time.monotonic()
     record=dict(version='fresh-pilot-training-probe-result/v1',status='FAIL',stages=[],scientific_status='UNMEASURED',
-        automatic_research=False,qualification_evidence=False,helpers={n:file_hash(HERE/n) for n in ('fresh_pilot_training_probe.py','fresh_pilot_training_policy.py','fresh_pilot_smoke.py','fresh_pilot.py','fresh_pilot_resume.py')})
+        automatic_research=False,qualification_evidence=False,helpers={n:file_hash(HERE/n) for n in ('fresh_pilot_training_probe.py','fresh_pilot_training_policy.py','fresh_pilot_smoke.py','fresh_pilot.py','fresh_pilot_resume.py','fresh_pilot_report.py')})
     try:execute(args,target,record)
     except (Exception,KeyboardInterrupt) as exc:
         record['status']='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL'
