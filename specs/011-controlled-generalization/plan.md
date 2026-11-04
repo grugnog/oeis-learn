@@ -18,9 +18,10 @@ exhausted `fresh-p1-continued-20261103T151303Z` learner or rewrite its authority
 Single reopened Phase B: verify original sealed canonical inventories, full
 protocol/feasibility and current probe evidence; reject conflicting lineage or
 policy. Construct a new study identity from the verified prepared study, changing
-only the source reference and execution binding for the current image/feature
-authority. Preserve every data reference, scientific choice, seed, budget and
-checkpoint milestone. Record the old and new identities and exact transition.
+only the source reference, execution binding for the current image/feature
+authority, and the protocol's explicitly amended hourly persistence declaration
+and corresponding hypothesis link. Preserve every data reference, scientific
+comparison, seed, budget and checkpoint milestone. Record old/new identities.
 The probe's original train receipts and qualification must match; recompute the
 forecast from those original training results, not the summary's PASS flag.
 

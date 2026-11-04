@@ -12,7 +12,9 @@
 
 ### Reopened Phase B — immutable data reuse and explicit source transition
 
-- [ ] T164 Verify the original preparation inventory, frozen full protocol and successful hourly probe against original canonical receipts; independently recompute its forecast. Create a distinct study/runtime bound to current qualification by changing only source, images and feature authority, preserving all scientific choices and prepared payload bytes. Test tampering, incompatible protocols, missing receipts, changed policies and immutable parent evidence before implementation.
+- [X] T164 Verify the original preparation inventory, frozen full protocol and successful hourly probe against original canonical receipts; independently recompute its forecast. Create a distinct study/runtime bound to current qualification by changing only source, images and feature authority, preserving all scientific choices and prepared payload bytes. Test tampering, incompatible protocols, missing receipts, changed policies and immutable parent evidence before implementation.
+
+T164 validation: 45 local transition/probe/forecast tests pass after observing the missing-policy failures. Original canonical inventories, role-sealed versus learner-unsealed records, retained checkpoint/finite-update proof bindings and acknowledged cleanup are checked. No container or HIP execution. The reviewed old protocol is explicitly amended to hourly persistence, with all scientific data/budget/milestone choices preserved.
 
 ### Phase C/D — one-command full pilot handoff
 
