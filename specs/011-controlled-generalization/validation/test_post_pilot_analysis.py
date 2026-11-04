@@ -64,7 +64,10 @@ def test_equal_totals_do_not_mean_same_successes_and_incomplete_stays_unresolved
 
 def test_missing_prompt_is_unavailable_and_prefix_match_is_not_continuation_success():
     s='(program (local $b0 bigint) (if (lt $index (int 20)) (then (set $b0 (int 3))) (else (set $b0 (int 9)))) (return (get $b0)))'
-    assert m.execute(s,None,time.monotonic()+5)['status']=='unavailable'
+    missing=m.execute(s,None,time.monotonic()+5)
+    assert missing['status']=='ok' and missing['visible_match'] is None
+    assert missing['visible_values_available'] is False
+    assert m.execute(None,None,time.monotonic()+5)['status']=='unavailable'
     result=m.execute(s,(list(map(str,range(20))),['3']*20),time.monotonic()+5)
     assert result['visible_match'] and 'success' not in result
     assert result['first_values']==['3']*5

@@ -145,14 +145,16 @@ def check_attempt(a):
 
 
 def execute(source, prompt, deadline):
-    if not source or prompt is None:
-        return dict(status='unavailable', reason='source_or_visible_prompt_missing')
+    if not source:
+        return dict(status='unavailable', reason='source_missing')
     if time.monotonic() >= deadline:
         raise TimeoutError('audit deadline reached')
     # A local audit timeout is not a new scientific failure or a HIP measurement.
-    r = evaluate(source, prompt[0], deadline=min(deadline,time.monotonic()+0.1))
+    r = evaluate(source, prompt[0] if prompt else list(map(str,range(20))),
+                 deadline=min(deadline,time.monotonic()+0.1))
     return dict(status=r.outcome, reason=r.reason, coverage=r.coverage,
-                visible_match=list(r.values) == prompt[1] if r.outcome == 'ok' else None,
+                visible_match=list(r.values) == prompt[1] if prompt is not None and r.outcome == 'ok' else None,
+                visible_values_available=prompt is not None,
                 first_values=list(r.values[:5]))
 
 

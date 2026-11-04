@@ -105,3 +105,10 @@ different-continuation witness is evidence of family-level ambiguity. A cancelle
 parameter is not counted as a witness; resource-limited verification is unavailable,
 not proof of no ambiguity. These are constructed programs, not recovered held-out
 coefficient assignments or new scores.
+
+T166 completeness follow-up: execute every completed primary source on indices0..19
+even when its public record has no visible verification values. Report runtime
+status separately from `visible_values_available=false` / `visible_match=null`.
+This checks executability without inventing target values or converting absence
+of verification evidence into a model failure. The missing-prompt counterexample
+was changed and observed failing before implementing this bounded extension.
