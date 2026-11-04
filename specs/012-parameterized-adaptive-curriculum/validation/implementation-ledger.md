@@ -113,3 +113,16 @@ A saved pre-optimizer reservation is discarded/charged before its recomputation,
 not refunded. Failed optimizer tensors cannot publish a complete generation.
 Actual model/optimizer/device equality and atomic filesystem publication remain C/E;
 these tests intentionally do not substitute dictionaries for installed tensor proof.
+
+## B6 — T024–T025
+
+`test_generalization_operational_budgets.py` and `test_generalization_budgets.py`:
+**9 passed**. Independent exact-fit and one-over tests cover 24h preparation/12h
+learner/6.5h generation floors, preservation of longer limits, 3x worst measured
+ancillary costs, missing calibration, nested requested/effective/schema limits,
+serial and explicitly parallel critical paths, >=1h finalization, optional A/D
+complete budgets and all diagnostic opportunities. Peak disk accounting includes
+old/new/pinned/proof generations, private data copies, scratch, logs and both
+success/recovery packages; no original pruning. Scientific 60s/5s limits remain
+unchanged. These planners do not extend a running allowance or claim measured
+workstation throughput; canonical propagation is phase C.

@@ -65,3 +65,60 @@ def checkpoint_reservation(*,snapshot_bytes,weights_bytes,milestones,arms,seeds,
                 pinned_generations_reserved=peak,retained_per_run=retained,learner_runs=learners,
                 phase_generations=phases,weight_copies_reserved=weight_copies,
                 policy='serial-checkpoint-graph/v1')
+
+
+def _pac_arms(arms):
+    if len(set(arms))!=len(arms) or not {'B','C'}<=set(arms)<=set('ABCD'):raise ValueError('complete predeclared PAC arms required')
+
+
+def pac_campaign_reservation(arms,arm_reservations,*,preparation,qualification,acceptance,cleanup,finalization,existing):
+    from .budgets import _seconds
+    _pac_arms(arms)
+    if set(arm_reservations)!=set(arms):raise ValueError('optional arm requires complete additional reservation')
+    if preparation<86400 or finalization<3600:raise ValueError('preparation/finalization floor')
+    total=0
+    for value in (preparation,qualification,acceptance,cleanup,finalization,existing):_seconds(value)
+    for arm,parts in arm_reservations.items():
+        if set(parts)!={'preparation','training','diagnostics','checkpoints','generation','export'}:raise ValueError('complete arm reservation graph')
+        for value in parts.values():_seconds(value,positive=True)
+        if parts['training']<43200 or parts['generation']<23400:raise ValueError('learner/generation operational floor')
+        total+=sum(parts.values())
+    total+=preparation+qualification+acceptance+cleanup+finalization
+    _seconds(total)
+    return dict(version='pac-campaign-reservation/v1',seconds=max(existing,total),arms=list(arms),serial=True,
+                automatic_extension=False,scientific_portfolio_seconds=60,semantic_probe_seconds=5)
+
+
+def pac_diagnostic_reservation(updates,*,arm,costs,update_seconds,initial_final_overhead,existing):
+    from .diagnostics import observation_forecast
+    from .budgets import _seconds
+    fields={'reward_probe','grade','common_loss_probe','semantic_attempt','mode_rng_restore','publication','cleanup'}
+    if set(costs)!=fields:raise ValueError('complete observation cost calibration required')
+    for value in costs.values():_seconds(value,positive=True)
+    for value in (update_seconds,initial_final_overhead,existing):_seconds(value)
+    n=observation_forecast(updates,arm=arm)
+    forecast=sum(n[count]*costs[kind] for count,kind in (
+        ('reward_probe_evaluations','reward_probe'),('grade_opportunities','grade'),
+        ('common_loss_probes','common_loss_probe'),('semantic_attempts','semantic_attempt'),
+        ('mode_rng_restorations','mode_rng_restore'),('publication_events','publication')))+costs['cleanup']
+    _seconds(forecast)
+    default=.2*update_seconds+initial_final_overhead
+    return dict(counts=n,forecast_seconds=forecast,default_seconds=default,
+                seconds=max(existing,default,3*forecast+initial_final_overhead),freeze_before_research=True,automatic_extension=False)
+
+
+def pac_peak_storage(*,arms,snapshot_bytes,weights_bytes,data_bytes,data_copies,scratch_bytes,logs_bytes,package_bytes,milestones,available_bytes,scratch_kind):
+    """Conservative simultaneous live graph; no original-input pruning authority."""
+    _pac_arms(arms)
+    for value in (snapshot_bytes,weights_bytes,data_bytes,data_copies,scratch_bytes,logs_bytes,package_bytes):integer(value,1)
+    integer(milestones);integer(available_bytes)
+    if scratch_kind!='disk':raise ValueError('private disk-backed scratch required')
+    retained=len(arms)*(milestones+2)  # initial/latest/pins; coincident pins may deduplicate later
+    common=dict(data=data_bytes*data_copies,weights=weights_bytes*(len(arms)+3),scratch=scratch_bytes,
+                logs=logs_bytes,success_and_recovery_packages=2*package_bytes)
+    phases={name:dict(common,snapshots=(retained+extra)*snapshot_bytes) for name,extra in (
+        ('atomic_save_and_resume',2),('fresh_and_resumed_proof',2),('report_and_recovery',0))}
+    required=max(sum(phase.values()) for phase in phases.values())
+    if required>available_bytes:raise ValueError('insufficient peak live storage; preserve originals and complete generations')
+    return dict(version='pac-peak-storage/v1',required_bytes=required,available_bytes=available_bytes,phases=phases,
+                retained_generations=retained,prune_originals=False,scratch_kind='disk')
