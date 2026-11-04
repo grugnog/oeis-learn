@@ -6,6 +6,14 @@
 
 ## Summary
 
+### Post-pilot audit (T166–T167)
+
+Follow [the evaluation plan](validation/post-pilot-analysis-plan.md) before any
+new learning intervention. One reopened Phase B owns bounded evidence analysis,
+identity joins, reference execution and deterministic case sampling; C/D runs it
+and inspects actual examples. Reuse existing diagnostic primitives in a temporary
+helper, preserving production qualification, original scores and sealed assessment.
+
 ### Qualified full-data handoff (T164–T165)
 
 The hourly probe `training-hourly-probe-20261104T083935Z` passed on the

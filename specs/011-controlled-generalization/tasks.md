@@ -8,6 +8,18 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Post-pilot candidate audit — 2026-11-04 UTC
+
+Plan: [validation/post-pilot-analysis-plan.md](validation/post-pilot-analysis-plan.md).
+
+### Reopened Phase B — bounded candidate evidence analysis
+
+- [ ] T166 Implement the read-only archive audit, independent token/AST/grounding and visible-execution checks, paired outcome comparison, deterministic balanced case selection and verified diagnostic export. Write counterexample tests first; preserve missing evidence, original censoring and qualified production code.
+
+### Phase C/D — execution and scientific diagnosis
+
+- [ ] T167 Run the audit on the supplied full hourly pilot archive, inspect multiple passing/failing/unresolved before-and-after programs from both arms, audit relevant production paths, and record limitations and next-step decisions. Commit/push each grouping; no retraining, HIP or CI wait. Provide one bounded CPU/native follow-up only if a concrete unresolved question needs it.
+
 ## Qualified full-data handoff — 2026-11-04 UTC
 
 ### Reopened Phase B — immutable data reuse and explicit source transition
