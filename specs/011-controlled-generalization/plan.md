@@ -506,3 +506,12 @@ launched automatically. The forecast adds measured snapshot overhead at the
 hourly cadence rather than assuming checkpoint-free windows imply zero persistence
 cost. Recovery/source-policy changes require new qualification. No previous
 checkpoint or qualification identity is rewritten.
+
+
+T161/T162 recovery completion rule: if conservative discarded exposure leaves
+fewer model tokens than the original target when its charged budget is exhausted,
+return `PARTIAL / RECOVERED_WITH_DISCARDED_EXPOSURE`. Never silently promote that
+run to the original matched-exposure scientific comparison or extend its cap.
+Keep the latest saved model available for explicit subsequent decisions. Recent
+64 eight-update windows and a coalesced whole-invocation trend of at most128 bins
+retain loss observations and throughput without unbounded logs.

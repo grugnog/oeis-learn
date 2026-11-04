@@ -34,3 +34,18 @@ def test_forecast_rejects_incomplete_or_malformed_evidence(defect):
     if defect=='tokens':w[0]['tokens']=40000
     if defect=='seconds':w[0]['seconds']=100
     with pytest.raises(ValueError):assess(rows,16000)
+
+
+def test_hourly_forecast_includes_measured_snapshots_and_milestones():
+    rows=results()
+    for r in rows.values():r['timing'].update(checkpoint_policy='hourly/v1',max_checkpoint_seconds=10.,checkpoint_calls=2,journal_writes=65)
+    result=assess(rows,16000,research_milestones=4)
+    assert result['snapshot_seconds_allowance']==80  # two work hours, four milestones, initial/final
+    assert result['projected_seconds_per_arm']==14460
+    rows['static']['timing']['checkpoint_calls']=1
+    with pytest.raises(ValueError):assess(rows,16000)
+
+
+def test_forecast_rejects_different_paired_checkpoint_policies():
+    rows=results();rows['static']['timing'].update(checkpoint_policy='hourly/v1',max_checkpoint_seconds=1.,checkpoint_calls=2,journal_writes=65)
+    with pytest.raises(ValueError):assess(rows,16000)

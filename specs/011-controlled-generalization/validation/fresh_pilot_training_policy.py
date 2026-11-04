@@ -15,14 +15,23 @@ def budget(charges):
     return cap
 
 
-def assess(results,first_shard_tokens):
+def assess(results,first_shard_tokens,*,research_milestones=3):
     if set(results)!={'static','refreshed'}:raise ValueError('both probe arms required')
-    rates=[]
+    if type(research_milestones) is not int or not 0<=research_milestones<=64:raise ValueError('bounded research milestone count required')
+    rates=[];policies=set();snapshot_cost=0.
     for result in results.values():
         if (result['status']!='PASS' or result['updates']<MINIMUM_UPDATES or
             result['tokens']<=first_shard_tokens or result['charged_tokens']!=result['tokens']):
             raise ValueError('complete probe with refreshed exposure required')
         timing=result['timing'];windows=timing['windows']
+        cadence=timing.get('checkpoint_policy','per-update/v1');policies.add(cadence)
+        if cadence not in {'per-update/v1','hourly/v1'}:raise ValueError('registered measured persistence policy required')
+        if cadence=='hourly/v1':
+            cost=timing.get('max_checkpoint_seconds')
+            if (type(cost) not in (int,float) or not math.isfinite(cost) or cost<=0 or
+                timing.get('checkpoint_calls',0)<2 or timing.get('journal_writes',0)<result['updates']):
+                raise ValueError('measured initial/final snapshots and durable progress required')
+            snapshot_cost=max(snapshot_cost,cost)
         if not 2<=len(windows)<=64:raise ValueError('two complete timing windows required')
         previous=4;tokens=0;seconds=0.
         for w in windows:
@@ -33,9 +42,13 @@ def assess(results,first_shard_tokens):
             previous=w['through_updates'];tokens+=w['tokens'];seconds+=w['seconds']
             rates.append(w['seconds']/w['tokens'])
         if tokens>result['tokens'] or seconds>timing['invocation_seconds']:raise ValueError('timing exceeds measured work')
-    projected=25_000_000*max(rates)*2+1800
+    if len(policies)!=1:raise ValueError('paired persistence policies differ')
+    work=25_000_000*max(rates)
+    snapshot_allowance=(math.ceil(work/3600)+research_milestones+2)*snapshot_cost
+    projected=(work+snapshot_allowance)*2+1800
     return dict(status='PASS' if projected<=21600 else 'BLOCKED',
         projected_seconds_per_arm=projected,slowest_seconds_per_token=max(rates),
+        checkpoint_policy=next(iter(policies)),snapshot_seconds_allowance=snapshot_allowance,research_milestones=research_milestones,
         margin_factor=2,additional_seconds=1800,proposed_seconds_per_arm=21600,
         target_tokens_per_arm=25_000_000,automatic_research=False,
         interpretation='short diagnostic forecast, not a guarantee or scientific comparison')

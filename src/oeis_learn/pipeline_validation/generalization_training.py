@@ -14,20 +14,40 @@ class TrainingTiming:
     def __init__(self):
         from collections import deque
         self.windows=deque(maxlen=64);self.start=None;self.anchor=None
-        self.checkpoint_seconds=0.;self.update_seconds=0.;self.checkpoint_calls=0
+        self.checkpoint_seconds=0.;self.update_seconds=0.;self.checkpoint_calls=0;self.max_checkpoint_seconds=0.
+        self.trend=[];self.loss_sum=0.;self.loss_count=0;self.last_loss=None;self.last_gradient_norm=None
+
+    def record_update(self,result):
+        import math
+        if not isinstance(result,dict):return
+        for name,attr in (('loss','last_loss'),('gradient_norm','last_gradient_norm')):
+            value=result.get(name)
+            if value is not None:
+                if type(value) not in (int,float) or not math.isfinite(value):raise ValueError('finite observed training metric required')
+                setattr(self,attr,value)
+        if result.get('loss') is not None:self.loss_sum+=result['loss'];self.loss_count+=1
 
     def observe(self,updates,tokens,now):
         if self.start is None:self.start=updates
         if updates-self.start<4:return False
-        if self.anchor is None:self.anchor=(updates,tokens,now);return False
+        if self.anchor is None:
+            self.anchor=(updates,tokens,now);self.loss_sum=0.;self.loss_count=0;return False
         count,consumed,started=self.anchor
         if updates-count<8:return False
-        self.windows.append(dict(updates=updates-count,tokens=tokens-consumed,seconds=now-started,through_updates=updates))
+        window=dict(updates=updates-count,tokens=tokens-consumed,seconds=now-started,through_updates=updates,
+            loss_sum=self.loss_sum,loss_observations=self.loss_count,mean_loss=self.loss_sum/self.loss_count if self.loss_count else None)
+        self.windows.append(window);self.trend.append(dict(window))
+        if len(self.trend)>128:
+            a,b=self.trend[:2]
+            merged={k:a[k]+b[k] for k in ('updates','tokens','seconds','loss_sum','loss_observations')}
+            merged.update(through_updates=b['through_updates'],mean_loss=merged['loss_sum']/merged['loss_observations'] if merged['loss_observations'] else None)
+            self.trend[:2]=[merged]
+        self.loss_sum=0.;self.loss_count=0
         self.anchor=(updates,tokens,now)
         return True
 
 
-def train_updates(state,ledger,batches,*,update,save,seconds=21600):
+def train_updates(state,ledger,batches,*,update,save,seconds=21600,discarded_tokens=0):
     """Persist pre-update state/debit, then publish complete update state atomically.
 
     `update` owns model/optimizer/scheduler mutation and refreshes `state`'s tensor
@@ -35,8 +55,10 @@ def train_updates(state,ledger,batches,*,update,save,seconds=21600):
     Batches are immutable prepared rows; data cursor indexes their frozen order.
     """
     if type(seconds) not in (int,float) or not 0<seconds<=21600:raise ValueError('bounded learner seconds required')
+    if type(discarded_tokens) is not int or not 0<=discarded_tokens<=ledger.cap-ledger.consumed:raise ValueError('invalid discarded exposure')
     deadline=time.monotonic()+seconds
     while time.monotonic()<deadline:
+        if ledger.consumed+discarded_tokens==ledger.cap and not ledger.debited:return dict(status='COMPLETE',ledger=ledger,state=state)
         batch=state['data']['pending_batch']
         if batch is None:
             cursor=state['data']['cursor']
@@ -44,7 +66,11 @@ def train_updates(state,ledger,batches,*,update,save,seconds=21600):
             batch=batches[cursor];state['data']['cursor']=cursor+1
             state['data']['pending_batch']=batch
         tokens=charge_tokens([row['tokens'] for row in batch],bos=1,pad=0)
-        key=digest(batch);ledger=ledger.reserve(key,tokens)
+        key=digest(batch)
+        if ledger.pending is None and ledger.consumed+tokens+discarded_tokens>ledger.cap:
+            from dataclasses import replace
+            ledger=replace(ledger,pending=(key,tokens),debited=False)
+        else:ledger=ledger.reserve(key,tokens)
         save(state,ledger)
         if not ledger.debited:return dict(status='COMPLETE',ledger=ledger,state=state)
         if time.monotonic()>=deadline:break
@@ -115,7 +141,7 @@ class PreparedBatches:
         return [self._row(i%self.count) for i in range(start,end)]
 
 
-def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None,initializer_root=None,seconds=None):
+def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializer=None,replay=None,initializer_root=None,seconds=None,resume_elapsed=None):
     """Actual existing model/update path with complete update-boundary persistence.
 
     Caller supplies a verified, frozen execution projection. No selection/assessment
@@ -133,7 +159,10 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from oeis_learn.generalization.checkpoints import milestone_decision,pin_plan
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.common import write
+    from .generalization_persistence import policy,INTERVAL,journal,recover
+    checkpoint_policy=policy(config);periodic=checkpoint_policy=='hourly/v1'
     progress_count=0;timing=TrainingTiming();tensors_dirty=True
+    journal_writes=0;last_full_time=None;last_full_ledger=None
     def progress(phase):
         nonlocal progress_count
         # Public phase/timestamp only; bounded even for long research learners.
@@ -141,7 +170,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             print(f'learner: {phase} unix={time.time():.6f}',file=sys.stderr,flush=True)
             progress_count+=1
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
-    if set(config)!=required:raise ValueError('closed learner execution projection required')
+    if set(config)-{'checkpoint_policy'}!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
     from .generalization_execution import verify_execution,bind_compatibility
     execution_policy=verify_execution() if config['device']=='cuda' else None
@@ -205,24 +234,69 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             shutil.copytree(Path(prior)/folder,store.root/folder,dirs_exist_ok=False)
             history[key]=pointer
         initial=next(iter(state['history']['exposures']),None)
+        if periodic:
+            pointer_path=Path(prior)/'generalization-latest.json'
+            if json.loads(pointer_path.read_text())!=ref:raise ValueError('periodic resume requires latest published snapshot')
+            progress_path=Path(prior)/'generalization-progress.json'
+            if progress_path.is_symlink() or not progress_path.is_file() or progress_path.stat().st_size>1<<20:
+                raise ValueError('original periodic progress journal required')
+            restored_accounting=recover(json.loads(progress_path.read_text()),contract=compatibility,checkpoint=ref,ledger=ledger,
+                discarded_tokens=state['scheduler'].get('discarded_tokens',0),learner_seconds=state['scheduler']['learner_seconds'],
+                seconds_cap=config['seconds'],supervised_seconds=resume_elapsed)
+            state['scheduler'].update({k:v for k,v in restored_accounting.items() if k!='rolled_back'})
     # Conservatively debit reduced enclosing allowance (I/O and cleanup reserve).
     previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
+    discarded_tokens=state['scheduler'].get('discarded_tokens',0)
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
         nonlocal tensors_dirty
         tensors_dirty=True;started=time.monotonic()
         progress('update-start')
-        try:return update_tensors(batch)
+        try:
+            result=update_tensors(batch);timing.record_update(result);return result
         finally:
             timing.update_seconds+=time.monotonic()-started
             progress('update-complete')
     class StopAtBoundary(Exception):pass
-    def save(current,account):
-        nonlocal latest,saved_ledger,initial,history,tensors_dirty
+    def save(current,account,*,force=False):
+        nonlocal latest,saved_ledger,initial,history,tensors_dirty,last_full_time,last_full_ledger,journal_writes
+        effective=account.consumed-(account.pending[1] if account.debited else 0)
+        crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
+        milestone_due=any(m not in milestone_keys and (m==effective or m in crossed) for m in milestones)
+        stopped=stop_after_updates is not None and account.pending is None and account.updates>=stop_after_updates
+        full=(not periodic or force or latest is None or milestone_due or stopped or
+              account.pending is None and time.monotonic()-last_full_time>=INTERVAL)
+        if full:full_save(current,account)
+        saved_ledger=account
+        if periodic:
+            write(store.root/'generalization-progress.json',journal(contract=compatibility,checkpoint=latest,ledger=account,
+                discarded_tokens=discarded_tokens,elapsed_seconds=previous_seconds+time.monotonic()-began,
+                invocation_base_seconds=previous_seconds,closed=False))
+            journal_writes+=1
+        emitted=account.pending is None and timing.observe(account.updates,effective,time.monotonic())
+        if emitted or periodic and (full or account.pending is None):
+            write(output/'timing.json',timing_record())
+        if stopped:raise StopAtBoundary()
+
+    def timing_record():
+        return dict(version='generalization-training-timing/v1',checkpoint_seconds=timing.checkpoint_seconds,
+            update_seconds=timing.update_seconds,checkpoint_calls=timing.checkpoint_calls,windows=list(timing.windows),
+            checkpoint_io=dict(store.io_stats),checkpoint_policy=checkpoint_policy,journal_writes=journal_writes,
+            max_checkpoint_seconds=timing.max_checkpoint_seconds,trend=list(timing.trend),
+            last_loss=timing.last_loss,last_gradient_norm=timing.last_gradient_norm,
+            invocation_seconds=time.monotonic()-began,
+            progress=dict(tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
+                charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,updates=saved_ledger.updates,
+                recoverable_tokens=last_full_ledger.consumed-(last_full_ledger.pending[1] if last_full_ledger.debited else 0),
+                recoverable_updates=last_full_ledger.updates,checkpoint=latest))
+
+    def full_save(current,account):
+        nonlocal latest,initial,history,tensors_dirty,last_full_time,last_full_ledger
         started=time.monotonic()
         progress('checkpoint-save')
         effective=account.consumed-(account.pending[1] if account.debited else 0)
+
         current['weights']=dict(encoder=encoder.state_dict(),decoder=decoder.state_dict())
         current['optimizer']=optimizer.state_dict()
         current['rng']=dict(python=random.getstate(),numpy=np.random.get_state(),torch=torch.get_rng_state(),
@@ -233,7 +307,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}
         unchanged=latest if latest is not None and not tensors_dirty and account.pending is not None else None
-        latest=store.save(current,account,scheduler=scheduler,unchanged_tensors=unchanged);saved_ledger=account
+        latest=store.save(current,account,scheduler=scheduler,unchanged_tensors=unchanged)
         key=latest['sha256'];history[key]=latest;current['history']['exposures'][key]=effective
         if initial is None:initial=key;permanent[key]=latest
         crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
@@ -246,14 +320,11 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         store.retain(history,tuple(sorted(keep)))
         history={k:v for k,v in history.items() if k in keep}
         tensors_dirty=False
-        timing.checkpoint_seconds+=time.monotonic()-started;timing.checkpoint_calls+=1
-        if account.pending is None and timing.observe(account.updates,effective,time.monotonic()):
-            write(output/'timing.json',dict(version='generalization-training-timing/v1',
-                checkpoint_seconds=timing.checkpoint_seconds,update_seconds=timing.update_seconds,
-                checkpoint_calls=timing.checkpoint_calls,windows=list(timing.windows),checkpoint_io=dict(store.io_stats)))
+        last_full_time=time.monotonic();last_full_ledger=account
+        duration=time.monotonic()-started
+        timing.checkpoint_seconds+=duration;timing.checkpoint_calls+=1
+        timing.max_checkpoint_seconds=max(timing.max_checkpoint_seconds,duration)
         progress('checkpoint-saved')
-        if stop_after_updates is not None and account.pending is None and account.updates>=stop_after_updates:
-            raise StopAtBoundary()
     # Restore a snapshot that itself was newly pinned before its reference could
     # appear inside that same snapshot; reconstruct only from its exact ledger.
     if resume is not None:
@@ -280,9 +351,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     try:
         save(state,ledger)
         remaining=config['seconds']-previous_seconds-(time.monotonic()-began)-reserve
-        result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining) if remaining>0 else dict(status='PARTIAL')
+        result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining,discarded_tokens=discarded_tokens) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
+    if periodic:
+        # Publish live state once at the orderly terminal boundary, before any
+        # descriptor or successful result can refer to it.
+        if latest is None or last_full_ledger!=saved_ledger:full_save(state,saved_ledger)
+
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
     from .identity import seal
@@ -304,18 +380,20 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         selection_status=state['selection'].get('reason','selection_not_run'),
         latest=next(c['identity'] for c in retained if c['state']==latest)))
     write(output/'checkpoints/retained.json',roster)
+    if periodic:
+        write(store.root/'generalization-progress.json',journal(contract=compatibility,checkpoint=latest,ledger=saved_ledger,
+            discarded_tokens=discarded_tokens,elapsed_seconds=previous_seconds+time.monotonic()-began,
+            invocation_base_seconds=previous_seconds,closed=True))
+        journal_writes+=1
+    if status=='COMPLETE' and discarded_tokens:status='RECOVERED_WITH_DISCARDED_EXPOSURE'
     result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
-        charged_tokens=saved_ledger.consumed,pending_tokens=saved_ledger.pending[1] if saved_ledger.pending else 0,
-        updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,
+        charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,checkpoint_policy=checkpoint_policy,pending_tokens=saved_ledger.pending[1] if saved_ledger.pending else 0,
+        updates=saved_ledger.updates,undershoot=saved_ledger.cap-saved_ledger.consumed-discarded_tokens,
         milestones={str(m):state['history']['exposures'][k] for m,k in milestone_keys.items()},
         learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts,
         retained=roster['identity'])
-    result['timing']=dict(version='generalization-training-timing/v1',
-        checkpoint_seconds=timing.checkpoint_seconds,update_seconds=timing.update_seconds,
-        checkpoint_calls=timing.checkpoint_calls,windows=list(timing.windows),checkpoint_io=dict(store.io_stats),
-        publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve,
-        invocation_seconds=time.monotonic()-began)
+    result['timing']=dict(timing_record(),publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve)
     write(output/'timing.json',result['timing'])
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)

@@ -12,8 +12,10 @@
 
 ### Reopened Phase B — checkpoint cadence, crash accounting and progress
 
-- [ ] T161 Implement a frozen hourly research checkpoint policy with initialization, milestone and terminal saves; maintain a small atomic debit/progress journal and complete throughput windows independently of tensor saves. Preserve the dense acceptance policy and explicitly bind cadence into compatibility.
-- [ ] T162 Implement rollback accounting from the latest verified full snapshot and newer journal: restore model/RNG/cursor/replay, retain charged unsaved tokens separately, account original supervised elapsed time, and conservatively exhaust the wall allowance when crash-time evidence is unavailable. Reject missing/stale/malformed journals and unsupported older resume points. Add independent interruption, atomic-window, budget and milestone tests, including real tiny Torch continuation.
+- [X] T161 Implement a frozen hourly research checkpoint policy with initialization, milestone and terminal saves; maintain a small atomic debit/progress journal and complete throughput windows independently of tensor saves. Preserve the dense acceptance policy and explicitly bind cadence into compatibility.
+- [X] T162 Implement rollback accounting from the latest verified full snapshot and newer journal: restore model/RNG/cursor/replay, retain charged unsaved tokens separately, account original supervised elapsed time, and conservatively exhaust the wall allowance when crash-time evidence is unavailable. Reject missing/stale/malformed journals and unsupported older resume points. Add independent interruption, atomic-window, budget and milestone tests, including real tiny Torch continuation.
+
+T161–T162 validation: 56 affected policy, real tiny-Torch, recovery and forecast checks passed; one installed-model check skipped for missing wasmtime. Tests cover exact clean continuation, interruption after parameter mutation, publication between pointer/journal writes, missing/stale journals, cumulative discarded exposure/time, required milestone pins, no extra update after exhausted allowance, two versus 65 full saves for 32 updates, and bounded whole-run loss/throughput trends. A resumed run that exhausts its budget with discarded exposure remains explicitly PARTIAL. No HIP speed claim.
 
 ### Phase C/D — canonical resume, progress packaging and measured handoff
 
