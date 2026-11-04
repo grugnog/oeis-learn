@@ -61,3 +61,11 @@ shortage. PAC control/freeze tests: **2 passed** (`test_generalization_execution
 row order, finite draw bounds, source/output duplicates, native mismatch and final
 collision rejection. Structural admission consumes verified custodian observations;
 these fixtures do not establish native execution or actual input feasibility.
+
+## B2 — T011–T012
+
+`test_generalization_refresh_targets.py`: **6 passed**. Reuse strict existing
+pair/ground/codec/control-taint rules. PAC adds only a whole-row over-eight-parameter
+fallback with exact grounding and independent literal execution; malformed grounding
+or undeclared sharing still rejects. Unsupported parameter proposals never reach
+encoding/fitting as parameter targets. No historical target or fitter limit changes.
