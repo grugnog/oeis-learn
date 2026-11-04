@@ -91,3 +91,11 @@ def test_snapshot_closed_identity_and_pending_phase_roundtrip():
         with pytest.raises(ValueError):CurriculumState.restore(bad,inventory=s.inventory)
     bad=copy.deepcopy(snap);bad['kernel']['valid_updates']+=1
     with pytest.raises(ValueError):CurriculumState.restore(bad,inventory=s.inventory)
+
+
+def test_pure_binding_rejects_newer_policy_on_older_model():
+    from oeis_learn.generalization.state import bind_pac_state
+    s=state();begin(s);batch=s.plan_batch(2);s.reserve(17)
+    assert bind_pac_state(s.snapshot(),inventory=s.inventory,model_update=0,pending_batch=s.pending).snapshot()==s.snapshot()
+    for update,pending in [(1,s.pending),(0,None)]:
+        with pytest.raises(ValueError):bind_pac_state(s.snapshot(),inventory=s.inventory,model_update=update,pending_batch=pending)

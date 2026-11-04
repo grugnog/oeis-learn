@@ -38,3 +38,12 @@ def restore(record,*,contract,cap,root=None):
     ledger=Ledger.restore(record['ledger'],cap=cap)
     if ledger.pending and record['states']['data']['pending_batch'] is None: raise ValueError('lost pending batch')
     return dict(states=copy.deepcopy(record['states']),ledger=ledger)
+
+
+def bind_pac_state(curriculum,*,inventory,model_update,pending_batch):
+    """Bind pure policy to the same model boundary; tensor I/O remains installed C."""
+    from .curriculum_state import CurriculumState
+    state=CurriculumState.restore(curriculum,inventory=inventory)
+    if type(model_update) is not int or model_update!=state.updates or pending_batch!=state.pending:
+        raise ValueError('model/policy/pending batch boundary mismatch')
+    return state
