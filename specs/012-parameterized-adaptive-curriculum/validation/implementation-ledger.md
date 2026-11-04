@@ -29,3 +29,24 @@ proof remain operator-side gates, never inferred from these CPU policy fixtures.
 Spec Kit prerequisites pass with explicit `SPECIFY_FEATURE_DIRECTORY`; the quality
 checklist has 16 checked and zero unchecked entries. No extension hooks are present.
 Existing Python/Rust/Docker ignore coverage is sufficient for this phase.
+
+## Phase A validation (T002–T006)
+
+- T002: separate closed PAC shells and explicit private-record export rejection;
+  historical authorities retain their original schemas and semantics.
+- T003: hand-derived rational kernel, exposure timelines, structural totals and
+  fault-debit fixtures; no production code generates their expected values.
+- T004: `PYTHONPATH=src .venv-policy/bin/python -m pytest -q
+  tests/unit/test_generalization_contracts.py tests/unit/test_generalization_legacy.py`
+  — **13 passed**. Unknown fields/versions, relabeled P3 and legacy policy rejected.
+- T005: all 18 reliability rows have implementation, counterexample, evidence and
+  recovery ownership; prior uncertainties remain explicit.
+- T006: `python3 -S scripts/foundation_run.py --help` and
+  `python3 -S scripts/generalization_inputs.py --help` both exit 0. All registered
+  schemas pass Draft202012 schema checking; independent structural totals reconcile.
+
+Local policy environment: Python 3.12.14, pytest 9.1.1, jsonschema 4.26.0,
+referencing 0.37.0 (validator/test versions from committed lock). This is a targeted
+pure-Python environment, **not** the pinned qualification image. Docker/Podman,
+PyTorch, native synthesis and HIP are unavailable; none is reported PASS.
+Phase A is complete; installed dispatch, tensors and hardware remain pending.

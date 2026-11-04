@@ -52,7 +52,7 @@ No scheduler, quota, deadline or transaction algorithm belongs in scaffolding.
 
 - [X] T004 [P] Add old-study/P3/schema rejection fixtures in `tests/unit/test_generalization_legacy.py` and `tests/unit/test_generalization_contracts.py`; preserve original recipe meanings and reject an old P3 relabeled PAC, unknown fields and `visit-scheduler/v1` as adaptive state.
 - [X] T005 Record every original failure class and added policy risk against the task IDs in this document in `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; retain prevention, counterexample, evidence and recovery columns and distinguish proven failures from suspected mechanisms.
-- [ ] T006 Check shells/fixtures and existing portable host help without HIP; record commands, results and unresolved dependency availability in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, and confirm `scripts/foundation_run.py` and `scripts/generalization_inputs.py` still work under `python3 -S` before entering B.
+- [X] T006 Check shells/fixtures and existing portable host help without HIP; record commands, results and unresolved dependency availability in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, and confirm `scripts/foundation_run.py` and `scripts/generalization_inputs.py` still work under `python3 -S` before entering B.
 
 ## Phase B — Critical algorithms and state invariants
 
