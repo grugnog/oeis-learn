@@ -8,6 +8,24 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Observable continuation follow-up — 2026-11-04 UTC
+
+Plan: [validation/observable-evaluation-plan.md](validation/observable-evaluation-plan.md).
+Execution is currently blocked by the disconnected workspace exec service; no
+implementation or validation is claimed for these tasks.
+
+### Reopened Phase B — outcome-blind observability policy
+
+- [ ] T168 Implement the bounded three-way classification policy: certified within-family polynomial/path continuation, independently witnessed ambiguity, or unresolved. Freeze scope and roster, write independent counterexamples first, preserve assessment isolation and distinguish historical diagnostic projection from prospective evaluation.
+
+### Phase C — exact bank-original provenance
+
+- [ ] T169 Reproduce the bank-envelope defect through retained evaluation and the real sealer; preserve the exact original bank proposal on copied admissions, reject identity disagreement, preserve budgets/selection and refresh affected source/inventory bindings without relabeling historical qualification.
+
+### Phase C/D — retained evaluation projection and handoff
+
+- [ ] T170 Execute the policy against the verified original pilot, publish a fresh derived protocol/category mapping and original-score projection with explicit uncertainty, inspect representative cases, run local regressions and source checks, and commit/push each group. No training, assessment access, HIP or CI wait unless separately needed and recorded.
+
 ## Post-pilot candidate audit — 2026-11-04 UTC
 
 Plan: [validation/post-pilot-analysis-plan.md](validation/post-pilot-analysis-plan.md).

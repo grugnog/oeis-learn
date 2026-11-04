@@ -6,6 +6,16 @@
 
 ## Summary
 
+### Observable continuation follow-up (T168–T170)
+
+Follow [the implementation plan](validation/observable-evaluation-plan.md). Keep
+one reopened Phase B for outcome-blind certification, ambiguity witnesses and
+unresolved classification. Routine C repairs bank original-source provenance;
+C/D projects retained results under a distinct diagnostic identity and validates
+the changes. A negative witness search cannot certify observability. Historical
+scores and sealed assessment remain unchanged; production qualification must not
+be relabeled after a source change.
+
 ### Post-pilot audit (T166–T167)
 
 Follow [the evaluation plan](validation/post-pilot-analysis-plan.md) before any
