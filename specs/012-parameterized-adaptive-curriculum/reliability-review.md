@@ -61,3 +61,38 @@ The original 14 failure classes remain in force. The additional rows are design
 risks, not claims that these failures already occurred on HIP. Retain generous
 12-hour learner/24-hour preparation floors, grow them when forecasts require, and
 sum every selected arm plus protected finalization before launch.
+
+## Implementation task ownership (T005)
+
+
+The full prevention/evidence/recovery definitions remain in [reliability-review.md](reliability-review.md).
+Each row below names both implementation and required regression tasks; D's T064
+must link actual check results, not merely cite this table.
+
+| Original failure class / additional design risk | Implementation owner | Counterexample / proof | Required evidence and recovery |
+| --- | --- | --- | --- |
+| Engine/qualification environment mismatch | T029, T040 | T039, T062, T072 | Requested/observed engine/source/image/env; requalify incompatible closure |
+| Fresh directory/host dependency | T044, T051, T053 | T043, T050, T053, T062 | Input/output owner; explicit root or safe sibling/resume |
+| Cold startup/inspection/overlay delay | T025, T040, T052 | T024, T039, T053 | Startup/work/exit costs; amend frozen operational plan before retry |
+| Nested learner/evaluation/persistence timeout | T025, T040 | T024, T039, T052, T062 | All requested/effective limits and exhausted boundary; last complete snapshot |
+| Repeated preparation compile/hash cost | T031, T052–T053 | T030, T052–T053 | Cold/warm/later-shard throughput; sealed-cell reuse only |
+| Finite quota deficit | T008, T010, T031 | T007, T010, T030, T069 | Original draws/exclusions, deficits; no reseed/blind timeout increase |
+| Smoke never reaches actual boundary | T034, T041 | T033, T036–T037, T070–T072 | Actual update/reward/review/load counts and checkpoint hashes |
+| Disk/tmpfs/live copy exhaustion | T025, T038, T040 | T024, T037, T053 | Peak required/free categories; preserve complete prior state/no auto-prune |
+| Excess snapshots/truncated progress | T038, T049 | T037, T048, T057 | Save count/time and whole-run totals; hourly/latest verified generation |
+| Process-to-process backend divergence | T038, T040 | T037, T039, T072 | Actual full-state equality and no-Lt closure; changed backend requalifies |
+| Diagnostic interference/watchdog lifetime | T035, T053 | T033, T053, T057 | Mode/RNG/handler/cleanup status and ordered errors |
+| Cross-image/newer-journal restore | T021–T022, T038 | T020, T022–T023, T037, T072 | Identity/pending/discarded segments; no policy-only replay |
+| Missing nested outcome/COMPLETE/primary cause | T055–T056 | T039, T054, T057, T072 | App/process/cleanup/verifier, quota, omissions and ordered errors |
+| Packer helper paths/stale producer | T055–T056 | T054, T056–T057, T072 | Verified archive and original producer/helper closure; minimal rerun |
+| Wrong EXP3 variant/probability | T014–T015 | T013, T015, T036, T071 | Named kernel, selected p, raw/scaled reward, valid clock |
+| Cross-family/double reward credit | T021, T034, T038 | T020, T023, T033, T037, T071–T072 | Panel/model/block IDs, exactly-once feedback, censored/discarded events |
+| Wrong anchor grade/service bound | T017, T021, T034 | T016, T020, T033, T036, T071 | Anchor grade/exposure/queue, cycle offsets, pending terminal items |
+| Observation cost/short timeout recurrence | T019, T025, T035, T052 | T018–T019, T024, T039, T048, T052, T071 | Complete probe/grade/panel counts/costs; required-feedback pause |
+
+
+These owners were checked against the current handlers during phase A. A task ID
+is an assignment, not proof that a failure is prevented. The first 14 rows retain
+their original evidence qualifications; the final four remain prospective design
+risks. Local proof is recorded incrementally in validation/implementation-ledger.md;
+installed and hardware evidence remain C–E.
