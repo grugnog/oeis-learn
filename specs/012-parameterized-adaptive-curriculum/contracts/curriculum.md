@@ -1,141 +1,211 @@
-# Curriculum policy contract — proposed `pac-progress-review/v1`
+# Curriculum contract — proposed `pac-exp3s-leitner/v1`
 
-This is a frozen initial design, not an optimal policy or an implemented API.
-Changes before research require a new policy identity; changes after looking at
-outcomes are a new experiment. FR-010–020 are the authority.
+This design replaces the unimplemented `pac-progress-review/v1` draft. The
+selected kernel is Graves et al. (2017), Eq. 1 with beta=0; the surrounding block,
+measurement and bounded review choices below are explicit project adaptations.
+No scientific run is frozen by this document. Freeze the complete manifest before
+execution; no inherited theoretical guarantee is asserted for the combined policy.
 
-## Units and role boundaries
+## 1. Roles, finite data and clocks
 
-One decision selects a family and a batch from its existing gradient rows. Batch
-size, tokenizer, padding, optimizer and token charging remain canonical. Family
-IDs come from a private hash-bound sidecar retained during preparation; they are
-not inferred from hidden structural labels or decoded targets at runtime.
-
-Prepare eight probe examples per training family from a deterministic finite
-reservoir of at most 256 draws/family, using the original mechanical grammar and
-numeric law. Freeze draw seed/counters with the experiment, separate from gradient
-RNG. Require all 32 quotas and native/reference agreement before research. Probes
-never enter gradients. Reject exact canonical-source or full authoritative-output
+Retain the original 32-family gradient pool and private hash-bound family sidecar.
+Prepare eight separate training probes per family from a finite reservoir of at
+most 256 draws/family, with seed/counters frozen before research. Require every
+quota and native/reference agreement. Reject exact canonical-source/full-output
 duplicates with gradient rows and detectable final-evaluation collisions inside
-the custodian. Shared visible windows within the training role may remain; count
-and disclose these overlaps. Do not describe these probes as unseen structural
-generalization. Infeasibility blocks the proposed panel; no reseeding or selecting
-held-out structural families is automatic.
+the custodian. Count permitted shared visible windows within training support.
+These probes are never gradient examples or unseen structural evaluation. Reuse
+across rounds is adaptive validation; do not claim fresh-IID or unbiased population
+progress. Probe infeasibility blocks research without automatic reseeding.
 
-Choose four review anchors per family from existing gradient rows by a frozen
-hash order, covering available declared target/length strata. Record unavailable
-strata. Practice may repeat anchors; transfer measurements use the separate panel.
-No inferred OEIS family names, external teachers or generated-model demonstrations.
+Choose four distinct anchors per family from existing gradient rows by frozen
+hash order over available target/length strata: 128 bounded review items. Record
+missing strata. An anchor remains eligible for ordinary practice; its actual
+exposure must be recorded even when not selected by the review queue.
 
-## Decision channels and bounds
+For C and optional D, ordinary rows use a seeded Fisher–Yates permutation per
+family, consumed without replacement then reshuffled at wrap. Derive independent
+per-family sampler streams from the frozen initializer seed, family identity and
+versioned stream label, identically across C/D; keep their state separate from
+bandit/scaler/diagnostic RNG. Freeze exact implementation/runtime and retain RNG,
+permutation epoch and cursor. B keeps its original fixed stream. Review filler
+uses that family's sampler but skips the designated anchor and already included
+row IDs, advancing the cursor for skips without claiming training exposure. Require
+enough distinct rows for the declared batch size. Record other anchors incidentally
+trained in filler. This changes selection/order, never target eligibility or pool.
 
-Use repeating four-update slots: exploration, adaptive, review, adaptive.
+Separate counters: committed optimizer updates, bandit action/block IDs, valid
+kernel updates, completed review services, diagnostic events and charged target
+tokens. Review intervals use committed optimizer updates; kernel sharing uses only
+valid kernel updates. Wall-clock jitter does not select families or change queues.
 
-- Exploration samples uniformly over all 32 families using checkpointed seeded
-  RNG, independently of loss and model success. Its conditional family probability
-  is 1/32; the separate review queue supplies the finite opportunity bound.
-- Adaptive slots sample probabilities obtained by normalizing nonnegative priorities
-  and deterministically redistributing excess above 0.20. All-zero priorities use
-  uniform probabilities. Reject a cap below `1 / family_count`.
-- Review slots serve earliest due family, ties by frozen family ID, cycling that
-  family's anchors. If none is due, sample uniformly and record fallback.
-  Each family has at most one outstanding review obligation; new obligations cannot
-  overtake existing earlier deadlines.
+## 2. Published bandit kernel and exact defaults
 
-The scheduled mixture is exactly 25% exploration, 25% review opportunity and 50%
-adaptive slots over full blocks, not necessarily 25% actual due-review updates.
-Log the slot's conditional selection probability, reason and actual exposure;
-never report the mixture as the conditional probability of a deterministic review.
-The adaptive cap is 0.20; a conservative per-family expected mass bound over a
-four-slot block is `0.25 + 0.50*0.20 + 0.25/32 = 0.3578125`, allowing one forced
-review. Expose actual finite-window concentration as well; this is not a hard cap
-on every random realization. Initial readiness rejects empty families/anchors and
-an unserviceable due queue.
+For K>=2, normalized positive weights q and selected family a:
 
-## Measurements and priority
+- Selection: `p_i = (1-epsilon)*q_i + epsilon/K`.
+- Observed signed reward r: `rhat_i = r*1[i=a]/p_a`.
+- Reward step: `v_i = q_i * exp(eta*rhat_i)`.
+- Sharing: `z_i = (1-alpha)*v_i + alpha*sum(v_j for j != i)/(K-1)`;
+  normalize z to obtain the next q.
 
-Every 256 committed updates, and at initial/final eligible boundaries, measure
-mean target-token negative log likelihood on the same eight probes per family,
-without gradients. Preserve model mode and separate/restore all training RNG;
-measurement must not change weights, optimizer, learning-rate schedule or batch
-order. Record counts/sums, not means without denominators. Normalization is by
-actual non-padding target tokens; A/B loss is not a cross-representation accuracy
-metric. B/C definitions and opportunities are identical.
+This is the Graves fixed-share variant, not the different Auer Fig. 6 share
+formula. Initialize uniform q and valid-update count u=0; set `alpha=1/(u+2)`
+for the next valid reward, then increment u. Thus first alpha is 1/2, not 1.
+Use stable log-domain arithmetic, checkpointed sampling RNG, and deterministic
+family order. Reject nonfinite inputs and unsupported K=1 rather than silently
+substituting a different policy.
 
-For each family keep at most eight completed panel observations and an EMA with
-coefficient 0.25. Use the smoothed panel losses as `l_prev` and `l_now`. With positive previous loss
-`l_prev`, calculate clipped relative
-change `d = clip((l_prev - l_now)/max(l_prev, 1e-6), -1, 1)` using matched panel
-identities. Define progress `g=max(d,0)` and regression `r=max(-d,0)`. Neither high
-absolute loss nor a solver timeout alone supplies progress. Fewer than two valid
-observations contributes zero progress/regression and maximum uncertainty.
+Defaults: epsilon=0.25, eta=0.001, beta=0. Epsilon deliberately preserves the
+project's 25% exploration mixture on bandit draws; it differs from the paper's
+experimental epsilon=0.05. These constants are not claimed optimal. For K=32,
+`p_min=1/128` and `p_max=97/128`. Do not retain the old arbitrary 0.20 cap or
+custom progress/uncertainty priority; either changes this kernel. Report actual
+finite-window concentration separately from these probability bounds.
 
-Every 256 updates, a rotating four-family panel runs one attempt on one probe per
-family, with a five-second per-probe portfolio including fitting, inside a reserved
-stage envelope. Rotate over the fixed panel deterministically. Record exact valid
-execution, finite success, failure and censoring separately. This is a cheap
-training diagnostic, not the eight-attempt/60-second structural benchmark. A family
-semantic success rate uses aggregate complete observations with actual counts;
-no Bernoulli confidence claim treats correlated attempts as independent.
+Store the probability at selection. Never divide by a later probability, the
+review/bandit mixture fraction or a without-replacement probability. Use one
+family draw with replacement per block. Duplicate feedback IDs cannot update
+weights twice. A deliberately observed zero still invokes sharing; missing
+feedback invokes neither reward nor sharing, and does not increment u.
 
-Priority before normalization is:
+## 3. Credit assignment and bounded reward observation
 
-`(g + r + 0.25*u + 0.25*s) / c`
+A bandit action is a contiguous block of eight ordinary optimizer updates on the
+selected family. Choose a rotating two-example panel from that family's eight
+training probes before the block; evaluate exactly that panel before and after,
+in eval/no-gradient mode with training RNG and model mode preserved. Record
+non-padding target-token loss sums/counts and paired panel IDs. No review, another
+family's update or external optimizer mutation may intervene between the two
+observations. Rotation is deterministic and checkpointed.
 
-where `u=1/sqrt(1+n)` for the number `n` of valid panel observations, `s` is clipped
-updates since last valid measurement divided by 2,048, and `c` is the family's frozen calibrated
-update cost per charged token relative to the median, clipped to `[0.5,2]`.
-Absent costs use 1 with an explicit unavailable marker. Freeze rounded cost ratios
-in the preflight identity. Live wall-clock measurements are reported but must not
-change decisions: timing jitter must not break exact clean pause/resume. This
-limits cheap-family preference. Maintain loss regression
-and semantic forgetting as separate evidence; a drop in the latest completed
-semantic success fraction adds at most 0.25 to the numerator. No missing/censored
-result supplies that drop. Cold start uses uniform adaptive probabilities until
-valid relative changes exist. Cost, clipping and tie rules are identity-bound.
+Raw gain is `g = mean_loss_before - mean_loss_after`. Preserve its sign: falling
+performance is not positive reward. Work-adjusted gain is `x=g/charged_block_tokens`.
+The denominator is positive actual gradient-token cost, a deterministic work proxy;
+it is not elapsed time or total hardware cost. Record all actual compute/I/O costs
+separately. No highest-loss reward, absolute slope bonus or semantic-success bonus.
 
-## Review intervals
+Use the paper's past-reward 20th/80th-percentile scaling idea, fully specified here:
+keep a bounded 4,096-value uniform reservoir of valid prior x values with separate
+checkpointed RNG and total-seen count. Quantiles linearly interpolate sorted values
+at index `(n-1)*fraction`. Before adding the current x, clip/map it using those
+quantiles using `r = 2*clip((x-q20)/(q80-q20), 0, 1)-1`. If fewer than five prior values exist or the quantiles coincide,
+use r=0 with an explicit scaler-warmup/degenerate marker, then add the valid x.
+Reservoir update: the nth value is appended while n<=4096; otherwise draw integer
+j uniformly from [0,n-1] and replace slot j only if j<4096. Freeze float format,
+quantile rule, ordering and reservoir identity. The scaled reward is relative:
+a positive r does not necessarily mean positive raw learning gain; export both.
 
-Initial family interval is 256 committed updates; minimum 128 and maximum 4,096.
-A due review is an actual anchor batch with normal optimizer/token debit. Serving
-it schedules the next due update using the current interval. The independent
-semantic observation changes the interval: two consecutive completed successes
-with no intervening completed failure double it up to the maximum; a completed
-failure halves it to the minimum and resets the success streak. A diagnostic
-failure/timeout does not count as a semantic failure or success. Intervals are
-measured in learner updates, not workstation time. Loss-only improvement is not
-semantic mastery and cannot lengthen intervals.
+Finish observation and one kernel update before selecting another bandit block.
+All-family panel trends spanning other updates are monitoring only. This measures
+local within-family improvement and may miss cross-family transfer or favor
+relearning; the common family panel and final structural evaluation detect those
+limitations. No claim of globally optimal curriculum follows from the kernel.
 
-With 32 families and one slot every four updates, an already due family must be
-served within 128 additional completed updates. A newly generated obligation may
-not preempt an overdue one. The minimum interval prevents sustained demand above
-reserved capacity; enforce this invariant and test synchronized due times. The
-maximum opportunity gap is 4,224 updates; a run that ends earlier reports remaining
-obligations as unserved due to the terminal budget, not a forgotten success.
-Observation-driven shortening may pull a due time forward once per completed
-semantic observation, while preserving earliest-deadline queue fairness.
+On a missing pre/post observation, record CENSORED and retain actual gradient
+updates/debits; do not fabricate r=0 or add a value to the scaling reservoir. Keep
+q/u unchanged while action count advances. Two consecutive censored bandit rewards,
+or required reward-budget exhaustion, pause further adaptive training and export
+INCOMPLETE evidence. Do not silently continue an indefinitely frozen policy.
+Clean pause/resume continues a pending observation/block before a new decision.
+A terminal token-limited partial block receives no complete-block reward; record
+its actual updates, tokens and truncation. Do not repeat already committed updates.
 
-## Diagnostic limits and incomplete evidence
+## 4. Bounded per-example Leitner adaptation
 
-Freeze a maximum diagnostic wall-time reservation per arm at preflight; default
-20% of the forecast learner-update duration plus measured initialization/final
-panel costs. Every invocation also has its own finite bound. Both B/C use the same
-reservation and cadence. At the ceiling, skip future optional measurements with
-explicit censored events; keep safe exploration/review and last valid bounded
-priorities. Two consecutive failed full loss panels or exhaustion before all
-families receive a post-initial observation makes adaptive evidence INCOMPLETE.
-Two full semantic rotations with no completed observation for a family mark that
-family's retention evidence INCOMPLETE; missing terminal coverage stays unavailable.
-The report cannot claim demonstrated spaced retention from loss-only measurements.
-No automatic cap increase, hidden extra solver attempts or fallback mastery.
-Final export separates operational PASS from scientific interpretability.
+C repeats a 32-update cycle: three eight-update bandit blocks, then one eight-update
+review block. Each review update may service a different earliest-due anchor;
+select by `(due_update, anchor_id)`. Put the designated anchor once in the batch
+and fill remaining positions from its existing family using the declared ordinary
+row sampler. Do not pad the batch with duplicate copies merely to amplify review.
+Review gradients are charged normally. No due item means a recorded uniform-family
+fallback update, not a fictional review or bandit reward. Review/fallback updates
+never update EXP3.S weights, its valid-update clock or reward reservoir.
 
-## Required independent counterexamples
+Thus 75% of full-cycle updates are bandit-directed and 25% are review opportunities,
+not necessarily 25% due reviews or tokens. The uniform component of bandit draws
+alone supplies 18.75% of full-cycle update mass, not 25% of the entire campaign.
+There is no separate exploration lane. Observe actual tokens/time by channel.
 
-Cold starts and equal priorities; improving versus hard-stuck families; noisy loss;
-memorized anchors but regressing probes; costly versus cheap families; missing and
-censored panels; simultaneous due queues; interval bounds and terminal truncation;
-conditional versus mixture probability; cap redistribution; nonfinite observations;
-aggregate counts; duplicate event IDs; observations from a forbidden role; restored
-RNG/order; exact token cost of review. Use hand-calculated outcomes and independent
-fixtures, not production helpers to compute their own expected answers.
+Each anchor has `acquired`, queue q=0..4, last committed exposure, due update,
+last grade/event and one pending obligation. Initial never-seen anchors are
+acquisition-due at update0. Queue intervals are `512 * 2^q` updates: 512–8192.
+First exposure acquires the anchor at q=0 without retention success/promotion.
+
+For an acquired designated anchor, observe pre-update teacher-forced argmax
+agreement with every authoritative target token (excluding BOS/padding, including
+EOS) under the frozen eval/codec policy. Complete agreement is **target recall**;
+other finite complete predictions are a target-recall failure. This is not a test
+that every semantically equivalent program would fail, and not family mastery.
+No full generation/fitting is required for this grade. After its successful real
+optimizer update, a valid success promotes by one queue, a valid failure demotes
+to q=0, and a missing/censored grade leaves q unchanged. Set last exposure to the
+committed update and due to exposure+interval. Grade and queue change cannot survive
+a failed optimizer update. Incidental ordinary exposure also resets the exposure/
+due clock after commit, but supplies no invented grade or promotion.
+
+The queue contains at most 128 obligations. Every 512 consecutive completed updates
+contains 128 review slots, so one service per slot gives a conservative due-delay
+bound of 512 updates under earliest-deadline ordering; a newly inserted obligation
+cannot overtake an earlier overdue item. Incidental exposure can discharge/reset
+an obligation because the anchor was actually practiced. The maximum interval plus
+service delay is 8,704 updates while training continues. This bounds exposure or
+service, not necessarily a graded review when incidental exposure keeps recurring.
+Terminal truncation and pending acquisitions must be reported. Validate all 32
+cycle offsets, simultaneous due times, repeated failure and incidental rescheduling.
+No claim of the old family-only 128-update delay remains.
+
+## 5. Comparable diagnostics and cost gates
+
+Retain a fixed common eight-probe-per-family loss panel at initial/final and every
+256 committed updates. Sparse semantic diagnosis uses a rotating four-family panel
+at that cadence, one attempt/probe with the existing proposed five-second portfolio
+inside a generous process envelope. These reports distinguish transfer, target
+recall, finite semantic success and censored execution. They never promote anchors
+or retrospectively update bandit weights.
+
+B/C and optional D share definitions and the same common monitoring panels/cadence.
+Policy-required observation counts differ and must be separately charged/disclosed. C's selected-family reward panels are policy-conditioned; they are
+not paired final evaluation. B uses a separately seeded uniform-family pre/post observer at each of C's three
+nominal bandit-block positions in every 32-update cycle, without changing B's fixed
+gradient stream. In the fourth block, B has up to eight shadow anchor observations
+in frozen round-robin order; C grades actual acquired due anchors when available.
+B has no scheduled anchor gradients or queue-directed changes. These are aligned
+bounded opportunities, not guaranteed equal realized grade counts or cost. D has
+four bandit reward blocks per cycle and no scheduled review grades. Its additional
+reward observations are an intrinsic policy cost; do not claim identical total
+diagnostic intervention or compute across B/C/D. Freeze observer schedules and
+charge their actual work; historical A receives no invented missing curves.
+
+Preflight forecasts the **complete** cost of two probe evaluations per bandit
+block, pre-update anchor grades, common loss/semantic panels, RNG/mode restoration,
+publication and cleanup on representative production shapes. Default diagnostic
+reservation is 20% of forecast update duration plus measured initial/final overhead;
+it must be increased and frozen before research if representative measurements
+require more. This is an explicit work allocation, not a short process timeout.
+Optional monitoring can be censored at its own ceiling; required reward observation
+cannot be silently removed. Two full semantic rotations without a completed result
+for a family make its retention evidence incomplete. Two consecutive review blocks
+with acquired due items but no valid grades pause with incomplete review evidence.
+Software readiness and scientific interpretation stay separate.
+
+## 6. Independent conformance and failure cases
+
+Use published equations and hand-calculated expectations, not production output as
+its own oracle. For K=3, epsilon=1/4, uniform q, eta=log(2)/3, choose arm1:
+
+| Observation | Expected next probabilities |
+| --- | --- |
+| r=1, first valid update alpha=1/2 | (35/96, 61/192, 61/192) |
+| r=-1, same initial state | (37/120, 83/240, 83/240) |
+
+For q=(0.6,0.3,0.1), observed r=0 and alpha=1/4, next q is
+(0.5,0.3125,0.1875). A missing reward must leave the original q unchanged.
+Also test extreme logweights, denominator source, fixed-share indexing, reward
+signs, scaler warmup/ties/outliers/reservoir restore, delayed/duplicate events,
+forbidden-role feedback, interrupted pre/block/post observation, clipped terminal
+exposure, anchor acquisition/incidental practice and full checkpoint equality.
+
+References and evidence limitations: [research.md](../research.md). No optional
+RbF fitting, MIR hypothetical updates, FSRS parameters or legacy heuristic mixing
+belongs in this first policy.

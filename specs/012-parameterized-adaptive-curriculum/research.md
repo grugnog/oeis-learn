@@ -78,33 +78,84 @@ use final structural outcomes as rewards (leakage); require training probes to b
 unseen under every final-evaluation window rule (unnecessary and potentially
 infeasible for low-diversity training families).
 
-## 5. Bounded progress allocation plus scheduled review
+## 5. Published family bandit with bounded per-example review
 
-**Decision:** use a small explicit progress/retention policy with an exploration
-floor, concentration cap and reserved review opportunities. It is a new heuristic
-policy, not a claimed reproduction of adversarial-bandit theory. Freeze the
-[algorithm contract](contracts/curriculum.md) before research. Measure loss progress
-on independent train-only examples; use sparse bounded semantic probes for retention,
-not generation/fitting on every batch. Review examples receive actual updates.
+**Decision (revised after operator review):** select the Graves et al. EXP3.S
+fixed-share kernel, beta=0, and a bounded per-example Leitner adaptation. Replace
+the custom weighted-priority formula, 0.20 probability cap, family-level intervals
+and family-probe-driven promotions. Full implementation details and defaults are
+in [curriculum.md](contracts/curriculum.md). The scientific recipe still requires
+an explicit pre-execution freeze; a design document is not a completed experiment.
 
-**Rationale:** Graves et al., [Automated Curriculum Learning, §§3.1–3.3](https://proceedings.mlr.press/v70/graves17a/graves17a.pdf),
-study learning-progress rewards and distinguish signals measured on trained versus
-other samples. This motivates an independent probe signal; their tasks and results
-do not prove a gain for this model or justify our constants. Schaul et al.,
-[Prioritized Experience Replay, §§3.3–3.4](https://arxiv.org/html/1511.05952v4),
-describe noise/diversity and sampling-bias problems with greedy prioritization.
-That is RL evidence, not a direct SFT guarantee. Here reweighting is the intervention,
-so report it rather than importance-correcting it away while claiming the same
-curriculum. Neither paper establishes the proposed spaced-review schedule.
+**Rationale:** separate family allocation from example retention. Use one chosen
+family's contiguous training block and its own matched pre/post probe for reward;
+a periodic trend spanning other updates cannot provide the same credit assignment.
+Target recall grades the particular reviewed anchor. Common family panels measure
+transfer/forgetting independently. Prototype numerical/state behavior on CPU before
+actual-device work. The combined wrapper is an experiment, not a theorem-backed
+optimal training policy.
 
-**Alternatives:** highest loss only (can favor impossible/noisy tasks); same-batch
-loss reduction only (memorization bias); full per-batch solver reward (unbounded
-practical overhead); large algorithm sweep (no initial causal baseline).
+**Alternatives:** the legacy named scheduler (current implementation explicitly
+is not EXP3); RbF retention fitting (additional model/calibration assumptions);
+MIR (hypothetical-update scoring and state/compute cost); importing human-memory
+parameters (no validation for this learner); a bandit over every training example
+(much larger action space and sparse feedback); highest loss or absolute loss slope
+(can reward noise, stuck tasks or repeated forgetting rather than useful learning).
+
+### Primary-source assessment and limits
+
+| Source inspected | What supports this design | What it does not establish |
+| --- | --- | --- |
+| [Graves et al. 2017](https://proceedings.mlr.press/v70/graves17a/graves17a.pdf), Eq. 1, §§2.3–3.3 and experiments | Published fixed-share selection/update; learning-progress feedback; separate-sample measurement and reward normalization | Our finite reused probes, eight-update blocks, review interleaving or new constants are not a reproduction of its experiments; no optimal final-accuracy guarantee |
+| [Auer et al. 2002](https://homepages.math.uic.edu/~lreyzin/papers/auer02.pdf), Fig. 6/§8 | Original adversarial-bandit and switching-comparator foundations; confirms the need to identify the exact variant | Its share equation is not interchangeable with Graves Eq. 1; regret bounds are not guarantees for this state-changing training wrapper |
+| [Amiri et al. 2017](https://aclanthology.org/D17-1255.pdf), Algorithms 1–2 and Table 2 | Neural-training Leitner baseline has per-example promotion/demotion; RbF adds fitted retention kernels | Headline speedups process fewer examples per epoch, with lower reported average accuracy than full-data training; not fixed-token superiority or validation of our target-recall proxy |
+| [Aljundi et al. 2019](https://papers.neurips.cc/paper/9357-online-continual-learning-with-maximal-interfered-retrieval.pdf), §3.1 | MIR scores anticipated interference on stored examples using a hypothetical update | No reason to assume its extra computation/integration pays off here; it is not an interval scheduler |
+
+Read methods/results, not just abstracts. The 2026 SRT preprint was also discovered,
+but its full text was unavailable through the available reader; it supplies no
+algorithm choice or performance claim here. No claim of an exhaustive literature
+survey or universal best algorithm is made.
+
+### Adaptations explicitly owned by this experiment
+
+- Kernel variant and beta=0 are named exactly; epsilon=0.25 preserves the project's
+  exploration preference rather than copying the paper's epsilon=0.05. Eta=0.001
+  is a starting default, not tuned evidence. Numerical counterexamples distinguish
+  share variants and the first update's alpha=1/2.
+- Use signed pre/post loss on the same gradient-independent finite probe pair.
+  Divide by charged gradient tokens, not noisy wall time, to preserve deterministic
+  replay. Report actual wall and diagnostic costs separately. Keep bounded
+  historical quantile scaling with explicit cold-start/tie behavior and RNG state.
+- No importance update for deterministic review or censored feedback. Review has
+  its own service clock; missing observations do not advance the valid kernel clock.
+- Three eight-update family blocks followed by eight review updates amortize
+  observations while avoiding cross-family reward contamination. The 25% review
+  opportunity fraction is measured in updates, not tokens or elapsed time.
+- Four anchors per family carry their own five-level queue. Pre-update exact target
+  recall is a cheap proxy; separate semantic/family tests prevent a memorization
+  result being called structural generalization. Actual incidental exposure resets
+  spacing, but does not invent a successful recall.
+- The 128-item queue needs a 512-update service bound under this cadence, not the
+  superseded 128-update family bound. Initial acquisition and terminal truncation
+  are explicit. CPU enumeration must validate all cycle offsets before handoff.
+
+### Attribution and alternative arms
+
+Default C–B measures the combined bandit/review package. Optional D is a parameterized
+bandit-only arm, disabled unless frozen before outcomes. C–D measures allocating
+25% of update opportunities to scheduled review instead of further ordinary bandit
+practice; it is not a free extra replay benefit. D requires a complete additional
+training/evaluation budget and identical common monitoring, with extra policy-required
+reward observations separately charged, and can be included
+in the same serial operator command. No fourth arm is silently required for
+software acceptance or selected after results. RbF/MIR and review-only ablations
+remain later choices.
 
 ## 6. Whole-state transactions and sparse full snapshots
 
 **Decision:** extend the installed learner's existing state and persistence
-transaction, not a parallel learner. Include every adaptive/probe/review decision
+transaction, not a parallel learner. Include bandit logweights/action and valid-update counters, scaler reservoir/RNG,
+selection-time probability and pending pre/block/post observations, plus every review decision
 and pending work in the same complete snapshot as weights/optimizer/RNG. Keep
 hourly recovery saves, initial/final and 4/8/16/25M milestone pins; cheap progress
 is not a resumable snapshot. A later journal can debit lost work but cannot advance
@@ -143,7 +194,8 @@ passed (unsound); blanket infinite timeouts (no containment).
 
 One seed, 25M target tokens per new arm and the mixture/cadence constants are
 planning defaults, not measured optima or authorization to launch. No expected
-accuracy gain is a software gate. Wider support, refresh/adaptive interaction,
-review-only ablation, replay/search teaching, extra seeds and final assessment are
+accuracy gain is a software gate. The optional bandit-only arm requires its own predeclared scope. Wider support,
+refresh/adaptive interaction, review-only ablation, replay/search teaching, extra
+seeds and final assessment are
 separate future decisions. No unresolved design question blocks task generation;
 missing workstation inputs and measured runtime are explicit execution gates.

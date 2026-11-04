@@ -6,10 +6,14 @@
 | --- | --- | --- | --- |
 | A | Literal | Original fixed stream | Verified retained static control, or a predeclared fresh matched control |
 | B | Parameterized, counted safe literal fallback | Same fixed underlying stream as matched A | Fresh random initialization; original finite static pool |
-| C | Same target view as B | `pac-progress-review/v1` | Identical initial weights, model/optimizer and concrete pool as B |
+| C | Same target view as B | EXP3.S family blocks plus bounded per-example review | Identical initial weights, model/optimizer and concrete pool as B |
+| D (optional, off by default) | Same target view as B | Same EXP3.S kernel/reward; ordinary bandit blocks throughout, no review-directed gradients | Same initial weights and pool as B/C; separately frozen additional arm |
 
 B–A measures representation and its consequences at fixed token budget. C–B
-measures allocation plus review together. The old refreshed arm may be evaluated
+measures allocation plus review together. If D is predeclared, D–B measures bandit
+allocation and C–D measures the effect of substituting scheduled review for a
+declared fraction of ordinary bandit practice; no review-only effect is inferred
+from C–B. The old refreshed arm may be evaluated
 as a separately labeled reference, not a matched adaptive control. Reference-only
 A permits C–B but no causal representation claim. If retained A fails compatibility,
 the campaign manifest must already choose `fresh-control` or `reference-only`;
@@ -22,14 +26,24 @@ step/learning-rate schedule semantics, token cap, checkpoints, backend and all
 interventions. Diagnostics may differ from old A only if they provably do not
 mutate model/optimizer/RNG/order, do not censor updates under wall limits, and are
 excluded from any claimed matched-time comparison. Missing historical curves/costs
-remain unavailable. New B/C both receive the same probes and opportunities; B
-records feedback without adapting its sampler.
+remain unavailable. New B/C receive common probes and aligned bounded observer opportunities; B
+records diagnostics without adapting its sampler. Reward panels are conditioned on
+each arm's selection; they are not the common evaluation panel. Common diagnostics
+and shadow opportunities are defined in the curriculum contract; D has additional
+policy-required reward observations, whose costs are explicitly separate. An optional D
+adds its complete training, observation, checkpoint, generation and export reserves
+to the same serial campaign; it cannot be activated after outcomes are inspected.
 
 ## Defaults to freeze before any new outcome
 
 - One paired initialization seed, default original `20261016` when its initializer
   can be exactly reconstructed/verified; otherwise a predeclared new seed and A
   reference-only or fresh-control path. No trained literal weights initialize B/C.
+- Policy `pac-exp3s-leitner/v1`: named Graves fixed-share kernel, epsilon=0.25,
+  eta=0.001, beta=0; eight-update family blocks; three bandit blocks then eight
+  review updates for C; D has ordinary bandit blocks throughout. Review state is
+  per anchor, with five queues and 512–8,192-update intervals. These are explicit
+  initial defaults, not tuned or claimed optimal.
 - 25,000,000 target-token allowance per new arm. Use canonical exact batch charging;
   do not truncate a batch to fake exact equality. Report useful, reserved, discarded
   and unspent tokens separately, alongside examples, updates and wall cost.
@@ -87,4 +101,7 @@ guards must still reject mismatched inputs.
 Single-seed results are exploratory. Report paired uncertainty as descriptive;
 task resampling is not uncertainty across training seeds. Positive accuracy or
 speedup is not an acceptance gate. No automatic winner, assessment exposure,
-additional seed, altered quota, support expansion or policy tuning after scores.
+additional seed/arm, altered quota, support expansion or policy tuning after scores.
+Checkpoint/diagnostic overhead and useful/discarded exposure must be reported for
+each arm; the optional comparison is equal allowance, not equal useful updates or
+guaranteed equal wall time.

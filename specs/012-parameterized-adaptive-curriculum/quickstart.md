@@ -50,10 +50,14 @@ actual validated command and outcomes here during phase D. Required scenarios:
    deficit, unknown PAC fields and an old P3 disguised as adaptive. No GPU launches.
 2. Ground paired targets with independent expectations, preserve control fallback
    and exact original rows; reject probe/gradient or held-out-role leakage.
-3. Exercise hand-calculated improving/stuck/noisy families, probability caps,
-   simultaneous due reviews, actual token-charged review and censored diagnostics.
+3. Exercise the hand-calculated Graves kernel examples (including negative/zero
+   versus missing rewards), historical quantile/reservoir restore, stale selection
+   probabilities and cross-family credit rejection. Enumerate all 32 cycle offsets
+   for 128 simultaneous anchors, initial acquisition, incidental exposure, queue
+   promotion/demotion and actual token-charged review.
 4. Run installed real-tensor CPU fresh/pause/resume paths and inject failure before
-   and after debit, update, feedback, review and atomic snapshot publication.
+   and after debit, update, pre/block/post reward, review grade and atomic snapshot
+   publication. Include pause after gradients but before the kernel/scaler update.
    Preserve exact clean replay and separately debit discarded crash work.
 5. Construct Docker and Podman commands for every new role; verify the shared
    environment, read-only inputs, no socket, private disk scratch and bound source.
@@ -75,7 +79,8 @@ engine, original roots, output and frozen plan identity. It composes:
    update/save/load calibration, under relaxed finite limits.
 3. Tiny installed HIP parameterized/adaptive/review and full-state resume acceptance.
 4. Retained structural baselines and new B/C training/evaluation only when the sealed
-   plan already authorizes that research scope; optional fresh A only if predeclared.
+   plan already authorizes that research scope; optional fresh A or bandit-only D
+   only if predeclared with complete additional reservations. D is off by default.
 5. Deterministic case analysis, independent final verification and shareable evidence.
 
 The wrapper must package failures automatically and name the minimal retry boundary.
@@ -89,7 +94,9 @@ with a run command.
 Original literal training took 147.4/159.5 minutes per 25M-token arm, as recorded in
 the [011 closeout](../011-controlled-generalization/validation/merge-closeout.md).
 These are context, not parameterized/adaptive throughput measurements. B/C may
-change examples per token, update count and diagnostic overhead. Give measured ETA
+change examples per token, update count and diagnostic overhead. Calibrate paired
+reward probes every bandit block, review grades and common monitoring together;
+none is free. Optional D adds a full learner and evaluation, even in one invocation. Give measured ETA
 ranges after calibration and retain substantial timeout headroom. Initial planning
 floors are 12 hours per learner and 24 hours for preparation; larger projections
 raise them. The full campaign ceiling sums its selected stages plus cleanup and
@@ -99,4 +106,5 @@ or fixed global ceiling. Scientific per-task attempts/time remain unchanged.
 Expected final output separates software PASS/FAIL, scientific interpretability,
 matched/unmatched A, parameter endpoint DEFERRED, completed/remaining work, costs,
 censoring, cases, archive hash and original producer references. A negative learning
-result can accompany software PASS. No automatic extra seed or winner selection.
+result can accompany software PASS. No automatic extra seed/ablation or winner selection. Without D, C–B measures
+the combined bandit/review package and does not establish the isolated review gain.

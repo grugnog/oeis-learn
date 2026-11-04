@@ -41,3 +41,17 @@ including tiny acceptance, calibration, resumed proofs and failure export. Check
 schema ceilings as well as launcher values; raising only the outer wrapper repeats
 the 011 failure. Default limits are ceilings, not promised runtime. Never reduce an
 already justified allowance merely because one warm run was faster.
+
+## Additional policy risks from the research revision
+
+| Risk | Owner and prevention | Required evidence |
+| --- | --- | --- |
+| An EXP3-named heuristic, altered cap/share equation or wrong probability receives a published-algorithm label | B: explicit Graves Eq.1 kernel; independent numeric fixtures; reject legacy state; remove custom priority/cap | Named variant, hyperparameters, selected probability, raw/scaled reward and valid-update index |
+| Periodic cross-family loss changes are credited to the last arm, or a pending reward is applied twice | B/C: matched pre/post probe around one contiguous block; atomic scaler/kernel transaction; resume pending observation before another update | Model/update/panel bindings, block cursor, exactly-once reward IDs, censored/discarded events |
+| Review uses another example's success, ignores incidental practice, or overpromises service for 128 anchors | B/C: per-anchor pre-update grade, acquired flag and committed exposure; queue sizing at actual 24+8 cadence | Target-recall versus semantic evidence; all 32 offset simulations; grade/update fault injection; terminal pending anchors |
+| Reward/grade observation quietly reintroduces short timeouts or dominates training | C/D: representative complete-cycle cost forecast and relaxed enclosing limits; preserve required reward reserve | Actual probe/grade/panel counts and costs; first exhausted boundary; no hidden frozen-policy continuation |
+
+The original 14 failure classes remain in force. The additional rows are design
+risks, not claims that these failures already occurred on HIP. Retain generous
+12-hour learner/24-hour preparation floors, grow them when forecasts require, and
+sum every selected arm plus protected finalization before launch.

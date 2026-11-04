@@ -13,7 +13,7 @@ Proposed location: `specs/012-parameterized-adaptive-curriculum/validation/run.p
 Subcommands `prepare`, `run`, `resume`, `recover` are planned, not currently present.
 
 - `prepare`: explicit engine, original input roots/inventory, output, control
-  disposition and campaign mode. Perform read-only inventory/control audit and
+  disposition, optional ablation selection and campaign mode. Perform read-only inventory/control audit and
   construct a finite dependency/budget graph. Display scientific configuration,
   calibration inputs and operational ceilings before costly work. No unbounded
   directory walk; bounded search exhaustion requests an explicit root/inventory.
@@ -72,7 +72,9 @@ contention included. Reserve **at least one hour for final reporting/recovery**
 at campaign level, and preserve each existing canonical cleanup floor. The outer
 campaign has no fixed inherited 5-, 6-, 30- or 96-hour ceiling: compute and freeze
 a sufficiently large **finite** total from the selected arms and full graph.
-An extra fresh A must add its complete preparation/training/evaluation reserve.
+An extra fresh A or optional bandit-only D must add its complete preparation,
+training, diagnostic, checkpoint and evaluation reserve. No optional arm is added
+without updating both the frozen manifest and enclosing operational graph.
 
 Small acceptance also uses relaxed canonical startup/proof/cleanup ceilings; it
 is small in actual updates/data, not forced into a tiny wall timeout. Existing old
@@ -92,16 +94,25 @@ a generic timeout should automatically change the experiment.
 ## Acceptance and reuse
 
 Tiny acceptance must reach initial/final snapshots, one valid parameterized and
-one fallback row, valid feedback, a due review with an optimizer update, clean
-pause/resume and a fault with recovery export. Derive encoded batch/token minima
+one fallback row, a known pre/block/post reward and valid kernel update, anchor
+acquisition followed by a graded due review with an optimizer update, clean
+pause/resume inside an unfinished block and after gradients/before feedback, and
+a fault with recovery export. Derive encoded batch/token minima
 before launch; never assume a nominal 4,096-token cap can reach all boundaries.
 Use an explicitly reduced acceptance policy with shorter measurement/review cadence
-and record it as such. Test production cadence independently with deterministic
-clock/update fixtures. Acceptance artifacts cannot be research initializers.
+and block length, retaining the exact kernel and grade/commit rules; record it as
+such. The fixture must exercise a nondegenerate reward-scaler update, not only its
+warmup zeros. Compare uninterrupted/resumed scaler and queue state as well as model
+tensors. Production 8-update blocks and the 32-update cycle receive independent
+CPU clock/update fixtures. Acceptance artifacts cannot be research initializers.
 
 Require actual changed parameters, finite loss/gradients, HIP device/RNG evidence,
 checkpoint identity and installed-handler full-state comparison. Test no-Lt process
-startup without intrusive tracing. A source/image/backend change requires affected
+startup without intrusive tracing. Measure the complete recurring reward/grade/
+common-panel overhead on representative
+production shapes; tiny correctness timing is not its forecast. Include GPU
+synchronization and eval/train RNG-mode restoration in reserves. A source/image/
+backend change requires affected
 qualification; old successful acceptance is not current evidence by filename.
 Cache by full dependency identity, never path or a bare PASS marker. A source-only
 structural helper change can retain compatible producer qualification while binding

@@ -10,13 +10,16 @@
 Implement a controlled parameterized-target and adaptive-family/review experiment
 on the merged 011 foundation. First complete the inherited structural-only scope
 and old-control audit. Register a new PAC policy, reuse paired targets/native fitting
-and the installed learner, and add bounded training-only feedback plus exact whole-
-state resume. The temporary operator wrapper composes canonical endpoints and
+and the installed learner. Add the named Graves EXP3.S kernel, block-attributable
+training-only reward, bounded per-example Leitner review and exact whole-state
+resume. The temporary operator wrapper composes canonical endpoints and
 packages evidence in one normal session. It must not become a second learner,
 fitter, acceptance authority or general workflow framework.
 
-The default screen is one seed and 25M target tokens per new B/C arm. Several hours
-of training are acceptable. Actual performance and quota readiness remain measured
+The default screen is one seed and 25M target tokens per new B/C arm. An optional
+bandit-only D is supported but off by default; its full budget must be frozen before
+outcomes. C–B alone measures the package, not the isolated review contribution.
+Several hours of training are acceptable. Actual performance and quota readiness remain measured
 gates; see [research](research.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md) and [execution](contracts/execution.md).
 
@@ -42,8 +45,9 @@ preparation floor; full rules are in execution contract.
 resource graph; installed full-state resume; historical contracts unchanged; no
 HIP work in this design pass; no arbitrary inherited global time ceiling.
 **Scale/Scope**: 32 training families/32,768 gradient rows, bounded 256-example
-probe panel, 128 structural tasks/27 families and two new arms by default. Optional
-fresh literal control only if frozen before execution. No online generation,
+probe panel, 128 structural tasks/27 families, 128 review anchors, bounded 4,096-value reward
+reservoir and two new arms by default. Optional fresh literal control or bandit-only
+D only if frozen before execution. No online generation,
 extra seeds, support expansion, RL/replay teaching or assessment adoption.
 
 ## Constitution Check
@@ -59,7 +63,7 @@ remains outstanding. No constitutional amendment or exception is requested.
 | IV: feasibility/reproducibility | Pinned containers, source/image identities, no-Lt policy; actual HIP updates and exact resume before research |
 | V: strict provenance/isolation | Fresh random B/C, original mechanical pool, train-only probes, sealed structural/assessment custodian; control audit |
 | VI: scoped evidence | Finite success, unresolved/ambiguous classes and censoring remain distinct; one-seed results exploratory |
-| Workflow | Freeze hypotheses/metrics/limits before scores; counterexamples with critical work; no positive-result software gate |
+| Workflow | Freeze hypotheses/metrics/limits/optional arms before scores; equation and queue counterexamples with critical work; distinguish published kernel from project adaptations; no positive-result software gate |
 
 ## Project Structure
 
@@ -76,7 +80,9 @@ remains outstanding. No constitutional amendment or exception is requested.
 Reuse these existing boundaries; final file splits should remain small:
 
 - `src/oeis_learn/generalization/`: execution/contracts, target proofs, budgets,
-  checkpoint/state and new pure curriculum policy/records.
+  checkpoint/state and new pure EXP3.S kernel, reward scaler and anchor queue records.
+  Do not reuse the legacy class solely because its name contains Exp3S; reject old
+  `visit-scheduler/v1` state at the new authority boundary.
 - `src/oeis_learn/pipeline_validation/generalization_{preparation,training,runtime,persistence,execution}.py`:
   family sidecar, probe preparation, installed batches/updates, role and resume binding.
 - Existing `pipeline_validation` resources/supervision/disk/diagnostics/finalization
@@ -105,8 +111,10 @@ phase. Commit and push each coherent subheader task group during implementation.
 
 ### A — Routine contracts and scaffolding
 
-Create record/schema shells, fixtures, proposed command surfaces and deterministic
-inventories. Map every reliability row to task ownership. Establish legacy regression
+Create closed record/schema shells, independent equation/queue fixtures, proposed
+command surfaces and deterministic inventories. Include selected-block/probability,
+reward-scaling reservoir and per-anchor state; keep the optional D manifest explicit.
+Map every reliability row to task ownership. Establish legacy regression
 coverage and prepare the old-control audit inputs. Do not implement scheduler,
 quota semantics, deadline arithmetic or transaction policy in scaffolding.
 
@@ -116,22 +124,28 @@ no acceptance or hardware completion is claimed.
 ### B — Critical algorithms and state invariants
 
 Implement together: structural scope/denominators and immutable draw/exclusion
-identity; registered PAC comparison/control policy; adaptive progress/cost/clipping,
-exploration and review bounds; event/state transitions and discarded-work rules;
-full nested budget and peak-live-storage arithmetic. Reuse target/fitter policy;
+identity; registered PAC comparison/control policy; Graves fixed-share/importance
+update and exact first-update indexing, signed
+block reward and bounded quantile/reservoir policy; per-anchor Leitner acquisition/
+recall/incidental exposure and service bounds; event/state transitions, missing
+feedback and discarded-work rules; full nested budget and peak-live-storage arithmetic. Reuse target/fitter policy;
 only necessary invariant changes belong here. Include independently expected
 counterexamples for every new mathematical/admission/state rule.
 
 Exit: pure policies are deterministic and tested for leakage, infeasibility,
-censoring, cap/fairness, identity mismatch and recovery transitions. No runtime
+censoring, selection-probability floors, reward sign/scaling, review fairness,
+identity mismatch and recovery transitions. No runtime
 adapter may reinterpret these rules later. FR-001–020/027–028 and resource-policy
 parts of FR-021–023 are owned here.
 
 ### C — Critical installed execution and provenance integration
 
 Bind prepared family metadata and probe roles to the real batch stream; route actual
-loss/semantic observations and review optimizer updates; preserve RNG/model modes;
-atomically bind all adaptive state with actual weights/optimizer/debits. Integrate
+matched pre/block/post reward observations and real review optimizer updates;
+preserve RNG/model modes and exact credit attribution;
+atomically bind weights/optimizer/debits with pending inner-block progress,
+selection-time probabilities, scaler history/RNG, kernel counters and anchor grades.
+Integrate
 new recipe authority, source/image/environment compatibility and nested effective
 budgets through canonical handlers. Preserve hourly snapshot and terminal publication
 semantics. Use installed tiny real tensors for pause/resume/crash counterexamples;
@@ -176,8 +190,8 @@ scope and remaining limitations. No automatic additional campaign or winner.
 | --- | --- | --- |
 | FR-001–007 | Old P3 preserved; new arms/factors; control mismatch; all original exclusions and exact structural quotas | A/B/C/D, actual admission E |
 | FR-008–011 | Independent grounding/fallback and probe/gradient/evaluation role isolation | B/C, native E |
-| FR-012–018 | Hand-calculated policy/review fixtures, real charged review, diagnostic ceiling and missing-feedback cases | B/C/D, actual path E |
-| FR-019–023 | Transaction fault matrix, model+policy/RNG equality, source/image compatibility, deadline/storage graph | B/C/D, actual device E |
+| FR-012–018 | Published-equation numeric fixtures; all 32 queue-cycle offsets; real charged review; block-attribution and censored-feedback cases | B/C/D, actual path E |
+| FR-019–023 | Transaction fault matrix, model+policy/scaler/RNG/pending-block equality, source/image compatibility, deadline/storage graph | B/C/D, actual device E |
 | FR-024–026 | First-error preservation, stage reuse, real packer/verifier and read-only recovery | C/D/E |
 | FR-027–031 | Denominators/censoring, deterministic cases, new acceptance authority and scope gating | B/D/E |
 | NFR-001–008; SC-001–010 | Phase boundaries, reliability matrix, measured budgets, one normal invocation and honest cost/report claims | All; hardware claims only E |
@@ -187,9 +201,34 @@ scope and remaining limitations. No automatic additional campaign or winner.
 Probe availability against exact duplicates and final-evaluation exclusions remains
 unmeasured; fail before training if quotas are impossible. Parameterization can be
 heavily diluted by control-sensitive fallback; report coverage before launching.
-Adaptive feedback may cost more than it saves; charge it and retain a fixed B.
+Adaptive feedback may cost more than it saves; calibrate two two-example probe
+evaluations per bandit block, anchor grading and all common panels, charge them and
+retain a fixed B. Proxy progress can reward relearning or miss cross-family transfer;
+report raw/scaled rewards and independent retention. Target recall is not semantic
+mastery. No published regret or spacing claim is inherited by the hybrid wrapper.
 Historical A may fail matching; default to a labeled reference unless fresh A is
 frozen. New source invalidates affected 011 qualification, while old private data
 and evidence may still be reusable by identity. Inspect every legacy timeout cap;
 large outer allowances do not fix short inner ones. No elapsed-time guarantee is
 possible before actual calibration. None of these requires another prior chat now.
+
+## Research revision validation
+
+The primary-source review supersedes the custom heuristic draft. Recheck all
+requirements and document links, calculate the three independent kernel examples,
+and enumerate all 32 service-cycle offsets before task generation. These are
+planning checks, not production tests or HIP qualification. Implementation must
+add the independent tests to the real code path in phases B/C and use phase D for
+combined regression execution. The existing relaxed floors, bottom-up deadline
+arithmetic, one-hour finalization reserve and two critical phases are unchanged.
+
+Planning checks executed on 2026-11-04: all three independent kernel fixtures
+matched to 1e-12; an independent queue simulation ran 8,192 updates for each of
+32 cycle offsets with 128 simultaneously due anchors repeatedly returned to the
+minimum interval. Maximum observed due delay was 511 updates, within the stated
+512 bound; every 512-update service window contained 128 opportunities. This checks
+the documented arithmetic, not production behavior or every future implementation
+fault. Spec prerequisites, local links, 31 FR / 8 NFR / 10 SC numbering, template
+checks and whitespace checks passed. The two focused design reviews found and
+resolved observation-count and missing resume-state ambiguities. No HIP or runtime
+code was executed/changed and no CI wait was performed.
