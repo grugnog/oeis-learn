@@ -20,7 +20,9 @@ after implementation and validation complete.
 
 ### Phase C — exact bank-original provenance
 
-- [ ] T169 Reproduce the bank-envelope defect through retained evaluation and the real sealer; preserve the exact original bank proposal on copied admissions, reject identity disagreement, preserve budgets/selection and refresh affected source/inventory bindings without relabeling historical qualification.
+- [X] T169 Reproduce the bank-envelope defect through retained evaluation and the real sealer; preserve the exact original bank proposal on copied admissions, reject identity disagreement, preserve budgets/selection and refresh affected source/inventory bindings without relabeling historical qualification.
+
+T168/T169 validation: 36 classification/audit tests passed after independent counterexamples were observed failing. The real bank-path regression reproduced three defects (complete/incomplete original-text mismatch and accepted wrong hash); all five new bank cases now pass. The broader run passed81 checks, with three unrelated handoff checks blocked by missing host wasmtime. All68 current review dispositions validate. The911-entry source inventory has exactly two changed entries (bank integration and its existing owning test); the installed snapshot is build-generated and historical qualification is not relabeled. No native/HIP run or CI wait.
 
 ### Phase C/D — retained evaluation projection and handoff
 

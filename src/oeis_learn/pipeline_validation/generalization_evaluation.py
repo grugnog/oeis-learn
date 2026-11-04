@@ -67,7 +67,7 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     from oeis_learn.generalization.budgets import remaining_seconds
     from pathlib import Path
     from oeis_learn.fresh.bigint_diagnostics import generate,_seal
-    from oeis_learn.synthesis.admission import VisiblePrompt
+    from oeis_learn.synthesis.admission import VisiblePrompt,source_identity
     from oeis_learn.decoder.bigint_codec import fitting_policy
     from oeis_learn.generalization.proposals import apply_bank,bank_cost
     from .pilot_clocks import DRAIN,FullClockEvidence,attempts
@@ -103,6 +103,13 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
                 else:
                     try:value=client.fit(candidate,visible,policy=fitting_policy(candidate),deadline=limit)
                     except ValueError:value=dict(complete=True,admitted=[],outcome='unsupported_source')
+                # The sealer needs the exact fitted bank proposal, not its
+                # transformed parameter source. Do not mutate fitter/cache records.
+                if any(item.get('original_source_sha256')!=source_identity(candidate)
+                       for item in value.get('admitted',[])):
+                    raise ValueError('bank original source identity mismatch')
+                value=dict(value,admitted=[dict(item,_original_source=candidate)
+                                          for item in value.get('admitted',[])])
                 details.append(dict(complete=value.get('complete',False),outcome=value.get('outcome'),
                     service_seconds=None,queue_seconds=None,cleanup_seconds=None,elapsed_seconds=time.monotonic()-began))
                 return value

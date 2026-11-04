@@ -135,3 +135,52 @@ def test_generator_setup_is_charged_before_retained_evaluation(tmp_path,monkeypa
     monkeypatch.setattr(evaluation,'evaluate_retained',evaluate)
     settings=dict(checkpoint={},prompts={},recipe={},study='study',source='source',device='cpu',bank_seeds=None)
     assert role.generator(dict(visible_prompts=tmp_path,frozen_weights=tmp_path),tmp_path/'out',settings,seconds=100)['status']=='PASS'
+
+
+@pytest.mark.parametrize('mode',['complete','incomplete','empty','unsupported','wrong_hash'])
+def test_bank_preserves_exact_original_without_mutating_fitter_records(tmp_path,monkeypatch,mode):
+    import copy,json
+    from oeis_learn.pipeline_validation import generalization_evaluation as evaluation,pilot_clocks
+    from oeis_learn.fresh import bigint_diagnostics
+    from oeis_learn.generalization.proposals import make_bank
+    from oeis_learn.synthesis.admission import source_identity
+    (tmp_path/'weights').write_bytes(b'fixture')
+    prompts=[dict(id=str(n),indices=list(map(str,range(20))),values=[str(n)]*20) for n in (3,5)]
+    originals=['(program (return (int '+str(n)+')))' for n in range(8)]
+    monkeypatch.setattr(evaluation,'load_retained',lambda *a,**k:('encoder','decoder',{}))
+    monkeypatch.setattr(evaluation,'build_bank',lambda *a,**k:make_bank('weights',list(range(8)),lambda _,seed,*a:originals[seed],elapsed_seconds=0))
+    class Evidence:
+        def __init__(self,*a,**kw):self.clock_summary={'cost_complete':True,'identity':'clock'}
+        def finish(self):pass
+    monkeypatch.setattr(pilot_clocks,'FullClockEvidence',Evidence)
+    monkeypatch.setattr(bigint_diagnostics,'generate',lambda *a,**k:dict(records={p['id']:dict(selections={},arm_evidence={}) for p in prompts}))
+    retained=[];before=[]
+    class Client:
+        def fit(self,candidate,prompt,**kw):
+            if mode=='unsupported':raise ValueError('unsupported')
+            final='(program (return (int '+prompt.values[0]+')))'
+            item=dict(source=final,source_sha256=source_identity(final),
+                original_source_sha256=source_identity(candidate) if mode!='wrong_hash' else 'sha256:'+'0'*64,
+                transformed_source='(program (return (param.get p0)))',assignment={'p0':prompt.values[0]},
+                verification=dict(scope='visible_only',admitted=True,indices=list(prompt.indices),values=list(prompt.values),
+                                  prompt_sha256=prompt.sha256,source_sha256=source_identity(final)))
+            result=dict(complete=mode!='incomplete',outcome='unsat_in_scope' if mode=='empty' else 'verified_solution',
+                        admitted=[] if mode=='empty' else [item,copy.deepcopy(item)])
+            retained.append(result);before.append(copy.deepcopy(result));return result
+    args=(tmp_path,dict(path='weights',sha256='weights',bytes=7),prompts,{},tmp_path/'out')
+    kw=dict(client=Client(),device='cpu',study='study',source='source',bank_seeds=list(range(8)))
+    if mode=='wrong_hash':
+        with pytest.raises(ValueError,match='bank original source'):evaluation.evaluate_retained(*args,**kw)
+    else:
+        evaluation.evaluate_retained(*args,**kw)
+        rows=json.loads((tmp_path/'out/selections.json').read_text())
+        for p in prompts:
+            selected=rows[p['id']]['selections']['bank']
+            if mode in {'empty','unsupported'}:assert selected is None
+            else:
+                assert selected['original_source'] in originals
+                assert source_identity(selected['original_source'])==selected['original_source_sha256']
+                assert selected['original_source']!=selected['transformed_source']
+                assert selected['verification']['values']==p['values']
+                assert rows[p['id']]['arm_evidence']['bank']['complete']==(mode=='complete')
+    assert retained==before, 'fitter/cache-owned result objects must remain unchanged'

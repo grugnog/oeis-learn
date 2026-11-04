@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec011 T139/T140 ordered reference workers, bounded native batches and fail-closed native/cleanup validation; current-source HIP pending",
+  "code_revision": "Spec011 T169 exact bank-original provenance; current-source container/HIP qualification not claimed",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:f3c9d5ba571a46d3190954ff1eb24a2b1875d5e66ad4a5bdfea742443d221f54",
+  "implementation_sha256": "sha256:db33dbfb40f2ed6838ed414ccdd6e3cc00b0b1df49739a72b206cdda33030b0b",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {
