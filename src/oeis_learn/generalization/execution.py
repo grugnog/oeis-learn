@@ -111,3 +111,49 @@ def verify_resolution(original,resolved):
             value['replay'].pop('cell',None);value['replay'].pop('tasks',None)
         return value
     if choices(original)!=choices(resolved):raise ValueError('preparation resolution changed execution choices')
+
+
+PAC_MATCH_FIELDS=frozenset({'initializer','order','model','optimizer','exposure','diagnostics','backend'})
+
+
+def pac_control(original,expected,*,original_study,source,image,checkpoint,historical_measurements=None):
+    """Compare custodian-verified identities, never infer missing historical proof.
+
+    Diagnostic identity includes its nonmutation/censoring audit; different
+    diagnostics need a common verified equivalence identity, not a boolean waiver.
+    """
+    from .contracts import pac_record
+    if set(expected)!=PAC_MATCH_FIELDS or set(original)-PAC_MATCH_FIELDS:
+        raise ValueError('closed compatibility proof fields')
+    def identity(v):return isinstance(v,str) and len(v)==71 and v.startswith('sha256:') and all(c in '0123456789abcdef' for c in v[7:])
+    if not all(identity(v) for v in expected.values()) or not all(identity(v) for v in original.values()):
+        raise ValueError('compatibility requires verified identities')
+    checks={k:original.get(k)==expected[k] for k in sorted(PAC_MATCH_FIELDS)}
+    record=dict(version='pac-control/v1',original_study=original_study,source=source,image=image,
+                checkpoint=checkpoint,initializer=expected['initializer'],checks=checks,
+                disposition='MATCHED' if all(checks.values()) else 'REFERENCE_ONLY',
+                reasons=[k for k,v in checks.items() if not v],historical_measurements=historical_measurements)
+    return pac_record('control',record,sealed=False).record()
+
+
+def validate_pac_policy(experiment,control,profiles):
+    from .contracts import pac_record
+    from .experiments import pac_recipe
+    exp=pac_record('experiment',experiment).record();receipt=pac_record('control',control).record()
+    if not exp['frozen'] or exp['outcomes_seen']:raise ValueError('freeze before outcomes; no outcome-driven arm switch')
+    if exp['control']!=receipt['identity']:raise ValueError('control receipt binding')
+    config=pac_recipe(control_mode=exp['control_mode'],optional_d='D' in exp['arms'])
+    if exp['arms']!=config['arms'] or exp['comparison_factors']!=config['comparison_factors'] or set(profiles)!=set(exp['arms']):
+        raise ValueError('predeclared complete PAC arms and comparison factors required')
+    if exp['control_mode']=='matched' and (receipt['disposition']!='MATCHED' or not all(receipt['checks'].values()) or receipt['reasons'] or receipt['initializer']!=exp['initializer']):
+        raise ValueError('matched A requires exact complete original proof')
+    if exp['target_tokens']!=25_000_000:raise ValueError('frozen PAC token allowance')
+    fields={'initializer','initializer_kind','pool','targets','model','optimizer','backend','order','token_cap','sampling'}
+    for arm,profile in profiles.items():
+        if set(profile)!=fields or profile['initializer_kind']!='random':raise ValueError('closed fresh random arm profile')
+        for field in ('initializer','pool','model','optimizer','backend'):
+            if profile[field]!=exp[field]:raise ValueError('paired '+field+' identity mismatch')
+        if profile['token_cap']!=exp['target_tokens'] or profile['sampling']!=config['sampling'][arm]:raise ValueError('arm exposure/sampling mismatch')
+        if arm!='A' and profile['targets']!=exp['targets']:raise ValueError('paired target identity mismatch')
+        if arm in {'A','B'} and profile['order']!=exp['order']:raise ValueError('fixed underlying order mismatch')
+    return exp
