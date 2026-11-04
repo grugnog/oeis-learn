@@ -93,3 +93,31 @@ Alternatives rejected: infrequent checkpoints or asynchronous snapshots introduc
 rollback/tensor-race semantics; increasing time alone projects roughly75h/arm at
 observed aggregate throughput; deleting old evidence or resetting clocks loses
 provenance. A writer cache never replaces cold resume/export integrity validation.
+
+
+### T157–T160 implementation review (2026-11-04 UTC)
+
+Implemented the planned unchanged-tensor debit snapshots, bounded writer-local
+verification cache, terminal publication/process-exit reserves, committed versus
+charged token reporting, bounded timing windows and temporary paired probe.
+Cold restore/export remains byte-verified; no update-boundary recovery point was
+removed. Exact CPU continuation, pending debits, expired saved clocks, linkless
+fallback, failed copies and same-size tampering were independently exercised.
+The original timeout checkpoint is not resumed or reinterpreted by this work.
+
+The source/CI implementation binding changed. Old HIP qualification and throughput
+receipts cannot authorize the new source; the documented command rebuilds and
+requalifies before running tens of updates with the original model and recipe.
+Its 256-row shards are deliberately a runtime diagnostic, not the full data
+performance or scientific comparison. Large-shard I/O, long-run variance and
+actual HIP timing remain unmeasured; the forecast includes a twofold window cost
+and 1,800-second allowance and can only propose whether six hours looks feasible.
+Original receipt inventories and recipe/descriptor/exclusion bytes are verified
+before using historical candidate provenance; new native preparation is mandatory.
+
+Local evidence: 77 affected Phase B checks passed with one dependency skip; the
+expanded probe/policy suite passed 29 checks. A broader local run passed 306 checks,
+with three unrelated handoff imports blocked by absent wasmtime and one installed
+model check skipped. All 68 review dispositions still bind to the implementation.
+No HIP command or CI wait occurred. The next evidence is the current-source paired
+training probe report, not another full research attempt.

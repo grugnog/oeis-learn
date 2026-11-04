@@ -20,7 +20,19 @@ T157–T159 validation: 77 affected policy, preparation, learner and smoke tests
 
 ### Phase C/D — canonical probe, regression validation and handoff
 
-- [ ] T160 Integrate a temporary single-command probe using current qualification and canonical endpoints; package metrics/receipts on all terminal paths. Update source/CI bindings and guides, run local affected checks, commit/push each group. Keep original trained state immutable; no local HIP, no CI wait, no unmeasured performance claim.
+- [X] T160 Integrate a temporary single-command probe using current qualification and canonical endpoints; package metrics/receipts on all terminal paths. Update source/CI bindings and guides, run local affected checks, commit/push each group. Keep original trained state immutable; no local HIP, no CI wait, no unmeasured performance claim.
+
+T160 validation: 29 probe/policy tests pass, including canonical stage order,
+failed preparation/learning/proof, interrupted execution, stale qualification,
+changed images/resources/recipe/data, mismatched initialization and conservative
+BLOCKED forecasts. Archives exclude private payload trees and recover partial
+window metadata. Host help passes under `python -S`; all 68 original review
+bindings verify after refreshing only the implementation hash. The wider local
+regression run passed 306 tests; three pre-existing handoff tests could not import
+wasmtime and one installed-model test was skipped for that missing dependency.
+No container/native/HIP evidence or performance claim is made. Plan and Phase B
+were committed/pushed separately; this C/D group includes the exact one-invocation
+operator handoff, with current-source qualification before the probe.
 
 ## Post-timeout checkpoint evidence — 2026-11-04 UTC
 

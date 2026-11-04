@@ -1182,3 +1182,92 @@ Share the printed archive path. Diagnostic PASS means the saved files/accounting
 verified, not that the failed research completed. Exact committed versus pending
 exposure and elapsed learner time determine the safe continuation; finalization
 reserves and checkpoint serialization overhead remain follow-up work.
+
+## Reliable checkpoint implementation and training probe (T157–T160, 2026-11-04 UTC)
+
+Supersedes the follow-up-work status above. Checkpoint saves remain durable before
+and after **every** update. A debit-only save reuses the immediately preceding
+weights/optimizer bytes; RNG, cursor, pending batch, history, pins and persisted
+clock are still freshly saved. Every generation remains independently restorable,
+including on filesystems without hard links. Writer-local verification reuse is
+bounded and invalidated by inode/size/mtime/ctime changes; restore, descriptor export
+and cold readers still verify full payload hashes. Publication reserves up to
+300 seconds (one fifth of short allowances); process exit has a separate reserve
+inside the existing cleanup envelope. These reserves do not add learner budget.
+An operation can still overrun a boundary; the external supervisor and durable
+pending debit remain the final containment/recovery mechanism.
+
+The old failed research state remains evidence: 2,000,078 committed tokens,
+2,001,307 charged tokens, 1,229 pending tokens, 1,612 updates and
+21,593.43016040977 persisted learner seconds. Do not reset that clock, promote the
+incomplete generation, or rerun the old pre-learning continuation command. New
+production/test bytes require new images and qualification; the probe starts a
+fresh diagnostic study and never migrates those old weights.
+
+From `/home/owen/workspace/oies-learn`, this **one shell invocation** rebuilds the
+images, performs current-source acceptance, revalidates a small paired data sample,
+runs both training arms serially, checks finite changed weights, and packages the
+metadata. It requires the preserved original preparation and imported recipe, plus
+the existing conservative 224 GiB free-space gate. It never starts full research.
+
+```bash
+(
+  set -e
+  test "$(git branch --show-current)" = "011-controlled-generalization"
+  git pull --ff-only origin 011-controlled-generalization
+  podman build --target qualification -t oeis-learn:generalization-cpu .
+  podman build --target gpu -t oeis-learn:generalization-gpu .
+  python3 -S specs/011-controlled-generalization/validation/fresh_pilot_training_probe.py \
+    --engine podman \
+    --prepared-run run-state/generalization/fresh-p1-v2-20261103T035534Z \
+    --imported run-state/generalization/uniform-import \
+    --cpu-image oeis-learn:generalization-cpu \
+    --gpu-image oeis-learn:generalization-gpu \
+    --output "run-state/generalization/training-probe-$(date -u +%Y%m%dT%H%M%SZ)"
+)
+```
+
+To reuse a **matching current-source** qualification on a subsequent probe, supply
+`--qualified <probe-root>/acceptance/report/qualified` instead of the image/import
+options, always with a fresh output root. Original qualification is verified;
+stale source/image/resource authority is rejected, not upgraded or bypassed.
+
+The probe uses the original full model, optimizer, numerical execution policy,
+seed 20261016 and batch size 16. It freezes two 256-row shards (eight examples from
+each of the same 32 families, original descriptor law and refresh cursors), with
+original protected cohorts retained only for canonical exclusion/preparation.
+Native preparation must match the frozen source order, encodings and batch token
+charges. Static repeats shard one; refreshed traverses both. There is no scientific
+evaluation, assessment exposure, checkpoint selection or accuracy threshold.
+Each arm must complete at least 24 updates and two eight-update timing windows
+after four warm-up updates, with consumption beyond shard one and matching initial
+weights. The token cap is the lesser of two static passes and both refreshed shards;
+this is roughly 32 updates per arm, not a fixed token count.
+
+The estimate uses the slowest complete window across both arms, including durable
+pre/post-update saves, multiplies its seconds/token by 25 million and **two**, then
+adds **1,800 seconds** for setup/finalization and unmeasured variability. `PASS`
+means that conservative short-probe estimate fits the proposed six-hour arm budget;
+`BLOCKED` means it does not. Both are software/performance diagnostics, never a
+scientific result or guarantee. A small shard cannot fully measure large-shard I/O
+or long-run variance. No outcome automatically extends a budget or launches a full
+learner; review the measurements before choosing new full-run limits/design.
+
+Timing ceilings are deliberately generous: current acceptance retains its
+395-minute ceiling (plus image build time); source selection has up to 15 minutes
+per training shard; native preparation gets 30 minutes inside a one-hour outer
+bound; each learner gets 30 minutes inside a one-hour command bound; preflight gets
+20 minutes and each finite-state proof uses the canonical three-minute bound.
+These are failure ceilings, not runtime predictions. Training speed is unmeasured
+until this HIP probe; the diagnostic runs tens of updates instead of millions of
+tokens. Reusing valid current qualification avoids repeating acceptance.
+
+Share `<probe-root>/report.zip` after any terminal outcome. The archive contains
+only the sealed result and its verified inventory: protocol/helper hashes, original
+receipt references, per-arm committed/charged counters, checkpoint I/O and timing
+windows, proof status and forecast. Failure reports recover bounded timing and
+preparation progress where available. Original tensor/data/log trees stay local.
+If acceptance itself fails, also share `<probe-root>/acceptance.zip` when emitted.
+`--help` and orchestration require only host stdlib; model/native work stays in the
+installed canonical container roles. No HIP validation was performed when this
+implementation was committed.
