@@ -382,3 +382,26 @@ from the retained preparation audit tree, for both fresh and continued campaigns
 The224GiB free-space gate covers retained and active roots; no resource ceiling,
 source/image/qualification identity, cohort or scientific budget changes. Preserve
 original and projected manifest references in a public receipt and recovery.
+
+
+## Post-timeout checkpoint evidence (T155–T156)
+
+The151303Z continuation passed smoke and full runtime validation, then its static
+learner hit the21570-second external deadline. Canonical learner work currently
+receives essentially the process's full work allowance and reserves no terminal
+roster publication time. Training emits only128 phase events, so the late heartbeat
+tail cannot establish throughput. The retained early paired events show median
+update0.339s versus checkpoint save3.702s (10/19 observed pairs); two full-state
+saves surround an update, including serialization and repeated integrity checks.
+Do not extrapolate this short retained slice into measured whole-run throughput.
+
+The original receipt inventories a complete latest generation and a partial newer
+save, but no checkpoint contents are present in the public archive. Preserve the
+entire run. A temporary stdlib inspector checks original latest/pins/state/blob
+hashes, exports committed versus charged exposure and safely decodes only the
+scalar scheduler clock. No tensor/optimizer deserialization, engine launch, new
+qualification, learning-budget reset or state rewrite is permitted. Metadata
+inspection is not resume authorization. Automatically include these aggregates in
+future terminal diagnostics; the current operator needs one CPU-only collection.
+Resolve exact persisted exposure/time before a recovery or new scientific protocol;
+finalization reserves and checkpoint overhead remain identified follow-up work.

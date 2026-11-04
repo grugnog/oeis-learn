@@ -8,6 +8,27 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Post-timeout checkpoint evidence — 2026-11-04 UTC
+
+### Reopened Phase B — private-state integrity and accounting projection
+
+- [X] T155 Verify original command inventory, published latest/pinned states and streamed blob hashes without loading model/optimizer tensors. Export only committed/reserved token counts, updates, scalar persisted time and orphan-generation counts. Reject modified bytes, symlinks, inconsistent state and executable scheduler pickle payloads; never authorize resume from metadata alone.
+
+T155 validation: eight independent tests pass for committed/pending exposure,
+original immutability, hashes, symlinks, inventory tampering and rejected executable
+or nonfinite scheduler content. No model state deserialization or HIP execution.
+
+### Phase C/D — one CPU diagnostic and future failure capture
+
+- [ ] T156 Provide a stdlib-only checkpoint diagnostic ZIP command and integrate its public aggregates into future wrapper reports/recovery. Preserve original files and failure status. Record the six-hour timeout, observed checkpoint overhead and missing evidence needed before a safe continuation; test, commit and push each group without HIP or CI waits.
+
+Recovery decision is blocked on the original checkpoint contents, omitted from the
+uploaded report. Do not restart from the original pre-learning parent: a research
+learner has now consumed exposure. The saved-state diagnostic must establish exact
+committed/reserved tokens and persisted time before choosing a continuation. The
+learner shutdown/publication reserve and full-state checkpoint overhead require
+repair/review before another full HIP run; metadata collection is not that repair.
+
 ## Research execution storage repair — 2026-11-03 Pacific
 
 ### Reopened Phase B — exact execution closure and peak storage
