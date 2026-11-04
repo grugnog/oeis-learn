@@ -1,14 +1,15 @@
 # Validation and first-pilot guide
 
-## Current next step: prospective evaluation of retained checkpoints
+## Current next step: read-only recovery evidence
 
-The full pilot and its post-hoc analysis are complete. Do not start another full
-training run. Use the [one-command retained-evaluation handoff](validation/prospective-evaluation-handoff.md)
-for the fresh256-row selection comparison, current-source qualification and
-verified result export. The bank provenance fix requires current images and a new
-qualification; the historical no-rebuild instructions below apply to their old
-source only. T171–T173 are local implementation/validation; T174 remains an actual
-operator hardware gate. No assessment scoring is authorized.
+The prospective run `observable-eval-20261104T193226Z` completed current-source
+qualification, then failed fresh cohort quotas after original-corpus exclusions.
+Neither retained evaluation started. Do not repeat the full run yet: use the
+[read-only diagnostic command](validation/prospective-evaluation-recovery-20261104.md)
+to recover the missing family shortfalls from that directory. This needs no image
+build, containers or HIP. Preserve that run, its qualification and the original
+pilot/preparation inputs. T175 fixes reporting; T176 awaits the original ledger;
+T174 remains incomplete. No assessment scoring is authorized.
 
 ## Historical completed full pilot with hourly snapshots (2026-11-04)
 

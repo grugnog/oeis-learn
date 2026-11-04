@@ -181,8 +181,12 @@ def execute(args,root):
         with scope(root,CAPS):
             qualified_root,authority=qualified(ROOT,args,root)
             record['qualification']=str(qualified_root.relative_to(ROOT));persist()
-            summary=native_prepare(args.engine,authority['images'][0],context,protocol,root/'prepare')
-            record['stages'].append(dict(stage='prepare',status='PASS'));persist()
+            preparation_started=time.monotonic()
+            try:summary=native_prepare(args.engine,authority['images'][0],context,protocol,root/'prepare')
+            except (Exception,KeyboardInterrupt):
+                record['stages'].append(dict(stage='prepare',status='FAIL',seconds=time.monotonic()-preparation_started));persist()
+                raise
+            record['stages'].append(dict(stage='prepare',status='PASS',seconds=time.monotonic()-preparation_started));persist()
             research,study,runtime,frozen=publish_inputs(root,context,protocol,qualified_root,authority,summary)
             rel=lambda p:str(p.relative_to(ROOT));manifest=rel(research/'study.json')
             protocol_ref=reference(research/'protocol.json',ROOT)
@@ -223,11 +227,12 @@ def execute(args,root):
     return 0 if record['status']=='PASS' else 1
 
 
-def export(root):
+def export(root,*,destination=None):
     from oeis_learn.pipeline_validation.bundle import pack,verify
-    from fresh_pilot_report import diagnostics
+    from fresh_pilot_report import diagnostics,preparation_diagnostics
     from oeis_learn.pipeline_validation.generalization_qualification_io import public_closure
-    out=root/'report';out.mkdir();mandatory=[];total=0
+    destination=Path(destination) if destination is not None else root
+    out=destination/'report';out.mkdir();mandatory=[];total=0
     def copy(source,name):
         nonlocal total
         if source.is_symlink() or not source.is_file():raise ValueError('regular export payload required')
@@ -239,12 +244,20 @@ def export(root):
             total-=source.stat().st_size;return
         target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target);mandatory.append(name)
     workflow=read(root/'workflow.json')
+    if seal(workflow)!=workflow:raise ValueError('intact original workflow required')
     scientific='UNMEASURED'
     if (root/'measurements.json').is_file() and workflow['status'] in {'PASS','PARTIAL'}:
         scientific=read(root/'measurements.json')['scientific_status']
     write(out/'summary.json',seal(dict(selected_scope=workflow['status'],scientific_status=scientific,
         feature_qualified=False,scope='prospective retained-pilot selection; qualification is separate original evidence',assessment='SEALED')))
     mandatory.append('summary.json')
+    preparation=preparation_diagnostics(root,base=root/'prepare/cohort')
+    write(out/'preparation-diagnostics.json',preparation);mandatory.append('preparation-diagnostics.json')
+    availability=root/'prepare/cohort/availability.json'
+    if availability.is_file():
+        value=read(availability,1<<20)
+        if seal(value)!=value or value.get('version')!='prospective-family-availability/v1':raise ValueError('intact family availability required')
+        copy(availability,'preparation-availability.json')
     for n in ('workflow.json','design.json','lineage.json','measurements.json','scoring-static.json','scoring-refreshed.json'):
         if (root/n).is_file():copy(root/n,n)
     for n in ('protocol.json','study.json','runtime.json','native-cohort.json'):
@@ -259,17 +272,40 @@ def export(root):
             if p.is_file() and p.suffix in {'.json','.jsonl'}:copy(p,'generation-'+arm+'/attempts/'+str(p.relative_to(generated/'attempts')))
     if workflow.get('qualification'):
         q=confined(ROOT,workflow['qualification']);authority=read(q/'qualification.json')
-        copy(q/'qualification.json','qualification/qualification.json')
-        for ref in public_closure(q,authority):copy(confined(q,ref['path']),'qualification/'+ref['path'])
+        copy(q/'qualification.json','payloads/qualification.json')
+        for ref in public_closure(q,authority):copy(confined(q,ref['path']),'payloads/'+ref['path'])
         from oeis_learn.generalization.feature_acceptance import feature_artifacts
         feature=read(q/'feature.json');producer=json.loads(verify_artifact(q,authority['producer']['receipt']))
-        copy(q/'feature.json','qualification/feature.json')
+        copy(q/'feature.json','payloads/feature.json')
         for ref in feature_artifacts(feature,qualification=producer['identity'],root=q):
-            copy(confined(q,ref['path']),'qualification/'+ref['path'])
-    for p,n in diagnostics(root,root/'diagnostics'):copy(p,'diagnostics/'+p.name)
-    for n in (*HELPERS,'observable_evaluation.py'):copy(HERE/n,'helpers/'+n+'.txt')
+            copy(confined(q,ref['path']),'payloads/'+ref['path'])
+    for p,n in diagnostics(root,destination/'diagnostics'):copy(p,'diagnostics/'+p.name)
+    for n in (*HELPERS,'observable_evaluation.py','fresh_pilot_report.py'):copy(HERE/n,'helpers/'+n+'.txt')
     archive=pack(out,mandatory=mandatory,cap=512<<20,optional_cap=0);verify(archive)
     return archive
+
+
+def failure(root,stage,exc):
+    """Keep the first failure and append bounded later failures separately."""
+    record=read(root/'workflow.json')
+    error=type(exc).__name__+': '+str(exc)[:2048]
+    record.setdefault('error',error)
+    record['status']='FAIL'
+    record['failures']=[*record.get('failures',[])[-15:],dict(stage=stage,error=error)]
+    save(root/'workflow.json',record)
+    print(stage+': '+error,file=sys.stderr,flush=True)
+
+
+def diagnose(run_root,output):
+    """Read existing evidence only; never start a process, engine or new draw."""
+    root=confined(ROOT,run_root);destination=confined(ROOT,output,exists=False)
+    if (destination.exists() or destination.with_suffix('.zip').exists() or root==destination
+        or root in destination.parents or destination in root.parents):raise ValueError('fresh disjoint diagnostic destination required')
+    destination.mkdir(parents=True)
+    archive=export(root,destination=destination)
+    print(json.dumps(dict(status='DIAGNOSTIC_EXPORTED',original_status=read(root/'workflow.json')['status'],
+        archive=str(archive.relative_to(ROOT)),hardware='NOT_RUN'),indent=2),flush=True)
+    return 0
 
 
 def run(args):
@@ -298,7 +334,7 @@ def run(args):
     except (Exception,KeyboardInterrupt) as exc:
         # Constant-size last resort if the bounded exporter itself could not finish.
         from oeis_learn.pipeline_validation.bundle import pack,verify
-        workflow=read(root/'workflow.json');save(root/'workflow.json',dict(workflow,status='FAIL',error='bounded exporter failed: '+type(exc).__name__))
+        failure(root,'bounded-exporter',exc)
         emergency=root/'emergency';emergency.mkdir()
         write(emergency/'summary.json',dict(selected_scope='FAIL',scientific_status='UNMEASURED',feature_qualified=False,
             scope='export failure; large/private evidence remains in original run directory'))
@@ -319,10 +355,13 @@ def main(argv=None):
     check=sub.add_parser('check-inputs',help='stdlib-only original input verification; no containers')
     check.add_argument('--pilot',default='run-state/generalization/fresh-p1-hourly-20261104T093555Z')
     check.add_argument('--prepared',default='run-state/generalization/fresh-p1-v2-20261103T035534Z')
+    d=sub.add_parser('diagnose',help='read-only existing-run export; no containers')
+    d.add_argument('--run',required=True);d.add_argument('--output',required=True)
     w=sub.add_parser('work');w.add_argument('--job',required=True)
     e=sub.add_parser('package');e.add_argument('--run',required=True)
     i=sub.add_parser('inside');i.add_argument('--job',required=True);i.add_argument('--output',required=True)
     a=p.parse_args(argv)
+    if a.command=='diagnose':return diagnose(a.run,a.output)
     if a.command=='check-inputs':
         protocol=design(read(HERE/'observable-evaluation-protocol.json'))
         context=lineage(ROOT,a.pilot,a.prepared,protocol)
@@ -338,7 +377,7 @@ def main(argv=None):
         root=confined(ROOT,a.run)
         try:archive=export(root)
         except (Exception,KeyboardInterrupt) as exc:
-            workflow=read(root/'workflow.json');save(root/'workflow.json',dict(workflow,status='FAIL',error='export: '+type(exc).__name__))
+            failure(root,'export',exc)
             archive=api.recovery(root,read(root/'workflow.json'))
         write(root/'archive-result.json',seal(dict(archive=reference(archive,root))))
         return 0

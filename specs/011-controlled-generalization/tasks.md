@@ -8,6 +8,14 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Phase C/D — prospective preparation failure evidence (2026-11-04)
+
+- [X] T175 Reproduce/fix qualified-export path rejection, preserve the original failure alongside packaging failures, capture the prospective preparation layout's quota/progress ledgers and bounded family availability counts, and add a read-only existing-run export. Keep source/qualification identity, seed, reservoir, quotas, exclusions and inference budgets unchanged. Test the real archive packer with pinned build paths and failed preparation; gate any scientific design change or another HIP run on the missing original ledger evidence.
+
+T175 validation:166 affected tests passed, including the real qualified archive packer, original-error preservation, a byte-for-byte read-only diagnostic export with hardware calls forbidden, and an exhausted-family counterexample. Production source remains `sha256:d44d83d2a8a88344893a49ccd1b80a3d8b3246a8c86953adf858105cf86dc57d`. See [the recovery audit and read-only handoff](validation/prospective-evaluation-recovery-20261104.md).
+
+- [ ] T176 Operator evidence: export the existing `observable-eval-20261104T193226Z` preparation quota ledger with the read-only diagnostic command; reconcile deficient families before choosing a frozen cohort amendment or resuming T174. No hardware run is required for this evidence retrieval.
+
 ## Prospective retained-checkpoint evaluation — 2026-11-04 UTC
 
 Plan: [validation/prospective-evaluation-plan.md](validation/prospective-evaluation-plan.md).
@@ -29,7 +37,7 @@ T172 validation: 142 affected local tests passed, including real resolved E0 sch
 - [X] T173 Run local policy/controller/role-boundary regressions, review against requirements and current source closure, document exact consolidated commands and runtime expectations, and commit/push each grouping without waiting for CI.
 - [ ] T174 Operator: run the consolidated current-source HIP qualification and retained-checkpoint evaluation; independently reconcile the returned archive before making new scientific claims.
 
-T173 validation:147 affected local tests passed after final protocol/arm/cohort binding and retained-weight projection checks. The complete4,688-draw reference-only reservoir selected256 rows with no family quota shortfall in13.05 seconds; original-corpus exclusions/native execution remain explicitly pending. Stdlib-only run/check-inputs help, syntax and diff checks pass. The911-entry production closure is unchanged from the bank-fix snapshot. All31 requirement/design checklist items are checked, no extension hooks exist, and no HIP/CI wait occurred. See [the exact operator command and limits](validation/prospective-evaluation-handoff.md). T174 is the only unchecked operator gate in this continuation.
+T173 validation:147 affected local tests passed after final protocol/arm/cohort binding and retained-weight projection checks. The complete4,688-draw reference-only reservoir selected256 rows with no family quota shortfall in13.05 seconds; original-corpus exclusions/native execution remain explicitly pending. Stdlib-only run/check-inputs help, syntax and diff checks pass. The911-entry production closure is unchanged from the bank-fix snapshot. All31 requirement/design checklist items are checked, no extension hooks exist, and no HIP/CI wait occurred. See [the exact operator command and limits](validation/prospective-evaluation-handoff.md). T174 was the remaining operator gate at that handoff. The subsequent run completed qualification but failed fresh cohort admission; T176 now gates any retry. Neither retained evaluation started.
 
 
 ## Observable continuation follow-up — 2026-11-04 UTC

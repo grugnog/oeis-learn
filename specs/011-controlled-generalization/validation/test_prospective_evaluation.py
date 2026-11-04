@@ -417,3 +417,86 @@ def test_retained_bytes_changed_after_lineage_block_inference(tmp_path,monkeypat
     (tmp_path/'weights-static/weights.pt').write_bytes(b'changed')
     with pytest.raises(ValueError,match='retained weights changed'):h.publish_inputs(root,context,d,q,a,summary)
     assert not (root/'research/protocol.json').exists()
+
+
+def test_export_preserves_canonical_qualification_build_paths(tmp_path,monkeypatch):
+    import prospective_evaluation as h
+    from oeis_learn.pipeline_validation import generalization_qualification_io as qio
+    from oeis_learn.generalization import feature_acceptance
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.bundle import verify
+    import zipfile
+    root=tmp_path/'run';root.mkdir();q=tmp_path/'qualified';q.mkdir()
+    monkeypatch.setattr(h,'ROOT',tmp_path)
+    (q/'build/crates/core').mkdir(parents=True);(q/'build/Dockerfile').write_text('FROM pinned\n');(q/'build/crates/core/Cargo.lock').write_text('version = 4\n')
+    write(q/'producer.json',seal(dict(status='PASS')))
+    write(q/'qualification.json',seal(dict(producer=dict(receipt=reference(q/'producer.json',q)))))
+    write(q/'feature.json',seal(dict(status='PASS')))
+    refs=[reference(q/n,q) for n in ('build/Dockerfile','build/crates/core/Cargo.lock','producer.json')]
+    monkeypatch.setattr(qio,'public_closure',lambda *_:refs)
+    monkeypatch.setattr(feature_acceptance,'feature_artifacts',lambda *a,**k:[])
+    write(root/'workflow.json',seal(dict(status='FAIL',error='original quota shortfall',stages=[],qualification='qualified')))
+    archive=h.export(root);verify(archive)
+    with zipfile.ZipFile(archive) as z:
+        assert z.read('payloads/build/Dockerfile')==b'FROM pinned\n'
+        assert 'payloads/qualification.json' in z.namelist()
+
+
+def test_package_failure_preserves_original_error(tmp_path,monkeypatch):
+    import prospective_evaluation as h
+    import fresh_pilot as api
+    from oeis_learn.pipeline_validation.identity import write
+    root=tmp_path/'run';root.mkdir();monkeypatch.setattr(h,'ROOT',tmp_path);monkeypatch.setattr(api,'ROOT',tmp_path)
+    write(root/'workflow.json',seal(dict(status='FAIL',error='original quota shortfall',stages=[])))
+    def fail(*_):raise ValueError('unsafe pinned path')
+    monkeypatch.setattr(h,'export',fail)
+    assert h.main(['package','--run','run'])==0
+    result=read_json(root/'workflow.json')
+    assert result['error']=='original quota shortfall'
+    assert result['failures'][-1]==dict(stage='export',error='ValueError: unsafe pinned path')
+
+
+def test_existing_run_diagnose_reads_quota_ledger_without_execution_or_mutation(tmp_path,monkeypatch):
+    import prospective_evaluation as h
+    import fresh_pilot as api
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.bundle import verify
+    import zipfile
+    root=tmp_path/'run';root.mkdir();monkeypatch.setattr(h,'ROOT',tmp_path)
+    family='sha256:'+'a'*64
+    write(root/'workflow.json',seal(dict(status='FAIL',error='export: ValueError',stages=[],qualification=None)))
+    cell=root/'prepare/cohort/cells/parameter'
+    write(cell/'ledger.json',seal(dict(version='generalization-cell-preparation/v1',role='selection',status='BLOCKED',draws=1681,admitted=1681,rejections=[],shortfalls=['family:'+family+':3'],native_validation='PERFORMED')))
+    write(root/'prepare/result.json',seal(dict(status='FAIL',reason='ValueError',error='native cohort shortfall or disagreement')))
+    write(root/'prepare/private/secret.json',dict(secret='must stay private'))
+    before={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    def forbidden(*a,**k):raise AssertionError('no execution permitted')
+    monkeypatch.setattr(api,'invoke',forbidden);monkeypatch.setattr(h,'native_prepare',forbidden)
+    assert h.main(['diagnose','--run','run','--output','diagnostic'])==0
+    assert {str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}==before
+    archive=tmp_path/'diagnostic/report.zip';verify(archive)
+    with zipfile.ZipFile(archive) as z:
+        report=json.loads(z.read('preparation-diagnostics.json'))
+        assert report['cells'][0]['shortfalls']==['family:'+family+':3']
+        assert all('secret' not in n for n in z.namelist())
+    with pytest.raises(ValueError):h.main(['diagnose','--run','run','--output','run/child'])
+
+
+def test_exhausted_family_exports_counts_without_loosening_exclusions(tmp_path):
+    p=policy();d=small_design()
+    from oeis_learn.generalization.preparation import reference_candidate
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    original=[]
+    for r in p.draw(d):
+        (exact,_),error=reference_candidate(r);assert error is None;original.append(exact)
+    write(tmp_path/'old.json',original)
+    files=[dict(root=tmp_path,ref=reference(tmp_path/'old.json',tmp_path),name='old',role='selection',holdout='parameter',count=len(original))]
+    def forbidden(*_):raise AssertionError('excluded candidates must not reach native work')
+    out=tmp_path/'new'
+    with pytest.raises(ValueError,match='shortfalls'):p.prepare(d,files,out,execute=forbidden,workers=1,seconds=60)
+    report=read_json(out/'availability.json')
+    assert all(r['surviving']==0 and r['deficit']==1 and r['exclusion_reasons']['source']>0 for r in report['families'])
+    assert all(set(r)=={'stratum','family','required','reference_eligible','surviving','deficit','exclusion_reasons'} for r in report['families'])
+    assert not (out/'summary.json').exists()

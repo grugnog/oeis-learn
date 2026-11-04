@@ -11,11 +11,11 @@ REQUIRED=('feasibility','preflight','prepare','smoke','train-static','train-refr
 PUBLIC_CAP=500<<20  # reserve archive/manifest overhead within the canonical512MiB cap
 
 
-def preparation_diagnostics(root):
+def preparation_diagnostics(root,*,base=None):
     """Read only original cell ledgers; exclude target/source/term payloads."""
     import re
     from collections import Counter
-    base=Path(root)/'research/prepare/preparation/role/private/prepared'
+    base=Path(base) if base is not None else Path(root)/'research/prepare/preparation/role/private/prepared'
     result=dict(version='fresh-pilot-preparation-diagnostics/v1',cells=[],qualification_evidence=False)
     def bounded(path):
         path=confined(root,path)
@@ -157,11 +157,12 @@ def diagnostics(root,destination):
     import os,stat
     from oeis_learn.pipeline_validation.generalization_diagnostics import control_fields,terminal_fields
     root=Path(root);destination=Path(destination);destination.mkdir(parents=True)
-    skip={'public','recovery','diagnostics','acceptance-inputs','design','inputs','checkpoints',
+    skip={'public','report','emergency','recovery','diagnostics','acceptance-inputs','design','inputs','checkpoints',
           'cells','ledgers','scorer','visible','generation','selection','qualified','selected','.runtime','native-cache','command-export'}
     files=[];used=0;entries=0
     try:
-        summary=preparation_diagnostics(root)
+        base=root/'prepare/cohort' if (root/'prepare/cohort').is_dir() else None
+        summary=preparation_diagnostics(root,base=base)
         target=destination/'preparation-summary.json';write(target,summary);used=target.stat().st_size
         if summary['cells'] or 'terminal' in summary:
             files.append(dict(source='research-preparation-ledgers',status='PROJECTED',artifact=reference(target,destination)))

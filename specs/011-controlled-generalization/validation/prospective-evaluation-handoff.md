@@ -1,6 +1,12 @@
 # Prospective retained-pilot evaluation: operator handoff
 
-Implementation is complete through T173; actual hardware execution T174 remains
+**Current status:** the first invocation completed qualification but failed fresh
+cohort admission. Do not repeat the full command below yet. Follow the
+[read-only recovery handoff](prospective-evaluation-recovery-20261104.md) first.
+T174 remains incomplete.
+
+The following is the original pre-run handoff, retained for provenance.
+Implementation was complete through T173; actual hardware execution T174 remained
 pending. The existing PR branch contains the changes. This run performs **no new
 research training**. The canonical qualification session still performs its small
 finite-update/resume acceptance fixtures.

@@ -118,6 +118,15 @@ def prepare(protocol,originals,output,*,execute,seconds=14000,workers=3):
         print(json.dumps(dict(phase='exclusion',cell=item['name'],rows=len(rows))),flush=True)
         del rows
     bad=index.rejected();selected=[];ledgers=[]
+    available=[]
+    for cell in protocol['cells']:
+        matching=[r for r in admitted if (r['holdout'],r['family'])==(cell['stratum'],cell['family'])]
+        surviving=sum(r['id'] not in bad for r in matching)
+        available.append(dict(stratum=cell['stratum'],family=cell['family'],required=cell['count'],
+            reference_eligible=len(matching),surviving=surviving,deficit=max(0,cell['count']-surviving),
+            exclusion_reasons=dict(Counter(reason for r in matching for reason in bad.get(r['id'],())))))
+    write(root/'availability.json',seal(dict(version='prospective-family-availability/v1',design=protocol['identity'],
+        families=available,original_rows=original_count,scope='pre-native availability; no model outcomes or protected terms')))
     for stratum in ('parameter','structural'):
         rows=[r for r in admitted if r['holdout']==stratum and r['id'] not in bad]
         quota={'family:'+c['family']:c['count'] for c in protocol['cells'] if c['stratum']==stratum}
@@ -125,7 +134,7 @@ def prepare(protocol,originals,output,*,execute,seconds=14000,workers=3):
         ledger=prepare_cell(rows,role='selection',holdout=stratum,count=sum(quota.values()),quotas=quota,
             structural=False,output=folder,execute=execute,seconds=deadline-time.monotonic(),workers=workers,
             unique_sources=True,length_boundary=16)
-        if ledger['status']!='PASS':raise ValueError('native cohort shortfall or disagreement')
+        if ledger['status']!='PASS':raise ValueError('native cohort '+stratum+' shortfalls: '+', '.join(ledger['shortfalls'])[:1024])
         selected.extend(json.loads((folder/'private/selected.json').read_text()));ledgers.append(ledger)
     mapping=roster(selected,protocol)
     summary=seal(dict(version='prospective-native-cohort/v1',status='PASS',design=protocol['identity'],
