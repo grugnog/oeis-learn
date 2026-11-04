@@ -224,3 +224,23 @@ def test_native_smoke_plan_must_match_frozen_exact_sources_and_tokens(tmp_path,c
     if change:
         with pytest.raises(ValueError):m.verify_smoke_plan(tmp_path,study,runtime,protocol)
     else:assert m.verify_smoke_plan(tmp_path,study,runtime,protocol)['minimum_updates']==3
+
+
+def test_probe_selects_256_rows_with_original_model_and_refresh_authority(tmp_path):
+    from fresh_pilot_inputs import research_inputs,blueprint
+    from fresh_pilot_training_policy import budget
+    design=research_inputs()
+    original=blueprint(tmp_path,design,recipe='recipe.json',source='source.json',images=['cpu','gpu'],feature='feature.json',output='design')
+    write(tmp_path/'prepared/study.json',{})
+    for ordinal,cell in enumerate(original['cells']):
+        if cell['role']=='training':continue
+        from oeis_learn.generalization.preparation import reference_candidate
+        rows=[reference_candidate(r)[0][0] for r in design['cohorts'][ordinal]['rows'][:2]]
+        write(tmp_path/'prepared/cells'/cell['name']/'private/selected.json',rows)
+    job=dict(manifest='prepared/study.json',blueprint=reference(tmp_path/'design/blueprint.json',tmp_path),design=reference(tmp_path/'design/design.json',tmp_path))
+    cfg,protocol=m.reduced_blueprint(tmp_path,job,tmp_path/'probe',probe=True)
+    assert protocol['target_tokens']==budget(protocol['batch_charges'])
+    assert protocol['minimum_updates']==24
+    assert cfg['recipe']==original['recipe'] and cfg['initializer'] is None
+    assert cfg['budgets']['seconds']==1800
+    assert all(c['count']==256 and set(c['quotas'].values())=={8} for c in cfg['cells'] if c['role']=='training')

@@ -4,6 +4,29 @@ from oeis_learn.generalization.budgets import charge_tokens
 from .identity import digest
 
 
+def publication_reserve(seconds):
+    """Keep terminal publication inside the enclosing learner allowance."""
+    return min(300.,seconds/5)
+
+
+class TrainingTiming:
+    """Bounded diagnostic windows; never alter optimization/accounting decisions."""
+    def __init__(self):
+        from collections import deque
+        self.windows=deque(maxlen=64);self.start=None;self.anchor=None
+        self.checkpoint_seconds=0.;self.update_seconds=0.;self.checkpoint_calls=0
+
+    def observe(self,updates,tokens,now):
+        if self.start is None:self.start=updates
+        if updates-self.start<4:return False
+        if self.anchor is None:self.anchor=(updates,tokens,now);return False
+        count,consumed,started=self.anchor
+        if updates-count<8:return False
+        self.windows.append(dict(updates=updates-count,tokens=tokens-consumed,seconds=now-started,through_updates=updates))
+        self.anchor=(updates,tokens,now)
+        return True
+
+
 def train_updates(state,ledger,batches,*,update,save,seconds=21600):
     """Persist pre-update state/debit, then publish complete update state atomically.
 
@@ -110,7 +133,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from oeis_learn.generalization.checkpoints import milestone_decision,pin_plan
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.common import write
-    progress_count=0
+    progress_count=0;timing=TrainingTiming();tensors_dirty=True
     def progress(phase):
         nonlocal progress_count
         # Public phase/timestamp only; bounded even for long research learners.
@@ -124,6 +147,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     execution_policy=verify_execution() if config['device']=='cuda' else None
     seconds=config['seconds'] if seconds is None else seconds
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
+    reserve=publication_reserve(seconds)
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     progress('batch-inputs')
@@ -186,13 +210,17 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
+        nonlocal tensors_dirty
+        tensors_dirty=True;started=time.monotonic()
         progress('update-start')
-        result=update_tensors(batch)
-        progress('update-complete')
-        return result
+        try:return update_tensors(batch)
+        finally:
+            timing.update_seconds+=time.monotonic()-started
+            progress('update-complete')
     class StopAtBoundary(Exception):pass
     def save(current,account):
-        nonlocal latest,saved_ledger,initial,history
+        nonlocal latest,saved_ledger,initial,history,tensors_dirty
+        started=time.monotonic()
         progress('checkpoint-save')
         effective=account.consumed-(account.pending[1] if account.debited else 0)
         current['weights']=dict(encoder=encoder.state_dict(),decoder=decoder.state_dict())
@@ -204,7 +232,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             return current['scheduler']
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}
-        latest=store.save(current,account,scheduler=scheduler);saved_ledger=account
+        unchanged=latest if latest is not None and not tensors_dirty and account.pending is not None else None
+        latest=store.save(current,account,scheduler=scheduler,unchanged_tensors=unchanged);saved_ledger=account
         key=latest['sha256'];history[key]=latest;current['history']['exposures'][key]=effective
         if initial is None:initial=key;permanent[key]=latest
         crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
@@ -216,6 +245,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         keep=set(pins)|set(permanent)
         store.retain(history,tuple(sorted(keep)))
         history={k:v for k,v in history.items() if k in keep}
+        tensors_dirty=False
+        timing.checkpoint_seconds+=time.monotonic()-started;timing.checkpoint_calls+=1
+        if account.pending is None and timing.observe(account.updates,effective,time.monotonic()):
+            write(output/'timing.json',dict(version='generalization-training-timing/v1',
+                checkpoint_seconds=timing.checkpoint_seconds,update_seconds=timing.update_seconds,
+                checkpoint_calls=timing.checkpoint_calls,windows=list(timing.windows),checkpoint_io=dict(store.io_stats)))
         progress('checkpoint-saved')
         if stop_after_updates is not None and account.pending is None and account.updates>=stop_after_updates:
             raise StopAtBoundary()
@@ -244,13 +279,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         batches=ReplayBatches(batches,verified,replay['tasks'],state)
     try:
         save(state,ledger)
-        remaining=config['seconds']-previous_seconds-(time.monotonic()-began)
+        remaining=config['seconds']-previous_seconds-(time.monotonic()-began)-reserve
         result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
     from .identity import seal
+    published=time.monotonic()
     progress('publish-roster')
     initial_record=json.loads(verify_artifact(store.root,history[initial]))
     initialization=initial_record['states']['weights']['sha256']
@@ -269,10 +305,18 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         latest=next(c['identity'] for c in retained if c['state']==latest)))
     write(output/'checkpoints/retained.json',roster)
     result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
-        checkpoint=latest,tokens=saved_ledger.consumed,updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,
+        checkpoint=latest,tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
+        charged_tokens=saved_ledger.consumed,pending_tokens=saved_ledger.pending[1] if saved_ledger.pending else 0,
+        updates=saved_ledger.updates,undershoot=saved_ledger.undershoot,
         milestones={str(m):state['history']['exposures'][k] for m,k in milestone_keys.items()},
         learner_seconds=state['scheduler']['learner_seconds'],data=data_identity,device=config['device'],counts=counts,
         retained=roster['identity'])
+    result['timing']=dict(version='generalization-training-timing/v1',
+        checkpoint_seconds=timing.checkpoint_seconds,update_seconds=timing.update_seconds,
+        checkpoint_calls=timing.checkpoint_calls,windows=list(timing.windows),checkpoint_io=dict(store.io_stats),
+        publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve,
+        invocation_seconds=time.monotonic()-began)
+    write(output/'timing.json',result['timing'])
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
     progress('complete')

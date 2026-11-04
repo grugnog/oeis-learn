@@ -284,6 +284,32 @@ class GeneralizationCheckpointStore:
     """
     def __init__(self, root, contract, cap):
         self.root=Path(root); self.contract=contract; self.cap=cap
+        from collections import OrderedDict
+        self._verified=OrderedDict()
+        self.io_stats=dict(serialized_bytes=0,reused_tensor_bytes=0,verified_bytes=0,verification_cache_hits=0)
+
+    def _verify_published(self,ref):
+        """Writer-local cache for immutable blobs; cold load/describe still hash all.
+
+        Metadata changes invalidate the cache, including same-size writes with a
+        restored mtime. Check confinement/regular-file type on every access.
+        """
+        import hashlib,stat
+        path=confined(self.root,ref['path']);info=path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size!=ref['bytes']:
+            raise ValueError('checkpoint blob size/type changed')
+        def fingerprint(v):return (v.st_dev,v.st_ino,v.st_size,v.st_mtime_ns,v.st_ctime_ns)
+        key=(*fingerprint(info),ref['sha256'])
+        if key in self._verified:
+            self._verified.move_to_end(key);self.io_stats['verification_cache_hits']+=1;return
+        h=hashlib.sha256()
+        with path.open('rb') as stream:
+            for block in iter(lambda:stream.read(1<<20),b''):h.update(block)
+        if fingerprint(path.stat())!=fingerprint(info) or 'sha256:'+h.hexdigest()!=ref['sha256']:
+            raise ValueError('checkpoint blob changed')
+        self.io_stats['verified_bytes']+=info.st_size
+        self._verified[key]=True
+        while len(self._verified)>256:self._verified.popitem(last=False)
 
     @staticmethod
     def _encode(value):
@@ -295,7 +321,7 @@ class GeneralizationCheckpointStore:
         import io,torch
         return torch.load(io.BytesIO(value),map_location='cpu',weights_only=False)
 
-    def save(self,states,ledger,*,encode=None,scheduler=None):
+    def save(self,states,ledger,*,encode=None,scheduler=None,unchanged_tensors=None):
         from oeis_learn.generalization.state import snapshot,STATE_FIELDS
         from oeis_learn.generalization.contracts import verify_artifact
         from oeis_learn.pipeline_validation.identity import seal
@@ -305,7 +331,7 @@ class GeneralizationCheckpointStore:
         # immutable blobs, with generation-local hard links so pruning or copying
         # one generation never leaves references into a deleted predecessor.
         import hashlib,json,os,shutil,errno
-        previous={}
+        previous={};parent=None;pointer=None
         latest=self.root/'generalization-latest.json'
         if latest.exists():
             pointer=json.loads(latest.read_text())
@@ -314,13 +340,34 @@ class GeneralizationCheckpointStore:
                 raise ValueError('incompatible checkpoint deduplication parent')
             previous={key:ref for key,ref in parent['states'].items() if key not in {'rng','data'}}
             previous.update({'rng-'+key:ref for key,ref in parent['states']['rng'].items()})
+        if unchanged_tensors is not None:
+            from oeis_learn.generalization.budgets import Ledger
+            if pointer!=unchanged_tensors:raise ValueError('unchanged tensors require immediate latest generation')
+            before=Ledger.restore(parent['ledger'],cap=self.cap)
+            if ledger.pending is None or before.reserve(*ledger.pending)!=ledger:
+                raise ValueError('unchanged tensor debit transition required')
         generation='generalization-'+uuid.uuid4().hex
         folder=self.root/generation;folder.mkdir(parents=True,exist_ok=False)
         used=sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
         def blob(name,value):
             nonlocal used
+            if unchanged_tensors is not None and name in {'weights','optimizer'}:
+                old=previous[name];self._verify_published(old)
+                if used+old['bytes']>self.MAX_BYTES or old['bytes']>shutil.disk_usage(self.root).free:
+                    raise OSError('checkpoint storage reservation exhausted; existing pins retained')
+                path=folder/(name+'.pt');source=confined(self.root,old['path'])
+                try:os.link(source,path)
+                except OSError as exc:
+                    if exc.errno not in {errno.EXDEV,errno.EPERM,errno.EOPNOTSUPP}:raise
+                    with source.open('rb') as src,path.open('xb') as dst:
+                        shutil.copyfileobj(src,dst,1<<20);dst.flush();os.fsync(dst.fileno())
+                ref=dict(old,path=str(path.relative_to(self.root)))
+                self._verify_published(ref);used+=old['bytes']
+                self.io_stats['reused_tensor_bytes']+=old['bytes']
+                return ref
             data=encode(value)
             if not isinstance(data,bytes):raise ValueError('state serializer must return bytes')
+            self.io_stats['serialized_bytes']+=len(data)
             # Logical bytes stay conservatively reserved even when storage shares
             # an inode. A later projection may need an independent physical copy.
             if used+len(data)>self.MAX_BYTES or len(data)>shutil.disk_usage(self.root).free:
@@ -330,13 +377,13 @@ class GeneralizationCheckpointStore:
             ref=dict(path=str(path.relative_to(self.root)),sha256=sha,bytes=len(data))
             old=previous.get(name);linked=False
             if old is not None and old['sha256']==sha and old['bytes']==len(data):
-                verify_artifact(self.root,old)
+                self._verify_published(old)
                 try:
                     os.link(confined(self.root,old['path']),path);linked=True
                 except OSError as exc:
                     if exc.errno not in {errno.EXDEV,errno.EPERM,errno.EOPNOTSUPP}:raise
             if not linked:write(path,data,immutable=True)
-            verify_artifact(self.root,ref);used+=len(data)
+            self._verify_published(ref);used+=len(data)
             return ref
         bound={key:blob(key,states[key]) for key in sorted(STATE_FIELDS-{'rng','data','scheduler'})}
         bound['rng']={key:blob('rng-'+key,value) for key,value in states['rng'].items()}
@@ -439,7 +486,7 @@ class GeneralizationCheckpointStore:
         remove=prune_plan(history,pins)
         for key in pins:
             record=json.loads(verify_artifact(self.root,history[key]))
-            for ref in artifact_refs(record):verify_artifact(self.root,ref)
+            for ref in artifact_refs(record):self._verify_published(ref)
         latest=read(self.root/'generalization-latest.json')
         if latest not in [history[k] for k in pins]:raise ValueError('latest generation must remain pinned')
         write(self.root/'generalization-pins.json',{key:history[key] for key in pins})

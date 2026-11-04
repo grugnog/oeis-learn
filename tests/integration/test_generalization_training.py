@@ -312,3 +312,104 @@ def test_checkpoint_blob_copy_fallback_keeps_exact_state(tmp_path,monkeypatch):
     monkeypatch.setattr(os,'link',unsupported)
     second=store.save(s,Ledger(100),encode=encode)
     assert first!=second and store.load(second,decode=json.loads)['states']==s
+
+
+def test_debit_snapshot_reuses_tensors_without_serializing_them(tmp_path):
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100)
+    state=states();state['weights']={'tensor':'weights'};state['optimizer']={'tensor':'optimizer'}
+    encode=lambda v:json.dumps(v).encode()
+    original=store.save(state,Ledger(100),encode=encode)
+    state['data']=dict(cursor=1,pending_batch=[dict(tokens=[3,2])])
+    def metadata_only(v):
+        assert v not in (state['weights'],state['optimizer'])
+        return encode(v)
+    pointer=store.save(state,Ledger(100).reserve('batch',2),encode=metadata_only,unchanged_tensors=original)
+    loaded=store.load(pointer,decode=json.loads)
+    assert loaded['states']==state and loaded['ledger'].pending==('batch',2)
+    assert store.io_stats['reused_tensor_bytes']>0
+    with pytest.raises(ValueError,match='transition'):
+        store.save(state,Ledger(100,consumed=2,updates=1),encode=metadata_only,unchanged_tensors=pointer)
+    with pytest.raises(ValueError,match='latest'):
+        store.save(state,Ledger(100).reserve('batch',2),encode=metadata_only,unchanged_tensors=original)
+
+
+def test_writer_cache_rejects_same_size_tampering_even_with_restored_mtime(tmp_path):
+    import os
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100)
+    state=states();state['weights']={'tensor':'abcdef'}
+    ref=store.save(state,Ledger(100),encode=lambda v:json.dumps(v).encode())
+    store.retain({'first':ref},('first',));hashed=store.io_stats['verified_bytes']
+    store.retain({'first':ref},('first',))
+    assert store.io_stats['verified_bytes']==hashed and store.io_stats['verification_cache_hits']>0
+    record=json.loads((tmp_path/ref['path']).read_text());path=tmp_path/record['states']['weights']['path']
+    info=path.stat();raw=path.read_bytes();path.write_bytes(raw.replace(b'abcdef',b'ghijkl'))
+    os.utime(path,ns=(info.st_atime_ns,info.st_mtime_ns))
+    with pytest.raises(ValueError):store.retain({'first':ref},('first',))
+    assert json.loads((tmp_path/'generalization-latest.json').read_text())==ref
+
+
+def test_debit_copy_fallback_is_self_contained_and_atomic(tmp_path,monkeypatch):
+    import os,errno,shutil
+    store=GeneralizationCheckpointStore(tmp_path,'contract',100);state=states()
+    state['weights']={'tensor':'unchanged'}
+    encode=lambda v:json.dumps(v).encode()
+    first=store.save(state,Ledger(100),encode=encode)
+    state['data']=dict(cursor=1,pending_batch=[dict(tokens=[3,2])])
+    monkeypatch.setattr(os,'link',lambda *a:(_ for _ in ()).throw(OSError(errno.EOPNOTSUPP,'unsupported')))
+    second=store.save(state,Ledger(100).reserve('batch',2),encode=encode,unchanged_tensors=first)
+    shutil.rmtree((tmp_path/first['path']).parent)
+    assert store.load(second,decode=json.loads)['states']==state
+    before=(tmp_path/'generalization-latest.json').read_bytes()
+    monkeypatch.setattr(shutil,'copyfileobj',lambda *a:(_ for _ in ()).throw(OSError('disk failed')))
+    with pytest.raises(OSError):store.save(state,Ledger(100).reserve('batch',2),encode=encode,unchanged_tensors=second)
+    assert (tmp_path/'generalization-latest.json').read_bytes()==before
+
+
+def test_publication_reserve_and_bounded_complete_timing_windows():
+    from oeis_learn.pipeline_validation.generalization_training import publication_reserve,TrainingTiming
+    assert publication_reserve(21600)==300 and publication_reserve(30)==6
+    t=TrainingTiming();t.observe(0,0,0)
+    for i in range(1,601):t.observe(i,i*100,float(i))
+    assert len(t.windows)==64
+    assert all(w['updates']==8 and w['tokens']==800 and w['seconds']==8 for w in t.windows)
+    assert t.windows[-1]['through_updates']==596
+
+
+def test_worker_terminal_pending_tokens_match_checkpoint_weights(tmp_path,monkeypatch):
+    import torch
+    from oeis_learn.pipeline_validation import generalization_training as m
+    from oeis_learn.fresh import bigint_worker
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.decoder.bigint_codec import encode_body
+    source='(program (return (int 0)))';rows=[dict(id='0',role='training',source=source,tokens=encode_body(source),indices=list(map(str,range(100))),values=['0']*100)]
+    (tmp_path/'rows.json').write_text(json.dumps(rows))
+    config=dict(study='study',arm='static',seed=7,recipe=dict(model={},learning=dict(learning_rate=.001)),
+        shards=[reference(tmp_path/'rows.json',tmp_path)],data_mode='static',batch_size=1,target_tokens=100,milestones=[],seconds=30,device='cpu')
+    monkeypatch.setattr(bigint_worker,'models',lambda *a:(torch.nn.Linear(1,1),torch.nn.Linear(1,1),{}))
+    monkeypatch.setattr(m,'torch_update',lambda *a,**kw:lambda _:pytest.fail('must not update'))
+    allowances=[]
+    def partial(state,ledger,batches,*,save,seconds,**kwargs):
+        allowances.append(seconds)
+        batch=batches[0];state['data']=dict(cursor=1,pending_batch=batch)
+        pending=ledger.reserve(m.digest(batch),len(rows[0]['tokens']))
+        save(state,pending)
+        return dict(status='PARTIAL')
+    monkeypatch.setattr(m,'train_updates',partial)
+    result=m.run_torch(tmp_path,tmp_path/'output',config)
+    assert 0<allowances[0]<24
+    assert result['tokens']==0 and result['charged_tokens']==len(rows[0]['tokens']) and result['updates']==0
+    roster=json.loads((tmp_path/'output/checkpoints/retained.json').read_text())
+    latest=next(r for r in roster['checkpoints'] if r['identity']==roster['latest'])
+    assert latest['tokens']==result['tokens']
+    assert result['timing']['checkpoint_io']['reused_tensor_bytes']>0
+    assert result['timing']['publication_reserve_seconds']==6
+
+    # A fully spent saved allowance publishes a partial result without another
+    # update or resetting either time or the reserved exposure.
+    store=GeneralizationCheckpointStore(tmp_path/'output/checkpoints',result['compatibility'],100)
+    saved=store.load(result['checkpoint']);saved['states']['scheduler']['learner_seconds']=30.
+    pointer=store.save(saved['states'],saved['ledger'])
+    monkeypatch.setattr(m,'train_updates',lambda *a,**kw:pytest.fail('expired learner must not train'))
+    expired=m.run_torch(tmp_path,tmp_path/'expired',config,resume=(store.root,pointer))
+    assert expired['status']=='PARTIAL' and expired['learner_seconds']>=30
+    assert expired['tokens']==0 and expired['charged_tokens']==result['charged_tokens'] and expired['updates']==0

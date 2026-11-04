@@ -12,9 +12,11 @@
 
 ### Reopened Phase B — checkpoint, accounting and measurement policies
 
-- [ ] T157 Implement unchanged-tensor debit snapshots and bounded writer-local verified-file reuse while retaining durable per-update state, atomic publication and full verification at restore/export. Add independent tamper, link fallback, failure and exact-resume counterexamples.
-- [ ] T158 Reserve learner final publication/process-exit time, preserve cumulative budgets and pending debits, correct committed-token reporting, and emit bounded update/checkpoint/window timing. Test expired allowances and publication after partial termination.
-- [ ] T159 Implement the small paired training-probe selection and conservative forecast policies; use original model/recipe/batch size and native-validated refreshed data, require sufficient complete measured windows, and reject incomplete/mismatched observations. No automatic research launch or budget extension.
+- [X] T157 Implement unchanged-tensor debit snapshots and bounded writer-local verified-file reuse while retaining durable per-update state, atomic publication and full verification at restore/export. Add independent tamper, link fallback, failure and exact-resume counterexamples.
+- [X] T158 Reserve learner final publication/process-exit time, preserve cumulative budgets and pending debits, correct committed-token reporting, and emit bounded update/checkpoint/window timing. Test expired allowances and publication after partial termination.
+- [X] T159 Implement the small paired training-probe selection and conservative forecast policies; use original model/recipe/batch size and native-validated refreshed data, require sufficient complete measured windows, and reject incomplete/mismatched observations. No automatic research launch or budget extension.
+
+T157–T159 validation: 77 affected policy, preparation, learner and smoke tests passed; one installed-model test skipped because the local environment lacks wasmtime. Actual tiny Torch CPU exact-resume, replay, pending-debit, failed-copy, same-size tamper and process-exit-reserve tests passed. An additional expired saved-clock case confirms no new update or exposure reset. Native/HIP throughput remains unmeasured.
 
 ### Phase C/D — canonical probe, regression validation and handoff
 

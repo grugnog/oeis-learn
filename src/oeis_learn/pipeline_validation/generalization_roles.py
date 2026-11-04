@@ -57,7 +57,7 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
     computation_seconds=remaining_seconds(deadline)-cleanup_seconds
-    if (role,operation) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare')}:
+    if (role,operation) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare'),(Role.LEARNER,'train')}:
         # The process deadline includes interpreter startup and exit. Leave those
         # inside work, separate from the protected container cleanup allowance.
         computation_seconds-=min(30,computation_seconds/5)

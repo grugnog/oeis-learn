@@ -25,12 +25,12 @@ def batch_budget(static,refreshed):
     return cap
 
 
-def batch_charges(rows):
-    if len(rows)!=32:raise ValueError('exact32-row smoke shard required')
-    return [charge_tokens([encode_body(r['source']) for r in rows[i:i+16]],bos=1,pad=0) for i in (0,16)]
+def batch_charges(rows,expected_rows=32):
+    if len(rows)!=expected_rows or expected_rows%16:raise ValueError('complete fixed-size shard required')
+    return [charge_tokens([encode_body(r['source']) for r in rows[i:i+16]],bos=1,pad=0) for i in range(0,expected_rows,16)]
 
 
-def reduced_blueprint(root,job,output):
+def reduced_blueprint(root,job,output,*,probe=False):
     """Freeze two32-row shards from the already native-admitted data."""
     from oeis_learn.generalization.preparation import scan,exclusion_record
     from oeis_learn.generalization.exclusions import ExclusionIndex
@@ -41,12 +41,13 @@ def reduced_blueprint(root,job,output):
     if design['smoke']['version']!='paired-source-smoke/v1':raise ValueError('frozen smoke policy required')
     prepared=confined(root,job['manifest']).parent
     target=Path(output);target.mkdir(parents=True)
+    rows_per_family=8 if probe else 1
     cells=[];training=[];exclusion=ExclusionIndex();seen=set()
     for original in cfg['cells']:
         if original['role']=='training' and len(training)==2:continue
         cell={k:v for k,v in original.items() if k not in {'refresh','candidates'}}
         if original['role']=='training':
-            cell.update(count=32,quotas={'family:'+d['family']:1 for d in design['descriptors']})
+            cell.update(count=32*rows_per_family,quotas={'family:'+d['family']:rows_per_family for d in design['descriptors']})
             cell['refresh']=dict(original['refresh'],draws=2048)
             candidates,_=draw_candidates(root,reference(confined(root,cfg['descriptors']),root),cell)
             choice,ledger=scan(candidates,**{k:cell[k] for k in ('role','holdout','count','quotas','structural','length_boundary')},
@@ -64,17 +65,18 @@ def reduced_blueprint(root,job,output):
         else:cell['candidates']=str(path.relative_to(root))
         cells.append(cell)
     if len(training)!=2:raise ValueError('two prepared smoke shards required')
-    charges=[batch_charges(rows) for rows in training]
-    cap=batch_budget(*charges)
-    protocol=seal(dict(version='fresh-pilot-smoke/v1',parent_protocol=design['identity'],
+    charges=[batch_charges(rows,32*rows_per_family) for rows in training]
+    from fresh_pilot_training_policy import budget
+    cap=budget(charges) if probe else batch_budget(*charges)
+    protocol=seal(dict(version='fresh-pilot-training-probe/v1' if probe else 'fresh-pilot-smoke/v1',parent_protocol=design['identity'],
         bank_seeds=design['bank_seeds'],role_seconds=1800,target_tokens=cap,
-        first_shard_tokens=sum(charges[0]),minimum_updates=3,selection_rows=2,
+        first_shard_tokens=sum(charges[0]),minimum_updates=24 if probe else 3,selection_rows=0 if probe else 2,
         batch_charges=charges,training_sources=[digest([r['source'] for r in rows]) for rows in training],
         gate='finite changed weights; fresh rows consumed; all scoring outcomes recorded; zero accuracy threshold',
         purpose='software diagnostic only; never scientific comparison or initializer'))
     write(target/'protocol.json',protocol)
     cfg.update(hypothesis='Paired source smoke '+protocol['identity'],cells=cells,
-        milestones=[cap],budgets=dict(cfg['budgets'],target_tokens=cap,seconds=900),preparation_seconds=900,
+        milestones=[cap],budgets=dict(cfg['budgets'],target_tokens=cap,seconds=1800 if probe else 900),preparation_seconds=1800 if probe else 900,
         training={'static':dict(cells=[cells[-2]['name']],data_mode='static',batch_size=16),
                   'refreshed':dict(cells=[c['name'] for c in cells[-2:]],data_mode='refresh',batch_size=16)})
     write(target/'blueprint.json',cfg)

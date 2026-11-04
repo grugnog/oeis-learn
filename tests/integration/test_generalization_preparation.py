@@ -242,3 +242,20 @@ def test_long_preparation_role_has_real_outer_and_inner_headroom(tmp_path):
     assert 86000<captured['runtime']['seconds']<captured['outer']<86400
     with pytest.raises(ValueError,match='duration'):
         invoke(host,'image',tmp_path,'generator',{},output='forbidden',operation='evaluate',settings={},seconds=86400)
+
+
+def test_learner_publication_has_separate_process_exit_and_cleanup_headroom(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_roles import invoke
+    for name in ('training','replay'):(tmp_path/name).mkdir()
+    captured={}
+    class Engine:
+        def command(self,**kw):
+            captured['runtime']=json.loads(kw['argv'][-1]);return ['fake-container']
+        def remove(self,name,timeout):pass
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=64<<30,cpus=4))
+    def launch(argv,output,**kw):
+        captured['outer']=kw['seconds'];(tmp_path/'out/result.json').write_text('{"status":"PASS"}')
+    invoke(host,'image',tmp_path,'learner',{'training_targets':'training','verified_training_replay':'replay'},
+        output='out',operation='train',settings={},seconds=120,launcher=launch)
+    assert 0<captured['runtime']['seconds']<captured['outer']-10<120
