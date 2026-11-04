@@ -14,7 +14,9 @@ Plan: [validation/prospective-evaluation-plan.md](validation/prospective-evaluat
 
 ### Reopened Phase B — fresh cohort and immutable lineage
 
-- [ ] T171 Freeze an outcome-blind new numeric reservoir with unchanged family/stratum counts and three-way classification; implement exact bounded exclusions against original prepared data, native admission and a new evaluation-only identity. Write independent counterexamples first; preserve retained checkpoint lineage and sealed assessment.
+- [X] T171 Freeze an outcome-blind new numeric reservoir with unchanged family/stratum counts and three-way classification; implement exact bounded exclusions against original prepared data, native admission and a new evaluation-only identity. Write independent counterexamples first; preserve retained checkpoint lineage and sealed assessment.
+
+T171 validation: observed13 missing-policy counterexamples failing, then18 focused policy/native-boundary tests passing. Exact candidate-side exclusions preserve arbitrary integers and shifted windows; no new native/HIP result is claimed. The frozen family roster, zero-token E0 identity, immutable checkpoint/preparation lineage and reporting rules live in the temporary policy helper.
 
 ### Phase C — consolidated evaluation-only handoff
 
