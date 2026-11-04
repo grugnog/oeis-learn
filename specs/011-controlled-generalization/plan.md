@@ -457,3 +457,52 @@ Reliability validation: exact resumed/uninterrupted weights and ledgers for stat
 refresh and replay; pending-debit and expired-budget paths; failed save/publish;
 file tampering/replacement/link fallback; nested deadline/publication margins;
 bounded telemetry; probe forecasts, missing/partial evidence and serial CLI routing.
+
+
+## Hourly snapshots with independent progress (T161–T163)
+
+Operator decision on 2026-11-04: losing up to about 60 minutes of unsaved model
+progress is acceptable; frequent full snapshots are no longer required. The probe
+at 71121f6 completed both arms but spent about 96% of learner wall time in the
+checkpoint region. Keep training/model/data recipes unchanged and separate the
+recovery cadence from observation cadence. This supersedes T157's per-update full
+snapshot requirement for newly frozen research runs only.
+
+Single reopened Phase B: research learner configurations bind `hourly/v1`; old
+fixture/direct callers and dense acceptance remain `per-update/v1`. Full snapshots
+occur initially, at required milestone boundaries, after about 3,600 seconds of
+work since the last save, and at orderly termination. A slow individual operation
+can cross a boundary; external process deadlines remain authoritative. Never
+publish incomplete tensor generations. Retain the previous verified generation
+until replacement publication succeeds. Controlled acceptance stops force a full
+snapshot and preserve exact checkpoint-boundary continuation.
+
+Before each update, atomically persist a small sealed journal with compatibility,
+cap, latest full snapshot, charged ledger, previously discarded tokens, cumulative
+elapsed time and invocation time base; persist the completed ledger afterward.
+No tensor or private example contents enter this journal. Reports independently
+record committed/model tokens, charged tokens, discarded tokens, live updates,
+last recoverable snapshot, recent bounded throughput windows, checkpoint I/O and
+publication time. These records must remain bounded on arbitrarily long runs.
+
+On interrupted periodic resume, restore all state from the latest full snapshot,
+then carry forward any newer journal charge as discarded exposure. Admission tests
+remaining budget against model ledger plus discarded charge; token descriptors
+continue to describe actual saved weights. Unsaved work is rolled back, not claimed
+as recovered or silently free. Original supervisor elapsed time (only after
+acknowledged cleanup) bounds invocation time; cumulative time is at least every
+persisted clock. Without a reliable terminal supervisor record, an unclean resume
+conservatively spends the remaining frozen wall allowance rather than guessing a
+refund. A clean terminal journal resumes from its exact saved boundary. Missing
+journals and older-than-latest selected resume points fail closed for hourly runs.
+A latest-pointer/new-journal publication interruption is reconciled only when the
+verified newer full state accounts for at least the preceding journal ledger.
+
+Phase C/D projects the journal and original supervisor timing using the existing
+canonical role boundary, retains source closure checks, and packages aggregate
+progress/timing in the temporary probe. The next single operator command rebuilds
+current images, qualifies, and runs the small paired probe; no full research is
+launched automatically. The forecast adds measured snapshot overhead at the
+hourly cadence rather than assuming checkpoint-free windows imply zero persistence
+cost. Recovery/source-policy changes require new qualification. No previous
+checkpoint or qualification identity is rewritten.

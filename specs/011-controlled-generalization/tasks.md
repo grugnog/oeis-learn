@@ -8,6 +8,17 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Hourly recovery snapshots and frequent progress — 2026-11-04 UTC
+
+### Reopened Phase B — checkpoint cadence, crash accounting and progress
+
+- [ ] T161 Implement a frozen hourly research checkpoint policy with initialization, milestone and terminal saves; maintain a small atomic debit/progress journal and complete throughput windows independently of tensor saves. Preserve the dense acceptance policy and explicitly bind cadence into compatibility.
+- [ ] T162 Implement rollback accounting from the latest verified full snapshot and newer journal: restore model/RNG/cursor/replay, retain charged unsaved tokens separately, account original supervised elapsed time, and conservatively exhaust the wall allowance when crash-time evidence is unavailable. Reject missing/stale/malformed journals and unsupported older resume points. Add independent interruption, atomic-window, budget and milestone tests, including real tiny Torch continuation.
+
+### Phase C/D — canonical resume, progress packaging and measured handoff
+
+- [ ] T163 Project the original journal and supervised recovery timing through canonical learner resume; expose committed/charged/discarded exposure and recoverable checkpoint progress; exercise periodic persistence in installed acceptance, update the temporary paired probe/report and forecast for snapshot overhead. Refresh CI/source bindings, run affected local checks, document one-invocation hardware follow-up, commit and push each grouping without HIP or CI waits.
+
 ## Reliable learner persistence — 2026-11-04 UTC
 
 ### Reopened Phase B — checkpoint, accounting and measurement policies

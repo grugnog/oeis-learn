@@ -233,3 +233,17 @@ Research execution order is distinct from implementation phases. The complete fe
 - Completion floors, replay caps, milestones and promotion thresholds are engineering defaults, not literature-established effects. Different rules must be frozen before assessment results are observed.
 - Non-goals: model architecture changes, new language/library primitives, pretrained teachers, learned correctness verifiers, new continuous/HNF/recurrence solvers, MCTS/grammar-alignment redesign, policy-gradient/GRPO training, and automatic longer unchanged runs. Each requires separate justification.
 - This deliverable is a specification. Implementation planning is next; research execution remains subject to existing qualification and run-governance gates.
+
+
+### Operator-approved periodic recovery policy — 2026-11-04
+
+For newly frozen research learners, FR-024 permits approximately hourly complete
+recovery snapshots, plus initialization, required milestones and orderly terminal
+saves. A crash may discard up to that interval of model progress. Resume restores
+an exact saved boundary, not the last unsaved update; a separate durable journal
+must preserve later charges and distinguish discarded exposure from tokens in the
+restored weights. Unknown crash time cannot replenish the frozen wall budget.
+Progress counters and throughput projections must remain frequent and bounded,
+independently of full checkpoint frequency. Historical dense checkpoint evidence
+retains its original meaning. This is the user's explicit recovery tradeoff, not
+a claim of improved HIP speed or exact recovery of unsaved updates.
