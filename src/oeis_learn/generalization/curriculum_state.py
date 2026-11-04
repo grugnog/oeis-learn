@@ -18,7 +18,7 @@ class CurriculumState:
     def __init__(self,families,probes,anchors,*,seed,arm,token_cap,inventory,segment):
         integer(token_cap,1);integer(seed)
         if arm not in {'C','D'} or not isinstance(segment,str) or not segment:raise ValueError('adaptive arm/segment required')
-        if set(families)!=set(probes) or len({r for rows in families.values() for r in rows})!=sum(map(len,families.values())):
+        if set(families)!=set(probes) or len({r for rows in probes.values() for r in rows})!=sum(map(len,probes.values())) or len({r for rows in families.values() for r in rows})!=sum(map(len,families.values())):
             raise ValueError('disjoint family row/probe inventory')
         if any(f not in families or a not in families[f] for a,f in anchors.items()):raise ValueError('anchors must be original family rows')
         if set(r for rows in families.values() for r in rows)&set(r for rows in probes.values() for r in rows):raise ValueError('gradient/probe overlap')
@@ -177,7 +177,7 @@ class CurriculumState:
         s.segments=list(state['segments'])
         for key in ('block','pending','pauses','last_observation'):setattr(s,key,copy.deepcopy(state[key]))
         if s.review.last_update!=s.updates or s.review.terminal!=s.terminal or not set(s.coverage.pauses)<=set(s.pauses):raise ValueError('model/queue/pause clock mismatch')
-        if not set(s.pauses)<={'optimizer_failure_requires_restore','censored_rewards','required_reward_budget','invalid_review_grades'}:raise ValueError('unknown pause')
+        if len(set(s.pauses))!=len(s.pauses) or not set(s.pauses)<={'optimizer_failure_requires_restore','censored_rewards','required_reward_budget','invalid_review_grades'}:raise ValueError('unknown pause')
         if (s.block is None)!=(s.kernel.pending is None):raise ValueError('pending kernel/block mismatch')
         if s.block:
             b=s.block
@@ -186,6 +186,9 @@ class CurriculumState:
             for key in ('start_update','completed','tokens'):integer(b[key])
             if b['completed']>8 or b['start_update']+b['completed']!=s.updates or b['phase'] not in {'pre','updates','post','feedback'}:raise ValueError('pending block update/phase mismatch')
             if b['probe_ids'] not in [s.probe_ids[b['family']][i:i+2] for i in (0,2,4,6)]:raise ValueError('pending probe panel')
+            if b['tokens']>s.useful_tokens or (b['completed']==0 and b['tokens']!=0) or b['tokens']<b['completed']:raise ValueError('block token debit mismatch')
+            if b['start_update']%8 or s.arm=='C' and b['start_update']%32 not in (0,8,16):raise ValueError('block cycle boundary')
+            if b['phase']=='pre' and (b['pre'] is not None or b['post'] is not None) or b['phase']!='feedback' and b['post'] is not None or b['phase']=='updates' and b['completed']>=8:raise ValueError('block observation phase')
             if b['pre'] is not None:s._panel(b['pre'],b['start_update'])
             if b['post'] is not None:s._panel(b['post'],s.updates)
             if b['phase'] in {'post','feedback'} and b['completed']!=8 or b['phase']=='pre' and b['completed']!=0:raise ValueError('pending phase/cursor')
@@ -193,8 +196,22 @@ class CurriculumState:
             p=s.pending
             if set(p)!={'event_id','family','rows','anchor','channel','model_before','tokens','grade','phase'} or p['model_before']!=s.updates or p['phase'] not in {'planned','reserved','failed'} or p['family'] not in s.families:raise ValueError('pending learner update')
             if len(p['rows'])!=len(set(p['rows'])) or not p['rows'] or not set(p['rows'])<=set(s.families[p['family']]):raise ValueError('pending rows')
+            if p['event_id']!=f'{s.segment}:update:{s.reservations}' or p['channel'] not in {'bandit','review','fallback'}:raise ValueError('pending event/channel identity')
             if p['phase']!='planned':integer(p['tokens'],1)
             elif p['tokens'] is not None:raise ValueError('unreserved batch has debit')
             if s.block and (p['channel']!='bandit' or p['family']!=s.block['family'] or s.block['phase']!='updates'):raise ValueError('intervening gradient')
+            if s.block and p['anchor'] is not None:raise ValueError('bandit update cannot carry review anchor')
+            if not s.block:
+                if s.arm!='C' or not review_slot(s.updates) or p['channel']=='bandit':raise ValueError('review cycle mismatch')
+                due=s.review.choose(s.updates+1)
+                if p['anchor']!=due or (due is None)!=(p['channel']=='fallback'):raise ValueError('review obligation mismatch')
+            if p['grade'] is not None:
+                g=p['grade'];a=p['anchor']
+                if a is None or not s.review.anchors[a]['acquired'] or set(g)!={'anchor','model_update','recall'} or g['anchor']!=a or g['model_update']!=s.updates or type(g['recall']) is not bool or p['phase']=='planned':raise ValueError('unbound pre-update review grade')
             if p['phase']=='failed' and 'optimizer_failure_requires_restore' not in s.pauses:raise ValueError('failed optimizer without pause')
+        reserved=s.pending['tokens'] if s.pending and s.pending['phase'] in {'reserved','failed'} else 0
+        if s.charged_tokens!=s.useful_tokens+s.discarded_tokens+reserved:raise ValueError('unreconciled token ledger')
+        completed=s.updates//8 if s.arm=='D' else s.updates//32*3+min(3,s.updates%32//8)
+        actions=completed+int(s.block is not None and s.block['completed']<8)
+        if s.kernel.action_count!=actions or s.kernel.valid_updates>s.kernel.action_count-int(s.block is not None):raise ValueError('model/kernel action clock mismatch')
         return s

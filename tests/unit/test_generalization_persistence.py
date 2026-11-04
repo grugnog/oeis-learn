@@ -145,3 +145,10 @@ def test_pac_crash_after_saved_reservation_charges_recomputed_batch_again():
     assert got.updates==1 and got.discarded_tokens==17 and got.pending['phase']=='planned'
     assert got.pending['event_id'].startswith('s1:')
     assert got.reserve(17) and got.charged_tokens==51
+
+
+def test_failed_optimizer_cannot_publish_potentially_partial_tensors():
+    from oeis_learn.generalization.state import pac_snapshot
+    s,saved,identity=pac_saved();batch=s.plan_batch(2);s.reserve(17);s.commit(batch['event_id'],success=False)
+    states=saved['states'];states['data']['pending_batch']=s.pending
+    with pytest.raises(ValueError,match='failed optimizer'):pac_snapshot(states,s,**identity)

@@ -99,3 +99,86 @@ def test_pure_binding_rejects_newer_policy_on_older_model():
     assert bind_pac_state(s.snapshot(),inventory=s.inventory,model_update=0,pending_batch=s.pending).snapshot()==s.snapshot()
     for update,pending in [(1,s.pending),(0,None)]:
         with pytest.raises(ValueError):bind_pac_state(s.snapshot(),inventory=s.inventory,model_update=update,pending_batch=pending)
+
+
+def wide_state(arm='C'):
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    families={f:[f+str(i) for i in range(512)] for f in ('a','b')}
+    probes={f:[f+'p'+str(i) for i in range(8)] for f in families}
+    anchors={f+str(i):f for f in families for i in range(4)}
+    return CurriculumState(families,probes,anchors,seed=19,arm=arm,token_cap=100000,
+                           inventory=digest([families,probes,anchors]),segment='trace')
+
+
+def advance(s):
+    from oeis_learn.generalization.review import review_slot
+    if s.pending:
+        if s.pending['phase']=='planned':
+            anchor=s.pending['anchor']
+            grade=dict(anchor=anchor,model_update=s.updates,recall=True) if anchor and s.review.anchors[anchor]['acquired'] else None
+            s.reserve(17,grade=grade)
+        else:s.commit(s.pending['event_id'],success=True,elapsed_seconds=.25)
+    elif s.block:
+        phase=s.block['phase']
+        if phase=='pre':s.record_pre(panel(s,2+s.updates/10000))
+        elif phase=='post':s.record_post(panel(s,1+(s.updates%13)/100))
+        elif phase=='feedback':s.finish_feedback()
+        else:s.plan_batch(2)
+    elif s.arm=='C' and review_slot(s.updates):s.plan_batch(2)
+    else:s.start_block()
+
+
+def test_uninterrupted_and_many_clean_pause_boundaries_match_all_state():
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    a=wide_state();b=wide_state();steps=0;boundaries=set();graded=0
+    while a.updates<1024 or a.block is not None or a.pending is not None:
+        advance(a);advance(b);steps+=1
+        if a.pending and a.pending['grade']:graded+=1
+        boundary=a.pending['phase'] if a.pending else a.block['phase'] if a.block else 'boundary'
+        boundaries.add(boundary)
+        if steps%17==0 or boundary in ('pre','post','feedback'):
+            b=CurriculumState.restore(json.loads(json.dumps(b.snapshot())),inventory=a.inventory)
+        assert a.snapshot()==b.snapshot()
+    assert {'planned','reserved','pre','updates','post','feedback','boundary'}<=boundaries
+    assert a.updates==1024 and a.useful_tokens==a.charged_tokens==1024*17
+    assert a.kernel.valid_updates==96 and a.scaler.seen==96 and graded>0
+    assert any(x['queue']>0 for x in a.review.anchors.values())
+
+
+def test_review_failure_cannot_commit_preupdate_recall():
+    s=wide_state()
+    while not (s.pending and s.pending['phase']=='reserved' and s.pending['grade']):advance(s)
+    queue=copy.deepcopy(s.review.snapshot());updates=s.updates;tokens=s.charged_tokens
+    s.commit(s.pending['event_id'],success=False)
+    assert s.review.snapshot()==queue and s.updates==updates and s.charged_tokens==tokens
+
+
+def test_partial_block_and_pending_reward_cannot_be_forged_on_restore():
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    s=state();begin(s);s.plan_batch(2);s.reserve(17)
+    for mutate in (
+        lambda x:x['pending'].update(event_id='old-event'),
+        lambda x:x['pending'].update(channel='review'),
+        lambda x:x['pending'].update(grade=dict(anchor='a0',model_update=0,recall=True)),
+        lambda x:x['block'].update(phase='feedback'),
+        lambda x:x['block'].update(tokens=9999),
+        lambda x:x.update(pauses=[] ,terminal='yes'),
+    ):
+        bad=copy.deepcopy(s.snapshot());mutate(bad)
+        with pytest.raises(ValueError):CurriculumState.restore(bad,inventory=s.inventory)
+
+
+def test_terminal_censored_and_failed_states_keep_their_dispositions():
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    s=state(cap=20);begin(s);update(s);s.plan_batch(2);assert not s.reserve(17)
+    restored=CurriculumState.restore(json.loads(json.dumps(s.snapshot())),inventory=s.inventory)
+    assert restored.snapshot()==s.snapshot()
+    with pytest.raises(ValueError):restored.start_block()
+    s=state()
+    for _ in range(2):
+        s.start_block();s.record_pre(None)
+        for _ in range(8):update(s)
+        s.record_post(None);s.finish_feedback()
+    restored=CurriculumState.restore(s.snapshot(),inventory=s.inventory)
+    assert restored.pauses==['censored_rewards'] and restored.coverage.censored_rewards==2
+    with pytest.raises(ValueError):restored.start_block()

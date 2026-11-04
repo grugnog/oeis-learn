@@ -94,3 +94,22 @@ semantic rotations, common 256-update panels, B shadow observations, C acquired-
 opportunities and D's extra rewards are separately defined and counted. Forecasts
 include initial/final panels and started partial-block reserves. No monitoring
 result is kernel credit or an anchor grade. Actual observation costs await C/E.
+
+## B5 — T020–T023
+
+Combined pure transaction/persistence suite: **26 passed**; added failed-optimizer
+publication guard: **1 passed**. A 1,024-update trace and repeatedly JSON-restored
+trace agree on all decisions, streams/cursors, probe panels, 96 kernel/scaler
+updates, review acquisition/grades, pending state and costs. The counterexamples
+also reject forged event IDs, phases, grades and inconsistent model/token clocks.
+Censored pauses and terminal partial blocks survive restore. Initial attempts
+exposed missing restore invariants; those were fixed before closing B.
+
+Complete-generation manifests verify all ten component hashes and exact
+contract/inventory/source/environment identities. Clean pauses resume the same
+pending work. Crash recovery instead retains the saved model/policy and charges
+newer lost tokens/time; recomputation uses a fresh segment/event and fresh debit.
+A saved pre-optimizer reservation is discarded/charged before its recomputation,
+not refunded. Failed optimizer tensors cannot publish a complete generation.
+Actual model/optimizer/device equality and atomic filesystem publication remain C/E;
+these tests intentionally do not substitute dictionaries for installed tensor proof.

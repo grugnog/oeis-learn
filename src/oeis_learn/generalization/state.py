@@ -52,6 +52,8 @@ def bind_pac_state(curriculum,*,inventory,model_update,pending_batch):
 def pac_snapshot(states,curriculum,*,contract,inventory,source,environment):
     """One model-bound envelope; no weights-only or policy-only resume authority."""
     _complete(states)
+    if curriculum.pending and curriculum.pending['phase']=='failed':
+        raise ValueError('failed optimizer tensors cannot publish a complete generation')
     policy=bind_pac_state(curriculum.snapshot(),inventory=inventory,model_update=states['data']['cursor'],pending_batch=states['data']['pending_batch'])
     return seal(dict(version='pac-learner-state/v1',kind='full_state',contract=contract,inventory=inventory,source=source,
                      environment=environment,states=copy.deepcopy(states),curriculum=policy.snapshot()))
