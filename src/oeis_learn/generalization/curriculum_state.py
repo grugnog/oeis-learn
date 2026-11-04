@@ -24,7 +24,7 @@ class CurriculumState:
         if set(r for rows in families.values() for r in rows)&set(r for rows in probes.values() for r in rows):raise ValueError('gradient/probe overlap')
         if inventory!=digest([families,probes,anchors]):raise ValueError('model-bound inventory identity')
         self.families=copy.deepcopy(families);self.probe_ids=copy.deepcopy(probes);self.anchor_ids=dict(anchors)
-        self.seed=seed;self.arm=arm;self.cap=token_cap;self.inventory=inventory;self.segment=segment
+        self.seed=seed;self.arm=arm;self.cap=token_cap;self.inventory=inventory;self.segment=segment;self.segments=[segment]
         self.kernel=Exp3S(sorted(families),seed=stream_seed(seed,'bandit'))
         self.scaler=RewardScaler(seed=seed)
         self.streams={f:FamilyStream(f,rows,seed=seed) for f,rows in families.items()}
@@ -147,7 +147,7 @@ class CurriculumState:
 
     def snapshot(self):
         return dict(version=self.VERSION,policy=self.POLICY,families=copy.deepcopy(self.families),probes=copy.deepcopy(self.probe_ids),
-                    anchors=dict(self.anchor_ids),seed=self.seed,arm=self.arm,cap=self.cap,inventory=self.inventory,segment=self.segment,
+                    anchors=dict(self.anchor_ids),seed=self.seed,arm=self.arm,cap=self.cap,inventory=self.inventory,segment=self.segment,segments=list(self.segments),
                     kernel=self.kernel.snapshot(),scaler=self.scaler.snapshot(),row_streams={f:s.snapshot() for f,s in self.streams.items()},
                     probe_streams={f:p.snapshot() for f,p in self.probes.items()},review=self.review.snapshot(),coverage=self.coverage.snapshot(),
                     fallback_rng=rng_state(self.fallback_rng),updates=self.updates,charged_tokens=self.charged_tokens,useful_tokens=self.useful_tokens,
@@ -173,6 +173,8 @@ class CurriculumState:
         s.probes={f:ProbeRotation.restore(state['probe_streams'][f],probes=rows) for f,rows in s.probe_ids.items()}
         s.review=ReviewQueue.restore(state['review'],anchors=s.anchor_ids);s.coverage=FeedbackCoverage.restore(state['coverage'],families=sorted(s.families))
         s.fallback_rng=rng_restore(state['fallback_rng'])
+        if not 1<=len(state['segments'])<=4096 or len(set(state['segments']))!=len(state['segments']) or state['segment'] not in state['segments'] or any(not isinstance(x,str) or not x for x in state['segments']):raise ValueError('recovery segment history')
+        s.segments=list(state['segments'])
         for key in ('block','pending','pauses','last_observation'):setattr(s,key,copy.deepcopy(state[key]))
         if s.review.last_update!=s.updates or s.review.terminal!=s.terminal or not set(s.coverage.pauses)<=set(s.pauses):raise ValueError('model/queue/pause clock mismatch')
         if not set(s.pauses)<={'optimizer_failure_requires_restore','censored_rewards','required_reward_budget','invalid_review_grades'}:raise ValueError('unknown pause')
