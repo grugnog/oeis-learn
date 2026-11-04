@@ -563,3 +563,9 @@ run to the original matched-exposure scientific comparison or extend its cap.
 Keep the latest saved model available for explicit subsequent decisions. Recent
 64 eight-update windows and a coalesced whole-invocation trend of at most128 bins
 retain loss observations and throughput without unbounded logs.
+
+## Prospective retained-checkpoint evaluation (T171–T174)
+
+See [the frozen implementation plan](validation/prospective-evaluation-plan.md).
+One reopened algorithm phase handles new cohort/exclusion/identity policy; routine
+C/D reuses installed roles and one hardware invocation. No new full learner.

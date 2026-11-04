@@ -8,6 +8,23 @@
 
 **Tests**: Explicitly required by specification NFR-001/005 and the constitution. Write independent reference/counterexample tests before the corresponding algorithm, observe the intended failure, then implement. Container/HIP execution occurs only at its declared gate.
 
+## Prospective retained-checkpoint evaluation — 2026-11-04 UTC
+
+Plan: [validation/prospective-evaluation-plan.md](validation/prospective-evaluation-plan.md).
+
+### Reopened Phase B — fresh cohort and immutable lineage
+
+- [ ] T171 Freeze an outcome-blind new numeric reservoir with unchanged family/stratum counts and three-way classification; implement exact bounded exclusions against original prepared data, native admission and a new evaluation-only identity. Write independent counterexamples first; preserve retained checkpoint lineage and sealed assessment.
+
+### Phase C — consolidated evaluation-only handoff
+
+- [ ] T172 Implement a temporary bounded controller that verifies original inputs, consumes one current-source qualification, prepares the fresh cohort and invokes existing retained generator/scorer roles with no learner. Freeze complete protocol before inference; enforce isolation, generous stage limits, disk bounds and verified success/failure exports.
+
+### Phase D — validation and operator gate
+
+- [ ] T173 Run local policy/controller/role-boundary regressions, review against requirements and current source closure, document exact consolidated commands and runtime expectations, and commit/push each grouping without waiting for CI.
+- [ ] T174 Operator: run the consolidated current-source HIP qualification and retained-checkpoint evaluation; independently reconcile the returned archive before making new scientific claims.
+
 ## Observable continuation follow-up — 2026-11-04 UTC
 
 Plan: [validation/observable-evaluation-plan.md](validation/observable-evaluation-plan.md).
