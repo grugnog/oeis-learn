@@ -1,15 +1,15 @@
 # Validation and first-pilot guide
 
-## Current next step: read-only recovery evidence
+## Current next step: choose the fresh evaluation scope
 
-The prospective run `observable-eval-20261104T193226Z` completed current-source
-qualification, then failed fresh cohort quotas after original-corpus exclusions.
-Neither retained evaluation started. Do not repeat the full run yet: use the
-[read-only diagnostic command](validation/prospective-evaluation-recovery-20261104.md)
-to recover the missing family shortfalls from that directory. This needs no image
-build, containers or HIP. Preserve that run, its qualification and the original
-pilot/preparation inputs. T175 fixes reporting; T176 awaits the original ledger;
-T174 remains incomplete. No assessment scoring is authorized.
+The read-only diagnostic export has been received and verified. Five parameter
+families have zero surviving candidates, leaving25 required tasks unfilled. Do not
+repeat the full run or diagnostic-export command. The [quota audit and proposed
+amendment](validation/prospective-quota-audit-20261104.md) recommend preserving the
+128-task structural primary comparison and explicitly deferring the parameter
+secondary comparison. This scope change has not been applied. T175/T176 are
+complete; T174 remains incomplete. Keep the failed run's compatible qualification
+and original inputs. No new HIP run or assessment scoring is requested yet.
 
 ## Historical completed full pilot with hourly snapshots (2026-11-04)
 

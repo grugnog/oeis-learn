@@ -57,7 +57,13 @@ Production source remains
 No source rebuild, new qualification, HIP execution or CI wait was performed.
 Numeric seed, reservoir, quotas, exclusions and inference budgets are unchanged.
 
-## Next action (T176): retrieve the original quota ledger
+## Completed action (T176): original quota ledger retrieved
+
+The returned `report(6).zip` has now been verified. See the
+[quota audit and proposed scope amendment](prospective-quota-audit-20261104.md).
+Do not repeat the historical export command below.
+
+### Historical evidence retrieval command
 
 Do not repeat the full evaluation yet. Keep the failed run and its qualification.
 Run this block from the workstation, then share the printed archive:

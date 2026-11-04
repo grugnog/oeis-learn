@@ -500,3 +500,34 @@ def test_exhausted_family_exports_counts_without_loosening_exclusions(tmp_path):
     assert all(r['surviving']==0 and r['deficit']==1 and r['exclusion_reasons']['source']>0 for r in report['families'])
     assert all(set(r)=={'stratum','family','required','reference_eligible','surviving','deficit','exclusion_reasons'} for r in report['families'])
     assert not (out/'summary.json').exists()
+
+
+@pytest.mark.parametrize('coefficient',[-1024,0,1024])
+@pytest.mark.parametrize('prefix,parameter,start,other,formula',[
+    ('073880ed','p2',49,'p0',lambda n,k:(2*k+1)*n),
+    ('7988b229','p0',0,'p1',lambda n,k:(k-1)*n),
+    ('99c9a504','p2',9,'p0',lambda n,k:k*n*n+n),
+    ('b44aad9a','p0',0,'p1',lambda n,k:(k-1)*n),
+    ('faaf9c87','p0',0,'p1',lambda n,k:k*n*n),
+])
+def test_low_support_branch_collides_despite_different_full_programs(
+        coefficient,prefix,parameter,start,other,formula):
+    """Synthetic mechanism counterexamples; no protected original data or saturation claim."""
+    import re
+    from oeis_learn.generalization.targets import ground
+    from oeis_learn.synthesis.reference import evaluate
+    d=policy().design(json.loads((HERE/'observable-evaluation-protocol.json').read_text()))
+    family=next(f for f in d['families'] if f.startswith('sha256:'+prefix))
+    template=d['families'][family]['parameter_source']
+    assignment={p:'2' for p in re.findall(r'param.get (p[0-9]+)',template)}
+    assignment[parameter]=str(coefficient);alternative=dict(assignment);alternative[other]='3'
+    sources=[ground(template,a) for a in (assignment,alternative)]
+    values=[list(evaluate(s,tuple(map(str,range(100)))).values) for s in sources]
+    expected=[str(formula(n,coefficient)) for n in range(start,start+20)]
+    assert sources[0]!=sources[1] and values[0]!=values[1]
+    assert values[0][start:start+20]==values[1][start:start+20]==expected
+    rows=[dict(id=str(i),family=family,holdout='parameter',source=s,group=str(i),variant=str(i),values=v)
+          for i,(s,v) in enumerate(zip(sources,values))]
+    index=policy().CandidateExclusions([rows[0]])
+    index.observe([rows[1]],role='training',holdout='parameter')
+    assert index.rejected()=={'0':{'finite_window'}}

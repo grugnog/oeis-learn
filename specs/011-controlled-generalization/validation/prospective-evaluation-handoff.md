@@ -2,7 +2,8 @@
 
 **Current status:** the first invocation completed qualification but failed fresh
 cohort admission. Do not repeat the full command below yet. Follow the
-[read-only recovery handoff](prospective-evaluation-recovery-20261104.md) first.
+[quota audit and proposed scope amendment](prospective-quota-audit-20261104.md) first.
+The recovery evidence has already been supplied; do not export it again.
 T174 remains incomplete.
 
 The following is the original pre-run handoff, retained for provenance.

@@ -14,7 +14,9 @@
 
 T175 validation:166 affected tests passed, including the real qualified archive packer, original-error preservation, a byte-for-byte read-only diagnostic export with hardware calls forbidden, and an exhausted-family counterexample. Production source remains `sha256:d44d83d2a8a88344893a49ccd1b80a3d8b3246a8c86953adf858105cf86dc57d`. See [the recovery audit and read-only handoff](validation/prospective-evaluation-recovery-20261104.md).
 
-- [ ] T176 Operator evidence: export the existing `observable-eval-20261104T193226Z` preparation quota ledger with the read-only diagnostic command; reconcile deficient families before choosing a frozen cohort amendment or resuming T174. No hardware run is required for this evidence retrieval.
+- [X] T176 Operator evidence: export the existing `observable-eval-20261104T193226Z` preparation quota ledger with the read-only diagnostic command; reconcile deficient families before choosing a frozen cohort amendment or resuming T174. No hardware run is required for this evidence retrieval.
+
+T176 evidence: verified `report(6).zip` and reconciled five completely unfilled parameter-family quotas (25 tasks). All62 prospective tests passed. Fifteen source-only synthetic counterexamples verify the low-support branch collision mechanism; they do not prove exhaustive original support saturation. See [the audit and explicit proposed scope amendment](validation/prospective-quota-audit-20261104.md). The exact256-row design remains unchanged pending the scientific scope decision; T174 remains incomplete.
 
 ## Prospective retained-checkpoint evaluation — 2026-11-04 UTC
 
