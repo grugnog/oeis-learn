@@ -68,7 +68,7 @@ mathematical, admission, transaction and resource rules are fixed for C to consu
 
 ### B2 — US2: Paired target safety (P1)
 
-- [ ] T011 [P] [US2] Extend independent grounding/sharing/control-dependency/over-eight-parameter counterexamples in `tests/unit/test_generalization_refresh_targets.py`; verify every original row survives as an exact paired target or counted whole-row literal fallback, including repeated constants and unsafe guards.
+- [X] T011 [P] [US2] Extend independent grounding/sharing/control-dependency/over-eight-parameter counterexamples in `tests/unit/test_generalization_refresh_targets.py`; verify every original row survives as an exact paired target or counted whole-row literal fallback, including repeated constants and unsafe guards.
 - [ ] T012 [US2] Reuse and only where necessary fix paired-target policy in `src/oeis_learn/generalization/targets.py`; enforce "Equal underlying rows; fallback retains original literal; private source handling follows existing dataset boundary", identical final-source validation/fitter/at-most-eight-parameter limits, and no partial-control parameterizer or eligibility drift between B/C.
 
 ### B3 — US3: Published kernel, reward and deterministic streams (P1)
