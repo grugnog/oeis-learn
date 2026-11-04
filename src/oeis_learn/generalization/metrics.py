@@ -50,3 +50,40 @@ def seed_uncertainty(paired_seeds, *, seed=0, draws=2000):
     means=sorted(sum((rng.choice(diffs) for _ in diffs),F())/len(diffs) for _ in range(draws))
     return dict(unit='paired_seed',seeds=len(diffs),method='percentile-bootstrap-95',
                 lower=means[int(draws*.025)],upper=means[min(draws-1,int(draws*.975))])
+
+
+def _pac_roster(roster):
+    from collections import Counter
+    if len(roster)!=128 or any(set(r)!={'family','category','stratum'} or r['stratum']!='structural' or not isinstance(r['family'],str) or not r['family'] for r in roster.values()):
+        raise ValueError('frozen 128-task structural roster required')
+    counts=Counter(r['category'] for r in roster.values())
+    families={c:{r['family'] for r in roster.values() if r['category']==c} for c in ('certified','ambiguous','unresolved')}
+    if counts!=dict(certified=68,ambiguous=26,unresolved=34) or [len(families[c]) for c in families]!=[18,4,5] or len(set.union(*families.values()))!=27:
+        raise ValueError('fixed structural category/family allocation')
+    return families
+
+
+def pac_structural_metrics(roster,outcomes):
+    """All frozen families remain in each denominator, including censored tasks."""
+    _pac_roster(roster)
+    summarize({k:r['family'] for k,r in roster.items()},outcomes)
+    results={}
+    for category in ('certified','ambiguous','unresolved'):
+        selected={k:r['family'] for k,r in roster.items() if r['category']==category}
+        s=summarize(selected,{k:outcomes[k] for k in selected if k in outcomes})
+        results[category]=dict(tasks=s.n,families=len(set(selected.values())),successes=s.successes,
+                               complete=s.n-s.unresolved,censored=s.unresolved,
+                               task_lower=str(s.lower),task_upper=str(s.upper),family_macro_lower=str(s.macro_lower),
+                               family_macro_upper=str(s.macro_upper),completion=str(s.completion))
+    return results
+
+
+def pac_paired_counts(roster,baseline,treatment):
+    _pac_roster(roster)
+    for outcome in (baseline,treatment):summarize({k:r['family'] for k,r in roster.items()},outcome)
+    selected=[k for k,r in roster.items() if r['category']=='certified']
+    pairs=[(baseline.get(k),treatment.get(k)) for k in selected]
+    complete=[(a,b) for a,b in pairs if a is not None and b is not None]
+    return dict(tasks=len(selected),joint_complete=len(complete),both=sum(a and b for a,b in complete),
+                baseline_only=sum(a and not b for a,b in complete),treatment_only=sum(b and not a for a,b in complete),
+                neither=sum(not a and not b for a,b in complete),censored_pairs=len(pairs)-len(complete))

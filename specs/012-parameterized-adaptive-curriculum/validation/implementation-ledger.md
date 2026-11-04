@@ -126,3 +126,15 @@ old/new/pinned/proof generations, private data copies, scratch, logs and both
 success/recovery packages; no original pruning. Scientific 60s/5s limits remain
 unchanged. These planners do not extend a running allowance or claim measured
 workstation throughput; canonical propagation is phase C.
+
+## B7 — T026–T027
+
+Metrics/reconciliation suites: **15 passed**. Independent unequal-family fixtures
+show identical task totals with different fixed family-macro results. Certified
+completion is >=65/68 in each compared arm, never 64/68; paired discordance excludes
+censored pairs while bounds retain the full denominator. Ambiguous/unresolved
+classification remains separate from execution censoring. B–A requires the frozen
+matched/fresh-control path; C–B measures the package; optional D comparisons require
+predeclared D. Missing arms/history stay explicit, single-seed uncertainty is not
+inferred from tasks, and no winner/positive-gain gate is added. Token costs reconcile
+useful/reserved/discarded/unspent allowance without claiming matched wall time.
