@@ -1,5 +1,8 @@
 # Prospective retained-checkpoint evaluation — 2026-11-04
 
+Status: T171–T173 implemented and locally validated; T174 awaits the operator
+HIP command in [the handoff](prospective-evaluation-handoff.md).
+
 The operator requested continuation through the next hardware handoff. Reuse both
 completed hourly-pilot latest checkpoints; do not retrain. This is a new selection
 experiment, not a replacement score for the inspected pilot or an assessment run.

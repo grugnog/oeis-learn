@@ -136,8 +136,21 @@ def publish_inputs(root,context,protocol,qualified,authority,summary):
     cohort_ref=put('cohort.json',manifest)
     selection=put('selection-roster.json',seal(dict(version='generalization-cohort-roster/v1',role='selection',cells=[cohort_ref])))
     marker=put('sealed-assessment.json',seal(dict(status='SEALED',source_study=context['study']['identity'],scope='no assessment execution or score access')))
+    if set(context['checkpoints'])!={'static','refreshed'}:raise ValueError('exact frozen retained pair required')
+    checkpoint_refs=[]
+    for arm,c in sorted(context['checkpoints'].items()):
+        checkpoint=c['checkpoint'];weights=checkpoint['weights']
+        if seal(checkpoint)!=checkpoint or weights!=protocol['checkpoints'][arm]:raise ValueError('retained checkpoint choice changed')
+        origin=confined(ROOT,c['weights_root']);source_path=confined(origin,weights['path'])
+        if source_path.stat().st_size!=weights['bytes'] or file_hash(source_path)!=weights['sha256']:
+            raise ValueError('retained weights changed before evaluation publication')
+        destination=research/'checkpoints'/arm;destination.mkdir(parents=True)
+        copy_path=confined(destination,weights['path'],exists=False);copy_path.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(source_path,copy_path)
+        if file_hash(copy_path)!=weights['sha256']:raise ValueError('retained weight projection changed')
+        write(destination/'checkpoint.json',checkpoint);checkpoint_refs.append(reference(destination/'checkpoint.json',research))
     frozen=seal(dict(protocol,version='prospective-retained-protocol/v1',design=protocol['identity'],roster=mapping,
-        prompts=[prompt],targets=[truth],checkpoint_lineage=context['checkpoints'],
+        prompts=[prompt],targets=[truth],checkpoint_manifests=checkpoint_refs,checkpoint_lineage=context['checkpoints'],
         original_preparation=context['preparation'],parent_manifest=context['parent_manifest'],
         native_summary=summary['identity'],source=digest(collect_snapshot(ROOT)),images=authority['images'],
         qualification=reference(qualified/'qualification.json',ROOT),

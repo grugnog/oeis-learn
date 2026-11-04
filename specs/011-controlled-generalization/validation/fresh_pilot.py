@@ -89,7 +89,7 @@ def role(job_path,output):
     job=read(confined(ROOT,job_path));target=confined(ROOT,output,exists=False)
     fields={'version','engine','qualified','manifest','study','study_root','protocol','role','operation',
         'artifacts','source_roots','settings','checkpoint','identity'}
-    if set(job)!=fields or seal(job)!=job or job.get('version')!='fresh-pilot-role/v1':raise ValueError('intact frozen role job required')
+    if set(job) not in (fields,fields|{'arm'}) or seal(job)!=job or job.get('version')!='fresh-pilot-role/v1':raise ValueError('intact frozen role job required')
     if (job['role'],job['operation']) not in {('generator','evaluate'),('selection','score')}:
         raise ValueError('unregistered pilot role')
     if target.exists():raise ValueError('fresh role wrapper output required')
@@ -106,6 +106,14 @@ def role(job_path,output):
         if seal(protocol)!=protocol or protocol['identity'] not in study['hypothesis']:
             raise ValueError('study does not bind this pilot protocol')
         checkpoint=job['checkpoint'];settings=job['settings']
+        if protocol.get('version')=='prospective-retained-protocol/v1':
+            arm=job.get('arm')
+            if arm not in {'static','refreshed'} or checkpoint!=protocol['checkpoint_lineage'][arm]['checkpoint']:
+                raise ValueError('job differs from frozen arm/checkpoint choice')
+            key='prompts' if job['role']=='generator' else 'targets'
+            actual=settings[key];expected=protocol[key][0]
+            if any(actual[k]!=expected[k] for k in ('bytes','sha256')):
+                raise ValueError('job differs from frozen evaluation cohort')
         if seal(checkpoint)!=checkpoint or settings['study']!=study['identity']:
             raise ValueError('job checkpoint/study binding differs')
         if job['role']=='generator' and (settings['source']!=checkpoint['identity'] or
@@ -132,7 +140,7 @@ def evaluate_arm(engine,qualified,research,manifest,study,protocol_ref,arm,check
     """Shared full/smoke wiring of the unchanged isolated generator and scorer."""
     def relative(p):return str(Path(p).relative_to(ROOT))
     generation=research/('generate-'+arm)
-    common=dict(version='fresh-pilot-role/v1',engine=engine,qualified=relative(qualified),
+    common=dict(version='fresh-pilot-role/v1',engine=engine,qualified=relative(qualified),arm=arm,
         manifest=manifest,study=study['identity'],study_root=relative(research),protocol=protocol_ref,checkpoint=checkpoint)
     job=seal(dict(common,role='generator',operation='evaluate',
         artifacts={'visible_prompts':[prompt_ref],'frozen_weights':[checkpoint['weights']]},

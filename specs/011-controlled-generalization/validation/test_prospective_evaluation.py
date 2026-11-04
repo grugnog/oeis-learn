@@ -139,7 +139,11 @@ def prepared_fixture(tmp_path,monkeypatch):
     from oeis_learn.synthesis.reference import evaluate
     from oeis_learn.pipeline_validation.identity import write
     from oeis_learn.pipeline_validation.generalization_preparation import reference
-    d=small_design();root=tmp_path/'new';root.mkdir()
+    d=small_design();root=tmp_path/'new';root.mkdir();checkpoints={}
+    for arm in ('static','refreshed'):
+        weights=tmp_path/('weights-'+arm);weights.mkdir();(weights/'weights.pt').write_bytes(b'fixture')
+        checkpoints[arm]=dict(checkpoint=seal(dict(version='generalization-checkpoint/v1',weights=reference(weights/'weights.pt',weights),arm=arm)),weights_root=weights.name)
+    d=seal(dict(d,checkpoints={a:c['checkpoint']['weights'] for a,c in checkpoints.items()}))
     def native(s,i):return dict(outcome='ok',values=evaluate(s,i).values)
     summary=policy().prepare(d,[],root/'prepare/cohort',execute=native,seconds=60,workers=1)
     parent=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['study']
@@ -149,7 +153,7 @@ def prepared_fixture(tmp_path,monkeypatch):
     runtime=dict(purpose='research',storage=dict(study_bytes=2<<30,checkpoint_bytes=1<<30,shard_bytes=256<<20,raw_bytes=128<<20,sharing_bytes=64<<20))
     q=tmp_path/'qualified';q.mkdir();write(q/'qualification.json',seal(dict(status='fixture')));write(q/'feature.json',seal(dict(status='fixture')))
     ref=reference(q/'qualification.json',tmp_path)
-    context=dict(study=parent,runtime=runtime,recipe=recipe,originals=[],checkpoints={},preparation=ref,parent_manifest=ref)
+    context=dict(study=parent,runtime=runtime,recipe=recipe,originals=[],checkpoints=checkpoints,preparation=ref,parent_manifest=ref)
     authority=dict(images=[digest('cpu'),digest('gpu')]);monkeypatch.setattr(h,'ROOT',tmp_path)
     # Keep production source identity deterministic without asking the fixture root to be a repo.
     import oeis_learn.experiments.source_snapshot as source
@@ -168,6 +172,11 @@ def test_real_resolved_E0_schema_runtime_and_no_training(tmp_path,monkeypatch):
     assert runtime['assessment'] is None and runtime['evaluation']['role']=='selection'
     assert protocol['identity'] in study['hypothesis']
     execution_refs(base,study,runtime)
+    from oeis_learn.pipeline_validation.generalization_workflow import _checkpoints
+    selected=_checkpoints(base,runtime['evaluation']['checkpoints'])
+    assert len(selected)==2
+    from oeis_learn.generalization.contracts import verify_artifact
+    for checkpoint,parent in selected:assert verify_artifact(parent,checkpoint['weights'])==b'fixture'
     assert all(set(p)=={'id','indices','values'} for p in json.loads((base/'visible/prompts.json').read_text()))
     assert not (base/'visible/targets.json').exists()
 
@@ -233,9 +242,6 @@ def test_controller_real_job_wiring_and_no_inference_after_failed_gate(tmp_path,
     monkeypatch.setattr(h,'lineage',lambda *_:context)
     monkeypatch.setattr(h.shutil,'disk_usage',lambda _:SimpleNamespace(free=256<<30))
     monkeypatch.setattr(generalization_lifecycle,'scope',lambda *a,**k:nullcontext())
-    for arm in ('static','refreshed'):
-        weights=tmp_path/('weights-'+arm);weights.mkdir();(weights/'weights.pt').write_bytes(b'fixture')
-        context['checkpoints'][arm]=dict(checkpoint=seal(dict(weights=reference(weights/'weights.pt',weights))),weights_root=weights.name)
     events=[]
     def qualification(*a):
         events.append('qualification')
@@ -374,3 +380,40 @@ def test_lineage_missing_or_changed_original_blocks_before_checkpoint_access(tmp
     if damage=='tampered':cell.write_text('[{}]')
     with pytest.raises(ValueError,match='original exclusion (cell missing|input changed)'):
         p.lineage(tmp_path,'pilot','prepared',{})
+
+
+@pytest.mark.parametrize('change',[None,'checkpoint','cohort','arm'])
+def test_prospective_role_rejects_refrozen_job_outside_committed_protocol(tmp_path,monkeypatch,change):
+    from types import SimpleNamespace
+    import fresh_pilot as api
+    import foundation_local
+    from oeis_learn.pipeline_validation import generalization_commands,generalization_runtime,generalization_roles
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    monkeypatch.setattr(api,'ROOT',tmp_path);monkeypatch.setattr(foundation_local,'Host',lambda args:SimpleNamespace(args=args))
+    images=[digest('cpu'),digest('gpu')];write(tmp_path/'qualified/qualification.json',dict(images=images))
+    weights=dict(path='weights.pt',bytes=1,sha256=digest('weights'));checkpoint=seal(dict(weights=weights))
+    truth=dict(path='truth.json',bytes=1,sha256=digest('truth'))
+    protocol=seal(dict(version='prospective-retained-protocol/v1',checkpoint_lineage={'static':dict(checkpoint=checkpoint)},targets=[truth],scoring_role_seconds=1200))
+    write(tmp_path/'protocol.json',protocol);study=dict(identity=digest('study'),hypothesis=protocol['identity'])
+    runtime=dict(purpose='research',images=images,storage={})
+    monkeypatch.setattr(generalization_runtime,'load',lambda *a:(tmp_path,study,runtime))
+    calls=[];monkeypatch.setattr(generalization_commands,'_qualification',lambda *a:calls.append('qualified'))
+    monkeypatch.setattr(generalization_roles,'project_and_invoke',lambda *a,**k:dict(status='PASS'))
+    for n in ('truth','candidates','study'):(tmp_path/n).mkdir()
+    job=dict(version='fresh-pilot-role/v1',engine='podman',qualified='qualified',manifest='study.json',arm='static',
+        study=study['identity'],study_root='study',protocol=reference(tmp_path/'protocol.json',tmp_path),checkpoint=checkpoint,
+        role='selection',operation='score',artifacts={'selection_supervision':[truth],'selection_candidates':[]},
+        source_roots={'selection_supervision':'truth','selection_candidates':'candidates'},settings=dict(study=study['identity'],targets=truth))
+    if change=='checkpoint':job['checkpoint']=seal(dict(weights=weights,changed=True))
+    if change=='cohort':job['settings']['targets']=dict(truth,sha256=digest('other truth'))
+    if change=='arm':job.pop('arm')
+    write(tmp_path/'job.json',seal(job));assert api.role('job.json','output')==(0 if change is None else 1)
+    assert calls==(['qualified'] if change is None else [])
+
+
+def test_retained_bytes_changed_after_lineage_block_inference(tmp_path,monkeypatch):
+    h,root,context,d,q,a,summary=prepared_fixture(tmp_path,monkeypatch)
+    (tmp_path/'weights-static/weights.pt').write_bytes(b'changed')
+    with pytest.raises(ValueError,match='retained weights changed'):h.publish_inputs(root,context,d,q,a,summary)
+    assert not (root/'research/protocol.json').exists()

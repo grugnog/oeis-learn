@@ -154,7 +154,7 @@ def evaluation_identity(parent,runtime,*,source,recipe,feature,images,protocol,c
     study['checkpoints']['milestones']=[]
     study['progression'].update(stage='E0')
     sidecar=dict(runtime,recipe=recipe,images=images,preparation=None,training={},evaluation=dict(
-        role='selection',prompts=protocol['prompts'],targets=protocol['targets'],checkpoints=[],seconds=21600,
+        role='selection',prompts=protocol['prompts'],targets=protocol['targets'],checkpoints=protocol['checkpoint_manifests'],seconds=21600,
         bank_seeds=protocol['bank_seeds']),replay=None,assessment=None,feature=feature)
     study,sidecar=bind(study,sidecar);validate_policy(study,sidecar)
     return study,sidecar

@@ -26,8 +26,11 @@ T172 validation: 142 affected local tests passed, including real resolved E0 sch
 
 ### Phase D — validation and operator gate
 
-- [ ] T173 Run local policy/controller/role-boundary regressions, review against requirements and current source closure, document exact consolidated commands and runtime expectations, and commit/push each grouping without waiting for CI.
+- [X] T173 Run local policy/controller/role-boundary regressions, review against requirements and current source closure, document exact consolidated commands and runtime expectations, and commit/push each grouping without waiting for CI.
 - [ ] T174 Operator: run the consolidated current-source HIP qualification and retained-checkpoint evaluation; independently reconcile the returned archive before making new scientific claims.
+
+T173 validation:147 affected local tests passed after final protocol/arm/cohort binding and retained-weight projection checks. The complete4,688-draw reference-only reservoir selected256 rows with no family quota shortfall in13.05 seconds; original-corpus exclusions/native execution remain explicitly pending. Stdlib-only run/check-inputs help, syntax and diff checks pass. The911-entry production closure is unchanged from the bank-fix snapshot. All31 requirement/design checklist items are checked, no extension hooks exist, and no HIP/CI wait occurred. See [the exact operator command and limits](validation/prospective-evaluation-handoff.md). T174 is the only unchecked operator gate in this continuation.
+
 
 ## Observable continuation follow-up — 2026-11-04 UTC
 

@@ -1,6 +1,16 @@
 # Validation and first-pilot guide
 
-## Current next step: full pilot with hourly snapshots (2026-11-04)
+## Current next step: prospective evaluation of retained checkpoints
+
+The full pilot and its post-hoc analysis are complete. Do not start another full
+training run. Use the [one-command retained-evaluation handoff](validation/prospective-evaluation-handoff.md)
+for the fresh256-row selection comparison, current-source qualification and
+verified result export. The bank provenance fix requires current images and a new
+qualification; the historical no-rebuild instructions below apply to their old
+source only. T171–T173 are local implementation/validation; T174 remains an actual
+operator hardware gate. No assessment scoring is authorized.
+
+## Historical completed full pilot with hourly snapshots (2026-11-04)
 
 The reviewed `training-hourly-probe-20261104T083935Z` passed current-source
 qualification, native preparation, both actual HIP learners and finite changed-weight
