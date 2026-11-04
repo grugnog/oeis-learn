@@ -77,3 +77,19 @@
 ## Resolved questions and execution limits
 
 The design requires no new dependency or constitutional exception. Resource defaults and commands are specified in the contracts. Actual quota feasibility, throughput and hardware acceptance remain measured gates with explicit shortfall/failure behavior. They are not assumed successes or reasons to leave interface decisions unresolved.
+
+
+## 10. Checkpoint throughput without losing recovery boundaries
+
+Decision: reuse unchanged immutable tensors at the debit boundary and cache verified
+blob identities only within the active writer, keyed by full inode/time/size facts.
+Retain per-update persistence and cold full verification. Reserve terminal work
+inside the scientific allowance plus a separate process-exit gap. Measure actual
+paired training before choosing longer research limits.
+Rationale: the audit proves8% of the target consumed the entire time allowance;
+early saves dominate updates. Link deduplication alone still serializes tensors
+and rehashes large pinned states repeatedly. Pending debits are not trained exposure.
+Alternatives rejected: infrequent checkpoints or asynchronous snapshots introduce
+rollback/tensor-race semantics; increasing time alone projects roughly75h/arm at
+observed aggregate throughput; deleting old evidence or resetting clocks loses
+provenance. A writer cache never replaces cold resume/export integrity validation.

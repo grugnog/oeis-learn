@@ -405,3 +405,55 @@ inspection is not resume authorization. Automatically include these aggregates i
 future terminal diagnostics; the current operator needs one CPU-only collection.
 Resolve exact persisted exposure/time before a recovery or new scientific protocol;
 finalization reserves and checkpoint overhead remain identified follow-up work.
+
+
+## Reliable learner persistence and measured handoff (T157–T160)
+
+Operator authorization: plan then implement the checkpoint/shutdown repair. The
+verified audit binds2,000,078 committed tokens/1612 updates,1229 reserved tokens,
+and21593.43016040977 persisted seconds. Preserve the original failed run. No
+learning-time reset, silent migration, reduced checkpoint cadence or automatic
+extension of the frozen six-hour/25M-token scientific contract is authorized here.
+
+All nontrivial policies stay in one reopened Phase B:
+
+1. Add an explicit unchanged-tensor checkpoint transition. Only the worker's
+   pre-update boundary may reuse its immediately preceding weights/optimizer
+   blobs; ledger updates/consumption must match that transition. Mutable data,
+   RNG, replay, history, pins and clock still serialize freshly. Every generation
+   remains self-contained through hardlinks or fsynced copy fallback. Publication
+   remains atomic and occurs only after verification; failed writes preserve the
+   prior latest/pins. No asynchronous tensor copying or background pruning.
+2. Bound the writer-local integrity cache. Its key includes device/inode/size and
+   nanosecond modification/change times plus expected digest. Recheck confinement
+   and regular-file metadata every use, hash on a miss/change, and reject mutation
+   during hashing. Fresh writer processes, restore, descriptor construction and
+   export do not inherit this cache. Tampering, timestamp restoration, replacement,
+   unsupported links and interrupted publication have independent counterexamples.
+3. Reserve up to300 seconds (one fifth of short allowances) for terminal roster
+   publication; separately reserve process exit before supervisor cleanup. Stop
+   starting updates when the work deadline is exhausted. Persistence remains
+   inside charged learner time. Expose committed tokens separately from reserved
+   debits; preserve pending batches without double charging. Emit bounded phase
+   totals and complete eight-update measurement windows after four warmup updates.
+4. Measure a small paired diagnostic through canonical CLI preparation/training,
+   with the original model/recipe/batch16 and two native-validated refresh shards.
+   At least24 updates and two complete windows per arm are required. Use the
+   slowest complete window to estimate25M tokens, multiply by2 and add1800 seconds
+   for unmeasured setup/finalization. Report whether that fits six hours; never
+   advance automatically or infer scientific model quality. Preserve incomplete
+   measurements and actual partial outcomes. No raw tensor or training payloads
+   enter the sharing ZIP.
+
+C/D integrates the policies, refreshes the existing CI implementation binding and
+publishes one temporary probe command that packages results on success/failure.
+Production changes invalidate original qualification/source closure: the probe
+requires newly built/qualified images and creates a new small study from verified
+original source data. It must not claim old qualification or privately migrate the
+six-hour checkpoint. Reuse of original data as source candidates does not bypass
+new canonical native validation. Actual HIP throughput stays NOT_RUN locally.
+
+Reliability validation: exact resumed/uninterrupted weights and ledgers for static,
+refresh and replay; pending-debit and expired-budget paths; failed save/publish;
+file tampering/replacement/link fallback; nested deadline/publication margins;
+bounded telemetry; probe forecasts, missing/partial evidence and serial CLI routing.
