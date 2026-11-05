@@ -109,7 +109,7 @@ No broad reporting/wrapper work belongs here.
 
 ### C1 — US1: Canonical PAC authority and admission (P1)
 
-- [ ] T028 [US1] Add canonical PAC registration/role authority tests in `tests/integration/test_generalization_registration.py` and `tests/contract/test_generalization_authority.py`, including all-original-input gating before research generation/learning and rejection of a wrapper-only permissive policy bypass.
+- [X] T028 [US1] Add canonical PAC registration/role authority tests in `tests/integration/test_generalization_registration.py` and `tests/contract/test_generalization_authority.py`, including all-original-input gating before research generation/learning and rejection of a wrapper-only permissive policy bypass.
 - [ ] T029 [US1] Register PAC through `src/oeis_learn/pipeline_validation/generalization_execution.py`, `src/oeis_learn/pipeline_validation/generalization_setup.py`, `src/oeis_learn/pipeline_validation/generalization_commands.py` and `src/oeis_learn/generalization/role_contracts.py`; bind frozen comparison/control/cohort policy and source/image identities to canonical CLI requests, keeping old recipes unchanged and protected selection/assessment truth outside learner roles.
 
 ### C2 — US2: Installed paired preparation and batch binding (P1)
