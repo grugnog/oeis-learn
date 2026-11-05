@@ -766,3 +766,29 @@ runtime/preparation/roles/evaluation closure passes **100 tests** (8 existing
 PyTorch warnings, 30.94 seconds). Real container invocation is substituted at the
 invoke boundary; filesystem projection and custodian structural verification are
 real. This does not establish current native/HIP acceptance or complete E.
+
+
+## F009 — Stable qualification-repair closure and operator handoff
+
+Ran the exact F006 combined selection after all production/test changes and the
+007 fingerprint refresh: **661 passed, 2 subtests passed, 2 hardware tests
+deselected, 19 existing PyTorch warnings in 144.68 seconds**. Environment:
+Python 3.12.14, torch 2.9.1+cpu and locked non-torch dependencies; no claim of
+container/native/HIP execution is made. The new seven tests supplement the 654-test
+baseline. No source/test edits occurred while that combined run was in progress.
+
+The supplied second archive independently verifies with stdlib-only `python -S`.
+Actual `run --help` / `recover --help`, task prerequisites and `git diff --check`
+pass. Existing ignore files cover environments, caches and generated artifacts.
+The read-only quality checklist remains 16 checked / zero unchecked; the mandatory
+post-execution check finds no `.specify/extensions.yml` and no registered hooks.
+The refreshed 007 implementation identity uses its actual canonical serializer;
+its 68 dispositions and full_007_complete=false remain unchanged.
+
+Quickstart now provides a fresh `pac-012-acceptance-003` plan/run and read-only
+recovery for `-002`. It explicitly explains that source-bound admission cannot be
+reused across this production change: images rebuild and admission repeats. The
+previous source's measured successful admission is preserved without claiming
+qualification, current-source agreement or completed E. T067–T074 and historical
+011 closeout remain unchanged. F007/F008/F009 have separate incremental commits
+published to PR 63 against main; no merge, HIP run or CI wait was performed.
