@@ -88,21 +88,9 @@ def _reusable(previous,entry,binding,*,workspace=None):
 
 
 def recover(original,output):
-    """Read-only collection; only a public numeric/status projection is packaged."""
-    import shutil
-    from oeis_learn.pipeline_validation.bundle import pack,verify
-    original=Path(original);output=Path(output)
-    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh recovery destination required')
-    record=_read(original/'workflow.json')
-    if seal(record)!=record:raise ValueError('original workflow integrity failed')
-    output.mkdir(parents=True)
-    safe=dict(version='pac-workflow-public/v1',plan=record['plan'],status=record['status'],errors=record['errors'],
-        stages=[{k:e[k] for k in ('stage','status','producer','elapsed_seconds','reused') if k in e} for e in record['receipts']],
-        scientific_status='UNMEASURED',omissions=['private tensors, truth, input paths and raw commands'])
-    write(output/'workflow.json',seal(safe))
-    write(output/'summary.json',dict(selected_scope=record['status'],scientific_status='UNMEASURED'))
-    archive=pack(output,mandatory=['summary.json','workflow.json']);verify(archive)
-    return archive
+    """Read-only canonical evidence collection and independent archive verification."""
+    from oeis_learn.pipeline_validation.generalization_pac_export import export
+    return export(original,output)
 
 
 def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
@@ -204,6 +192,11 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
         archive=recover(output,output/'public-report')
         import shutil
         shutil.copyfile(archive,output/'report.zip')
+        from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+        exported=verify_archive(output/'report.zip')
+        record['export_status']=exported['software_status']
+        if record['status']=='PASS' and exported['software_status']!='PASS':record['status']=exported['software_status']
+        _persist(output/'workflow.json',record)
     except Exception as exc:
         record['errors'].append(dict(stage='export',kind=type(exc).__name__,status='FAIL'));record['status']='FAIL'
         _persist(output/'workflow.json',record)

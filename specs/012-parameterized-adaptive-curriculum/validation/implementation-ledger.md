@@ -416,3 +416,14 @@ companion completion record binds the actual archive hash after verified creatio
 Known qualification build paths and the independently verified nested failure
 archive are permitted; arbitrary private paths and payloads remain excluded.
 Real packer/verifier negative-scope and stale-PASS fixtures pass.
+
+## T056 — Verified fallback and read-only recovery
+
+The serial helper now delegates collection/export to the canonical PAC collector
+and finalizer. Complete qualification/acceptance/calibration/native proof closure
+is mandatory for software PASS; fixture campaigns without device proofs export
+PARTIAL, rather than fabricated qualification. Read-only recovery preserves the
+original workflow bytes. A primary failure followed by exporter failure retains
+both ordered error types and prints the exact last-resort workflow location.
+Raw host command/disk-control records stay private in newly issued producer file
+inventories. Workflow/real-archive checks: 19 passed.

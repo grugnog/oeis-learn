@@ -44,10 +44,10 @@ def test_campaign_resume_verifies_outputs_and_recovery_never_launches(tmp_path):
         return dict(status='PASS',process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),
             producer=digest(stage['name']),artifacts=[reference(target/'observed.json',target)])
     one=h.execute_plan(plan,tmp_path/'one',workspace=tmp_path,runner=runner)
-    assert one['status']=='PASS' and calls==h.stage_order()
+    assert one['status']=='PARTIAL' and calls==h.stage_order()
     calls.clear()
     two=h.execute_plan(plan,tmp_path/'two',workspace=tmp_path,runner=runner,previous=tmp_path/'one')
-    assert two['status']=='PASS' and calls==[]
+    assert two['status']=='PARTIAL' and calls==[]
     immutable=(tmp_path/'one/workflow.json').read_bytes()
     h.recover(tmp_path/'one',tmp_path/'recovered')
     assert calls==[] and (tmp_path/'one/workflow.json').read_bytes()==immutable
@@ -69,3 +69,15 @@ def test_failure_suppresses_descendants_and_preserves_primary(tmp_path,outcome):
     result=h.execute_plan(plan,tmp_path/'run',workspace=tmp_path,runner=runner)
     assert calls==['admission'] and result['status']!='PASS'
     assert result['errors'][0]['stage']=='admission' and (tmp_path/'run/report.zip').is_file()
+
+
+def test_export_failure_after_primary_failure_retains_both_and_last_resort(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.identity import digest
+    h=helper();stages=[dict(name=name,operation='prepare',manifest='inputs',seconds=3600,extra=[],requires=[] if i==0 else [h.stage_order()[i-1]]) for i,name in enumerate(h.stage_order())]
+    plan=h.prepare_plan(tmp_path,engine='docker',stages=stages,inputs=[],source=digest('src'),images=[digest('cpu'),digest('gpu')])
+    def failed(stage,target):raise RuntimeError('primary private details')
+    def broken(*a):raise OSError('secondary exporter failure')
+    monkeypatch.setattr(h,'recover',broken)
+    result=h.execute_plan(plan,tmp_path/'failed',workspace=tmp_path,runner=failed)
+    assert [e['kind'] for e in result['errors']]==['RuntimeError','OSError']
+    assert 'private details' not in str(result) and (tmp_path/'failed/workflow.json').is_file()
