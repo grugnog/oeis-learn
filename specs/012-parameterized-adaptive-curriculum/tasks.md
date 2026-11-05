@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Phases A/B/C complete (T001–T042), including installed CPU lifecycle and failure checks. Stopped before phase D; delivery and actual native/container/HIP evidence remain pending.
+**Status**: Phases A/B/C complete (T001–T042), including installed CPU lifecycle and failure checks. Phase D is in progress (T043–T044 complete); delivery and actual native/container/HIP evidence remain pending.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),

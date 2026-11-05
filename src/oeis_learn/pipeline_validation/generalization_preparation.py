@@ -349,8 +349,9 @@ def prepare_pac(root,experiment,runtime,*,output,execute,seconds):
     for key in ('literal','parameterized'):bundle[key]=[dict(r,path='training/'+r['path']) for r in bundle[key]]
     for key in ('probes','inventory','pairs'):bundle[key]=dict(bundle[key],path='training/'+bundle[key]['path'])
     bundle=seal(bundle);write(output/'training.json',bundle)
-    admission=seal(dict(version='pac-admission/v1',status='PASS',purpose=runtime['purpose'],
+    admission=seal(dict(version='pac-admission/v2',status='PASS',purpose=runtime['purpose'],
         experiment=experiment['identity'],preparation=digest(plan),training=bundle['identity'],
+        structural=reference(output/'private/structural-targets.json',output) if runtime['purpose']=='research' else None,
         source=experiment['source'],images=runtime['images'],originals=plan['originals'],roster=roster,parameter='DEFERRED'))
     write(output/'admission.json',admission)
     for ref in [runtime['recipe'],runtime['source']]:
@@ -370,8 +371,8 @@ def verify_pac_prepared(root,experiment,runtime):
     refs=runtime['prepared']
     admission=json.loads(verify_artifact(root,refs['admission'],max_bytes=16<<20))
     bundle=json.loads(verify_artifact(root,refs['training'],max_bytes=16<<20))
-    if (seal(admission)!=admission or set(admission)!={'version','status','purpose','experiment','preparation','training','source','images','originals','roster','parameter','identity'}
-        or admission['version']!='pac-admission/v1' or admission['status']!='PASS' or admission['purpose']!=runtime['purpose']
+    if (seal(admission)!=admission or set(admission)!={'version','status','purpose','experiment','preparation','training','source','images','originals','roster','parameter','structural','identity'}
+        or admission['version']!='pac-admission/v2' or admission['status']!='PASS' or admission['purpose']!=runtime['purpose']
         or admission['source']!=experiment['source'] or admission['images']!=runtime['images'] or admission['training']!=bundle['identity']):raise ValueError('verified PAC admission closure required')
     if seal(bundle)!=bundle:raise ValueError('PAC training publication changed')
     inventory=json.loads(verify_artifact(root,bundle['inventory']))
@@ -380,9 +381,10 @@ def verify_pac_prepared(root,experiment,runtime):
         from oeis_learn.generalization.metrics import _pac_roster
         if sorted(({k:v for k,v in x.items() if k!='ref'} for x in admission['originals']),key=lambda x:x['name'])!=sorted(original_cells(),key=lambda x:x['name']):raise ValueError('all original admission inputs required')
         _pac_roster(admission['roster']);pac_record('inventory',inventory)
+        verify_pac_structural(root,admission)
         if inventory['identity']!=experiment['inventory']:raise ValueError('PAC frozen inventory mismatch')
     else:
-        if inventory['version']!='pac-acceptance-inventory/v1' or admission['roster'] is not None:raise ValueError('separate acceptance training authority required')
+        if inventory['version']!='pac-acceptance-inventory/v1' or admission['roster'] is not None or admission['structural'] is not None:raise ValueError('separate acceptance training authority required')
     for arm in experiment['arms']:
         for ref in pac_training_refs(bundle,arm):verify_artifact(root,ref,max_bytes=8<<30)
     from oeis_learn.generalization.targets import paired_learning_view
@@ -402,3 +404,15 @@ def verify_pac_prepared(root,experiment,runtime):
             targets=digest(parameterized),literal_targets=digest(literal),probes=bundle['probes']['sha256'])
         if any(experiment[k]!=v for k,v in actual.items()):raise ValueError('PAC frozen pool/target/probe/order identity mismatch')
     return bundle
+
+
+def verify_pac_structural(root,admission):
+    """Bind native-admitted private truth bytes before publishing visible views."""
+    import json
+    from oeis_learn.generalization.contracts import verify_artifact
+    if admission.get('version')!='pac-admission/v2' or admission.get('structural') is None:
+        raise ValueError('hash-bound structural admission required')
+    rows=json.loads(verify_artifact(root,admission['structural'],max_bytes=16<<20))
+    ids=[digest(['selection',r['id'],r['source']]) for r in rows]
+    if len(ids)!=len(set(ids)) or set(ids)!=set(admission['roster']):raise ValueError('structural truth/roster identity mismatch')
+    return rows

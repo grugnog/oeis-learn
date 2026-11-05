@@ -319,3 +319,23 @@ remains REFERENCE_ONLY and has no fabricated historical measurements.
 `PYTHONPATH=src .venv-cpu/bin/python -m pytest -q specs/012-parameterized-adaptive-curriculum/validation/test_inputs.py`:
 3 passed. Cases cover all 16 cells, changed/missing bytes, immutable failed producer,
 search exhaustion, symlink traversal and weights-only versus complete control proof.
+
+### D1 integration review: reopened C preparation provenance
+
+Before connecting research inference (T045), a new publication regression proved
+that `private/structural-targets.json` was written but absent from the original
+PAC admission artifact closure. The original regression failed at its hash-binding
+assertion. This reopens C's T031 invariant under the task execution rules.
+
+The publisher now emits `pac-admission/v2`, binding the exact private structural
+artifact. Research verification checks those bytes and their exact roster IDs;
+old unbound receipts cannot authorize this path. Acceptance retains no structural
+truth reference. The focused regression also changes the published truth bytes
+and confirms rejection. No native/quota claim follows from this isolated publisher
+fixture: its expensive scope boundary is explicitly stubbed.
+
+Focused input/publication/preparation/registration checks: **31 passed**. Actual
+native/container/HIP checks remain unavailable. T045 and subsequent D tasks remain
+unchecked; the scoped evaluator, complete serial wrapper, calibration, diagnostics,
+case analysis and final operator handoff are still outstanding. No phase-D
+completion or runnable hardware command is claimed.

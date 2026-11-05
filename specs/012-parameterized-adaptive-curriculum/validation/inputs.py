@@ -53,7 +53,9 @@ def inventory(root,originals,producer):
     indexed={}
     for ref in receipt.get('inventory',[]):
         if ref['path'] in indexed:raise ValueError('duplicate producer inventory path')
-        indexed[ref['path']]=ref
+        parent=Path(producer['path']).parent
+        path=str(parent/ref['path'])
+        indexed[path]=dict(ref,path=path)
     for item in originals:
         ref=item['ref']
         if indexed.get(ref['path'])!=ref:raise ValueError('original cell absent from producer inventory: '+item['name'])
