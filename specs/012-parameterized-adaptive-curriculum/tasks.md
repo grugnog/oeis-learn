@@ -153,7 +153,7 @@ inputs/native capacity/device evidence or optional research remain outstanding.
 
 ### D3 — US3: Allocation, retention and complete cost evidence (P1)
 
-- [ ] T048 [P] [US3] Add reconstructibility/long-run/omitted-observation fixtures in `tests/integration/test_generalization_diagnostics.py`, including more than 128 progress windows, fewer realized grades than opportunities, optional D overhead, missing historic curves and positive scaled reward with negative raw gain.
+- [X] T048 [P] [US3] Add reconstructibility/long-run/omitted-observation fixtures in `tests/integration/test_generalization_diagnostics.py`, including more than 128 progress windows, fewer realized grades than opportunities, optional D overhead, missing historic curves and positive scaled reward with negative raw gain.
 - [ ] T049 [US3] Extend bounded policy/retention diagnostics and progress projections in `src/oeis_learn/pipeline_validation/generalization_diagnostics.py` and `src/oeis_learn/pipeline_validation/generalization_reporting.py` to expose all clocks, selected probabilities/reasons, acquisition/recall/incidental exposure, pending anchors, raw/scaled gain, censoring, useful/reserved/discarded/unspent tokens and complete preparation/probe/review/checkpoint/end-to-end costs; compact without losing whole-run coverage or reconstructible totals.
 
 ### D4 — US4: One serial wrapper and measured readiness (P1)
