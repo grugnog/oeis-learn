@@ -386,3 +386,32 @@ T072; see `validation/t072-result.md`.
 - [X] F013 Add actual subprocess-death/recovery CPU wiring and rejection/parser counterexamples for the focused HIP proof; commit before runner changes.
 - [X] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.
 - [X] F015 Validate local wiring/host rejection and affected regression closure, refresh current identity, publish per-task commits and give the focused workstation command; keep T072 unchecked pending its actual result.
+
+
+## Phase 6: Convergence
+
+Review date: 2026-11-05. Assessed PR #63 at `5681c02aa69db223451e3a3f3ac935ee7525aaa1`
+against the current spec, plan, tasks and constitution, including the authorized
+23/15-family amendment. This append does not rewrite prior completion markers,
+revoke source-bound acceptance evidence or turn deferred T073 into mandatory
+research. It records four HIGH partial gaps before a full research campaign.
+This is a review backlog, not a third critical implementation phase: reopen the
+owning B/C boundary for invariant changes and use D for routine reporting/delivery.
+Commit and push each coherent remediation group; add independent regressions
+before changes and preserve historical recipes/evidence. No new HIP run is needed
+to reproduce these gaps; any later affected qualification follows its actual scope.
+
+Review checks: 31 FR / 8 NFR / 10 SC and 16 story acceptance scenarios cross-referenced
+with five implementation phases and six constitutional principles. Focused local
+selections: 86 passed, then 138 passed and one dependency-blocked test
+(`test_startup_environment_is_detached_and_policy_verification_fails_closed` imports
+unavailable `torch`). These were source-level/local checks, not pinned-image or HIP
+requalification. Two direct independent reproductions confirmed F2 and F4 below.
+Original private workstation tensors and the unpublished full acceptance ZIP were
+not available for reinspection; published bounded summaries remain scoped attestations.
+No extension hooks are registered.
+
+- [ ] T075 HIGH — F1: Permit a correctly completed PAC learner with charged discarded crash work to reach final evaluation/analysis through `src/oeis_learn/pipeline_validation/generalization_training.py:450`, `src/oeis_learn/pipeline_validation/generalization_commands.py` and `specs/012-parameterized-adaptive-curriculum/validation/run.py:224`, per FR-020, FR-026, US4/AC1 and plan C whole-state recovery (partial). Currently `COMPLETE` becomes `RECOVERED_WITH_DISCARDED_EXPOSURE`/`PARTIAL` whenever discarded tokens are nonzero; the wrapper halts on that status, and another resume retains the same condition. Add an installed CPU crash-to-budget-completion and complete canonical wrapper regression before changing the PAC-specific terminal disposition; keep useful/discarded/unspent accounting and reduced useful exposure explicit, preserve genuine incomplete/paused states and historical non-PAC behavior, and demonstrate that evaluation/analysis can finish without refunding work or restarting successful stages. Owner: reopen C correctness integration; D wrapper closure.
+- [ ] T076 HIGH — F2: Retain bounded whole-run per-family common-loss and semantic-retention histories in `src/oeis_learn/pipeline_validation/generalization_diagnostics.py:288` and its complete-state persistence/projection, per FR-018, FR-027, NFR-007 and T048–T049 (partial). A deterministic 8,192-update observer trace measured 33 common panels but retained only updates 7,680/7,936/8,192 in the shared 64-event buffer; its initial panel was lost, and semantic results retain only global success/completion totals plus family availability flags. Add an independent long-run/censoring/resume counterexample first, then preserve family-level loss sums/counts, semantic success/completion/attempt counts and token/example/update/time coordinates with declared bounded compaction and exact aggregate coverage. Keep a separate recent-event tail, persist the compact history with the model-bound observer and make first-to-final retention reconstructible without private tensors. Owner: B/C history/state invariant boundaries, D public projection.
+- [ ] T077 HIGH — F3: Complete research analysis and shareable report projections in `specs/012-parameterized-adaptive-curriculum/validation/analysis.py:90` and `src/oeis_learn/pipeline_validation/generalization_pac_export.py:75`, per FR-009, FR-018, FR-027, NFR-008, SC-006 and T059–T061 (partial). `analyze_campaign` reduces scoring outcomes to `equal_budget`, takes only aggregate examples/updates/learner seconds from training, and the exporter copies analysis/cases without the scored controls or public training diagnostics; it consequently drops raw/rescue/shuffled/absent/template/bank outcomes, allocation/retention histories and measured observation/checkpoint/update cost breakdowns that exist in source receipts. Add producer-shaped whole-campaign fixtures with unequal raw/fitted outcomes and differing diagnostic/review costs first; carry all seven frozen controls, the bounded F2 histories, family/channel exposure and available measured stage/learner cost components into safe, identity-bound analysis/export and recompute every reported aggregate offline. Explicitly preserve unavailable measurements and privacy exclusions; no protected truth, raw logs or state uploads. Owner: D reporting/evidence delivery.
+- [ ] T078 HIGH — F4: Reconcile scientific interpretability independently in `src/oeis_learn/generalization/acceptance_archive.py:86` and the PAC analysis/export closure, per FR-028, FR-031, SC-006 and T054–T061 (partial). A correctly sealed negative record with `research=false`, no stages/results/payloads and `scientific_status=EXPLORATORY_SINGLE_SEED` currently verifies and echoes that scientific status. Add altered-scope/status, missing research payload, changed roster/control and 64-versus-65-complete counterexamples first; require acceptance-only scope to remain UNMEASURED and derive any research interpretation from verified frozen experiment/control/arm/structural scope and reconstructible per-arm outcomes, including the >=65/68 gate. Verify actual analysis bytes and their denominator/source bindings, not only hashes or self-declared comparison booleans; preserve honest negative/incomplete export and historical version meanings. Owner: C evidence authority, D offline verifier/packer closure.
