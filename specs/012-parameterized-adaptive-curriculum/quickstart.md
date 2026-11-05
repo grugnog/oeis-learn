@@ -1,7 +1,8 @@
 # Validation guide and later operator handoff
 
-Status: specification, plan and [task breakdown](tasks.md) complete. The proposed PAC wrapper and recipe are not
-implemented. Do not reuse the old failed 256-task prospective command as a 012 run.
+Status: phases A/B/C are implemented with local CPU evidence recorded in the
+[implementation ledger](validation/implementation-ledger.md). The phase-D PAC
+operator wrapper and original-input assembly are not implemented. Do not reuse the old failed 256-task prospective command as a 012 run.
 No HIP command is ready in this document; phase D will publish and validate it.
 
 ## Checks available now (no engine or HIP work)
@@ -18,8 +19,8 @@ git diff --check
 
 Expected: the 012 spec/plan and design artifacts resolve; both existing host entrypoints
 show help without third-party host dependencies. These checks validate planning
-and entrypoints, not PAC behavior or hardware readiness. All 74 tasks remain open;
-implementation starts with phase A and actual operator validation is phase E.
+and entrypoints, not hardware readiness. A/B/C account for 42 completed tasks;
+D/E retain 32 unchecked tasks. Actual operator validation remains phase E.
 
 ## Required original workstation inputs
 

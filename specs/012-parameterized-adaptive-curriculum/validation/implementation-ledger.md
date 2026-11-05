@@ -1,7 +1,8 @@
 # 012 implementation ledger
 
-Scope: phases A and B only. Installed binding (C), operator delivery (D) and
-hardware/research (E) remain pending. No HIP run or CI wait is authorized here.
+Scope: phases A, B and C. Installed CPU integration is implemented and tested;
+operator delivery (D), actual native/container/HIP evidence and optional research
+(E) remain pending. No HIP was run and CI was not awaited.
 
 ## T001 — Authority and reuse
 
@@ -237,3 +238,66 @@ The initial 18 counterexamples failed on the absent PAC envelope/legacy role cap
 Real encoder/decoder SFT fixtures verify token-weighted pre/post loss, RNG/mode preservation, six rewards across 64 production C updates, four blocks across 32 D updates, fixed B weights/order despite shadow observations, required-feedback pauses and restore against the pure row/probe oracle. Production state/review plus installed curriculum checks: 50 passed. An additional real review-gradient failure fixture confirms that a pre-update grade never advances its queue after a failed optimizer operation (1 passed).
 
 Canonical installed `pac-acceptance` now uses a distinct `pac-acceptance/v1` state: two-update blocks, eight-update cycles, one-update base review interval and common panels every eight updates. Encoded target lengths derive the minimum cap for sixteen complete updates, rather than assuming 4,096 tokens. It executes parameterized and literal-fallback targets, six actual rewards including non-warmup scaling, acquired-anchor grades and optimizer updates, initial/final tensor loads and both clean pauses (update 1 and post-gradient update 2). The real full-state proof compares model/optimizer/RNG/data plus policy/scaler/queue/observer decisions; only measured wall-clock cost differs. It independently packs/verifies an injected failure with private payload exclusion. The CPU handler fixture passed; it marks CPU evidence ineligible for research. A separate actual-HIP/native test is implemented and deliberately not executed before E. Research dispatch requires original PAC HIP acceptance in addition to legacy qualification.
+
+## T042 — Phase C local closeout
+
+The combined focused command was:
+
+```sh
+PYTHONPATH=src .venv-cpu/bin/python -m pytest -q \
+  tests/unit/test_generalization_curriculum.py \
+  tests/unit/test_generalization_review.py \
+  tests/unit/test_generalization_curriculum_state.py \
+  tests/unit/test_generalization_persistence.py \
+  tests/unit/test_generalization_contracts.py \
+  tests/unit/test_generalization_execution.py \
+  tests/unit/test_generalization_operational_budgets.py \
+  tests/unit/test_generalization_budgets.py \
+  tests/contract/test_generalization_authority.py \
+  tests/contract/test_generalization_roles.py \
+  tests/integration/test_generalization_registration.py \
+  tests/integration/test_generalization_preparation.py \
+  tests/integration/test_generalization_training.py \
+  tests/integration/test_generalization_curriculum.py \
+  tests/integration/test_generalization_runtime.py \
+  tests/integration/test_generalization_acceptance.py \
+  tests/integration/test_generalization_recipes.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_structural_policy.py
+```
+
+Result: **247 passed** (339.37s), with existing PyTorch mask/nested-tensor warnings.
+Final review added canonical PAC acceptance dispatch and installed-source rejection
+cases, propagated resume/proof reservations and original crash supervision, enabled
+the existing disk watchdog for PAC, checked actual referenced input bytes against
+reservations, and rejected fabricated observer/channel counters. Relevant follow-up
+checks passed: **56 tests plus 2 subtests** (registration/recipes/roles/disk),
+**7 tests** (real production and acceptance curriculum), and **77 tests**
+(007 fingerprint/registration/host help/contracts/recipes/roles). The final affected
+CPU lifecycle rerun is recorded below.
+
+The 007 implementation fingerprint was refreshed using the package's actual
+serializer; all 68 original dispositions and `full_007_complete=false` remain
+unchanged. Both portable help entrypoints passed under `python3 -S`, prerequisite
+discovery passed, and no after-implement extension hooks are configured.
+
+This closes installed local correctness only. Native callbacks in preparation
+fixtures use the independent reference evaluator; semantic native measurements in
+CPU lifecycle fixtures are explicitly unavailable. There is no actual native,
+Docker/Podman, HIP, production-throughput, full-corpus quota or research evidence.
+Phase D's wrapper, structural inference delivery and full public-report/archive
+reconciliation remain unimplemented. No CI wait and no changes to historical
+011 T174/T177–T181 completion.
+
+Final affected command:
+
+```sh
+PYTHONPATH=src .venv-cpu/bin/python -m pytest -q \
+  tests/integration/test_generalization_runtime.py \
+  tests/integration/test_generalization_acceptance.py -k pac --tb=short
+```
+
+**7 passed, 30 deselected** (130.66s), after all code changes. Clean model,
+optimizer, RNG, data, policy/scaler/queue and observer equality remains exact;
+crash loss remains separately charged. Task accounting: **42 checked, 32
+unchecked**, stopping before T043. Commits were made per task and published
+incrementally to PR 63 against `main`; the draft remains open for phase-D delivery.

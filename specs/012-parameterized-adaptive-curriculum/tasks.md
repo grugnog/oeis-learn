@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Phases A and B complete (T001–T027); stopped before phase C. Installed integration, delivery and actual HIP evidence remain pending.
+**Status**: Phases A/B/C complete (T001–T042), including installed CPU lifecycle and failure checks. Stopped before phase D; delivery and actual native/container/HIP evidence remain pending.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -132,7 +132,7 @@ No broad reporting/wrapper work belongs here.
 - [X] T039 [US4] Add end-to-end requested/effective limit and environment propagation tests in `tests/integration/test_generalization_recipes.py` and `tests/contract/test_generalization_roles.py`, including every acceptance/calibration/resume/proof/export branch, a stale PASS file with failed process and a changed no-Lt/engine identity.
 - [X] T040 [US4] Bind resource graph, actual engine/source/image identities and existing no-Lt process-start environment through `src/oeis_learn/pipeline_validation/generalization_execution.py`, `src/oeis_learn/pipeline_validation/generalization_runtime.py`, `src/oeis_learn/container_runtime.py` and relevant registered schema bounds in `src/oeis_learn/generalization/schemas/pac.schema.json`; propagate unclipped inner/outer limits, cleanup/publication reserves and private disk scratch, retaining canonical containment and no silent CPU fallback.
 - [X] T041 [US4] Extend canonical acceptance coverage in `src/oeis_learn/generalization/feature_acceptance.py` and `src/oeis_learn/pipeline_validation/generalization_acceptance.py`, with real-handler tests in `tests/integration/test_generalization_acceptance.py`: derive encoded token/update minima, declare reduced acceptance cadence distinct from production, reach parameter/fallback, non-warmup reward, acquired due graded review, both pending-block resume boundaries, initial/final load and fault export; implement HIP-marked proof cases in `tests/integration/test_generalization_gpu.py` without executing HIP here.
-- [ ] T042 [US4] Run installed CPU lifecycle/fault fixtures and inspect source closure in `tests/integration/test_generalization_curriculum.py`, `tests/integration/test_generalization_runtime.py` and `tests/integration/test_generalization_acceptance.py`; record exact clean-resume equality and separately charged crash work in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, identify unavailable native/device checks explicitly and close C only when all local critical correctness gates pass.
+- [X] T042 [US4] Run installed CPU lifecycle/fault fixtures and inspect source closure in `tests/integration/test_generalization_curriculum.py`, `tests/integration/test_generalization_runtime.py` and `tests/integration/test_generalization_acceptance.py`; record exact clean-resume equality and separately charged crash work in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, identify unavailable native/device checks explicitly and close C only when all local critical correctness gates pass.
 
 ## Phase D — Routine delivery, diagnostics and complete local validation
 
@@ -325,9 +325,9 @@ must link actual check results, not merely cite this table.
 ## Completion accounting
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
-US3 14, US4 22, US5 7; shared 13. Implementation completed A/B (27 tasks);
-C–E remain unchecked (47 tasks). Each A/B task has its own implementation or
-counterexample commit; local evidence is recorded in the implementation ledger.
+US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C (42 tasks);
+D/E remain unchecked (32 tasks). Every implementation task has an incremental
+implementation or counterexample commit; local evidence is recorded in the ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to
 its dependent claims; no favorable scientific result is required for software PASS.

@@ -95,4 +95,24 @@ These owners were checked against the current handlers during phase A. A task ID
 is an assignment, not proof that a failure is prevented. The first 14 rows retain
 their original evidence qualifications; the final four remain prospective design
 risks. Local proof is recorded incrementally in validation/implementation-ledger.md;
-installed and hardware evidence remain C–E.
+installed CPU evidence is now recorded for C. Delivery, actual engine/native/HIP
+validation and end-to-end evidence reconciliation remain D/E.
+
+
+## Phase C local evidence boundary
+
+Installed CPU checks now bind contiguous feedback, target recall and committed
+review to actual SFT tensors, model-bound atomic snapshots, clean resume and
+separately charged crash recovery. Canonical PAC role/CLI tests cover immutable
+source/image/backend binding, explicit engine selection, protected work/publication
+and cleanup reservations, disk-backed scratch, peak-live storage arithmetic and
+failed-process rejection despite application PASS. The reduced acceptance handler
+loads initial/final tensors, compares both pending-block resume boundaries and
+verifies an actual negative-scope recovery archive. See the T042 command/results
+in the implementation ledger.
+
+These are local CPU/command-construction checks. Original workstation corpora,
+actual native extensions, Docker/Podman execution, representative calibration and
+HIP equality remain unverified here. The new HIP test is implemented for E, not
+executed. D's full reporting/wrapper/export matrix and T064 reconciliation remain
+unchecked; no historical 011 failure or missing hardware task is changed.
