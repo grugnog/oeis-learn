@@ -541,3 +541,71 @@ retained checkpoint reads and analysis execute under `python -S`; full schema
 validation remains in the installed canonical consumer, while host reconciliation
 uses narrower sealed public checks and the same comparison invariants. Host help,
 prerequisites and `git diff --check` pass. No CI results were awaited.
+
+## T064 — Requirement and task reconciliation
+
+Each requirement below maps to executable checks included in T063's combined local
+selection. Paths use U=`tests/unit`, C=`tests/contract`, I=`tests/integration`,
+V=`specs/012-parameterized-adaptive-curriculum/validation`. The reliability review
+contains the corresponding concrete reconciliation for all 18 failure/risk rows.
+A passing CPU/fixture check establishes implementation behavior; the final column
+retains the exact actual-data/device obligation instead of claiming it passed.
+
+| Requirement | Concrete local passing checks | Explicit remaining E evidence |
+| --- | --- | --- |
+| FR-001 | U/test_generalization_contracts.py; U/test_generalization_legacy.py; I/test_generalization_registration.py | Current installed image/source inspection |
+| FR-002 | U/test_generalization_execution.py; I/test_generalization_recipes.py; V/test_run.py | Original frozen operator plan/source/images |
+| FR-003 | U/test_generalization_execution.py; U/test_generalization_metrics.py; V/test_analysis.py | Actual A compatibility audit; absent proof remains REFERENCE_ONLY |
+| FR-004 | U/test_generalization_cohorts.py; I/test_generalization_recipes.py; I/test_generalization_curriculum.py | Original 32-family/32,768-row pool and paired native admission |
+| FR-005 | V/test_structural_policy.py; U/test_generalization_metrics.py | Exact actual structural roster; historical 011 tasks remain untouched |
+| FR-006 | V/test_structural_policy.py; I/test_generalization_scoring.py; I/test_generalization_pac_evaluation.py | Actual retained/new checkpoint inference with all seven controls |
+| FR-007 | V/test_structural_policy.py; I/test_generalization_preparation.py; V/test_run.py failed quota export | Actual before/after quotas, native agreement, exclusions and timings |
+| FR-008 | U/test_generalization_refresh_targets.py; U/test_generalization_cohorts.py; I/test_generalization_reporting.py | Original pool's supported/fallback counts and grounding |
+| FR-009 | I/test_generalization_scoring.py; I/test_generalization_evidence.py | Actual unchanged fitter/attempt limits on device-generated candidates |
+| FR-010 | C/test_generalization_roles.py; U/test_generalization_cohorts.py; I/test_generalization_curriculum.py | Actual mount/source/input receipt closure |
+| FR-011 | U/test_generalization_cohorts.py; I/test_generalization_curriculum.py | Original independent training-only probes and disclosed reuse |
+| FR-012 | U/test_generalization_curriculum.py; U/test_generalization_curriculum_state.py | Actual selected probability/raw/scaled reward/kernel event |
+| FR-013 | U/test_generalization_curriculum.py; U/test_generalization_review.py all offsets | Actual exposure and terminal pending anchors |
+| FR-014 | U/test_generalization_review.py; U/test_generalization_curriculum_state.py; I/test_generalization_curriculum.py | Actual acquired, due, graded device update |
+| FR-015 | I/test_generalization_curriculum.py; U/test_generalization_review.py | Actual separately charged review/fallback exposure |
+| FR-016 | U/test_generalization_curriculum_state.py; I/test_generalization_curriculum.py | Actual contiguous model-bound pre/block/post observations |
+| FR-017 | U/test_generalization_curriculum_state.py; I/test_generalization_curriculum.py; V/test_calibration.py | Actual observer costs, censoring and frozen pause disposition |
+| FR-018 | I/test_generalization_curriculum.py; I/test_generalization_reporting.py; V/test_analysis.py | Production common monitoring and optional D cost disclosure |
+| FR-019 | U/test_generalization_curriculum_state.py; I/test_generalization_runtime.py; V/test_run.py | Actual HIP model/optimizer/RNG/data/adaptive equality |
+| FR-020 | U/test_generalization_curriculum_state.py; I/test_generalization_runtime.py | Actual clean device equality and separately charged crash work |
+| FR-021 | I/test_generalization_periodic.py; I/test_generalization_training.py | Actual hourly/save/publish overhead and retained snapshots |
+| FR-022 | U/test_generalization_operational_budgets.py; I/test_generalization_registration.py; V/test_run.py | Original roots, actual storage, native quotas and qualified runtime |
+| FR-023 | U/test_generalization_qualification.py; I/test_generalization_registration.py; V/test_run.py | Actual compatible original producer reuse, source/helper hashes |
+| FR-024 | C/test_generalization_roles.py; V/test_run.py; I/test_generalization_archive.py | Actual start/progress/process/cleanup receipts and ceiling usage |
+| FR-025 | I/test_generalization_archive.py; V/test_run.py; I/test_generalization_diagnostics.py | Actual verified original success/failure archives |
+| FR-026 | V/test_run.py; I/test_generalization_runtime.py | Workstation interruption/compatible full-state recovery if needed |
+| FR-027 | U/test_generalization_metrics.py; I/test_generalization_reporting.py; V/test_analysis.py; I/test_generalization_evidence.py | Authorized research outcomes, retention curves and actual costs; missing A history stays null |
+| FR-028 | U/test_generalization_metrics.py; V/test_analysis.py 64/65 boundary | At least 65/68 completed per actual compared arm for interpretation |
+| FR-029 | V/test_analysis.py; I/test_generalization_evidence.py | At least 12 actual available generated case/arm records; absent categories named |
+| FR-030 | I/test_generalization_acceptance.py actual CPU installed handler and loaded-checkpoint forward | Same updates, evaluation, review/resume and export on HIP |
+| FR-031 | V/test_run.py; V/test_analysis.py; U/test_generalization_operational_budgets.py | Explicit predeclared research/fresh A/D; otherwise research DEFERRED |
+| NFR-001 | A/B/C/D task structure and incremental ledger; defects reopened in owning B/C code | E stays one consolidated session |
+| NFR-002 | V/test_run.py documented invocation and compatible stage reuse | One actual normal operator invocation |
+| NFR-003 | All 18 concrete local rows in reliability-review.md | Actual runtime observations retained per row |
+| NFR-004 | U/test_generalization_operational_budgets.py; I/test_generalization_recipes.py; V/test_calibration.py | Representative actual cold/warm/work/save/load calibration |
+| NFR-005 | C/test_generalization_roles.py; U/test_generalization_host.py; I/test_generalization_runtime.py | Actual isolated container/native/HIP execution |
+| NFR-006 | U/test_generalization_legacy.py; U/test_generalization_contracts.py; I/test_generalization_registration.py | Original legacy provenance and current qualification |
+| NFR-007 | I/test_generalization_periodic.py; I/test_generalization_training.py; I/test_generalization_curriculum.py | Actual production whole-run throughput/costs; unavailable save tail labeled |
+| NFR-008 | U/test_generalization_metrics.py; V/test_calibration.py; I/test_generalization_evidence.py | Actual preparation/diagnostic/review/checkpoint/wall costs |
+| SC-001 | V/test_structural_policy.py; U/test_generalization_metrics.py | Actual 128/27 and category/family reconciliation or blocked research |
+| SC-002 | U/test_generalization_refresh_targets.py; I/test_generalization_reporting.py | Every original target pair grounded; all fallback retained |
+| SC-003 | U/test_generalization_curriculum.py; U/test_generalization_review.py; I/test_generalization_curriculum.py | Same kernel/review behavior on device |
+| SC-004 | U/test_generalization_curriculum_state.py; I/test_generalization_runtime.py | Exact actual HIP restore and crash debit |
+| SC-005 | V/test_run.py; I/test_generalization_archive.py | One actual operator acceptance and verifiable export |
+| SC-006 | I/test_generalization_evidence.py reconstructs exported opaque outcomes/cost inputs | Actual authorized research exports and measured timings |
+| SC-007 | U/test_generalization_metrics.py; V/test_analysis.py | Actual matched/unmatched and positive/negative/incomplete results |
+| SC-008 | V/test_run.py; tests/unit/test_pipeline_supervision.py; V/test_calibration.py | Actual <=60-second control/progress signal and measured forecast |
+| SC-009 | All 18 reliability rows linked to passing local tests | Hardware observations remain separately pending |
+| SC-010 | 74-task accounting, exactly two dedicated critical phases B/C | Eight E tasks unchanged until actual evidence |
+
+Task closure: T001–T042 retain their independent fixture/installed CPU evidence
+above; D's T043–T061 each have incremental implementation/test commits and ledger
+entries. T062 covers every new role/CLI/help path; T063 is combined local regression;
+T064 is this reconciliation; T065 verifies the exact operator block; T066 records
+truthful local completion. T067–T074 remain unchecked. No unexplained local contract,
+quota-counterexample, transaction, archive or nested-limit gap is handed to E.

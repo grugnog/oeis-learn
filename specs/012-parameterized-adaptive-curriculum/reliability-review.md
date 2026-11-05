@@ -8,9 +8,9 @@ B/C denote the critical phases in [plan.md](plan.md); D owns combined local gate
 
 The [task ownership matrix](tasks.md#reliability-ownership-before-hardware) maps
 all 14 original classes and four added policy risks to implementation tasks,
-counterexamples, evidence and recovery. These are planned owners, not passing
-results. T064 must reconcile actual local checks before handoff; actual HIP proof
-remains in T068–T072.
+counterexamples, evidence and recovery. The Phase D reconciliation below links
+every row to passing local checks; actual native/container/HIP proof remains
+separate in T068–T072.
 
 | Failure class and source | Prevention / owner | Required regression or injection | Exported evidence and recovery |
 | --- | --- | --- | --- |
@@ -116,3 +116,39 @@ actual native extensions, Docker/Podman execution, representative calibration an
 HIP equality remain unverified here. The new HIP test is implemented for E, not
 executed. D's full reporting/wrapper/export matrix and T064 reconciliation remain
 unchecked; no historical 011 failure or missing hardware task is changed.
+
+## Phase D local reconciliation (T064)
+
+All 18 rows below have executable local counterexamples, not merely assigned owners.
+The combined commands and outcomes are in the implementation ledger's T063 entry.
+`U`, `C`, `I` and `V` denote `tests/unit`, `tests/contract`, `tests/integration` and
+this spec's `validation` directory. Actual engine/native/HIP observations remain E;
+no CPU/synthetic proof has been relabeled actual hardware evidence.
+
+| Row | Concrete passing local checks | Evidence/recovery checked locally | E-only observation |
+| --- | --- | --- | --- |
+| Engine/qualification mismatch | C/test_generalization_roles.py; I/test_generalization_registration.py; U/test_generalization_qualification.py | Explicit Docker/Podman commands, exact source/image/backend, no-Lt environment; incompatible closure rejects | Actual engine/image/runtime/device inspection |
+| Fresh directory/host dependency | U/test_generalization_host.py; V/test_run.py | `python -S`, fresh outputs, exact original roots, bootstrap failure ZIP, separate resume/recover | Originals and usable engine on workstation |
+| Cold startup/overlay | U/test_generalization_operational_budgets.py; I/test_generalization_recipes.py; V/test_calibration.py | Preserve longer ceilings, load/save margins and complete sampled forecasts; absence rejects | Actual cold/warm/import/load measurements |
+| Nested timeout | C/test_generalization_roles.py; I/test_generalization_runtime.py; I/test_generalization_recipes.py | Full role envelope, charged projection, protected publication/cleanup, resumed proof limits | Actual measured boundary costs |
+| Repeated preparation cost | I/test_generalization_preparation.py; tests/unit/test_pipeline_supervision.py; V/test_calibration.py | Deterministic cells, bounded native workers/cancellation; measured fields remain unavailable until E | Full original draw/probe/native throughput |
+| Finite quota deficit | V/test_structural_policy.py; U/test_generalization_cohorts.py; V/test_run.py | All 16 exclusions, no reseed, exact shortfall; failed quota ledger survives verified export | Actual 128/27 and 68/18+26+34 native admission |
+| Smoke misses real boundary | I/test_generalization_acceptance.py; I/test_generalization_curriculum.py | Actual CPU tensors, valid signed reward, graded review, both pause boundaries, loaded final forward and negative ZIP | Same installed path on HIP |
+| Disk/tmpfs/copy exhaustion | U/test_generalization_operational_budgets.py; U/test_generalization_host.py; tests/unit/test_pipeline_disk.py | Peak simultaneous graph, extra-arm capacity, symlinks/ENOSPC, originals preserved | Actual free/peak workstation storage |
+| Excess snapshots/truncated progress | I/test_generalization_periodic.py; I/test_generalization_training.py | Hourly/latest policy, bounded save calls/windows, compact trend and restored totals; unavailable save tail labeled | Production throughput/save overhead |
+| Backend numerical divergence | I/test_generalization_runtime.py; C/test_generalization_roles.py | Exact real CPU clean state, no-Lt startup fields, policy identity rejection | Fresh/resumed actual HIP equality |
+| Diagnostic/watchdog interference | I/test_generalization_curriculum.py; tests/unit/test_pipeline_supervision.py | RNG/mode restoration, handler lifetime, cancellation, process cleanup | Actual diagnostic cost and device cleanup |
+| Cross-image/newer-journal restore | U/test_generalization_curriculum_state.py; I/test_generalization_runtime.py; V/test_run.py | Model-bound full state, exactly-once feedback, charged crash loss; incompatible model resume blocks | Actual device/RNG equality and crash debit |
+| Missing nested outcome/COMPLETE/primary cause | I/test_generalization_archive.py; V/test_run.py | Failed process cannot PASS; terminal/verifier bindings, ordered errors, verified minimal fallback and last-resort record | Actual acceptance/failure export receipts |
+| Packer/helper paths/stale producer | I/test_generalization_archive.py; I/test_generalization_registration.py; V/test_run.py | Complete synthetic proof closure with real packer/verifier; exact original inventory bytes; helper hash separate; tamper yields negative minimal archive | Actual native/device proof closure |
+| Wrong EXP3 variant/probability | U/test_generalization_curriculum.py; U/test_generalization_curriculum_state.py | Hand-derived fractions, selected probability, exploration/share and valid clock; old heuristic rejected | Actual nondegenerate HIP reward/kernel update |
+| Cross-family/double reward credit | U/test_generalization_curriculum_state.py; I/test_generalization_curriculum.py; I/test_generalization_runtime.py | Contiguous block and panel identity, no intervening review, exactly-once restore, censored/discarded state | Actual pre/block/post device observations |
+| Wrong anchor grade/service bound | U/test_generalization_review.py; I/test_generalization_curriculum.py | All 32 offsets/128 anchors, own pre-update recall, acquisition/incidental exposure, charged committed review | Actual acquired then due graded HIP update |
+| Observation cost/short timeout | U/test_generalization_operational_budgets.py; V/test_calibration.py; I/test_generalization_curriculum.py | Full recurring panel/grade/reward reservation; missing samples reject; persistent missing reward pauses | Representative production-shape measurements |
+
+The local handoff closes software contract, quota-counterexample, transaction,
+packaging and nested-limit gaps. It does not assert actual original-data feasibility,
+matched historical A, measured workstation performance or HIP qualification. These
+are explicit E gates: a real deficit or failed device proof blocks dependent work
+and exports the measured negative result. Optional research stays separately frozen.
+Historical 011 T174 and T177–T181 remain unchanged.
