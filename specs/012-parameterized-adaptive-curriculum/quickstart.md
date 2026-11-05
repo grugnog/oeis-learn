@@ -42,7 +42,7 @@ including 68 certified tasks across 15 families. It is a disclosed feasible subs
 not a completed result for the old 27/18-family scope. Training data and learner
 policies are unchanged. The printed/sealed plan identifies the new scope.
 
-Pull the repair and run with the fresh `-003` output below. Do not resume the failed
+Pull the repair and run with the fresh `-004` output below. Do not resume the failed
 old plan into the new scientific population. Current images rebuild automatically
 with cached layers where compatible; old weights/data stay untouched. The operator's
 second run completed native admission for its frozen source/images.
@@ -73,7 +73,7 @@ The repaired projection verifies and copies this protected dependency into the
 custodian; learner/generator views remain unchanged. Known missing-artifact errors
 now have a readable safe message, including during recovery of old error hashes.
 
-Use the fresh `-003` invocation below. Changed production source requires a new
+Use the fresh `-004` invocation below. Changed production source requires a new
 sealed plan and rebuilt images. It repeats admission under that new closure; the
 successful `-002` receipt cannot be silently rebound to different source/images.
 Keep the entire old directory. For improved diagnostics alone, without rerunning
@@ -83,6 +83,28 @@ admission or modifying old results:
 python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
   --previous run-state/generalization/pac-012-acceptance-002/campaign \
   --output run-state/generalization/pac-012-qualification-recovered-001
+```
+
+## Repair after the third run's calibration failure
+
+The `pac-012-acceptance-003` archive records admission PASS (1,065.0 seconds) and
+CPU/HIP qualification PASS (715.4 seconds; 1,496 CPU and 27 HIP tests). Calibration
+then failed with `KeyError('source')` before its first native timing completed.
+Learner rows intentionally omit source text; calibration now decodes the paired
+literal target tokens that preparation already verified. Learner projections and
+training policy remain unchanged. A complete CPU handler regression now exercises
+64 updates, feedback, save/load and all calibration samples, using explicit device
+and native-service adapters; it is not production performance evidence.
+
+Use the fresh `-004` invocation below. Production source changed, requiring a new
+sealed plan and rebuilt image pair, including repeated admission and qualification.
+The old successful receipts remain evidence for their original source/images;
+keep the entire `-003` directory. To obtain readable diagnostics alone:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
+  --previous run-state/generalization/pac-012-acceptance-003/campaign \
+  --output run-state/generalization/pac-012-calibration-recovered-001
 ```
 
 ## One operator block
@@ -100,7 +122,7 @@ python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py run \
   --prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
   --pilot run-state/generalization/fresh-p1-hourly-20261104T093555Z \
   --seed 20261016 \
-  --output run-state/generalization/pac-012-acceptance-003
+  --output run-state/generalization/pac-012-acceptance-004
 ```
 
 The helper audits originals and capacity, builds the pinned qualification/GPU
@@ -114,14 +136,14 @@ weights cannot initialize research. Failures suppress dependent work and still
 produce a verified normal or minimal archive.
 
 The initial plan is
-`run-state/generalization/pac-012-acceptance-003/inputs/plan.json`; its `identity`,
+`run-state/generalization/pac-012-acceptance-004/inputs/plan.json`; its `identity`,
 scientific scope, source/images, helper hash and finite stage graph are printed
 before admission. Calibration may raise and separately seal **operational** limits
 before research. It cannot change scientific choices, add arms or extend a running
 research allowance. The revision is `campaign/operational-freeze.json`.
 
 The normal shareable result is
-`run-state/generalization/pac-012-acceptance-003/campaign/report.zip`. A failure during
+`run-state/generalization/pac-012-acceptance-004/campaign/report.zip`. A failure during
 input inspection or image building instead writes `bootstrap-failure/report.zip`
 under the selected output. If rich proof collection fails, the verified minimal
 archive retains the original failure plus the export error and names omissions.
@@ -162,8 +184,8 @@ An incompatible full checkpoint blocks instead of silently restarting a learner.
 
 ```sh
 python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
-  --plan run-state/generalization/pac-012-acceptance-003/inputs/plan.json \
-  --previous run-state/generalization/pac-012-acceptance-003/campaign \
+  --plan run-state/generalization/pac-012-acceptance-004/inputs/plan.json \
+  --previous run-state/generalization/pac-012-acceptance-004/campaign \
   --output run-state/generalization/pac-012-resumed-001
 ```
 
@@ -177,7 +199,7 @@ does not rewrite the old outcome:
 
 ```sh
 python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
-  --previous run-state/generalization/pac-012-acceptance-003/campaign \
+  --previous run-state/generalization/pac-012-acceptance-004/campaign \
   --output run-state/generalization/pac-012-recovered-001
 ```
 

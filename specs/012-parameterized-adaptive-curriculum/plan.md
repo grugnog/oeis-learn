@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Phases A–D and F001–F006 operator-failure repairs implemented and locally validated (654 tests and 2 subtests passed). The original actual admission remains failed; the explicitly amended 128-task/23-family scope requires fresh original-input/native and device qualification. All eight Phase E tasks remain unchecked for that current scope.
+**Status**: Phases A–D and F001–F012 operator-failure repairs implemented and locally validated (664 tests and 2 subtests passed). The operator's `-003` run passed original-input/native admission and CPU/HIP qualification, then failed calibration; its verified evidence remains tied to its original source/images. The repaired current source requires a fresh plan and workstation acceptance. All eight Phase E tasks remain unchecked for the complete current closure.
 
 ## Summary
 

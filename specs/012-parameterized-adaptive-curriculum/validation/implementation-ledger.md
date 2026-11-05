@@ -832,3 +832,30 @@ Fixed public vocabulary also recognizes this exact missing-source field error.
 Recovery recognizes the old hash without rewriting original producer bytes;
 arbitrary private text remains omitted. Focused calibration/forecast/failure checks:
 **16 passed**, one existing PyTorch warning, 3.79 seconds.
+
+
+## F012 — Stable calibration-repair closure and fresh handoff
+
+After all production/test changes stabilized and the 007 implementation fingerprint
+was refreshed using its actual canonical serializer, ran the exact F006 combined
+non-HIP selection: **664 passed, 2 subtests passed, 2 hardware tests deselected,
+20 PyTorch warnings in 155.69 seconds**. The additional warning is the same existing
+mask-type warning from the new real-tensor calibration fixture. Runtime is Python
+3.12.14 / torch 2.9.1+cpu with locked non-torch dependencies; no local container,
+native-service or HIP performance proof is claimed. No source/test edits occurred
+while the combined selection was running. Current 007 retains all 68 dispositions
+and full_007_complete=false; historical 011 tasks remain unchanged.
+
+Stdlib-only original archive verification, actual `run --help` / `recover --help`,
+prerequisites and `git diff --check` pass. Existing ignore files cover generated
+artifacts. The quality checklist remains read-only at 16 checked / zero unchecked.
+Post-execution review finds no `.specify/extensions.yml`, hence no registered hooks.
+
+The quickstart now uses `pac-012-acceptance-004` and explicitly explains the repeated
+admission/qualification required by changed source/images. It also gives read-only
+`-003` recovery, which upgrades the exact known source-field error hash. The plan
+status records the third run's real successful admission and CPU/HIP qualification
+without calling it completed PAC acceptance. All eight original E tasks remain
+unchecked for the changed current closure. Research was not authorized/launched.
+F010–F012 have dedicated incremental commits published to PR 63 against main;
+no merge or CI wait was performed.
