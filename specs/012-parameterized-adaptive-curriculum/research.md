@@ -199,3 +199,14 @@ refresh/adaptive interaction, review-only ablation, replay/search teaching, extr
 seeds and final assessment are
 separate future decisions. No unresolved design question blocks task generation;
 missing workstation inputs and measured runtime are explicit execution gates.
+
+
+### 2026-11-05 structural feasibility amendment
+
+The operator authorized repair after actual post-exclusion quota failure. New runs
+use the explicitly versioned 128-task/23-family population (68 certified/15 families)
+in [the amendment](validation/structural-amendment.md). It freezes revised quotas from conservative source capacity
+before model outcomes, preserving all 2,288 draws and every original exclusion.
+Historical 27/18-family scope stays readable and failed; training, numeric law,
+inference budgets and the 65/68 threshold remain unchanged. No actual new native/HIP
+acceptance or research success is claimed by this implementation.

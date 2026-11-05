@@ -648,3 +648,15 @@ remains read-only (16 checked, zero unchecked). The required post-execution hook
 check found no `.specify/extensions.yml`, so no hooks were registered. Historical
 011 T174 and T177–T181 are unchanged; the 007 current implementation fingerprint
 changed without altering its 68 dispositions or `full_007_complete=false`.
+
+
+## F001–F002 — Actual admission and explicit population repair
+
+Preserved the original public failure counters as a regression fixture; its archive
+and availability hashes are bound by the new source-controlled amendment. Frozen
+v2 keeps all 2,288 draws, all sixteen original exclusions and the numeric law, while
+changing the infeasible 27/18-family population to an explicitly disclosed 23/15
+population with unchanged 128 and 68/26/34 task totals. Worst-source-multiplicity
+bounds make the fixed revised quotas feasible for every survivor subset with the
+reported counts; actual source/native admission remains mandatory. Historical v1
+is unchanged. Amendment, original structural and metric checks: **11 passed**.

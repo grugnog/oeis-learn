@@ -52,20 +52,29 @@ def seed_uncertainty(paired_seeds, *, seed=0, draws=2000):
                 lower=means[int(draws*.025)],upper=means[min(draws-1,int(draws*.975))])
 
 
-def _pac_roster(roster):
+def _pac_roster(roster,*,scope=None):
     from collections import Counter
     if len(roster)!=128 or any(set(r)!={'family','category','stratum'} or r['stratum']!='structural' or not isinstance(r['family'],str) or not r['family'] for r in roster.values()):
         raise ValueError('frozen 128-task structural roster required')
     counts=Counter(r['category'] for r in roster.values())
     families={c:{r['family'] for r in roster.values() if r['category']==c} for c in ('certified','ambiguous','unresolved')}
-    if counts!=dict(certified=68,ambiguous=26,unresolved=34) or [len(families[c]) for c in families]!=[18,4,5] or len(set.union(*families.values()))!=27:
+    expected=[18,4,5]
+    if scope is not None:
+        from .structural import scope_protocol
+        protocol=scope_protocol(scope)
+        if protocol['version']=='pac-structural-scope/v2':
+            expected=[15,3,5]
+            actual=Counter(r['family'] for r in roster.values())
+            required=Counter({c['family']:c['count'] for c in protocol['cells'] if c['count']})
+            if actual!=required or any(r['category']!=protocol['families'][r['family']]['category'] for r in roster.values()):raise ValueError('amended structural family quotas changed')
+    if counts!=dict(certified=68,ambiguous=26,unresolved=34) or [len(families[c]) for c in families]!=expected or len(set.union(*families.values()))!=sum(expected):
         raise ValueError('fixed structural category/family allocation')
     return families
 
 
-def pac_structural_metrics(roster,outcomes):
+def pac_structural_metrics(roster,outcomes,*,scope=None):
     """All frozen families remain in each denominator, including censored tasks."""
-    _pac_roster(roster)
+    _pac_roster(roster,scope=scope)
     summarize({k:r['family'] for k,r in roster.items()},outcomes)
     results={}
     for category in ('certified','ambiguous','unresolved'):
@@ -78,8 +87,8 @@ def pac_structural_metrics(roster,outcomes):
     return results
 
 
-def pac_paired_counts(roster,baseline,treatment):
-    _pac_roster(roster)
+def pac_paired_counts(roster,baseline,treatment,*,scope=None):
+    _pac_roster(roster,scope=scope)
     for outcome in (baseline,treatment):summarize({k:r['family'] for k,r in roster.items()},outcome)
     selected=[k for k,r in roster.items() if r['category']=='certified']
     pairs=[(baseline.get(k),treatment.get(k)) for k in selected]

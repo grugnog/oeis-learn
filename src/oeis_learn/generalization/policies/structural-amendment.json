@@ -1,0 +1,184 @@
+{
+  "allocation": "clamp original family quotas to guaranteed unique survivors; round-robin sorted family hashes within each unchanged category until 68/26/34; no inference outcomes",
+  "counts": {
+    "ambiguous_families": 3,
+    "ambiguous_tasks": 26,
+    "certified_families": 15,
+    "certified_tasks": 68,
+    "families": 23,
+    "tasks": 128,
+    "unresolved_families": 5,
+    "unresolved_tasks": 34
+  },
+  "failed_archive": "sha256:df351d22447a500681aaef83a3a3923b4ab339e74bb51ecccc12cf6eed8122fa",
+  "failed_availability": "sha256:520fa8b8b5fce79548a0ebdad1b754f7225723cbdbe44db30d3deadda7526ba0",
+  "failed_evidence": "sha256:706654474f1312994877a4d897ad30c14f8d82f4242168e4c3a90250c27d4d1a",
+  "families": {
+    "sha256:023c94524b41f4c4280555bb753f48583c66c9caf94e42d5f9f825914806e070": {
+      "guaranteed_unique": 64,
+      "previous": 4,
+      "reported_survivors": 64,
+      "required": 4
+    },
+    "sha256:04986e9882b83d5fc316c726ce8f5e30c4ce0f74f9469d95182e450d245da8c9": {
+      "guaranteed_unique": 62,
+      "previous": 2,
+      "reported_survivors": 62,
+      "required": 4
+    },
+    "sha256:0aa27908fe64f01c71b56dfbf3bc42d62e1c387847a7a3dde53a7238f8761d30": {
+      "guaranteed_unique": 0,
+      "previous": 2,
+      "reported_survivors": 0,
+      "required": 0
+    },
+    "sha256:174a9a2071d50c75a9e79aab848bde5e4637e8a872fb5dd6d4fda5c68b8be0d3": {
+      "guaranteed_unique": 63,
+      "previous": 4,
+      "reported_survivors": 63,
+      "required": 6
+    },
+    "sha256:286588d220a644bc3c35da1c82ed204c89c7dca448470deef4aaab503b77ae6e": {
+      "guaranteed_unique": 95,
+      "previous": 6,
+      "reported_survivors": 95,
+      "required": 11
+    },
+    "sha256:322d33b6b9854f982d87856c46c38e5dc68e74c4714270158f2f59ba1d354996": {
+      "guaranteed_unique": 0,
+      "previous": 6,
+      "reported_survivors": 0,
+      "required": 0
+    },
+    "sha256:34063c9150430d60b5239da622a4528d9711a5e22d3a43b919666ab992be0742": {
+      "guaranteed_unique": 0,
+      "previous": 7,
+      "reported_survivors": 0,
+      "required": 0
+    },
+    "sha256:3f7f434b8e623c14859607b7cf926d902c978ac4c54bb9783e0584976437e26e": {
+      "guaranteed_unique": 2,
+      "previous": 2,
+      "reported_survivors": 4,
+      "required": 2
+    },
+    "sha256:589833f0edcdab5b63558844fdd9a67bf83e9fc9cca20378d69eca2cfab6c617": {
+      "guaranteed_unique": 36,
+      "previous": 4,
+      "reported_survivors": 37,
+      "required": 6
+    },
+    "sha256:5c475cecf9dadb676ffb072321748ece543b969ad83a57af14806a841fdce7b7": {
+      "guaranteed_unique": 1,
+      "previous": 4,
+      "reported_survivors": 1,
+      "required": 1
+    },
+    "sha256:7d3c681969ef3849fe45f55c154485f27a87ca6804722a8fe3063f86f4c8412f": {
+      "guaranteed_unique": 59,
+      "previous": 4,
+      "reported_survivors": 60,
+      "required": 5
+    },
+    "sha256:814c9514aa68b7de93b7e2bb44cf52f667d89828329599a9c30ddd6c2f42062f": {
+      "guaranteed_unique": 7,
+      "previous": 1,
+      "reported_survivors": 7,
+      "required": 2
+    },
+    "sha256:83a8423db5b0e343b25868f51be36d371c5610bdd951f4b786a58adf16ee7887": {
+      "guaranteed_unique": 2,
+      "previous": 4,
+      "reported_survivors": 2,
+      "required": 2
+    },
+    "sha256:988a472f489306cddc24c6bf715401735cf11e1e61bbc0565aa86740dec66afb": {
+      "guaranteed_unique": 22,
+      "previous": 6,
+      "reported_survivors": 22,
+      "required": 7
+    },
+    "sha256:ae2291fc1dea8920148bdf1c2536ca674e52569d9e2db8a62402e69f99e4ac9e": {
+      "guaranteed_unique": 74,
+      "previous": 5,
+      "reported_survivors": 74,
+      "required": 5
+    },
+    "sha256:cf0cf185ed7e62edc6fbb4ef53a41e86f3ec327641812603c272d02cb3de672f": {
+      "guaranteed_unique": 6,
+      "previous": 2,
+      "reported_survivors": 6,
+      "required": 3
+    },
+    "sha256:d2a0230d8ec5fc32a97d1e0172096a3d0b49998c4552176a51ec5dc69786570a": {
+      "guaranteed_unique": 64,
+      "previous": 4,
+      "reported_survivors": 64,
+      "required": 4
+    },
+    "sha256:d5849ec7e32b28de8797e626752274fb40441eeed7f55cf616049eb58efc405f": {
+      "guaranteed_unique": 155,
+      "previous": 10,
+      "reported_survivors": 155,
+      "required": 11
+    },
+    "sha256:daaacba51cb13e1ab72f29c40c6cedec28fcb66c22c1a923cd6c1b8de7d3e9c6": {
+      "guaranteed_unique": 160,
+      "previous": 10,
+      "reported_survivors": 160,
+      "required": 10
+    },
+    "sha256:dbeda6df0cf503abe0e488f443f0d709f46f8151c9afc4f64abc43ceac189dd1": {
+      "guaranteed_unique": 176,
+      "previous": 11,
+      "reported_survivors": 176,
+      "required": 11
+    },
+    "sha256:df92fd60c4a58c0c250ff87607106318cf3c51996d26239bf4e4634898fa7279": {
+      "guaranteed_unique": 131,
+      "previous": 9,
+      "reported_survivors": 131,
+      "required": 13
+    },
+    "sha256:e0ba7e3a2bfec4edadd4021b0e0aacc008a2a800f59e8f8dcf3131220c93a8a1": {
+      "guaranteed_unique": 64,
+      "previous": 3,
+      "reported_survivors": 64,
+      "required": 4
+    },
+    "sha256:eb82f1176d0d405d132bfd7842a1a9e16140a0f7b84205b16a4f78f55de6869f": {
+      "guaranteed_unique": 9,
+      "previous": 3,
+      "reported_survivors": 9,
+      "required": 4
+    },
+    "sha256:ee89096d39c3cd28548d23323560ae136722b8d44999397d79dc6323e3dae86e": {
+      "guaranteed_unique": 2,
+      "previous": 4,
+      "reported_survivors": 2,
+      "required": 2
+    },
+    "sha256:f16e6cc78e4e0a20e2723c55a5ae3083be3cbd52447f58761a0b9c57ccab0c61": {
+      "guaranteed_unique": 0,
+      "previous": 2,
+      "reported_survivors": 0,
+      "required": 0
+    },
+    "sha256:f6bb7c89134702420513b97f1fb6879ee5c7330cf49ca33e9ff26301ef9d13be": {
+      "guaranteed_unique": 76,
+      "previous": 5,
+      "reported_survivors": 76,
+      "required": 6
+    },
+    "sha256:fe4b4781a7b4da84db42eb1dc9570802ae030d06c43b62df669f7781e2c8f423": {
+      "guaranteed_unique": 60,
+      "previous": 4,
+      "reported_survivors": 60,
+      "required": 5
+    }
+  },
+  "identity": "sha256:d7d5b559cb2247500129440480be82646d972ce20b58d7e279650f8501ccc81c",
+  "original_draws": "sha256:45ac6e1f23092c0cc54949247739bf0500e27d708ef30aeb6bca802e92766acd",
+  "parent_scope": "sha256:34a625b3bb7c8ec45205b9b224f80eb7750e9357aa8ed5b0de2d6ae0a41bd561",
+  "version": "pac-structural-amendment/v1"
+}

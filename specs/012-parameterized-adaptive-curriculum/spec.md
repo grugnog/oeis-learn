@@ -188,3 +188,18 @@ As a researcher, I want structural outcomes, retention curves and before/after p
 - Original private inputs/checkpoints and compatible images remain on the workstation. Missing originals require a specific preflight action or separately frozen replacement, not invented provenance.
 - Existing repository evidence and prior public archives suffice for design; no chat/file resend is needed now. Actual control compatibility and performance calibration require operator-side originals later.
 - This specification/design does not run training/HIP, establish efficiency gains or automatically authorize a research campaign.
+
+
+## Operator-authorized feasibility amendment (2026-11-05)
+
+After the actual original-input admission failed, the operator requested a fix.
+The frozen [structural amendment](validation/structural-amendment.md) supersedes
+only the structural population/quota parts of FR-005/FR-006 and their 27/18-family
+success-criterion references for new v2 runs. The current population is 128 tasks,
+23 families: 68 certified/15 families, 26 ambiguous/3 and 34 unresolved/5. All 2,288
+original draw identities, numeric law and all sixteen original exclusions remain
+unchanged. Quotas are frozen from outcome-blind conservative distinct-source
+capacity; no runtime reseed, reallocation, biased relabeling of old results or
+exclusion relaxation is permitted. Training and 65/68 completion requirements do
+not change. Claims are conditional on this disclosed feasible population; historical
+v1 comparisons retain their original denominators and failures.

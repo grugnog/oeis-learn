@@ -29,14 +29,39 @@ def design(prior):
     return seal(result)
 
 
+def amended_design(prior):
+    """Operator-authorized, outcome-blind repair; historical design stays immutable."""
+    from importlib.resources import files
+    old=design(prior)
+    amendment=json.loads(files('oeis_learn.generalization').joinpath('policies/structural-amendment.json').read_text())
+    if seal(amendment)!=amendment or amendment['version']!='pac-structural-amendment/v1' or amendment['parent_scope']!=old['identity']:
+        raise ValueError('frozen structural amendment required')
+    cells=[dict(c,count=amendment['families'][c['family']]['required']) for c in old['cells']]
+    return seal(dict(old,version='pac-structural-scope/v2',parent_scope=old['identity'],amendment=amendment['identity'],
+        cells=cells,population=amendment['counts'],scope_note='feasibility-conditioned 23-family population; not the historical 27-family comparison'))
+
+
+def scope(protocol):
+    verify(protocol)
+    return dict(version=protocol['version'],design=protocol['identity'])
+
+
+def scope_protocol(value):
+    for protocol in (design(prior_protocol()),amended_design(prior_protocol())):
+        if value==dict(version=protocol['version'],design=protocol['identity']):return protocol
+    raise ValueError('unknown or changed structural scope identity')
+
+
 def verify(protocol):
-    expected=design(prior_protocol())
+    expected=amended_design(prior_protocol()) if protocol.get('version')=='pac-structural-scope/v2' else design(prior_protocol())
     if protocol!=expected:raise ValueError('changed frozen structural draw/control policy')
 
 
 @lru_cache(maxsize=1)
 def _draw_bytes(identity):
-    protocol=design(prior_protocol())
+    choices=[design(prior_protocol()),amended_design(prior_protocol())]
+    protocol=next((p for p in choices if p['identity']==identity),None)
+    if protocol is None:raise ValueError('unknown frozen structural draw scope')
     return json.dumps(legacy().draw(protocol))
 
 
@@ -94,6 +119,7 @@ def admit(protocol,draws,candidates,results,*,exclusion_cells,rejected_ids):
     categories=Counter(r['category'] for r in roster.values())
     families={r['family'] for r in roster.values()}
     certified={r['family'] for r in roster.values() if r['category']=='certified'}
-    if len(roster)!=128 or len(families)!=27 or len(certified)!=18 or categories!=dict(certified=68,ambiguous=26,unresolved=34):
+    family_count,certified_count=(23,15) if protocol['version']=='pac-structural-scope/v2' else (27,18)
+    if len(roster)!=128 or len(families)!=family_count or len(certified)!=certified_count or categories!=dict(certified=68,ambiguous=26,unresolved=34):
         raise ValueError('structural allocation changed')
     return roster

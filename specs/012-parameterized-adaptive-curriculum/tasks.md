@@ -341,7 +341,7 @@ complete or rewrite the failed 27-family run. The revised evaluation scope must 
 frozen before any model outcomes; training, exclusions and draw law stay unchanged.
 
 - [X] F001 Add the original public failure counters and independent worst-duplicate source-capacity/old-scope rejection regressions before implementing the amendment.
-- [ ] F002 Freeze and implement a new 128-task/23-family structural scope (68 certified/15 families), preserving all 2,288 draws, all 16 exclusions and historical v1 readers; publish exact changed quotas and removed families.
+- [X] F002 Freeze and implement a new 128-task/23-family structural scope (68 certified/15 families), preserving all 2,288 draws, all 16 exclusions and historical v1 readers; publish exact changed quotas and removed families.
 - [ ] F003 Bind the new scope through admission, scoring, metrics, analysis and offline archives; require exact new population identity and preserve historical denominator guards.
 - [ ] F004 Add nested-role/first-cause/cleanup/export failure counterexamples; preserve bounded safe cause types and quota details without private paths, truth or tensors.
 - [ ] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
