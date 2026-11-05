@@ -399,3 +399,7 @@ operational revision may only raise future limits before baseline/research work,
 retaining scientific choices and protected finalization. Pure missing-sample,
 longer-prior-limit, source mismatch and scientific-identity tests pass (3 tests).
 The actual HIP measurement handler is implemented, not executed here.
+
+## T053 — Existing containment/worker regression closure
+
+`tests/integration/test_generalization_preparation.py tests/unit/test_pipeline_disk.py tests/unit/test_pipeline_supervision.py tests/unit/test_container_runtime.py`: **51 passed, 2 subtests passed**. These exercise existing ordered single/parallel preparation, failure/cancellation, symlink/path confinement, disk limits, watchdog lifecycle and Docker/Podman command construction. No native extension or engine was launched; actual warm/cold worker timing remains the E calibration handler's responsibility.
