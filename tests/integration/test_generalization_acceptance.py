@@ -415,6 +415,8 @@ def test_pac_real_acceptance_handlers_reach_review_and_both_resumes(tmp_path,mon
     result=pac_acceptance({'training_targets':tmp_path/'inputs'},tmp_path/'run',dict(config=config),seconds=900)
     assert result['status']=='PASS' and result['device']=='cpu'
     assert result['updates']==16 and result['valid_rewards']==6 and result['graded_anchors']>0
+    evaluation=json.loads((tmp_path/'run'/result['checkpoint_evaluation']['path']).read_text())
+    assert evaluation['tokens']>0 and evaluation['rows']==2 and evaluation['device']=='cpu'
     assert result['cadence']==dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8)
     assert result['resume_boundaries']==[1,2] and result['research_eligible'] is False
     verify_pac_acceptance(result,root=tmp_path/'run',source=config['pac']['source'],environment=config['pac']['environment'],device='cpu')

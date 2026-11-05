@@ -87,8 +87,23 @@ def calibrate(inputs,output,settings,*,seconds):
     forecasts={arm:forecast(samples,updates=updates,arm=arm if arm!='A' else 'B',existing={}) for arm in settings['study']['arms']}
     result=seal(dict(status='PASS',version='pac-calibration/v1',source=settings['source'],environment=settings['environment'],
         production_recipe=settings['study']['model'],updates=64,tokens=run['tokens'],valid_rewards=run['pac']['valid_rewards'],
-        forecasts=forecasts,samples=samples,weights_are_research_initializers=False))
+        forecasts=forecasts,samples=samples,forecast_updates=updates,weights_are_research_initializers=False))
     write(output/'calibration.json',result);return result
+
+
+def verify_calibration(record,*,source,environment,arms,model=None):
+    """Reconstruct every forecast from the complete bounded measured samples."""
+    fields={'version','identity','status','source','environment','production_recipe','updates','tokens','valid_rewards',
+            'forecasts','samples','forecast_updates','weights_are_research_initializers'}
+    if (set(record)!=fields or seal(record)!=record or record['version']!='pac-calibration/v1' or record['status']!='PASS'
+        or record['source']!=source or record['environment']!=environment or set(record['forecasts'])!=set(arms)
+        or record['weights_are_research_initializers'] is not False or record['updates']!=64 or record['valid_rewards']<6
+        or type(record['tokens']) is not int or record['tokens']<1 or type(record['forecast_updates']) is not int or record['forecast_updates']<1
+        or model is not None and record['production_recipe']!=model):raise ValueError('complete compatible measured calibration required')
+    for arm in arms:
+        expected=forecast(record['samples'],updates=record['forecast_updates'],arm='B' if arm=='A' else arm,existing={})
+        if expected!=record['forecasts'][arm]:raise ValueError('calibration forecast differs from actual samples')
+    return record
 
 
 def apply_calibration(study,runtime,record):
@@ -97,13 +112,14 @@ def apply_calibration(study,runtime,record):
     from .identity import digest
     from .generalization_execution import bind_pac,pac_budget_projection
     from .identity import number
-    if (seal(record)!=record or record.get('version')!='pac-calibration/v1' or record.get('status')!='PASS'
-        or record['source']!=study['source'] or record['environment']!=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend']))
-        or set(record['forecasts'])!=set(study['arms'])):raise ValueError('complete compatible measured calibration required')
+    verify_calibration(record,source=study['source'],environment=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend'])),arms=study['arms'],model=study['model'])
     runtime=copy.deepcopy(runtime);study=copy.deepcopy(study);e=runtime['envelope']
     for name,key in [('learner','learner'),('resume','learner'),('generation','generation'),('preparation','preparation')]:
         work=max(e[name]['work'],max(v[key]['seconds'] for v in record['forecasts'].values()));number(work,positive=True)
         e[name]['work']=work
+        samples=record['samples']
+        e[name]['startup']=max(e[name]['startup'],3*max(samples['load'])+60)
+        e[name]['publication']=max(e[name]['publication'],3*max(samples['save'])+60)
         e[name]['outer']=sum(e[name][k] for k in ('work','startup','publication','projection','cleanup'))
     e['diagnostics_seconds']=max(e['diagnostics_seconds'],max(v['diagnostics']['seconds'] for v in record['forecasts'].values()))
     from .generalization_execution import PAC_STAGES

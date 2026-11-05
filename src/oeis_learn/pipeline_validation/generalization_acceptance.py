@@ -255,17 +255,32 @@ def pac_acceptance(inputs,output,settings,*,seconds):
     if policy['kernel']['valid_updates']<6 or event['status'] in {'warmup','degenerate','censored'} or not grades or strata!={'supported','fallback'}:
         raise ValueError('acceptance lacks actual non-warmup reward/graded review/paired target exposure')
     if config['device']=='cuda' and not model_state['rng']['device']:raise ValueError('actual device RNG missing')
+    # Evaluate the published final weights after a fresh weights-only load.
+    # This is a training-probe forward check, never a held-out research score.
+    from .generalization_evaluation import load_retained
+    from .generalization_curriculum import observe_targets
+    roster=json.loads((full[0]/'retained.json').read_text())
+    descriptor=next(c for c in roster['checkpoints'] if c['state']==full[1]['checkpoint'])
+    encoder,decoder,_=load_retained(full[0],descriptor['weights'],config['recipe'],device=config['device'])
+    evaluation_rows=[batches.probe_rows[ids[0]] for ids in batches.probes.values()]
+    remaining_seconds(deadline)
+    observation=observe_targets(encoder,decoder,evaluation_rows,device=config['device'])
+    remaining_seconds(deadline)
+    evaluated=seal(dict(version='pac-checkpoint-forward/v1',status='PASS',checkpoint=descriptor['identity'],weights=descriptor['weights']['sha256'],
+        device='hip' if config['device']=='cuda' else 'cpu',scope='training probes only',rows=len(evaluation_rows),**observation))
+    write(output/'checkpoint-evaluation.json',evaluated)
+    del encoder,decoder
     failed=output/'failure';failed.mkdir()
     write(failed/'summary.json',dict(selected_scope='FAIL',scientific_status='UNMEASURED',reason='injected acceptance failure'))
     write(failed/'failure.json',dict(primary='injected_after_actual_updates',status='FAIL'))
     write(failed/'private/hidden.json',dict(secret='excluded'))
     archive=pack(failed,mandatory=['summary.json','failure.json']);checked=verify(archive)
     if checked['summary_state']!='FAIL' or any('private' in Path(r['path']).parts for r in checked['members']):raise ValueError('acceptance failure export not verified')
-    result=seal(dict(version='pac-feature-acceptance/v1',status='PASS',source=pac['source'],environment=pac['environment'],
+    result=seal(dict(version='pac-feature-acceptance/v2',status='PASS',source=pac['source'],environment=pac['environment'],
         device='hip' if config['device']=='cuda' else 'cpu',research_eligible=config['device']=='cuda',
         cadence=dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8),updates=16,
         valid_rewards=policy['kernel']['valid_updates'],graded_anchors=grades,resume_boundaries=[1,2],encoded_token_minimum=minimum,
-        proofs=proofs,failure_archive=reference(archive,output)))
+        proofs=proofs,checkpoint_evaluation=reference(output/'checkpoint-evaluation.json',output),failure_archive=reference(archive,output)))
     from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
     verify_pac_acceptance(result,root=output,source=pac['source'],environment=pac['environment'],device=result['device'])
     write(output/'pac-acceptance.json',result)

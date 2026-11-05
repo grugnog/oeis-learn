@@ -131,7 +131,8 @@ def verify_pac_evidence(record,*,root,finalized=True):
         environment=digest(dict(images=record['images'],engine=q['engine_security']['engine'],backend=record['backend']))
         verify_pac_acceptance(feature,root=froot,source=record['source'],environment=environment,device='hip')
         calibration=read(record['calibration'])
-        if seal(calibration)!=calibration or calibration.get('version')!='pac-calibration/v1' or calibration.get('status')!='PASS' or calibration['source']!=record['source'] or calibration['environment']!=environment or set(calibration['forecasts'])!=set(scope['arms']):raise ValueError('compatible measured calibration required')
+        from oeis_learn.pipeline_validation.generalization_pac_calibration import verify_calibration
+        verify_calibration(calibration,source=record['source'],environment=environment,arms=scope['arms'])
         qualified=True
     elif status not in {'FAIL','INTERRUPTED','BLOCKED','INCONCLUSIVE','PARTIAL'}:raise ValueError('negative scope required')
     result=seal(dict(integrity='PASS',software_status=status,scientific_status=record['scientific_status'],feature_qualified=qualified,evidence=record['identity']))

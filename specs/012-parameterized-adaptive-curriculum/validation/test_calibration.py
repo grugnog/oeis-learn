@@ -40,9 +40,21 @@ def test_operational_rebind_preserves_science_and_only_raises_limits():
         preparation=None,prepared=None,envelope=limits,feature=None,engine='podman')
     exp,runtime=bind_pac(seal(exp),runtime)
     forecasts={a:helper().forecast({k:[1.] for k in helper().REQUIRED},updates=10000,arm=a,existing={}) for a in ['B','C']}
-    record=seal(dict(version='pac-calibration/v1',status='PASS',source=exp['source'],environment=digest(dict(images=runtime['images'],engine='podman',backend=POLICY_ID)),forecasts=forecasts))
+    record=seal(dict(version='pac-calibration/v1',status='PASS',source=exp['source'],environment=digest(dict(images=runtime['images'],engine='podman',backend=POLICY_ID)),forecasts=forecasts,samples={k:[1.] for k in helper().REQUIRED},production_recipe=exp['model'],updates=64,tokens=100,valid_rewards=6,forecast_updates=10000,weights_are_research_initializers=False))
     new,side=apply_calibration(exp,runtime,record)
     assert all(new[k]==exp[k] for k in exp if k not in {'identity','execution','budget_graph'})
     assert side['envelope']['learner']['work']>=runtime['envelope']['learner']['work']
     bad=seal(dict(record,source=digest('foreign')))
     with pytest.raises(ValueError):apply_calibration(exp,runtime,bad)
+
+
+def test_measured_calibration_rejects_missing_samples_and_forecast_substitution():
+    from oeis_learn.pipeline_validation.generalization_pac_calibration import verify_calibration,forecast,REQUIRED
+    from oeis_learn.pipeline_validation.identity import digest,seal
+    source=digest('source');environment=digest('env');samples={k:[1.] for k in REQUIRED}
+    record=seal(dict(version='pac-calibration/v1',status='PASS',source=source,environment=environment,
+        production_recipe=digest('model'),updates=64,tokens=100,valid_rewards=6,forecast_updates=10000,
+        weights_are_research_initializers=False,samples=samples,forecasts={a:forecast(samples,updates=10000,arm=a,existing={}) for a in 'BC'}))
+    assert verify_calibration(record,source=source,environment=environment,arms=['B','C'])==record
+    for changed in [dict(record,samples={}),dict(record,forecasts={'B':{},'C':{}}),dict(record,weights_are_research_initializers=True)]:
+        with pytest.raises(ValueError):verify_calibration(seal(changed),source=source,environment=environment,arms=['B','C'])

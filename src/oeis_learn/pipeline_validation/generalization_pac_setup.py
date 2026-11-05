@@ -112,4 +112,6 @@ def acceptance(inputs,output,settings,*,seconds):
     with SynthesisClient(settings['source'],cache_root=Path(output)/'private/native') as native:
         config=pac_acceptance_fixture(Path(output)/'private/inputs',execute=lambda s,i:native.execute(s,i,deadline=min(deadline,time.monotonic()+4)),
             device='cuda',recipe=settings['recipe'],source=settings['source'],environment=settings['environment'])
+    config['seconds']=max(config['seconds'],seconds-1800)
+    config['pac']['observation_seconds']=max(600,config['seconds']*.8)
     return pac_acceptance({'training_targets':Path(output)/'private/inputs'},Path(output)/'acceptance',dict(config=config),seconds=max(.001,deadline-time.monotonic()))

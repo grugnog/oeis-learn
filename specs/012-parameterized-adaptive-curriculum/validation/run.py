@@ -60,9 +60,10 @@ def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,a
         seen.add(stage['name'])
     for ref in inputs:verify_artifact(workspace,ref,max_bytes=32<<30)
     if len(images)!=2 or any(not isinstance(v,str) or len(v)!=71 or not v.startswith('sha256:') for v in images):raise ValueError('immutable image pair required')
+    from oeis_learn.pipeline_validation.generalization_pac_export import helper_identity
     return seal(dict(version='pac-serial-plan/v1',engine=engine,research=research,arms=list(arms),source=source,images=images,
         inputs=inputs,stages=stages,seconds=sum(s['seconds'] for s in stages)+3600,finalization_seconds=3600,
-        helper=file_hash(Path(__file__)),scientific=dict(target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False)))
+        helper=helper_identity(ROOT),scientific=dict(target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False)))
 
 
 def _read(path,cap=16<<20):
@@ -373,7 +374,7 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
         from analysis import analyze_campaign
         value=analyze_campaign(target.parent,output=target)
         return dict(status='PASS',producer=digest(value),process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),
-            artifacts=[reference(target/'analysis.json',target)])
+            artifacts=[reference(target/'analysis.json',target),reference(target/'cases.md',target)])
     extra=['--runtime',runtime_path] if runtime_path else []
     if stage['operation']=='train':
         extra+=['--arms',stage['name'].split('-')[1],'--seeds',str(study['seed'])]

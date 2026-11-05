@@ -1,10 +1,19 @@
 """Bounded public collection; original private producer records stay immutable."""
 import json
 from pathlib import Path
-from .identity import seal,write,confined
+from .identity import seal,write,confined,digest,file_hash
 from .generalization_preparation import reference
 from .generalization_diagnostics import control_fields
 from oeis_learn.generalization.contracts import verify_artifact,artifact_refs
+
+
+def helper_identity(root):
+    """Bind temporary orchestration/analysis separately from installed learner code."""
+    root=Path(root);files=[]
+    for directory in ('specs/011-controlled-generalization/validation','specs/012-parameterized-adaptive-curriculum/validation'):
+        files.extend(sorted((root/directory).glob('*.py')))
+    if not files:raise ValueError('helper source closure unavailable')
+    return digest({str(p.relative_to(root)):file_hash(p) for p in files})
 
 
 def collect(original,staging):
@@ -15,6 +24,15 @@ def collect(original,staging):
     plan=json.loads((original/'plan.json').read_text())
     if seal(workflow)!=workflow or seal(plan)!=plan or workflow['plan']!=plan['identity']:raise ValueError('original workflow/plan binding mismatch')
     refs=[];used=0;omissions=[]
+    entries={row['stage']:row for row in workflow['receipts']}
+    def original_file(path):
+        relative=path.relative_to(original);stage=relative.parts[0]
+        entry=entries.get(stage,{})
+        root=original/entry.get('directory',stage)
+        key=str(path.relative_to(root))
+        ref=next((r for r in entry.get('artifacts',[]) if r['path']==key),None)
+        if ref is None:raise ValueError('public proof absent from original stage inventory')
+        return verify_artifact(root,ref,max_bytes=480<<20)
     def put(name,value):
         write(staging/name,value);ref=reference(staging/name,staging);refs.append(ref);return ref
     def copy(root,ref,prefix):
@@ -22,7 +40,9 @@ def collect(original,staging):
         path=str(Path(prefix)/ref['path'])
         if not public(Path(path)):raise ValueError('private producer payload cannot be exported')
         if used+ref['bytes']>480<<20 or len(refs)>9000:raise ValueError('PAC public proof cap')
-        payload=verify_artifact(root,ref,max_bytes=480<<20);used+=len(payload)
+        payload=verify_artifact(root,ref,max_bytes=480<<20)
+        if Path(root).is_relative_to(original):original_file(Path(root)/ref['path'])
+        used+=len(payload)
         destination=confined(staging,path,exists=False);destination.parent.mkdir(parents=True,exist_ok=True)
         if not destination.exists():destination.write_bytes(payload);refs.append(dict(ref,path=path))
         return dict(ref,path=path)
@@ -41,20 +61,50 @@ def collect(original,staging):
     if (croot/'calibration.json').is_file():calibration=copy(croot,reference(croot/'calibration.json',croot),'calibration')
     nroot=original/'admission/execution/execution/role/private/assembly/resolved'
     if (nroot/'admission.json').is_file():
-        a=json.loads((nroot/'admission.json').read_text())
+        a=json.loads(original_file(nroot/'admission.json'))
         if seal(a)!=a or a['status']!='PASS':raise ValueError('native admission failed/changed')
         producer=next((r['producer'] for r in workflow['receipts'] if r['stage']=='admission'),None)
         native=put('native-admission.json',seal(dict(version='pac-native-public/v1',status=a['status'],source=a['source'],images=a['images'],
             originals=[{k:v for k,v in x.items() if k!='ref'} for x in a['originals']],roster=a['roster'],
             admission_identity=a['identity'],producer=producer,protected_artifacts='OMITTED')))
+    # These builder-produced summaries contain hashes/counts, never protected terms.
+    for name in ('availability.json','training/representation.json'):
+        path=nroot/name
+        if path.is_file():copy(nroot,reference(path,nroot),'admission')
     # Public source program cases are produced only by the scoped analysis adapter.
     analysis=original/'analysis/analysis.json'
-    if analysis.is_file():copy(analysis.parent,reference(analysis,analysis.parent),'analysis')
+    scientific='INCOMPLETE' if plan['research'] else 'UNMEASURED'
+    if analysis.is_file():
+        copy(analysis.parent,reference(analysis,analysis.parent),'analysis')
+        review=analysis.with_name('cases.md')
+        if review.is_file():copy(analysis.parent,reference(review,analysis.parent),'analysis')
+        report=json.loads(analysis.read_text())
+        scientific='EXPLORATORY_SINGLE_SEED' if report.get('comparisons') and all(v['interpretable'] for v in report['comparisons'].values()) else 'INCOMPLETE'
     stages=[]
     for row in workflow['receipts']:
         stages.append(dict(stage=row['stage'],status=row['status'],producer=row['producer'],binding=row['binding'],
             process=control_fields(row.get('process',{})),cleanup=control_fields(row.get('cleanup',{})),
             elapsed_seconds=row.get('elapsed_seconds',0),reused=row.get('reused',False)))
+    operational=original/'operational-freeze.json'
+    limits=json.loads(operational.read_text()) if operational.is_file() else None
+    put('campaign-controls.json',seal(dict(version='pac-campaign-controls/v1',
+        requested=[dict(stage=s['name'],seconds=s.get('seconds')) for s in plan['stages']],
+        effective=[dict(stage=s['name'],seconds=s['seconds']) for s in limits['stages']] if limits else None,
+        campaign_seconds=limits['seconds'] if limits else plan.get('seconds'),finalization_seconds=plan.get('finalization_seconds'),
+        progress='stage elapsed/terminal status; see bounded projected logs; heartbeat is not completed work')))
+    for row in workflow['receipts']:
+        for folder in ('supervision','execution-supervision'):
+            for stream in ('stdout.log','stderr.log'):
+                path=original/row['stage']/folder/stream
+                if path.is_file() and not path.is_symlink():
+                    # Keep only public control/progress lines. Tracebacks, paths,
+                    # source/term payloads and arbitrary role errors stay private.
+                    size=path.stat().st_size
+                    with path.open('rb') as handle:
+                        handle.seek(max(0,size-(64<<10)));tail=handle.read(64<<10).decode('utf8',errors='replace')
+                    lines=[line[:2048] for line in tail.splitlines() if line.startswith(('learner: ','calibration: ')) and '/' not in line and '\\' not in line]
+                    put('logs/'+row['stage']+'/'+folder+'-'+stream+'.json',dict(original_bytes=size,original_sha256=file_hash(path) if size<=1<<20 else None,
+                        projection='recognized phase/time lines only; raw logs remain private',lines=lines[-64:]))
     status=workflow['status']
     if status=='PASS' and not all((qualification,acceptance,native,calibration)):
         status='PARTIAL';omissions.append('complete original qualification/native/acceptance/calibration closure unavailable')
@@ -62,8 +112,8 @@ def collect(original,staging):
     scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED')
     return seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
         backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
-        helper=dict(requested=plan['helper'],observed=__import__('oeis_learn.pipeline_validation.identity',fromlist=['file_hash']).file_hash(Path(__file__).resolve().parents[3]/'specs/012-parameterized-adaptive-curriculum/validation/run.py')),
-        scope=scope,required=[s['name'] for s in plan['stages']],stages=stages,software_status=status,scientific_status='UNMEASURED',errors=workflow['errors'],
+        helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
+        scope=scope,required=[s['name'] for s in plan['stages']],stages=stages,software_status=status,scientific_status=scientific,errors=workflow['errors'],
         omissions=omissions+['private tensors, protected truth, raw commands and original host paths omitted'],inventory=refs,
         qualification=qualification,acceptance=acceptance,native_admission=native,calibration=calibration))
 

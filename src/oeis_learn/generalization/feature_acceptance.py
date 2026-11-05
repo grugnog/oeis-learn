@@ -121,8 +121,8 @@ def verify_pac_acceptance(record,*,root,source,environment,device='hip'):
     """Require original tensor/policy comparisons and independently verified export."""
     from oeis_learn.pipeline_validation.bundle import verify
     fields={'version','identity','status','source','environment','device','research_eligible','cadence','updates',
-            'valid_rewards','graded_anchors','resume_boundaries','encoded_token_minimum','proofs','failure_archive'}
-    if set(record)!=fields or record['version']!='pac-feature-acceptance/v1' or seal(record)!=record or record['status']!='PASS':raise ValueError('closed original PAC acceptance required')
+            'valid_rewards','graded_anchors','resume_boundaries','encoded_token_minimum','proofs','checkpoint_evaluation','failure_archive'}
+    if set(record)!=fields or record['version']!='pac-feature-acceptance/v2' or seal(record)!=record or record['status']!='PASS':raise ValueError('closed original PAC acceptance required')
     if (record['source'],record['environment'],record['device'])!=(source,environment,device):raise ValueError('PAC acceptance source/environment/device mismatch')
     if record['research_eligible']!=(device=='hip'):raise ValueError('CPU acceptance cannot qualify research')
     if record['cadence']!=dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8) or record['updates']!=16 or record['valid_rewards']<6 or record['graded_anchors']<1 or record['resume_boundaries']!=[1,2]:raise ValueError('PAC acceptance boundary evidence incomplete')
@@ -132,6 +132,15 @@ def verify_pac_acceptance(record,*,root,source,environment,device='hip'):
         if seal(proof)!=proof or proof.get('status')!='PASS' or proof.get('resume_equal') is not True or proof.get('pac_equal') is not True or len(proof.get('runs',[]))!=2:
             raise ValueError('actual model/optimizer/RNG/data/policy equality required')
         if any(r['updates']!=16 or not r['finite'] or not r['changed'] for r in proof['runs']):raise ValueError('actual finite changed weights required')
+    evaluated=json.loads(verify_artifact(root,record['checkpoint_evaluation'],max_bytes=1<<20))
+    import math
+    if (seal(evaluated)!=evaluated or evaluated.get('version')!='pac-checkpoint-forward/v1' or evaluated.get('status')!='PASS'
+        or evaluated.get('device')!=device or evaluated.get('scope')!='training probes only' or evaluated.get('rows',0)<1
+        or evaluated.get('tokens',0)<1 or type(evaluated.get('loss_sum')) not in (int,float) or not math.isfinite(evaluated['loss_sum'])
+        or len(evaluated.get('recall',[]))!=evaluated['rows'] or any(type(v) is not bool for v in evaluated['recall'])):
+        raise ValueError('actual loaded checkpoint forward evaluation required')
+    if any(evaluated['checkpoint']!=json.loads(verify_artifact(root,ref))['runs'][0]['checkpoint'] or evaluated['weights']!=json.loads(verify_artifact(root,ref))['runs'][0]['weights'] for ref in record['proofs'].values()):
+        raise ValueError('evaluated checkpoint differs from compared final model')
     verify_artifact(root,record['failure_archive'],max_bytes=CAP)
     checked=verify(confined(root,record['failure_archive']['path']))
     if checked['summary_state']!='FAIL':raise ValueError('original negative recovery export required')

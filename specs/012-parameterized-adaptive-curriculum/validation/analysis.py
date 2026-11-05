@@ -45,7 +45,7 @@ def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=Non
             if len(chosen)>=12:break
             if (case['arm'],case['task'],case['category']) not in seen:chosen.append(case);seen.add((case['arm'],case['task'],case['category']))
     for case in chosen:enrich_case(case,(records or {}).get(case['arm'],{}).get(case['task']),old)
-    result.update(version='pac-analysis/v1',cases=chosen,missing_case_categories=[c for c in CATEGORIES if not buckets[c]],
+    result.update(reconstruction=dict(roster=roster,outcomes=outcomes,costs=costs),version='pac-analysis/v1',cases=chosen,missing_case_categories=[c for c in CATEGORIES if not buckets[c]],
         case_scope='generated candidate sources only; protected teacher/hidden values omitted',
         uncertainty='task-paired descriptive bounds; no inference across training seeds')
     return result

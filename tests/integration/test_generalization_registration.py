@@ -130,7 +130,18 @@ def test_all_pac_handlers_and_delivery_helpers_are_source_bound():
               ('preparation','pac-publish-evaluation'),('generator','pac-evaluate'),('selection','pac-score')}
     assert {(Role(role),operation) for role,operation in expected}<=set(HANDLERS)
     snapshot=collect_snapshot(Path(__file__).resolve().parents[2])
-    for path in ['specs/012-parameterized-adaptive-curriculum/validation/run.py',
-                 'specs/012-parameterized-adaptive-curriculum/validation/analysis.py',
-                 *['src/oeis_learn/pipeline_validation/generalization_pac_'+name+'.py' for name in ['commands','setup','evaluation','calibration','export']]]:
+    for path in [*['src/oeis_learn/pipeline_validation/generalization_pac_'+name+'.py' for name in ['commands','setup','evaluation','calibration','export']]]:
         assert path in snapshot
+
+
+def test_helper_only_changes_have_separate_complete_identity(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_pac_export import helper_identity
+    from oeis_learn.pipeline_validation.identity import digest
+    folder=tmp_path/'specs/012-parameterized-adaptive-curriculum/validation';folder.mkdir(parents=True)
+    (folder/'run.py').write_text('old helper')
+    original=helper_identity(tmp_path)
+    (folder/'analysis.py').write_text('new analysis')
+    assert helper_identity(tmp_path)!=original
+    snapshot=collect_snapshot(Path(__file__).resolve().parents[2])
+    assert 'specs/012-parameterized-adaptive-curriculum/validation/run.py' not in snapshot
+    assert 'specs/012-parameterized-adaptive-curriculum/validation/analysis.py' not in snapshot

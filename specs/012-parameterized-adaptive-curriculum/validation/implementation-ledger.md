@@ -463,8 +463,7 @@ positive scientific results are not inferred from these fixture exports.
 Every new delivery role has Docker/Podman argv checks for exact read-only channels,
 no socket/network, explicit accelerator mode, pinned image and full finite envelope.
 Both helper and canonical PAC help execute with `python -S`. A new counterexample
-found the temporary analysis/delivery helpers missing from qualification source
-closure; they and the imported 011 helper code are now bound and included in sdists.
+found incomplete temporary analysis/delivery helper identity coverage; they and the imported 011 helper code are now bound separately and included in sdists.
 Mutable outcome reports/ledgers do not enter the source hash.
 
 Review also corrected native score outcomes into boolean/censored metric inputs,
@@ -479,3 +478,31 @@ that is absent from the snapshot is explicitly unavailable, never fabricated.
 
 No Docker/Podman process or HIP/native measurement ran. Those command-construction
 checks establish software wiring, not actual hardware qualification.
+
+## D review — Reopened C acceptance and D evidence boundaries
+
+The first combined non-HIP run passed **581 tests**, excluding two marked hardware
+cases (261.25s). Further review strengthened C acceptance: version 2 now reloads the
+published final weights through the existing weights-only loader and performs a
+finite training-probe forward evaluation, binding the exact checkpoint to both
+resume proofs. The real installed CPU acceptance test passed in 53.98s; this is
+CPU correctness evidence only. Acceptance wall/observation reserves now use the
+larger frozen containing allowance rather than a small fixture wall cap.
+
+D calibration verification reconstructs every forecast from complete positive
+samples and checks production update/reward counts, source/environment/model and
+non-initializer status. The operational freeze preserves prior larger limits and
+adds measured load/save margins. Missing samples and substituted forecasts reject.
+A complete explicitly synthetic proof closure now roundtrips through the real
+collector/finalizer/verifier, including original producer inventory checking;
+tampered proof bytes reject. This fixture does not constitute actual HIP proof.
+
+Public analysis carries opaque task/family outcomes and measured cost inputs so
+aggregates can be reconstructed from the exported bytes, plus generated-source
+case Markdown. Quota/representation summaries, requested/effective ceilings and
+bounded recognized progress lines are included; raw paths, truth and arbitrary
+tracebacks remain private. Temporary helper code has a separate complete hash
+(including imported 011 helpers); helper-only changes do not alter installed
+learner qualification, while changed scientific code still does. The 007 current
+fingerprint was refreshed with its actual serializer; all 68 dispositions and
+`full_007_complete=false` remain unchanged.

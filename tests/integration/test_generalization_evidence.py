@@ -204,6 +204,15 @@ def test_pac_export_reconstructs_every_family_total_pair_and_cost(tmp_path):
     outcomes={arm:{key:(None if i%31==0 else (i+offset)%3==0) for i,key in enumerate(roster)} for arm,offset in [('B',0),('C',1),('D',2)]}
     costs={arm:dict(allowed_tokens=100,useful_tokens=80,reserved_tokens=5,discarded_tokens=10,unspent_tokens=5,examples=12,updates=6,seconds=9) for arm in outcomes}
     report=module.analyze(roster,outcomes,experiment=exp,control=control,profiles=profiles,costs=costs)
+    assert report['comparisons']['C-D']['attribution']=='review_substitution'
+    write(tmp_path/'analysis.json',report)
+    packet=seal(dict(pac_record('PARTIAL'),inventory=[reference(tmp_path/'analysis.json',tmp_path)]))
+    archive=publish_pac(packet,tmp_path/'export',payload_root=tmp_path)
+    assert verify_archive(archive)['software_status']=='PARTIAL'
+    import zipfile
+    with zipfile.ZipFile(archive) as z:exported=json.loads(z.read('analysis.json'))
+    assert exported==report
+    report=exported;roster=report['reconstruction']['roster'];outcomes=report['reconstruction']['outcomes']
     for arm,values in outcomes.items():
         for category in ('certified','ambiguous','unresolved'):
             ids=[k for k,r in roster.items() if r['category']==category]
@@ -216,10 +225,3 @@ def test_pac_export_reconstructs_every_family_total_pair_and_cost(tmp_path):
         actual=report['costs']['arms'][arm]
         assert actual['allowed_tokens']==sum(actual[k] for k in ('useful_tokens','reserved_tokens','discarded_tokens','unspent_tokens'))
         assert (actual['examples'],actual['updates'],actual['seconds'])==(12,6,9)
-    assert report['comparisons']['C-D']['attribution']=='review_substitution'
-    write(tmp_path/'analysis.json',report)
-    packet=seal(dict(pac_record('PARTIAL'),inventory=[reference(tmp_path/'analysis.json',tmp_path)]))
-    archive=publish_pac(packet,tmp_path/'export',payload_root=tmp_path)
-    assert verify_archive(archive)['software_status']=='PARTIAL'
-    import zipfile
-    with zipfile.ZipFile(archive) as z:assert json.loads(z.read('analysis.json'))==report
