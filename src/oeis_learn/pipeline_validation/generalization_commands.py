@@ -291,7 +291,9 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
     import shutil
     if shutil.disk_usage(workspace).free<runtime['envelope']['storage']['reserved_bytes']:raise ValueError('insufficient PAC reserved disk storage')
     output.mkdir(parents=True)
-    def finish(value):return _finish(output,study,args.operation,value,runtime)
+    def finish(value):
+        from .generalization_lifecycle import invocation
+        return _finish(output,study,args.operation,value,runtime,effective=invocation(args,study,runtime))
     try:
         plan=_validate(host,workspace,output,base,study,runtime,seconds=runtime['envelope']['validation']['outer'])
         if args.operation=='preflight':return finish(dict(status='PASS',plan=plan))
@@ -333,7 +335,10 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
                 source_roots={'training_targets':base},output=str((output/'acceptance').relative_to(workspace)),
                 operation='pac-acceptance',settings=dict(config=config),seconds=limits['outer'],gpu=True,envelope=limits)
             return finish(value)
-        if args.operation!='train':raise ValueError('PAC evaluation requires the scoped structural delivery adapter')
+        if args.operation=='evaluate':
+            from .generalization_pac_evaluation import evaluate
+            return finish(evaluate(host,workspace,output/'evaluation',base,study,runtime,plan,checkpoints=args.checkpoints,bank=args.proposal_bank))
+        if args.operation!='train':raise ValueError('unsupported PAC operation')
         if not args.arms or not args.seeds or len(set(args.arms))!=len(args.arms) or len(set(args.seeds))!=len(args.seeds):raise ValueError('explicit unique PAC arm/seed selection')
         configs=[learner_config(study,runtime,plan['recipe'],a,s,prepared=plan['training']) for a in args.arms for s in args.seeds]
         if args.resume and len(configs)!=1:raise ValueError('PAC resume selects one arm')

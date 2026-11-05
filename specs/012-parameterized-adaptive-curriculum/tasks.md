@@ -144,7 +144,7 @@ inputs/native capacity/device evidence or optional research remain outstanding.
 
 - [X] T043 [P] [US1] Add complete/missing/incompatible original-input fixtures in `specs/012-parameterized-adaptive-curriculum/validation/test_inputs.py` (new), covering bounded-search exhaustion with an explicit-root remedy, all 16 exclusions, weights-only provenance, matched versus reference-only controls and immutable failed historical records.
 - [X] T044 [US1] Implement read-only explicit-root/inventory and control-audit assembly in `specs/012-parameterized-adaptive-curriculum/validation/inputs.py` (new), invoking canonical validators; inventory the named original chain in `quickstart.md`, emit exact missing requirements and MATCHED/REFERENCE_ONLY reasons, and bind structural scope/deficits using B policies rather than recoding them.
-- [ ] T045 [US1] Connect scoped preparation, retained checkpoint inference and publication to existing canonical operations in `specs/012-parameterized-adaptive-curriculum/validation/run.py` (new); keep helper versus producer identity separate, apply admission before any research inference, and validate fixture receipts/rejection paths in `specs/012-parameterized-adaptive-curriculum/validation/test_run.py` (new).
+- [X] T045 [US1] Connect scoped preparation, retained checkpoint inference and publication to existing canonical operations in `specs/012-parameterized-adaptive-curriculum/validation/run.py` (new); keep helper versus producer identity separate, apply admission before any research inference, and validate fixture receipts/rejection paths in `specs/012-parameterized-adaptive-curriculum/validation/test_run.py` (new).
 
 ### D2 — US2: Representation evidence and inference parity (P1)
 

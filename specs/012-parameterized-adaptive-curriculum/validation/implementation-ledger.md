@@ -347,3 +347,13 @@ refresh: **39 passed** using `tests/unit/test_pipeline_contracts.py`,
 `tests/integration/test_generalization_registration.py` and the new
 `validation/test_inputs.py`. Portable host help also passed under `python3 -S`.
 No extension hooks are configured; no CI wait or HIP execution occurred.
+
+## T045 — Scoped canonical evaluation delivery
+
+Added custodian publication of hash-bound structural truth into isolated visible
+20-term and scorer-only 100-term views. PAC evaluation delegates to the installed
+generator/fitter/scorer and accepts only frozen retained A or latest new-arm
+checkpoints matching the exact learner compatibility identity. New PAC generation
+uses finite registered reservations above the old 21,600-second cap. The temporary
+helper composes explicit canonical commands and orders admission before inference.
+Four focused publication/command fixtures pass; native/device execution remains E.

@@ -168,7 +168,7 @@ def pin_selection(inputs,output,settings,*,seconds):
     return dict(status='PASS',checkpoint=pointer,root='private/selected',decision=decision['decision'])
 
 
-def generator(inputs,output,settings,*,seconds):
+def generator(inputs,output,settings,*,seconds,pac=False):
     deadline=time.monotonic()+seconds
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import verify_artifact
@@ -183,7 +183,7 @@ def generator(inputs,output,settings,*,seconds):
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
-            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'])
+            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'],pac=pac)
 
 
 def selection(inputs,output,settings,*,seconds):
@@ -265,8 +265,12 @@ def publish_initializer(inputs,output,settings,*,seconds):
 
 
 from .generalization_acceptance import pac_acceptance
+from .generalization_pac_evaluation import publish_views,score_views
 
-HANDLERS={(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+def pac_generator(inputs,output,settings,*,seconds):
+    return generator(inputs,output,settings,seconds=seconds,pac=True)
+
+HANDLERS={(Role.PREPARATION,'pac-publish-evaluation'):publish_views,(Role.GENERATOR,'pac-evaluate'):pac_generator,(Role.SELECTION,'pac-score'):score_views,(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
