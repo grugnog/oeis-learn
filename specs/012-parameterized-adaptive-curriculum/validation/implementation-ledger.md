@@ -952,3 +952,32 @@ cannot pass. Parser/proof counterexamples failed before implementation. Focused
 real CPU subprocess, validator, helper, route and existing validation checks:
 **26 passed, one actual-HIP test deselected in 9.11s**. Actual `python -S` helper/
 portable suite help passes. No HIP execution is claimed locally; T072 stays unchecked.
+
+
+## F015 — Focused T072 validation and handoff
+
+The combined selection extends the previous F012 command with
+`tests/unit/test_container_validation.py` and `tests/unit/test_foundation_local.py`:
+**712 passed, 2 subtests passed, 3 actual-HIP tests deselected, 20 existing PyTorch
+warnings in 171.41 seconds**, Python 3.12.14 / torch 2.9.1+cpu / locked dependencies.
+After that combined run, the crash test was strengthened to compare the full
+restored saved policy/observer and host/device torch RNG before its first recovered
+gradient, excluding only legitimate cost/segment changes. The affected real CPU
+subprocess, validator, host helper and routing selection then passed **26 tests**,
+one HIP test deselected, in **8.62 seconds**. No runtime implementation changed
+after the combined run; only this additional proof assertion was introduced.
+
+The focused runner rejects missing/CPU evidence and selects exactly one HIP node;
+ordinary GPU locking, no-Lt environment, private disk scratch, no-skip JUnit,
+immutable image and file/receipt identity checks remain in force. Actual stdlib
+`--help`, task prerequisites, read-only checklist, no-hook inspection and
+`git diff --check` pass. The 007 implementation fingerprint was refreshed after
+source changes without changing its 68 dispositions or full_007_complete=false.
+
+Published a copy-pastable `t072.py --engine podman` invocation and the precise
+reduced-cadence/process-death proof scope. Its output is `t072-summary.json` plus
+printed JSON; no ZIP is produced or uploaded. The -004 source-bound acceptance
+and historical evidence are retained, while the new diagnostic has its own
+source/image/helper closure. T072 stays unchecked until actual HIP proof arrives;
+optional research remains deferred. No local HIP run, merge or CI wait occurred.
+F013/F014/F015 have incremental task commits on PR 63 against main.

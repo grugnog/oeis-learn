@@ -32,13 +32,31 @@ def worker(directory,phase,device,scale):
     # Sparse semantic generation is orthogonal to crash accounting. Keep real
     # target-loss/reward/grade observations, gradients and persistence untouched.
     curriculum.semantic_probe=lambda *a,**kw:None
+    old_state=None
+    if phase=='recover':
+        folder=root/'crashed/checkpoints'
+        pointer=json.loads((folder/'generalization-latest.json').read_text())
+        manifest=json.loads((folder/pointer['path']).read_text())
+        old_state=GeneralizationCheckpointStore(folder,manifest['contract'],config['target_tokens']).load(pointer)['states']
     original_controller=curriculum.PacController;controllers=[]
     class Captured(original_controller):
         def __init__(self,*args,**kwargs):
             super().__init__(*args,**kwargs);controllers.append(self)
             if phase=='recover':
                 p=self.policy
-                write(root/'restored.json',seal(dict(updates=p.updates,valid_rewards=p.kernel.valid_updates,
+                from oeis_learn.pipeline_validation.identity import digest
+                # Only crash accounting and segment identity may differ from
+                # the last complete generation before any recovered gradient.
+                costs={'segment','segments','discarded_tokens','charged_tokens'}
+                older=old_state['scheduler']['pac']
+                policy_equal=digest({k:v for k,v in p.snapshot().items() if k not in costs})==digest({k:v for k,v in older['policy'].items() if k not in costs})
+                observer_equal=digest(self.observer.snapshot())==digest(older['observer'])
+                rng_equal=torch.equal(torch.get_rng_state(),old_state['rng']['torch'])
+                if device=='cuda':
+                    live=torch.cuda.get_rng_state_all();saved=old_state['rng']['device']
+                    rng_equal=rng_equal and len(live)==len(saved) and all(torch.equal(a,b) for a,b in zip(live,saved))
+                write(root/'restored.json',seal(dict(policy_equal=policy_equal,observer_equal=observer_equal,rng_equal=rng_equal,
+                    updates=p.updates,valid_rewards=p.kernel.valid_updates,
                     scaler_seen=p.scaler.seen,acquired=sum(a['acquired'] for a in p.review.anchors.values()),
                     graded=sum(a['last_grade'] is not None for a in p.review.anchors.values()),segment=p.segment,
                     discarded_tokens=p.discarded_tokens,charged_tokens=p.charged_tokens,
@@ -123,6 +141,7 @@ def crash_probe(root,*,device,scale,execute):
     encoder.load_state_dict(saved['states']['weights']['encoder']);decoder.load_state_dict(saved['states']['weights']['decoder'])
     old_weights=initial_weights_identity(encoder,decoder)
     assert restored['initial_weights']==old_weights!=marker['weights']
+    assert restored['policy_equal'] and restored['observer_equal'] and restored['rng_equal']
     assert restored['updates']==restored['valid_rewards']==restored['scaler_seen']==restored['graded']==restored['acquired']==0
     assert restored['segment']==result['segment']=='recovery-1'
     assert restored['discarded_tokens']==journal['ledger']['consumed']>0

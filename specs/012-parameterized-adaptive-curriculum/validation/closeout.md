@@ -100,3 +100,14 @@ this exact original workstation qualification; documentation changes do not just
 repeating training or a broad runtime suite. No new HIP command, research run,
 merge or CI wait was performed. The evidence-only changes are committed per task
 and published to PR 63 against main.
+
+
+## Subsequent operator-authorized T072 test preparation
+
+The missing crash exercise is now implemented as a focused diagnostic; see
+[t072-run.md](t072-run.md). It requires an actual workstation run and returns a
+small source/image-bound JSON summary without ZIP upload. T072 remains unchecked
+pending that result. New test/runner/validator bytes change the current source
+and helper identities, so the original identity audit applies to the original
+closeout revision, not a later checkout. Original -004 PASS and its recorded
+scope remain unchanged; the new diagnostic is not a full research qualification.

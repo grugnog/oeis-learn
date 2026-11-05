@@ -253,3 +253,14 @@ A future proof must use canonical installed learner/persistence logic; any neede
 production/test-source change requires affected qualification and its own frozen
 scope. Preserve the existing PASS for its original closure; do not relabel it FAIL
 or automatically rerun all already-verified work.
+
+
+### Subsequent focused T072 preparation
+
+The operator requested the missing proof. The [focused procedure](t072-run.md)
+now runs an actual abrupt subprocess exit and a separate recovery on HIP, using
+canonical installed learner/persistence logic. A complete source-bound small JSON
+result is required; ZIP publication is explicitly omitted. Local CPU wiring and
+runner rejection checks pass, but no actual HIP result has yet been supplied.
+T072 therefore remains unchecked. This subsequent test/runner change has its own
+source/image closure and does not alter the recorded -004 acceptance outcome.

@@ -15,6 +15,21 @@ The original 011 failed 256-task prospective command remains superseded, not a
 012 run. The helper's default scope is acceptance; research requires its own
 explicit frozen choice after all applicable foundation proof is complete.
 
+## Focused remaining T072 proof
+
+The actual HIP crash/recovery test is now prepared. See
+[the focused procedure](validation/t072-run.md); it builds the current image and
+runs one dedicated test, without repeating the full acceptance campaign:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/t072.py \
+  --engine podman --output run-state/generalization/pac-012-t072-001
+```
+
+Paste its printed JSON or attach `t072-summary.json`; no ZIP upload is requested.
+T072 remains unchecked until actual HIP evidence is supplied. The new test/runner
+source is separate from the original -004 qualification; old PASS remains historical.
+
 ## Required workstation inputs
 
 Run from the existing repository on the normal workstation, with Python 3's standard
