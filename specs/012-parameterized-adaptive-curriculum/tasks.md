@@ -374,3 +374,14 @@ intentionally omit source text; this repair must preserve that boundary.
 - [X] F010 Reproduce calibration's missing source field with actual prepared learner rows and add whole-handler CPU tensor/update/checkpoint and native-failure counterexamples.
 - [X] F011 Decode the already-verified literal target tokens for native calibration only; preserve lean learner projections and add safe historical missing-field diagnostics.
 - [X] F012 Run the stable combined non-HIP regression selection, refresh the current fingerprint, record actual operator progress and fresh-plan instructions, and publish incremental commits without CI wait.
+
+
+## Focused T072 workstation proof (operator-authorized)
+
+The operator requested the missing crash test and explicitly permits omitting ZIP
+publication. The original -004 archive and T072's pending status remain unchanged
+until an actual HIP proof is supplied.
+
+- [X] F013 Add actual subprocess-death/recovery CPU wiring and rejection/parser counterexamples for the focused HIP proof; commit before runner changes.
+- [ ] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.
+- [ ] F015 Validate local wiring/host rejection and affected regression closure, refresh current identity, publish per-task commits and give the focused workstation command; keep T072 unchecked pending its actual result.
