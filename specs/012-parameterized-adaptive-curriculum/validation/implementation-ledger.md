@@ -386,3 +386,16 @@ permit compatible child reuse. New outputs are owned separately; read-only recov
 packages a verified safe projection without running a learner. Scope/resume/failure
 fixtures pass (8 tests); calibration and final reporting adapters follow in their
 owned tasks. Actual workstation/native/HIP execution remains E.
+
+## T052 — Representative calibration and pre-research operational freeze
+
+The installed calibration role requires actual HIP and original native admission.
+It measures short/long-family actual updates, cold/warm exact execution, early/later
+row access, production-size full save/load, complete reward/common-panel/grade and
+semantic costs with device synchronization. Sample counts and worst observations
+feed B's diagnostic/work allowance arithmetic; absent samples reject the forecast.
+The calibration's weights cannot initialize research. A separately sealed
+operational revision may only raise future limits before baseline/research work,
+retaining scientific choices and protected finalization. Pure missing-sample,
+longer-prior-limit, source mismatch and scientific-identity tests pass (3 tests).
+The actual HIP measurement handler is implemented, not executed here.

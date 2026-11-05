@@ -82,10 +82,31 @@ def calibrate(inputs,output,settings,*,seconds):
     measured('restore',lambda:torch.set_rng_state(torch.get_rng_state()))
     measured('publication',lambda:write(output/'timing-sample.json',run['timing']))
     measured('cleanup',lambda:optimizer.zero_grad(set_to_none=True))
-    minimum=min(charge_tokens([r['tokens']],bos=1,pad=0) for r in ordered)*32
+    minimum=min(charge_tokens([r['tokens']],bos=1,pad=0) for r in [*ordered,*literals.rows.values()])*32
     updates=(25000000+minimum-1)//minimum
-    forecasts={arm:forecast(samples,updates=updates,arm=arm,existing={}) for arm in settings['study']['arms'] if arm!='A'}
+    forecasts={arm:forecast(samples,updates=updates,arm=arm if arm!='A' else 'B',existing={}) for arm in settings['study']['arms']}
     result=seal(dict(status='PASS',version='pac-calibration/v1',source=settings['source'],environment=settings['environment'],
         production_recipe=settings['study']['model'],updates=64,tokens=run['tokens'],valid_rewards=run['pac']['valid_rewards'],
         forecasts=forecasts,samples=samples,weights_are_research_initializers=False))
     write(output/'calibration.json',result);return result
+
+
+def apply_calibration(study,runtime,record):
+    """Raise and seal operational limits before any research score/update."""
+    import copy
+    from .identity import digest
+    from .generalization_execution import bind_pac,pac_budget_projection
+    from .identity import number
+    if (seal(record)!=record or record.get('version')!='pac-calibration/v1' or record.get('status')!='PASS'
+        or record['source']!=study['source'] or record['environment']!=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend']))
+        or set(record['forecasts'])!=set(study['arms'])):raise ValueError('complete compatible measured calibration required')
+    runtime=copy.deepcopy(runtime);study=copy.deepcopy(study);e=runtime['envelope']
+    for name,key in [('learner','learner'),('resume','learner'),('generation','generation'),('preparation','preparation')]:
+        work=max(e[name]['work'],max(v[key]['seconds'] for v in record['forecasts'].values()));number(work,positive=True)
+        e[name]['work']=work
+        e[name]['outer']=sum(e[name][k] for k in ('work','startup','publication','projection','cleanup'))
+    e['diagnostics_seconds']=max(e['diagnostics_seconds'],max(v['diagnostics']['seconds'] for v in record['forecasts'].values()))
+    from .generalization_execution import PAC_STAGES
+    e['campaign']=max(e['campaign'],sum(e[n]['outer'] for n in PAC_STAGES)+(len(study['arms'])-1)*sum(e[n]['outer'] for n in ('learner','resume','generation','proof','export'))+3600)
+    study['budget_graph']=pac_budget_projection(e,arms=study['arms'])
+    return bind_pac(study,runtime)

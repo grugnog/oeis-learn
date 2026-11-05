@@ -42,6 +42,10 @@ def assemble(inputs,output,settings,*,seconds):
     if sorted(({k:v for k,v in x.items() if k!='ref'} for x in originals),key=lambda x:x['name'])!=sorted(structural.original_cells(),key=lambda x:x['name']):raise ValueError('all original cells required')
     receipt=json.loads(verify_artifact(root,context['preparation'],max_bytes=16<<20))
     if receipt['identity']!='sha256:56955fda4ffba7eda116fbcfc26b174e3b0d381130db1185d1d8149b13073b7f' or receipt['status']!='PASS' or seal(receipt)!=receipt:raise ValueError('original reviewed preparation required')
+    parent=Path(context['preparation']['path']).parent
+    indexed={str(parent/r['path']):dict(r,path=str(parent/r['path'])) for r in receipt['inventory']}
+    for item in originals:
+        if indexed.get(item['ref']['path'])!=item['ref']:raise ValueError('original cell differs from reviewed producer inventory')
     recipe=json.loads(verify_artifact(root,context['recipe_ref'],max_bytes=1<<20))
     descriptors=json.loads(verify_artifact(root,context['descriptors'],max_bytes=1<<20))
     indices=list(map(str,range(100)))

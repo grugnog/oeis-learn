@@ -74,7 +74,7 @@ def _persist(path,record):
     pending=path.with_suffix('.next');write(pending,seal(record),exclusive=False);pending.replace(path)
 
 
-def _reusable(previous,entry,binding):
+def _reusable(previous,entry,binding,*,workspace=None):
     from oeis_learn.generalization.contracts import verify_artifact
     if entry.get('binding')!=binding or entry.get('status')!='PASS':return False
     if entry.get('process',{}).get('outcome')!='COMPLETE' or entry['process'].get('returncode')!=0:return False
@@ -82,6 +82,7 @@ def _reusable(previous,entry,binding):
     try:
         root=confined(previous,entry['directory'])
         for ref in entry['artifacts']:verify_artifact(root,ref,max_bytes=32<<30)
+        for ref in entry.get('resolved_refs',[]):verify_artifact(workspace,ref,max_bytes=32<<30)
     except (OSError,ValueError):return False
     return True
 
@@ -121,12 +122,14 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
     record=dict(version='pac-workflow/v1',plan=plan['identity'],status='PARTIAL',receipts=[],errors=[])
     start=time.monotonic();receipts={};old={e['stage']:e for e in prior['receipts']} if prior else {}
     _persist(output/'workflow.json',record)
-    for stage in plan['stages']:
+    effective_stages=json.loads(json.dumps(plan['stages']))
+    effective_seconds=plan['seconds']
+    for stage in effective_stages:
         name=stage['name'];began=time.monotonic()
         binding=digest(dict(stage=stage,engine=plan['engine'],source=plan['source'],images=plan['images'],inputs=plan['inputs'],
                             parents=[receipts[n]['producer'] for n in stage['requires']]))
         existing=old.get(name)
-        if existing and _reusable(Path(previous),existing,binding):
+        if existing and _reusable(Path(previous),existing,binding,workspace=workspace):
             # Copy only verified metadata/artifacts into a new owned directory;
             # the original successful receipt remains immutable.
             import shutil
@@ -136,13 +139,40 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
                 payload=verify_artifact(source,ref,max_bytes=32<<30)
                 destination=confined(target,ref['path'],exists=False);destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(payload)
             entry=dict(existing,reused=True,directory=name)
+            resolved=[]
+            for ref in existing.get('resolved_refs',[]):
+                source=confined(workspace,ref['path'])
+                if source.is_relative_to(Path(previous)):
+                    destination=output/source.relative_to(Path(previous));destination.parent.mkdir(parents=True,exist_ok=True)
+                    payload=verify_artifact(workspace,ref,max_bytes=32<<30)
+                    if destination.exists() and destination.read_bytes()!=payload:raise ValueError('reused resolved artifact conflict')
+                    if not destination.exists():destination.write_bytes(payload)
+                    old_path=ref['path'];new_path=str(destination.relative_to(workspace))
+                    for key in ('resolved_manifest','resolved_runtime'):
+                        if entry.get(key)==old_path:entry[key]=new_path
+                    resolved.append(dict(ref,path=new_path))
+                else:resolved.append(ref)
+            entry['resolved_refs']=resolved
         else:
             target=output/name;target.mkdir()
             print(f'{name}: starting; measured progress unavailable until canonical role output',flush=True)
             try:
-                if time.monotonic()-start+stage['seconds']>plan['seconds']-plan['finalization_seconds']:raise TimeoutError('protected finalization reserve')
+                if time.monotonic()-start+stage['seconds']>effective_seconds-plan['finalization_seconds']:raise TimeoutError('protected finalization reserve')
                 if runner is not None:value=runner(stage,target)
                 else:value=_canonical_stage(plan,stage,target,workspace,receipts)
+                resolved=[]
+                for key in ('resolved_manifest','resolved_runtime'):
+                    if value.get(key):
+                        from oeis_learn.pipeline_validation.generalization_preparation import reference
+                        path=confined(workspace,value[key]);resolved.append(reference(path,workspace))
+                        if key=='resolved_runtime':
+                            runtime_value=_read(path);feature=runtime_value.get('feature')
+                            if isinstance(feature,dict) and feature.get('pac'):
+                                feature_root=path.parent/Path(feature['pac']['path']).parent
+                                for file in feature_root.rglob('*'):
+                                    if file.is_symlink():raise ValueError('symlink in acceptance closure')
+                                    if file.is_file():resolved.append(reference(file,workspace))
+                value['resolved_refs']=resolved
                 status=value.get('status','FAIL')
                 if status=='PASS' and (value.get('process',{}).get('outcome')!='COMPLETE' or value['process'].get('returncode')!=0 or not all(value.get('cleanup',{}).get(k) is True for k in ('within_bound','acknowledged'))):status='FAIL'
                 for ref in value.get('artifacts',[]):verify_artifact(target,ref,max_bytes=32<<30)
@@ -152,6 +182,16 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
                 entry=dict(stage=name,status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',binding=binding,directory=name,reused=False,
                     producer=digest([name,type(exc).__name__]),artifacts=[],elapsed_seconds=time.monotonic()-began)
                 record['errors'].append(dict(stage=name,kind=type(exc).__name__,status=entry['status']))
+        if name=='calibration' and entry['status']=='PASS' and entry.get('operational_envelope'):
+            e=entry['operational_envelope']
+            for future in effective_stages:
+                if future['name'].startswith('train-'):future['seconds']=max(future['seconds'],e['learner']['outer']+7200)
+                elif future['name']=='baseline' or future['name'].startswith('evaluate-'):future['seconds']=max(future['seconds'],e['generation']['outer']+e['proof']['outer']+e['validation']['outer']+7200)
+            effective_seconds=max(effective_seconds,sum(s['seconds'] for s in effective_stages)+3600)
+            revision=seal(dict(version='pac-operational-freeze/v1',original_plan=plan['identity'],calibration=entry['producer'],stages=effective_stages,seconds=effective_seconds,finalization_seconds=3600))
+            write(output/'operational-freeze.json',revision)
+            record['operational_freeze']=revision['identity']
+            print('Frozen calibrated operational ceiling: '+str(effective_seconds)+' seconds; scientific scope unchanged',flush=True)
         receipts[name]=entry;record['receipts'].append(entry)
         if entry['status']!='PASS':
             record['status']=entry['status']
@@ -196,14 +236,14 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
     return result
 
 
-def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qualification=None):
+def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qualification=None,native_admission=None):
     from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
     from oeis_learn.pipeline_validation.supervision import launch
     from oeis_learn.pipeline_validation.generalization_preparation import reference
     kind={'pac-assemble':'preparation','pac-campaign-acceptance':'acceptance','pac-calibrate':'calibration'}[operation]
     limits=envelope(purpose='research',arms=plan['arms'])[kind]
     job=seal(dict(version='pac-role-job/v1',operation=operation,engine=plan['engine'],images=plan['images'],source=plan['source'],
-        artifacts=artifacts,source_roots={k:str(Path(v).relative_to(workspace)) for k,v in source_roots.items()},settings=settings,envelope=limits,qualification=qualification))
+        artifacts=artifacts,source_roots={k:str(Path(v).relative_to(workspace)) for k,v in source_roots.items()},settings=settings,envelope=limits,qualification=qualification,native_admission=native_admission))
     write(target/'job.json',job)
     argv=[sys.executable,'scripts/foundation_run.py','--engine',plan['engine'],'generalization','pac-stage','--job',str((target/'job.json').relative_to(workspace)),
         '--output',str((target/'execution').relative_to(workspace))]
@@ -299,8 +339,16 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
             from oeis_learn.generalization.role_contracts import pac_training_refs
             settings.update(bundle=bundle,study=study)
             artifacts['training_targets']=[*pac_training_refs(bundle,'C'),*pac_training_refs(bundle,'A')];roots['training_targets']=base
-        result=_role_job(plan,operation,settings,artifacts,roots,target,workspace,qualification=qualification)
+        original=receipts['admission']
+        native_root=target.parent/'admission/execution'
+        native_admission=dict(root=str(native_root.relative_to(workspace)),producer=reference(native_root/'result.json',native_root),admission=reference(base/'admission.json',native_root))
+        result=_role_job(plan,operation,settings,artifacts,roots,target,workspace,qualification=qualification,native_admission=native_admission)
         result.update(resolved_manifest=manifest,resolved_runtime=runtime_path)
+        if stage['name']=='calibration' and result['status']=='PASS':
+            from oeis_learn.pipeline_validation.generalization_pac_calibration import apply_calibration
+            study,runtime=apply_calibration(study,runtime,result['result'])
+            write(base/'calibrated-study.json',study);write(base/'calibrated-runtime.json',runtime)
+            result.update(resolved_manifest=str((base/'calibrated-study.json').relative_to(workspace)),resolved_runtime=str((base/'calibrated-runtime.json').relative_to(workspace)),operational_envelope=runtime['envelope'])
         if stage['name']=='acceptance' and result['status']=='PASS':
             from oeis_learn.pipeline_validation.generalization_execution import bind_pac
             # Preserve the acceptance root: its nested proof references resolve there.
