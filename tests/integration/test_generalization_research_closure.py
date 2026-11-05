@@ -15,25 +15,27 @@ def adapter():
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 
 
-def campaign(tmp_path,complete=68):
+def campaign(tmp_path,complete=68,*,mode='reference-only',optional_d=False):
     from tests.unit.test_generalization_execution import pac_setup
     from tests.unit.test_generalization_metrics import pac_roster
     from tests.integration.test_generalization_recipes import pac_envelope
     from oeis_learn.pipeline_validation.generalization_execution import bind_pac,pac_budget_projection,POLICY_ID
     from oeis_learn.generalization.metrics import pac_structural_metrics
     from oeis_learn.generalization.retention import empty_history,append_panel
-    exp,control,profiles,_=pac_setup();profiles={a:dict(p,backend=POLICY_ID) for a,p in profiles.items()}
-    exp=seal(dict(exp,backend=POLICY_ID,budget_graph=pac_budget_projection(pac_envelope())))
+    exp,control,profiles,_=pac_setup(mode,optional_d=optional_d);profiles={a:dict(p,backend=POLICY_ID) for a,p in profiles.items()}
+    from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
+    limits=envelope(purpose='research',arms=exp['arms']) if mode=='fresh-control' or optional_d else pac_envelope()
+    exp=seal(dict(exp,backend=POLICY_ID,budget_graph=pac_budget_projection(limits,arms=exp['arms'])))
     workspace=tmp_path/'workspace';root=workspace/'campaign';authority=workspace/'authority'
     images=[digest('cpu'),digest('gpu')];roster=pac_roster()
     write(authority/'admission.json',seal(dict(status='PASS',roster=roster)))
     ref=dict(path='fixture',sha256=digest('fixture'),bytes=0)
     runtime=dict(version='pac-runtime/v1',study='',purpose='research',recipe=ref,source=ref,images=images,control=control,profiles=profiles,
-        preparation=None,prepared=dict(training=ref,admission=reference(authority/'admission.json',authority)),envelope=pac_envelope(),feature=None,engine='podman')
+        preparation=None,prepared=dict(training=ref,admission=reference(authority/'admission.json',authority)),envelope=limits,feature=None,engine='podman')
     exp,runtime=bind_pac(exp,runtime);write(authority/'study.json',exp);write(authority/'runtime.json',runtime)
     from oeis_learn.generalization.structural import original_cells
     write(root/'admission/execution/execution/role/private/assembly/resolved/admission.json',seal(dict(status='PASS',source=exp['source'],images=images,roster=roster,originals=original_cells())))
-    names=['admission','qualification','calibration','acceptance','baseline','train-B','evaluate-B','train-C','evaluate-C','analysis']
+    names=['admission','qualification','calibration','acceptance','baseline',*(n for a in exp['arms'] for n in ('train-'+a,'evaluate-'+a)),'analysis']
     stages=[];measurements={}
     for n in names:
         folder=root/n;folder.mkdir(parents=True,exist_ok=True)
@@ -44,17 +46,18 @@ def campaign(tmp_path,complete=68):
             arm='A' if n=='baseline' else n[-1];view='A-reference' if n=='baseline' and exp['control_mode']=='fresh-control' else arm
             certified=[k for k,v in roster.items() if v['category']=='certified']
             outcomes={c:{k:(None if k in certified[(complete.get(arm,68) if isinstance(complete,dict) else complete):] else (i%3==0 if c=='raw' else i%2==0)) for i,k in enumerate(roster)} for c in CONTROLS}
-            measurements[arm]=outcomes
+            if view=='A-reference':outcomes={c:dict.fromkeys(roster,False) for c in CONTROLS}
+            measurements[view]=outcomes
             scoring=seal(dict(version='pac-structural-scoring/v1',status='PASS',study=exp['identity'],roster=roster,outcomes=outcomes,
                 controls={c:pac_structural_metrics(roster,v) for c,v in outcomes.items()},scored_cases={},parameter='DEFERRED',assessment='NOT_EXECUTED'))
             base=folder/'execution/evaluation'/view
             write(base/'scoring/role/scoring.json',scoring);write(base/'generation/role/generation/selections.json',{})
         elif n.startswith('train-'):
-            arm=n[-1];hist=empty_history();family=digest('training-family')
+            arm=n[-1];channel='fixed' if arm in 'AB' else 'bandit';hist=empty_history();family=digest('training-family')
             for u in (0,10):append_panel(hist,dict(update=u,tokens=u*10,examples=u*2,seconds=u*.5),{family:dict(loss=dict(loss_sum=8.-u/2,tokens=8),semantic=dict(semantic_attempts=8,semantic_completed=8,semantic_success=u//2))})
             allocation=dict(status='RECORDED',tokens=dict(allowed=25000000,useful=100,reserved=0,discarded=0,unspent=24999900),updates=10,
-                allocation={family:{c:dict(updates='10' if c=='bandit' else '0',tokens=100 if c=='bandit' else 0,examples=20 if c=='bandit' else 0) for c in ('fixed','bandit','review','fallback')}},
-                channels=dict(bandit=10,review=0,fallback=0),review=dict(acquisitions=2,grades=3,successes=1,censored=0,incidental=0),rewards=dict(valid=1,censored=0),observations=4,
+                allocation={family:{c:dict(updates='10' if c==channel else '0',tokens=100 if c==channel else 0,examples=20 if c==channel else 0) for c in ('fixed','bandit','review','fallback')}},
+                channels={'fixed':10} if channel=='fixed' else dict(bandit=10,review=0,fallback=0),review=dict(acquisitions=2,grades=3,successes=1,censored=0,incidental=0),rewards=dict(valid=1,censored=0),observations=4,
                 observation_seconds=9 if arm=='C' else 3,costs=dict(preparation_seconds=1,checkpoint_seconds=2,update_seconds=5,publication_seconds=None,invocation_seconds=20),
                 monitoring=dict(history=hist,loss_panels=2))
             write(folder/'execution/result.json',seal(dict(status='PASS',result=dict(runs=[dict(arm=arm,result=dict(allocation=allocation,updates=10,learner_seconds=20))]))))
@@ -119,9 +122,9 @@ def test_missing_research_payload_cannot_claim_exploratory(tmp_path):
     with pytest.raises(ValueError,match='scientific|research'):verify_pac_evidence(seal(dict(value,scientific_status='EXPLORATORY_SINGLE_SEED')),root=tmp_path,finalized=False)
 
 
-def analyzed_public(tmp_path,complete=68):
+def analyzed_public(tmp_path,complete=68,*,mode='reference-only',optional_d=False):
     from oeis_learn.pipeline_validation.generalization_pac_export import collect
-    workspace,root,_,_,_=campaign(tmp_path,complete)
+    workspace,root,_,_,_=campaign(tmp_path,complete,mode=mode,optional_d=optional_d)
     report=adapter().analyze_campaign(root,output=root/'analysis',workspace=workspace)
     workflow=json.loads((root/'workflow.json').read_text())
     workflow['receipts'][-1].update(producer=digest(report),artifacts=[reference(p,root/'analysis') for p in (root/'analysis').iterdir()])
@@ -211,4 +214,17 @@ def test_public_research_inputs_reject_nested_private_fields(tmp_path,location):
 def test_reference_A_completion_does_not_gate_uncompared_C_B_interpretation(tmp_path):
     from oeis_learn.generalization.acceptance_archive import verify_pac_evidence
     public,record=analyzed_public(tmp_path,dict(A=64,B=65,C=65))
+    assert verify_pac_evidence(record,root=public,finalized=False)['scientific_status']=='EXPLORATORY_SINGLE_SEED'
+
+
+def test_optional_fresh_A_and_D_keep_retained_reference_controls_separate(tmp_path):
+    from oeis_learn.generalization.acceptance_archive import verify_pac_evidence
+    public,record=analyzed_public(tmp_path,mode='fresh-control',optional_d=True)
+    inputs=json.loads((public/'analysis/research-inputs.json').read_text())
+    report=json.loads((public/'analysis/analysis.json').read_text())
+    assert set(inputs['references'])=={'A-reference'}
+    assert report['references']['A-reference']['equal_budget']['certified']['successes']==0
+    assert report['controls']['A']['equal_budget']['certified']['successes']>0
+    assert set(report['controls'])==set('ABCD')
+    assert report['comparisons']['C-D']['attribution']=='review_substitution'
     assert verify_pac_evidence(record,root=public,finalized=False)['scientific_status']=='EXPLORATORY_SINGLE_SEED'

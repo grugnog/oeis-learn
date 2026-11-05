@@ -74,7 +74,7 @@ def analyze_campaign(root,*,output,workspace=None):
     if seal(admission)!=admission or admission.get('status')!='PASS':raise ValueError('intact native admission required')
     expected_scope=admission.get('structural_scope')
     from oeis_learn.generalization.pac_analysis import CONTROLS,project_training,recompute
-    outcomes={};all_outcomes={};scoring_hashes={};records={};scored={};roster=None;structural_scope=None;costs={}
+    outcomes={};all_outcomes={};references={};scoring_hashes={};records={};scored={};roster=None;structural_scope=None;costs={}
     diagnostics={a:None for a in set(plan['arms'])|{'A'}};training_hashes=dict.fromkeys(diagnostics)
     def verified(name,path):
         entry=entries[name];base=root/entry['directory'];relative=str(path.relative_to(base))
@@ -93,6 +93,9 @@ def analyze_campaign(root,*,output,workspace=None):
         if scoring.get('structural_scope')!=structural_scope:raise ValueError('paired structural scope changed')
         if roster!=scoring['roster']:raise ValueError('paired structural population changed')
         if set(scoring['outcomes'])!=set(CONTROLS):raise ValueError('all seven scored controls required')
+        if name=='baseline' and study['control_mode']=='fresh-control':
+            references['A-reference']=dict(outcomes=scoring['outcomes'],scoring=scoring['identity'])
+            continue
         all_outcomes[arm]=scoring['outcomes'];scoring_hashes[arm]=scoring['identity']
         outcomes[arm]=scoring['outcomes']['equal_budget'];scored[arm]=scoring['scored_cases']
         records[arm]=verified(name,folder/'generation/role/generation/selections.json')
@@ -107,7 +110,7 @@ def analyze_campaign(root,*,output,workspace=None):
     result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=None,records=records,scored=scored,structural_scope=structural_scope)
     from oeis_learn.pipeline_validation.generalization_preparation import reference
     inputs=seal(dict(version='pac-research-inputs/v1',experiment=study,control=runtime['control'],profiles=runtime['profiles'],roster=roster,structural_scope=structural_scope,
-        outcomes=all_outcomes,diagnostics=diagnostics,scoring=scoring_hashes,training=training_hashes,
+        outcomes=all_outcomes,references=references,diagnostics=diagnostics,scoring=scoring_hashes,training=training_hashes,
         stages={n:{k:r.get(k) for k in ('producer','binding','elapsed_seconds')} for n,r in entries.items() if n!='analysis'}))
     result.update(recompute(inputs));result.pop('reconstruction',None);result['version']='pac-analysis/v2'
     output.mkdir(parents=True,exist_ok=True);write(output/'research-inputs.json',inputs)

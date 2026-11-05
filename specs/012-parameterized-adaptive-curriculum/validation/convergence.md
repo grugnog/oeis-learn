@@ -31,6 +31,9 @@ T077 adds `pac-analysis/v2` and sealed `pac-research-inputs/v1`. Public inputs
 contain the frozen experiment/control/profiles, admitted denominator, all seven
 control outcome maps, original producer identities, measured per-arm exposure,
 family/channel allocation, compact retention history and stage/learner costs.
+When fresh A is selected, retained A-reference outcomes remain separately labeled
+and cannot be overwritten by the new A learner. Optional D keeps its distinct
+allocation and review-substitution comparisons.
 The installed stdlib reconciler independently reconstructs every metric,
 comparison, count adapter, exposure/cost total and retention aggregate. Review and
 semantic timing components unavailable at the producer remain null; observation
@@ -79,3 +82,14 @@ PYTHONPATH=src python3 -m pytest -q \
   specs/012-parameterized-adaptive-curriculum/validation \
   -m 'not gpu and not docker'
 ```
+
+Final validation: the broad selection passed **598 tests**, with three actual-HIP
+tests explicitly deselected. The initial run exposed an older publication fixture
+missing its protocol version; the fixture now declares the historical v1 scope
+without weakening production validation. A final reporting refinement separately
+preserves retained A-reference data in a fresh-A/optional-D campaign; its failing
+counterexample passed after the fix. The final affected reporting/export/policy
+and spec-012 selection passed **93 tests**, including the dependency-free archive
+round trips. Whitespace, compilation, prerequisites and the read-only 16/16 quality
+checklist pass. No before/after implementation hooks are registered. CI was not
+waited for and no live research or hardware qualification was launched.

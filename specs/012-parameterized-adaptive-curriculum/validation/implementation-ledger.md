@@ -1027,3 +1027,30 @@ producer during this closeout; no broad test rerun or fingerprint refresh is
 needed. Earlier 712-test/2-subtest local coverage remains its original evidence;
 the new actual HIP result is independently identified. Two incremental task
 commits are published to PR 63 against main; no CI wait or merge was performed.
+
+
+## T075–T078 — Conformance remediation (2026-11-05)
+
+Four dedicated commits reopen the owning correctness/reporting boundaries and close
+all four HIGH findings. Real CPU crash-to-charged-completion now traverses and
+reuses the canonical wrapper. Installed v2 observers persist exact bounded
+whole-run family retention histories. Producer-shaped analysis/export retains all
+seven controls, family/channel exposure, retention and measured/missing costs,
+with separate retained A-reference results when fresh A and optional D are frozen.
+The stdlib verifier reconstructs actual analysis bytes and derives scientific
+status through a separate accepted authority/native/stage closure and the 65/68
+completion gate in each compared arm.
+
+Independent counterexamples preceded their changes, including long-run censoring
+and resume, resealed scientific/data/metric changes, nested privacy fields,
+64-versus-65 completion and optional fresh-A/D reference preservation. The broad
+local selection passed 598 tests with three HIP tests deselected; the final
+reporting/export/policy/spec selection passed 93. A pre-existing tiny publication
+fixture now supplies its missing historical protocol version. No production
+validation was weakened. The quality checklist remains read-only, 16/16; no
+implementation hooks are registered and no CI wait was performed.
+
+[Convergence report](convergence.md) records versions, compaction, privacy,
+reproduction and hardware limitations. T073 remains deferred. Original acceptance
+and T072 source/image/helper evidence is unchanged; these runtime/helper repairs
+are new source scopes requiring affected requalification before a live campaign.

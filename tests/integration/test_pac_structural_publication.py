@@ -24,7 +24,7 @@ def test_structural_truth_is_in_admission_artifact_closure(tmp_path,monkeypatch)
     original=put('static.json',[dict(r,group=digest(r['id']),variant=r['id'],values=[str(i+2) for i in range(100)]) for r in rows])
     gradient=put('gradient.json',rows)
     plan=dict(version='pac-preparation/v1',originals=[dict(name='static',role='training',holdout='parameter',count=len(rows),ref=original)],
-        rows=gradient,probes=put('probes.json',probes),protocol={'cells':[]},seed=7,batch_size=2)
+        rows=gradient,probes=put('probes.json',probes),protocol={'version':'prospective-retained-design/v1','cells':[]},seed=7,batch_size=2)
     exp,control,profiles,_=pac_setup()
     exp=seal(dict(exp,backend=POLICY_ID,budget_graph=pac_budget_projection(pac_envelope()),seed=7))
     runtime=dict(version='pac-runtime/v1',study='',purpose='research',recipe=put('recipe.json',{}),source=put('source.json',{}),

@@ -54,4 +54,3 @@ def test_crash_budget_completion_preserves_charges_and_pac_wrapper_continues(tmp
     assert calls==h.stage_order(research=True) and calls[-1]=='analysis'
     calls.clear();h.execute_plan(plan,tmp_path/'resumed-campaign',workspace=tmp_path,runner=canonical,previous=tmp_path/'campaign')
     assert calls==[]
-

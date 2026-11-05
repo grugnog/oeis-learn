@@ -16,7 +16,7 @@ CONTROLS=('raw','rescue','equal_budget','shuffled','absent','template','bank')
 CHANNELS=('fixed','bandit','review','fallback')
 COSTS=('preparation_seconds','checkpoint_seconds','update_seconds','publication_seconds','invocation_seconds','review_seconds','semantic_seconds')
 DETAILS={'tokens','updates','allocation','channels','review','rewards','observations','observation_seconds','costs','history','loss_panels','learner_seconds'}
-INPUTS={'version','experiment','control','profiles','roster','structural_scope','outcomes','diagnostics','stages','scoring','training'}
+INPUTS={'version','experiment','control','profiles','roster','structural_scope','outcomes','references','diagnostics','stages','scoring','training'}
 
 
 def identity(value):
@@ -96,6 +96,13 @@ def recompute(inputs):
         identity(inputs['scoring'][arm])
         metrics[arm]={c:pac_structural_metrics(inputs['roster'],v or {},scope=inputs['structural_scope']) for c,v in controls.items()}
         outcomes[arm]=controls['equal_budget'] or {}
+    references={}
+    if not set(inputs['references'])<=({'A-reference'} if exp['control_mode']=='fresh-control' else set()):raise ValueError('unfrozen retained reference')
+    for name,value in inputs['references'].items():
+        fields(value,('outcomes','scoring'),'retained reference');identity(value['scoring'])
+        fields(value['outcomes'],CONTROLS,'retained reference controls')
+        if any(v is not None and not isinstance(v,dict) for v in value['outcomes'].values()):raise ValueError('retained reference outcomes')
+        references[name]={c:pac_structural_metrics(inputs['roster'],v or {},scope=inputs['structural_scope']) for c,v in value['outcomes'].items()}
     for v in inputs['training'].values():
         if v is not None:identity(v)
     stages=inputs['stages']
@@ -105,7 +112,7 @@ def recompute(inputs):
         identity(row['producer']);identity(row['binding']);number(row['elapsed_seconds'],nullable=True)
     result=pac_comparison_report(inputs['roster'],outcomes,experiment=exp,control=inputs['control'],profiles=inputs['profiles'],costs=costs,portable=True,structural_scope=inputs['structural_scope'])
     legacy={a:dict(equal_budget=dict(n=len(inputs['roster']),success=sum(v is True for v in values.values()),complete=sum(v is not None for v in values.values()),unresolved=len(inputs['roster'])-sum(v is not None for v in values.values()),**{('reason:'+reason):sum(('recorded' if k in values else 'missing')==reason for k in inputs['roster']) for reason in ('recorded','missing') if any(('recorded' if k in values else 'missing')==reason for k in inputs['roster'])})) for a,values in outcomes.items()}
-    result.update(legacy_count_adapter=legacy,controls=metrics,details=details,stage_costs=copy.deepcopy(stages),stage_cost_totals=dict(
+    result.update(legacy_count_adapter=legacy,controls=metrics,references=references,details=details,stage_costs=copy.deepcopy(stages),stage_cost_totals=dict(
         measured_seconds=sum(v['elapsed_seconds'] for v in stages.values() if v['elapsed_seconds'] is not None),
         unavailable=sum(v['elapsed_seconds'] is None for v in stages.values()),
         scope='observed stage elapsed; learner components overlap and are not summed into compute'))
@@ -129,6 +136,7 @@ def scientific_status(report,inputs):
     ready=(set(report['arms'])==arms and not report['missing_arms'] and
         all(report['arms'][a]['certified']['tasks']==68 and report['arms'][a]['certified']['complete']>=65 for a in compared) and
         all(inputs['training'][a] is not None for a in inputs['experiment']['arms']) and
+        (inputs['experiment']['control_mode']!='fresh-control' or 'A-reference' in inputs['references']) and
         bool(report['comparisons']) and all(v['interpretable'] for v in report['comparisons'].values()))
     return 'EXPLORATORY_SINGLE_SEED' if ready else 'INCOMPLETE'
 
