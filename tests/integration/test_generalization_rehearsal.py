@@ -31,12 +31,14 @@ def test_installed_rehearsal_all_three_real_learners_and_in_block_resume(tmp_pat
     from oeis_learn.pipeline_validation.generalization_training import PacPreparedBatches
     def prepared_batches(root,bundle,arm):return PacPreparedBatches(root,bundle,arm=arm,batch_size=2,updates=25000000)
     monkeypatch.setattr(bigint_worker,'models',lambda recipe,device:(*models(),{}))
-    monkeypatch.setattr(curriculum,'semantic_probe',lambda *a,**kw:None)
+    def forbidden_semantic(*a,**kw):raise AssertionError('R0 must explicitly omit timed semantic generation')
+    monkeypatch.setattr(curriculum,'semantic_probe',forbidden_semantic)
     calls=[];original=role.learner
     def learner(inputs,output,settings,*,seconds):
         calls.append((settings['config']['arm'],settings['stop_after_updates'],settings['resume'] is not None))
         assert settings['config']['batch_size']==32 and settings['config']['target_tokens']==25000000
         assert settings['config']['pac']['purpose']=='acceptance' and 'cadence' not in settings['config']['pac']
+        assert settings['config']['pac']['semantic']=='r0-unmeasured/v1'
         adapted=copy.deepcopy(settings);adapted['config'].update(device='cpu',batch_size=2)
         value=original(inputs,output,adapted,seconds=seconds)
         value['device']='cuda'  # transport adapter only; actual tensors are CPU
@@ -86,3 +88,12 @@ def test_actual_cpu_cannot_satisfy_live_rehearsal_gate(monkeypatch):
     monkeypatch.setattr(execution,'verify_execution',lambda:None)
     monkeypatch.setattr(torch.version,'hip',None)
     with pytest.raises(RuntimeError,match='actual HIP'):require_hip()
+
+
+def test_research_cannot_disable_semantic_probes(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_training import run_torch
+    from tests.integration.test_generalization_runtime import pac_config
+    c=pac_config(tmp_path);c['pac'].update(purpose='research',semantic='r0-unmeasured/v1')
+    with pytest.raises(ValueError,match='semantic'):
+        run_torch(tmp_path/'data',tmp_path/'forbidden',c)
+    assert not (tmp_path/'forbidden').exists()

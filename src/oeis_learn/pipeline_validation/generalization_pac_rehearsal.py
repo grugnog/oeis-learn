@@ -13,10 +13,10 @@ BOUNDARY=129
 def verify_rehearsal(record,*,source=None,environment=None):
     """Stdlib-only reconciliation of the public diagnostic disposition/counts."""
     fields={'version','identity','status','scientific_status','purpose','device','source','environment','study','inventory','initializer',
-            'seed','batch_size','updates','target_tokens','cadence','runs','proofs','resume','production_retention_validated'}
+            'seed','batch_size','updates','target_tokens','cadence','runs','proofs','resume','production_retention_validated','semantic_scope'}
     if not isinstance(record,dict) or set(record)!=fields or seal(record)!=record:raise ValueError('closed sealed rehearsal required')
     constants=dict(version='pac-rehearsal/v1',status='PASS',scientific_status='UNMEASURED',purpose='diagnostic',device='hip',
-                   seed=20261016,batch_size=32,updates=UPDATES,target_tokens=25000000,cadence='pac-exp3s-leitner/v1',production_retention_validated=False)
+                   seed=20261016,batch_size=32,updates=UPDATES,target_tokens=25000000,cadence='pac-exp3s-leitner/v1',production_retention_validated=False,semantic_scope='UNMEASURED_R0_DETERMINISTIC_PROOF')
     if any(type(record[k]) is not type(v) or record[k]!=v for k,v in constants.items()):raise ValueError('R0 scope/cadence differs')
     for key in ('source','environment','study','inventory','initializer'):
         if not isinstance(record[key],str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',record[key]):raise ValueError('R0 producer identity')
@@ -116,7 +116,7 @@ def rehearse(inputs,output,settings,*,seconds):
         if batches.inventory['identity']!=study['inventory']:raise ValueError('rehearsal pool inventory changed')
         config=learner_config(study,settings['runtime'],recipe,arm,study['seed'],prepared=bundle)
         # Distinct diagnostic compatibility; never usable as a research initializer.
-        config=copy.deepcopy(config);config['study']=digest(['R0',study['identity']]);config['pac']['purpose']='acceptance'
+        config=copy.deepcopy(config);config['study']=digest(['R0',study['identity']]);config['pac']['purpose']='acceptance';config['pac']['semantic']='r0-unmeasured/v1'
         def run(name,stop,prior=None):
             target=output/'private'/name
             value=learner(dict(training_targets=root,verified_training_replay=prior[0] if prior else root),target,
@@ -154,7 +154,7 @@ def rehearse(inputs,output,settings,*,seconds):
     result=seal(dict(version='pac-rehearsal/v1',status='PASS',scientific_status='UNMEASURED',purpose='diagnostic',device='hip',source=settings['source'],
         environment=settings['environment'],study=study['identity'],inventory=study['inventory'],initializer=study['initializer'],seed=study['seed'],
         batch_size=32,updates=UPDATES,target_tokens=25000000,cadence='pac-exp3s-leitner/v1',runs=runs,proofs=proofs,
-        resume=dict(arm='C',boundary=BOUNDARY,updates=UPDATES,equal=resume_proof['resume_equal'],pac_equal=resume_proof['pac_equal']),production_retention_validated=False))
+        resume=dict(arm='C',boundary=BOUNDARY,updates=UPDATES,equal=resume_proof['resume_equal'],pac_equal=resume_proof['pac_equal']),production_retention_validated=False,semantic_scope='UNMEASURED_R0_DETERMINISTIC_PROOF'))
     verify_rehearsal(result,source=settings['source'],environment=settings['environment'])
     write(output/'rehearsal.json',result);return result
 
