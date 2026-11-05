@@ -24,6 +24,8 @@ def dispatch(request: CommandRequest) -> CommandResult:
 def register(commands):
     group=commands.add_parser('generalization',help='controlled generalization evidence operations')
     operations=group.add_subparsers(dest='operation',required=True)
+    job=operations.add_parser('pac-stage',help='execute a closed source-bound PAC role job')
+    job.add_argument('--job',required=True);job.add_argument('--output',required=True)
     verify=operations.add_parser('verify-bundle',help='verify safe archive and independently reconcile evidence')
     verify.add_argument('--archive',required=True)
     verify.add_argument('--output',required=True)
@@ -128,6 +130,9 @@ def report_main(args,root,host_factory):
 
 
 def main(args,root,host_factory):
+    if args.operation=='pac-stage':
+        from .generalization_pac_commands import main as job
+        return job(args,root,host_factory)
     if hasattr(args,'manifest'):
         import json
         from .identity import confined

@@ -369,3 +369,20 @@ selected probabilities stay distinct; missing historical measurements remain nul
 The public projection reconciles useful/reserved/discarded/unspent exposure against
 the authoritative ledger and preserves separate observation/checkpoint costs.
 Focused report fixtures and real contiguous/fixed/D clock fixtures pass.
+
+## T050–T051 — Serial campaign and immutable compatible reuse
+
+The stdlib helper exposes prepare/run/resume/recover, audits the named original
+chain, builds explicit pinned targets, freezes default acceptance versus authorized
+research, and delegates work to closed canonical PAC jobs. Installed custodian
+assembly retains the original pool and frozen bounded probe draws; data commitments
+are resolved before model outcomes. All GPU work follows original-input/native
+admission. The existing learner/fitter remain the only learning/inference paths.
+
+Campaign receipts bind input/source/image/engine/stage/dependency identities; only
+verified successful producer bytes with complete process/cleanup records are reused.
+Failed ancestors suppress descendants, while byte-identical regenerated producers
+permit compatible child reuse. New outputs are owned separately; read-only recovery
+packages a verified safe projection without running a learner. Scope/resume/failure
+fixtures pass (8 tests); calibration and final reporting adapters follow in their
+owned tasks. Actual workstation/native/HIP execution remains E.

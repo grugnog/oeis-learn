@@ -53,7 +53,10 @@ def test_campaign_resume_verifies_outputs_and_recovery_never_launches(tmp_path):
     assert calls==[] and (tmp_path/'one/workflow.json').read_bytes()==immutable
     (tmp_path/'one/admission/observed.json').write_text('changed')
     calls.clear();h.execute_plan(plan,tmp_path/'three',workspace=tmp_path,runner=runner,previous=tmp_path/'one')
-    assert calls==h.stage_order() # every descendant depends on changed admission
+    assert calls==['admission'] # identical regenerated producer permits descendant reuse
+    changed=h.prepare_plan(tmp_path,engine='podman',stages=stages,inputs=plan['inputs'],source=digest('new-source'),images=plan['images'])
+    calls.clear();h.execute_plan(changed,tmp_path/'four',workspace=tmp_path,runner=runner,previous=tmp_path/'one')
+    assert calls==h.stage_order()
 
 
 @pytest.mark.parametrize('outcome',['FAIL','PARTIAL','BLOCKED','INCONCLUSIVE','INTERRUPTED'])
