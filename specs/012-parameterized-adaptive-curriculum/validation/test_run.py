@@ -27,3 +27,42 @@ def test_wrapper_delegates_to_canonical_cli_with_explicit_engine_and_qualified_s
     assert options['seconds']==90000
     with pytest.raises(ValueError):h.canonical_command('auto','train','study','out')
     with pytest.raises(ValueError):h.canonical_command('podman','train','study','out')
+
+
+def test_campaign_resume_verifies_outputs_and_recovery_never_launches(tmp_path):
+    import json
+    from oeis_learn.pipeline_validation.identity import write,seal,digest
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    h=helper();write(tmp_path/'inputs.json',{'source':'mechanical'})
+    stages=[dict(name=name,operation='prepare' if name=='admission' else 'qualify',manifest='inputs.json',
+        seconds=3600,extra=[],requires=[] if i==0 else [h.stage_order()[i-1]]) for i,name in enumerate(h.stage_order())]
+    plan=h.prepare_plan(tmp_path,engine='podman',stages=stages,inputs=[reference(tmp_path/'inputs.json',tmp_path)],
+        source=digest('source'),images=[digest('cpu'),digest('gpu')])
+    calls=[]
+    def runner(stage,target):
+        calls.append(stage['name']);write(target/'observed.json',{'status':'PASS'})
+        return dict(status='PASS',process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),
+            producer=digest(stage['name']),artifacts=[reference(target/'observed.json',target)])
+    one=h.execute_plan(plan,tmp_path/'one',workspace=tmp_path,runner=runner)
+    assert one['status']=='PASS' and calls==h.stage_order()
+    calls.clear()
+    two=h.execute_plan(plan,tmp_path/'two',workspace=tmp_path,runner=runner,previous=tmp_path/'one')
+    assert two['status']=='PASS' and calls==[]
+    immutable=(tmp_path/'one/workflow.json').read_bytes()
+    h.recover(tmp_path/'one',tmp_path/'recovered')
+    assert calls==[] and (tmp_path/'one/workflow.json').read_bytes()==immutable
+    (tmp_path/'one/admission/observed.json').write_text('changed')
+    calls.clear();h.execute_plan(plan,tmp_path/'three',workspace=tmp_path,runner=runner,previous=tmp_path/'one')
+    assert calls==h.stage_order() # every descendant depends on changed admission
+
+
+@pytest.mark.parametrize('outcome',['FAIL','PARTIAL','BLOCKED','INCONCLUSIVE','INTERRUPTED'])
+def test_failure_suppresses_descendants_and_preserves_primary(tmp_path,outcome):
+    from oeis_learn.pipeline_validation.identity import digest
+    h=helper();stages=[dict(name=name,operation='prepare',manifest='inputs',seconds=3600,extra=[],requires=[] if i==0 else [h.stage_order()[i-1]]) for i,name in enumerate(h.stage_order())]
+    plan=h.prepare_plan(tmp_path,engine='docker',stages=stages,inputs=[],source=digest('src'),images=[digest('cpu'),digest('gpu')])
+    calls=[]
+    def runner(stage,target):calls.append(stage['name']);return dict(status=outcome,process=dict(outcome='COMPLETE',returncode=1),cleanup=dict(acknowledged=True,within_bound=True),producer=digest('failed'),artifacts=[])
+    result=h.execute_plan(plan,tmp_path/'run',workspace=tmp_path,runner=runner)
+    assert calls==['admission'] and result['status']!='PASS'
+    assert result['errors'][0]['stage']=='admission' and (tmp_path/'run/report.zip').is_file()
