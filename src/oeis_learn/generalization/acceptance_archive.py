@@ -107,6 +107,14 @@ def verify_pac_evidence(record,*,root,finalized=True):
     def read(ref):
         if ref is None or indexed.get(ref['path'])!=ref:raise ValueError('mandatory original proof missing from inventory')
         return json.loads(verify_artifact(root,ref,max_bytes=16<<20))
+    analysis_ref=indexed.get('analysis/analysis.json')
+    if analysis_ref is not None:
+        report=read(analysis_ref)
+        if report.get('version')=='pac-analysis/v2':
+            from .pac_analysis import verify_analysis
+            if report['inputs']['path']!='research-inputs.json':raise ValueError('fixed public research input path required')
+            input_ref=dict(report['inputs'],path='analysis/research-inputs.json')
+            verify_analysis(report,read(input_ref))
     seen=[]
     for stage in record['stages']:
         if set(stage)!={'stage','status','producer','binding','process','cleanup','elapsed_seconds','reused'}:raise ValueError('closed public stage receipt')

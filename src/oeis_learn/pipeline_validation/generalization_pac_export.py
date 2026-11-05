@@ -79,7 +79,13 @@ def collect(original,staging):
         copy(analysis.parent,reference(analysis,analysis.parent),'analysis')
         review=analysis.with_name('cases.md')
         if review.is_file():copy(analysis.parent,reference(review,analysis.parent),'analysis')
-        report=json.loads(analysis.read_text())
+        report=json.loads(original_file(analysis))
+        if report.get('version')=='pac-analysis/v2':
+            from oeis_learn.generalization.pac_analysis import verify_analysis
+            input_path=confined(analysis.parent,report['inputs']['path'])
+            inputs=json.loads(verify_artifact(analysis.parent,report['inputs']))
+            verify_analysis(report,inputs)
+            copy(analysis.parent,report['inputs'],'analysis')
         scientific='EXPLORATORY_SINGLE_SEED' if report.get('comparisons') and all(v['interpretable'] for v in report['comparisons'].values()) else 'INCOMPLETE'
     stages=[]
     for row in workflow['receipts']:

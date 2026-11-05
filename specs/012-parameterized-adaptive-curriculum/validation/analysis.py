@@ -51,7 +51,7 @@ def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=Non
     return result
 
 
-def analyze_campaign(root,*,output):
+def analyze_campaign(root,*,output,workspace=None):
     from oeis_learn.generalization.contracts import verify_artifact
     root=Path(root);output=Path(output)
     def read(path):
@@ -60,7 +60,7 @@ def analyze_campaign(root,*,output):
     workflow=read(root/'workflow.json');plan=read(root/'plan.json')
     if seal(workflow)!=workflow or seal(plan)!=plan:raise ValueError('immutable campaign identities required')
     entries={r['stage']:r for r in workflow['receipts']}
-    accepted=entries['acceptance'];workspace=Path(__file__).resolve().parents[3]
+    accepted=entries['acceptance'];workspace=Path(workspace) if workspace is not None else Path(__file__).resolve().parents[3]
     manifest=workspace/accepted['resolved_manifest'];runtime_file=workspace/accepted['resolved_runtime']
     for path in (manifest,runtime_file):
         ref=next((r for r in accepted['resolved_refs'] if workspace/r['path']==path),None)
@@ -69,9 +69,13 @@ def analyze_campaign(root,*,output):
     study=read(manifest);runtime=read(runtime_file)
     from oeis_learn.pipeline_validation.generalization_execution import verify_pac_runtime
     verify_pac_runtime(study,runtime)
+    if runtime['purpose']!='research' or plan['source']!=study['source'] or plan['arms']!=study['arms'] or plan['images']!=runtime['images']:raise ValueError('frozen campaign authority differs')
     admission=json.loads(verify_artifact(manifest.parent,runtime['prepared']['admission']))
+    if seal(admission)!=admission or admission.get('status')!='PASS':raise ValueError('intact native admission required')
     expected_scope=admission.get('structural_scope')
-    outcomes={};records={};scored={};roster=None;structural_scope=None;costs={}
+    from oeis_learn.generalization.pac_analysis import CONTROLS,project_training,recompute
+    outcomes={};all_outcomes={};scoring_hashes={};records={};scored={};roster=None;structural_scope=None;costs={}
+    diagnostics={a:None for a in set(plan['arms'])|{'A'}};training_hashes=dict.fromkeys(diagnostics)
     def verified(name,path):
         entry=entries[name];base=root/entry['directory'];relative=str(path.relative_to(base))
         ref=next((r for r in entry['artifacts'] if r['path']==relative),None)
@@ -84,20 +88,30 @@ def analyze_campaign(root,*,output):
         scoring=verified(name,folder/'scoring/role/scoring.json')
         if scoring.get('structural_scope')!=expected_scope:raise ValueError('scoring population differs from admitted scope')
         if scoring['study']!=study['identity'] or seal(scoring)!=scoring:raise ValueError('scorer study/seal mismatch')
+        if scoring['roster']!=admission['roster']:raise ValueError('scoring roster differs from admitted population')
         if roster is None:roster=scoring['roster'];structural_scope=scoring.get('structural_scope')
         if scoring.get('structural_scope')!=structural_scope:raise ValueError('paired structural scope changed')
         if roster!=scoring['roster']:raise ValueError('paired structural population changed')
+        if set(scoring['outcomes'])!=set(CONTROLS):raise ValueError('all seven scored controls required')
+        all_outcomes[arm]=scoring['outcomes'];scoring_hashes[arm]=scoring['identity']
         outcomes[arm]=scoring['outcomes']['equal_budget'];scored[arm]=scoring['scored_cases']
         records[arm]=verified(name,folder/'generation/role/generation/selections.json')
     for arm in set(plan['arms'])|{'A'}:
         name='train-'+arm
         if name not in entries:costs[arm]=None;continue
-        result=verified(name,root/name/'execution/result.json')['result']['runs'][0]['result']
-        allocation=result['allocation'];tokens=allocation['tokens']
-        costs[arm]=dict(allowed_tokens=tokens['allowed'],useful_tokens=tokens['useful'],reserved_tokens=tokens['reserved'],discarded_tokens=tokens['discarded'],unspent_tokens=tokens['unspent'],
-            examples=sum(v['examples'] for f in allocation['allocation'].values() for v in f.values()),updates=result['updates'],seconds=result['learner_seconds'])
+        producer=verified(name,root/name/'execution/result.json')
+        if seal(producer)!=producer:raise ValueError('training producer seal changed')
+        result=producer['result']['runs'][0]['result']
+        diagnostics[arm]=project_training(result);training_hashes[arm]=producer['identity']
     if roster is None:raise ValueError('no completed structural scoring available')
-    result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=costs,records=records,scored=scored,structural_scope=structural_scope)
+    result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=None,records=records,scored=scored,structural_scope=structural_scope)
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    inputs=seal(dict(version='pac-research-inputs/v1',experiment=study,control=runtime['control'],profiles=runtime['profiles'],roster=roster,structural_scope=structural_scope,
+        outcomes=all_outcomes,diagnostics=diagnostics,scoring=scoring_hashes,training=training_hashes,
+        stages={n:{k:r.get(k) for k in ('producer','binding','elapsed_seconds')} for n,r in entries.items() if n!='analysis'}))
+    result.update(recompute(inputs));result.pop('reconstruction',None);result['version']='pac-analysis/v2'
+    output.mkdir(parents=True,exist_ok=True);write(output/'research-inputs.json',inputs)
+    result['inputs']=reference(output/'research-inputs.json',output)
     write(output/'analysis.json',seal(result));(output/'cases.md').write_text(case_markdown(result));return result
 
 

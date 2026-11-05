@@ -415,7 +415,7 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
         from analysis import analyze_campaign
         value=analyze_campaign(target.parent,output=target)
         return dict(status='PASS',producer=digest(value),process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),
-            artifacts=[reference(target/'analysis.json',target),reference(target/'cases.md',target)])
+            artifacts=[reference(target/n,target) for n in ('analysis.json','cases.md','research-inputs.json')])
     extra=['--runtime',runtime_path] if runtime_path else []
     if stage['operation']=='train':
         extra+=['--arms',stage['name'].split('-')[1],'--seeds',str(study['seed'])]
