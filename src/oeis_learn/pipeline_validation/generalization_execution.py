@@ -70,6 +70,9 @@ def verify_pac_runtime(experiment,runtime):
         ref=runtime[name]
         if set(ref)!={'path','bytes','sha256'} or not re.fullmatch(r'sha256:[0-9a-f]{64}',ref['sha256']):
             raise ValueError('PAC artifact reference required')
+    pac_envelope_graph(runtime['envelope'],purpose=runtime['purpose'],arms=experiment['arms'])
+    if experiment['backend']!=POLICY_ID or experiment['budget_graph']!=pac_budget_projection(runtime['envelope'],arms=experiment['arms']):
+        raise ValueError('PAC experiment backend/resource graph differs from execution')
     if runtime['preparation'] is not None and runtime['prepared'] is not None:
         raise ValueError('PAC preparation and resolved state are exclusive')
     return runtime
@@ -90,9 +93,12 @@ def validate_pac_execution(root,experiment,runtime):
     verify_pac_runtime(experiment,runtime)
     from oeis_learn.generalization.execution import validate_pac_policy
     validate_pac_policy(experiment,runtime['control'],runtime['profiles'])
+    from oeis_learn.generalization.contracts import pac_record
+    pac_record('envelope',runtime['envelope'],sealed=False)
     recipe=json.loads(verify_artifact(root,runtime['recipe'],max_bytes=1<<20))
     source=json.loads(verify_artifact(root,runtime['source'],max_bytes=16<<20))
-    if digest(source)!=experiment['source']:raise ValueError('PAC source closure mismatch')
+    from oeis_learn.experiments.source_snapshot import source_snapshot
+    if digest(source)!=experiment['source'] or source!=source_snapshot():raise ValueError('PAC actual installed source closure mismatch')
     if digest({k:v for k,v in recipe['model'].items() if k!='seed'})!=experiment['model'] or digest(recipe['learning'])!=experiment['optimizer']:
         raise ValueError('PAC actual model/optimizer recipe mismatch')
     if runtime['prepared'] is None:
@@ -103,3 +109,57 @@ def validate_pac_execution(root,experiment,runtime):
     from .generalization_preparation import verify_pac_prepared
     training=verify_pac_prepared(root,experiment,runtime)
     return dict(study=experiment['identity'],recipe=recipe,initializer=None,training=training)
+
+
+PAC_STAGES=('validation','preparation','learner','generation','acceptance','calibration','resume','proof','export')
+
+
+def pac_role_envelope(value):
+    from .identity import number
+    if not isinstance(value,dict) or set(value)!={'work','startup','publication','projection','cleanup','outer'}:
+        raise ValueError('closed PAC role reservation required')
+    for x in value.values():number(x,positive=True)
+    if value['cleanup']<30 or value['outer']<sum(value[k] for k in value if k!='outer'):
+        raise ValueError('PAC role cannot enclose work/publication/startup/projection/cleanup')
+    return value
+
+
+def pac_envelope_graph(envelope,*,purpose,arms=('B','C')):
+    """Bind the B deadline arithmetic to every installed operation, without caps."""
+    from .identity import number
+    from oeis_learn.generalization.budgets import pac_deadline_graph,integer
+    if set(envelope)!=set(PAC_STAGES)|{'version','campaign','diagnostics_seconds','batch_size','acceptance_tokens','backend','storage'} or envelope['version']!='pac-envelope/v1':
+        raise ValueError('closed complete PAC envelope required')
+    if envelope['backend']!=POLICY_ID:raise ValueError('PAC backend process-start identity mismatch')
+    number(envelope['diagnostics_seconds'],positive=True);integer(envelope['batch_size'],1);integer(envelope['acceptance_tokens'],1)
+    if envelope['batch_size']>128 or envelope['acceptance_tokens']>1000000:raise ValueError('bounded PAC acceptance/batch size')
+    storage=envelope['storage']
+    if set(storage)!={'data_bytes','data_copies','scratch_bytes','logs_bytes','package_bytes','reserved_bytes'}:raise ValueError('complete peak storage reservations required')
+    for value in storage.values():integer(value,1)
+    nodes={}
+    for stage in PAC_STAGES:
+        e=pac_role_envelope(envelope[stage])
+        nodes[stage]=dict(requested=e['outer'],effective=e['outer'],work=e['work'],children=[],mode='serial',
+            cleanup=e['cleanup'],cleanup_floor=30,finalization=0,overhead=e['startup']+e['publication']+e['projection'],contention=0,schema_max=None)
+    if purpose=='research':
+        for stage,floor in [('preparation',86400),('learner',43200),('resume',43200),('generation',23400)]:
+            if envelope[stage]['work']<floor:raise ValueError('PAC research work floor')
+    elif purpose!='acceptance':raise ValueError('PAC purpose')
+    if envelope['diagnostics_seconds']>envelope['learner']['work']:raise ValueError('diagnostics exceed learner allowance')
+    from oeis_learn.generalization.resources import _pac_arms
+    _pac_arms(arms)
+    for arm in arms[1:]:
+        for stage in ('learner','generation','resume','proof','export'):
+            nodes[stage+':'+arm]=dict(nodes[stage])
+    nodes['campaign']=dict(requested=envelope['campaign'],effective=envelope['campaign'],work=0,children=list(nodes),
+        mode='serial',cleanup=0,cleanup_floor=0,finalization=3600,overhead=0,contention=0,schema_max=None)
+    return pac_deadline_graph(nodes,root='campaign')
+
+
+def pac_budget_projection(envelope,*,arms=('B','C')):
+    graph=pac_envelope_graph(envelope,purpose='acceptance',arms=arms)
+    names=[name for name in graph['nodes'] if name!='campaign']
+    return [dict(id=name,seconds=envelope[name.split(':')[0]]['outer'],children=[],mode='serial',
+                 overhead_seconds=sum(envelope[name.split(':')[0]][k] for k in ('startup','publication','projection')),
+                 cleanup_seconds=envelope[name.split(':')[0]]['cleanup']) for name in names]+[
+        dict(id='campaign',seconds=envelope['campaign'],children=names,mode='serial',overhead_seconds=3600,cleanup_seconds=0)]

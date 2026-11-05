@@ -22,7 +22,7 @@ def pac_envelope():
     stages={name:dict(work=work,startup=90,publication=120,projection=60,cleanup=30,outer=work+300)
         for name,work in [('validation',600),('preparation',90000),('learner',50000),('generation',25000),
                           ('acceptance',3600),('calibration',1800),('resume',50000),('proof',3600),('export',3600)]}
-    return dict(version='pac-envelope/v1',**stages,campaign=sum(s['outer'] for s in stages.values())+3600,
+    return dict(version='pac-envelope/v1',**stages,campaign=sum(s['outer'] for s in stages.values())+sum(stages[k]['outer'] for k in ('learner','generation','resume','proof','export'))+3600,
         diagnostics_seconds=1000,batch_size=32,acceptance_tokens=4096,backend=POLICY_ID,
         storage=dict(data_bytes=1000000,data_copies=3,scratch_bytes=1000000,logs_bytes=1000000,package_bytes=1000000,reserved_bytes=32<<30))
 
@@ -43,3 +43,15 @@ def test_pac_all_nested_limits_preserve_longer_reservations_and_reject_clipping(
     with pytest.raises(ValueError,match='backend'):pac_envelope_graph(bad,purpose='research')
     bad=copy.deepcopy(env);bad['generation']['work']=21600
     with pytest.raises(ValueError,match='floor'):pac_envelope_graph(bad,purpose='research')
+
+
+def test_pac_envelope_schema_and_optional_arm_cost():
+    import pytest
+    from oeis_learn.generalization.contracts import pac_record
+    from oeis_learn.pipeline_validation.generalization_execution import pac_envelope_graph
+    env=pac_envelope();pac_record('envelope',env,sealed=False)
+    with pytest.raises(ValueError):pac_envelope_graph(env,purpose='research',arms=['B','C','D'])
+    env['campaign']+=sum(env[k]['outer'] for k in ('learner','generation','resume','proof','export'))
+    graph=pac_envelope_graph(env,purpose='research',arms=['B','C','D'])
+    assert graph['nodes']['learner:D']['effective']==50300
+    with pytest.raises(ValueError):pac_record('envelope',dict(env,hidden_override=True),sealed=False)

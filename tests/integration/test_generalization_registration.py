@@ -62,10 +62,13 @@ def test_pac_has_separate_canonical_dispatch_and_closed_binding(tmp_path):
     from oeis_learn.pipeline_validation.generalization_execution import bind_pac, verify_pac_runtime
     from oeis_learn.pipeline_validation.generalization_runtime import load
     experiment, control, profiles, _ = pac_setup()
+    from tests.integration.test_generalization_recipes import pac_envelope
+    from oeis_learn.pipeline_validation.generalization_execution import pac_budget_projection,POLICY_ID
+    experiment=seal(dict(experiment,backend=POLICY_ID,budget_graph=pac_budget_projection(pac_envelope())))
     runtime = dict(version='pac-runtime/v1', study=experiment['identity'], purpose='research',
         recipe={'path':'recipe.json','bytes':2,'sha256':digest({})}, images=[digest('cpu'),digest('gpu')],
         source={'path':'source.json','bytes':2,'sha256':digest({})}, control=control, profiles=profiles,
-        preparation=None, prepared=None, envelope={}, feature=None, engine='podman')
+        preparation=None, prepared=None, envelope=pac_envelope(), feature=None, engine='podman')
     experiment, runtime = bind_pac(experiment,runtime)
     verify_pac_runtime(experiment,runtime)
     (tmp_path/'study.json').write_text(json.dumps(experiment));(tmp_path/'runtime.json').write_text(json.dumps(runtime))

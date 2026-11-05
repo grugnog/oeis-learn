@@ -136,6 +136,7 @@ def test_pac_actual_role_limits_are_unclipped(tmp_path,monkeypatch,engine_name,s
     from tests.integration.test_generalization_recipes import pac_envelope
     engine=Engine(engine_name,executable=engine_name,details={});monkeypatch.setattr(engine,'user_args',lambda:[])
     monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    monkeypatch.setattr(engine,'device_args',lambda render_node:['--device','/dev/kfd','--device','/dev/dri/renderD128'])
     selected=Role.LEARNER;channels={m.channel:m.channel for m in ROLE_INPUTS[selected]}
     for name in channels.values():(tmp_path/name).mkdir()
     envelope=pac_envelope()[stage];seen=[]

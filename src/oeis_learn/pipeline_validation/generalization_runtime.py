@@ -316,7 +316,7 @@ def learner_config(study,runtime,recipe,arm,seed,*,prepared=None):
         cap=study["target_tokens"] if runtime["purpose"]=="research" else runtime["envelope"]["acceptance_tokens"]
         return dict(study=study["identity"],arm=arm,seed=seed,recipe=recipe,shards=prepared["literal" if arm=="A" else "parameterized"],
             data_mode="static",batch_size=runtime["envelope"]["batch_size"],target_tokens=cap,
-            milestones=[m for m in (4_000_000,8_000_000,16_000_000,25_000_000) if m<=cap],seconds=limits["work"],device="cuda",checkpoint_policy="hourly/v1",
+            milestones=[m for m in (4_000_000,8_000_000,16_000_000,25_000_000) if m<=cap],seconds=limits["work"]+limits["publication"],device="cuda",checkpoint_policy="hourly/v1",
             pac=dict(bundle=prepared,purpose=runtime["purpose"],source=study["source"],environment=digest(dict(images=runtime["images"],engine=runtime["engine"],backend=study["backend"])),
                 initializer=study["initializer"],publication_seconds=limits["publication"],observation_seconds=runtime["envelope"]["diagnostics_seconds"]))
     from oeis_learn.generalization.bootstrap import is_pending

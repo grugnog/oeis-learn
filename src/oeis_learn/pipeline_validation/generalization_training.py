@@ -171,6 +171,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             progress_count+=1
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
     pac=config.get('pac')
+    from .identity import number
+    number(config['seconds'],positive=True)
+    if pac is not None:
+        if set(pac)!={'bundle','purpose','source','environment','initializer','observation_seconds','publication_seconds'} or pac['purpose'] not in {'acceptance','research'}:
+            raise ValueError('closed PAC learner metadata required')
+        number(pac['observation_seconds'],positive=True);number(pac['publication_seconds'],positive=True)
+        if pac['publication_seconds']>=config['seconds'] or pac['observation_seconds']>config['seconds']-pac['publication_seconds']:
+            raise ValueError('PAC observations/publication exceed frozen allowance')
     if set(config)-{'checkpoint_policy','pac'}!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds'] or (pac is None and config['seconds']>21600):raise ValueError('explicit bounded learner device/time required')
     from .generalization_execution import verify_execution,bind_compatibility
@@ -431,7 +439,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
 
 def storage_preflight(recipe,study,runtime):
     """Measure actual CPU model tensors and reserve optimizer/pinned snapshots."""
-    if not runtime['training']:
+    pac=runtime.get('version')=='pac-runtime/v1'
+    if not pac and not runtime['training']:
         return dict(required_checkpoint_bytes=0,pinned_generations_reserved=0,kind='evaluation_only_no_learner_snapshots')
     from oeis_learn.fresh.bigint_worker import models
     from oeis_learn.generalization.budgets import reserve_storage
@@ -443,6 +452,11 @@ def storage_preflight(recipe,study,runtime):
     # FP32 AdamW has two parameter-sized moments. Reserve serialization metadata,
     # RNG/history, and a bounded full replay snapshot separately from tensor bytes.
     snapshot_bytes=3*parameter_bytes+buffer_bytes+4096*(len(parameters)+len(buffers))+(1<<20)
+    if pac:
+        from oeis_learn.generalization.resources import pac_peak_storage
+        storage=dict(runtime['envelope']['storage']);available=storage.pop('reserved_bytes')
+        return pac_peak_storage(arms=study['arms'],snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
+            milestones=4 if runtime['purpose']=='research' else 0,available_bytes=available,scratch_kind='disk',**storage)
     if runtime['replay'] is not None:snapshot_bytes+=128<<20
     from oeis_learn.generalization.resources import checkpoint_reservation
     graph=checkpoint_reservation(snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,

@@ -38,7 +38,8 @@ def _validate(host,workspace,output,base,study,runtime,*,seconds=300):
     result=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
         {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
         output=str((output/'validation').relative_to(workspace)),operation='validate-runtime',
-        settings=dict(study=study,runtime=runtime),seconds=seconds)
+        settings=dict(study=study,runtime=runtime),seconds=seconds,
+        **({'envelope':runtime['envelope']['validation']} if runtime.get('version')=='pac-runtime/v1' else {}))
     if result['status']!='PASS':raise ValueError('invalid frozen execution: '+result.get('error',result.get('reason','failed')))
     return result['plan']
 
@@ -282,7 +283,11 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
     from oeis_learn.generalization.role_contracts import pac_training_refs
     output=confined(workspace,args.output,exists=False)
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh PAC output required')
-    host=host_factory(args);output.mkdir(parents=True)
+    host=host_factory(args)
+    if host.engine.name!=runtime['engine']:raise ValueError('actual PAC engine differs from requested engine')
+    import shutil
+    if shutil.disk_usage(workspace).free<runtime['envelope']['storage']['reserved_bytes']:raise ValueError('insufficient PAC reserved disk storage')
+    output.mkdir(parents=True)
     def finish(value):return _finish(output,study,args.operation,value,runtime)
     try:
         plan=_validate(host,workspace,output,base,study,runtime,seconds=runtime['envelope']['validation']['outer'])
@@ -292,7 +297,7 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
             value=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
                 {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
                 output=str((output/'preparation').relative_to(workspace)),operation='pac-prepare',
-                settings=dict(study=study,runtime=runtime),seconds=runtime['envelope']['preparation']['outer'])
+                settings=dict(study=study,runtime=runtime),seconds=runtime['envelope']['preparation']['outer'],envelope=runtime['envelope']['preparation'])
             return finish(value)
         require_pac_admission(study,runtime,args.operation)
         if not args.qualification:raise ValueError('original compatible PAC qualification required')
@@ -320,7 +325,7 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
                 source_roots={'training_targets':base,'verified_training_replay':workspace},
                 artifact_sources={'verified_training_replay':sources},output=str(folder.relative_to(workspace)),
                 operation='train',settings=dict(config=config,resume=pointer,initializer=None),
-                seconds=runtime['envelope']['learner']['outer'],gpu=True)
+                seconds=runtime['envelope']['learner']['outer'],gpu=True,envelope=runtime['envelope']['learner'])
             results.append(dict(arm=config['arm'],result=value))
             if value['status']!='PASS':return finish(dict(status=value['status'],runs=results))
         return finish(dict(status='PASS',runs=results))

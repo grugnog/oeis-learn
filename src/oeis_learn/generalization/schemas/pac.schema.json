@@ -35,6 +35,9 @@
     },
     {
       "$ref": "#/$defs/receipt"
+    },
+    {
+      "$ref": "#/$defs/envelope"
     }
   ],
   "$defs": {
@@ -532,7 +535,8 @@
           "maxLength": 1024
         },
         "seconds": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "children": {
           "type": "array",
@@ -551,10 +555,12 @@
           ]
         },
         "overhead_seconds": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "cleanup_seconds": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
@@ -2042,6 +2048,161 @@
         "artifacts",
         "omissions",
         "errors"
+      ],
+      "additionalProperties": false
+    },
+    "role_envelope": {
+      "type": "object",
+      "properties": {
+        "work": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "startup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "publication": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "projection": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cleanup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "outer": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "work",
+        "startup",
+        "publication",
+        "projection",
+        "cleanup",
+        "outer"
+      ],
+      "additionalProperties": false
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "validation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "preparation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "learner": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "generation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "acceptance": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "calibration": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "resume": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "proof": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "export": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "version": {
+          "const": "pac-envelope/v1"
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "backend": {
+          "$ref": "#/$defs/identity"
+        },
+        "campaign": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "diagnostics_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "acceptance_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "data_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "data_copies": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "scratch_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "logs_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "package_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "reserved_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "data_bytes",
+            "data_copies",
+            "scratch_bytes",
+            "logs_bytes",
+            "package_bytes",
+            "reserved_bytes"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "validation",
+        "preparation",
+        "learner",
+        "generation",
+        "acceptance",
+        "calibration",
+        "resume",
+        "proof",
+        "export",
+        "version",
+        "identity",
+        "backend",
+        "campaign",
+        "diagnostics_seconds",
+        "batch_size",
+        "acceptance_tokens",
+        "storage"
       ],
       "additionalProperties": false
     }
