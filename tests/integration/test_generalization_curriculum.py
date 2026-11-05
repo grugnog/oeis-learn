@@ -110,3 +110,29 @@ def test_missing_required_feedback_pauses_after_two_blocks(tmp_path):
     result=controller.run(states(),Ledger(100000),update=torch_update(encoder,decoder,optimizer,device='cpu'),save=lambda *a:None,seconds=30)
     assert result['ledger'].updates==8 and result['ledger'].consumed>0
     assert controller.policy.kernel.valid_updates==0 and 'required_reward_budget' in controller.policy.pauses
+
+
+def test_production_clock_counts_and_pending_choice_restore(tmp_path):
+    import torch
+    from oeis_learn.pipeline_validation.generalization_curriculum import PacController
+    from oeis_learn.pipeline_validation.generalization_training import torch_update
+    from oeis_learn.generalization.budgets import Ledger
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    from oeis_learn.generalization.experiments import pac_recipe
+    from tests.integration.test_generalization_training import states
+    assert pac_recipe()['arms']==['B','C']
+    batches,_=prepared(tmp_path,'D');encoder,decoder=models();optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()],lr=.001)
+    c=PacController(batches,encoder,decoder,device='cpu',seed=7,arm='D',cap=100000,observation_seconds=300)
+    seen=[]
+    def save(state,ledger):
+        p=c.policy
+        if p.pending:
+            restored=CurriculumState.restore(p.snapshot(),inventory=batches.inventory['identity'])
+            assert restored.pending==p.pending and restored.block['probe_ids']==p.block['probe_ids']
+            assert restored.block['selection']['probability']>=.25/len(batches.families)
+            seen.append(restored.pending['rows'])
+    result=c.run(states(),Ledger(100000),update=torch_update(encoder,decoder,optimizer,device='cpu'),save=save,seconds=300,max_updates=32)
+    assert result['ledger'].updates==32 and len(seen)==32
+    assert c.channels==dict(bandit=32,review=0,fallback=0)
+    assert c.policy.kernel.action_count==c.policy.kernel.valid_updates==4
+    assert c.observer.state['shadow_grades']==0
