@@ -15,10 +15,10 @@ def helper():
 def fixture(root):
     refs=[]
     for cell in original_cells():
-        path=root/(cell['name']+'.json');write(path,{'protected':'not parsed by host inventory'})
+        path=root/(cell['name']+'.json');write(path,{'protected':'not parsed by host inventory'},exclusive=False)
         refs.append(dict(cell,ref=reference(path,root)))
     receipt=seal(dict(version='generalization-command-result/v2',status='PASS',inventory=[r['ref'] for r in refs]))
-    write(root/'receipt.json',receipt)
+    write(root/'receipt.json',receipt,exclusive=False)
     return refs,reference(root/'receipt.json',root)
 
 
@@ -32,7 +32,7 @@ def test_exact_original_inventory_rejects_missing_corruption_and_failed_producer
     (tmp_path/cells[0]['ref']['path']).write_text('changed')
     with pytest.raises(ValueError):h.inventory(tmp_path,cells,receipt)
     cells,receipt=fixture(tmp_path)
-    write(tmp_path/'receipt.json',seal(dict(version='generalization-command-result/v2',status='FAIL',inventory=[r['ref'] for r in cells])))
+    write(tmp_path/'receipt.json',seal(dict(version='generalization-command-result/v2',status='FAIL',inventory=[r['ref'] for r in cells])),exclusive=False)
     receipt=reference(tmp_path/'receipt.json',tmp_path)
     old=(tmp_path/'receipt.json').read_bytes()
     with pytest.raises(ValueError,match='original PASS'):h.inventory(tmp_path,cells,receipt)

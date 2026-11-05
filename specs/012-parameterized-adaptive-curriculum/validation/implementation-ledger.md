@@ -301,3 +301,21 @@ optimizer, RNG, data, policy/scaler/queue and observer equality remains exact;
 crash loss remains separately charged. Task accounting: **42 checked, 32
 unchecked**, stopping before T043. Commits were made per task and published
 incrementally to PR 63 against `main`; the draft remains open for phase-D delivery.
+
+## Phase D entry — original inputs (T043–T044)
+
+Reread the implementation instructions, constitution, full 012 design/task context,
+contracts, quickstart and reliability matrix before changes. The read-only quality
+checklist remains 16/16; no extension hooks are configured. Ignore files already
+cover Python/Rust/container build outputs and private run state.
+
+The input adapter reuses the reviewed original lineage/checkpoint verifier and
+canonical control validator. Bounded discovery rejects links/exhaustion and names
+an explicit-root/inventory remedy. The host inventory checks every original cell
+against immutable successful producer bytes without parsing protected rows; actual
+row counts and native admission remain custodian checks. Missing control history
+remains REFERENCE_ONLY and has no fabricated historical measurements.
+
+`PYTHONPATH=src .venv-cpu/bin/python -m pytest -q specs/012-parameterized-adaptive-curriculum/validation/test_inputs.py`:
+3 passed. Cases cover all 16 cells, changed/missing bytes, immutable failed producer,
+search exhaustion, symlink traversal and weights-only versus complete control proof.
