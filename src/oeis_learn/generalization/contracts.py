@@ -191,4 +191,17 @@ def pac_public(kind, record):
     authority = pac_record(kind, record)
     if kind in PAC_PRIVATE_KINDS:
         raise ValueError('private PAC record requires an explicit bounded projection')
-    return authority.record()
+    result=authority.record()
+    if kind=='receipt':
+        # Phase D can extend this explicit public envelope with its own tests;
+        # hashes alone do not make a private artifact path safe to disclose.
+        for ref in result['artifacts']:
+            path=PurePosixPath(ref['path'])
+            if (path.is_absolute() or '\\' in ref['path'] or any(p in ('','.','..') for p in ref['path'].split('/'))
+                or path.parts[0] not in {'report','reports','metrics','receipts','logs','validation'}
+                or any(word in ref['path'].lower() for word in ('private','weight','optimizer','truth','checkpoint'))):
+                raise ValueError('private or noncanonical PAC public artifact')
+        codes=result['omissions']+[e['stage'] for e in result['errors']]+[e['reason'] for e in result['errors']]
+        if any(not value.replace('_','').replace('-','').replace('.','').replace(':','').isalnum() for value in codes):
+            raise ValueError('public PAC receipt uses bounded reason codes, never raw private errors')
+    return result

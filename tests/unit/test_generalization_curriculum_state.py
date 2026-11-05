@@ -182,3 +182,14 @@ def test_terminal_censored_and_failed_states_keep_their_dispositions():
     restored=CurriculumState.restore(s.snapshot(),inventory=s.inventory)
     assert restored.pauses==['censored_rewards'] and restored.coverage.censored_rewards==2
     with pytest.raises(ValueError):restored.start_block()
+
+
+def test_full_inventory_identity_and_internal_layout_are_separate_bindings():
+    from oeis_learn.generalization.curriculum_state import CurriculumState
+    original=state()
+    full_inventory=digest('full-custodian-inventory-including-source-output-and-exclusions')
+    s=CurriculumState(original.families,original.probe_ids,original.anchor_ids,seed=11,arm='C',token_cap=100000,
+                      inventory=full_inventory,segment='s0')
+    assert CurriculumState.restore(s.snapshot(),inventory=full_inventory).inventory==full_inventory
+    bad=s.snapshot();bad['families']['a'].reverse()
+    with pytest.raises(ValueError):CurriculumState.restore(bad,inventory=full_inventory)

@@ -130,7 +130,7 @@ def pac_control(original,expected,*,original_study,source,image,checkpoint,histo
         raise ValueError('compatibility requires verified identities')
     checks={k:original.get(k)==expected[k] for k in sorted(PAC_MATCH_FIELDS)}
     record=dict(version='pac-control/v1',original_study=original_study,source=source,image=image,
-                checkpoint=checkpoint,initializer=expected['initializer'],checks=checks,
+                checkpoint=checkpoint,initializer=expected['initializer'],expected=dict(expected),checks=checks,
                 disposition='MATCHED' if all(checks.values()) else 'REFERENCE_ONLY',
                 reasons=[k for k,v in checks.items() if not v],historical_measurements=historical_measurements)
     return pac_record('control',record,sealed=False).record()
@@ -147,13 +147,15 @@ def validate_pac_policy(experiment,control,profiles):
         raise ValueError('predeclared complete PAC arms and comparison factors required')
     if exp['control_mode']=='matched' and (receipt['disposition']!='MATCHED' or not all(receipt['checks'].values()) or receipt['reasons'] or receipt['initializer']!=exp['initializer']):
         raise ValueError('matched A requires exact complete original proof')
+    if exp['control_mode']=='matched' and any(receipt['expected'][k]!=exp[k] for k in PAC_MATCH_FIELDS):
+        raise ValueError('matched control proof belongs to different experiment values')
     if exp['target_tokens']!=25_000_000:raise ValueError('frozen PAC token allowance')
-    fields={'initializer','initializer_kind','pool','targets','model','optimizer','backend','order','token_cap','sampling'}
+    fields={'initializer','initializer_kind','pool','targets','model','optimizer','backend','order','token_cap','sampling','exposure','diagnostics'}
     for arm,profile in profiles.items():
         if set(profile)!=fields or profile['initializer_kind']!='random':raise ValueError('closed fresh random arm profile')
-        for field in ('initializer','pool','model','optimizer','backend'):
+        for field in ('initializer','pool','model','optimizer','backend','exposure','diagnostics'):
             if profile[field]!=exp[field]:raise ValueError('paired '+field+' identity mismatch')
         if profile['token_cap']!=exp['target_tokens'] or profile['sampling']!=config['sampling'][arm]:raise ValueError('arm exposure/sampling mismatch')
-        if arm!='A' and profile['targets']!=exp['targets']:raise ValueError('paired target identity mismatch')
+        if profile['targets']!=exp['literal_targets' if arm=='A' else 'targets']:raise ValueError('paired target identity mismatch')
         if arm in {'A','B'} and profile['order']!=exp['order']:raise ValueError('fixed underlying order mismatch')
     return exp

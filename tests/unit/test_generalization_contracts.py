@@ -59,7 +59,7 @@ def pac_shell():
                 initializer=h,initializer_kind='random',pool=h,probes=h,targets=h,inventory=h,
                 policy='pac-exp3s-leitner/v1',budget_graph=[],metrics=['certified_family_macro'],
                 control=h,control_mode='reference-only',frozen=True,outcomes_seen=False,
-                target_tokens=25_000_000,model=h,optimizer=h,backend=h,order=h,source=h)
+                target_tokens=25_000_000,model=h,optimizer=h,backend=h,order=h,source=h,exposure=h,diagnostics=h,literal_targets=h)
 
 
 def test_pac_closed_shell_and_unknown_version():
@@ -85,3 +85,21 @@ def test_all_pac_object_shapes_are_closed():
         elif isinstance(node,list):
             for value in node:walk(value)
     walk(schema)
+
+
+def test_pac_schema_rng_and_public_receipt_cannot_carry_arbitrary_private_payloads():
+    from oeis_learn.generalization.contracts import pac_record,pac_public
+    from oeis_learn.pipeline_validation.identity import digest
+    from jsonschema import Draft202012Validator
+    schema=json.loads(Path('src/oeis_learn/generalization/schemas/pac.schema.json').read_text())
+    rng=schema['$defs']['adaptive']['properties']['bandit_rng']
+    assert not Draft202012Validator(rng).is_valid([{'hidden_terms':['1','2']}])
+    h=digest('fixture')
+    receipt=dict(version='pac-stage-receipt/v1',input=h,source=h,image=h,policy=h,helper=h,parents=[],command=h,
+                 application='PASS',process='PASS',cleanup='PASS',artifacts=[dict(path='reports/metrics.json',sha256=h,bytes=1)],omissions=[],errors=[])
+    assert pac_public('receipt',pac_record('receipt',receipt,sealed=False).record())['application']=='PASS'
+    for path in ('/home/private/weights.pt','reports/private/truth.json','reports/../weights.pt','reports/checkpoint.json'):
+        changed=copy.deepcopy(receipt);changed['artifacts'][0]['path']=path
+        with pytest.raises(ValueError):pac_public('receipt',pac_record('receipt',changed,sealed=False).record())
+    changed=dict(receipt,errors=[dict(stage='export',reason='failed /home/user/private')])
+    with pytest.raises(ValueError):pac_public('receipt',pac_record('receipt',changed,sealed=False).record())

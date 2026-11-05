@@ -77,7 +77,7 @@ def pac_setup(mode='reference-only',optional_d=False):
     config=pac_recipe(control_mode=mode,optional_d=optional_d)
     exp.update(arms=config['arms'],comparison_factors=config['comparison_factors'])
     profiles={a:dict(initializer=h,initializer_kind='random',pool=h,targets=h,model=h,optimizer=h,backend=h,
-               order=h,token_cap=25_000_000,sampling=config['sampling'][a]) for a in exp['arms']}
+               order=h,token_cap=25_000_000,sampling=config['sampling'][a],exposure=h,diagnostics=h) for a in exp['arms']}
     return seal(exp),control,profiles,proof
 
 
@@ -110,3 +110,15 @@ def test_pac_exact_arm_identity_and_optional_arms():
             with pytest.raises(ValueError):validate_pac_policy(exp,control,broken)
         broken=copy.deepcopy(profiles);broken['B']['private_path']='/private/weights'
         with pytest.raises(ValueError):validate_pac_policy(exp,control,broken)
+
+
+def test_pac_matched_receipt_cannot_be_transplanted_to_different_experiment():
+    import copy
+    from oeis_learn.generalization.execution import validate_pac_policy
+    from oeis_learn.pipeline_validation.identity import seal,digest
+    exp,control,profiles,_=pac_setup('matched')
+    for key in ('model','optimizer','order','backend','exposure','diagnostics'):
+        changed=copy.deepcopy(exp);changed[key]=digest(['changed',key]);changed=seal(changed)
+        altered=copy.deepcopy(profiles)
+        for p in altered.values():p[key]=changed[key]
+        with pytest.raises(ValueError,match='control|proof|matched'):validate_pac_policy(changed,control,altered)

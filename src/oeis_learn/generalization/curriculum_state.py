@@ -22,7 +22,8 @@ class CurriculumState:
             raise ValueError('disjoint family row/probe inventory')
         if any(f not in families or a not in families[f] for a,f in anchors.items()):raise ValueError('anchors must be original family rows')
         if set(r for rows in families.values() for r in rows)&set(r for rows in probes.values() for r in rows):raise ValueError('gradient/probe overlap')
-        if inventory!=digest([families,probes,anchors]):raise ValueError('model-bound inventory identity')
+        if not isinstance(inventory,str) or len(inventory)!=71 or not inventory.startswith('sha256:') or any(c not in '0123456789abcdef' for c in inventory[7:]):raise ValueError('model-bound inventory identity')
+        self.layout_identity=digest([families,probes,anchors])
         self.families=copy.deepcopy(families);self.probe_ids=copy.deepcopy(probes);self.anchor_ids=dict(anchors)
         self.seed=seed;self.arm=arm;self.cap=token_cap;self.inventory=inventory;self.segment=segment;self.segments=[segment]
         self.kernel=Exp3S(sorted(families),seed=stream_seed(seed,'bandit'))
@@ -147,7 +148,7 @@ class CurriculumState:
 
     def snapshot(self):
         return dict(version=self.VERSION,policy=self.POLICY,families=copy.deepcopy(self.families),probes=copy.deepcopy(self.probe_ids),
-                    anchors=dict(self.anchor_ids),seed=self.seed,arm=self.arm,cap=self.cap,inventory=self.inventory,segment=self.segment,segments=list(self.segments),
+                    anchors=dict(self.anchor_ids),seed=self.seed,arm=self.arm,cap=self.cap,inventory=self.inventory,layout_identity=self.layout_identity,segment=self.segment,segments=list(self.segments),
                     kernel=self.kernel.snapshot(),scaler=self.scaler.snapshot(),row_streams={f:s.snapshot() for f,s in self.streams.items()},
                     probe_streams={f:p.snapshot() for f,p in self.probes.items()},review=self.review.snapshot(),coverage=self.coverage.snapshot(),
                     fallback_rng=rng_state(self.fallback_rng),updates=self.updates,charged_tokens=self.charged_tokens,useful_tokens=self.useful_tokens,
@@ -160,7 +161,7 @@ class CurriculumState:
         if state.get('version')!=cls.VERSION or state.get('policy')!=cls.POLICY or state.get('inventory')!=inventory:
             raise ValueError('complete named policy/inventory identity required')
         s=cls(state['families'],state['probes'],state['anchors'],seed=state['seed'],arm=state['arm'],token_cap=state['cap'],inventory=inventory,segment=state['segment'])
-        if set(state)!=set(s.snapshot()):raise ValueError('closed complete model-bound state required')
+        if set(state)!=set(s.snapshot()) or state['layout_identity']!=s.layout_identity:raise ValueError('closed complete model-bound state/layout required')
         for key in ('updates','charged_tokens','useful_tokens','discarded_tokens','reservations','review_eligible','review_valid'):
             integer(state[key]);setattr(s,key,state[key])
         if finite(state['charged_seconds'])<0 or type(state['terminal']) is not bool:raise ValueError('state time/terminal')
