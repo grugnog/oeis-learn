@@ -246,6 +246,8 @@
     }
   ],
   "phase_e_complete": false,
+  "phase_e_complete_scope": "Literal all eight tasks including conditional research; T073 remains deferred",
+  "phase_e_status": "SOFTWARE_COMPLETE_RESEARCH_DEFERRED",
   "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
   "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
   "qualification_review": {
@@ -261,12 +263,13 @@
       2
     ],
     "cpu_crash_debit_test": "PASS in original CPU qualification",
-    "hip_crash_discarded_debit": "MISSING",
+    "hip_crash_discarded_debit": "PASS_SUPPLEMENTAL_T072",
     "model_optimizer_rng_data_ledger_equal": true,
     "negative_archive_scope": "synthetic failure packaging after actual updates",
     "negative_archive_verified": true,
+    "original_archive_hip_crash": "NOT_PRESENT",
     "pac_policy_scaler_review_equal": true,
-    "task": "T072 BLOCKED"
+    "task": "T072 COMPLETE"
   },
   "representation_review": {
     "acceptance_updates": 16,
@@ -320,6 +323,7 @@
     "seed": 20261016,
     "target_tokens": 25000000
   },
+  "software_closeout_complete": true,
   "source": "sha256:a5140e5d2be137411d6ae82bf6b6e28ec37ad27a8d71d3a283a4ce1ed814ac5c",
   "structural_review": {
     "categories": {
@@ -345,13 +349,21 @@
     "surviving_native": 1394,
     "tasks": 128
   },
+  "supplemental_t072": {
+    "bytes": 1653,
+    "image": "sha256:cb977acdc053e9f18362f53f8b396045641c04b3470fafa0dd1fe4ce0fabb776",
+    "path": "t072-summary.json",
+    "sha256": "sha256:9b8df22a522e4e93786cbbfe0e16a692d99788adfc70f72a1070b3ccf7a96cf9",
+    "source": "sha256:a38fa6acab09e0b978ce559f928a3270a4a45842c265a4236070e8d7ccd6b4af",
+    "summary_identity": "sha256:3950c0d0b0e87c873e6ee66d59043eb070a631adc6dd810d257bae73e026890a"
+  },
   "task_dispositions": {
     "T067": "COMPLETE",
     "T068": "COMPLETE",
     "T069": "COMPLETE",
     "T070": "COMPLETE",
     "T071": "COMPLETE",
-    "T072": "BLOCKED_ACTUAL_HIP_CRASH_DEBIT",
+    "T072": "COMPLETE",
     "T073": "DEFERRED_RESEARCH_NOT_EXECUTED",
     "T074": "COMPLETE"
   },

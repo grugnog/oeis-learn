@@ -1,6 +1,13 @@
-# Reproduce the Phase E read-only evidence audit
+# Historical original -004 Phase E evidence audit
 
-Requires only Python's standard library and this checkout. Obtain the byte-identical
+This historical audit describes the first six-task closeout at revision
+`9457bea2fdaca242a424a4475b6f43fe5b1fb33b`, before the focused test changed source
+and T072 completed. Use that checkout and its machine record to replay it. For
+the subsequent actual HIP proof and current producer check, use
+[t072-result.md](t072-result.md). It intentionally fails a different producer
+or later task-marker state rather than rewriting historical evidence.
+
+Requires only Python's standard library and the identified historical checkout. Obtain the byte-identical
 operator archive identified in [operator-handoff.md](operator-handoff.md); it is not
 published in GitHub. No engine/device operation or original private tensor read is
 performed. A future source/helper change correctly fails the original identity

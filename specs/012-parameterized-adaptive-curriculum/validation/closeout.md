@@ -1,8 +1,8 @@
-# Phase E closeout — acceptance verified; one hardware proof blocked
+# Phase E software closeout — complete; optional research deferred
 
-Recorded 2026-11-05 against the operator's `report(10).zip`. This closeout completes
-all evidence work available from the uploaded acceptance-only run. It does not
-claim every Phase E task passed or that optional research ran.
+Recorded 2026-11-05 against the operator's `report(10).zip` and subsequent
+`t072-summary.json`. All mandatory software/evidence work is complete. Conditional
+research analysis remains deferred; this is not a completed scientific comparison.
 
 ## Task dispositions
 
@@ -13,12 +13,12 @@ claim every Phase E task passed or that optional research ran.
 | T069 | COMPLETE for amended v2 | [128 tasks/23 families, all exclusions, zero deficits](structural-admission.md) |
 | T070 | COMPLETE for acceptance scope | [Finite HIP updates, paired targets and loaded checkpoint](hip-acceptance.md#t070-finite-hip-updates-paired-targets-and-loaded-checkpoint) |
 | T071 | COMPLETE for acceptance scope | [Actual reward/review path, derived probability and measured costs](hip-acceptance.md#t071-actual-rewardreview-path-and-measured-cost) |
-| T072 | BLOCKED / unchecked | [Clean HIP resume verified; actual HIP crash debit absent](hip-acceptance.md#t072-verified-clean-resumeexport-actual-hip-crash-debit-blocked) |
+| T072 | COMPLETE | [Original clean-resume/export plus supplemental actual HIP crash/debit](t072-result.md) |
 | T073 | DEFERRED / unchecked | [No authorized completed research to analyze](research-results.md) |
 | T074 | COMPLETE | This reconciliation, task markers and reliability review |
 
-Original A–D: 66/66 complete. Phase E: **6/8 checked**, one hardware-blocked and
-one optional research task deferred. All twelve follow-up repair tasks remain
+Original A–D: 66/66 complete. Phase E: **7/8 checked**, all mandatory tasks complete and
+only conditional research analysis deferred. All fifteen follow-up tasks remain
 complete. No historical 011 T174 or T177–T181 marker changed.
 
 ## What the PASS establishes
@@ -33,20 +33,22 @@ The existing runtime acceptance flag is preserved for its exact source/image pai
 
 The bounded [machine record](evidence/acceptance-004-record.json) contains original
 identities and derived counters, with explicit missing measurements. Source and
-helper inventories match the original producer at closeout: no runtime, tests,
-locks, contract or orchestration change invalidates qualification. These are
+helper inventories matched the original -004 producer at its initial closeout.
+The later focused crash diagnostic has its own source/image/helper closure,
+verified against the checkout before these documentation-only updates. These are
 source-bound producer attestations and independently checked public artifacts;
 private tensors, hidden truth and omitted raw observations were not re-read.
 
-## What is still missing
+## Resolved device gap and remaining optional research
 
-T072 explicitly demands actual device/failure proof, including discarded crash
-work. The original HIP receipt exercises clean pauses; its negative ZIP exercises
-synthetic failure export. The real crash-debit test in qualification uses CPU.
-None is an actual unsaved-segment HIP crash/recovery receipt. No compatible engine,
-HIP device or private run checkpoints are available in the implementation session.
-Only an actual source/image-bound HIP exercise can close that gap. All other
-available evidence reviews have been completed; no paperwork can substitute for it.
+The original -004 archive alone had no actual HIP crash-debit exercise. The
+operator's subsequent [focused result](t072-result.md) supplies it: abrupt exit
+86 after nineteen actual HIP optimizer calls, old weights/full policy restored,
+910 discarded tokens retained, sixteen recovered updates and preserved crash time.
+The source/helper/proof hashes match the focused producer. Core learner/persistence/
+curriculum/model code and dependency locks are unchanged between the two producer
+scopes; only the focused validation/parser/proof components and tests changed.
+T072 is now complete without relabeling either original producer or needing a ZIP.
 
 T073 is separately optional and remains deferred: `research=false` authorized no
 full B/C learners, baseline scoring, final structural comparison or twelve-case
@@ -102,12 +104,13 @@ merge or CI wait was performed. The evidence-only changes are committed per task
 and published to PR 63 against main.
 
 
-## Subsequent operator-authorized T072 test preparation
+## Subsequent operator-authorized T072 test and resolution
 
-The missing crash exercise is now implemented as a focused diagnostic; see
-[t072-run.md](t072-run.md). It requires an actual workstation run and returns a
-small source/image-bound JSON summary without ZIP upload. T072 remains unchecked
-pending that result. New test/runner/validator bytes change the current source
-and helper identities, so the original identity audit applies to the original
-closeout revision, not a later checkout. Original -004 PASS and its recorded
-scope remain unchanged; the new diagnostic is not a full research qualification.
+The focused diagnostic was executed successfully and its original small JSON was
+reviewed; see [t072-result.md](t072-result.md). The earlier pending state is resolved.
+Current test/runner/proof-validator bytes have their separate producer identity;
+the historical -004 identity audit applies to its original closeout revision.
+Neither the supplemental diagnostic nor this documentation-only reconciliation
+is a replacement full qualification or a research authorization. No rerun is
+needed to close the supplied acceptance scope; any new research plan must still
+validate its own complete compatible foundation and resource graph.

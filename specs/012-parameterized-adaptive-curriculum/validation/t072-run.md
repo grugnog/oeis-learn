@@ -1,8 +1,9 @@
 # Focused T072 HIP crash/recovery test
 
 The operator authorized the missing device crash test and permits skipping ZIP
-upload. The real-process CPU wiring passes locally; actual HIP execution is still
-required. T072 stays unchecked until the original workstation result is reviewed.
+upload. The original workstation summary now verifies actual HIP PASS; see
+[t072-result.md](t072-result.md). T072 is complete. The procedure below is retained
+for reproducibility, not an instruction to repeat the successful output directory.
 
 From the repository root, with the usual Podman/ROCm access:
 

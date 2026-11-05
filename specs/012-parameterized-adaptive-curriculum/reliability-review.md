@@ -208,3 +208,30 @@ and discarded-work receipt is required. T073 is explicitly deferred for the froz
 acceptance-only scope. T074 may close with these honest dispositions, per its
 stated dependency rule. No research, new seed/arm, assessment execution, historical
 011 completion, merge or automatic rerun is authorized by this closeout.
+
+## T072 supplemental actual HIP result — hardware gap resolved
+
+The operator supplied the original bounded `t072-summary.json`; the
+[complete verification](validation/t072-result.md) matches the focused producer's
+source/helper bytes and validates the summary/inner proof seals and proof-byte
+hash. One HIP test passed, none skipped. Abrupt exit 86 followed nineteen real
+optimizer calls; seven newer rewards/two graded anchors were discarded with the
+unsaved segment. Recovery used old tensors and complete saved policy/observer/RNG,
+retained 910 lost tokens, performed sixteen updates and charged 1,662 total tokens
+within 4,096. Charged learner time 9.404323475s includes the 4.875498110s crash.
+
+This resolves the earlier cross-image/newer-journal row's actual-device crash-debit
+gap and completes T072 alongside original clean HIP pause equality and verified
+success/negative packaging. Old blocked statements above describe the earlier
+-004-only evidence; they are superseded by this separately bound actual result,
+not by a CPU substitution. Core learner/persistence/curriculum/model code and
+pinned build dependencies are unchanged across the original and focused scopes.
+No raw receipt/log/private-state audit beyond the declared small-summary path is
+claimed. No machine-power-loss, arbitrary backend upgrade or long-run throughput
+guarantee follows from this process-death test.
+
+All mandatory software/evidence tasks now close. Only conditional T073 research
+analysis remains deferred. The original -004 qualification and focused diagnostic
+retain different source/image identities; neither is silently rebound or promoted
+into a full qualification of a new research campaign. No new run or ZIP publication
+is required to reconcile these supplied results.

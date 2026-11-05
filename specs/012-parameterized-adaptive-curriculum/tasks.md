@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: A–D T001–T066 and all twelve F001–F012 repairs complete. Phase E evidence closeout: T067–T071/T074 complete (6/8); T072 blocked by missing actual HIP crash/discard proof; T073 optional research DEFERRED. The supplied -004 archive independently verifies software PASS/feature qualified and science UNMEASURED. Latest unchanged-code local selection: 664 tests and 2 subtests; original workstation qualification: 1,499 CPU and 27 HIP tests. No CI wait.
+**Status**: A–D T001–T066 and all fifteen F001–F015 follow-ups complete. Mandatory Phase E software/evidence work is complete: T067–T072/T074 checked (7/8); only conditional T073 research analysis remains DEFERRED. Original -004 acceptance PASS and supplemental actual HIP crash-debit PASS are recorded for their distinct producer closures. Local selection: 712 tests and 2 subtests; original qualification: 1,499 CPU/27 HIP tests; focused crash: 1 HIP test, zero skips. No CI wait.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -330,8 +330,8 @@ must link actual check results, not merely cite this table.
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
 US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C/D T001–T066 (66 tasks);
-six E tasks T067–T071/T074 are checked; T072 remains hardware-blocked and T073
-research-deferred. See `validation/closeout.md`. Every implementation task has an incremental
+seven E tasks T067–T072/T074 are checked; all mandatory software/evidence work
+is complete and conditional T073 research analysis remains deferred. See `validation/closeout.md`. Every implementation task has an incremental
 implementation or counterexample commit; local evidence is recorded in the ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to
@@ -379,8 +379,9 @@ intentionally omit source text; this repair must preserve that boundary.
 ## Focused T072 workstation proof (operator-authorized)
 
 The operator requested the missing crash test and explicitly permits omitting ZIP
-publication. The original -004 archive and T072's pending status remain unchanged
-until an actual HIP proof is supplied.
+publication. During preparation the original -004 archive and T072's pending
+status remained unchanged. The subsequent supplied actual HIP summary now closes
+T072; see `validation/t072-result.md`.
 
 - [X] F013 Add actual subprocess-death/recovery CPU wiring and rejection/parser counterexamples for the focused HIP proof; commit before runner changes.
 - [X] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.

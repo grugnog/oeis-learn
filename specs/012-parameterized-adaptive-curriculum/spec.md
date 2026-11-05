@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-04
 
-**Status**: Implemented A–D; actual -004 software acceptance verified. Phase E evidence closeout has six completed tasks, T072 blocked on actual HIP crash-debit proof and optional T073 research deferred; see [closeout](validation/closeout.md).
+**Status**: A–D implemented and all mandatory Phase E software/evidence tasks verified, including the supplemental actual HIP crash/debit proof. Optional T073 research analysis remains deferred; see [closeout](validation/closeout.md).
 
 **Input**: Build on merged 011 / PR #62 to compare parameterized program targets with literal targets, and adaptive family allocation plus spaced review with a fixed family mixture. Complete structural-only evaluation prerequisites, concentrate essential complex work in dedicated phases, minimize operator HIP invocations and prevent recurrence of 011 reliability failures.
 

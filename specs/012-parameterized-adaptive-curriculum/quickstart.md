@@ -4,8 +4,9 @@ The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualificat
 production calibration and reduced HIP acceptance. Independent archive verification
 reproduces software PASS and scientific UNMEASURED. **No acceptance rerun is needed.**
 
-[Phase E closeout](validation/closeout.md) records six completed evidence tasks,
-T072's missing actual HIP crash-debit proof and T073's deferred optional research.
+[Phase E closeout](validation/closeout.md) records seven completed evidence tasks,
+including the verified [actual HIP crash result](validation/t072-result.md). Only
+conditional T073 research analysis remains deferred.
 [Actual device evidence](validation/hip-acceptance.md) and the bounded
 [machine record](validation/evidence/acceptance-004-record.json) retain exact original
 source/image/plan identities. The complete uploaded ZIP is not published to GitHub.
@@ -15,20 +16,17 @@ The original 011 failed 256-task prospective command remains superseded, not a
 012 run. The helper's default scope is acceptance; research requires its own
 explicit frozen choice after all applicable foundation proof is complete.
 
-## Focused remaining T072 proof
+## Completed focused T072 proof
 
-The actual HIP crash/recovery test is now prepared. See
-[the focused procedure](validation/t072-run.md); it builds the current image and
-runs one dedicated test, without repeating the full acceptance campaign:
+The operator ran the dedicated HIP test and supplied its small JSON summary.
+[The result](validation/t072-result.md) verifies old model/policy restoration,
+910 discarded tokens retained, sixteen recovered updates and no refunded crash
+time. **T072 is complete; no rerun or ZIP upload is needed.** The
+[focused procedure](validation/t072-run.md) remains available for reproduction.
 
-```sh
-python3 -S specs/012-parameterized-adaptive-curriculum/validation/t072.py \
-  --engine podman --output run-state/generalization/pac-012-t072-001
-```
-
-Paste its printed JSON or attach `t072-summary.json`; no ZIP upload is requested.
-T072 remains unchecked until actual HIP evidence is supplied. The new test/runner
-source is separate from the original -004 qualification; old PASS remains historical.
+The focused test has its own source/image/helper closure. Original -004 PASS
+remains evidence for its original producer; the supplemental diagnostic does not
+replace full qualification for a new research plan. No research was launched.
 
 ## Required workstation inputs
 
@@ -267,6 +265,6 @@ Docker/Podman argv/mount/deadline checks, stdlib-only successful public verifica
 checkpoint reads and analysis, and real success/negative/minimal archive fixtures.
 Synthetic device labels exercise archive wiring only. The supplied -004 archive
 now provides actual engine/native/quota/HIP acceptance and short production
-calibration evidence. T072 still lacks actual HIP crash-debit proof; T073 research
+calibration evidence. The supplemental actual HIP crash-debit proof now closes T072; T073 research
 is deferred. Longer-run performance and scientific outcomes remain unmeasured.
 Historical 011 T174 and T177–T181 remain unchanged; CI was not awaited.

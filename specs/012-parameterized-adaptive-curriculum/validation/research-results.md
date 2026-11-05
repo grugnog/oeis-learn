@@ -9,7 +9,7 @@ policy tuning or winner adoption was selected.
 The implementation request closes Phase E against this uploaded evidence. It does
 not silently rewrite the existing acceptance-only frozen plan into a multi-hour
 research experiment. Existing software PASS/feature qualification is preserved,
-while the separate T072 HIP crash-debit requirement remains blocked.
+and the subsequent actual HIP crash-debit summary now resolves T072.
 
 ## What is available
 
@@ -44,7 +44,7 @@ research case population for deterministic case selection.
 T073 remains **unchecked / DEFERRED**, as tasks.md explicitly requires actual
 completed research analysis before checking it. This deferral does not block
 software acceptance and does not authorize a new campaign. Before optional
-research: resolve T072's actual HIP crash-debit evidence, explicitly choose/freeze
+research: retain the verified T072 producer evidence, explicitly choose/freeze
 the new research plan and any fresh A/D, preserve the exact v2 population and
 original exclusions, and reserve complete serial learning/evaluation/export costs.
 

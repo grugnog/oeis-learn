@@ -981,3 +981,49 @@ and historical evidence are retained, while the new diagnostic has its own
 source/image/helper closure. T072 stays unchecked until actual HIP proof arrives;
 optional research remains deferred. No local HIP run, merge or CI wait occurred.
 F013/F014/F015 have incremental task commits on PR 63 against main.
+
+## T072 received PASS and T074 final software reconciliation
+
+The operator supplied the original 1,653-byte `t072-summary.json`; no ZIP was
+requested or uploaded. The strict outer/inner seals, fields, source snapshot,
+exact helper bytes and reconstructed original proof-byte SHA all verify at focused
+producer `425fff95249fd32eb426fd4a1e4e4d4ef98a0c15`. The original small summary is
+retained byte-for-byte in `validation/evidence/t072-summary.json`, with a complete
+review and repeatable standard-library check in `validation/t072-result.md`.
+
+One actual HIP test passed, zero skipped. The learner subprocess abruptly exited
+86 after nineteen optimizer calls, with seven newer valid rewards and two graded
+anchors but an initial complete saved generation. A separate process restored old
+weights and complete policy/observer/host-device torch RNG before recovered work.
+It retained 910 discarded tokens, performed sixteen updates using 752 useful tokens
+and charged 1,662 within 4,096. Charged learner time 9.404323475s includes the
+4.875498110s crashed process. The measured crash evidence resolves T072; it is not
+an orderly pause, CPU substitute, machine-power-loss test or semantic benchmark.
+
+The helper attests its on-workstation original JUnit/receipt/file-hash checks.
+Raw private state/logs/stage receipts were not separately supplied or re-read.
+This is the explicitly designed small-summary path. Compared the -004 producer
+source revision with the focused producer: only portable parser/container
+validation, the new proof validator and its two test files changed. Learner,
+persistence, curriculum, checkpoints, models/codecs, Dockerfile and locks remain
+byte-identical. Original clean-pause/negative-export proofs and the new actual
+crash supplement keep separate source/image identities; no global qualification
+was silently rebound or upgraded for research.
+
+T072 has its own completion commit. T074 reconciliation updates all current
+headers/task counts/reliability/quickstart and the bounded machine record:
+**all mandatory software/evidence work complete, seven E tasks checked, only
+conditional T073 research analysis unchecked/DEFERRED**. The machine record keeps
+literal `phase_e_complete=false` because that optional task has not run, alongside
+explicit `software_closeout_complete=true`. No research, new seed/arm, assessment,
+winner adoption or repeat device run was launched; historical 011 tasks are unchanged.
+
+Replayed the documented read-only summary audit and rejected six mutated proofs
+(CPU label, zero loss debit, refunded time, false old-policy restoration, absent
+RNG and wrong source). Task markers, current record, links, original byte hash,
+read-only checklist and no-hook inspection pass, as do prerequisites/whitespace.
+Source, test, helper and build inventories are unchanged from the actual focused
+producer during this closeout; no broad test rerun or fingerprint refresh is
+needed. Earlier 712-test/2-subtest local coverage remains its original evidence;
+the new actual HIP result is independently identified. Two incremental task
+commits are published to PR 63 against main; no CI wait or merge was performed.
