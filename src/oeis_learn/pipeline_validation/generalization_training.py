@@ -447,8 +447,11 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             discarded_tokens=discarded_tokens,elapsed_seconds=previous_seconds+time.monotonic()-began,
             invocation_base_seconds=previous_seconds,closed=True))
         journal_writes+=1
-    if status=='COMPLETE' and discarded_tokens:status='RECOVERED_WITH_DISCARDED_EXPOSURE'
-    result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
+    budget_complete=status=='COMPLETE'
+    if budget_complete and discarded_tokens:status='RECOVERED_WITH_DISCARDED_EXPOSURE'
+    # PAC finishes its charged allowance even when a crash reduced useful work.
+    # Keep the historical non-PAC disposition and all genuine pause/partial gates.
+    result=dict(status='PASS' if status=='COMPLETE' or pac is not None and budget_complete else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
         charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,checkpoint_policy=checkpoint_policy,pending_tokens=saved_ledger.pending[1] if saved_ledger.pending else 0,
         updates=saved_ledger.updates,undershoot=saved_ledger.cap-saved_ledger.consumed-discarded_tokens,

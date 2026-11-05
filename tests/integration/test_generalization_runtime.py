@@ -302,7 +302,7 @@ def test_pac_real_crash_discards_unsaved_work_without_policy_replay(tmp_path,mon
     monkeypatch.setattr(training,'torch_update',original)
     result=training.run_torch(tmp_path/'data',tmp_path/'recovered',config,resume=(root,pointer),resume_elapsed=30)
     assert result['discarded_tokens']>0 and result['charged_tokens']<=config['target_tokens']
-    assert result['reason']=='RECOVERED_WITH_DISCARDED_EXPOSURE'
+    assert result['reason']=='RECOVERED_WITH_DISCARDED_EXPOSURE' and result['status']=='PASS'
     restored=GeneralizationCheckpointStore(tmp_path/'recovered/checkpoints',result['compatibility'],config['target_tokens']).load(result['checkpoint'])
     policy=restored['states']['scheduler']['pac']['policy']
     assert policy['discarded_tokens']==result['discarded_tokens']
