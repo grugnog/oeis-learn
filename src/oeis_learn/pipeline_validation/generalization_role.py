@@ -51,6 +51,18 @@ def preparation(inputs,output,settings,*,seconds):
             return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1),seconds=remaining_seconds(deadline))
 
 
+
+def pac_preparation(inputs,output,settings,*,seconds):
+    from .generalization_preparation import prepare_pac
+    from oeis_learn.synthesis.client import SynthesisClient
+    if set(settings)!={'study','runtime'}:raise ValueError('closed PAC custodian settings')
+    deadline=time.monotonic()+seconds
+    with SynthesisClient(settings['study']['identity'],cache_root=output/'private/native-cache') as native:
+        def execute(source,indices):
+            return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))
+        return prepare_pac(inputs['mechanical_sources'],settings['study'],settings['runtime'],
+            output=output/'private/prepared',execute=execute,seconds=seconds)
+
 def validate_runtime(inputs,output,settings,*,seconds):
     import sys
     def progress(phase):
@@ -252,7 +264,7 @@ def publish_initializer(inputs,output,settings,*,seconds):
     return publish_role(inputs,output,settings,seconds=seconds)
 
 
-HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+HANDLERS={(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,

@@ -175,3 +175,17 @@ def scan(candidates,*,role,holdout,count,quotas,structural,execute,exclusions=No
         native_validation='PERFORMED' if execute is not None else 'NOT_RUN'))
     observe('complete' if choice.complete else 'blocked')
     return choice,ledger
+
+
+def pac_exact_row(row,execute):
+    """Ground independently, then compare every native term before producing metadata."""
+    from .targets import paired_learning_view
+    from oeis_learn.data.bigint_programs import canonical_family
+    fields={'id','role','family','source','parameter_source','assignment','indices'}
+    if set(row)!=fields or row['role']!='training':raise ValueError('closed training-only PAC source row required')
+    if row['family']!=canonical_family(row['parameter_source']):raise ValueError('PAC family source hash mismatch')
+    if row['indices']!=list(map(str,range(100))):raise ValueError('PAC exact source indices required')
+    pair=paired_learning_view(row['source'],row['parameter_source'],row['assignment'],indices=tuple(row['indices']),sharing='explicit')
+    values=pair['verification']['values'];native=execute(row['source'],row['indices'])
+    if native.get('outcome')!='ok' or native.get('values')!=values:raise ValueError('PAC native/reference disagreement')
+    return pair,values
