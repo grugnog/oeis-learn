@@ -264,3 +264,19 @@ result is required; ZIP publication is explicitly omitted. Local CPU wiring and
 runner rejection checks pass, but no actual HIP result has yet been supplied.
 T072 therefore remains unchecked. This subsequent test/runner change has its own
 source/image closure and does not alter the recorded -004 acceptance outcome.
+
+
+## T072 resolved by original supplemental HIP result
+
+The operator's [small source/image-bound summary](evidence/t072-summary.json) now
+verifies PASS: 19 actual optimizer calls before abrupt exit 86, zero-update saved
+generation, newer seven-reward/two-graded-anchor state discarded, sixteen recovered
+updates, 910 lost tokens retained, 752 useful and 1,662 charged within 4,096. Charged
+learner time 9.404323475s includes the 4.875498110s crashed process. Actual device
+RNG and old model/policy restoration are present. [Full review and reproducible
+checks](t072-result.md) bind the source/helper/proof bytes, explain compatibility
+with original -004 evidence and state the unuploaded raw-receipt limit.
+
+This resolves the previously recorded hardware gap. T072 is checked; historical
+paragraphs above describe the earlier unavailable state and are not new failures.
+No ZIP or additional run is needed. T073 research remains deferred.
