@@ -148,7 +148,7 @@ inputs/native capacity/device evidence or optional research remain outstanding.
 
 ### D2 — US2: Representation evidence and inference parity (P1)
 
-- [ ] T046 [P] [US2] Add report projection and evaluation parity fixtures in `tests/integration/test_generalization_reporting.py` (new) and `tests/integration/test_generalization_scoring.py`, covering supported/fallback fractions by family, row accounting, fitted assignments, identical attempt/fitter limits and forbidden private-source exports.
+- [X] T046 [P] [US2] Add report projection and evaluation parity fixtures in `tests/integration/test_generalization_reporting.py` (new) and `tests/integration/test_generalization_scoring.py`, covering supported/fallback fractions by family, row accounting, fitted assignments, identical attempt/fitter limits and forbidden private-source exports.
 - [ ] T047 [US2] Wire paired-target coverage, fitter parity and tokens/examples/updates/cost projection into `src/oeis_learn/pipeline_validation/generalization_reporting.py` and `src/oeis_learn/pipeline_validation/generalization_scoring.py`, preserving exact raw/fitted distinctions and explicit unavailable evidence; do not label equal token allowances equal-data or equal-time comparisons.
 
 ### D3 — US3: Allocation, retention and complete cost evidence (P1)
