@@ -140,6 +140,11 @@ def validate_pac_policy(experiment,control,profiles):
     from .contracts import pac_record
     from .experiments import pac_recipe
     exp=pac_record('experiment',experiment).record();receipt=pac_record('control',control).record()
+    return _pac_policy(exp,receipt,profiles)
+
+
+def _pac_policy(exp,receipt,profiles):
+    from .experiments import pac_recipe
     if not exp['frozen'] or exp['outcomes_seen']:raise ValueError('freeze before outcomes; no outcome-driven arm switch')
     if exp['control']!=receipt['identity']:raise ValueError('control receipt binding')
     config=pac_recipe(control_mode=exp['control_mode'],optional_d='D' in exp['arms'])
@@ -159,3 +164,28 @@ def validate_pac_policy(experiment,control,profiles):
         if profile['targets']!=exp['literal_targets' if arm=='A' else 'targets']:raise ValueError('paired target identity mismatch')
         if arm in {'A','B'} and profile['order']!=exp['order']:raise ValueError('fixed underlying order mismatch')
     return exp
+
+
+def reconcile_pac_policy(experiment,control,profiles):
+    """Read-only public reconciliation, never an execution/admission authority.
+
+    Canonical execution retains full installed schema validation. This host path
+    checks sealed closed scalar identities and the very same comparison invariants.
+    """
+    import json,re
+    from importlib.resources import files
+    from oeis_learn.pipeline_validation.identity import seal
+    schemas=json.loads(files('oeis_learn.generalization').joinpath('schemas/pac.schema.json').read_text())['$defs']
+    for kind,record in [('experiment',experiment),('control',control)]:
+        schema=schemas[kind]
+        if not isinstance(record,dict) or set(record)-set(schema['properties']) or not set(schema['required'])<=set(record) or seal(record)!=record:
+            raise ValueError('closed canonically bound PAC reconciliation input required')
+        for key,rule in schema['properties'].items():
+            if key not in record:continue
+            value=record[key]
+            if 'const' in rule and (value!=rule['const'] or type(value)!=type(rule['const'])):raise ValueError('frozen PAC reconciliation constant differs')
+            if rule.get('type')=='integer' and (type(value) is not int or not rule.get('minimum',0)<=value<=rule.get('maximum',2**63-1)):raise ValueError('PAC reconciliation integer differs')
+            if rule.get('type')=='boolean' and type(value) is not bool:raise ValueError('PAC reconciliation flag differs')
+            if rule.get('type')=='string' and (not isinstance(value,str) or 'pattern' in rule and not re.fullmatch(rule['pattern'],value)):raise ValueError('PAC reconciliation identity differs')
+            if '$ref' in rule and rule['$ref'].endswith('/hash') and (not isinstance(value,str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',value)):raise ValueError('PAC reconciliation hash differs')
+    return _pac_policy(experiment,control,profiles)

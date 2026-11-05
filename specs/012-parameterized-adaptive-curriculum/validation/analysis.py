@@ -15,7 +15,7 @@ def prior():
 
 
 def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=None,scored=None):
-    result=pac_comparison_report(roster,outcomes,experiment=experiment,control=control,profiles=profiles,costs=costs)
+    result=pac_comparison_report(roster,outcomes,experiment=experiment,control=control,profiles=profiles,costs=costs,portable=True)
     old=prior();scores={}
     for arm,values in sorted(outcomes.items()):
         scores[arm]={key:dict(equal_budget=dict(success=values.get(key) is True,complete=values.get(key) is not None,reason='recorded' if key in values else 'missing')) for key in roster}
@@ -62,7 +62,13 @@ def analyze_campaign(root,*,output):
     entries={r['stage']:r for r in workflow['receipts']}
     accepted=entries['acceptance'];workspace=Path(__file__).resolve().parents[3]
     manifest=workspace/accepted['resolved_manifest'];runtime_file=workspace/accepted['resolved_runtime']
+    for path in (manifest,runtime_file):
+        ref=next((r for r in accepted['resolved_refs'] if workspace/r['path']==path),None)
+        if ref is None:raise ValueError('analysis authority absent from accepted closure')
+        verify_artifact(workspace,ref)
     study=read(manifest);runtime=read(runtime_file)
+    from oeis_learn.pipeline_validation.generalization_execution import verify_pac_runtime
+    verify_pac_runtime(study,runtime)
     outcomes={};records={};scored={};roster=None;costs={}
     def verified(name,path):
         entry=entries[name];base=root/entry['directory'];relative=str(path.relative_to(base))

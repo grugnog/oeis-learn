@@ -46,3 +46,24 @@ def test_actual_scorer_adapter_preserves_no_fit_completion_and_censoring(tmp_pat
     assert result['controls']['bank']['certified']['censored']==0
     assert all(result['outcomes']['bank'][key] is False for key in roster)
     assert set(result['controls'])==set(modes)
+
+
+def test_frozen_retained_checkpoint_read_is_stdlib_only(tmp_path):
+    import subprocess,sys,os
+    from pathlib import Path
+    (tmp_path/'weights.pt').write_bytes(b'opaque retained weights')
+    write(tmp_path/'state.json',{})
+    descriptor=seal(dict(version='generalization-checkpoint/v1',kind='full_state',weights=reference(tmp_path/'weights.pt',tmp_path),
+        state=reference(tmp_path/'state.json',tmp_path),initialization=digest('init'),parent=None,tokens=25_000_000,updates=1,pins=['latest'],compatibility=digest('contract')))
+    write(tmp_path/'checkpoint.json',descriptor)
+    code='''import sys,json
+from pathlib import Path
+from oeis_learn.pipeline_validation.generalization_pac_evaluation import checkpoint_request
+root=Path(sys.argv[1]);d=json.loads((root/'checkpoint.json').read_text())
+a,_,_=checkpoint_request(root,'A=checkpoint.json',dict(arms=['B','C'],control_mode='reference-only'),dict(control=dict(checkpoint=d['identity'])),None,None)
+assert a=='A'
+'''
+    repo=Path(__file__).resolve().parents[2]
+    result=subprocess.run([sys.executable,'-S','-c',code,str(tmp_path)],cwd=repo,
+        env=dict(os.environ,PYTHONPATH=str(repo/'src')),capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr

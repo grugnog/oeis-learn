@@ -33,7 +33,18 @@ def checkpoint_request(workspace,request,study,runtime,recipe,prepared):
     if arm not in set(study['arms'])|{'A','A-reference'}:raise ValueError('unfrozen evaluation arm')
     file=confined(workspace,path)
     if file.stat().st_size>1<<20:raise ValueError('checkpoint descriptor cap')
-    descriptor=json.loads(file.read_text());shape('checkpoint',descriptor)
+    descriptor=json.loads(file.read_text())
+    import re
+    fields={'version','identity','kind','weights','state','initialization','parent','tokens','updates','pins','compatibility'}
+    legacy=descriptor.get('version')=='generalization-checkpoint/v2'
+    if set(descriptor)!=fields|({'provenance'} if legacy else set()) or descriptor['version'] not in {'generalization-checkpoint/v1','generalization-checkpoint/v2'}:raise ValueError('closed PAC checkpoint descriptor required')
+    if descriptor['kind']!=('weights_only' if legacy else 'full_state'):raise ValueError('explicit checkpoint kind required')
+    for key in ('identity','initialization','compatibility'):
+        if not isinstance(descriptor[key],str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',descriptor[key]):raise ValueError('checkpoint identity required')
+    if descriptor['parent'] is not None and not re.fullmatch(r'sha256:[0-9a-f]{64}',descriptor['parent']):raise ValueError('checkpoint parent identity required')
+    if any(type(descriptor[k]) is not int or descriptor[k]<0 for k in ('tokens','updates')):raise ValueError('checkpoint exposure required')
+    pins=descriptor['pins']
+    if not isinstance(pins,list) or not 1<=len(pins)<=10000 or any(not isinstance(v,str) or not 1<=len(v)<=1024 for v in pins) or len(set(pins))!=len(pins):raise ValueError('bounded unique checkpoint pins required')
     if seal(descriptor)!=descriptor:raise ValueError('checkpoint seal changed')
     if arm=='A-reference' or arm=='A' and study['control_mode']!='fresh-control':
         if descriptor['identity']!=runtime['control']['checkpoint']:raise ValueError('retained A differs from frozen control')

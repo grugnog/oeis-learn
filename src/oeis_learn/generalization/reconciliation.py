@@ -96,10 +96,13 @@ def pac_costs(costs):
                 matched_wall_time=False,interpretation='equal allowance does not establish equal examples, updates or compute')
 
 
-def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=None):
+def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=None,portable=False):
     from .execution import validate_pac_policy
     from .metrics import pac_structural_metrics,pac_paired_counts,paired_difference
-    exp=validate_pac_policy(experiment,control,profiles)
+    if portable:
+        from .execution import reconcile_pac_policy
+        exp=reconcile_pac_policy(experiment,control,profiles)
+    else:exp=validate_pac_policy(experiment,control,profiles)
     allowed=set(exp['arms'])|{'A'}
     if not set(outcomes)<=allowed:raise ValueError('unfrozen arm outcome')
     metrics={arm:pac_structural_metrics(roster,values) for arm,values in outcomes.items()}

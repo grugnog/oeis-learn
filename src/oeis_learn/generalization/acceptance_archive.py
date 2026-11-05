@@ -78,7 +78,7 @@ def verify_pac_evidence(record,*,root,finalized=True):
     from oeis_learn.generalization.metrics import _pac_roster
     from oeis_learn.generalization.structural import original_cells
     from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
-    from oeis_learn.generalization.qualification import consume,FACTS
+    from oeis_learn.generalization.qualification import consume_public,FACTS
     from oeis_learn.pipeline_validation.identity import digest
     fields={'version','plan','source','images','backend','helper','scope','required','stages','software_status','scientific_status',
             'errors','omissions','inventory','qualification','acceptance','native_admission','calibration'}
@@ -125,7 +125,7 @@ def verify_pac_evidence(record,*,root,finalized=True):
         if sorted(native['originals'],key=lambda r:r['name'])!=sorted(original_cells(),key=lambda r:r['name']):raise ValueError('all original exclusion cells required')
         _pac_roster(native['roster'])
         q=read(record['qualification']);qroot=confined(root,record['qualification']['path']).parent
-        consume(q,{k:q[k] for k in FACTS},root=qroot,required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'])
+        consume_public(q,{k:q[k] for k in FACTS},root=qroot,required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'])
         if q['images']!=record['images'] or q['runtime'].get('execution_policy')!=record['backend'] or digest(json.loads(verify_artifact(qroot,q['source_closure'])))!=record['source']:raise ValueError('qualification closure differs')
         feature=read(record['acceptance']);froot=confined(root,record['acceptance']['path']).parent
         environment=digest(dict(images=record['images'],engine=q['engine_security']['engine'],backend=record['backend']))

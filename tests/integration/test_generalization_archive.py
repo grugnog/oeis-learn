@@ -152,7 +152,14 @@ def test_pac_complete_synthetic_proof_closure_roundtrips_real_collector_and_veri
     write(root/'workflow.json',seal(dict(plan=plan['identity'],status='PASS',errors=[],receipts=[dict(stage=n,status='PASS',producer=digest(n),binding=digest(['binding',n]),
         process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),elapsed_seconds=1,reused=False,directory=n,
         artifacts=[reference(p,root/n) for p in sorted((root/n).rglob('*')) if p.is_file()]) for n in names])))
-    result=verify_archive(export(root,tmp_path/'public'))
+    public_archive=export(root,tmp_path/'public')
+    import subprocess,sys,os
+    repo=Path(__file__).resolve().parents[2]
+    portable=subprocess.run([sys.executable,'-S','-c',
+        'import sys; from oeis_learn.pipeline_validation.generalization_archive import verify_archive; assert verify_archive(sys.argv[1])["feature_qualified"]',str(public_archive)],
+        cwd=repo,env=dict(os.environ,PYTHONPATH=str(repo/'src')),capture_output=True,text=True,timeout=30)
+    assert portable.returncode==0,portable.stderr
+    result=verify_archive(public_archive)
     assert result['software_status']=='PASS' and result['feature_qualified']
     (aroot/'proof-1/training-proof.json').write_text('{}')
     minimal=verify_archive(export(root,tmp_path/'tampered'))

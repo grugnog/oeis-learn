@@ -204,6 +204,14 @@ def test_pac_export_reconstructs_every_family_total_pair_and_cost(tmp_path):
     outcomes={arm:{key:(None if i%31==0 else (i+offset)%3==0) for i,key in enumerate(roster)} for arm,offset in [('B',0),('C',1),('D',2)]}
     costs={arm:dict(allowed_tokens=100,useful_tokens=80,reserved_tokens=5,discarded_tokens=10,unspent_tokens=5,examples=12,updates=6,seconds=9) for arm in outcomes}
     report=module.analyze(roster,outcomes,experiment=exp,control=control,profiles=profiles,costs=costs)
+    import subprocess,sys,os
+    payload=dict(roster=roster,outcomes=outcomes,experiment=exp,control=control,profiles=profiles,costs=costs)
+    write(tmp_path/'reconciliation-input.json',payload)
+    portable=subprocess.run([sys.executable,'-S','-c',
+        'import importlib.util,json,sys; s=importlib.util.spec_from_file_location("a",sys.argv[1]); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); p=json.load(open(sys.argv[2])); m.analyze(p.pop("roster"),p.pop("outcomes"),**p)',
+        str(root/'specs/012-parameterized-adaptive-curriculum/validation/analysis.py'),str(tmp_path/'reconciliation-input.json')],
+        cwd=root,env=dict(os.environ,PYTHONPATH=str(root/'src')),capture_output=True,text=True,timeout=30)
+    assert portable.returncode==0,portable.stderr
     assert report['comparisons']['C-D']['attribution']=='review_substitution'
     write(tmp_path/'analysis.json',report)
     packet=seal(dict(pac_record('PARTIAL'),inventory=[reference(tmp_path/'analysis.json',tmp_path)]))
