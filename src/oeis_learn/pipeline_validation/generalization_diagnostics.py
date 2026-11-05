@@ -274,6 +274,13 @@ class PacObservers:
             rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[])
         if snapshot is not None:
             if set(snapshot)!=set(self.state) or any(snapshot[k]!=self.state[k] for k in ('version','arm','seed','inventory')):raise ValueError('PAC observer restore identity')
+            from oeis_learn.generalization.budgets import integer
+            for key in ('shadow_blocks','shadow_grades','loss_panels','semantic_attempts','semantic_completed','semantic_success'):integer(snapshot[key])
+            if not snapshot['semantic_success']<=snapshot['semantic_completed']<=snapshot['semantic_attempts']:raise ValueError('PAC observer semantic counters')
+            if any(type(snapshot[k]) is not int or snapshot[k]<-1 for k in ('last_before','last_common')) or len(snapshot['recent'])>64:raise ValueError('PAC observer clock/history bounds')
+            if set(snapshot['missing_rotations'])!=set(self.families) or not set(snapshot['rotation'])<=set(self.families) or not set(snapshot['retention_incomplete'])<=set(self.families):raise ValueError('PAC observer family coverage')
+            for value in snapshot['missing_rotations'].values():integer(value)
+            if any(type(v) is not bool for v in snapshot['rotation'].values()):raise ValueError('PAC observer rotation disposition')
             self.state=copy.deepcopy(snapshot)
 
     def event(self,value):
@@ -281,13 +288,14 @@ class PacObservers:
 
     def common(self,update,*,final=False):
         if self.state['last_common']==update or (update%self.common_period and not final):return
-        sums=0.;tokens=0;complete=True
+        sums=0.;tokens=0;complete=True;families={}
         for f in self.families:
             result=self.observe([self.batches.probe_rows[i] for i in self.batches.probes[f]])
+            families[f]=None if result is None else dict(loss_sum=result['loss_sum'],tokens=result['tokens'])
             if result is None:complete=False
             else:sums+=result['loss_sum'];tokens+=result['tokens']
         self.state['loss_panels']+=1
-        self.event(dict(kind='common_loss',update=update,loss_sum=sums,tokens=tokens,complete=complete,kernel_credit=False))
+        self.event(dict(kind='common_loss',update=update,loss_sum=sums,tokens=tokens,complete=complete,families=families,kernel_credit=False))
         start=((update+self.common_period-1)//self.common_period*4)%len(self.families)
         selected=[self.families[(start+i)%len(self.families)] for i in range(min(4,len(self.families)))]
         for f in selected:

@@ -159,3 +159,15 @@ def test_acceptance_due_grade_is_not_committed_on_actual_optimizer_failure(tmp_p
         controller.run(state,result['ledger'],update=fail,save=lambda *a:None,seconds=300,max_updates=15)
     assert controller.policy.pending['grade']['anchor']==anchor
     assert controller.policy.review.snapshot()==before and controller.policy.updates==14
+
+
+def test_installed_restore_rejects_fabricated_counters_and_missing_observer_state(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_curriculum import PacController
+    batches,_=prepared(tmp_path);encoder,decoder=models()
+    def make(snapshot=None):return PacController(batches,encoder,decoder,device='cpu',seed=7,arm='C',cap=10000,observation_seconds=30,snapshot=snapshot)
+    baseline=make().snapshot()
+    for field,value in [('channels',dict(bandit=1,review=0,fallback=0)),('observed_seconds',float('nan')),('observations',-1)]:
+        bad=copy.deepcopy(baseline);bad[field]=value
+        with pytest.raises(ValueError):make(bad)
+    bad=copy.deepcopy(baseline);bad['observer']['loss_panels']=-1
+    with pytest.raises(ValueError):make(bad)

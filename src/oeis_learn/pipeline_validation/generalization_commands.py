@@ -258,10 +258,13 @@ def main(args,workspace,host_factory):
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh command output required')
     from .generalization_lifecycle import scope
     base,_,limits=load(workspace,args.manifest,getattr(args,'runtime',None))
+    storage=limits.get('storage')
     if limits.get('version')=='pac-runtime/v1':
-        return _execute(args,workspace,host_factory)
+        reserved=limits['envelope']['storage']
+        storage=dict(study_bytes=reserved['reserved_bytes'],checkpoint_bytes=reserved['reserved_bytes'],
+            shard_bytes=reserved['data_bytes']*reserved['data_copies'],raw_bytes=reserved['logs_bytes'],sharing_bytes=reserved['package_bytes'])
     try:
-        with scope(base,limits['storage'],extra_roots=(output,)):return _execute(args,workspace,host_factory)
+        with scope(base,storage,extra_roots=(output,)):return _execute(args,workspace,host_factory)
     except (Exception,KeyboardInterrupt) as exc:
         if not output.exists():raise
         from .generalization_lifecycle import invocation
@@ -299,7 +302,10 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
                 output=str((output/'preparation').relative_to(workspace)),operation='pac-prepare',
                 settings=dict(study=study,runtime=runtime),seconds=runtime['envelope']['preparation']['outer'],envelope=runtime['envelope']['preparation'])
             return finish(value)
-        require_pac_admission(study,runtime,args.operation)
+        if args.operation=='qualify':
+            from .generalization_qualification_io import produce
+            return finish(produce(host,workspace,output,images=runtime['images'],contract=runtime['identity']))
+        require_pac_admission(study,runtime,'train' if args.operation=='acceptance' else args.operation)
         if not args.qualification:raise ValueError('original compatible PAC qualification required')
         from .generalization_qualification_io import consume_original
         producer=confined(workspace,args.qualification)
@@ -315,6 +321,18 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
             research=runtime['purpose']=='research',feature_receipt=feature['qualification'] if runtime['purpose']=='research' else feature)
         if qualification['authority']['images']!=runtime['images'] or _document(producer,qualification['authority']['source_closure'])!=_document(base,runtime['source']):
             raise ValueError('PAC qualification image/source mismatch')
+        if args.operation=='acceptance':
+            if runtime['purpose']!='acceptance' or args.case!='pac-curriculum' or confined(workspace,args.inputs)!=base:
+                raise ValueError('explicit PAC acceptance case and bound input root required')
+            config=learner_config(study,runtime,plan['recipe'],'C',study['seed'],prepared=plan['training'])
+            config['pac']['cadence']='pac-acceptance/v1'
+            limits=runtime['envelope']['acceptance']
+            if limits['work']<5*config['seconds']:raise ValueError('acceptance must reserve all five fresh/paused/resumed learners')
+            value=project_and_invoke(host,runtime['images'][1],workspace,'learner',
+                {'training_targets':pac_training_refs(plan['training'],'C'),'verified_training_replay':[]},
+                source_roots={'training_targets':base},output=str((output/'acceptance').relative_to(workspace)),
+                operation='pac-acceptance',settings=dict(config=config),seconds=limits['outer'],gpu=True,envelope=limits)
+            return finish(value)
         if args.operation!='train':raise ValueError('PAC evaluation requires the scoped structural delivery adapter')
         if not args.arms or not args.seeds or len(set(args.arms))!=len(args.arms) or len(set(args.seeds))!=len(args.seeds):raise ValueError('explicit unique PAC arm/seed selection')
         configs=[learner_config(study,runtime,plan['recipe'],a,s,prepared=plan['training']) for a in args.arms for s in args.seeds]
@@ -326,13 +344,24 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
             if args.resume:
                 prior,pointer,refs=_resume_inputs(workspace,args.resume)
                 sources={r['path']:(prior,r) for r in refs}
+            settings=dict(config=config,resume=pointer,initializer=None)
+            if args.resume and prior.parts[-4:]==('role','private','learner','checkpoints'):
+                supervision=prior.parents[2]/'supervision'
+                if all((supervision/n).is_file() for n in ('process.json','cleanup.json')):
+                    proof={}
+                    for key in ('process','cleanup'):
+                        ref=reference(confined(supervision,key+'.json'),supervision)
+                        if ref['bytes']>64<<10 or ref['path'] in sources:raise ValueError('PAC recovery supervision size/path conflict')
+                        refs.append(ref);sources[ref['path']]=(supervision,ref);proof[key]=ref
+                    settings['resume_supervision']=proof
+            limits=runtime['envelope']['resume' if args.resume else 'learner']
             folder=output/('training-'+config['arm'])
             value=project_and_invoke(host,runtime['images'][1],workspace,'learner',
                 {'training_targets':pac_training_refs(prepared,config['arm']),'verified_training_replay':refs},
                 source_roots={'training_targets':base,'verified_training_replay':workspace},
                 artifact_sources={'verified_training_replay':sources},output=str(folder.relative_to(workspace)),
-                operation='train',settings=dict(config=config,resume=pointer,initializer=None),
-                seconds=runtime['envelope']['learner']['outer'],gpu=True,envelope=runtime['envelope']['learner'])
+                operation='train',settings=settings,
+                seconds=limits['outer'],gpu=True,envelope=limits)
             results.append(dict(arm=config['arm'],result=value))
             if value['status']!='PASS':return finish(dict(status=value['status'],runs=results))
         return finish(dict(status='PASS',runs=results))

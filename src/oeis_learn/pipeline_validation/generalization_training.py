@@ -187,6 +187,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     if set(config)-{'checkpoint_policy','pac'}!=required:raise ValueError('closed learner execution projection required')
     if config['device'] not in {'cpu','cuda'} or not 0<config['seconds'] or (pac is None and config['seconds']>21600):raise ValueError('explicit bounded learner device/time required')
     from .generalization_execution import verify_execution,bind_compatibility
+    if pac and config['device']=='cuda' and (not torch.version.hip or not torch.cuda.is_available()):raise RuntimeError('actual HIP required for PAC device work')
     execution_policy=verify_execution() if config['device']=='cuda' else None
     seconds=config['seconds'] if seconds is None else seconds
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')

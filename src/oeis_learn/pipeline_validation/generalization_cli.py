@@ -47,7 +47,7 @@ def register(commands):
             command.add_argument('--checkpoints',nargs='+',required=True)
             command.add_argument('--proposal-bank')
         if name=='acceptance':
-            command.add_argument('--case',required=True,choices=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'))
+            command.add_argument('--case',required=True,choices=('pac-curriculum','retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'))
             command.add_argument('--inputs',required=True)
 
 
@@ -136,7 +136,7 @@ def main(args,root,host_factory):
         if json.loads(path.read_text()).get('version') in {'generalization-acceptance-session/v1','generalization-acceptance-session/v2'}:
             from .generalization_session import main as session
             return session(args,root,host_factory)
-        if args.operation=='acceptance':raise ValueError('acceptance requires a frozen multi-case session manifest')
+        if args.operation=='acceptance' and json.loads(path.read_text()).get('version')!='PAC-screen/v1':raise ValueError('acceptance requires a frozen multi-case session manifest')
     if args.operation=='report':return report_main(args,root,host_factory)
     if args.operation=='verify-bundle':return verify_main(args,root,host_factory)
     from .generalization_commands import main as execute

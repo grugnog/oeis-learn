@@ -47,6 +47,7 @@ class PacController:
             self.policy=Policy.restore(snapshot['policy'],inventory=batches.inventory['identity'])
             if self.policy.cap!=cap or self.policy.arm!=arm or self.policy.seed!=seed:raise ValueError('PAC installed policy identity mismatch')
             self.observed_seconds=snapshot['observed_seconds'];self.observations=snapshot['observations'];self.channels=copy.deepcopy(snapshot['channels']);self.last_event=snapshot['last_event']
+        _counters(self.observed_seconds,self.observations,self.channels,{'bandit','review','fallback'},self.policy.updates)
         from .generalization_diagnostics import PacObservers
         self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None,acceptance=acceptance)
 
@@ -137,6 +138,7 @@ class PacFixedController:
         if snapshot:
             if set(snapshot)!={'version','observed_seconds','observations','channels','observer'} or snapshot['version']!='pac-fixed-controller/v1':raise ValueError('closed PAC fixed observer state')
             self.observed_seconds=snapshot['observed_seconds'];self.observations=snapshot['observations'];self.channels=copy.deepcopy(snapshot['channels'])
+        _counters(self.observed_seconds,self.observations,self.channels,{'fixed'},sum(self.channels.values()))
         self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None,acceptance=acceptance)
     def snapshot(self):
         return dict(version='pac-fixed-controller/v1',observed_seconds=self.observed_seconds,observations=self.observations,
@@ -206,3 +208,12 @@ def attach_semantic(controller,recipe,output,*,seed):
         finally:controller.observed_seconds+=time.monotonic()-started
         return result if controller.observed_seconds<=controller.allowance else None
     controller.observer.semantic=semantic
+
+
+def _counters(seconds,observations,channels,keys,updates):
+    from .identity import number
+    from oeis_learn.generalization.budgets import integer
+    number(seconds);integer(observations)
+    if set(channels)!=keys:raise ValueError('closed PAC channel counters')
+    for value in channels.values():integer(value)
+    if sum(channels.values())!=updates:raise ValueError('PAC channel/model clock mismatch')

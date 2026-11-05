@@ -87,3 +87,37 @@ def test_pac_model_operations_require_original_admission_before_launch():
     for operation in ('train','evaluate','replay'):
         with pytest.raises(ValueError,match='admission|unsupported'):
             require_pac_admission({},dict(purpose='research',prepared=None),operation)
+
+
+def test_pac_acceptance_routes_through_canonical_host_not_legacy_session(tmp_path,monkeypatch):
+    import json
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_cli as cli,generalization_commands as commands
+    (tmp_path/'study.json').write_text(json.dumps(dict(version='PAC-screen/v1')))
+    calls=[]
+    monkeypatch.setattr(commands,'main',lambda *a:calls.append(a) or 0)
+    args=SimpleNamespace(manifest='study.json',operation='acceptance')
+    assert cli.main(args,tmp_path,None)==0 and len(calls)==1
+
+
+def test_pac_source_closure_checks_installed_bytes_before_preparation(tmp_path):
+    import pytest
+    from tests.unit.test_generalization_execution import pac_setup
+    from tests.integration.test_generalization_recipes import pac_envelope
+    from oeis_learn.pipeline_validation.generalization_execution import bind_pac,validate_pac_execution,pac_budget_projection,POLICY_ID
+    from oeis_learn.pipeline_validation.identity import digest,write,seal
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.fresh.bigint_config import resolve
+    exp,control,profiles,_=pac_setup()
+    recipe=resolve(dict(version='bigint-bootstrap/v1'))
+    write(tmp_path/'recipe.json',recipe);write(tmp_path/'source.json',{'stale.py':digest('stale')})
+    exp.update(model=digest({k:v for k,v in recipe['model'].items() if k!='seed'}),optimizer=digest(recipe['learning']),
+               source=digest({'stale.py':digest('stale')}),backend=POLICY_ID,budget_graph=pac_budget_projection(pac_envelope()))
+    for profile in profiles.values():
+        for k in ('model','optimizer','backend'):profile[k]=exp[k]
+    runtime=dict(version='pac-runtime/v1',study='',purpose='acceptance',recipe=reference(tmp_path/'recipe.json',tmp_path),
+        source=reference(tmp_path/'source.json',tmp_path),images=[digest('cpu'),digest('gpu')],control=control,profiles=profiles,
+        preparation=None,prepared=None,envelope=pac_envelope(),feature=None,engine='podman')
+    exp,runtime=bind_pac(seal(exp),runtime)
+    with pytest.raises(ValueError,match='actual installed source'):
+        validate_pac_execution(tmp_path,exp,runtime)

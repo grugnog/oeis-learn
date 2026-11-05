@@ -101,6 +101,10 @@ def validate_pac_execution(root,experiment,runtime):
     if digest(source)!=experiment['source'] or source!=source_snapshot():raise ValueError('PAC actual installed source closure mismatch')
     if digest({k:v for k,v in recipe['model'].items() if k!='seed'})!=experiment['model'] or digest(recipe['learning'])!=experiment['optimizer']:
         raise ValueError('PAC actual model/optimizer recipe mismatch')
+    from .generalization_runtime import execution_refs
+    refs=execution_refs(root,experiment,runtime,preparation=runtime['preparation'] is not None)
+    actual_bytes=sum(ref['bytes'] for ref in {r['path']:r for r in refs}.values())
+    if actual_bytes>runtime['envelope']['storage']['data_bytes']:raise ValueError('PAC declared data storage is below actual input bytes')
     if runtime['prepared'] is None:
         if runtime['preparation'] is None:raise ValueError('PAC preparation authority required')
         from .generalization_preparation import validate_pac_preparation

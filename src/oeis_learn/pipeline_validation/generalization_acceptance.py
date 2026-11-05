@@ -61,7 +61,8 @@ def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import artifact_refs
     from oeis_learn.generalization.resources import PROOF_SECONDS
-    deadline=time.monotonic()+PROOF_SECONDS
+    envelope=runtime['envelope']['proof'] if runtime.get('version')=='pac-runtime/v1' else None
+    deadline=time.monotonic()+(envelope['outer'] if envelope else PROOF_SECONDS)
     sources=[];settings=[];origins={}
     for ordinal,(root,result) in enumerate(runs):
         parent=root/'checkpoints';pointer=result['checkpoint']
@@ -73,11 +74,11 @@ def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
         for ref in refs.values():
             projected=dict(ref,path=name+'/'+ref['path'])
             sources.append(projected);origins[projected['path']]=(parent,ref)
-        settings.append(dict(directory=name,compatibility=result['compatibility'],cap=study['budgets']['target_tokens'],checkpoint=pointer,roster=roster_ref))
+        settings.append(dict(directory=name,compatibility=result['compatibility'],cap=record['ledger']['cap'] if envelope else study['budgets']['target_tokens'],checkpoint=pointer,roster=roster_ref))
     return project_and_invoke(host,runtime['images'][0],workspace,'learner',
         {'training_targets':[],'verified_training_replay':sources},
         artifact_sources={'verified_training_replay':origins},
-        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=remaining_seconds(deadline))
+        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=remaining_seconds(deadline),**({'envelope':envelope} if envelope else {}))
 
 
 

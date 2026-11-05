@@ -67,6 +67,10 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
         # inside work, separate from the protected container cleanup allowance.
         computation_seconds-=min(30,computation_seconds/5)
     if envelope is not None:computation_seconds=envelope['work']+envelope['publication']
+    if envelope and operation=='train' and settings.get('config',{}).get('pac'):
+        frozen=settings['config']['seconds']
+        if computation_seconds<frozen:raise ValueError('PAC enclosing role clips cumulative learner budget')
+        computation_seconds=frozen
     if computation_seconds<=0:raise TimeoutError('role setup exhausted computation allowance')
     runtime=dict(settings=settings,operation=operation,seconds=computation_seconds,device='cuda' if gpu else 'cpu')
     diagnostic=('preparation' if role==Role.PREPARATION and operation in {'prepare','pac-prepare'} else
