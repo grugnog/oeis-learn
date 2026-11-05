@@ -439,3 +439,18 @@ reuse if the original producer identity is reproduced. Fixtures explicitly repor
 measured progress unavailable; production subprocess supervision emits 30-second
 heartbeats without calling elapsed time completed work. The archive remains
 PARTIAL when the fixture intentionally lacks real device/native proof closure.
+
+## T058–T061 — Structural analysis and reconstructible evidence
+
+The explicit 128-task adapter delegates certified family-macro/completion/paired
+counts and arm attribution to B, and reuses the original 011 count/envelope helpers
+without weakening their historical scope guards. It selects at least twelve
+available case/arm records deterministically, retains only permitted generated
+raw/parameterized/fitted sources and assignments, describes decoding/fitting versus
+continuation limitations and lists missing categories. Cases render as Markdown.
+
+Independent fixtures reconstruct every category's success/completion and macro
+fraction, optional C–D attribution and all token/example/update/time totals from a
+real verified archive. Missing history remains null, and single-seed results never
+select a winner or turn task resampling into seed uncertainty. Actual device or
+positive scientific results are not inferred from these fixture exports.
